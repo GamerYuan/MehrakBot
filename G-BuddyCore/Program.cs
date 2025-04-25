@@ -2,6 +2,7 @@
 
 using G_BuddyCore.Repositories;
 using G_BuddyCore.Services;
+using G_BuddyCore.Services.Genshin;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -43,12 +44,16 @@ internal class Program
         // Configure minimum log level from configuration if available
         if (builder.Configuration["Logging:MinimumLevel"] != null)
             builder.Logging.SetMinimumLevel(
-                Enum.Parse<LogLevel>(builder.Configuration["Logging:MinimumLevel"]));
+                Enum.Parse<LogLevel>(builder.Configuration["Logging:MinimumLevel"] ?? string.Empty));
+
+        builder.Services.AddSingleton<MongoDbService>();
+        builder.Services.AddScoped<UserRepository>();
+        builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<GameRecordApiService>();
+        builder.Services.AddSingleton<GenshinCharacterApiService>();
 
         builder.Services.AddDiscordGateway().AddApplicationCommands()
             .AddComponentInteractions<ModalInteraction, ModalInteractionContext>();
-        builder.Services.AddSingleton<MongoDbService>();
-        builder.Services.AddScoped<UserRepository>();
 
         var host = builder.Build();
 
