@@ -3,6 +3,7 @@
 using G_BuddyCore.Models;
 using G_BuddyCore.Repositories;
 using G_BuddyCore.Services;
+using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
@@ -14,10 +15,12 @@ namespace G_BuddyCore.Modules;
 public class AuthModalModule : ComponentInteractionModule<ModalInteractionContext>
 {
     private readonly UserRepository m_UserRespository;
+    private readonly ILogger<AuthModalModule> m_Logger;
 
-    public AuthModalModule(UserRepository userRespository)
+    public AuthModalModule(UserRepository userRespository, ILogger<AuthModalModule> logger)
     {
         m_UserRespository = userRespository;
+        m_Logger = logger;
     }
 
     [ComponentInteraction("authmodal")]
@@ -25,6 +28,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     {
         try
         {
+            m_Logger.LogInformation("Processing auth modal submission from user {UserId}", Context.User.Id);
+
             var user = await m_UserRespository.GetUserAsync(Context.User.Id);
             user ??= new UserModel
             {
@@ -41,22 +46,27 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
             {
+                m_Logger.LogWarning("User {UserId} provided invalid UID format", Context.User.Id);
                 responseMessage.Content = "Invalid UID!";
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
                 return;
             }
 
             user.LtUid = ltuid;
+            m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
             user.LToken = await Task.Run(() =>
                 CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"]));
 
             await m_UserRespository.CreateOrUpdateUserAsync(user);
+            m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
 
             responseMessage.Content = "Authenticated successfully";
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
         }
-        catch
+        catch (Exception ex)
         {
+            m_Logger.LogError(ex, "Error processing auth modal for user {UserId}", Context.User.Id);
+
             InteractionMessageProperties responseMessage = new()
             {
                 Content = "An error occurred",
