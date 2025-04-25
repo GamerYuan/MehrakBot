@@ -1,6 +1,10 @@
-﻿using G_BuddyCore.Models;
+﻿#region
+
+using G_BuddyCore.Models;
 using G_BuddyCore.Services;
 using MongoDB.Driver;
+
+#endregion
 
 namespace G_BuddyCore.Repositories;
 
@@ -20,6 +24,7 @@ public class UserRepository
 
     public async Task CreateOrUpdateUserAsync(UserModel user)
     {
+        user.Timestamp = DateTime.UtcNow;
         await m_Users.ReplaceOneAsync(
             u => u.Id == user.Id,
             user,
