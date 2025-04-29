@@ -1,8 +1,9 @@
 ﻿#region
 
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using G_BuddyCore.ApiResponseTypes.Genshin;
 
 #endregion
 
@@ -23,22 +24,19 @@ public class GenshinCharacterApiService : ICharacterApi
 
     public async Task<string> GetAllCharactersAsync(ulong uid, string ltoken)
     {
-        var gameRecordCard = await m_GameRecordApiService.GetGameRecordCardJsonAsync(uid, ltoken);
-        var node = gameRecordCard?["list"]?.AsArray().FirstOrDefault(x => (int)(x?["game_id"] ?? 0) == 2);
+        var gameRecordCard = await m_GameRecordApiService.GetUserDataAsync(uid, ltoken);
+        Console.WriteLine(gameRecordCard);
+        var node = gameRecordCard?.List.FirstOrDefault(x => x.GameId == 2);
 
         if (node == null) throw new Exception("Failed to get game record card");
         var payload = new CharacterListPayload
-        {
-            RoleId = node["game_role_id"]?.GetValue<string>() ?? string.Empty,
-            Server = node["region"]?.GetValue<string>() ?? string.Empty,
-            SortType = 1
-        };
+        (
+            node.GameRoleId,
+            node.Region,
+            1
+        );
         var httpClient = m_HttpClientFactory.CreateClient();
-        JsonSerializerOptions options = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-        };
-        var str = JsonSerializer.Serialize(payload, options);
+        var str = JsonSerializer.Serialize(payload);
 
         HttpRequestMessage request = new();
         request.Method = HttpMethod.Post;
@@ -46,17 +44,14 @@ public class GenshinCharacterApiService : ICharacterApi
         request.Headers.Add("X-Rpc-Language", "en-us");
         request.RequestUri = new Uri($"{BaseUrl}/character/list");
         request.Content =
-            new StringContent(JsonSerializer.Serialize(payload, options), Encoding.UTF8, "application/json");
+            new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
         var response = await httpClient.SendAsync(request);
-        var json = (await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync()))?.AsObject();
-        var data = json?["data"];
-        if (data?["list"] == null) throw new JsonException("Failed to deserialize response");
+        var json = await response.Content.ReadFromJsonAsync<CharacterListApiResponse>();
+        var data = json?.Data;
+        if (data?.List == null) throw new JsonException("Failed to deserialize response");
 
-        var entries = data["list"]?.AsArray();
-        if (entries == null) throw new JsonException("Failed to deserialize response");
-
-        var characterList = string.Join(", ", entries.Select(x => x?["name"]?.ToString() ?? string.Empty));
+        var characterList = string.Join(", ", data.List.Select(x => x.Name.ToString()));
 
         return characterList;
     }

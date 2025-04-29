@@ -6,6 +6,14 @@ using System.Text.Json.Serialization;
 
 namespace G_BuddyCore.ApiResponseTypes.Genshin;
 
+public record CharacterListApiResponse(
+    [property: JsonPropertyName("retcode")]
+    int Retcode,
+    [property: JsonPropertyName("message")]
+    string Message,
+    [property: JsonPropertyName("data")] CharacterListData Data
+);
+
 public record CharacterListData(
     [property: JsonPropertyName("list")] IReadOnlyList<BasicCharacterData> List
 );

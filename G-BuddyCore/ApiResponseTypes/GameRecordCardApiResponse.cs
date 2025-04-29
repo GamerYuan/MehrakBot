@@ -6,7 +6,15 @@ using System.Text.Json.Serialization;
 
 namespace G_BuddyCore.ApiResponseTypes;
 
-public abstract record UserData(
+public record GameRecordCardApiResponse(
+    [property: JsonPropertyName("retcode")]
+    int Retcode,
+    [property: JsonPropertyName("message")]
+    string Message,
+    [property: JsonPropertyName("data")] UserData Data
+);
+
+public record UserData(
     [property: JsonPropertyName("list")] IReadOnlyList<GameData> List
 );
 

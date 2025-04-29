@@ -1,7 +1,7 @@
 ﻿#region
 
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Net.Http.Json;
+using G_BuddyCore.ApiResponseTypes;
 
 #endregion
 
@@ -19,18 +19,7 @@ public class GameRecordApiService
         m_HttpClientFactory = httpClientFactory;
     }
 
-    public async Task<string> GetGameRecordCardAsync(ulong uid, string ltoken)
-    {
-        var gameRecordCard = await GetGameRecordCardJsonAsync(uid, ltoken);
-        if (gameRecordCard == null) throw new JsonException("Failed to deserialize response");
-
-        var characterList = string.Join(", ", gameRecordCard["list"]?.AsArray()
-            .Select(x => x?["name"]?.ToString() ?? string.Empty) ?? []);
-
-        return characterList;
-    }
-
-    public async Task<JsonNode?> GetGameRecordCardJsonAsync(ulong uid, string ltoken)
+    public async Task<UserData?> GetUserDataAsync(ulong uid, string ltoken)
     {
         var httpClient = m_HttpClientFactory.CreateClient();
         HttpRequestMessage request = new();
@@ -41,7 +30,7 @@ public class GameRecordApiService
         request.RequestUri = new Uri($"{ApiUrl}?uid={uid}");
 
         var response = await httpClient.SendAsync(request);
-        var json = (await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync()))?.AsObject();
-        return json?["data"];
+        var json = await response.Content.ReadFromJsonAsync<GameRecordCardApiResponse>();
+        return json?.Data;
     }
 }
