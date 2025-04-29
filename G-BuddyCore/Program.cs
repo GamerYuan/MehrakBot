@@ -46,15 +46,24 @@ internal class Program
             builder.Logging.SetMinimumLevel(
                 Enum.Parse<LogLevel>(builder.Configuration["Logging:MinimumLevel"] ?? string.Empty));
 
+        // Database Services
         builder.Services.AddSingleton<MongoDbService>();
         builder.Services.AddScoped<UserRepository>();
+
+        // Api Services
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<GameRecordApiService>();
         builder.Services.AddSingleton<GenshinCharacterApiService>();
-        builder.Services.AddSingleton<CookieService>();
 
+        // LToken Services
+        builder.Services.AddMemoryCache();
+        builder.Services.AddSingleton<CookieService>();
+        builder.Services.AddSingleton<TokenCacheService>();
+
+        // NetCord Services
         builder.Services.AddDiscordGateway().AddApplicationCommands()
-            .AddComponentInteractions<ModalInteraction, ModalInteractionContext>();
+            .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
+            .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>();
 
         var host = builder.Build();
 
