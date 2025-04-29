@@ -22,17 +22,12 @@ public class GenshinCharacterApiService : ICharacterApi
         m_GameRecordApiService = gameRecordApiService;
     }
 
-    public async Task<string> GetAllCharactersAsync(ulong uid, string ltoken)
+    public async Task<string> GetAllCharactersAsync(ulong uid, string ltoken, string gameUid, string region)
     {
-        var gameRecordCard = await m_GameRecordApiService.GetUserDataAsync(uid, ltoken);
-        Console.WriteLine(gameRecordCard);
-        var node = gameRecordCard?.List.FirstOrDefault(x => x.GameId == 2);
-
-        if (node == null) throw new Exception("Failed to get game record card");
         var payload = new CharacterListPayload
         (
-            node.GameRoleId,
-            node.Region,
+            gameUid,
+            region,
             1
         );
         var httpClient = m_HttpClientFactory.CreateClient();
@@ -56,12 +51,14 @@ public class GenshinCharacterApiService : ICharacterApi
         return characterList;
     }
 
-    public Task<string> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string characterName)
+    public Task<string> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid, string region,
+        string characterName)
     {
         throw new NotImplementedException();
     }
 
-    public Task<string> GetCharacterDataFromIdAsync(ulong uid, string ltoken, uint characterId)
+    public Task<string> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid, string region,
+        uint characterId)
     {
         throw new NotImplementedException();
     }
