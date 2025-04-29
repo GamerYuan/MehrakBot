@@ -16,11 +16,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 {
     private readonly UserRepository m_UserRespository;
     private readonly ILogger<AuthModalModule> m_Logger;
+    private readonly CookieService m_CookieService;
 
-    public AuthModalModule(UserRepository userRespository, ILogger<AuthModalModule> logger)
+    public AuthModalModule(UserRepository userRespository, ILogger<AuthModalModule> logger, CookieService cookieService)
     {
         m_UserRespository = userRespository;
         m_Logger = logger;
+        m_CookieService = cookieService;
     }
 
     [ComponentInteraction("authmodal")]
@@ -55,7 +57,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             user.LtUid = ltuid;
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
             user.LToken = await Task.Run(() =>
-                CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"]));
+                m_CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"]));
 
             await m_UserRespository.CreateOrUpdateUserAsync(user);
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);

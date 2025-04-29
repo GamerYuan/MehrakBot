@@ -51,6 +51,7 @@ internal class Program
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<GameRecordApiService>();
         builder.Services.AddSingleton<GenshinCharacterApiService>();
+        builder.Services.AddSingleton<CookieService>();
 
         builder.Services.AddDiscordGateway().AddApplicationCommands()
             .AddComponentInteractions<ModalInteraction, ModalInteractionContext>();

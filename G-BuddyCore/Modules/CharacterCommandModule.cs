@@ -19,13 +19,15 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<CharacterCommandModule> m_Logger;
     private readonly GenshinCharacterApiService m_GenshinApi;
+    private readonly CookieService m_CookieService;
 
     public CharacterCommandModule(UserRepository userRepository, ILogger<CharacterCommandModule> logger,
-        GenshinCharacterApiService genshinApi)
+        GenshinCharacterApiService genshinApi, CookieService cookieService)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;
         m_GenshinApi = genshinApi;
+        m_CookieService = cookieService;
     }
 
     [SlashCommand("character", "Get character card")]
@@ -45,7 +47,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 return;
             }
 
-            var ltoken = CookieService.DecryptCookie(user.LToken, passphrase);
+            var ltoken = m_CookieService.DecryptCookie(user.LToken, passphrase);
             var characterList = await m_GenshinApi.GetAllCharactersAsync(user.LtUid, ltoken);
             if (string.IsNullOrEmpty(characterList))
             {

@@ -8,16 +8,16 @@ using Microsoft.Extensions.Logging;
 
 namespace G_BuddyCore.Services;
 
-public static class CookieService
+public class CookieService
 {
-    private static readonly ILogger SLogger;
+    private readonly ILogger SLogger;
 
-    static CookieService()
+    public CookieService()
     {
         // Create a logger factory and logger for this static class
         var loggerFactory = LoggerFactory.Create(builder =>
             builder.AddConsole());
-        SLogger = loggerFactory.CreateLogger(typeof(CookieService));
+        SLogger = loggerFactory.CreateLogger<CookieService>();
     }
 
     // --- Configuration Constants ---
@@ -44,7 +44,7 @@ public static class CookieService
     // --- Calculated constant for validation ---
     private const int MinCombinedDataLengthBytes = SaltSizeBytes + NonceSizeBytes + TagSizeBytes;
 
-    public static string EncryptCookie(string cookie, string passphrase)
+    public string EncryptCookie(string cookie, string passphrase)
     {
         try
         {
@@ -85,7 +85,7 @@ public static class CookieService
         }
     }
 
-    public static string DecryptCookie(string encryptedCookie, string passphrase)
+    public string DecryptCookie(string encryptedCookie, string passphrase)
     {
         try
         {
