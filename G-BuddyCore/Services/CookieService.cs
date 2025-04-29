@@ -10,14 +10,14 @@ namespace G_BuddyCore.Services;
 
 public static class CookieService
 {
-    private static readonly ILogger s_Logger;
+    private static readonly ILogger SLogger;
 
     static CookieService()
     {
         // Create a logger factory and logger for this static class
         var loggerFactory = LoggerFactory.Create(builder =>
             builder.AddConsole());
-        s_Logger = loggerFactory.CreateLogger(typeof(CookieService));
+        SLogger = loggerFactory.CreateLogger(typeof(CookieService));
     }
 
     // --- Configuration Constants ---
@@ -48,7 +48,7 @@ public static class CookieService
     {
         try
         {
-            s_Logger.LogDebug("Starting cookie encryption");
+            SLogger.LogDebug("Starting cookie encryption");
 
             byte[] salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
             byte[] nonce = RandomNumberGenerator.GetBytes(NonceSizeBytes);
@@ -75,12 +75,12 @@ public static class CookieService
             Array.Clear(key, 0, key.Length);
             Array.Clear(cookieBytes, 0, cookieBytes.Length);
 
-            s_Logger.LogDebug("Cookie encryption completed successfully");
+            SLogger.LogDebug("Cookie encryption completed successfully");
             return combinedDataBase64;
         }
         catch (Exception ex)
         {
-            s_Logger.LogError(ex, "Error during cookie encryption");
+            SLogger.LogError(ex, "Error during cookie encryption");
             throw;
         }
     }
@@ -89,7 +89,7 @@ public static class CookieService
     {
         try
         {
-            s_Logger.LogDebug("Starting cookie decryption");
+            SLogger.LogDebug("Starting cookie decryption");
 
             byte[] payload = Convert.FromBase64String(encryptedCookie);
             byte[] salt = new byte[SaltSizeBytes];
@@ -97,7 +97,7 @@ public static class CookieService
 
             if (payload.Length < MinCombinedDataLengthBytes)
             {
-                s_Logger.LogWarning("Decryption failed: payload too short");
+                SLogger.LogWarning("Decryption failed: payload too short");
                 return string.Empty;
             }
 
@@ -112,7 +112,7 @@ public static class CookieService
             // --- VALIDATE AND SPLIT Combined Ciphertext + Tag ---
             if (combinedCiphertextWithTag.Length < TagSizeBytes)
             {
-                s_Logger.LogWarning("Decryption failed: invalid data format");
+                SLogger.LogWarning("Decryption failed: invalid data format");
                 return string.Empty;
             }
 
@@ -146,12 +146,12 @@ public static class CookieService
             Array.Clear(decryptedBytes, 0, decryptedBytes.Length);
             Array.Clear(key, 0, key.Length);
 
-            s_Logger.LogDebug("Cookie decryption completed successfully");
+            SLogger.LogDebug("Cookie decryption completed successfully");
             return plainTextCookie;
         }
         catch (Exception ex)
         {
-            s_Logger.LogError(ex, "Error during cookie decryption");
+            SLogger.LogError(ex, "Error during cookie decryption");
             throw;
         }
     }
