@@ -143,7 +143,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         if (await AuthUser())
         {
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(CharacterServerSelectionModule.ServerSelection);
+            await Context.Interaction.SendFollowupMessageAsync(CharacterSelectionModule.ServerSelection);
         }
     }
 

@@ -1,8 +1,15 @@
-﻿namespace G_BuddyCore.Services;
+﻿#region
+
+using G_BuddyCore.ApiResponseTypes.Genshin;
+
+#endregion
+
+namespace G_BuddyCore.Services;
 
 public interface ICharacterApi
 {
-    Task<string> GetAllCharactersAsync(ulong uid, string ltoken, string gameUid, string region);
+    Task<IEnumerable<BasicCharacterData>>
+        GetAllCharactersAsync(ulong uid, string ltoken, string gameUid, string region);
 
     Task<string> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid, string region,
         string characterName);

@@ -41,7 +41,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal));
             else
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Message(CharacterServerSelectionModule.ServerSelection));
+                    InteractionCallback.Message(CharacterSelectionModule.ServerSelection));
         }
         catch (Exception e)
         {
@@ -56,7 +56,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
     }
 }
 
-public class CharacterServerSelectionModule : ComponentInteractionModule<StringMenuInteractionContext>
+public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInteractionContext>
 {
     private static readonly StringMenuSelectOptionProperties[] Options =
     [
@@ -67,7 +67,8 @@ public class CharacterServerSelectionModule : ComponentInteractionModule<StringM
     ];
 
     public static InteractionMessageProperties ServerSelection =>
-        new InteractionMessageProperties().WithFlags(MessageFlags.IsComponentsV2)
+        new InteractionMessageProperties()
+            .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
             .AddComponents(new TextDisplayProperties("Select your server!"))
             .AddComponents(new StringMenuProperties("server_select", Options)
                 .WithPlaceholder("Select your server"));
@@ -75,16 +76,19 @@ public class CharacterServerSelectionModule : ComponentInteractionModule<StringM
     private readonly TokenCacheService m_TokenCacheService;
     private readonly GenshinCharacterApiService m_GenshinApiService;
     private readonly GameRecordApiService m_GameRecordApiService;
-    private readonly ILogger<CharacterServerSelectionModule> m_Logger;
+    private readonly PaginationCacheService m_PaginationCacheService;
+    private readonly ILogger<CharacterSelectionModule> m_Logger;
 
-    public CharacterServerSelectionModule(TokenCacheService tokenCacheService,
+    public CharacterSelectionModule(TokenCacheService tokenCacheService,
         GenshinCharacterApiService genshinApiService,
         GameRecordApiService gameRecordApi,
-        ILogger<CharacterServerSelectionModule> logger)
+        PaginationCacheService paginationCacheService,
+        ILogger<CharacterSelectionModule> logger)
     {
         m_TokenCacheService = tokenCacheService;
         m_GenshinApiService = genshinApiService;
         m_GameRecordApiService = gameRecordApi;
+        m_PaginationCacheService = paginationCacheService;
         m_Logger = logger;
     }
 
@@ -116,12 +120,85 @@ public class CharacterServerSelectionModule : ComponentInteractionModule<StringM
             return;
         }
 
-        var characters = await m_GenshinApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region);
-        var deleteTask = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
-        var followuptask = Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-            .WithFlags(MessageFlags.IsComponentsV2)
-            .WithComponents([new TextDisplayProperties($"Characters: {characters}")]));
+        var characters = (await m_GenshinApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToArray();
+        m_PaginationCacheService.StoreItems(Context.User.Id, characters);
+        var totalPages = (int)Math.Ceiling((double)characters.Length / 25) - 1;
 
-        await Task.WhenAll(deleteTask, followuptask);
+        await ModifyResponseAsync(m => m.WithFlags(MessageFlags.IsComponentsV2).WithComponents(
+            CharacterSelectPagination.CreateComponents(0, totalPages
+                , m_PaginationCacheService, Context.User.Id)));
+    }
+
+    [ComponentInteraction("character_select")]
+    public async Task CharacterSelect()
+    {
+        await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
+        InteractionMessageProperties properties = new();
+        properties.WithFlags(MessageFlags.IsComponentsV2);
+        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers([Context.User.Id]));
+        properties.AddComponents(
+            new TextDisplayProperties($"<@{Context.User.Id}> You have selected {Context.SelectedValues[0]}!"));
+
+        var deleteTask = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
+        var followupTask = Context.Interaction.SendFollowupMessageAsync(properties);
+
+        await Task.WhenAll(deleteTask, followupTask);
+    }
+}
+
+public class CharacterSelectPagination : ComponentInteractionModule<ButtonInteractionContext>
+{
+    private readonly PaginationCacheService m_PaginationCacheService;
+    private readonly ILogger<CharacterSelectPagination> m_Logger;
+
+    public CharacterSelectPagination(PaginationCacheService paginationCacheService,
+        ILogger<CharacterSelectPagination> logger)
+    {
+        m_PaginationCacheService = paginationCacheService;
+        m_Logger = logger;
+    }
+
+    [ComponentInteraction("character_select")]
+    public InteractionCallback CharacterPagination(int page, int totalPages)
+    {
+        m_Logger.LogInformation("User {UserId} navigating to character page {Page}/{TotalPages}",
+            Context.User.Id, page + 1, totalPages + 1);
+
+        return InteractionCallback.ModifyMessage(m => m
+            .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+            .WithComponents(CreateComponents(page, totalPages, m_PaginationCacheService, Context.User.Id)));
+    }
+
+    public static IComponentProperties[] CreateComponents(int page, int totalPages,
+        PaginationCacheService paginationCacheService, ulong userId)
+    {
+        var components = new List<IComponentProperties>
+            { new TextDisplayProperties($"Select your character! (Page {page + 1}/{totalPages + 1})") };
+
+        var items = paginationCacheService.GetPageItems(userId, page).ToArray();
+
+        if (items.Length == 0)
+        {
+            components.Add(new TextDisplayProperties("No characters available. Please try again."));
+            return components.ToArray();
+        }
+
+        var menuOptions = items.Select(x =>
+            new StringMenuSelectOptionProperties(x.Name, x.Id.ToString()!)).ToArray();
+
+        components.Add(new StringMenuProperties("character_select", menuOptions));
+
+        var actionRow = new ActionRowProperties();
+        components.Add(actionRow);
+
+        if (page > 0)
+            actionRow.Add(new ButtonProperties($"character_select:{page - 1}:{totalPages}", "Previous Page",
+                ButtonStyle.Primary));
+
+        if (page < totalPages)
+            actionRow.Add(new ButtonProperties($"character_select:{page + 1}:{totalPages}", "Next Page",
+                ButtonStyle.Primary));
+
+        return components.ToArray();
     }
 }

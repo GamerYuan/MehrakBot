@@ -60,10 +60,14 @@ internal class Program
         builder.Services.AddSingleton<CookieService>();
         builder.Services.AddSingleton<TokenCacheService>();
 
+        // Other Services
+        builder.Services.AddSingleton<PaginationCacheService>();
+
         // NetCord Services
         builder.Services.AddDiscordGateway().AddApplicationCommands()
             .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
-            .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>();
+            .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
+            .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
         var host = builder.Build();
 

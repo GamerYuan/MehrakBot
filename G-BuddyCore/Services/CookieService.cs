@@ -10,14 +10,11 @@ namespace G_BuddyCore.Services;
 
 public class CookieService
 {
-    private readonly ILogger SLogger;
+    private readonly ILogger<CookieService> m_Logger;
 
-    public CookieService()
+    public CookieService(ILogger<CookieService> logger)
     {
-        // Create a logger factory and logger for this static class
-        var loggerFactory = LoggerFactory.Create(builder =>
-            builder.AddConsole());
-        SLogger = loggerFactory.CreateLogger<CookieService>();
+        m_Logger = logger;
     }
 
     // --- Configuration Constants ---
@@ -48,13 +45,15 @@ public class CookieService
     {
         try
         {
-            SLogger.LogDebug("Starting cookie encryption");
+            m_Logger.LogDebug("Starting cookie encryption");
 
             byte[] salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
             byte[] nonce = RandomNumberGenerator.GetBytes(NonceSizeBytes);
             byte[] cookieBytes = Encoding.UTF8.GetBytes(cookie);
             byte[] encryptedCookie = new byte[cookieBytes.Length];
             byte[] tag = new byte[TagSizeBytes];
+
+            m_Logger.LogTrace("Generated encryption salt and nonce");
 
             byte[] key = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(passphrase), salt,
                 Pbkdf2Iterations, Pbkdf2HashAlgorithm, KeySizeBytes);
@@ -63,6 +62,8 @@ public class CookieService
             {
                 aesGcm.Encrypt(nonce, cookieBytes, encryptedCookie, tag);
             }
+
+            m_Logger.LogTrace("Encryption completed, preparing result");
 
             byte[] combinedCiphertext = new byte[encryptedCookie.Length + tag.Length];
             Buffer.BlockCopy(encryptedCookie, 0, combinedCiphertext, 0, encryptedCookie.Length);
@@ -75,12 +76,12 @@ public class CookieService
             Array.Clear(key, 0, key.Length);
             Array.Clear(cookieBytes, 0, cookieBytes.Length);
 
-            SLogger.LogDebug("Cookie encryption completed successfully");
+            m_Logger.LogDebug("Cookie encryption completed successfully");
             return combinedDataBase64;
         }
         catch (Exception ex)
         {
-            SLogger.LogError(ex, "Error during cookie encryption");
+            m_Logger.LogError(ex, "Error during cookie encryption");
             throw;
         }
     }
@@ -89,15 +90,28 @@ public class CookieService
     {
         try
         {
-            SLogger.LogDebug("Starting cookie decryption");
+            m_Logger.LogDebug("Starting cookie decryption");
 
-            byte[] payload = Convert.FromBase64String(encryptedCookie);
+            byte[] payload;
+            try
+            {
+                payload = Convert.FromBase64String(encryptedCookie);
+                m_Logger.LogTrace("Successfully decoded Base64 encrypted cookie data");
+            }
+            catch (FormatException ex)
+            {
+                m_Logger.LogWarning(ex, "Invalid Base64 format in encrypted cookie");
+                throw;
+            }
+
             byte[] salt = new byte[SaltSizeBytes];
             byte[] nonce = new byte[NonceSizeBytes];
 
             if (payload.Length < MinCombinedDataLengthBytes)
             {
-                SLogger.LogWarning("Decryption failed: payload too short");
+                m_Logger.LogWarning(
+                    "Decryption failed: payload too short ({ActualLength} bytes, expected at least {MinLength} bytes)",
+                    payload.Length, MinCombinedDataLengthBytes);
                 return string.Empty;
             }
 
@@ -112,9 +126,11 @@ public class CookieService
             // --- VALIDATE AND SPLIT Combined Ciphertext + Tag ---
             if (combinedCiphertextWithTag.Length < TagSizeBytes)
             {
-                SLogger.LogWarning("Decryption failed: invalid data format");
+                m_Logger.LogWarning("Decryption failed: invalid data format (ciphertext with tag too short)");
                 return string.Empty;
             }
+
+            m_Logger.LogTrace("Extracted components from encrypted data for decryption");
 
             // Extract Tag (last TagSizeBytes bytes of the combinedCiphertextWithTag)
             byte[] tag = new byte[TagSizeBytes];
@@ -135,9 +151,26 @@ public class CookieService
 
             byte[] decryptedBytes = new byte[ciphertext.Length];
 
-            using (var aesGcm = new AesGcm(key, TagSizeBytes)) // Pass tag size if required by .NET version
+            try
             {
-                aesGcm.Decrypt(nonce, ciphertext, tag, decryptedBytes);
+                using (var aesGcm = new AesGcm(key, TagSizeBytes))
+                {
+                    aesGcm.Decrypt(nonce, ciphertext, tag, decryptedBytes);
+                }
+
+                m_Logger.LogTrace("AES-GCM decryption successful");
+            }
+            catch (AuthenticationTagMismatchException ex)
+            {
+                m_Logger.LogWarning(ex, "Authentication tag mismatch during decryption - likely wrong passphrase");
+                Array.Clear(key, 0, key.Length);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogError(ex, "Unexpected error during AES-GCM decryption");
+                Array.Clear(key, 0, key.Length);
+                throw;
             }
 
             string plainTextCookie = Encoding.UTF8.GetString(decryptedBytes);
@@ -146,12 +179,12 @@ public class CookieService
             Array.Clear(decryptedBytes, 0, decryptedBytes.Length);
             Array.Clear(key, 0, key.Length);
 
-            SLogger.LogDebug("Cookie decryption completed successfully");
+            m_Logger.LogDebug("Cookie decryption completed successfully");
             return plainTextCookie;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!(ex is AuthenticationTagMismatchException || ex is FormatException))
         {
-            SLogger.LogError(ex, "Error during cookie decryption");
+            m_Logger.LogError(ex, "Error during cookie decryption");
             throw;
         }
     }
