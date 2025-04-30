@@ -1,7 +1,5 @@
 ﻿#region
 
-using System.Security.Cryptography;
-using System.Text.Json;
 using G_BuddyCore.Repositories;
 using G_BuddyCore.Services;
 using G_BuddyCore.Services.Genshin;
@@ -32,73 +30,22 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
     }
 
     [SlashCommand("character", "Get character card")]
-    public async Task CharacterCommand([SlashCommandParameter(Name = "passphrase")] string passphrase)
+    public async Task CharacterCommand()
     {
         try
         {
-            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+            m_Logger.LogInformation("User {UserId} used the character command", Context.User.Id);
 
-            if (user == null)
-            {
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("No profile found. Please authenticate your account first.")
-                    ])
-                );
-                return;
-            }
-
-            var ltoken = m_CookieService.DecryptCookie(user.LToken, passphrase);
-            if (ltoken == string.Empty)
-            {
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("Invalid passphrase. Please try again.")
-                    ])
-                );
-                return;
-            }
-
-            m_TokenCacheService.AddCacheEntry(Context.User.Id, user.LtUid, ltoken);
-
-            StringMenuSelectOptionProperties[] options =
-            [
-                new("Asia", "os_asia"),
-                new("Europe", "os_euro"),
-                new("America", "os_usa"),
-                new("TW/HK/MO", "os_cht")
-            ];
-
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([
-                    new TextDisplayProperties("Select your server!"),
-                    new StringMenuProperties("server_select", options)
-                    {
-                        Placeholder = "Select your server"
-                    }
-                ]));
-        }
-        catch (AuthenticationTagMismatchException)
-        {
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([
-                    new TextDisplayProperties("Invalid passphrase. Please try again.")
-                ]));
-        }
-        catch (JsonException)
-        {
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([
-                    new TextDisplayProperties("Invalid token. Please setup your token again.")
-                ]));
+            if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var _) ||
+                !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var _))
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal));
+            else
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.Message(CharacterServerSelectionModule.ServerSelection));
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e.ToString());
+            m_Logger.LogError(e, "Error processing character command for user {UserId}", Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .WithComponents([
@@ -111,6 +58,20 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
 
 public class CharacterServerSelectionModule : ComponentInteractionModule<StringMenuInteractionContext>
 {
+    private static readonly StringMenuSelectOptionProperties[] Options =
+    [
+        new("Asia", "os_asia"),
+        new("Europe", "os_euro"),
+        new("America", "os_usa"),
+        new("TW/HK/MO", "os_cht")
+    ];
+
+    public static InteractionMessageProperties ServerSelection =>
+        new InteractionMessageProperties().WithFlags(MessageFlags.IsComponentsV2)
+            .AddComponents(new TextDisplayProperties("Select your server!"))
+            .AddComponents(new StringMenuProperties("server_select", Options)
+                .WithPlaceholder("Select your server"));
+
     private readonly TokenCacheService m_TokenCacheService;
     private readonly GenshinCharacterApiService m_GenshinApiService;
     private readonly GameRecordApiService m_GameRecordApiService;
