@@ -38,10 +38,18 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
 
             if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var _) ||
                 !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var _))
+            {
+                m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal));
+            }
             else
+            {
+                m_Logger.LogInformation("User {UserId} is already authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Message(CharacterSelectionModule.ServerSelection));
+                    InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+                await Context.Interaction.SendFollowupMessageAsync(
+                    CharacterSelectionModule.ServerSelection);
+            }
         }
         catch (Exception e)
         {
@@ -189,7 +197,6 @@ public class CharacterSelectPagination : ComponentInteractionModule<ButtonIntera
         components.Add(new StringMenuProperties("character_select", menuOptions));
 
         var actionRow = new ActionRowProperties();
-        components.Add(actionRow);
 
         if (page > 0)
             actionRow.Add(new ButtonProperties($"character_select:{page - 1}:{totalPages}", "Previous Page",
@@ -199,6 +206,7 @@ public class CharacterSelectPagination : ComponentInteractionModule<ButtonIntera
             actionRow.Add(new ButtonProperties($"character_select:{page + 1}:{totalPages}", "Next Page",
                 ButtonStyle.Primary));
 
+        if (actionRow.Any()) components.Add(actionRow);
         return components.ToArray();
     }
 }

@@ -71,7 +71,7 @@ public class GenshinCharacterApiService : ICharacterApi
             m_Logger.LogInformation("Successfully retrieved {CharacterCount} characters for user {Uid}",
                 data.List.Count, uid);
 
-            return data.List;
+            return data.List.OrderBy(x => x.Name);
         }
         catch (Exception ex) when (ex is not JsonException)
         {
