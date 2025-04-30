@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -31,66 +32,101 @@ public class GenshinCharacterApiService : ICharacterApi
     public async Task<IEnumerable<BasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken, string gameUid,
         string region)
     {
-        try
+        m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
+            uid, region, gameUid);
+
+        var payload = new CharacterListPayload
+        (
+            gameUid,
+            region,
+            1
+        );
+        var httpClient = m_HttpClientFactory.CreateClient();
+
+        HttpRequestMessage request = new();
+        request.Method = HttpMethod.Post;
+        request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
+        request.Headers.Add("X-Rpc-Language", "en-us");
+        request.RequestUri = new Uri($"{BaseUrl}/character/list");
+        request.Content =
+            new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+        m_Logger.LogDebug("Sending character list request to {Endpoint}", request.RequestUri);
+        var response = await httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+            m_Logger.LogWarning("Character list API returned non-success status code: {StatusCode}",
+                response.StatusCode);
+
+        var json = await response.Content.ReadFromJsonAsync<CharacterListApiResponse>();
+        var data = json?.Data;
+
+        if (data?.List == null)
         {
-            m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-
-            var payload = new CharacterListPayload
-            (
-                gameUid,
-                region,
-                1
-            );
-            var httpClient = m_HttpClientFactory.CreateClient();
-
-            HttpRequestMessage request = new();
-            request.Method = HttpMethod.Post;
-            request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
-            request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{BaseUrl}/character/list");
-            request.Content =
-                new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-            m_Logger.LogDebug("Sending character list request to {Endpoint}", request.RequestUri);
-            var response = await httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
-                m_Logger.LogWarning("Character list API returned non-success status code: {StatusCode}",
-                    response.StatusCode);
-
-            var json = await response.Content.ReadFromJsonAsync<CharacterListApiResponse>();
-            var data = json?.Data;
-
-            if (data?.List == null)
-            {
-                m_Logger.LogError("Failed to deserialize character list response for user {Uid}", uid);
-                throw new JsonException("Failed to deserialize response");
-            }
-
-            m_Logger.LogInformation("Successfully retrieved {CharacterCount} characters for user {Uid}",
-                data.List.Count, uid);
-
-            return data.List.OrderBy(x => x.Name);
+            m_Logger.LogError("Failed to deserialize character list response for user {Uid}", uid);
+            throw new JsonException("Failed to deserialize response");
         }
-        catch (Exception ex) when (ex is not JsonException)
-        {
-            m_Logger.LogError(ex, "Error retrieving character list for user {Uid} on {Region}", uid, region);
-            throw;
-        }
+
+        m_Logger.LogInformation("Successfully retrieved {CharacterCount} characters for user {Uid}",
+            data.List.Count, uid);
+
+        return data.List.OrderBy(x => x.Name);
     }
 
-    public Task<string> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid, string region,
+    public Task<CharacterDetail> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid, string region,
         string characterName)
     {
-        m_Logger.LogWarning("GetCharacterDataFromNameAsync not implemented");
         throw new NotImplementedException();
     }
 
-    public Task<string> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid, string region,
+    public async Task<string> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid, string region,
         uint characterId)
     {
-        m_Logger.LogWarning("GetCharacterDataFromIdAsync not implemented");
-        throw new NotImplementedException();
+        m_Logger.LogInformation(
+            "Retrieving character data for {CharacterId} for user {Uid} on {Region} server (game UID: {GameUid})",
+            characterId, uid, region, gameUid);
+
+        var payload = new CharacterDetailPayload
+        (
+            gameUid,
+            region,
+            new ReadOnlyCollection<uint>([characterId])
+        );
+        var httpClient = m_HttpClientFactory.CreateClient();
+
+        HttpRequestMessage request = new();
+        request.Method = HttpMethod.Post;
+        request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
+        request.Headers.Add("X-Rpc-Language", "en-us");
+        request.RequestUri = new Uri($"{BaseUrl}/character/detail");
+        request.Content =
+            new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        m_Logger.LogDebug("Sending character detail request to {Endpoint}", request.RequestUri);
+        var response = await httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
+                response.StatusCode);
+            return string.Empty;
+        }
+
+        var json = await response.Content.ReadFromJsonAsync<CharacterDetailApiResponse>();
+        var data = json?.Data;
+
+        if (data?.List == null)
+        {
+            m_Logger.LogError("Failed to deserialize character detail response for user {Uid}", uid);
+            throw new JsonException("Failed to deserialize response");
+        }
+
+        m_Logger.LogInformation("Successfully retrieved character data for {CharacterId} for user {Uid}",
+            characterId, uid);
+
+        var characterData = data.List.FirstOrDefault();
+        return
+            $"{characterData?.Base.Name}, Level {characterData?.Base.Level}" +
+            $"\n{characterData?.Base.Weapon.Name}, Level: {characterData?.Base.Weapon.Level}" +
+            $"\n{string.Join('\n', characterData?.BaseProperties.Select(x => $"{x.PropertyType}: {x.Final}")
+                                   ?? [])}";
     }
 }

@@ -19,5 +19,5 @@ public record CharacterDetailPayload(
     string RoleId,
     [property: JsonPropertyName("server")] string Server,
     [property: JsonPropertyName("character_ids")]
-    IReadOnlyList<int> CharacterId
+    IReadOnlyList<uint> CharacterId
 );

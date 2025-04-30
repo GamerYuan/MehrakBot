@@ -10,7 +10,7 @@ namespace G_BuddyCore.Services;
 
 public class PaginationCacheService
 {
-    private readonly ConcurrentDictionary<ulong, (IEnumerable<BasicCharacterData> Items, DateTime LastAccessed)>
+    private readonly ConcurrentDictionary<ulong, (IEnumerable<BasicCharacterData> Items, string gameUid, string region)>
         m_Cache = new();
 
     private readonly TimeSpan m_ExpirationTime = TimeSpan.FromMinutes(10);
@@ -24,10 +24,10 @@ public class PaginationCacheService
             m_ExpirationTime.TotalMinutes);
     }
 
-    public void StoreItems(ulong userId, IEnumerable<BasicCharacterData> items)
+    public void StoreItems(ulong userId, IEnumerable<BasicCharacterData> items, string gameUid, string region)
     {
         var itemsList = items.ToList();
-        m_Cache[userId] = (itemsList, DateTime.UtcNow);
+        m_Cache[userId] = (itemsList, gameUid, region);
         m_Logger.LogInformation("Stored {ItemCount} items for user {UserId} in pagination cache",
             itemsList.Count, userId);
     }
@@ -40,16 +40,6 @@ public class PaginationCacheService
             return [];
         }
 
-        if (DateTime.UtcNow - entry.LastAccessed > m_ExpirationTime)
-        {
-            m_Logger.LogInformation("Cache expired for user {UserId} (last accessed: {LastAccessed})",
-                userId, entry.LastAccessed);
-            m_Cache.TryRemove(userId, out _);
-            return [];
-        }
-
-        // Update last accessed time
-        m_Cache[userId] = (entry.Items, DateTime.UtcNow);
         m_Logger.LogDebug("Retrieved {ItemCount} items from cache for user {UserId}",
             entry.Items.Count(), userId);
         return entry.Items;
@@ -78,16 +68,38 @@ public class PaginationCacheService
         return result;
     }
 
-    public int GetTotalPages(ulong userId, int pageSize = 25)
+    public string GetGameUid(ulong userId)
     {
-        var items = GetItems(userId);
-        var itemCount = items.Count();
-        var totalPages = (int)Math.Ceiling(itemCount / (double)pageSize);
+        if (m_Cache.TryGetValue(userId, out var entry))
+        {
+            m_Logger.LogDebug("Retrieved game UID for user {UserId}: {GameUid}", userId, entry.gameUid);
+            return entry.gameUid;
+        }
 
-        m_Logger.LogDebug(
-            "Calculated {TotalPages} total pages for user {UserId} ({ItemCount} items, {PageSize} per page)",
-            totalPages, userId, itemCount, pageSize);
+        m_Logger.LogWarning("No game UID found for user {UserId}", userId);
+        return string.Empty;
+    }
 
-        return totalPages;
+    public string GetRegion(ulong userId)
+    {
+        if (m_Cache.TryGetValue(userId, out var entry))
+        {
+            m_Logger.LogDebug("Retrieved region for user {UserId}: {Region}", userId, entry.region);
+            return entry.region;
+        }
+
+        m_Logger.LogWarning("No region found for user {UserId}", userId);
+        return string.Empty;
+    }
+
+    public void RemoveEntry(ulong userId)
+    {
+        if (m_Cache.TryRemove(userId, out _))
+        {
+            m_Logger.LogInformation("Removed cache entry for user {UserId}", userId);
+            return;
+        }
+
+        m_Logger.LogWarning("No cache entry found for user {UserId} to remove", userId);
     }
 }

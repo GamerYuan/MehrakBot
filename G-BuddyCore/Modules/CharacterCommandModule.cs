@@ -129,7 +129,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         }
 
         var characters = (await m_GenshinApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToArray();
-        m_PaginationCacheService.StoreItems(Context.User.Id, characters);
+        m_PaginationCacheService.StoreItems(Context.User.Id, characters, gameUid, region);
         var totalPages = (int)Math.Ceiling((double)characters.Length / 25) - 1;
 
         await ModifyResponseAsync(m => m.WithFlags(MessageFlags.IsComponentsV2).WithComponents(
@@ -141,11 +141,29 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     public async Task CharacterSelect()
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
+
+        if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var ltoken) ||
+            !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
+        {
+            await ModifyResponseAsync(m => m.WithComponents([
+                new TextDisplayProperties("Authentication timed out, please try again.")
+            ]));
+            return;
+        }
+
+        var gameUid = m_PaginationCacheService.GetGameUid(Context.User.Id);
+        var region = m_PaginationCacheService.GetRegion(Context.User.Id);
+
+        var fetchTask =
+            m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
+                uint.Parse(Context.SelectedValues[0]));
+
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
-        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers([Context.User.Id]));
-        properties.AddComponents(
-            new TextDisplayProperties($"<@{Context.User.Id}> You have selected {Context.SelectedValues[0]}!"));
+        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.User.Id));
+        properties.AddComponents(new TextDisplayProperties(await fetchTask));
+
+        m_PaginationCacheService.RemoveEntry(Context.User.Id);
 
         var deleteTask = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
         var followupTask = Context.Interaction.SendFollowupMessageAsync(properties);
@@ -194,16 +212,18 @@ public class CharacterSelectPagination : ComponentInteractionModule<ButtonIntera
         var menuOptions = items.Select(x =>
             new StringMenuSelectOptionProperties(x.Name, x.Id.ToString()!)).ToArray();
 
-        components.Add(new StringMenuProperties("character_select", menuOptions));
+        components.Add(new StringMenuProperties($"character_select", menuOptions));
 
         var actionRow = new ActionRowProperties();
 
         if (page > 0)
-            actionRow.Add(new ButtonProperties($"character_select:{page - 1}:{totalPages}", "Previous Page",
+            actionRow.Add(new ButtonProperties($"character_select:{page - 1}:{totalPages}",
+                "Previous Page",
                 ButtonStyle.Primary));
 
         if (page < totalPages)
-            actionRow.Add(new ButtonProperties($"character_select:{page + 1}:{totalPages}", "Next Page",
+            actionRow.Add(new ButtonProperties($"character_select:{page + 1}:{totalPages}",
+                "Next Page",
                 ButtonStyle.Primary));
 
         if (actionRow.Any()) components.Add(actionRow);
