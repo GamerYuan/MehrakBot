@@ -3,6 +3,7 @@
 using G_BuddyCore.Repositories;
 using G_BuddyCore.Services;
 using G_BuddyCore.Services.Genshin;
+using G_BuddyCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -154,14 +155,33 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         var gameUid = m_PaginationCacheService.GetGameUid(Context.User.Id);
         var region = m_PaginationCacheService.GetRegion(Context.User.Id);
 
-        var fetchTask =
-            m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
+        var characterInfo =
+            await m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
                 uint.Parse(Context.SelectedValues[0]));
+
+        if (characterInfo == null)
+        {
+            m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
+                Context.SelectedValues[0], Context.User.Id);
+            await ModifyResponseAsync(m => m.WithComponents([
+                new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+            ]));
+            return;
+        }
+
+        var characterInfoStr =
+            $"{characterInfo.Base.Name}, Level: {characterInfo.Base.Level}, Constellation: {characterInfo.Base.ActivedConstellationNum}\n" +
+            $"{characterInfo.Base.Weapon.Name}, Level: {characterInfo.Base.Weapon.Level}, Refinement: {characterInfo.Base.Weapon.AffixLevel}\n" +
+            string.Join('\n', characterInfo.BaseProperties.Concat(characterInfo.SelectedProperties)
+                .Where(x => x.PropertyType != null)
+                .DistinctBy(x => x.PropertyType)
+                .Select(x =>
+                    $"{StatMappingUtility.Mapping[x.PropertyType!.Value]}: {(x.Add != string.Empty ? $"{x.Final} ({x.Base} + {x.Add})" : x.Final)}"));
 
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
         properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.User.Id));
-        properties.AddComponents(new TextDisplayProperties(await fetchTask));
+        properties.AddComponents(new TextDisplayProperties(characterInfoStr));
 
         m_PaginationCacheService.RemoveEntry(Context.User.Id);
 
@@ -173,6 +193,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
 }
 
 public class CharacterSelectPagination : ComponentInteractionModule<ButtonInteractionContext>
+
 {
     private readonly PaginationCacheService m_PaginationCacheService;
     private readonly ILogger<CharacterSelectPagination> m_Logger;

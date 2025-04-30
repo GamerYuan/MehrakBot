@@ -73,13 +73,15 @@ public class GenshinCharacterApiService : ICharacterApi
         return data.List.OrderBy(x => x.Name);
     }
 
-    public Task<CharacterDetail> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid, string region,
+    public Task<CharacterInformation> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid,
+        string region,
         string characterName)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<string> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid, string region,
+    public async Task<CharacterInformation?> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid,
+        string region,
         uint characterId)
     {
         m_Logger.LogInformation(
@@ -107,7 +109,7 @@ public class GenshinCharacterApiService : ICharacterApi
         {
             m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
                 response.StatusCode);
-            return string.Empty;
+            return null;
         }
 
         var json = await response.Content.ReadFromJsonAsync<CharacterDetailApiResponse>();
@@ -123,10 +125,6 @@ public class GenshinCharacterApiService : ICharacterApi
             characterId, uid);
 
         var characterData = data.List.FirstOrDefault();
-        return
-            $"{characterData?.Base.Name}, Level {characterData?.Base.Level}" +
-            $"\n{characterData?.Base.Weapon.Name}, Level: {characterData?.Base.Weapon.Level}" +
-            $"\n{string.Join('\n', characterData?.BaseProperties.Select(x => $"{x.PropertyType}: {x.Final}")
-                                   ?? [])}";
+        return characterData;
     }
 }
