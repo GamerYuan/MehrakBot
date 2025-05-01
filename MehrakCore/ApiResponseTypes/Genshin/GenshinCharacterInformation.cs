@@ -15,7 +15,7 @@ public record CharacterDetailApiResponse(
 );
 
 public record CharacterDetail(
-    [property: JsonPropertyName("list")] IReadOnlyList<CharacterInformation> List
+    [property: JsonPropertyName("list")] IReadOnlyList<GenshinCharacterInformation> List
 );
 
 public record BaseCharacterDetail(
@@ -57,7 +57,7 @@ public record StatProperty(
     [property: JsonPropertyName("final")] string Final
 );
 
-public record CharacterInformation(
+public record GenshinCharacterInformation(
     [property: JsonPropertyName("base")] BaseCharacterDetail Base,
     [property: JsonPropertyName("weapon")] Weapon Weapon,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
@@ -74,7 +74,7 @@ public record CharacterInformation(
     [property: JsonPropertyName("element_properties")]
     IReadOnlyList<StatProperty> ElementProperties,
     [property: JsonPropertyName("skills")] IReadOnlyList<Skill> Skills
-);
+) : ICharacterInformation;
 
 public record Skill(
     [property: JsonPropertyName("skill_id")]

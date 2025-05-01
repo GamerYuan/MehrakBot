@@ -74,14 +74,15 @@ public class GenshinCharacterApiService : ICharacterApi
         return data.List.OrderBy(x => x.Name);
     }
 
-    public Task<CharacterInformation> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid,
+    public Task<GenshinCharacterInformation> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid,
         string region,
         string characterName)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<CharacterInformation?> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid,
+    public async Task<GenshinCharacterInformation?> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
+        string gameUid,
         string region,
         uint characterId)
     {
