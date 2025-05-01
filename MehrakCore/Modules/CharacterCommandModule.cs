@@ -3,7 +3,6 @@
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -85,18 +84,21 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     private readonly TokenCacheService m_TokenCacheService;
     private readonly GenshinCharacterApiService m_GenshinApiService;
     private readonly GameRecordApiService m_GameRecordApiService;
+    private readonly GenshinCharacterCardService m_GenshinCharacterCardService;
     private readonly PaginationCacheService m_PaginationCacheService;
     private readonly ILogger<CharacterSelectionModule> m_Logger;
 
     public CharacterSelectionModule(TokenCacheService tokenCacheService,
         GenshinCharacterApiService genshinApiService,
         GameRecordApiService gameRecordApi,
+        GenshinCharacterCardService genshinCharacterCardService,
         PaginationCacheService paginationCacheService,
         ILogger<CharacterSelectionModule> logger)
     {
         m_TokenCacheService = tokenCacheService;
         m_GenshinApiService = genshinApiService;
         m_GameRecordApiService = gameRecordApi;
+        m_GenshinCharacterCardService = genshinCharacterCardService;
         m_PaginationCacheService = paginationCacheService;
         m_Logger = logger;
     }
@@ -169,19 +171,23 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
             return;
         }
 
-        var characterInfoStr =
-            $"{characterInfo.Base.Name}, Level: {characterInfo.Base.Level}, Constellation: {characterInfo.Base.ActivedConstellationNum}\n" +
-            $"{characterInfo.Base.Weapon.Name}, Level: {characterInfo.Base.Weapon.Level}, Refinement: {characterInfo.Base.Weapon.AffixLevel}\n" +
-            string.Join('\n', characterInfo.BaseProperties.Concat(characterInfo.SelectedProperties)
-                .Where(x => x.PropertyType != null)
-                .DistinctBy(x => x.PropertyType)
-                .Select(x =>
-                    $"{StatMappingUtility.Mapping[x.PropertyType!.Value]}: {(x.Add != string.Empty ? $"{x.Final} ({x.Base} + {x.Add})" : x.Final)}"));
+        // var characterInfoStr =
+        //     $"{characterInfo.Base.Name}, Level: {characterInfo.Base.Level}, Constellation: {characterInfo.Base.ActivedConstellationNum}\n" +
+        //     $"{characterInfo.Base.Weapon.Name}, Level: {characterInfo.Base.Weapon.Level}, Refinement: {characterInfo.Base.Weapon.AffixLevel}\n" +
+        //     string.Join('\n', characterInfo.BaseProperties.Concat(characterInfo.SelectedProperties)
+        //         .Where(x => x.PropertyType != null)
+        //         .DistinctBy(x => x.PropertyType)
+        //         .Select(x =>
+        //             $"{StatMappingUtility.Mapping[x.PropertyType!.Value]}: {(x.Add != string.Empty ? $"{x.Final} ({x.Base} + {x.Add})" : x.Final)}"));
 
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
         properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.User.Id));
-        properties.AddComponents(new TextDisplayProperties(characterInfoStr));
+        properties.AddComponents(new TextDisplayProperties($"<@{Context.User.Id}>"));
+        properties.AddComponents(new MediaGalleryProperties().WithItems(
+            [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
+        properties.AddAttachments(new AttachmentProperties("character_card.jpg",
+            await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo)));
 
         m_PaginationCacheService.RemoveEntry(Context.User.Id);
 
