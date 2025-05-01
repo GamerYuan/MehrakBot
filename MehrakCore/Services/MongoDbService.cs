@@ -4,6 +4,7 @@ using MehrakCore.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using MongoDB.Driver.GridFS;
 
 #endregion
 
@@ -34,4 +35,6 @@ public class MongoDbService
     }
 
     public IMongoCollection<UserModel> Users => m_Database.GetCollection<UserModel>("users");
+
+    public GridFSBucket Bucket => new(m_Database);
 }
