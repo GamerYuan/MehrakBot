@@ -49,11 +49,13 @@ internal class Program
         // Database Services
         builder.Services.AddSingleton<MongoDbService>();
         builder.Services.AddScoped<UserRepository>();
+        builder.Services.AddScoped<ImageRepository>();
 
         // Api Services
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<GameRecordApiService>();
         builder.Services.AddSingleton<GenshinCharacterApiService>();
+        builder.Services.AddSingleton<GenshinCharacterCardService>();
 
         // LToken Services
         builder.Services.AddMemoryCache();

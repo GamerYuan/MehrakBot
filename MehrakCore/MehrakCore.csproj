@@ -14,17 +14,21 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.4"/>
         <PackageReference Include="MongoDB.Driver" Version="3.3.0"/>
-        <PackageReference Include="MongoDB.Driver.GridFS" Version="2.30.0"/>
         <PackageReference Include="NetCord" Version="1.0.0-alpha.363"/>
         <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.363"/>
         <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.363"/>
         <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.363"/>
         <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.363"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8"/>
+        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.6"/>
     </ItemGroup>
 
     <ItemGroup>
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Fonts\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
