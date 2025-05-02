@@ -56,6 +56,7 @@ internal class Program
         builder.Services.AddSingleton<GameRecordApiService>();
         builder.Services.AddSingleton<GenshinCharacterApiService>();
         builder.Services.AddSingleton<GenshinCharacterCardService>();
+        builder.Services.AddSingleton<GenshinImageUpdaterService>();
 
         // LToken Services
         builder.Services.AddMemoryCache();

@@ -21,6 +21,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
 
+    private const string BasePath = "genshin_{0}";
+
     public GenshinCharacterCardService(ImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
@@ -34,9 +36,10 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             m_Logger.LogInformation("Fetching background image for {Element} character card", charInfo.Base.Element);
             var overlay =
                 Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync($"bg.png"));
-            var background = new Image<Rgba32>(overlay.Width, overlay.Height);
+            var background = new Image<Rgba32>(1620, 540);
             var characterPortrait =
-                Image.Load<Rgba32>(await m_ImageRepository.DownloadFileAsBytesAsync($"{charInfo.Base.Id}.png"));
+                Image.Load<Rgba32>(
+                    await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Id)));
 
             background.Mutate(ctx =>
             {
@@ -45,12 +48,12 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 FontCollection collection = new();
                 var fontFamily = collection.Add("Fonts/Futura Md BT Bold.ttf");
-                var font = fontFamily.CreateFont(20, FontStyle.Regular);
+                var font = fontFamily.CreateFont(32, FontStyle.Regular);
                 var textColor = Color.White;
 
-                ctx.DrawText(charInfo.Base.Name, font, textColor, new PointF(50, 50));
-                ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(50, 100));
-                ctx.DrawImage(characterPortrait, new Point(50, 150), 1f);
+                ctx.DrawText(charInfo.Base.Name, font, textColor, new PointF(50, 40));
+                ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(50, 80));
+                ctx.DrawImage(characterPortrait, new Point(-50, 120), 1f);
             });
 
             var stream = new MemoryStream();
@@ -72,14 +75,15 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             using var smallImage = portraitImage.Clone();
             smallImage.Mutate(x => x.Resize(new ResizeOptions
                     { Sampler = KnownResamplers.NearestNeighbor, Size = new Size(100, 0) })
-                .Quantize(new WuQuantizer(new QuantizerOptions { MaxColors = 5 })));
+                .Quantize(new WuQuantizer(new QuantizerOptions
+                    { MaxColors = 5, Dither = null, ColorMatchingMode = ColorMatchingMode.Hybrid })));
 
             Span<Rgba32> pixels = stackalloc Rgba32[smallImage.Width * smallImage.Height];
             smallImage.CopyPixelDataTo(pixels);
             var palette = pixels.ToArray().GroupBy(x => x)
-                .Select(x => x.Key).Select(x => new Rgb24(x.R, x.G, x.B)).ToArray();
+                .Select(x => x.Key).ToArray();
 
-            var adaptiveColor = palette[2];
+            var adaptiveColor = palette[1];
             var hslColor = ColorSpaceConverter.ToHsl(adaptiveColor);
 
             // Simple contrast logic: If the color is light, make it darker; if dark, make it lighter.
