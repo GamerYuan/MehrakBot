@@ -2,15 +2,13 @@
 
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 #endregion
 
@@ -40,20 +38,68 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             var characterPortrait =
                 Image.Load<Rgba32>(
                     await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Id)));
+            var weaponImage =
+                Image.Load<Rgba32>(
+                    await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Weapon.Id)));
+            var constellationIcons =
+                charInfo.Constellations.Select(async x =>
+                        Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.Id))))
+                    .ToArray();
+            var skillIcons = charInfo.Skills.Select(async x =>
+                    Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId))))
+                .ToArray();
 
             background.Mutate(ctx =>
             {
-                ctx.Fill(GetAdaptiveBackgroundColor(characterPortrait));
+                ctx.Fill(GetBackgroundColor(charInfo.Base.Element));
                 ctx.DrawImage(overlay, PixelColorBlendingMode.Overlay, 1f);
 
                 FontCollection collection = new();
                 var fontFamily = collection.Add("Fonts/Futura Md BT Bold.ttf");
-                var font = fontFamily.CreateFont(32, FontStyle.Regular);
+                var titleFont = fontFamily.CreateFont(32, FontStyle.Regular);
+                var font = fontFamily.CreateFont(20, FontStyle.Regular);
                 var textColor = Color.White;
 
-                ctx.DrawText(charInfo.Base.Name, font, textColor, new PointF(50, 40));
+                ctx.DrawText(charInfo.Base.Name, titleFont, textColor, new PointF(50, 40));
                 ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(50, 80));
-                ctx.DrawImage(characterPortrait, new Point(-50, 120), 1f);
+                ctx.DrawImage(characterPortrait, new Point(-100, 120), 1f);
+
+                for (int i = 2; i >= 0; i--)
+                {
+                    var skillIcon = skillIcons[i].Result;
+                    skillIcon.Mutate(x => x.Resize(new Size(50, 0), KnownResamplers.Bicubic, true));
+                    ctx.DrawImage(skillIcon, new Point(20, 480 - i * 50), 1f);
+                }
+
+                for (int i = constellationIcons.Length - 1; i >= 0; i--)
+                {
+                    var constellationIcon = constellationIcons[i].Result;
+                    constellationIcon.Mutate(x => x.Resize(new Size(50, 0), KnownResamplers.Bicubic, true));
+                    if (!charInfo.Constellations[i].IsActived!.Value)
+                        constellationIcon.Mutate(x => x.Brightness(0.65f));
+                    ctx.DrawImage(constellationIcon, new Point(500, 480 - i * 50), 1f);
+                }
+
+                weaponImage.Mutate(x => x.Resize(new Size(200, 0), KnownResamplers.Bicubic, true));
+                ctx.DrawImage(weaponImage, new Point(550, 0), 1f);
+                ctx.DrawText(charInfo.Base.Weapon.Name, font, textColor, new PointF(800, 40));
+                ctx.DrawText('R' + charInfo.Base.Weapon.AffixLevel!.Value.ToString(), font, textColor,
+                    new PointF(800, 80));
+                ctx.DrawText($"Lv. {charInfo.Base.Weapon.Level}", font, textColor, new PointF(850, 80));
+
+                var stats = charInfo.BaseProperties.Take(3).Concat(charInfo.SelectedProperties)
+                    .DistinctBy(x => x.PropertyType)
+                    .Where(x => float.Parse(x.Final.TrimEnd('%')) >
+                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value))
+                    .Select(x => (Stat: StatMappingUtility.Mapping[x.PropertyType!.Value], Val: x.Final)).ToArray();
+                var spacing = 280 / stats.Length;
+
+                for (int i = 0; i < stats.Length; i++)
+                {
+                    var stat = stats[i];
+                    ctx.DrawText(stat.Stat, font, textColor, new PointF(600, 240 + spacing * i));
+                    ctx.DrawText(stat.Val, font, textColor, new PointF(1000, 240 + spacing * i));
+                }
             });
 
             var stream = new MemoryStream();
@@ -68,44 +114,18 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         }
     }
 
-    private Rgba32 GetAdaptiveBackgroundColor(Image<Rgba32> portraitImage)
+    private Color GetBackgroundColor(string element)
     {
-        try
+        return element switch
         {
-            using var smallImage = portraitImage.Clone();
-            smallImage.Mutate(x => x.Resize(new ResizeOptions
-                    { Sampler = KnownResamplers.NearestNeighbor, Size = new Size(100, 0) })
-                .Quantize(new WuQuantizer(new QuantizerOptions
-                    { MaxColors = 5, Dither = null, ColorMatchingMode = ColorMatchingMode.Hybrid })));
-
-            Span<Rgba32> pixels = stackalloc Rgba32[smallImage.Width * smallImage.Height];
-            smallImage.CopyPixelDataTo(pixels);
-            var palette = pixels.ToArray().GroupBy(x => x)
-                .Select(x => x.Key).ToArray();
-
-            var adaptiveColor = palette[1];
-            var hslColor = ColorSpaceConverter.ToHsl(adaptiveColor);
-
-            // Simple contrast logic: If the color is light, make it darker; if dark, make it lighter.
-            // Adjust saturation slightly to avoid overly vibrant backgrounds.
-            var adjustedSaturation = Math.Max(0.1f, hslColor.S * 0.8f); // Reduce saturation, keep some color
-
-            var adjustedLightness =
-                // It's a light color, make it darker for the background
-                hslColor.L > 0.5f
-                    ? Math.Max(0.1f, hslColor.L * 0.8f)
-                    : // Significantly darken
-                    // It's a dark color, make it lighter for the background
-                    Math.Min(0.9f, hslColor.L * 1.15f); // Significantly lighten
-
-            var adjustedColor = new Hsl(hslColor.H, adjustedSaturation, adjustedLightness);
-
-            return ColorSpaceConverter.ToRgb(adjustedColor);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting adaptive background color: {ex.Message}");
-            return Color.Gray; // Return default on any error
-        }
+            "Pyro" => Color.ParseHex("#BF8667"),
+            "Hydro" => Color.ParseHex("#7A92FF"),
+            "Electro" => Color.ParseHex("#9E65C8"),
+            "Dendro" => Color.ParseHex("#529D62"),
+            "Cryo" => Color.ParseHex("#78CACC"),
+            "Geo" => Color.ParseHex("#B5A155"),
+            "Anemo" => Color.ParseHex("7fB29E"),
+            _ => Color.White
+        };
     }
 }
