@@ -86,6 +86,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     private readonly GameRecordApiService m_GameRecordApiService;
     private readonly GenshinCharacterCardService m_GenshinCharacterCardService;
     private readonly PaginationCacheService m_PaginationCacheService;
+    private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
     private readonly ILogger<CharacterSelectionModule> m_Logger;
 
     public CharacterSelectionModule(TokenCacheService tokenCacheService,
@@ -93,12 +94,14 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         GameRecordApiService gameRecordApi,
         GenshinCharacterCardService genshinCharacterCardService,
         PaginationCacheService paginationCacheService,
+        GenshinImageUpdaterService genshinImageUpdaterService,
         ILogger<CharacterSelectionModule> logger)
     {
         m_TokenCacheService = tokenCacheService;
         m_GenshinApiService = genshinApiService;
         m_GameRecordApiService = gameRecordApi;
         m_GenshinCharacterCardService = genshinCharacterCardService;
+        m_GenshinImageUpdaterService = genshinImageUpdaterService;
         m_PaginationCacheService = paginationCacheService;
         m_Logger = logger;
     }
@@ -143,7 +146,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     [ComponentInteraction("character_select")]
     public async Task CharacterSelect()
     {
-        await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
+        await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
 
         if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var ltoken) ||
             !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
@@ -165,20 +168,17 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         {
             m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
                 Context.SelectedValues[0], Context.User.Id);
-            await ModifyResponseAsync(m => m.WithComponents([
-                new TextDisplayProperties("Failed to retrieve character data. Please try again.")
-            ]));
+            var followup = Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithComponents([
+                    new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+                ]));
+            var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
+
+            await Task.WhenAll(delete, followup);
             return;
         }
 
-        // var characterInfoStr =
-        //     $"{characterInfo.Base.Name}, Level: {characterInfo.Base.Level}, Constellation: {characterInfo.Base.ActivedConstellationNum}\n" +
-        //     $"{characterInfo.Base.Weapon.Name}, Level: {characterInfo.Base.Weapon.Level}, Refinement: {characterInfo.Base.Weapon.AffixLevel}\n" +
-        //     string.Join('\n', characterInfo.BaseProperties.Concat(characterInfo.SelectedProperties)
-        //         .Where(x => x.PropertyType != null)
-        //         .DistinctBy(x => x.PropertyType)
-        //         .Select(x =>
-        //             $"{StatMappingUtility.Mapping[x.PropertyType!.Value]}: {(x.Add != string.Empty ? $"{x.Final} ({x.Base} + {x.Add})" : x.Final)}"));
+        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo);
 
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
