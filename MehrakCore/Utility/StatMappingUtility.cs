@@ -9,6 +9,7 @@ namespace MehrakCore.Utility;
 public static class StatMappingUtility
 {
     public static IReadOnlyDictionary<int, string> Mapping { get; }
+    private static IReadOnlyDictionary<int, float> DefaultValues;
 
     static StatMappingUtility()
     {
@@ -52,5 +53,17 @@ public static class StatMappingUtility
             { 2002, "DEF" },
             { 999999, "Max Stamina" }
         });
+
+        DefaultValues = new ReadOnlyDictionary<int, float>(new Dictionary<int, float>
+        {
+            { 20, 5 },
+            { 22, 50 },
+            { 23, 100 }
+        });
+    }
+
+    public static float GetDefaultValue(int propertyType)
+    {
+        return DefaultValues.GetValueOrDefault(propertyType, 0);
     }
 }
