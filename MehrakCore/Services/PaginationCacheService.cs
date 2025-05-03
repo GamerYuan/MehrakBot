@@ -96,7 +96,7 @@ public class PaginationCacheService
     {
         if (m_Cache.TryRemove(userId, out _))
         {
-            m_Logger.LogInformation("Removed cache entry for user {UserId}", userId);
+            m_Logger.LogInformation("Removed pagination cache entry for user {UserId}", userId);
             return;
         }
 

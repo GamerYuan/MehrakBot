@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Globalization;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
@@ -13,6 +14,8 @@ using NetCord.Hosting.Services;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
+using Serilog;
+using Serilog.Events;
 
 #endregion
 
@@ -36,55 +39,82 @@ internal class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
-        // Configure logging
-        builder.Logging.ClearProviders();
-        builder.Logging.AddConsole();
-        builder.Logging.AddDebug();
+        // Configure Serilog
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .WriteTo.Console(
+                outputTemplate:
+                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
+                formatProvider: CultureInfo.InvariantCulture
+            )
+            .WriteTo.File(
+                "logs/log-.txt",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 31,
+                outputTemplate:
+                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
+                formatProvider: CultureInfo.InvariantCulture
+            )
+            .CreateLogger();
 
-        // Configure minimum log level from configuration if available
-        if (builder.Configuration["Logging:MinimumLevel"] != null)
-            builder.Logging.SetMinimumLevel(
-                Enum.Parse<LogLevel>(builder.Configuration["Logging:MinimumLevel"] ?? string.Empty));
+        try
+        {
+            Log.Information("Starting MehrakBot application");
 
-        // Database Services
-        builder.Services.AddSingleton<MongoDbService>();
-        builder.Services.AddScoped<UserRepository>();
-        builder.Services.AddScoped<ImageRepository>();
+            // Configure logging to use Serilog
+            builder.Logging.ClearProviders();
+            builder.Logging.AddSerilog(dispose: true);
 
-        // Api Services
-        builder.Services.AddHttpClient();
-        builder.Services.AddSingleton<GameRecordApiService>();
-        builder.Services.AddSingleton<GenshinCharacterApiService>();
-        builder.Services.AddSingleton<GenshinCharacterCardService>();
-        builder.Services.AddSingleton<GenshinImageUpdaterService>();
+            // Database Services
+            builder.Services.AddSingleton<MongoDbService>();
+            builder.Services.AddScoped<UserRepository>();
+            builder.Services.AddScoped<ImageRepository>();
 
-        // LToken Services
-        builder.Services.AddMemoryCache();
-        builder.Services.AddSingleton<CookieService>();
-        builder.Services.AddSingleton<TokenCacheService>();
+            // Api Services
+            builder.Services.AddHttpClient();
+            builder.Services.AddSingleton<GameRecordApiService>();
+            builder.Services.AddSingleton<GenshinCharacterApiService>();
+            builder.Services.AddSingleton<GenshinCharacterCardService>();
+            builder.Services.AddSingleton<GenshinImageUpdaterService>();
 
-        // Other Services
-        builder.Services.AddSingleton<PaginationCacheService>();
+            // LToken Services
+            builder.Services.AddMemoryCache();
+            builder.Services.AddSingleton<CookieService>();
+            builder.Services.AddSingleton<TokenCacheService>();
 
-        // NetCord Services
-        builder.Services.AddDiscordGateway().AddApplicationCommands()
-            .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
-            .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
-            .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
+            // Other Services
+            builder.Services.AddSingleton<PaginationCacheService>();
 
-        var host = builder.Build();
+            // NetCord Services
+            builder.Services.AddDiscordGateway().AddApplicationCommands()
+                .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
+                .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
+                .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
-        var logger = host.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("MehrakBot application starting");
+            var host = builder.Build();
 
-        var characterCardService = host.Services.GetRequiredService<GenshinCharacterCardService>();
-        await characterCardService.InitializeAsync();
+            var logger = host.Services.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("MehrakBot application starting");
 
-        host.AddModules(typeof(Program).Assembly);
+            var characterCardService = host.Services.GetRequiredService<GenshinCharacterCardService>();
+            await characterCardService.InitializeAsync();
 
-        host.UseGatewayEventHandlers();
-        logger.LogInformation("Discord gateway initialized");
+            host.AddModules(typeof(Program).Assembly);
 
-        await host.RunAsync();
+            host.UseGatewayEventHandlers();
+            logger.LogInformation("Discord gateway initialized");
+
+            await host.RunAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Application terminated unexpectedly");
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
+        }
     }
 }
