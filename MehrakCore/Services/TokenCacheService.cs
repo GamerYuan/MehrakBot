@@ -27,10 +27,10 @@ public class TokenCacheService
             .SetAbsoluteExpiration(m_DefaultExpiration)
             .RegisterPostEvictionCallback((key, value, reason, state) =>
             {
-                m_Logger.LogDebug("Cache entry {Key} evicted due to {Reason}", key, reason);
+                m_Logger.LogDebug("Token cache entry {Key} evicted due to {Reason}", key, reason);
             });
 
-        m_Logger.LogDebug("Adding cache entry for user {UserId} with expiration {Expiration}",
+        m_Logger.LogDebug("Adding token cache entry for user {UserId} with expiration {Expiration}",
             userId, DateTime.UtcNow.Add(m_DefaultExpiration));
 
         m_Cache.Set($"ltoken_{userId}", ltoken, options);
@@ -53,17 +53,8 @@ public class TokenCacheService
 
     public void RemoveEntry(ulong userId)
     {
-        m_Logger.LogDebug("Removing cache entries for user {UserId}", userId);
-
-        // Check if entries exist before removing
-        var tokenExists = m_Cache.TryGetValue($"ltoken_{userId}", out _);
-        var ltuidExists = m_Cache.TryGetValue($"ltuid_{userId}", out _);
-
         m_Cache.Remove($"ltoken_{userId}");
         m_Cache.Remove($"ltuid_{userId}");
-
-        m_Logger.LogDebug(
-            "Cache entries removed for user {UserId} (token existed: {TokenExisted}, ltuid existed: {LtuidExisted})",
-            userId, tokenExists, ltuidExists);
+        m_Logger.LogDebug("Removed token cache entries for user {UserId}", userId);
     }
 }
