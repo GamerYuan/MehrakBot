@@ -77,7 +77,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 {
                     Logger.LogInformation("Weapon image for ID {WeaponId} not found. Scheduling download.",
                         weaponId.Value);
-                    tasks.Add(UpdateWeaponImageTask(characterInformation.Base.Weapon));
+                    tasks.Add(UpdateWeaponImageTask(characterInformation.Weapon));
                 }
                 else
                 {
