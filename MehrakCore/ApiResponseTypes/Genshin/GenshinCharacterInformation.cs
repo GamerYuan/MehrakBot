@@ -36,7 +36,7 @@ public record BaseCharacterDetail(
     string SideIcon,
     [property: JsonPropertyName("weapon_type")]
     int? WeaponType,
-    [property: JsonPropertyName("weapon")] WeaponDetail Weapon
+    [property: JsonPropertyName("weapon")] Weapon Weapon
 );
 
 public record Constellation(
@@ -59,7 +59,7 @@ public record StatProperty(
 
 public record GenshinCharacterInformation(
     [property: JsonPropertyName("base")] BaseCharacterDetail Base,
-    [property: JsonPropertyName("weapon")] Weapon Weapon,
+    [property: JsonPropertyName("weapon")] WeaponDetail Weapon,
     [property: JsonPropertyName("relics")] IReadOnlyList<Relic> Relics,
     [property: JsonPropertyName("constellations")]
     IReadOnlyList<Constellation> Constellations,
@@ -140,7 +140,7 @@ public record WeaponDetail(
     string TypeName,
     [property: JsonPropertyName("desc")] string Desc,
     [property: JsonPropertyName("main_property")]
-    StatProperty RelicStatProperty,
+    StatProperty MainProperty,
     [property: JsonPropertyName("sub_property")]
     StatProperty SubProperty
 );

@@ -75,7 +75,10 @@ internal class Program
         var host = builder.Build();
 
         var logger = host.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("G-Buddy application starting");
+        logger.LogInformation("MehrakBot application starting");
+
+        var characterCardService = host.Services.GetRequiredService<GenshinCharacterCardService>();
+        await characterCardService.InitializeAsync();
 
         host.AddModules(typeof(Program).Assembly);
 

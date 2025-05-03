@@ -19,12 +19,43 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
 
+    private readonly FontFamily m_FontFamily;
+    private Dictionary<int, Image> m_StatImages = new();
+
     private const string BasePath = "genshin_{0}";
+    private const string StatsPath = "genshin_stats_{0}.png";
 
     public GenshinCharacterCardService(ImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+
+        var collection = new FontCollection();
+        m_FontFamily = collection.Add("Fonts/zh-cn.ttf");
+
+        Console.WriteLine("Test I'm in CharacterCardService");
+    }
+
+    public async Task InitializeAsync()
+    {
+        m_Logger.LogInformation("Initializing resources...");
+        int[] statIds =
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
+
+        var statImageTasks = statIds.Select(async x =>
+        {
+            var imageBytes = await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(StatsPath, x));
+            var image = Image.Load(imageBytes);
+            image.Mutate(ctx => ctx.Resize(new Size(24, 0), KnownResamplers.Bicubic, true));
+            return new KeyValuePair<int, Image>(x, image);
+        }).ToList();
+
+        var results = await Task.WhenAll(statImageTasks);
+        m_StatImages = results.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        m_Logger.LogInformation(
+            "Resources initialized successfully with {Count} icons.",
+            m_StatImages.Count);
     }
 
     public async Task<Stream> GenerateCharacterCardAsync(GenshinCharacterInformation charInfo)
@@ -54,10 +85,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.Fill(GetBackgroundColor(charInfo.Base.Element));
                 ctx.DrawImage(overlay, PixelColorBlendingMode.Overlay, 1f);
 
-                FontCollection collection = new();
-                var fontFamily = collection.Add("Fonts/Futura Md BT Bold.ttf");
-                var titleFont = fontFamily.CreateFont(32, FontStyle.Regular);
-                var font = fontFamily.CreateFont(20, FontStyle.Regular);
+                var titleFont = m_FontFamily.CreateFont(32, FontStyle.Regular);
+                var font = m_FontFamily.CreateFont(20, FontStyle.Regular);
                 var textColor = Color.White;
 
                 ctx.DrawText(charInfo.Base.Name, titleFont, textColor, new PointF(50, 40));
@@ -85,20 +114,34 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawText(charInfo.Base.Weapon.Name, font, textColor, new PointF(800, 40));
                 ctx.DrawText('R' + charInfo.Base.Weapon.AffixLevel!.Value.ToString(), font, textColor,
                     new PointF(800, 80));
-                ctx.DrawText($"Lv. {charInfo.Base.Weapon.Level}", font, textColor, new PointF(850, 80));
+                ctx.DrawText($"Lv. {charInfo.Weapon.Level}", font, textColor, new PointF(850, 80));
+                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(800, 118),
+                    1f);
+                ctx.DrawText(charInfo.Weapon.MainProperty.Final, font, textColor, new PointF(832, 120));
+                ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(900, 118), 1f);
+                ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(932, 120));
 
                 var stats = charInfo.BaseProperties.Take(3).Concat(charInfo.SelectedProperties)
                     .DistinctBy(x => x.PropertyType)
                     .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value))
-                    .Select(x => (Stat: StatMappingUtility.Mapping[x.PropertyType!.Value], Val: x.Final)).ToArray();
+                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
                 var spacing = 280 / stats.Length;
 
                 for (int i = 0; i < stats.Length; i++)
                 {
                     var stat = stats[i];
-                    ctx.DrawText(stat.Stat, font, textColor, new PointF(600, 240 + spacing * i));
-                    ctx.DrawText(stat.Val, font, textColor, new PointF(1000, 240 + spacing * i));
+                    var y = 240 + spacing * i;
+                    ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(600, y - 2), 1f);
+                    ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], font, textColor,
+                        new PointF(632, y));
+                    ctx.DrawText(stat.Final, font, textColor, new PointF(900, y));
+                }
+
+                var relics = charInfo.Relics.Select(async x => await CreateRelicSlotImage(x)).ToArray();
+                for (int i = 0; i < relics.Length; i++)
+                {
+                    var relic = relics[i].Result;
+                    ctx.DrawImage(relic, new Point(1100, 25 + i * 100), 1f);
                 }
             });
 
@@ -112,6 +155,36 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             m_Logger.LogError("Error generating character card for {CharacterName}", charInfo.Base.Name);
             throw;
         }
+    }
+
+    private async Task<Image<Rgba32>> CreateRelicSlotImage(Relic relic)
+    {
+        var relicImage = Image.Load<Rgba32>(
+            await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, relic.Id)));
+        relicImage.Mutate(x => x.Resize(new Size(0, 50), KnownResamplers.Bicubic, true));
+
+        var template = new Image<Rgba32>(400, 80);
+        template.Mutate(ctx =>
+        {
+            ctx.Fill(new Rgba32(255, 255, 255, 0.25f));
+            ctx.DrawImage(relicImage, new Point(25, 0), 1f);
+            ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(10, 53), 1f);
+            var font = m_FontFamily.CreateFont(20);
+            ctx.DrawText(relic.MainProperty.Value, font, Color.White, new PointF(42, 55));
+
+            for (var i = 0; i < relic.SubPropertyList.Count; i++)
+            {
+                var subStat = relic.SubPropertyList[i];
+                var subStatImage = m_StatImages[subStat.PropertyType!.Value];
+                subStatImage.Mutate(x => x.Resize(new Size(0, 24), KnownResamplers.Bicubic, true));
+                var xOffset = i % 2 * 125;
+                var yOffset = i / 2 * 30;
+                ctx.DrawImage(subStatImage, new Point(125 + xOffset, 13 + yOffset), 1f);
+                ctx.DrawText(subStat.Value, font, Color.White, new PointF(157 + xOffset, 15 + yOffset));
+            }
+        });
+
+        return template;
     }
 
     private Color GetBackgroundColor(string element)
