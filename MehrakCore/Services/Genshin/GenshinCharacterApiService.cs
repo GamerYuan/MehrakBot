@@ -74,13 +74,6 @@ public class GenshinCharacterApiService : ICharacterApi
         return data.List.OrderBy(x => x.Name);
     }
 
-    public Task<GenshinCharacterInformation> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid,
-        string region,
-        string characterName)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task<GenshinCharacterInformation?> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
         string gameUid,
         string region,
@@ -123,10 +116,11 @@ public class GenshinCharacterApiService : ICharacterApi
             throw new JsonException("Failed to deserialize response");
         }
 
-        m_Logger.LogInformation("Successfully retrieved character data for {CharacterId} for user {Uid}",
-            characterId, uid);
-
         var characterData = data.List.FirstOrDefault();
+        m_Logger.LogInformation(
+            "Successfully retrieved character data for {CharacterName}, ID: {CharacterId} for user {Uid}",
+            characterData?.Base.Id, characterId, uid);
+
         return characterData;
     }
 }

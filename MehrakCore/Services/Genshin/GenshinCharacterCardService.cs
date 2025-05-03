@@ -33,7 +33,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         var collection = new FontCollection();
         m_FontFamily = collection.Add("Fonts/zh-cn.ttf");
 
-        Console.WriteLine("Test I'm in CharacterCardService");
+        m_Logger.LogInformation("GenshinCharacterCardService initialized");
     }
 
     public async Task InitializeAsync()
@@ -42,12 +42,23 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         int[] statIds =
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
 
+        m_Logger.LogDebug("Loading {Count} stat icons", statIds.Length);
         var statImageTasks = statIds.Select(async x =>
         {
-            var imageBytes = await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(StatsPath, x));
-            var image = Image.Load(imageBytes);
-            image.Mutate(ctx => ctx.Resize(new Size(24, 0), KnownResamplers.Bicubic, true));
-            return new KeyValuePair<int, Image>(x, image);
+            try
+            {
+                var path = string.Format(StatsPath, x);
+                m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
+                var imageBytes = await m_ImageRepository.DownloadFileAsBytesAsync(path);
+                var image = Image.Load(imageBytes);
+                image.Mutate(ctx => ctx.Resize(new Size(24, 0), KnownResamplers.Bicubic, true));
+                return new KeyValuePair<int, Image>(x, image);
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogError(ex, "Failed to load stat icon {StatId}", x);
+                throw;
+            }
         }).ToList();
 
         var results = await Task.WhenAll(statImageTasks);
@@ -60,26 +71,39 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
     public async Task<Stream> GenerateCharacterCardAsync(GenshinCharacterInformation charInfo)
     {
+        m_Logger.LogInformation("Generating character card for {CharacterName} (ID: {CharacterId})",
+            charInfo.Base.Name, charInfo.Base.Id);
+
         try
         {
-            m_Logger.LogInformation("Fetching background image for {Element} character card", charInfo.Base.Element);
+            m_Logger.LogDebug("Fetching background image for {Element} character card", charInfo.Base.Element);
             var overlay =
                 Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync($"bg.png"));
             var background = new Image<Rgba32>(1620, 540);
+
+            m_Logger.LogDebug("Loading character portrait for {CharacterId}", charInfo.Base.Id);
             var characterPortrait =
                 Image.Load<Rgba32>(
                     await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Id)));
+
+            m_Logger.LogDebug("Loading weapon image for {WeaponId} ({WeaponName})",
+                charInfo.Base.Weapon.Id, charInfo.Base.Weapon.Name);
             var weaponImage =
                 Image.Load<Rgba32>(
                     await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Weapon.Id)));
+
+            m_Logger.LogDebug("Loading {Count} constellation icons", charInfo.Constellations.Count);
             var constellationIcons =
                 charInfo.Constellations.Select(async x =>
                         Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.Id))))
                     .ToArray();
+
+            m_Logger.LogDebug("Loading {Count} skill icons", charInfo.Skills.Count);
             var skillIcons = charInfo.Skills.Select(async x =>
                     Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId))))
                 .ToArray();
 
+            m_Logger.LogTrace("Compositing character card image");
             background.Mutate(ctx =>
             {
                 ctx.Fill(GetBackgroundColor(charInfo.Base.Element));
@@ -127,6 +151,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
                 var spacing = 280 / stats.Length;
 
+                m_Logger.LogTrace("Drawing {Count} character stats", stats.Length);
                 for (int i = 0; i < stats.Length; i++)
                 {
                     var stat = stats[i];
@@ -137,6 +162,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     ctx.DrawText(stat.Final, font, textColor, new PointF(900, y));
                 }
 
+                m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
                 var relics = charInfo.Relics.Select(async x => await CreateRelicSlotImage(x)).ToArray();
                 for (int i = 0; i < relics.Length; i++)
                 {
@@ -145,51 +171,68 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 }
             });
 
+            m_Logger.LogDebug("Saving character card to stream");
             var stream = new MemoryStream();
             await background.SaveAsJpegAsync(stream);
             stream.Position = 0;
+
+            m_Logger.LogInformation("Successfully generated character card for {CharacterName}", charInfo.Base.Name);
             return stream;
         }
-        catch
+        catch (Exception ex)
         {
-            m_Logger.LogError("Error generating character card for {CharacterName}", charInfo.Base.Name);
+            m_Logger.LogError(ex, "Failed to generate character card for {CharacterName} (ID: {CharacterId})",
+                charInfo.Base.Name, charInfo.Base.Id);
             throw;
         }
     }
 
     private async Task<Image<Rgba32>> CreateRelicSlotImage(Relic relic)
     {
-        var relicImage = Image.Load<Rgba32>(
-            await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, relic.Id)));
-        relicImage.Mutate(x => x.Resize(new Size(0, 50), KnownResamplers.Bicubic, true));
-
-        var template = new Image<Rgba32>(400, 80);
-        template.Mutate(ctx =>
+        m_Logger.LogTrace("Creating relic slot image for {RelicId}", relic.Id);
+        try
         {
-            ctx.Fill(new Rgba32(255, 255, 255, 0.25f));
-            ctx.DrawImage(relicImage, new Point(25, 0), 1f);
-            ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(10, 53), 1f);
-            var font = m_FontFamily.CreateFont(20);
-            ctx.DrawText(relic.MainProperty.Value, font, Color.White, new PointF(42, 55));
+            var path = string.Format(BasePath, relic.Id);
+            m_Logger.LogTrace("Loading relic image from {Path}", path);
 
-            for (var i = 0; i < relic.SubPropertyList.Count; i++)
+            var relicImage = Image.Load<Rgba32>(
+                await m_ImageRepository.DownloadFileAsBytesAsync(path));
+            relicImage.Mutate(x => x.Resize(new Size(0, 50), KnownResamplers.Bicubic, true));
+
+            var template = new Image<Rgba32>(400, 80);
+            template.Mutate(ctx =>
             {
-                var subStat = relic.SubPropertyList[i];
-                var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                subStatImage.Mutate(x => x.Resize(new Size(0, 24), KnownResamplers.Bicubic, true));
-                var xOffset = i % 2 * 125;
-                var yOffset = i / 2 * 30;
-                ctx.DrawImage(subStatImage, new Point(125 + xOffset, 13 + yOffset), 1f);
-                ctx.DrawText(subStat.Value, font, Color.White, new PointF(157 + xOffset, 15 + yOffset));
-            }
-        });
+                ctx.Fill(new Rgba32(255, 255, 255, 0.25f));
+                ctx.DrawImage(relicImage, new Point(25, 0), 1f);
+                ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(10, 53), 1f);
+                var font = m_FontFamily.CreateFont(20);
+                ctx.DrawText(relic.MainProperty.Value, font, Color.White, new PointF(42, 55));
 
-        return template;
+                for (var i = 0; i < relic.SubPropertyList.Count; i++)
+                {
+                    var subStat = relic.SubPropertyList[i];
+                    var subStatImage = m_StatImages[subStat.PropertyType!.Value];
+                    subStatImage.Mutate(x => x.Resize(new Size(0, 24), KnownResamplers.Bicubic, true));
+                    var xOffset = i % 2 * 125;
+                    var yOffset = i / 2 * 30;
+                    ctx.DrawImage(subStatImage, new Point(125 + xOffset, 13 + yOffset), 1f);
+                    ctx.DrawText(subStat.Value, font, Color.White, new PointF(157 + xOffset, 15 + yOffset));
+                }
+            });
+
+            return template;
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogError(ex, "Failed to create relic slot image for {RelicId}", relic.Id);
+            throw;
+        }
     }
 
     private Color GetBackgroundColor(string element)
     {
-        return element switch
+        m_Logger.LogTrace("Getting background color for element: {Element}", element);
+        var color = element switch
         {
             "Pyro" => Color.ParseHex("#BF8667"),
             "Hydro" => Color.ParseHex("#7A92FF"),
@@ -200,5 +243,10 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             "Anemo" => Color.ParseHex("7fB29E"),
             _ => Color.White
         };
+
+        if (element == "_")
+            m_Logger.LogWarning("Unknown element type: {Element}, using default color", element);
+
+        return color;
     }
 }
