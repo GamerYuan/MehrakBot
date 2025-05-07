@@ -39,6 +39,12 @@ internal class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
+        if (builder.Environment.IsDevelopment())
+        {
+            Console.WriteLine("Development environment detected");
+            builder.Configuration.AddJsonFile("appsettings.development.json");
+        }
+
         // Configure Serilog
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
@@ -76,8 +82,8 @@ internal class Program
             builder.Services.AddHttpClient();
             builder.Services.AddSingleton<GameRecordApiService>();
             builder.Services.AddSingleton<GenshinCharacterApiService>();
-            builder.Services.AddSingleton<GenshinCharacterCardService>();
-            builder.Services.AddSingleton<GenshinImageUpdaterService>();
+            builder.Services.AddScoped<GenshinCharacterCardService>();
+            builder.Services.AddScoped<GenshinImageUpdaterService>();
 
             // LToken Services
             builder.Services.AddMemoryCache();
@@ -97,9 +103,6 @@ internal class Program
 
             var logger = host.Services.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("MehrakBot application starting");
-
-            var characterCardService = host.Services.GetRequiredService<GenshinCharacterCardService>();
-            await characterCardService.InitializeAsync();
 
             host.AddModules(typeof(Program).Assembly);
 
