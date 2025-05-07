@@ -1,6 +1,8 @@
 ﻿#region
 
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -18,12 +20,13 @@ public static class ImageExtensions
         var width = image.Width;
         var height = image.Height;
 
-        int fadeStartX = Math.Max(0, (int)(width * 0.65f)); // Start fading from this position in the image
+        int fadeStartX = Math.Max(0, (int)(width * 0.75f)); // Start fading from this position in the image
 
         // Apply a gradient mask from right to left
         for (int x = fadeStartX; x < width; x++)
         {
-            float alpha = 1.0f - (float)(x - fadeStartX) / (width - fadeStartX);
+            double alpha = 1.0f - (double)(x - fadeStartX) / (width - fadeStartX);
+            alpha = Math.Pow(alpha, 5);
             alpha = Math.Max(0, Math.Min(1, alpha)); // Clamp between 0 and 1
 
             for (int y = 0; y < height; y++)
@@ -90,5 +93,58 @@ public static class ImageExtensions
         }
 
         return image;
+    }
+
+    public static Image<Rgba32> GenerateStarRating(int starCount)
+    {
+        starCount = Math.Clamp(starCount, 1, 5);
+
+        const int starSize = 30;
+        const int spacing = 5;
+        int width = 5 * starSize + 4 * spacing;
+        int height = starSize;
+
+        int centerY = starSize / 2;
+        var starColor = Color.Yellow;
+        var offset = (5 - starCount) * starSize / 2;
+
+        var image = new Image<Rgba32>(width, height);
+
+        image.Mutate(ctx =>
+        {
+            ctx.Clear(Color.Transparent);
+
+            for (int i = 0; i < starCount; i++)
+            {
+                int centerX = offset + i * (starSize + spacing) + starSize / 2;
+
+                // Create a star shape
+                var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
+                var starPolygon = new Polygon(points);
+
+                ctx.Fill(starColor, starPolygon);
+            }
+        });
+        return image;
+    }
+
+    private static PointF[] CreateStarPoints(float centerX, float centerY, float outerRadius, float innerRadius,
+        int points)
+    {
+        var result = new PointF[points * 2];
+        float angle = -MathF.PI / 2;
+        float angleIncrement = MathF.PI / points;
+
+        for (int i = 0; i < points * 2; i++)
+        {
+            float radius = i % 2 == 0 ? outerRadius : innerRadius;
+            result[i] = new PointF(
+                centerX + radius * MathF.Cos(angle),
+                centerY + radius * MathF.Sin(angle)
+            );
+            angle += angleIncrement;
+        }
+
+        return result;
     }
 }

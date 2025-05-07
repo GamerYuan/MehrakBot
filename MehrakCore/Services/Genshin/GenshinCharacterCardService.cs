@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Numerics;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
@@ -10,6 +11,7 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -97,7 +99,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
             m_Logger.LogDebug("Loading {Count} constellation icons", charInfo.Constellations.Count);
             var constellationIcons =
-                await Task.WhenAll(charInfo.Constellations.AsParallel().Select(async x =>
+                await Task.WhenAll(charInfo.Constellations.Select(async x =>
                 {
                     var image = Image.Load(
                         await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.Id)));
@@ -106,16 +108,16 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 }).Reverse());
 
             m_Logger.LogDebug("Loading {Count} skill icons", charInfo.Skills.Count);
-            var skillIcons = await Task.WhenAll(charInfo.Skills.AsParallel().Select(async x =>
+            var skillIcons = await Task.WhenAll(charInfo.Skills.Select(async x =>
             {
                 var image = Image.Load(
                     await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId)));
                 disposableResources.Add(image);
-                return (Level: x.Level.GetValueOrDefault(1), Image: image);
+                return (Data: x, Image: image);
             }).Take(3).Reverse());
 
             m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
-            var relics = await Task.WhenAll(charInfo.Relics.AsParallel().Select(async x =>
+            var relics = await Task.WhenAll(charInfo.Relics.Select(async x =>
             {
                 var relicImage = await CreateRelicSlotImage(x);
                 disposableResources.Add(relicImage);
@@ -126,67 +128,100 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
             background.Mutate(ctx =>
             {
-                ctx.Fill(GetBackgroundColor(charInfo.Base.Element));
+                var backgroundColor = GetBackgroundColor(charInfo.Base.Element);
+                ctx.Fill(backgroundColor);
                 ctx.DrawImage(overlay, PixelColorBlendingMode.Overlay, 1f);
 
                 var titleFont = m_FontFamily.CreateFont(64, FontStyle.Regular);
                 var font = m_FontFamily.CreateFont(40, FontStyle.Regular);
                 var textColor = Color.White;
 
-                ctx.DrawText(charInfo.Base.Name, titleFont, textColor, new PointF(100, 80));
-                ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(100, 160));
-                ctx.DrawImage(characterPortrait, new Point(-50, 60), 1f);
+                ctx.DrawImage(characterPortrait, new Point(-50, 0), 1f);
+
+                ctx.DrawText(charInfo.Base.Name, titleFont, textColor, new PointF(50, 80));
+                ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(50, 160));
 
                 for (int i = 0; i <= 2; i++)
                 {
                     var skill = skillIcons[i];
-                    skill.Image.Mutate(x => x.Resize(new Size(150, 0), KnownResamplers.Bicubic, true));
-                    ctx.DrawImage(skill.Image, new Point(40, 840 - i * 200), 1f);
-                    var polygon = new EllipsePolygon(110, 980 - i * 200, 30);
-                    ctx.Fill(Color.DarkGray, polygon);
-                    ctx.DrawText(skill.Level.ToString(), font, textColor,
-                        new PointF(100, 960 - i * 200));
+                    skill.Image.Mutate(x => x.Resize(new Size(120, 0), KnownResamplers.Bicubic, true));
+                    var offset = i * 180;
+                    var skillEllipse = new EllipsePolygon(100, 950 - offset, 70);
+                    ctx.Fill(Color.DarkSlateGray, skillEllipse).Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
+                    ctx.DrawImage(skill.Image, new Point(40, 890 - offset), 1f);
+                    var talentEllipse = new EllipsePolygon(100, 1020 - offset, 30);
+                    ctx.Fill(Color.DarkGray, talentEllipse);
+                    ctx.DrawText(new RichTextOptions(font)
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Origin = new Vector2(100, 1000 - offset)
+                    }, skill.Data.Level.ToString()!, textColor);
                 }
 
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
                     var constellation = constellationIcons[i];
-                    constellation.Image.Mutate(x => x.Resize(new Size(100, 0), KnownResamplers.Bicubic, true));
+                    constellation.Image.Mutate(x => x.Resize(new Size(90, 0), KnownResamplers.Bicubic, true));
                     if (!constellation.Active)
-                        constellation.Image.Mutate(x => x.Brightness(0.65f));
-                    ctx.DrawImage(constellation.Image, new Point(1000, 960 - i * 100), 1f);
+                        constellation.Image.Mutate(x => x.Brightness(0.5f));
+                    var offset = i * 120;
+                    var constEllipse = new EllipsePolygon(1050, 1000 - offset, 50);
+                    ctx.Fill(Color.DarkSlateGray, constEllipse).Draw(backgroundColor, 5f, constEllipse.AsClosedPath());
+                    ctx.DrawImage(constellation.Image, new Point(1005, 955 - offset), 1f);
                 }
 
-                weaponImage.Mutate(x => x.Resize(new Size(400, 0), KnownResamplers.Bicubic, true));
-                ctx.DrawImage(weaponImage, new Point(1100, 0), 1f);
-                ctx.DrawText(charInfo.Base.Weapon.Name, font, textColor, new PointF(1600, 80));
-                ctx.DrawText('R' + charInfo.Base.Weapon.AffixLevel!.Value.ToString(), font, textColor,
-                    new PointF(1600, 160));
-                ctx.DrawText($"Lv. {charInfo.Weapon.Level}", font, textColor, new PointF(1700, 160));
-                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1600, 236),
+                weaponImage.Mutate(x => x.Resize(new Size(200, 0), KnownResamplers.Bicubic, true));
+                ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
+                ctx.DrawImage(ImageExtensions.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
+                    new Point(1210, 240), 1f);
+                ctx.DrawText(charInfo.Weapon.Name, font, textColor, new PointF(1450, 80));
+                ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), font, textColor,
+                    new PointF(1450, 160));
+                ctx.DrawText($"Lv. {charInfo.Weapon.Level}", font, textColor, new PointF(1550, 160));
+                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1450, 236),
                     1f);
-                ctx.DrawText(charInfo.Weapon.MainProperty.Final, font, textColor, new PointF(1664, 240));
+                ctx.DrawText(charInfo.Weapon.MainProperty.Final, font, textColor, new PointF(1514, 240));
                 if (charInfo.Weapon.SubProperty != null)
                 {
-                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1800, 236),
+                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1650, 236),
                         1f);
-                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(1864, 240));
+                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(1714, 240));
                 }
 
-                var stats = charInfo.BaseProperties.Take(3).Concat(charInfo.SelectedProperties)
-                    .DistinctBy(x => x.PropertyType)
+                // Display based on the order
+                // 1. Base stats
+                // 2. EM
+                // 3. Other stats
+                var bonusStats = charInfo.SelectedProperties.OrderBy(x => x.PropertyType)
                     .Where(x => float.Parse(x.Final.TrimEnd('%')) >
                                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
-                var spacing = 560 / stats.Length;
+
+                StatProperty[] stats;
+                if (bonusStats.Length >= 6)
+                    stats = charInfo.BaseProperties.Take(4)
+                        .Where(x => float.Parse(x.Final.TrimEnd('%')) >
+                                    StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).Concat(bonusStats)
+                        .DistinctBy(x => x.PropertyType)
+                        .ToArray();
+                else
+                    stats = charInfo.BaseProperties.Take(4)
+                        .Concat(charInfo.SelectedProperties.OrderBy(x => x.PropertyType))
+                        .Take(7).ToArray();
+
+                var spacing = 700 / stats.Length;
 
                 for (int i = 0; i < stats.Length; i++)
                 {
                     var stat = stats[i];
-                    var y = 480 + spacing * i;
+                    var y = 360 + spacing * i;
                     ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
                     ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], font, textColor,
                         new PointF(1264, y));
-                    ctx.DrawText(stat.Final, font, textColor, new PointF(1800, y));
+                    ctx.DrawText(new RichTextOptions(font)
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Origin = new Vector2(2100, y)
+                    }, stat.Final, textColor);
                 }
 
                 for (int i = 0; i < relics.Length; i++)
@@ -266,13 +301,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogTrace("Getting background color for element: {Element}", element);
         var color = element switch
         {
-            "Pyro" => Color.ParseHex("#BF8667"),
-            "Hydro" => Color.ParseHex("#7A92FF"),
-            "Electro" => Color.ParseHex("#9E65C8"),
-            "Dendro" => Color.ParseHex("#529D62"),
-            "Cryo" => Color.ParseHex("#78CACC"),
-            "Geo" => Color.ParseHex("#B5A155"),
-            "Anemo" => Color.ParseHex("7fB29E"),
+            "Pyro" => Color.ParseHex("#B76150"),
+            "Hydro" => Color.ParseHex("#4768DD"),
+            "Electro" => Color.ParseHex("#8A44C0"),
+            "Dendro" => Color.ParseHex("#2B9342"),
+            "Cryo" => Color.ParseHex("#3CABAD"),
+            "Geo" => Color.ParseHex("#9E8628"),
+            "Anemo" => Color.ParseHex("226E4D"),
             _ => Color.White
         };
 
