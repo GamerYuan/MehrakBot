@@ -1,7 +1,6 @@
 ﻿#region
 
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -40,14 +39,14 @@ public static class ImageExtensions
         }
     }
 
-    public static void StandardizeImageSize(this Image<Rgba32> image, int size)
+    public static Image<Rgba32> StandardizeImageSize(Image<Rgba32> image, int size)
     {
         int width = image.Width;
         int height = image.Height;
 
         // If image is already 1280x1280, no need to resize
         if (width == size && height == size)
-            return;
+            return image;
 
         // If image dimensions exceed 1280x1280 or are smaller than 1280x1280,
         // resize so the longest side is 1280 while maintaining aspect ratio
@@ -86,13 +85,9 @@ public static class ImageExtensions
 
             centeredImage.Mutate(ctx => ctx.DrawImage(image, new Point(x, y), 1f));
 
-            image.Mutate(ctx =>
-            {
-                ctx.Fill(Color.Transparent);
-                ctx.Resize(size, size);
-                ctx.DrawImage(centeredImage, new Point(0, 0), 1f);
-            });
-            centeredImage.Dispose();
+            return centeredImage;
         }
+
+        return image;
     }
 }
