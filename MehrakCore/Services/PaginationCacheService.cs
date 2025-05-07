@@ -1,7 +1,7 @@
 ﻿#region
 
 using System.Collections.Concurrent;
-using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.ApiResponseTypes;
 using Microsoft.Extensions.Logging;
 
 #endregion
