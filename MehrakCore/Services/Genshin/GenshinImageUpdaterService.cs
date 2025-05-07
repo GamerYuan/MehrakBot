@@ -9,6 +9,7 @@ using MongoDB.Bson;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -126,6 +127,9 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     {
         Logger.LogDebug("Updating character image for character {CharacterName}, ID {CharacterId}",
             characterDetail.Name, characterDetail.Id);
+
+        Image<Rgba32> image = new(1, 1);
+
         try
         {
             using var client = HttpClientFactory.CreateClient();
@@ -156,11 +160,11 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png"; // Default to png if null
 
             // Process the image
-            using var imageStream = await response.Content.ReadAsStreamAsync();
-            using var image = await Image.LoadAsync<Rgba32>(imageStream);
+            await using var imageStream = await response.Content.ReadAsStreamAsync();
+            image = await Image.LoadAsync<Rgba32>(imageStream);
 
             // Step 1: Standardize image size to 1280x1280
-            image.StandardizeImageSize(1280);
+            image = ImageExtensions.StandardizeImageSize(image, 1280);
 
             // Step 2: Apply gradient fade
             image.ApplyGradientFade();
@@ -189,6 +193,10 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         {
             Logger.LogError(ex, "Error processing character image for ID {CharacterId}", characterDetail.Id);
             throw;
+        }
+        finally
+        {
+            image.Dispose();
         }
     }
 
