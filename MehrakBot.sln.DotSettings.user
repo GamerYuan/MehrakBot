@@ -1,6 +1,4 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=89c564eb_002D28cc_002D4055_002D9f5b_002D10a0d9e64427/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="ImageExtensionsTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;NUnit3x::DED54DCE-9602-4D75-8784-846DEE02E1E5::net9.0::MehrakCore.Test.Utility.ImageExtensionsTest&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
+  &lt;Project Location="E:\Projects\MehrakBot\MehrakCore.Tests" Presentation="&amp;lt;MehrakCore.Tests&amp;gt;" /&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
