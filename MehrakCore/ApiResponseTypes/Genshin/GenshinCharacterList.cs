@@ -15,10 +15,10 @@ public record CharacterListApiResponse(
 );
 
 public record CharacterListData(
-    [property: JsonPropertyName("list")] IReadOnlyList<BasicCharacterData> List
+    [property: JsonPropertyName("list")] IReadOnlyList<GenshinBasicCharacterData> List
 );
 
-public record BasicCharacterData(
+public record GenshinBasicCharacterData(
     [property: JsonPropertyName("id")] int? Id,
     [property: JsonPropertyName("icon")] string Icon,
     [property: JsonPropertyName("name")] string Name,
@@ -37,7 +37,7 @@ public record BasicCharacterData(
     [property: JsonPropertyName("weapon_type")]
     int? WeaponType,
     [property: JsonPropertyName("weapon")] Weapon Weapon
-);
+) : IBasicCharacterData;
 
 public record Weapon(
     [property: JsonPropertyName("id")] int? Id,

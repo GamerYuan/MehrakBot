@@ -8,15 +8,16 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services;
 
-public class PaginationCacheService
+public class PaginationCacheService<T> where T : IBasicCharacterData
 {
-    private readonly ConcurrentDictionary<ulong, (IEnumerable<BasicCharacterData> Items, string gameUid, string region)>
+    private readonly ConcurrentDictionary<ulong, (IEnumerable<T> Items, string gameUid, string
+            region)>
         m_Cache = new();
 
     private readonly TimeSpan m_ExpirationTime = TimeSpan.FromMinutes(10);
-    private readonly ILogger<PaginationCacheService> m_Logger;
+    private readonly ILogger<PaginationCacheService<T>> m_Logger;
 
-    public PaginationCacheService(ILogger<PaginationCacheService> logger)
+    public PaginationCacheService(ILogger<PaginationCacheService<T>> logger)
     {
         m_Logger = logger;
         m_Logger.LogInformation(
@@ -24,7 +25,7 @@ public class PaginationCacheService
             m_ExpirationTime.TotalMinutes);
     }
 
-    public void StoreItems(ulong userId, IEnumerable<BasicCharacterData> items, string gameUid, string region)
+    public void StoreItems(ulong userId, IEnumerable<T> items, string gameUid, string region)
     {
         var itemsList = items.ToList();
         m_Cache[userId] = (itemsList, gameUid, region);
@@ -32,7 +33,7 @@ public class PaginationCacheService
             itemsList.Count, userId);
     }
 
-    public IEnumerable<BasicCharacterData> GetItems(ulong userId)
+    public IEnumerable<T> GetItems(ulong userId)
     {
         if (!m_Cache.TryGetValue(userId, out var entry))
         {
@@ -45,7 +46,7 @@ public class PaginationCacheService
         return entry.Items;
     }
 
-    public IEnumerable<BasicCharacterData> GetPageItems(ulong userId, int page, int pageSize = 25)
+    public IEnumerable<T> GetPageItems(ulong userId, int page, int pageSize = 25)
     {
         m_Logger.LogDebug("Retrieving page {Page} (size: {PageSize}) for user {UserId}",
             page, pageSize, userId);

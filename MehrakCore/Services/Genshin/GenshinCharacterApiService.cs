@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Genshin;
 
-public class GenshinCharacterApiService : ICharacterApi
+public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>
 {
     private const string BaseUrl = "https://sg-public-api.hoyolab.com/event/game_record/genshin/api";
 
@@ -30,7 +30,8 @@ public class GenshinCharacterApiService : ICharacterApi
         m_Logger = logger;
     }
 
-    public async Task<IEnumerable<BasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken, string gameUid,
+    public async Task<IEnumerable<GenshinBasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken,
+        string gameUid,
         string region)
     {
         m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
@@ -74,7 +75,7 @@ public class GenshinCharacterApiService : ICharacterApi
         return data.List.OrderBy(x => x.Name);
     }
 
-    public async Task<GenshinCharacterInformation?> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
+    public async Task<GenshinCharacterDetail?> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
         string gameUid,
         string region,
         uint characterId)
@@ -116,11 +117,6 @@ public class GenshinCharacterApiService : ICharacterApi
             throw new JsonException("Failed to deserialize response");
         }
 
-        var characterData = data.List.FirstOrDefault();
-        m_Logger.LogInformation(
-            "Successfully retrieved character data for {CharacterName}, ID: {CharacterId} for user {Uid}",
-            characterData?.Base.Id, characterId, uid);
-
-        return characterData;
+        return data;
     }
 }

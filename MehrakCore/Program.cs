@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Globalization;
+using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
@@ -91,7 +92,7 @@ internal class Program
             builder.Services.AddSingleton<TokenCacheService>();
 
             // Other Services
-            builder.Services.AddSingleton<PaginationCacheService>();
+            builder.Services.AddSingleton<PaginationCacheService<GenshinBasicCharacterData>>();
 
             // NetCord Services
             builder.Services.AddDiscordGateway().AddApplicationCommands()
