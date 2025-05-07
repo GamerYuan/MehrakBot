@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;

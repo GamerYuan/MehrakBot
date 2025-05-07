@@ -21,7 +21,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
 
     private readonly FontFamily m_FontFamily;
-    private Dictionary<int, Image> m_StatImages = new();
+    private readonly Dictionary<int, Image> m_StatImages;
 
     private const string BasePath = "genshin_{0}";
     private const string StatsPath = "genshin_stats_{0}.png";
@@ -35,7 +35,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_FontFamily = collection.Add("Fonts/zh-cn.ttf");
 
         int[] statIds =
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 30, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
 
         m_Logger.LogDebug("Loading {Count} stat icons", statIds.Length);
         var statImageTasks = statIds.Select(async x =>
@@ -46,7 +46,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
                 var imageBytes = await m_ImageRepository.DownloadFileAsBytesAsync(path);
                 var image = Image.Load(imageBytes);
-                image.Mutate(ctx => ctx.Resize(new Size(24, 0), KnownResamplers.Bicubic, true));
+                image.Mutate(ctx => ctx.Resize(new Size(48, 0), KnownResamplers.Bicubic, true));
                 return new KeyValuePair<int, Image>(x, image);
             }
             catch (Exception ex)
@@ -76,12 +76,16 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             m_Logger.LogDebug("Fetching background image for {Element} character card", charInfo.Base.Element);
             var overlay =
                 Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync($"bg.png"));
-            var background = new Image<Rgba32>(1620, 540);
+            var background = new Image<Rgba32>(3240, 1080);
 
             m_Logger.LogDebug("Loading character portrait for {CharacterId}", charInfo.Base.Id);
             var characterPortrait =
                 Image.Load<Rgba32>(
                     await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Id)));
+
+            // Apply gradient fade to character portrait
+            m_Logger.LogDebug("Applying gradient fade to character portrait");
+            characterPortrait.ApplyGradientFade();
 
             m_Logger.LogDebug("Loading weapon image for {WeaponId} ({WeaponName})",
                 charInfo.Base.Weapon.Id, charInfo.Base.Weapon.Name);
@@ -109,65 +113,65 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.Fill(GetBackgroundColor(charInfo.Base.Element));
                 ctx.DrawImage(overlay, PixelColorBlendingMode.Overlay, 1f);
 
-                var titleFont = m_FontFamily.CreateFont(32, FontStyle.Regular);
-                var font = m_FontFamily.CreateFont(20, FontStyle.Regular);
+                var titleFont = m_FontFamily.CreateFont(64, FontStyle.Regular);
+                var font = m_FontFamily.CreateFont(40, FontStyle.Regular);
                 var textColor = Color.White;
 
-                ctx.DrawText(charInfo.Base.Name, titleFont, textColor, new PointF(50, 40));
-                ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(50, 80));
-                ctx.DrawImage(characterPortrait, new Point(-100, 120), 1f);
+                ctx.DrawText(charInfo.Base.Name, titleFont, textColor, new PointF(100, 80));
+                ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(100, 160));
+                ctx.DrawImage(characterPortrait, new Point(-50, 60), 1f);
 
                 for (int i = 0; i <= 2; i++)
                 {
                     var skill = skillIcons[i].Result;
-                    skill.Image.Mutate(x => x.Resize(new Size(75, 0), KnownResamplers.Bicubic, true));
-                    ctx.DrawImage(skill.Image, new Point(20, 420 - i * 100), 1f);
-                    var polygon = new EllipsePolygon(55, 490 - i * 100, 15);
+                    skill.Image.Mutate(x => x.Resize(new Size(150, 0), KnownResamplers.Bicubic, true));
+                    ctx.DrawImage(skill.Image, new Point(40, 840 - i * 200), 1f);
+                    var polygon = new EllipsePolygon(110, 980 - i * 200, 30);
                     ctx.Fill(Color.DarkGray, polygon);
                     ctx.DrawText(skill.Level.ToString(), font, textColor,
-                        new PointF(50, 480 - i * 100));
+                        new PointF(100, 960 - i * 200));
                 }
 
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
                     var constellation = constellationIcons[i].Result;
-                    constellation.Image.Mutate(x => x.Resize(new Size(50, 0), KnownResamplers.Bicubic, true));
+                    constellation.Image.Mutate(x => x.Resize(new Size(100, 0), KnownResamplers.Bicubic, true));
                     if (!constellation.Active)
                         constellation.Image.Mutate(x => x.Brightness(0.65f));
-                    ctx.DrawImage(constellation.Image, new Point(500, 480 - i * 50), 1f);
+                    ctx.DrawImage(constellation.Image, new Point(1000, 960 - i * 100), 1f);
                 }
 
-                weaponImage.Mutate(x => x.Resize(new Size(200, 0), KnownResamplers.Bicubic, true));
-                ctx.DrawImage(weaponImage, new Point(550, 0), 1f);
-                ctx.DrawText(charInfo.Base.Weapon.Name, font, textColor, new PointF(800, 40));
+                weaponImage.Mutate(x => x.Resize(new Size(400, 0), KnownResamplers.Bicubic, true));
+                ctx.DrawImage(weaponImage, new Point(1100, 0), 1f);
+                ctx.DrawText(charInfo.Base.Weapon.Name, font, textColor, new PointF(1600, 80));
                 ctx.DrawText('R' + charInfo.Base.Weapon.AffixLevel!.Value.ToString(), font, textColor,
-                    new PointF(800, 80));
-                ctx.DrawText($"Lv. {charInfo.Weapon.Level}", font, textColor, new PointF(850, 80));
-                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(800, 118),
+                    new PointF(1600, 160));
+                ctx.DrawText($"Lv. {charInfo.Weapon.Level}", font, textColor, new PointF(1700, 160));
+                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1600, 236),
                     1f);
-                ctx.DrawText(charInfo.Weapon.MainProperty.Final, font, textColor, new PointF(832, 120));
+                ctx.DrawText(charInfo.Weapon.MainProperty.Final, font, textColor, new PointF(1664, 240));
                 if (charInfo.Weapon.SubProperty != null)
                 {
-                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(900, 118),
+                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1800, 236),
                         1f);
-                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(932, 120));
+                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(1864, 240));
                 }
 
                 var stats = charInfo.BaseProperties.Take(3).Concat(charInfo.SelectedProperties)
                     .DistinctBy(x => x.PropertyType)
                     .Where(x => float.Parse(x.Final.TrimEnd('%')) >
                                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
-                var spacing = 280 / stats.Length;
+                var spacing = 560 / stats.Length;
 
                 m_Logger.LogTrace("Drawing {Count} character stats", stats.Length);
                 for (int i = 0; i < stats.Length; i++)
                 {
                     var stat = stats[i];
-                    var y = 240 + spacing * i;
-                    ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(600, y - 2), 1f);
+                    var y = 480 + spacing * i;
+                    ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
                     ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], font, textColor,
-                        new PointF(632, y));
-                    ctx.DrawText(stat.Final, font, textColor, new PointF(900, y));
+                        new PointF(1264, y));
+                    ctx.DrawText(stat.Final, font, textColor, new PointF(1800, y));
                 }
 
                 m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
@@ -175,7 +179,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < relics.Length; i++)
                 {
                     var relic = relics[i].Result;
-                    ctx.DrawImage(relic, new Point(1100, 25 + i * 100), 1f);
+                    ctx.DrawImage(relic, new Point(2200, 50 + i * 200), 1f);
                 }
             });
 
@@ -205,27 +209,27 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
             var relicImage = Image.Load<Rgba32>(
                 await m_ImageRepository.DownloadFileAsBytesAsync(path));
-            relicImage.Mutate(x => x.Resize(new Size(0, 50), KnownResamplers.Bicubic, true));
+            relicImage.Mutate(x => x.Resize(new Size(0, 100), KnownResamplers.Bicubic, true));
 
-            var template = new Image<Rgba32>(400, 80);
+            var template = new Image<Rgba32>(800, 160);
             template.Mutate(ctx =>
             {
                 ctx.Fill(new Rgba32(255, 255, 255, 0.25f));
-                ctx.DrawImage(relicImage, new Point(25, 0), 1f);
-                ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(10, 53), 1f);
-                var font = m_FontFamily.CreateFont(20);
-                var smallFont = m_FontFamily.CreateFont(14);
-                ctx.DrawText(relic.MainProperty.Value, font, Color.White, new PointF(42, 55));
-                ctx.DrawText($"+{relic.Level!.Value}", smallFont, Color.White, new PointF(70, 40));
+                ctx.DrawImage(relicImage, new Point(50, 0), 1f);
+                ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(20, 106), 1f);
+                var font = m_FontFamily.CreateFont(40);
+                var smallFont = m_FontFamily.CreateFont(28);
+                ctx.DrawText(relic.MainProperty.Value, font, Color.White, new PointF(84, 110));
+                ctx.DrawText($"+{relic.Level!.Value}", smallFont, Color.White, new PointF(140, 80));
 
                 for (var i = 0; i < relic.SubPropertyList.Count; i++)
                 {
                     var subStat = relic.SubPropertyList[i];
                     var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                    var xOffset = i % 2 * 125;
-                    var yOffset = i / 2 * 30;
-                    ctx.DrawImage(subStatImage, new Point(125 + xOffset, 13 + yOffset), 1f);
-                    ctx.DrawText(subStat.Value, font, Color.White, new PointF(157 + xOffset, 15 + yOffset));
+                    var xOffset = i % 2 * 250;
+                    var yOffset = i / 2 * 60;
+                    ctx.DrawImage(subStatImage, new Point(250 + xOffset, 26 + yOffset), 1f);
+                    ctx.DrawText(subStat.Value, font, Color.White, new PointF(314 + xOffset, 30 + yOffset));
                 }
             });
 

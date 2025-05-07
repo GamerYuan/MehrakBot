@@ -1,9 +1,14 @@
 ﻿#region
 
+using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
 
 #endregion
 
@@ -11,7 +16,9 @@ namespace MehrakCore.Services.Genshin;
 
 public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterInformation>
 {
-    private readonly string m_BaseString = "genshin_{0}";
+    private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/genshin/wapi/entry_page";
+    private const string BaseString = "genshin_{0}";
+    private const int StandardImageSize = 1280;
 
     public GenshinImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<GenshinImageUpdaterService> logger) : base(
@@ -41,13 +48,14 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             {
                 Logger.LogDebug("Character {CharacterName}, ID: {CharacterId} not in cache. Checking image existence.",
                     characterInformation.Base.Name, id.Value);
-                var characterImageFilename = string.Format(m_BaseString, id.Value);
+                var characterImageFilename = string.Format(BaseString, id.Value);
                 if (!await ImageRepository.FileExistsAsync(characterImageFilename))
                 {
                     Logger.LogInformation(
                         "Character image for {CharacterName}, ID: {CharacterId} not found. Scheduling download.",
                         characterInformation.Base.Name, id.Value);
-                    tasks.Add(UpdateCharacterImageTask(characterInformation.Base));
+                    tasks.Add(UpdateCharacterImageTask(characterInformation.Base,
+                        int.Parse(avatarWiki.Values.First().Split('/')[^1])));
                     tasks.AddRange(UpdateConstellationIconTasks(characterInformation.Constellations));
                     tasks.AddRange(UpdateSkillIconTasks(characterInformation.Skills));
                 }
@@ -77,7 +85,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             else
             {
                 Logger.LogDebug("Weapon ID {WeaponId} not in cache. Checking image existence.", weaponId.Value);
-                var weaponImageFilename = string.Format(m_BaseString, weaponId.Value);
+                var weaponImageFilename = string.Format(BaseString, weaponId.Value);
                 if (!await ImageRepository.FileExistsAsync(weaponImageFilename))
                 {
                     Logger.LogInformation("Weapon image for ID {WeaponId} not found. Scheduling download.",
@@ -114,39 +122,79 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         }
     }
 
-    private async Task<ObjectId> UpdateCharacterImageTask(BaseCharacterDetail characterDetail)
+    private async Task UpdateCharacterImageTask(BaseCharacterDetail characterDetail, int avatarId)
     {
-        var filename = string.Format(m_BaseString, characterDetail.Id!.Value);
-        Logger.LogDebug("Updating character image for ID {CharacterId} from URL: {ImageUrl}", characterDetail.Id,
-            characterDetail.Image);
+        Logger.LogDebug("Updating character image for character {CharacterName}, ID {CharacterId}",
+            characterDetail.Name, characterDetail.Id);
         try
         {
-            var response = await HttpClientFactory.CreateClient().GetAsync(characterDetail.Image);
+            using var client = HttpClientFactory.CreateClient();
+            HttpRequestMessage request = new();
+            request.Method = HttpMethod.Get;
+            request.Headers.Add("X-Rpc-Language", "zh-cn");
+            request.RequestUri = new Uri($"{WikiApi}?entry_page_id={avatarId}");
+            var wikiResponse = await client.SendAsync(request);
+            var avatarUrl =
+                (await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync()))?["data"]?["page"]?
+                ["header_img_url"]?.ToString();
+
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                Logger.LogError(
+                    "Failed to retrieve avatar URL for character {CharacterName}, ID: {CharacterId}, Wiki Entry: {WikiEntry}",
+                    characterDetail.Name, characterDetail.Id, avatarId);
+                return;
+            }
+
+            var filename = string.Format(BaseString, characterDetail.Id!.Value);
+            Logger.LogDebug("Updating character image for ID {CharacterId} from URL: {ImageUrl}", characterDetail.Id,
+                avatarUrl);
+
+            var response = await HttpClientFactory.CreateClient().GetAsync(avatarUrl);
             response.EnsureSuccessStatusCode();
             var contentType =
                 response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png"; // Default to png if null
-            Logger.LogDebug("Uploading character image {Filename} with content type {ContentType}", filename,
+
+            // Process the image
+            using var imageStream = await response.Content.ReadAsStreamAsync();
+            using var image = await Image.LoadAsync<Rgba32>(imageStream);
+
+            // Step 1: Standardize image size to 1280x1280
+            image.StandardizeImageSize(1280);
+
+            // Step 2: Apply gradient fade
+            image.ApplyGradientFade();
+
+            Logger.LogDebug("Image processed to standard size {Size}x{Size} with gradient fade applied",
+                StandardImageSize, StandardImageSize);
+
+            // Save processed image to memory stream for upload
+            using var processedImageStream = new MemoryStream();
+            await image.SaveAsync(processedImageStream, image.Metadata.DecodedImageFormat ?? PngFormat.Instance);
+            processedImageStream.Position = 0;
+
+            Logger.LogDebug("Uploading processed character image {Filename} with content type {ContentType}", filename,
                 contentType);
-            return await ImageRepository.UploadFileAsync(filename,
-                await response.Content.ReadAsStreamAsync(),
-                contentType);
+            await ImageRepository.UploadFileAsync(filename,
+                processedImageStream,
+                image.Metadata.DecodedImageFormat?.ToString() ?? "png");
         }
         catch (HttpRequestException ex)
         {
             Logger.LogError(ex, "Error downloading character image for ID {CharacterId} from {ImageUrl}",
                 characterDetail.Id, characterDetail.Image);
-            return ObjectId.Empty; // Or rethrow, depending on desired error handling
+            throw;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error processing character image for ID {CharacterId}", characterDetail.Id);
-            return ObjectId.Empty;
+            throw;
         }
     }
 
-    private async Task<ObjectId> UpdateWeaponImageTask(WeaponDetail weaponDetail)
+    private async Task UpdateWeaponImageTask(WeaponDetail weaponDetail)
     {
-        var filename = string.Format(m_BaseString, weaponDetail.Id!.Value);
+        var filename = string.Format(BaseString, weaponDetail.Id!.Value);
         Logger.LogDebug("Updating weapon icon for weapon {WeaponName}, ID: {WeaponId} URL: {IconUrl}",
             weaponDetail.Name, weaponDetail.Id.Value, weaponDetail.Icon);
         try
@@ -157,7 +205,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             Logger.LogDebug(
                 "Uploading weapon icon for weapon {WeaponName}, ID: {WeaponId} with content type {ContentType}",
                 weaponDetail.Name, weaponDetail.Id.Value, contentType);
-            return await ImageRepository.UploadFileAsync(filename,
+            await ImageRepository.UploadFileAsync(filename,
                 await response.Content.ReadAsStreamAsync(),
                 contentType);
         }
@@ -165,22 +213,22 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         {
             Logger.LogError(ex, "Error downloading weapon icon for weapon {WeaponName}, ID: {WeaponId} URL: {IconUrl}",
                 weaponDetail.Name, weaponDetail.Id.Value, weaponDetail.Icon);
-            return ObjectId.Empty;
+            throw;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error processing weapon icon for weapon {WeaponName}, ID: {WeaponId}",
                 weaponDetail.Name, weaponDetail.Id.Value);
-            return ObjectId.Empty;
+            throw;
         }
     }
 
-    private IEnumerable<Task<ObjectId>> UpdateConstellationIconTasks(IEnumerable<Constellation> constellations)
+    private IEnumerable<Task> UpdateConstellationIconTasks(IEnumerable<Constellation> constellations)
     {
         return constellations.AsParallel()
             .Select(async constellation =>
             {
-                var filename = string.Format(m_BaseString, constellation.Id!.Value);
+                var filename = string.Format(BaseString, constellation.Id!.Value);
                 Logger.LogDebug(
                     "Updating constellation icon for constellation {ConstellationName}, ID: {ConstellationId} URL: {IconUrl}",
                     constellation.Name, constellation.Id, constellation.Icon);
@@ -214,12 +262,12 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     }
 
 
-    private IEnumerable<Task<ObjectId>> UpdateSkillIconTasks(IEnumerable<Skill> skills)
+    private IEnumerable<Task> UpdateSkillIconTasks(IEnumerable<Skill> skills)
     {
         return skills.AsParallel()
             .Select(async skill =>
             {
-                var filename = string.Format(m_BaseString, skill.SkillId!.Value);
+                var filename = string.Format(BaseString, skill.SkillId!.Value);
                 Logger.LogDebug("Updating skill icon for {SkillName}, ID {SkillId} URL: {IconUrl}", skill.Name,
                     skill.SkillId, skill.Icon);
                 try
@@ -231,7 +279,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     Logger.LogDebug(
                         "Uploading skill icon for {SkillName}, ID {SkillId} with content type {ContentType}",
                         skill.Name, skill.SkillId, contentType);
-                    return await ImageRepository.UploadFileAsync(filename,
+                    await ImageRepository.UploadFileAsync(filename,
                         await content.ReadAsStreamAsync(),
                         contentType);
                 }
@@ -241,21 +289,19 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                         "Error downloading skill icon for skill {SkillName}, ID {SkillId} URL: {IconUrl}", skill.Name,
                         skill.SkillId,
                         skill.Icon);
-                    return ObjectId.Empty;
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex,
                         "Error processing skill icon for skill {SkillName}, ID {SkillId}", skill.Name,
                         skill.SkillId);
-                    return ObjectId.Empty;
                 }
             });
     }
 
-    private IEnumerable<Task<ObjectId>> UpdateRelicIconTasks(IEnumerable<Relic> relics)
+    private IEnumerable<Task> UpdateRelicIconTasks(IEnumerable<Relic> relics)
     {
-        var tasks = new List<Task<ObjectId>>();
+        var tasks = new List<Task>();
         foreach (var relic in relics)
         {
             if (relic.Id == null)
@@ -275,12 +321,12 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
             tasks.Add(Task.Run(async () => // Use Task.Run to allow async check inside loop
             {
-                var filename = string.Format(m_BaseString, relic.Id!.Value);
+                var filename = string.Format(BaseString, relic.Id!.Value);
                 if (await ImageRepository.FileExistsAsync(filename))
                 {
                     Logger.LogDebug("Relic {RelicName}, ID: {RelicId} already exists in database. Skipping.",
                         relic.Name, relic.Id.Value);
-                    return ObjectId.Empty; // Indicate no upload needed
+                    return;
                 }
 
                 Logger.LogDebug("Updating relic icon for relic {RelicName}, ID: {RelicId} URL: {IconUrl}", relic.Name,
@@ -294,7 +340,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     Logger.LogDebug(
                         "Uploading relic {RelicName}, ID: {RelicId} with content type {ContentType} to database",
                         relic.Name, relic.Id.Value, contentType);
-                    return await ImageRepository.UploadFileAsync(filename,
+                    await ImageRepository.UploadFileAsync(filename,
                         await content.ReadAsStreamAsync(),
                         contentType);
                 }
@@ -304,13 +350,11 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                         "Error downloading relic icon for relic {RelicName}, ID: {RelicId} URL: {IconUrl}", relic.Name,
                         relic.Id,
                         relic.Icon);
-                    return ObjectId.Empty;
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error processing relic icon for relic {RelicName}, ID: {RelicId}", relic.Name,
                         relic.Id);
-                    return ObjectId.Empty;
                 }
             }));
         }
