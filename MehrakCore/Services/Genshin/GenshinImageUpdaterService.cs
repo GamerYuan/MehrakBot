@@ -21,7 +21,8 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     {
     }
 
-    public override async Task UpdateDataAsync(GenshinCharacterInformation characterInformation)
+    public override async Task UpdateDataAsync(GenshinCharacterInformation characterInformation,
+        IReadOnlyDictionary<string, string> avatarWiki)
     {
         Logger.LogInformation("Starting image update process for character {CharacterName}, ID: {CharacterId}",
             characterInformation.Base.Name, characterInformation.Base.Id);

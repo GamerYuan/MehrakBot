@@ -11,12 +11,14 @@ public record CharacterDetailApiResponse(
     int Retcode,
     [property: JsonPropertyName("message")]
     string Message,
-    [property: JsonPropertyName("data")] CharacterDetail Data
+    [property: JsonPropertyName("data")] GenshinCharacterDetail Data
 );
 
-public record CharacterDetail(
-    [property: JsonPropertyName("list")] IReadOnlyList<GenshinCharacterInformation> List
-);
+public record GenshinCharacterDetail(
+    [property: JsonPropertyName("list")] IReadOnlyList<GenshinCharacterInformation> List,
+    [property: JsonPropertyName("avatar_wiki")]
+    IReadOnlyDictionary<string, string> AvatarWiki
+) : ICharacterDetail;
 
 public record BaseCharacterDetail(
     [property: JsonPropertyName("id")] int? Id,

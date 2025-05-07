@@ -1,5 +1,6 @@
 ﻿#region
 
+using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
@@ -85,7 +86,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     private readonly GenshinCharacterApiService m_GenshinApiService;
     private readonly GameRecordApiService m_GameRecordApiService;
     private readonly GenshinCharacterCardService m_GenshinCharacterCardService;
-    private readonly PaginationCacheService m_PaginationCacheService;
+    private readonly PaginationCacheService<GenshinBasicCharacterData> m_PaginationCacheService;
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
     private readonly ILogger<CharacterSelectionModule> m_Logger;
 
@@ -93,7 +94,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         GenshinCharacterApiService genshinApiService,
         GameRecordApiService gameRecordApi,
         GenshinCharacterCardService genshinCharacterCardService,
-        PaginationCacheService paginationCacheService,
+        PaginationCacheService<GenshinBasicCharacterData> paginationCacheService,
         GenshinImageUpdaterService genshinImageUpdaterService,
         ILogger<CharacterSelectionModule> logger)
     {
@@ -160,10 +161,25 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         var gameUid = m_PaginationCacheService.GetGameUid(Context.User.Id);
         var region = m_PaginationCacheService.GetRegion(Context.User.Id);
 
-        var characterInfo =
+        var characterDetail =
             await m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
                 uint.Parse(Context.SelectedValues[0]));
 
+        if (characterDetail == null)
+        {
+            m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
+                Context.SelectedValues[0], Context.User.Id);
+            var followup = Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithComponents([
+                    new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+                ]));
+            var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
+
+            await Task.WhenAll(delete, followup);
+            return;
+        }
+
+        var characterInfo = characterDetail.List.FirstOrDefault();
         if (characterInfo == null)
         {
             m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
@@ -178,7 +194,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
             return;
         }
 
-        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo);
+        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
 
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
@@ -201,10 +217,10 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
 public class CharacterSelectPagination : ComponentInteractionModule<ButtonInteractionContext>
 
 {
-    private readonly PaginationCacheService m_PaginationCacheService;
+    private readonly PaginationCacheService<GenshinBasicCharacterData> m_PaginationCacheService;
     private readonly ILogger<CharacterSelectPagination> m_Logger;
 
-    public CharacterSelectPagination(PaginationCacheService paginationCacheService,
+    public CharacterSelectPagination(PaginationCacheService<GenshinBasicCharacterData> paginationCacheService,
         ILogger<CharacterSelectPagination> logger)
     {
         m_PaginationCacheService = paginationCacheService;
@@ -223,7 +239,7 @@ public class CharacterSelectPagination : ComponentInteractionModule<ButtonIntera
     }
 
     public static IComponentProperties[] CreateComponents(int page, int totalPages,
-        PaginationCacheService paginationCacheService, ulong userId)
+        PaginationCacheService<GenshinBasicCharacterData> paginationCacheService, ulong userId)
     {
         var components = new List<IComponentProperties>
             { new TextDisplayProperties($"Select your character! (Page {page + 1}/{totalPages + 1})") };
