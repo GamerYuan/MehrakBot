@@ -1,4 +1,4 @@
-﻿namespace MehrakCore.ApiResponseTypes.Genshin;
+﻿namespace MehrakCore.ApiResponseTypes;
 
 public interface IBasicCharacterData
 {

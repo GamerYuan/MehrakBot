@@ -1,7 +1,6 @@
 #region
 
 using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
 using Microsoft.Extensions.Logging;
@@ -16,17 +15,12 @@ namespace MehrakCore.Modules;
 
 public class CharacterCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly UserRepository m_UserRepository;
     private readonly ILogger<CharacterCommandModule> m_Logger;
-    private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
 
-    public CharacterCommandModule(UserRepository userRepository, ILogger<CharacterCommandModule> logger,
-        CookieService cookieService, TokenCacheService tokenCacheService)
+    public CharacterCommandModule(ILogger<CharacterCommandModule> logger, TokenCacheService tokenCacheService)
     {
-        m_UserRepository = userRepository;
         m_Logger = logger;
-        m_CookieService = cookieService;
         m_TokenCacheService = tokenCacheService;
     }
 
