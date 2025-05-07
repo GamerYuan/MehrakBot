@@ -43,7 +43,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             region,
             1
         );
-        var httpClient = m_HttpClientFactory.CreateClient();
+        var httpClient = m_HttpClientFactory.CreateClient("Default");
 
         HttpRequestMessage request = new();
         request.Method = HttpMethod.Post;
@@ -90,7 +90,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             region,
             new ReadOnlyCollection<uint>([characterId])
         );
-        var httpClient = m_HttpClientFactory.CreateClient();
+        var httpClient = m_HttpClientFactory.CreateClient("Default");
 
         HttpRequestMessage request = new();
         request.Method = HttpMethod.Post;
