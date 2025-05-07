@@ -142,5 +142,5 @@ public record WeaponDetail(
     [property: JsonPropertyName("main_property")]
     StatProperty MainProperty,
     [property: JsonPropertyName("sub_property")]
-    StatProperty SubProperty
+    StatProperty? SubProperty
 );

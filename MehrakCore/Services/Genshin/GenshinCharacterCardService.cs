@@ -6,6 +6,7 @@ using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -33,12 +34,6 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         var collection = new FontCollection();
         m_FontFamily = collection.Add("Fonts/zh-cn.ttf");
 
-        m_Logger.LogInformation("GenshinCharacterCardService initialized");
-    }
-
-    public async Task InitializeAsync()
-    {
-        m_Logger.LogInformation("Initializing resources...");
         int[] statIds =
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
 
@@ -61,12 +56,14 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             }
         }).ToList();
 
-        var results = await Task.WhenAll(statImageTasks);
+        var results = Task.WhenAll(statImageTasks).Result;
         m_StatImages = results.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         m_Logger.LogInformation(
             "Resources initialized successfully with {Count} icons.",
             m_StatImages.Count);
+
+        m_Logger.LogInformation("GenshinCharacterCardService initialized");
     }
 
     public async Task<Stream> GenerateCharacterCardAsync(GenshinCharacterInformation charInfo)
@@ -95,13 +92,16 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             m_Logger.LogDebug("Loading {Count} constellation icons", charInfo.Constellations.Count);
             var constellationIcons =
                 charInfo.Constellations.Select(async x =>
-                        Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.Id))))
-                    .ToArray();
+                        (Active: x.IsActived.GetValueOrDefault(false),
+                            Image: Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath,
+                                x.Id)))))
+                    .Reverse().ToArray();
 
             m_Logger.LogDebug("Loading {Count} skill icons", charInfo.Skills.Count);
-            var skillIcons = charInfo.Skills.Select(async x =>
-                    Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId))))
-                .ToArray();
+            var skillIcons = charInfo.Skills.Select(async x => (Level: x.Level.GetValueOrDefault(1),
+                    Image: Image.Load(
+                        await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId)))))
+                .Take(3).Reverse().ToArray();
 
             m_Logger.LogTrace("Compositing character card image");
             background.Mutate(ctx =>
@@ -117,20 +117,24 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(50, 80));
                 ctx.DrawImage(characterPortrait, new Point(-100, 120), 1f);
 
-                for (int i = 2; i >= 0; i--)
+                for (int i = 0; i <= 2; i++)
                 {
-                    var skillIcon = skillIcons[i].Result;
-                    skillIcon.Mutate(x => x.Resize(new Size(50, 0), KnownResamplers.Bicubic, true));
-                    ctx.DrawImage(skillIcon, new Point(20, 480 - i * 50), 1f);
+                    var skill = skillIcons[i].Result;
+                    skill.Image.Mutate(x => x.Resize(new Size(75, 0), KnownResamplers.Bicubic, true));
+                    ctx.DrawImage(skill.Image, new Point(20, 420 - i * 100), 1f);
+                    var polygon = new EllipsePolygon(55, 490 - i * 100, 15);
+                    ctx.Fill(Color.DarkGray, polygon);
+                    ctx.DrawText(skill.Level.ToString(), font, textColor,
+                        new PointF(50, 480 - i * 100));
                 }
 
-                for (int i = constellationIcons.Length - 1; i >= 0; i--)
+                for (int i = 0; i < constellationIcons.Length; i++)
                 {
-                    var constellationIcon = constellationIcons[i].Result;
-                    constellationIcon.Mutate(x => x.Resize(new Size(50, 0), KnownResamplers.Bicubic, true));
-                    if (!charInfo.Constellations[i].IsActived!.Value)
-                        constellationIcon.Mutate(x => x.Brightness(0.65f));
-                    ctx.DrawImage(constellationIcon, new Point(500, 480 - i * 50), 1f);
+                    var constellation = constellationIcons[i].Result;
+                    constellation.Image.Mutate(x => x.Resize(new Size(50, 0), KnownResamplers.Bicubic, true));
+                    if (!constellation.Active)
+                        constellation.Image.Mutate(x => x.Brightness(0.65f));
+                    ctx.DrawImage(constellation.Image, new Point(500, 480 - i * 50), 1f);
                 }
 
                 weaponImage.Mutate(x => x.Resize(new Size(200, 0), KnownResamplers.Bicubic, true));
@@ -142,8 +146,12 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(800, 118),
                     1f);
                 ctx.DrawText(charInfo.Weapon.MainProperty.Final, font, textColor, new PointF(832, 120));
-                ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(900, 118), 1f);
-                ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(932, 120));
+                if (charInfo.Weapon.SubProperty != null)
+                {
+                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(900, 118),
+                        1f);
+                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(932, 120));
+                }
 
                 var stats = charInfo.BaseProperties.Take(3).Concat(charInfo.SelectedProperties)
                     .DistinctBy(x => x.PropertyType)
@@ -206,13 +214,14 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawImage(relicImage, new Point(25, 0), 1f);
                 ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(10, 53), 1f);
                 var font = m_FontFamily.CreateFont(20);
+                var smallFont = m_FontFamily.CreateFont(14);
                 ctx.DrawText(relic.MainProperty.Value, font, Color.White, new PointF(42, 55));
+                ctx.DrawText($"+{relic.Level!.Value}", smallFont, Color.White, new PointF(70, 40));
 
                 for (var i = 0; i < relic.SubPropertyList.Count; i++)
                 {
                     var subStat = relic.SubPropertyList[i];
                     var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                    subStatImage.Mutate(x => x.Resize(new Size(0, 24), KnownResamplers.Bicubic, true));
                     var xOffset = i % 2 * 125;
                     var yOffset = i / 2 * 30;
                     ctx.DrawImage(subStatImage, new Point(125 + xOffset, 13 + yOffset), 1f);
