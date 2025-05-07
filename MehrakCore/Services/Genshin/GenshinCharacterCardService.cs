@@ -71,43 +71,59 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogInformation("Generating character card for {CharacterName} (ID: {CharacterId})",
             charInfo.Base.Name, charInfo.Base.Id);
 
+        var disposableResources = new List<IDisposable>();
+
         try
         {
             m_Logger.LogDebug("Fetching background image for {Element} character card", charInfo.Base.Element);
-            var overlay =
-                Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync($"bg.png"));
+            var overlay = Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync($"bg.png"));
+            disposableResources.Add(overlay);
+
             var background = new Image<Rgba32>(3240, 1080);
+            disposableResources.Add(background);
 
             m_Logger.LogDebug("Loading character portrait for {CharacterId}", charInfo.Base.Id);
             var characterPortrait =
                 Image.Load<Rgba32>(
                     await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Id)));
-
-            // Apply gradient fade to character portrait
-            m_Logger.LogDebug("Applying gradient fade to character portrait");
-            characterPortrait.ApplyGradientFade();
+            disposableResources.Add(characterPortrait);
 
             m_Logger.LogDebug("Loading weapon image for {WeaponId} ({WeaponName})",
                 charInfo.Base.Weapon.Id, charInfo.Base.Weapon.Name);
             var weaponImage =
                 Image.Load<Rgba32>(
                     await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Weapon.Id)));
+            disposableResources.Add(weaponImage);
 
             m_Logger.LogDebug("Loading {Count} constellation icons", charInfo.Constellations.Count);
             var constellationIcons =
-                charInfo.Constellations.Select(async x =>
-                        (Active: x.IsActived.GetValueOrDefault(false),
-                            Image: Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath,
-                                x.Id)))))
-                    .Reverse().ToArray();
+                await Task.WhenAll(charInfo.Constellations.AsParallel().Select(async x =>
+                {
+                    var image = Image.Load(
+                        await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.Id)));
+                    disposableResources.Add(image);
+                    return (Active: x.IsActived.GetValueOrDefault(false), Image: image);
+                }).Reverse());
 
             m_Logger.LogDebug("Loading {Count} skill icons", charInfo.Skills.Count);
-            var skillIcons = charInfo.Skills.Select(async x => (Level: x.Level.GetValueOrDefault(1),
-                    Image: Image.Load(
-                        await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId)))))
-                .Take(3).Reverse().ToArray();
+            var skillIcons = await Task.WhenAll(charInfo.Skills.AsParallel().Select(async x =>
+            {
+                var image = Image.Load(
+                    await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId)));
+                disposableResources.Add(image);
+                return (Level: x.Level.GetValueOrDefault(1), Image: image);
+            }).Take(3).Reverse());
+
+            m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
+            var relics = await Task.WhenAll(charInfo.Relics.AsParallel().Select(async x =>
+            {
+                var relicImage = await CreateRelicSlotImage(x);
+                disposableResources.Add(relicImage);
+                return relicImage;
+            }));
 
             m_Logger.LogTrace("Compositing character card image");
+
             background.Mutate(ctx =>
             {
                 ctx.Fill(GetBackgroundColor(charInfo.Base.Element));
@@ -123,7 +139,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 for (int i = 0; i <= 2; i++)
                 {
-                    var skill = skillIcons[i].Result;
+                    var skill = skillIcons[i];
                     skill.Image.Mutate(x => x.Resize(new Size(150, 0), KnownResamplers.Bicubic, true));
                     ctx.DrawImage(skill.Image, new Point(40, 840 - i * 200), 1f);
                     var polygon = new EllipsePolygon(110, 980 - i * 200, 30);
@@ -134,7 +150,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
-                    var constellation = constellationIcons[i].Result;
+                    var constellation = constellationIcons[i];
                     constellation.Image.Mutate(x => x.Resize(new Size(100, 0), KnownResamplers.Bicubic, true));
                     if (!constellation.Active)
                         constellation.Image.Mutate(x => x.Brightness(0.65f));
@@ -163,7 +179,6 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
                 var spacing = 560 / stats.Length;
 
-                m_Logger.LogTrace("Drawing {Count} character stats", stats.Length);
                 for (int i = 0; i < stats.Length; i++)
                 {
                     var stat = stats[i];
@@ -174,11 +189,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     ctx.DrawText(stat.Final, font, textColor, new PointF(1800, y));
                 }
 
-                m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
-                var relics = charInfo.Relics.Select(async x => await CreateRelicSlotImage(x)).ToArray();
                 for (int i = 0; i < relics.Length; i++)
                 {
-                    var relic = relics[i].Result;
+                    var relic = relics[i];
                     ctx.DrawImage(relic, new Point(2200, 50 + i * 200), 1f);
                 }
             });
@@ -196,6 +209,10 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             m_Logger.LogError(ex, "Failed to generate character card for {CharacterName} (ID: {CharacterId})",
                 charInfo.Base.Name, charInfo.Base.Id);
             throw;
+        }
+        finally
+        {
+            foreach (var resource in disposableResources) resource.Dispose();
         }
     }
 
@@ -231,6 +248,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     ctx.DrawImage(subStatImage, new Point(250 + xOffset, 26 + yOffset), 1f);
                     ctx.DrawText(subStat.Value, font, Color.White, new PointF(314 + xOffset, 30 + yOffset));
                 }
+
+                relicImage.Dispose();
             });
 
             return template;

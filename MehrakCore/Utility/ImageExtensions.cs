@@ -85,6 +85,7 @@ public static class ImageExtensions
 
             centeredImage.Mutate(ctx => ctx.DrawImage(image, new Point(x, y), 1f));
 
+            image.Dispose();
             return centeredImage;
         }
 

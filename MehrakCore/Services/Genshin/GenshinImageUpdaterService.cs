@@ -128,8 +128,6 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         Logger.LogDebug("Updating character image for character {CharacterName}, ID {CharacterId}",
             characterDetail.Name, characterDetail.Id);
 
-        Image<Rgba32> image = new(1, 1);
-
         try
         {
             using var client = HttpClientFactory.CreateClient();
@@ -161,20 +159,21 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
             // Process the image
             await using var imageStream = await response.Content.ReadAsStreamAsync();
-            image = await Image.LoadAsync<Rgba32>(imageStream);
+            using var image = await Image.LoadAsync<Rgba32>(imageStream);
 
             // Step 1: Standardize image size to 1280x1280
-            image = ImageExtensions.StandardizeImageSize(image, 1280);
+            using var standardImage = ImageExtensions.StandardizeImageSize(image, 1280);
 
             // Step 2: Apply gradient fade
-            image.ApplyGradientFade();
+            standardImage.ApplyGradientFade();
 
             Logger.LogDebug("Image processed to standard size {Size}x{Size} with gradient fade applied",
                 StandardImageSize, StandardImageSize);
 
             // Save processed image to memory stream for upload
             using var processedImageStream = new MemoryStream();
-            await image.SaveAsync(processedImageStream, image.Metadata.DecodedImageFormat ?? PngFormat.Instance);
+            await standardImage.SaveAsync(processedImageStream,
+                standardImage.Metadata.DecodedImageFormat ?? PngFormat.Instance);
             processedImageStream.Position = 0;
 
             Logger.LogDebug("Uploading processed character image {Filename} with content type {ContentType}", filename,
@@ -193,10 +192,6 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         {
             Logger.LogError(ex, "Error processing character image for ID {CharacterId}", characterDetail.Id);
             throw;
-        }
-        finally
-        {
-            image.Dispose();
         }
     }
 
