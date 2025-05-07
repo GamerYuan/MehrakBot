@@ -130,7 +130,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
         try
         {
-            using var client = HttpClientFactory.CreateClient();
+            var client = HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new();
             request.Method = HttpMethod.Get;
             request.Headers.Add("X-Rpc-Language", "zh-cn");
@@ -152,7 +152,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             Logger.LogDebug("Updating character image for ID {CharacterId} from URL: {ImageUrl}", characterDetail.Id,
                 avatarUrl);
 
-            var response = await HttpClientFactory.CreateClient().GetAsync(avatarUrl);
+            var response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
             response.EnsureSuccessStatusCode();
             var contentType =
                 response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png"; // Default to png if null
@@ -202,7 +202,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             weaponDetail.Name, weaponDetail.Id.Value, weaponDetail.Icon);
         try
         {
-            var response = await HttpClientFactory.CreateClient().GetAsync(weaponDetail.Icon);
+            var response = await HttpClientFactory.CreateClient("Default").GetAsync(weaponDetail.Icon);
             response.EnsureSuccessStatusCode();
             var contentType = response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";
             Logger.LogDebug(
@@ -237,7 +237,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     constellation.Name, constellation.Id, constellation.Icon);
                 try
                 {
-                    var response = await HttpClientFactory.CreateClient().GetAsync(constellation.Icon);
+                    var response = await HttpClientFactory.CreateClient("Default").GetAsync(constellation.Icon);
                     response.EnsureSuccessStatusCode();
                     var contentType = response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";
                     Logger.LogDebug(
@@ -275,7 +275,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     skill.SkillId, skill.Icon);
                 try
                 {
-                    var response = await HttpClientFactory.CreateClient().GetAsync(skill.Icon);
+                    var response = await HttpClientFactory.CreateClient("Default").GetAsync(skill.Icon);
                     response.EnsureSuccessStatusCode();
                     var content = response.Content;
                     var contentType = content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";
@@ -336,7 +336,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     relic.Id.Value, relic.Icon);
                 try
                 {
-                    var response = await HttpClientFactory.CreateClient().GetAsync(relic.Icon);
+                    var response = await HttpClientFactory.CreateClient("Default").GetAsync(relic.Icon);
                     response.EnsureSuccessStatusCode();
                     var content = response.Content;
                     var contentType = content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";

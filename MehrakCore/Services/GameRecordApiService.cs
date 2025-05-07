@@ -32,7 +32,7 @@ public class GameRecordApiService
         {
             m_Logger.LogInformation("Retrieving game record data for user {Uid}", uid);
 
-            var httpClient = m_HttpClientFactory.CreateClient();
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new();
             request.Method = HttpMethod.Get;
             request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={uid}");
@@ -72,23 +72,23 @@ public class GameRecordApiService
     /// </summary>
     /// <param name="uid">LTUID V2</param>
     /// <param name="ltoken">LToken V2</param>
-    /// <param name="gameIdentitfier">Game identifier</param>
+    /// <param name="gameIdentifier">Game identifier</param>
     /// <param name="region">Region string</param>
     /// <returns></returns>
-    public async Task<string?> GetUserRegionUidAsync(ulong uid, string ltoken, string gameIdentitfier, string region)
+    public async Task<string?> GetUserRegionUidAsync(ulong uid, string ltoken, string gameIdentifier, string region)
     {
         try
         {
             m_Logger.LogInformation("Retrieving game UID for user {Uid} on {Region} server (game: {GameId})",
-                uid, region, gameIdentitfier);
+                uid, region, gameIdentifier);
 
-            var httpClient = m_HttpClientFactory.CreateClient();
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new();
             request.Method = HttpMethod.Get;
             request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={uid}");
             request.Headers.Add("User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
-            request.RequestUri = new Uri($"{GameUserRoleApiUrl}?game_biz={gameIdentitfier}&region={region}");
+            request.RequestUri = new Uri($"{GameUserRoleApiUrl}?game_biz={gameIdentifier}&region={region}");
 
             m_Logger.LogDebug("Sending request to game roles API: {Url}", request.RequestUri);
             var response = await httpClient.SendAsync(request);

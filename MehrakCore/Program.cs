@@ -16,7 +16,6 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
-using Serilog.Events;
 
 #endregion
 
@@ -48,8 +47,7 @@ internal class Program
 
         // Configure Serilog
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Debug()
             .Enrich.FromLogContext()
             .WriteTo.Console(
                 outputTemplate:
@@ -80,7 +78,11 @@ internal class Program
             builder.Services.AddScoped<ImageRepository>();
 
             // Api Services
-            builder.Services.AddHttpClient();
+            builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
+                new HttpClientHandler
+                {
+                    UseCookies = false
+                });
             builder.Services.AddSingleton<GameRecordApiService>();
             builder.Services.AddSingleton<GenshinCharacterApiService>();
             builder.Services.AddScoped<GenshinCharacterCardService>();
