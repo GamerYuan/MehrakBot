@@ -9,6 +9,7 @@ using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using ImageExtensions = MehrakCore.Utility.ImageExtensions;
@@ -31,6 +32,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly Font m_NormalFont;
     private readonly Font m_TitleFont;
 
+    private readonly JpegEncoder m_JpegEncoder;
+
     public GenshinCharacterCardService(ImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
@@ -42,6 +45,12 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
         m_SmallFont = fontFamily.CreateFont(28);
+
+        m_JpegEncoder = new JpegEncoder
+        {
+            Quality = 90,
+            Interleaved = false
+        };
 
         int[] statIds =
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 30, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
@@ -161,7 +170,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 var textColor = Color.White;
 
-                ctx.DrawImage(characterPortrait, new Point(-50, 0), 1f);
+                ctx.DrawImage(characterPortrait, new Point(-50, -50), 1f);
 
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(50, 80));
                 ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(50, 160));
@@ -189,7 +198,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     constellation.Image.Mutate(x => x.Resize(new Size(90, 0), KnownResamplers.Bicubic, true));
                     if (!constellation.Active)
                         constellation.Image.Mutate(x => x.Brightness(0.5f));
-                    var offset = i * 120;
+                    var offset = i * 140;
                     var constEllipse = new EllipsePolygon(1050, 1000 - offset, 50);
                     ctx.Fill(Color.DarkSlateGray, constEllipse).Draw(backgroundColor, 5f, constEllipse.AsClosedPath());
                     ctx.DrawImage(constellation.Image, new Point(1005, 955 - offset), 1f);
@@ -198,7 +207,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 weaponImage.Mutate(x => x.Resize(new Size(200, 0), KnownResamplers.Bicubic, true));
                 ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
                 ctx.DrawImage(ImageExtensions.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
-                    new Point(1210, 240), 1f);
+                    new Point(1220, 240), 1f);
                 ctx.DrawText(charInfo.Weapon.Name, m_NormalFont, textColor, new PointF(1450, 80));
                 ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), m_NormalFont, textColor,
                     new PointF(1450, 160));
@@ -242,11 +251,33 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
                     ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], m_NormalFont, textColor,
                         new PointF(1264, y));
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    if (StatMappingUtility.IsBaseStat(stat.PropertyType!.Value))
                     {
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Origin = new Vector2(2100, y)
-                    }, stat.Final, textColor);
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            Origin = new Vector2(2100, y - 15)
+                        }, stat.Final, textColor);
+                        var textSize = TextMeasurer.MeasureSize($"+{stat.Add}", new TextOptions(m_SmallFont));
+                        ctx.DrawText(new RichTextOptions(m_SmallFont)
+                            {
+                                HorizontalAlignment = HorizontalAlignment.Right,
+                                Origin = new Vector2(2100, y + 25)
+                            }, $"+{stat.Add}", Color.LightGreen);
+                        ctx.DrawText(new RichTextOptions(m_SmallFont)
+                            {
+                                HorizontalAlignment = HorizontalAlignment.Right,
+                                Origin = new Vector2(2100 - (int)textSize.Width, y + 25)
+                            }, $"{stat.Base}\u00A0", Color.LightGray);
+                    }
+                    else
+                    {
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            Origin = new Vector2(2100, y)
+                        }, stat.Final, textColor);
+                    }
                 }
 
                 for (int i = 0; i < relics.Length; i++)
@@ -290,7 +321,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
             m_Logger.LogDebug("Saving character card to stream");
             var stream = new MemoryStream();
-            await background.SaveAsJpegAsync(stream);
+            await background.SaveAsJpegAsync(stream, m_JpegEncoder);
             stream.Position = 0;
 
             m_Logger.LogInformation("Successfully generated character card for {CharacterName}", charInfo.Base.Name);
