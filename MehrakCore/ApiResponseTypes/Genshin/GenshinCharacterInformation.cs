@@ -119,7 +119,19 @@ public record RelicSet(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("affixes")]
     IReadOnlyList<RelicAffix> Affixes
-);
+)
+{
+    public virtual bool Equals(RelicSet? other)
+    {
+        if (other is null) return false;
+        return Id == other.Id;
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode() + Name.GetHashCode();
+    }
+}
 
 public record RelicAffix(
     [property: JsonPropertyName("activation_number")]

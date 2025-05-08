@@ -75,7 +75,7 @@ internal class Program
             // Database Services
             builder.Services.AddSingleton<MongoDbService>();
             builder.Services.AddScoped<UserRepository>();
-            builder.Services.AddScoped<ImageRepository>();
+            builder.Services.AddSingleton<ImageRepository>();
 
             // Api Services
             builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
@@ -85,8 +85,8 @@ internal class Program
                 });
             builder.Services.AddSingleton<GameRecordApiService>();
             builder.Services.AddSingleton<GenshinCharacterApiService>();
-            builder.Services.AddScoped<GenshinCharacterCardService>();
-            builder.Services.AddScoped<GenshinImageUpdaterService>();
+            builder.Services.AddSingleton<GenshinCharacterCardService>();
+            builder.Services.AddSingleton<GenshinImageUpdaterService>();
 
             // LToken Services
             builder.Services.AddMemoryCache();
