@@ -175,7 +175,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(50, 80));
                 ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(50, 160));
 
-                for (int i = 0; i <= 2; i++)
+                for (int i = 0; i < Math.Min(3, skillIcons.Length); i++)
                 {
                     var skill = skillIcons[i];
                     skill.Image.Mutate(x => x.Resize(new Size(120, 0), KnownResamplers.Bicubic, true));
@@ -263,17 +263,22 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                             HorizontalAlignment = HorizontalAlignment.Right,
                             Origin = new Vector2(2100, y - 15)
                         }, stat.Final, textColor);
-                        var textSize = TextMeasurer.MeasureSize($"+{stat.Add}", new TextOptions(m_SmallFont));
+                        int xPos = 2100;
+                        if (int.Parse(stat.Final.TrimEnd('%')) > int.Parse(stat.Base.TrimEnd('%')))
+                        {
+                            xPos -= (int)TextMeasurer.MeasureSize($"+{stat.Add}", new TextOptions(m_SmallFont)).Width;
+                            ctx.DrawText(new RichTextOptions(m_SmallFont)
+                                {
+                                    HorizontalAlignment = HorizontalAlignment.Right,
+                                    Origin = new Vector2(2100, y + 25)
+                                }, $"\u00A0+{stat.Add}", Color.LightGreen);
+                        }
+
                         ctx.DrawText(new RichTextOptions(m_SmallFont)
                             {
                                 HorizontalAlignment = HorizontalAlignment.Right,
-                                Origin = new Vector2(2100, y + 25)
-                            }, $"+{stat.Add}", Color.LightGreen);
-                        ctx.DrawText(new RichTextOptions(m_SmallFont)
-                            {
-                                HorizontalAlignment = HorizontalAlignment.Right,
-                                Origin = new Vector2(2100 - (int)textSize.Width, y + 25)
-                            }, $"{stat.Base}\u00A0", Color.LightGray);
+                                Origin = new Vector2(xPos, y + 25)
+                            }, $"{stat.Base}", Color.LightGray);
                     }
                     else
                     {
@@ -459,7 +464,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             "Cryo" => Color.ParseHex("#008C8E"),
             "Geo" => Color.ParseHex("#806A00"),
             "Anemo" => Color.ParseHex("137B52"),
-            _ => Color.White
+            _ => Color.SlateGray
         };
 
         if (element == "_")
