@@ -22,11 +22,14 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
 
-    private readonly FontFamily m_FontFamily;
     private readonly Dictionary<int, Image> m_StatImages;
 
     private const string BasePath = "genshin_{0}";
     private const string StatsPath = "genshin_stats_{0}.png";
+
+    private readonly Font m_SmallFont;
+    private readonly Font m_NormalFont;
+    private readonly Font m_TitleFont;
 
     public GenshinCharacterCardService(ImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
     {
@@ -34,7 +37,11 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger = logger;
 
         var collection = new FontCollection();
-        m_FontFamily = collection.Add("Fonts/zh-cn.ttf");
+        var fontFamily = collection.Add("Fonts/zh-cn.ttf");
+
+        m_TitleFont = fontFamily.CreateFont(64);
+        m_NormalFont = fontFamily.CreateFont(40);
+        m_SmallFont = fontFamily.CreateFont(28);
 
         int[] statIds =
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 30, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
@@ -117,12 +124,32 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             }).Take(3).Reverse());
 
             m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
-            var relics = await Task.WhenAll(charInfo.Relics.Select(async x =>
+            Dictionary<RelicSet, int> relicActivation = new();
+            var relics = new Image<Rgba32>[5];
+            for (int i = 0; i < 5; i++)
             {
-                var relicImage = await CreateRelicSlotImage(x);
-                disposableResources.Add(relicImage);
-                return relicImage;
-            }));
+                var relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
+                if (relic != null)
+                {
+                    var relicImage = await CreateRelicSlotImageAsync(relic);
+                    disposableResources.Add(relicImage);
+                    relics[i] = relicImage;
+                    if (!relicActivation.TryAdd(relic.RelicSet, 1)) relicActivation[relic.RelicSet]++;
+                }
+                else
+                {
+                    var templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
+                    disposableResources.Add(templateRelicImage);
+                    relics[i] = templateRelicImage;
+                }
+            }
+
+            Dictionary<string, int> activeSet = new();
+            foreach (var relicSet in relicActivation)
+                if (relicSet.Key.Affixes.Any(x => relicSet.Value >= x.ActivationNumber.GetValueOrDefault(0)))
+                    activeSet.Add(relicSet.Key.Name, relicSet.Value);
+
+            m_Logger.LogDebug("Found {Count} active relic sets", activeSet.Count);
 
             m_Logger.LogTrace("Compositing character card image");
 
@@ -132,14 +159,12 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.Fill(backgroundColor);
                 ctx.DrawImage(overlay, PixelColorBlendingMode.Overlay, 1f);
 
-                var titleFont = m_FontFamily.CreateFont(64, FontStyle.Regular);
-                var font = m_FontFamily.CreateFont(40, FontStyle.Regular);
                 var textColor = Color.White;
 
                 ctx.DrawImage(characterPortrait, new Point(-50, 0), 1f);
 
-                ctx.DrawText(charInfo.Base.Name, titleFont, textColor, new PointF(50, 80));
-                ctx.DrawText($"Lv. {charInfo.Base.Level}", font, textColor, new PointF(50, 160));
+                ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(50, 80));
+                ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(50, 160));
 
                 for (int i = 0; i <= 2; i++)
                 {
@@ -151,7 +176,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     ctx.DrawImage(skill.Image, new Point(40, 890 - offset), 1f);
                     var talentEllipse = new EllipsePolygon(100, 1020 - offset, 30);
                     ctx.Fill(Color.DarkGray, talentEllipse);
-                    ctx.DrawText(new RichTextOptions(font)
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
                         Origin = new Vector2(100, 1000 - offset)
@@ -174,18 +199,18 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
                 ctx.DrawImage(ImageExtensions.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
                     new Point(1210, 240), 1f);
-                ctx.DrawText(charInfo.Weapon.Name, font, textColor, new PointF(1450, 80));
-                ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), font, textColor,
+                ctx.DrawText(charInfo.Weapon.Name, m_NormalFont, textColor, new PointF(1450, 80));
+                ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), m_NormalFont, textColor,
                     new PointF(1450, 160));
-                ctx.DrawText($"Lv. {charInfo.Weapon.Level}", font, textColor, new PointF(1550, 160));
+                ctx.DrawText($"Lv. {charInfo.Weapon.Level}", m_NormalFont, textColor, new PointF(1550, 160));
                 ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1450, 236),
                     1f);
-                ctx.DrawText(charInfo.Weapon.MainProperty.Final, font, textColor, new PointF(1514, 240));
+                ctx.DrawText(charInfo.Weapon.MainProperty.Final, m_NormalFont, textColor, new PointF(1514, 240));
                 if (charInfo.Weapon.SubProperty != null)
                 {
                     ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1650, 236),
                         1f);
-                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, font, textColor, new PointF(1714, 240));
+                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, m_NormalFont, textColor, new PointF(1714, 240));
                 }
 
                 // Display based on the order
@@ -215,9 +240,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     var stat = stats[i];
                     var y = 360 + spacing * i;
                     ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
-                    ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], font, textColor,
+                    ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], m_NormalFont, textColor,
                         new PointF(1264, y));
-                    ctx.DrawText(new RichTextOptions(font)
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Right,
                         Origin = new Vector2(2100, y)
@@ -227,7 +252,39 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < relics.Length; i++)
                 {
                     var relic = relics[i];
-                    ctx.DrawImage(relic, new Point(2200, 50 + i * 200), 1f);
+                    ctx.DrawImage(relic, new Point(2200, 40 + i * 185), 1f);
+                }
+
+                if (activeSet.Count > 0)
+                {
+                    var relicSetText = string.Join('\n', activeSet.Keys);
+                    var relicSetValueText = string.Join('\n', activeSet.Values);
+
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    {
+                        Origin = new Vector2(2775, 1020),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        TextAlignment = TextAlignment.End,
+                        LineSpacing = 1.5f
+                    }, relicSetText, Color.White);
+
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    {
+                        Origin = new Vector2(2825, 1020),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        LineSpacing = 1.5f
+                    }, relicSetValueText, Color.White);
+                }
+                else
+                {
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    {
+                        Origin = new Vector2(2750, 1020),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    }, "No active set", Color.White);
                 }
             });
 
@@ -251,7 +308,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         }
     }
 
-    private async Task<Image<Rgba32>> CreateRelicSlotImage(Relic relic)
+    private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic)
     {
         m_Logger.LogTrace("Creating relic slot image for {RelicId}", relic.Id);
         try
@@ -263,16 +320,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 await m_ImageRepository.DownloadFileAsBytesAsync(path));
             relicImage.Mutate(x => x.Resize(new Size(0, 100), KnownResamplers.Bicubic, true));
 
-            var template = new Image<Rgba32>(800, 160);
+            var template = CreateRelicSlot();
             template.Mutate(ctx =>
             {
-                ctx.Fill(new Rgba32(255, 255, 255, 0.25f));
                 ctx.DrawImage(relicImage, new Point(50, 0), 1f);
                 ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(20, 106), 1f);
-                var font = m_FontFamily.CreateFont(40);
-                var smallFont = m_FontFamily.CreateFont(28);
-                ctx.DrawText(relic.MainProperty.Value, font, Color.White, new PointF(84, 110));
-                ctx.DrawText($"+{relic.Level!.Value}", smallFont, Color.White, new PointF(140, 80));
+                ctx.DrawText(relic.MainProperty.Value, m_NormalFont, Color.White, new PointF(84, 110));
+                ctx.DrawText($"+{relic.Level!.Value}", m_SmallFont, Color.White, new PointF(140, 80));
 
                 for (var i = 0; i < relic.SubPropertyList.Count; i++)
                 {
@@ -281,7 +335,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     var xOffset = i % 2 * 250;
                     var yOffset = i / 2 * 60;
                     ctx.DrawImage(subStatImage, new Point(250 + xOffset, 26 + yOffset), 1f);
-                    ctx.DrawText(subStat.Value, font, Color.White, new PointF(314 + xOffset, 30 + yOffset));
+                    ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(314 + xOffset, 30 + yOffset));
                 }
 
                 relicImage.Dispose();
@@ -294,6 +348,46 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             m_Logger.LogError(ex, "Failed to create relic slot image for {RelicId}", relic.Id);
             throw;
         }
+    }
+
+    private async Task<Image<Rgba32>> CreateTemplateRelicSlotImageAsync(int position)
+    {
+        m_Logger.LogTrace("Creating template relic slot image for position {Position}", position);
+        try
+        {
+            var path = $"genshin_relic_template_{position}.png";
+            m_Logger.LogDebug("Loading template relic image from {Path}", path);
+
+            var relicImage = Image.Load<Rgba32>(
+                await m_ImageRepository.DownloadFileAsBytesAsync(path));
+            relicImage.Mutate(x => x.Resize(new Size(0, 150), KnownResamplers.Bicubic, true));
+            var template = CreateRelicSlot();
+            template.Mutate(ctx =>
+            {
+                ctx.DrawImage(relicImage, new Point(25, 5), 1f);
+                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                {
+                    Origin = new Vector2(550, 95),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                }, "No Artifact", Color.White);
+            });
+
+            return template;
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogError(ex, "Failed to create template relic slot image for position {Position}", position);
+            throw;
+        }
+    }
+
+    private Image<Rgba32> CreateRelicSlot()
+    {
+        var template = new Image<Rgba32>(1000, 170);
+        template.Mutate(ctx => { ctx.Fill(new Rgba32(255, 255, 255, 0.25f)); });
+
+        return template;
     }
 
     private Color GetBackgroundColor(string element)
