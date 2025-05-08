@@ -252,7 +252,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < relics.Length; i++)
                 {
                     var relic = relics[i];
-                    ctx.DrawImage(relic, new Point(2200, 120 + i * 185), 1f);
+                    ctx.DrawImage(relic, new Point(2200, 40 + i * 185), 1f);
                 }
 
                 if (activeSet.Count > 0)
@@ -262,7 +262,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
-                        Origin = new Vector2(2775, 60),
+                        Origin = new Vector2(2775, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Right,
                         TextAlignment = TextAlignment.End,
@@ -271,7 +271,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
-                        Origin = new Vector2(2825, 60),
+                        Origin = new Vector2(2825, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Left,
                         LineSpacing = 1.5f
@@ -281,7 +281,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 {
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
-                        Origin = new Vector2(2750, 80),
+                        Origin = new Vector2(2750, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Center
                     }, "No active set", Color.White);
@@ -416,13 +416,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogTrace("Getting background color for element: {Element}", element);
         var color = element switch
         {
-            "Pyro" => Color.ParseHex("#B76150"),
-            "Hydro" => Color.ParseHex("#4768DD"),
-            "Electro" => Color.ParseHex("#8A44C0"),
-            "Dendro" => Color.ParseHex("#2B9342"),
-            "Cryo" => Color.ParseHex("#3CABAD"),
-            "Geo" => Color.ParseHex("#9E8628"),
-            "Anemo" => Color.ParseHex("226E4D"),
+            "Pyro" => Color.ParseHex("#8F321A"),
+            "Hydro" => Color.ParseHex("#2059B9"),
+            "Electro" => Color.ParseHex("#7D38B3"),
+            "Dendro" => Color.ParseHex("#006D20"),
+            "Cryo" => Color.ParseHex("#008C8E"),
+            "Geo" => Color.ParseHex("#806A00"),
+            "Anemo" => Color.ParseHex("137B52"),
             _ => Color.White
         };
 
