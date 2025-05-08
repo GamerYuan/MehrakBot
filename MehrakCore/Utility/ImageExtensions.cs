@@ -12,36 +12,6 @@ namespace MehrakCore.Utility;
 
 public static class ImageExtensions
 {
-    /// <summary>
-    /// Applies a horizontal gradient fade to an image, making it gradually transparent towards the right
-    /// </summary>
-    public static void ApplyGradientFade(this Image<Rgba32> image)
-    {
-        var width = image.Width;
-        var height = image.Height;
-
-        int fadeStartX = Math.Max(0, (int)(width * 0.75f)); // Start fading from this position in the image
-
-        // Apply a gradient mask from right to left
-        for (int x = fadeStartX; x < width; x++)
-        {
-            double alpha = 1.0f - (double)(x - fadeStartX) / (width - fadeStartX);
-            alpha = Math.Pow(alpha, 5);
-            alpha = Math.Max(0, Math.Min(1, alpha)); // Clamp between 0 and 1
-
-            for (int y = 0; y < height; y++)
-            {
-                var pixel = image[x, y];
-                image[x, y] = new Rgba32(
-                    pixel.R,
-                    pixel.G,
-                    pixel.B,
-                    (byte)(pixel.A * alpha)
-                );
-            }
-        }
-    }
-
     public static Image<Rgba32> StandardizeImageSize(Image<Rgba32> image, int size)
     {
         int width = image.Width;
@@ -95,13 +65,40 @@ public static class ImageExtensions
         return image;
     }
 
+    /// <summary>
+    /// Applies a horizontal gradient fade to an image, making it gradually transparent towards the right
+    /// </summary>
+    public static IImageProcessingContext ApplyGradientFade(this IImageProcessingContext context,
+        float fadeStart = 0.75f)
+    {
+        var size = context.GetCurrentSize();
+
+        return context.ProcessPixelRowsAsVector4(row =>
+        {
+            int width = row.Length;
+            int fadeStartX = (int)(width * fadeStart);
+            // fade only columns from fadeStartX → width
+            for (int x = fadeStartX; x < width; x++)
+            {
+                // same fall‑off curve you had before
+                double alpha = 1.0
+                               - (double)(x - fadeStartX)
+                               / (width - fadeStartX);
+                alpha = Math.Pow(alpha, 5);
+                alpha = Math.Clamp(alpha, 0, 1);
+
+                // apply to the existing alpha
+                row[x].W *= (float)alpha;
+            }
+        });
+    }
+
     public static Image<Rgba32> GenerateStarRating(int starCount)
     {
         starCount = Math.Clamp(starCount, 1, 5);
 
         const int starSize = 30;
-        const int spacing = 5;
-        int width = 5 * starSize + 4 * spacing;
+        int width = 5 * starSize;
         int height = starSize;
 
         int centerY = starSize / 2;
@@ -116,7 +113,7 @@ public static class ImageExtensions
 
             for (int i = 0; i < starCount; i++)
             {
-                int centerX = offset + i * (starSize + spacing) + starSize / 2;
+                int centerX = offset + i * starSize + starSize / 2;
 
                 // Create a star shape
                 var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
@@ -126,6 +123,26 @@ public static class ImageExtensions
             }
         });
         return image;
+    }
+
+    public static IImageProcessingContext ApplyRoundedCorners(this IImageProcessingContext context, float cornerRadius)
+    {
+        Size size = context.GetCurrentSize();
+        IPathCollection corners = BuildCorners(size.Width, size.Height, cornerRadius);
+
+        context.SetGraphicsOptions(new GraphicsOptions
+        {
+            Antialias = true,
+
+            // Enforces that any part of this shape that has color is punched out of the background
+            AlphaCompositionMode = PixelAlphaCompositionMode.DestOut
+        });
+
+        // Mutating in here as we already have a cloned original
+        // use any color (not Transparent), so the corners will be clipped
+        foreach (IPath path in corners) context = context.Fill(Color.Red, path);
+
+        return context;
     }
 
     private static PointF[] CreateStarPoints(float centerX, float centerY, float outerRadius, float innerRadius,
@@ -146,5 +163,27 @@ public static class ImageExtensions
         }
 
         return result;
+    }
+
+    private static PathCollection BuildCorners(int imageWidth, int imageHeight, float cornerRadius)
+    {
+        // First create a square
+        var rect = new RectangularPolygon(-0.5f, -0.5f, cornerRadius, cornerRadius);
+
+        // Then cut out of the square a circle so we are left with a corner
+        IPath cornerTopLeft = rect.Clip(new EllipsePolygon(cornerRadius - 0.5f, cornerRadius - 0.5f, cornerRadius));
+
+        // Corner is now a corner shape positions top left
+        // let's make 3 more positioned correctly, we can do that by translating the original around the center of the image.
+
+        float rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
+        float bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
+
+        // Move it across the width of the image - the width of the shape
+        IPath cornerTopRight = cornerTopLeft.RotateDegree(90).Translate(rightPos, 0);
+        IPath cornerBottomLeft = cornerTopLeft.RotateDegree(-90).Translate(0, bottomPos);
+        IPath cornerBottomRight = cornerTopLeft.RotateDegree(180).Translate(rightPos, bottomPos);
+
+        return new PathCollection(cornerTopLeft, cornerBottomLeft, cornerTopRight, cornerBottomRight);
     }
 }

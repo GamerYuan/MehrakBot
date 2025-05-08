@@ -9,6 +9,7 @@ using MongoDB.Bson;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
@@ -165,7 +166,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             using var standardImage = ImageExtensions.StandardizeImageSize(image, 1280);
 
             // Step 2: Apply gradient fade
-            standardImage.ApplyGradientFade();
+            standardImage.Mutate(ctx => ctx.ApplyGradientFade());
 
             Logger.LogDebug("Image processed to standard size {Size}x{Size} with gradient fade applied",
                 StandardImageSize, StandardImageSize);
