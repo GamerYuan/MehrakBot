@@ -66,4 +66,9 @@ public static class StatMappingUtility
     {
         return DefaultValues.GetValueOrDefault(propertyType, 0);
     }
+
+    public static bool IsBaseStat(int propertyType)
+    {
+        return propertyType is 2000 or 2001 or 2002;
+    }
 }
