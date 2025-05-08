@@ -8,5 +8,5 @@ namespace MehrakCore.Services;
 
 public interface ICharacterCardService<T> where T : ICharacterInformation
 {
-    public Task<Stream> GenerateCharacterCardAsync(T characterInformation);
+    public Task<Stream> GenerateCharacterCardAsync(T characterInformation, string gameUid);
 }
