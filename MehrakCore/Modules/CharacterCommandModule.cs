@@ -48,7 +48,8 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 !m_TokenCacheService.TryGetLtUid(Context.User.Id, out _))
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal));
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.Modal(AuthModalModule.AuthModal(characterName)));
             }
             else
             {
