@@ -84,7 +84,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogInformation("GenshinCharacterCardService initialized");
     }
 
-    public async Task<Stream> GenerateCharacterCardAsync(GenshinCharacterInformation charInfo)
+    public async Task<Stream> GenerateCharacterCardAsync(GenshinCharacterInformation charInfo, string gameUid)
     {
         m_Logger.LogInformation("Generating character card for {CharacterName} (ID: {CharacterId})",
             charInfo.Base.Name, charInfo.Base.Id);
@@ -179,18 +179,20 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 {
                     var skill = skillIcons[i];
                     skill.Image.Mutate(x => x.Resize(new Size(120, 0), KnownResamplers.Bicubic, true));
-                    var offset = i * 180;
-                    var skillEllipse = new EllipsePolygon(100, 950 - offset, 70);
+                    var offset = i * 200;
+                    var skillEllipse = new EllipsePolygon(100, 920 - offset, 70);
                     ctx.Fill(Color.DarkSlateGray, skillEllipse).Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
-                    ctx.DrawImage(skill.Image, new Point(40, 890 - offset), 1f);
-                    var talentEllipse = new EllipsePolygon(100, 1020 - offset, 30);
+                    ctx.DrawImage(skill.Image, new Point(40, 860 - offset), 1f);
+                    var talentEllipse = new EllipsePolygon(100, 990 - offset, 30);
                     ctx.Fill(Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
-                        Origin = new Vector2(100, 1000 - offset)
+                        Origin = new Vector2(100, 970 - offset)
                     }, skill.Data.Level.ToString()!, textColor);
                 }
+
+                ctx.DrawText(gameUid, m_SmallFont, textColor, new PointF(40, 1040));
 
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
@@ -266,12 +268,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         int xPos = 2100;
                         if (int.Parse(stat.Final.TrimEnd('%')) > int.Parse(stat.Base.TrimEnd('%')))
                         {
-                            xPos -= (int)TextMeasurer.MeasureSize($"+{stat.Add}", new TextOptions(m_SmallFont)).Width;
+                            var bonusText = $"\u00A0+{stat.Add}";
+                            xPos -= (int)TextMeasurer.MeasureSize(bonusText, new TextOptions(m_SmallFont)).Width;
                             ctx.DrawText(new RichTextOptions(m_SmallFont)
-                                {
-                                    HorizontalAlignment = HorizontalAlignment.Right,
-                                    Origin = new Vector2(2100, y + 25)
-                                }, $"\u00A0+{stat.Add}", Color.LightGreen);
+                            {
+                                HorizontalAlignment = HorizontalAlignment.Right,
+                                Origin = new Vector2(2100, y + 25)
+                            }, bonusText, Color.LightGreen);
                         }
 
                         ctx.DrawText(new RichTextOptions(m_SmallFont)
