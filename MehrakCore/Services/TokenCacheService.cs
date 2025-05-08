@@ -1,6 +1,7 @@
 ﻿#region
 
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -13,7 +14,7 @@ public class TokenCacheService
     private readonly TimeSpan m_DefaultExpiration = TimeSpan.FromMinutes(5);
     private readonly ILogger<TokenCacheService> m_Logger;
 
-    public TokenCacheService(IMemoryCache cache, ILogger<TokenCacheService> logger)
+    public TokenCacheService([FromKeyedServices("TokenCache")] IMemoryCache cache, ILogger<TokenCacheService> logger)
     {
         m_Cache = cache;
         m_Logger = logger;

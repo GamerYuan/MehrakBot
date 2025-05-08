@@ -5,6 +5,7 @@ using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -89,11 +90,12 @@ internal class Program
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
 
             // LToken Services
-            builder.Services.AddMemoryCache();
+            builder.Services.AddKeyedSingleton<IMemoryCache, MemoryCache>("TokenCache");
             builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
 
             // Other Services
+            builder.Services.AddKeyedSingleton<IMemoryCache, MemoryCache>("RateLimitCache");
             builder.Services.AddSingleton<PaginationCacheService<GenshinBasicCharacterData>>();
 
             // NetCord Services
