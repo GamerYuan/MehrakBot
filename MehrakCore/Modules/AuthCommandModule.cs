@@ -63,11 +63,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
         ]);
 
-    public static ModalProperties AuthModal => new ModalProperties("character_auth_modal", "Authenticate")
-        .AddComponents([
-            new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
-                .WithPlaceholder("Your Passphrase").WithMaxLength(64)
-        ]);
+    public static ModalProperties AuthModal(string s)
+    {
+        return new ModalProperties($"character_auth_modal:{s}", "Authenticate")
+            .AddComponents([
+                new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
+                    .WithPlaceholder("Your Passphrase").WithMaxLength(64)
+            ]);
+    }
 
     private readonly UserRepository m_UserRespository;
     private readonly ILogger<AuthModalModule> m_Logger;
