@@ -17,11 +17,14 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
 {
     private readonly ILogger<CharacterCommandModule> m_Logger;
     private readonly TokenCacheService m_TokenCacheService;
+    private readonly CommandRateLimitService m_RateLimitService;
 
-    public CharacterCommandModule(ILogger<CharacterCommandModule> logger, TokenCacheService tokenCacheService)
+    public CharacterCommandModule(ILogger<CharacterCommandModule> logger, TokenCacheService tokenCacheService,
+        CommandRateLimitService rateLimitService)
     {
         m_Logger = logger;
         m_TokenCacheService = tokenCacheService;
+        m_RateLimitService = rateLimitService;
     }
 
     [SlashCommand("character", "Get character card")]
@@ -30,9 +33,17 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
         try
         {
             m_Logger.LogInformation("User {UserId} used the character command", Context.User.Id);
+            if (m_RateLimitService.IsRateLimited(Context.User.Id))
+            {
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.Message("Used command too frequent! Please try again later"));
+                return;
+            }
 
-            if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var _) ||
-                !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var _))
+            m_RateLimitService.SetRateLimit(Context.User.Id);
+
+            if (!m_TokenCacheService.TryGetToken(Context.User.Id, out _) ||
+                !m_TokenCacheService.TryGetLtUid(Context.User.Id, out _))
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal));
@@ -104,107 +115,123 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     [ComponentInteraction("server_select")]
     public async Task ServerSelect()
     {
-        m_Logger.LogDebug("Processing server selection for user {UserId}", Context.User.Id);
-        await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
-
-        if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var ltoken) ||
-            !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
+        try
         {
-            await ModifyResponseAsync(m => m.WithComponents([
-                new TextDisplayProperties("Authentication timed out, please try again.")
-            ]));
-            return;
+            m_Logger.LogDebug("Processing server selection for user {UserId}", Context.User.Id);
+            await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
+
+            if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var ltoken) ||
+                !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
+            {
+                await ModifyResponseAsync(m => m.WithComponents([
+                    new TextDisplayProperties("Authentication timed out, please try again.")
+                ]));
+                return;
+            }
+
+            var region = Context.SelectedValues[0];
+
+            var gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken,
+                "hk4e_global", region);
+
+            if (gameUid == null)
+            {
+                await ModifyResponseAsync(m => m.WithComponents([
+                    new TextDisplayProperties("No game information found. Please select the correct region")
+                ]));
+                return;
+            }
+
+            var characters = (await m_GenshinApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region))
+                .ToArray();
+            m_PaginationCacheService.StoreItems(Context.User.Id, characters, gameUid, region);
+            var totalPages = (int)Math.Ceiling((double)characters.Length / 25) - 1;
+
+            await ModifyResponseAsync(m => m.WithFlags(MessageFlags.IsComponentsV2).WithComponents(
+                CharacterSelectPagination.CreateComponents(0, totalPages
+                    , m_PaginationCacheService, Context.User.Id)));
         }
-
-        var region = Context.SelectedValues[0];
-
-        var gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken,
-            "hk4e_global", region);
-
-        if (gameUid == null)
+        catch (Exception e)
         {
+            m_Logger.LogError(e, "An exception occurred");
             await ModifyResponseAsync(m => m.WithComponents([
-                new TextDisplayProperties("No game information found. Please select the correct region")
+                new TextDisplayProperties("An unknown error occurred, please try again.")
             ]));
-            return;
         }
-
-        var characters = (await m_GenshinApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToArray();
-        m_PaginationCacheService.StoreItems(Context.User.Id, characters, gameUid, region);
-        var totalPages = (int)Math.Ceiling((double)characters.Length / 25) - 1;
-
-        await ModifyResponseAsync(m => m.WithFlags(MessageFlags.IsComponentsV2).WithComponents(
-            CharacterSelectPagination.CreateComponents(0, totalPages
-                , m_PaginationCacheService, Context.User.Id)));
     }
 
     [ComponentInteraction("character_select")]
     public async Task CharacterSelect()
     {
-        await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
-
-        if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var ltoken) ||
-            !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
+        try
         {
-            await ModifyResponseAsync(m => m.WithComponents([
-                new TextDisplayProperties("Authentication timed out, please try again.")
-            ]));
-            return;
+            await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
+
+            if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var ltoken) ||
+                !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
+            {
+                var followup = Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithComponents([
+                        new TextDisplayProperties("Authentication timed out, please try again.")
+                    ]));
+                var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
+
+                await Task.WhenAll(followup, delete);
+                return;
+            }
+
+            var gameUid = m_PaginationCacheService.GetGameUid(Context.User.Id);
+            var region = m_PaginationCacheService.GetRegion(Context.User.Id);
+
+            var characterDetail =
+                await m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
+                    uint.Parse(Context.SelectedValues[0]));
+
+            if (characterDetail == null || characterDetail.List.Count == 0)
+            {
+                m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
+                    Context.SelectedValues[0], Context.User.Id);
+                var followup = Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithComponents([
+                        new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+                    ]));
+                var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
+
+                await Task.WhenAll(delete, followup);
+                return;
+            }
+
+            var characterInfo = characterDetail.List[0];
+
+            await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
+
+            InteractionMessageProperties properties = new();
+            properties.WithFlags(MessageFlags.IsComponentsV2);
+            properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.User.Id));
+            properties.AddComponents(new TextDisplayProperties($"<@{Context.User.Id}>"));
+            properties.AddComponents(new MediaGalleryProperties().WithItems(
+                [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
+            properties.AddAttachments(new AttachmentProperties("character_card.jpg",
+                await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo)));
+
+            m_PaginationCacheService.RemoveEntry(Context.User.Id);
+
+            var deleteTask = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
+            var followupTask = Context.Interaction.SendFollowupMessageAsync(properties);
+
+            await Task.WhenAll(deleteTask, followupTask);
         }
-
-        var gameUid = m_PaginationCacheService.GetGameUid(Context.User.Id);
-        var region = m_PaginationCacheService.GetRegion(Context.User.Id);
-
-        var characterDetail =
-            await m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
-                uint.Parse(Context.SelectedValues[0]));
-
-        if (characterDetail == null)
+        catch (Exception e)
         {
-            m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
-                Context.SelectedValues[0], Context.User.Id);
-            var followup = Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithComponents([
-                    new TextDisplayProperties("Failed to retrieve character data. Please try again.")
-                ]));
+            m_Logger.LogError(e, "An exception occurred");
             var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
-
-            await Task.WhenAll(delete, followup);
-            return;
-        }
-
-        var characterInfo = characterDetail.List.FirstOrDefault();
-        if (characterInfo == null)
-        {
-            m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
-                Context.SelectedValues[0], Context.User.Id);
-            var followup = Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithComponents([
-                    new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+            var followup = Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .WithComponents([
+                    new TextDisplayProperties("An unknown error occurred, please try again.")
                 ]));
-            var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
-
             await Task.WhenAll(delete, followup);
-            return;
         }
-
-        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
-
-        InteractionMessageProperties properties = new();
-        properties.WithFlags(MessageFlags.IsComponentsV2);
-        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.User.Id));
-        properties.AddComponents(new TextDisplayProperties($"<@{Context.User.Id}>"));
-        properties.AddComponents(new MediaGalleryProperties().WithItems(
-            [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
-        properties.AddAttachments(new AttachmentProperties("character_card.jpg",
-            await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo)));
-
-        m_PaginationCacheService.RemoveEntry(Context.User.Id);
-
-        var deleteTask = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
-        var followupTask = Context.Interaction.SendFollowupMessageAsync(properties);
-
-        await Task.WhenAll(deleteTask, followupTask);
     }
 }
 

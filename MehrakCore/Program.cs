@@ -96,6 +96,7 @@ internal class Program
 
             // Other Services
             builder.Services.AddKeyedSingleton<IMemoryCache, MemoryCache>("RateLimitCache");
+            builder.Services.AddSingleton<CommandRateLimitService>();
             builder.Services.AddSingleton<PaginationCacheService<GenshinBasicCharacterData>>();
 
             // NetCord Services
