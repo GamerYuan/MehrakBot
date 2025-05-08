@@ -208,7 +208,12 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
                 ctx.DrawImage(ImageExtensions.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
                     new Point(1220, 240), 1f);
-                ctx.DrawText(charInfo.Weapon.Name, m_NormalFont, textColor, new PointF(1450, 80));
+                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                {
+                    Origin = new Vector2(1450, 120),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    WrappingLength = 650
+                }, charInfo.Weapon.Name, textColor);
                 ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), m_NormalFont, textColor,
                     new PointF(1450, 160));
                 ctx.DrawText($"Lv. {charInfo.Weapon.Level}", m_NormalFont, textColor, new PointF(1550, 160));
