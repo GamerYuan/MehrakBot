@@ -138,12 +138,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     }
 
     [ComponentInteraction("character_auth_modal")]
-    public async Task CharacterAuth()
+    public async Task CharacterAuth(string characterName)
     {
         if (await AuthUser())
         {
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(CharacterSelectionModule.ServerSelection);
+            await Context.Interaction.SendFollowupMessageAsync(CharacterSelectionModule.ServerSelection(characterName));
         }
     }
 

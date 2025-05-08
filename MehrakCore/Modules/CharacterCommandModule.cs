@@ -28,7 +28,9 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
     }
 
     [SlashCommand("character", "Get character card")]
-    public async Task CharacterCommand()
+    public async Task CharacterCommand(
+        [SlashCommandParameter(Name = "character", Description = "Character name for the card (Case-insensitive)")]
+        string characterName = "")
     {
         try
         {
@@ -54,7 +56,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
                 await Context.Interaction.SendFollowupMessageAsync(
-                    CharacterSelectionModule.ServerSelection);
+                    CharacterSelectionModule.ServerSelection(characterName));
             }
         }
         catch (Exception e)
@@ -80,12 +82,14 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         new("TW/HK/MO", "os_cht")
     ];
 
-    public static InteractionMessageProperties ServerSelection =>
-        new InteractionMessageProperties()
+    public static InteractionMessageProperties ServerSelection(string s)
+    {
+        return new InteractionMessageProperties()
             .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
             .AddComponents(new TextDisplayProperties("Select your server!"))
-            .AddComponents(new StringMenuProperties("server_select", Options)
+            .AddComponents(new StringMenuProperties($"server_select:{s}", Options)
                 .WithPlaceholder("Select your server"));
+    }
 
     private readonly TokenCacheService m_TokenCacheService;
     private readonly GenshinCharacterApiService m_GenshinApiService;
@@ -113,7 +117,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     }
 
     [ComponentInteraction("server_select")]
-    public async Task ServerSelect()
+    public async Task ServerSelect(string characterName = "")
     {
         try
         {
@@ -147,9 +151,31 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
             m_PaginationCacheService.StoreItems(Context.User.Id, characters, gameUid, region);
             var totalPages = (int)Math.Ceiling((double)characters.Length / 25) - 1;
 
-            await ModifyResponseAsync(m => m.WithFlags(MessageFlags.IsComponentsV2).WithComponents(
-                CharacterSelectPagination.CreateComponents(0, totalPages
-                    , m_PaginationCacheService, Context.User.Id)));
+            if (characterName != string.Empty)
+            {
+                var character =
+                    characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+                if (character == null)
+                {
+                    await ModifyResponseAsync(m => m.WithComponents([
+                        new TextDisplayProperties("Character not found. Please try again.")
+                    ]));
+                    return;
+                }
+
+                var properties =
+                    await GenerateCharacterCardResponseAsync((uint)character.Id!.Value, ltuid, ltoken, gameUid, region);
+                var followup = Context.Interaction.SendFollowupMessageAsync(properties);
+                var delete = Context.Interaction.DeleteResponseAsync();
+
+                await Task.WhenAll(followup, delete);
+            }
+            else
+            {
+                await ModifyResponseAsync(m => m.WithFlags(MessageFlags.IsComponentsV2).WithComponents(
+                    CharacterSelectPagination.CreateComponents(0, totalPages
+                        , m_PaginationCacheService, Context.User.Id)));
+            }
         }
         catch (Exception e)
         {
@@ -183,38 +209,10 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
             var gameUid = m_PaginationCacheService.GetGameUid(Context.User.Id);
             var region = m_PaginationCacheService.GetRegion(Context.User.Id);
 
-            var characterDetail =
-                await m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
-                    uint.Parse(Context.SelectedValues[0]));
-
-            if (characterDetail == null || characterDetail.List.Count == 0)
-            {
-                m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
-                    Context.SelectedValues[0], Context.User.Id);
-                var followup = Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithComponents([
-                        new TextDisplayProperties("Failed to retrieve character data. Please try again.")
-                    ]));
-                var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
-
-                await Task.WhenAll(delete, followup);
-                return;
-            }
-
-            var characterInfo = characterDetail.List[0];
-
-            await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
-
-            InteractionMessageProperties properties = new();
-            properties.WithFlags(MessageFlags.IsComponentsV2);
-            properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.User.Id));
-            properties.AddComponents(new TextDisplayProperties($"<@{Context.User.Id}>"));
-            properties.AddComponents(new MediaGalleryProperties().WithItems(
-                [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
-            properties.AddAttachments(new AttachmentProperties("character_card.jpg",
-                await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
-
             m_PaginationCacheService.RemoveEntry(Context.User.Id);
+
+            var properties = await GenerateCharacterCardResponseAsync(uint.Parse(Context.SelectedValues[0]), ltuid,
+                ltoken, gameUid, region);
 
             var deleteTask = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
             var followupTask = Context.Interaction.SendFollowupMessageAsync(properties);
@@ -232,6 +230,37 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
                 ]));
             await Task.WhenAll(delete, followup);
         }
+    }
+
+    private async Task<InteractionMessageProperties> GenerateCharacterCardResponseAsync(uint characterId, ulong ltuid,
+        string ltoken, string gameUid, string region)
+    {
+        var characterDetail =
+            await m_GenshinApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region, characterId);
+
+        if (characterDetail == null || characterDetail.List.Count == 0)
+        {
+            m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
+                Context.SelectedValues[0], Context.User.Id);
+            return new InteractionMessageProperties().WithComponents([
+                new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+            ]);
+        }
+
+        var characterInfo = characterDetail.List[0];
+
+        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
+
+        InteractionMessageProperties properties = new();
+        properties.WithFlags(MessageFlags.IsComponentsV2);
+        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.User.Id));
+        properties.AddComponents(new TextDisplayProperties($"<@{Context.User.Id}>"));
+        properties.AddComponents(new MediaGalleryProperties().WithItems(
+            [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
+        properties.AddAttachments(new AttachmentProperties("character_card.jpg",
+            await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
+
+        return properties;
     }
 }
 
