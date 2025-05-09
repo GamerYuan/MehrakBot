@@ -77,7 +77,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         var results = Task.WhenAll(statImageTasks).Result;
         m_StatImages = results.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        m_RelicSlotTemplate = new Image<Rgba32>(1000, 170);
+        m_RelicSlotTemplate = new Image<Rgba32>(970, 170);
         m_RelicSlotTemplate.Mutate(ctx =>
         {
             ctx.Fill(new Rgba32(0, 0, 0, 0.25f));
@@ -204,26 +204,28 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 ctx.DrawImage(characterPortrait, new Point(-50, (1080 - characterPortrait.Height) / 2), 1f);
 
-                ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(50, 80));
-                ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(50, 160));
+                ctx.DrawText(charInfo.Base.Name, m_TitleFont, Color.Black, new PointF(73, 58));
+                ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(70, 55));
+                ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, Color.Black, new PointF(73, 138));
+                ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(70, 135));
 
                 for (int i = 0; i < skillIcons.Length; i++)
                 {
                     var skill = skillIcons[i];
                     var offset = i * 200;
-                    var skillEllipse = new EllipsePolygon(100, 920 - offset, 70);
+                    var skillEllipse = new EllipsePolygon(120, 920 - offset, 70);
                     ctx.Fill(Color.DarkSlateGray, skillEllipse).Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
-                    ctx.DrawImage(skill.Image, new Point(40, 860 - offset), 1f);
-                    var talentEllipse = new EllipsePolygon(100, 990 - offset, 30);
+                    ctx.DrawImage(skill.Image, new Point(60, 860 - offset), 1f);
+                    var talentEllipse = new EllipsePolygon(120, 990 - offset, 30);
                     ctx.Fill(Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
-                        Origin = new Vector2(100, 970 - offset)
+                        Origin = new Vector2(120, 970 - offset)
                     }, skill.Data.Level.ToString()!, textColor);
                 }
 
-                ctx.DrawText(gameUid, m_SmallFont, textColor, new PointF(40, 1040));
+                ctx.DrawText(gameUid, m_SmallFont, textColor, new PointF(60, 1040));
 
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
@@ -336,7 +338,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
-                        Origin = new Vector2(2775, 1020),
+                        Origin = new Vector2(2750, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Right,
                         TextAlignment = TextAlignment.End,
@@ -345,7 +347,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
-                        Origin = new Vector2(2825, 1020),
+                        Origin = new Vector2(2800, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Left,
                         LineSpacing = 1.5f
@@ -355,7 +357,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 {
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
-                        Origin = new Vector2(2750, 1020),
+                        Origin = new Vector2(2725, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Center
                     }, "No active set", Color.White);
@@ -418,10 +420,12 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 {
                     var subStat = relic.SubPropertyList[i];
                     var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                    var xOffset = i % 2 * 250;
+                    var xOffset = i % 2 * 290;
                     var yOffset = i / 2 * 80;
-                    ctx.DrawImage(subStatImage, new Point(450 + xOffset, 26 + yOffset), 1f);
-                    ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(514 + xOffset, 30 + yOffset));
+                    ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
+                    ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(439 + xOffset, 30 + yOffset));
+                    var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
+                    ctx.DrawText(rolls, m_NormalFont, Color.White, new PointF(575 + xOffset, 15 + yOffset));
                 }
 
                 relicImage.Dispose();
@@ -453,7 +457,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawImage(relicImage, new Point(25, 5), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(550, 95),
+                    Origin = new Vector2(525, 95),
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Center
                 }, "No Artifact", Color.White);
