@@ -10,7 +10,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -41,33 +40,19 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
         if (id != null)
         {
-            if (Cache.Contains(id.Value))
+            var characterImageFilename = string.Format(BaseString, id.Value);
+            if (!await ImageRepository.FileExistsAsync(characterImageFilename))
             {
-                Logger.LogDebug("Character {CharacterName}, ID: {CharacterId} found in cache. Skipping image checks.",
+                Logger.LogInformation(
+                    "Character image for {CharacterName}, ID: {CharacterId} not found. Scheduling download.",
                     characterInformation.Base.Name, id.Value);
+                tasks.Add(UpdateCharacterImageTask(characterInformation.Base,
+                    int.Parse(avatarWiki.Values.First().Split('/')[^1])));
             }
             else
             {
-                Logger.LogDebug("Character {CharacterName}, ID: {CharacterId} not in cache. Checking image existence.",
+                Logger.LogDebug("Character image {CharacterName}, ID: {CharacterId} already exists.",
                     characterInformation.Base.Name, id.Value);
-                var characterImageFilename = string.Format(BaseString, id.Value);
-                if (!await ImageRepository.FileExistsAsync(characterImageFilename))
-                {
-                    Logger.LogInformation(
-                        "Character image for {CharacterName}, ID: {CharacterId} not found. Scheduling download.",
-                        characterInformation.Base.Name, id.Value);
-                    tasks.Add(UpdateCharacterImageTask(characterInformation.Base,
-                        int.Parse(avatarWiki.Values.First().Split('/')[^1])));
-                    tasks.AddRange(UpdateConstellationIconTasks(characterInformation.Constellations));
-                    tasks.AddRange(UpdateSkillIconTasks(characterInformation.Skills));
-                }
-                else
-                {
-                    Logger.LogDebug("Character image {CharacterName}, ID: {CharacterId} already exists.",
-                        characterInformation.Base.Name, id.Value);
-                }
-
-                Cache.Add(id.Value);
             }
         }
         else
@@ -80,26 +65,17 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
         if (weaponId != null)
         {
-            if (Cache.Contains(weaponId.Value))
+            Logger.LogDebug("Weapon ID {WeaponId} not in cache. Checking image existence.", weaponId.Value);
+            var weaponImageFilename = string.Format(BaseString, weaponId.Value);
+            if (!await ImageRepository.FileExistsAsync(weaponImageFilename))
             {
-                Logger.LogDebug("Weapon ID {WeaponId} found in cache. Skipping image check.", weaponId.Value);
+                Logger.LogInformation("Weapon image for ID {WeaponId} not found. Scheduling download.",
+                    weaponId.Value);
+                tasks.Add(UpdateWeaponImageTask(characterInformation.Weapon));
             }
             else
             {
-                Logger.LogDebug("Weapon ID {WeaponId} not in cache. Checking image existence.", weaponId.Value);
-                var weaponImageFilename = string.Format(BaseString, weaponId.Value);
-                if (!await ImageRepository.FileExistsAsync(weaponImageFilename))
-                {
-                    Logger.LogInformation("Weapon image for ID {WeaponId} not found. Scheduling download.",
-                        weaponId.Value);
-                    tasks.Add(UpdateWeaponImageTask(characterInformation.Weapon));
-                }
-                else
-                {
-                    Logger.LogDebug("Weapon image {Filename} already exists.", weaponImageFilename);
-                }
-
-                Cache.Add(weaponId.Value);
+                Logger.LogDebug("Weapon image {Filename} already exists.", weaponImageFilename);
             }
         }
         else
@@ -107,6 +83,8 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             Logger.LogWarning("Character information provided without a weapon ID.");
         }
 
+        tasks.AddRange(UpdateConstellationIconTasks(characterInformation.Constellations));
+        tasks.AddRange(UpdateSkillIconTasks(characterInformation.Skills));
 
         tasks.AddRange(UpdateRelicIconTasks(characterInformation.Relics));
 
@@ -162,26 +140,28 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             await using var imageStream = await response.Content.ReadAsStreamAsync();
             using var image = await Image.LoadAsync<Rgba32>(imageStream);
 
-            // Step 1: Standardize image size to 1280x1280
-            using var standardImage = ImageExtensions.StandardizeImageSize(image, 1280);
-
-            // Step 2: Apply gradient fade
-            standardImage.Mutate(ctx => ctx.ApplyGradientFade());
+            image.Mutate(ctx =>
+            {
+                ctx.Resize(1280, 0, KnownResamplers.Lanczos3);
+                ctx.ApplyGradientFade();
+            });
 
             Logger.LogDebug("Image processed to standard size {Size}x{Size} with gradient fade applied",
                 StandardImageSize, StandardImageSize);
 
             // Save processed image to memory stream for upload
             using var processedImageStream = new MemoryStream();
-            await standardImage.SaveAsync(processedImageStream,
-                standardImage.Metadata.DecodedImageFormat ?? PngFormat.Instance);
+            await image.SaveAsPngAsync(processedImageStream, new PngEncoder
+            {
+                BitDepth = PngBitDepth.Bit8,
+                ColorType = PngColorType.RgbWithAlpha
+            });
             processedImageStream.Position = 0;
 
             Logger.LogDebug("Uploading processed character image {Filename} with content type {ContentType}", filename,
                 contentType);
             await ImageRepository.UploadFileAsync(filename,
-                processedImageStream,
-                image.Metadata.DecodedImageFormat?.ToString() ?? "png");
+                processedImageStream, "png");
         }
         catch (HttpRequestException ex)
         {
@@ -229,7 +209,9 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
     private IEnumerable<Task> UpdateConstellationIconTasks(IEnumerable<Constellation> constellations)
     {
-        return constellations.AsParallel()
+        return constellations.AsParallel().ToAsyncEnumerable()
+            .WhereAwait(async constellation =>
+                !await ImageRepository.FileExistsAsync(string.Format(BaseString, constellation.Id!.Value)))
             .Select(async constellation =>
             {
                 var filename = string.Format(BaseString, constellation.Id!.Value);
@@ -262,13 +244,15 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                         constellation.Name, constellation.Id.Value);
                     return ObjectId.Empty;
                 }
-            });
+            }).ToEnumerable();
     }
 
 
     private IEnumerable<Task> UpdateSkillIconTasks(IEnumerable<Skill> skills)
     {
-        return skills.AsParallel()
+        return skills.AsParallel().ToAsyncEnumerable()
+            .WhereAwait(async skill =>
+                !await ImageRepository.FileExistsAsync(string.Format(BaseString, skill.SkillId!.Value)))
             .Select(async skill =>
             {
                 var filename = string.Format(BaseString, skill.SkillId!.Value);
@@ -300,7 +284,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                         "Error processing skill icon for skill {SkillName}, ID {SkillId}", skill.Name,
                         skill.SkillId);
                 }
-            });
+            }).ToEnumerable();
     }
 
     private IEnumerable<Task> UpdateRelicIconTasks(IEnumerable<Relic> relics)
@@ -313,15 +297,6 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 Logger.LogWarning("Skipping relic with null ID: {RelicName}", relic.Name);
                 continue;
             }
-
-            if (!Cache.Add(relic.Id.Value))
-            {
-                Logger.LogDebug("Relic {RelicName}, ID: {RelicId} found in cache. Skipping.", relic.Name,
-                    relic.Id.Value);
-                continue;
-            }
-
-            Logger.LogDebug("Relic {RelicName}, ID: {RelicId} added to cache.", relic.Name, relic.Id.Value);
 
             tasks.Add(Task.Run(async () => // Use Task.Run to allow async check inside loop
             {
