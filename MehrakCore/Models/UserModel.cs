@@ -1,10 +1,17 @@
 ﻿#region
 
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Options;
 
 #endregion
 
 namespace MehrakCore.Models;
+
+public enum GameName
+{
+    Genshin
+}
 
 public class UserModel
 {
@@ -15,4 +22,9 @@ public class UserModel
     [BsonElement("ltoken")] public string LToken { get; set; } = string.Empty;
 
     [BsonElement("ts")] public DateTime Timestamp { get; set; }
+
+    [BsonElement("game_uids")]
+    [BsonDictionaryOptions(DictionaryRepresentation.Document)]
+    [BsonRepresentation(BsonType.String)]
+    public Dictionary<GameName, Dictionary<string, string>>? GameUids { get; set; } = null;
 }

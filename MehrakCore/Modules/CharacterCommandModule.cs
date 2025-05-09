@@ -1,6 +1,8 @@
 #region
 
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
+using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
 using Microsoft.Extensions.Logging;
@@ -99,6 +101,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
     private readonly GenshinCharacterCardService m_GenshinCharacterCardService;
     private readonly PaginationCacheService<GenshinBasicCharacterData> m_PaginationCacheService;
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
+    private readonly UserRepository m_UserRepository;
     private readonly ILogger<CharacterSelectionModule> m_Logger;
 
     public CharacterSelectionModule(TokenCacheService tokenCacheService,
@@ -107,6 +110,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         GenshinCharacterCardService genshinCharacterCardService,
         PaginationCacheService<GenshinBasicCharacterData> paginationCacheService,
         GenshinImageUpdaterService genshinImageUpdaterService,
+        UserRepository userRepository,
         ILogger<CharacterSelectionModule> logger)
     {
         m_TokenCacheService = tokenCacheService;
@@ -115,6 +119,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
         m_GenshinCharacterCardService = genshinCharacterCardService;
         m_GenshinImageUpdaterService = genshinImageUpdaterService;
         m_PaginationCacheService = paginationCacheService;
+        m_UserRepository = userRepository;
         m_Logger = logger;
     }
 
@@ -137,8 +142,10 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
 
             var region = Context.SelectedValues[0];
 
-            var gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken,
-                "hk4e_global", region);
+            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+
+            if (user?.GameUids == null || !user.GameUids[GameName.Genshin].TryGetValue(region, out var gameUid))
+                gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken, "hk4e_global", region);
 
             if (gameUid == null)
             {
@@ -147,6 +154,14 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
                 ]));
                 return;
             }
+
+            if (user!.GameUids == null) user.GameUids = new Dictionary<GameName, Dictionary<string, string>>();
+            if (!user.GameUids.ContainsKey(GameName.Genshin))
+                user.GameUids[GameName.Genshin] = new Dictionary<string, string>();
+            if (!user.GameUids[GameName.Genshin].TryAdd(region, gameUid))
+                user.GameUids[GameName.Genshin][region] = gameUid;
+
+            await m_UserRepository.CreateOrUpdateUserAsync(user);
 
             var characters = (await m_GenshinApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region))
                 .ToArray();
