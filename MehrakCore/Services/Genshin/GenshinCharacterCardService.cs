@@ -364,11 +364,6 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
             var relicImage = Image.Load<Rgba32>(
                 await m_ImageRepository.DownloadFileAsBytesAsync(path));
-            relicImage.Mutate(x =>
-            {
-                x.Resize(new Size(0, 300), KnownResamplers.Bicubic, true);
-                x.ApplyGradientFade(0.5f);
-            });
 
             var template = CreateRelicSlot();
             template.Mutate(ctx =>

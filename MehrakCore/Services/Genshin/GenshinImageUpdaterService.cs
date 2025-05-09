@@ -207,9 +207,9 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         }
     }
 
-    private IEnumerable<Task> UpdateConstellationIconTasks(IEnumerable<Constellation> constellations)
+    private Task UpdateConstellationIconTasks(IEnumerable<Constellation> constellations)
     {
-        return constellations.AsParallel().ToAsyncEnumerable()
+        return Task.WhenAll(constellations.AsParallel().ToAsyncEnumerable()
             .WhereAwait(async constellation =>
                 !await ImageRepository.FileExistsAsync(string.Format(BaseString, constellation.Id!.Value)))
             .Select(async constellation =>
@@ -244,13 +244,13 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                         constellation.Name, constellation.Id.Value);
                     return ObjectId.Empty;
                 }
-            }).ToEnumerable();
+            }).ToEnumerable());
     }
 
 
-    private IEnumerable<Task> UpdateSkillIconTasks(IEnumerable<Skill> skills)
+    private Task UpdateSkillIconTasks(IEnumerable<Skill> skills)
     {
-        return skills.AsParallel().ToAsyncEnumerable()
+        return Task.WhenAll(skills.AsParallel().ToAsyncEnumerable()
             .WhereAwait(async skill =>
                 !await ImageRepository.FileExistsAsync(string.Format(BaseString, skill.SkillId!.Value)))
             .Select(async skill =>
@@ -284,10 +284,10 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                         "Error processing skill icon for skill {SkillName}, ID {SkillId}", skill.Name,
                         skill.SkillId);
                 }
-            }).ToEnumerable();
+            }).ToEnumerable());
     }
 
-    private IEnumerable<Task> UpdateRelicIconTasks(IEnumerable<Relic> relics)
+    private Task UpdateRelicIconTasks(IEnumerable<Relic> relics)
     {
         var tasks = new List<Task>();
         foreach (var relic in relics)
@@ -298,7 +298,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 continue;
             }
 
-            tasks.Add(Task.Run(async () => // Use Task.Run to allow async check inside loop
+            tasks.Add(Task.Run(async () =>
             {
                 var filename = string.Format(BaseString, relic.Id!.Value);
                 if (await ImageRepository.FileExistsAsync(filename))
@@ -314,14 +314,23 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 {
                     var response = await HttpClientFactory.CreateClient("Default").GetAsync(relic.Icon);
                     response.EnsureSuccessStatusCode();
-                    var content = response.Content;
-                    var contentType = content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";
-                    Logger.LogDebug(
-                        "Uploading relic {RelicName}, ID: {RelicId} with content type {ContentType} to database",
-                        relic.Name, relic.Id.Value, contentType);
-                    await ImageRepository.UploadFileAsync(filename,
-                        await content.ReadAsStreamAsync(),
-                        contentType);
+                    var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+                    image.Mutate(ctx =>
+                    {
+                        ctx.Resize(300, 0, KnownResamplers.Lanczos3);
+                        ctx.Pad(300, 300);
+                        ctx.ApplyGradientFade(0.5f);
+                    });
+                    using var processedImageStream = new MemoryStream();
+                    await image.SaveAsPngAsync(processedImageStream, new PngEncoder
+                    {
+                        BitDepth = PngBitDepth.Bit8,
+                        ColorType = PngColorType.RgbWithAlpha
+                    });
+                    processedImageStream.Position = 0;
+                    Logger.LogDebug("Uploading relic icon for relic {RelicName}, ID: {RelicId}",
+                        relic.Name, relic.Id.Value);
+                    await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
                 }
                 catch (HttpRequestException ex)
                 {
@@ -338,6 +347,6 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             }));
         }
 
-        return tasks;
+        return Task.WhenAll(tasks);
     }
 }
