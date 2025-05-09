@@ -275,7 +275,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     var response = await HttpClientFactory.CreateClient("Default").GetAsync(skill.Icon);
                     response.EnsureSuccessStatusCode();
                     using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
-                    image.Mutate(x => x.Resize(120, 0, KnownResamplers.Bicubic));
+                    image.Mutate(x => x.Resize(100, 0, KnownResamplers.Bicubic));
                     using var processedImageStream = new MemoryStream();
                     await image.SaveAsPngAsync(processedImageStream, new PngEncoder
                     {

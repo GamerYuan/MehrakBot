@@ -12,6 +12,8 @@ namespace MehrakCore.Utility;
 
 public static class ImageExtensions
 {
+    private static Color StarColor = Color.ParseHex("#FFCC33");
+
     /// <summary>
     /// Applies a horizontal gradient fade to an image, making it gradually transparent towards the right
     /// </summary>
@@ -45,7 +47,6 @@ public static class ImageExtensions
         int height = starSize;
 
         int centerY = starSize / 2;
-        var starColor = Color.Yellow;
         var offset = (5 - starCount) * starSize / 2;
 
         var image = new Image<Rgba32>(width, height);
@@ -62,7 +63,7 @@ public static class ImageExtensions
                 var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
                 var starPolygon = new Polygon(points);
 
-                ctx.Fill(starColor, starPolygon);
+                ctx.Fill(StarColor, starPolygon);
             }
         });
         return image;

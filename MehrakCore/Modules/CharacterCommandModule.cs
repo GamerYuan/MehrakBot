@@ -129,7 +129,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
             if (!m_TokenCacheService.TryGetToken(Context.User.Id, out var ltoken) ||
                 !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
             {
-                await ModifyResponseAsync(m => m.WithComponents([
+                await ModifyResponseAsync(m => m.WithFlags(MessageFlags.Ephemeral).WithComponents([
                     new TextDisplayProperties("Authentication timed out, please try again.")
                 ]));
                 return;
@@ -142,7 +142,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
 
             if (gameUid == null)
             {
-                await ModifyResponseAsync(m => m.WithComponents([
+                await ModifyResponseAsync(m => m.WithFlags(MessageFlags.Ephemeral).WithComponents([
                     new TextDisplayProperties("No game information found. Please select the correct region")
                 ]));
                 return;
@@ -159,7 +159,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
                     characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
                 if (character == null)
                 {
-                    await ModifyResponseAsync(m => m.WithComponents([
+                    await ModifyResponseAsync(m => m.WithFlags(MessageFlags.Ephemeral).WithComponents([
                         new TextDisplayProperties("Character not found. Please try again.")
                     ]));
                     return;
@@ -199,7 +199,7 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
                 !m_TokenCacheService.TryGetLtUid(Context.User.Id, out var ltuid))
             {
                 var followup = Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithComponents([
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral).WithComponents([
                         new TextDisplayProperties("Authentication timed out, please try again.")
                     ]));
                 var delete = Context.Interaction.DeleteFollowupMessageAsync(Context.Interaction.Message.Id);
