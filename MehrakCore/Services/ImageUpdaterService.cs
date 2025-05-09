@@ -14,8 +14,6 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
     protected readonly IHttpClientFactory HttpClientFactory;
     protected readonly ILogger<ImageUpdaterService<T>> Logger;
 
-    protected readonly HashSet<int> Cache = [];
-
     protected ImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<T>> logger)
     {

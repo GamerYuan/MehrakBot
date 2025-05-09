@@ -12,67 +12,12 @@ namespace MehrakCore.Utility;
 
 public static class ImageExtensions
 {
-    public static Image<Rgba32> StandardizeImageSize(Image<Rgba32> image, int size)
-    {
-        int width = image.Width;
-        int height = image.Height;
-
-        // If image is already 1280x1280, no need to resize
-        if (width == size && height == size)
-            return image;
-
-        // If image dimensions exceed 1280x1280 or are smaller than 1280x1280,
-        // resize so the longest side is 1280 while maintaining aspect ratio
-        if (width > size || height > size ||
-            (width < size && height < size))
-        {
-            float aspectRatio = (float)width / height;
-            int newWidth, newHeight;
-
-            if (width >= height)
-            {
-                newWidth = size;
-                newHeight = (int)(size / aspectRatio);
-            }
-            else
-            {
-                newHeight = size;
-                newWidth = (int)(size * aspectRatio);
-            }
-
-            image.Mutate(x => x.Resize(newWidth, newHeight));
-            width = newWidth;
-            height = newHeight;
-        }
-
-        // If one dimension is already 1280 and the other isn't,
-        // or if we need to pad the resized image,
-        // create a new 1280x1280 image with the original centered
-        if (width != size || height != size)
-        {
-            var centeredImage = new Image<Rgba32>(size, size);
-            centeredImage.Mutate(x => x.BackgroundColor(new Rgba32(0, 0, 0, 0))); // Transparent background
-
-            int x = (size - width) / 2;
-            int y = (size - height) / 2;
-
-            centeredImage.Mutate(ctx => ctx.DrawImage(image, new Point(x, y), 1f));
-
-            image.Dispose();
-            return centeredImage;
-        }
-
-        return image;
-    }
-
     /// <summary>
     /// Applies a horizontal gradient fade to an image, making it gradually transparent towards the right
     /// </summary>
     public static IImageProcessingContext ApplyGradientFade(this IImageProcessingContext context,
         float fadeStart = 0.75f)
     {
-        var size = context.GetCurrentSize();
-
         return context.ProcessPixelRowsAsVector4(row =>
         {
             int width = row.Length;
@@ -81,14 +26,12 @@ public static class ImageExtensions
             for (int x = fadeStartX; x < width; x++)
             {
                 // same fall‑off curve you had before
-                double alpha = 1.0
-                               - (double)(x - fadeStartX)
-                               / (width - fadeStartX);
-                alpha = Math.Pow(alpha, 5);
+                var alpha = 1.0f - (float)(x - fadeStartX) / (width - fadeStartX);
+                alpha = MathF.Pow(alpha, 5);
                 alpha = Math.Clamp(alpha, 0, 1);
 
                 // apply to the existing alpha
-                row[x].W *= (float)alpha;
+                row[x].W *= alpha;
             }
         });
     }

@@ -172,7 +172,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 var textColor = Color.White;
 
-                ctx.DrawImage(characterPortrait, new Point(-50, -50), 1f);
+                ctx.DrawImage(characterPortrait, new Point(-50, (1080 - characterPortrait.Height) / 2), 1f);
 
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(50, 80));
                 ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(50, 160));
