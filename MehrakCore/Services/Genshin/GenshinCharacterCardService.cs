@@ -124,13 +124,15 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 }).Reverse());
 
             m_Logger.LogDebug("Loading {Count} skill icons", charInfo.Skills.Count);
-            var skillIcons = await Task.WhenAll(charInfo.Skills.Select(async x =>
-            {
-                var image = Image.Load(
-                    await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId)));
-                disposableResources.Add(image);
-                return (Data: x, Image: image);
-            }).Take(3).Reverse());
+            var skillIcons = await Task.WhenAll(charInfo.Skills
+                .Where(x => x.SkillType!.Value == 1 && !x.Desc.Contains("Alternate Sprint"))
+                .Select(async x =>
+                {
+                    var image = Image.Load(
+                        await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId)));
+                    disposableResources.Add(image);
+                    return (Data: x, Image: image);
+                }).Reverse());
 
             m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
             Dictionary<RelicSet, int> relicActivation = new();
@@ -175,7 +177,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(50, 80));
                 ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(50, 160));
 
-                for (int i = 0; i < Math.Min(3, skillIcons.Length); i++)
+                for (int i = 0; i < skillIcons.Length; i++)
                 {
                     var skill = skillIcons[i];
                     skill.Image.Mutate(x => x.Resize(new Size(120, 0), KnownResamplers.Bicubic, true));
