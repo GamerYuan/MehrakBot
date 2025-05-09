@@ -119,6 +119,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
             user.LToken = await Task.Run(() =>
                 m_CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"]));
+            user.GameUids = new Dictionary<GameName, Dictionary<string, string>>();
 
             await m_UserRespository.CreateOrUpdateUserAsync(user);
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);

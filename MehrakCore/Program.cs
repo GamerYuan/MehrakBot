@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
@@ -10,6 +11,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using NetCord;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
@@ -77,6 +81,7 @@ internal class Program
             builder.Services.AddSingleton<MongoDbService>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddSingleton<ImageRepository>();
+            BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
 
             // Api Services
             builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
