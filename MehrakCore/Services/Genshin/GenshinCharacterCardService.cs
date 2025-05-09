@@ -29,6 +29,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private const string StatsPath = "genshin_stats_{0}.png";
 
     private readonly Font m_SmallFont;
+    private readonly Font m_MediumFont;
     private readonly Font m_NormalFont;
     private readonly Font m_TitleFont;
 
@@ -45,6 +46,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
+        m_MediumFont = fontFamily.CreateFont(32);
         m_SmallFont = fontFamily.CreateFont(28);
 
         m_JpegEncoder = new JpegEncoder
@@ -192,6 +194,26 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
             m_Logger.LogDebug("Found {Count} active relic sets", activeSet.Count);
 
+            // Display based on the order
+            // 1. Base stats
+            // 2. EM
+            // 3. Other stats
+            var bonusStats = charInfo.SelectedProperties.OrderBy(x => x.PropertyType)
+                .Where(x => float.Parse(x.Final.TrimEnd('%')) >
+                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
+
+            StatProperty[] stats;
+            if (bonusStats.Length >= 6)
+                stats = charInfo.BaseProperties.Take(4)
+                    .Where(x => float.Parse(x.Final.TrimEnd('%')) >
+                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).Concat(bonusStats)
+                    .DistinctBy(x => x.PropertyType)
+                    .ToArray();
+            else
+                stats = charInfo.BaseProperties.Take(4)
+                    .Concat(charInfo.SelectedProperties.OrderBy(x => x.PropertyType))
+                    .Take(7).ToArray();
+
             m_Logger.LogTrace("Compositing character card image");
 
             background.Mutate(ctx =>
@@ -212,16 +234,18 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < skillIcons.Length; i++)
                 {
                     var skill = skillIcons[i];
-                    var offset = i * 200;
-                    var skillEllipse = new EllipsePolygon(120, 920 - offset, 70);
+                    var offset = i * 150;
+                    var skillEllipse = new EllipsePolygon(120, 920 - offset, 60);
                     ctx.Fill(Color.DarkSlateGray, skillEllipse).Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
-                    ctx.DrawImage(skill.Image, new Point(60, 860 - offset), 1f);
-                    var talentEllipse = new EllipsePolygon(120, 990 - offset, 30);
+                    ctx.DrawImage(skill.Image, new Point(70, 870 - offset), 1f);
+                    var talentEllipse = new EllipsePolygon(120, 980 - offset, 25);
                     ctx.Fill(Color.DarkGray, talentEllipse);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
-                        Origin = new Vector2(120, 970 - offset)
+                        VerticalAlignment = VerticalAlignment.Center,
+                        TextAlignment = TextAlignment.Center,
+                        Origin = new Vector2(120, 980 - offset)
                     }, skill.Data.Level.ToString()!, textColor);
                 }
 
@@ -251,35 +275,33 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), m_NormalFont, textColor,
                     new PointF(1450, 160));
                 ctx.DrawText($"Lv. {charInfo.Weapon.Level}", m_NormalFont, textColor, new PointF(1550, 160));
+                var statSize =
+                    TextMeasurer.MeasureSize(charInfo.Weapon.MainProperty.Final, new TextOptions(m_NormalFont));
+                var statBackground = new Image<Rgba32>(80 + (int)statSize.Width, 60);
+                statBackground.Mutate(x =>
+                {
+                    x.Fill(new Rgba32(0, 0, 0, 0.45f));
+                    x.ApplyRoundedCorners(10);
+                });
+                ctx.DrawImage(statBackground, new Point(1450, 230), 1f);
                 ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1450, 236),
                     1f);
                 ctx.DrawText(charInfo.Weapon.MainProperty.Final, m_NormalFont, textColor, new PointF(1514, 240));
                 if (charInfo.Weapon.SubProperty != null)
                 {
-                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1650, 236),
+                    var substatSize =
+                        TextMeasurer.MeasureSize(charInfo.Weapon.SubProperty.Final, new TextOptions(m_NormalFont));
+                    var substatBackground = new Image<Rgba32>(80 + (int)substatSize.Width, 60);
+                    substatBackground.Mutate(x =>
+                    {
+                        x.Fill(new Rgba32(0, 0, 0, 0.45f));
+                        x.ApplyRoundedCorners(10);
+                    });
+                    ctx.DrawImage(substatBackground, new Point(1630, 230), 1f);
+                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1630, 236),
                         1f);
-                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, m_NormalFont, textColor, new PointF(1714, 240));
+                    ctx.DrawText(charInfo.Weapon.SubProperty.Final, m_NormalFont, textColor, new PointF(1694, 240));
                 }
-
-                // Display based on the order
-                // 1. Base stats
-                // 2. EM
-                // 3. Other stats
-                var bonusStats = charInfo.SelectedProperties.OrderBy(x => x.PropertyType)
-                    .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
-
-                StatProperty[] stats;
-                if (bonusStats.Length >= 6)
-                    stats = charInfo.BaseProperties.Take(4)
-                        .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                                    StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).Concat(bonusStats)
-                        .DistinctBy(x => x.PropertyType)
-                        .ToArray();
-                else
-                    stats = charInfo.BaseProperties.Take(4)
-                        .Concat(charInfo.SelectedProperties.OrderBy(x => x.PropertyType))
-                        .Take(7).ToArray();
 
                 var spacing = 700 / stats.Length;
 
