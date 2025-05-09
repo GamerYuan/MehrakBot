@@ -37,8 +37,9 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
             m_Logger.LogInformation("User {UserId} used the character command", Context.User.Id);
             if (m_RateLimitService.IsRateLimited(Context.User.Id))
             {
-                await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Message("Used command too frequent! Please try again later"));
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
+                        .WithFlags(MessageFlags.Ephemeral)));
                 return;
             }
 
