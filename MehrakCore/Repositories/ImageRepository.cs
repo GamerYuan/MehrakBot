@@ -29,9 +29,12 @@ public class ImageRepository
         return await m_Bucket.UploadFromStreamAsync(fileNameInDb, sourceStream, options);
     }
 
-    public async Task<byte[]> DownloadFileAsBytesAsync(string fileNameInDb)
+    public async Task<Stream> DownloadFileToStreamAsync(string fileNameInDb)
     {
-        return await m_Bucket.DownloadAsBytesByNameAsync(fileNameInDb);
+        MemoryStream stream = new();
+        await m_Bucket.DownloadToStreamByNameAsync(fileNameInDb, stream);
+        stream.Position = 0;
+        return stream;
     }
 
     public async Task DeleteFileAsync(string fileNameInDb)

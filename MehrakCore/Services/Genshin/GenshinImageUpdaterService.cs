@@ -185,13 +185,19 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         {
             var response = await HttpClientFactory.CreateClient("Default").GetAsync(weaponDetail.Icon);
             response.EnsureSuccessStatusCode();
-            var contentType = response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";
+            using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+            image.Mutate(x => x.Resize(200, 0, KnownResamplers.Bicubic));
+            using var processedImageStream = new MemoryStream();
+            await image.SaveAsPngAsync(processedImageStream, new PngEncoder
+            {
+                BitDepth = PngBitDepth.Bit8,
+                ColorType = PngColorType.RgbWithAlpha
+            });
+            processedImageStream.Position = 0;
             Logger.LogDebug(
-                "Uploading weapon icon for weapon {WeaponName}, ID: {WeaponId} with content type {ContentType}",
-                weaponDetail.Name, weaponDetail.Id.Value, contentType);
-            await ImageRepository.UploadFileAsync(filename,
-                await response.Content.ReadAsStreamAsync(),
-                contentType);
+                "Uploading weapon icon for weapon {WeaponName}, ID: {WeaponId}", weaponDetail.Name,
+                weaponDetail.Id.Value);
+            await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
         }
         catch (HttpRequestException ex)
         {
@@ -222,13 +228,19 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 {
                     var response = await HttpClientFactory.CreateClient("Default").GetAsync(constellation.Icon);
                     response.EnsureSuccessStatusCode();
-                    var contentType = response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";
+                    using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+                    image.Mutate(x => x.Resize(90, 0, KnownResamplers.Bicubic));
+                    using var processedImageStream = new MemoryStream();
+                    await image.SaveAsPngAsync(processedImageStream, new PngEncoder
+                    {
+                        BitDepth = PngBitDepth.Bit8,
+                        ColorType = PngColorType.RgbWithAlpha
+                    });
+                    processedImageStream.Position = 0;
                     Logger.LogDebug(
-                        "Uploading constellation icon for constellation {ConstellationName}, ID: {Filename} with content type {ContentType}",
-                        constellation.Name, constellation.Id.Value, contentType);
-                    return await ImageRepository.UploadFileAsync(filename,
-                        await response.Content.ReadAsStreamAsync(),
-                        contentType);
+                        "Uploading constellation icon for constellation {ConstellationName}, ID: {Filename}",
+                        constellation.Name, constellation.Id.Value);
+                    return await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
                 }
                 catch (HttpRequestException ex)
                 {
@@ -262,14 +274,17 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 {
                     var response = await HttpClientFactory.CreateClient("Default").GetAsync(skill.Icon);
                     response.EnsureSuccessStatusCode();
-                    var content = response.Content;
-                    var contentType = content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png";
-                    Logger.LogDebug(
-                        "Uploading skill icon for {SkillName}, ID {SkillId} with content type {ContentType}",
-                        skill.Name, skill.SkillId, contentType);
-                    await ImageRepository.UploadFileAsync(filename,
-                        await content.ReadAsStreamAsync(),
-                        contentType);
+                    using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+                    image.Mutate(x => x.Resize(120, 0, KnownResamplers.Bicubic));
+                    using var processedImageStream = new MemoryStream();
+                    await image.SaveAsPngAsync(processedImageStream, new PngEncoder
+                    {
+                        BitDepth = PngBitDepth.Bit8,
+                        ColorType = PngColorType.RgbWithAlpha
+                    });
+                    processedImageStream.Position = 0;
+                    Logger.LogDebug("Uploading skill icon for {SkillName}, ID {SkillId}", skill.Name, skill.SkillId);
+                    await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
                 }
                 catch (HttpRequestException ex)
                 {
@@ -314,7 +329,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 {
                     var response = await HttpClientFactory.CreateClient("Default").GetAsync(relic.Icon);
                     response.EnsureSuccessStatusCode();
-                    var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+                    using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
                     image.Mutate(ctx =>
                     {
                         ctx.Resize(300, 0, KnownResamplers.Lanczos3);

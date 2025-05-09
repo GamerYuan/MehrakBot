@@ -33,6 +33,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly Font m_TitleFont;
 
     private readonly JpegEncoder m_JpegEncoder;
+    private readonly Image<Rgba32> m_RelicSlotTemplate;
 
     public GenshinCharacterCardService(ImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
     {
@@ -62,8 +63,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             {
                 var path = string.Format(StatsPath, x);
                 m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
-                var imageBytes = await m_ImageRepository.DownloadFileAsBytesAsync(path);
-                var image = Image.Load(imageBytes);
+                var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
                 image.Mutate(ctx => ctx.Resize(new Size(48, 0), KnownResamplers.Bicubic, true));
                 return new KeyValuePair<int, Image>(x, image);
             }
@@ -76,6 +76,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
         var results = Task.WhenAll(statImageTasks).Result;
         m_StatImages = results.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        m_RelicSlotTemplate = new Image<Rgba32>(1000, 170);
+        m_RelicSlotTemplate.Mutate(ctx =>
+        {
+            ctx.Fill(new Rgba32(0, 0, 0, 0.25f));
+            ctx.ApplyRoundedCorners(15);
+        });
 
         m_Logger.LogInformation(
             "Resources initialized successfully with {Count} icons.",
@@ -93,66 +100,89 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
         try
         {
-            m_Logger.LogDebug("Fetching background image for {Element} character card", charInfo.Base.Element);
-            var overlay = Image.Load(await m_ImageRepository.DownloadFileAsBytesAsync($"bg.png"));
-            disposableResources.Add(overlay);
-
+            // Prepare all image loading tasks
+            var overlayTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("bg.png"));
             var background = new Image<Rgba32>(3240, 1080);
             disposableResources.Add(background);
 
-            m_Logger.LogDebug("Loading character portrait for {CharacterId}", charInfo.Base.Id);
-            var characterPortrait =
-                Image.Load<Rgba32>(
-                    await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Id)));
-            disposableResources.Add(characterPortrait);
+            var characterPortraitTask =
+                Image.LoadAsync<Rgba32>(
+                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, charInfo.Base.Id)));
 
-            m_Logger.LogDebug("Loading weapon image for {WeaponId} ({WeaponName})",
-                charInfo.Base.Weapon.Id, charInfo.Base.Weapon.Name);
-            var weaponImage =
-                Image.Load<Rgba32>(
-                    await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, charInfo.Base.Weapon.Id)));
-            disposableResources.Add(weaponImage);
+            var weaponImageTask =
+                Image.LoadAsync<Rgba32>(
+                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath,
+                        charInfo.Base.Weapon.Id)));
 
-            m_Logger.LogDebug("Loading {Count} constellation icons", charInfo.Constellations.Count);
-            var constellationIcons =
-                await Task.WhenAll(charInfo.Constellations.Select(async x =>
-                {
-                    var image = Image.Load(
-                        await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.Id)));
-                    disposableResources.Add(image);
-                    return (Active: x.IsActived.GetValueOrDefault(false), Image: image);
-                }).Reverse());
+            var constellationTasks = charInfo.Constellations.Select(async x =>
+            {
+                var image = await Image.LoadAsync(
+                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.Id)));
+                return (Active: x.IsActived.GetValueOrDefault(false), Image: image);
+            }).Reverse().ToArray();
 
-            m_Logger.LogDebug("Loading {Count} skill icons", charInfo.Skills.Count);
-            var skillIcons = await Task.WhenAll(charInfo.Skills
+            var skillTasks = charInfo.Skills
                 .Where(x => x.SkillType!.Value == 1 && !x.Desc.Contains("Alternate Sprint"))
                 .Select(async x =>
                 {
-                    var image = Image.Load(
-                        await m_ImageRepository.DownloadFileAsBytesAsync(string.Format(BasePath, x.SkillId)));
-                    disposableResources.Add(image);
+                    var image = await Image.LoadAsync(
+                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.SkillId)));
                     return (Data: x, Image: image);
-                }).Reverse());
+                }).Reverse().ToArray();
 
-            m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
-            Dictionary<RelicSet, int> relicActivation = new();
-            var relics = new Image<Rgba32>[5];
-            for (int i = 0; i < 5; i++)
+            // Relic image tasks
+            var relicImageTasks = Enumerable.Range(0, 5).Select(async i =>
             {
                 var relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic != null)
                 {
                     var relicImage = await CreateRelicSlotImageAsync(relic);
-                    disposableResources.Add(relicImage);
-                    relics[i] = relicImage;
-                    if (!relicActivation.TryAdd(relic.RelicSet, 1)) relicActivation[relic.RelicSet]++;
+                    return relicImage;
                 }
                 else
                 {
                     var templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
-                    disposableResources.Add(templateRelicImage);
-                    relics[i] = templateRelicImage;
+                    return templateRelicImage;
                 }
+            }).ToArray();
+
+            // Await all image loading tasks concurrently
+            await Task.WhenAll(
+                overlayTask,
+                characterPortraitTask,
+                weaponImageTask,
+                Task.WhenAll(constellationTasks),
+                Task.WhenAll(skillTasks),
+                Task.WhenAll(relicImageTasks)
+            );
+
+            // Add loaded images to disposable resources
+            var overlay = overlayTask.Result;
+            disposableResources.Add(overlay);
+
+            var characterPortrait = characterPortraitTask.Result;
+            disposableResources.Add(characterPortrait);
+
+            var weaponImage = weaponImageTask.Result;
+            disposableResources.Add(weaponImage);
+
+            var constellationIcons = (await Task.WhenAll(constellationTasks)).ToArray();
+            foreach (var c in constellationIcons) disposableResources.Add(c.Image);
+
+            var skillIcons = (await Task.WhenAll(skillTasks)).ToArray();
+            foreach (var s in skillIcons) disposableResources.Add(s.Image);
+
+            var relics = (await Task.WhenAll(relicImageTasks)).ToArray();
+            foreach (var r in relics) disposableResources.Add(r);
+
+            m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
+            Dictionary<RelicSet, int> relicActivation = new();
+            for (int i = 0; i < 5; i++)
+            {
+                var relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
+                if (relic != null)
+                    if (!relicActivation.TryAdd(relic.RelicSet, 1))
+                        relicActivation[relic.RelicSet]++;
             }
 
             Dictionary<string, int> activeSet = new();
@@ -180,7 +210,6 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < skillIcons.Length; i++)
                 {
                     var skill = skillIcons[i];
-                    skill.Image.Mutate(x => x.Resize(new Size(120, 0), KnownResamplers.Bicubic, true));
                     var offset = i * 200;
                     var skillEllipse = new EllipsePolygon(100, 920 - offset, 70);
                     ctx.Fill(Color.DarkSlateGray, skillEllipse).Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
@@ -208,7 +237,6 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     ctx.DrawImage(constellation.Image, new Point(1005, 955 - offset), 1f);
                 }
 
-                weaponImage.Mutate(x => x.Resize(new Size(200, 0), KnownResamplers.Bicubic, true));
                 ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
                 ctx.DrawImage(ImageExtensions.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
                     new Point(1220, 240), 1f);
@@ -362,8 +390,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             var path = string.Format(BasePath, relic.Id);
             m_Logger.LogTrace("Loading relic image from {Path}", path);
 
-            var relicImage = Image.Load<Rgba32>(
-                await m_ImageRepository.DownloadFileAsBytesAsync(path));
+            var relicImage = await Image.LoadAsync<Rgba32>(
+                await m_ImageRepository.DownloadFileToStreamAsync(path));
 
             var template = CreateRelicSlot();
             template.Mutate(ctx =>
@@ -416,8 +444,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             var path = $"genshin_relic_template_{position}.png";
             m_Logger.LogDebug("Loading template relic image from {Path}", path);
 
-            var relicImage = Image.Load<Rgba32>(
-                await m_ImageRepository.DownloadFileAsBytesAsync(path));
+            var relicImage = await Image.LoadAsync<Rgba32>(
+                await m_ImageRepository.DownloadFileToStreamAsync(path));
             relicImage.Mutate(x => x.Resize(new Size(0, 150), KnownResamplers.Bicubic, true));
             var template = CreateRelicSlot();
             template.Mutate(ctx =>
@@ -442,14 +470,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
     private Image<Rgba32> CreateRelicSlot()
     {
-        var template = new Image<Rgba32>(1000, 170);
-        template.Mutate(ctx =>
-        {
-            ctx.Fill(new Rgba32(0, 0, 0, 0.25f));
-            ctx.ApplyRoundedCorners(15);
-        });
-
-        return template;
+        return m_RelicSlotTemplate.Clone();
     }
 
     private Color GetBackgroundColor(string element)
