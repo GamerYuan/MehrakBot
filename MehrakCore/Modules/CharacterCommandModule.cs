@@ -144,7 +144,8 @@ public class CharacterSelectionModule : ComponentInteractionModule<StringMenuInt
 
             var user = await m_UserRepository.GetUserAsync(Context.User.Id);
 
-            if (user?.GameUids == null || !user.GameUids[GameName.Genshin].TryGetValue(region, out var gameUid))
+            if (user?.GameUids == null || !user.GameUids.TryGetValue(GameName.Genshin, out var dict) ||
+                !dict.TryGetValue(region, out var gameUid))
                 gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken, "hk4e_global", region);
 
             if (gameUid == null)
