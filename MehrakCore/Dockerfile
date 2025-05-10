@@ -14,7 +14,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
 # Copy the published bot from the publish stage
-COPY --from=build /app/out/* /app/
+COPY --from=build /app/out/ /app/
 
 # Your bot’s entry point
 ENTRYPOINT ["/app/MehrakCore"]
