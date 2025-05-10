@@ -44,15 +44,9 @@ internal class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
-        if (builder.Environment.IsDevelopment())
-        {
-            Console.WriteLine("Development environment detected");
-            builder.Configuration.AddJsonFile("appsettings.development.json");
-        }
-
         // Configure Serilog
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
+        var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Information()
             .Enrich.FromLogContext()
             .WriteTo.Console(
                 outputTemplate:
@@ -66,8 +60,16 @@ internal class Program
                 outputTemplate:
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture
-            )
-            .CreateLogger();
+            );
+
+        if (builder.Environment.IsDevelopment())
+        {
+            Console.WriteLine("Development environment detected");
+            builder.Configuration.AddJsonFile("appsettings.development.json");
+            loggerConfig.MinimumLevel.Debug();
+        }
+
+        Log.Logger = loggerConfig.CreateLogger();
 
         try
         {
