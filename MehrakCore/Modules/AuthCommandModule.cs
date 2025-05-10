@@ -17,12 +17,15 @@ namespace MehrakCore.Modules;
 public class AuthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserRepository m_UserRepository;
+    private readonly TokenCacheService m_TokenCacheService;
     private readonly ILogger<AuthCommandModule> m_Logger;
 
-    public AuthCommandModule(UserRepository userRepository, ILogger<AuthCommandModule> logger)
+    public AuthCommandModule(UserRepository userRepository, TokenCacheService tokenCacheService,
+        ILogger<AuthCommandModule> logger)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;
+        m_TokenCacheService = tokenCacheService;
     }
 
     [UserCommand("Authenticate HoYoLAB Profile")]
@@ -39,6 +42,8 @@ public class AuthCommandModule : ApplicationCommandModule<ApplicationCommandCont
         m_Logger.LogInformation("User {UserId} requested profile deletion", Context.User.Id);
 
         var result = await m_UserRepository.DeleteUserAsync(Context.User.Id);
+
+        m_TokenCacheService.RemoveEntry(Context.User.Id);
 
         m_Logger.LogInformation("Profile deletion for user {UserId}: {Result}",
             Context.User.Id, result ? "Success" : "Not Found");
