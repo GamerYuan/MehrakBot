@@ -22,7 +22,7 @@ find /assets -type f | while read -r filepath; do
 
   if ! mongofiles --db "$DB_NAME" --host localhost list | grep -q "$FILENAME"; then
     echo "Uploading $FILENAME to GridFS..."
-    mongofiles --db "$DB_NAME" --host localhost put "$filepath"
+    mongofiles --db "$DB_NAME" --host localhost put "$FILENAME" --local="$filepath"
   else
     echo "$FILENAME already exists. Skipping..."
   fi
