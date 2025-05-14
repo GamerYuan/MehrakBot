@@ -169,22 +169,22 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             disposableResources.Add(weaponImage);
 
             var constellationIcons = (await Task.WhenAll(constellationTasks)).ToArray();
-            foreach (var c in constellationIcons) disposableResources.Add(c.Image);
+            disposableResources.AddRange(constellationIcons.Select(c => c.Image));
 
             var skillIcons = (await Task.WhenAll(skillTasks)).ToArray();
-            foreach (var s in skillIcons) disposableResources.Add(s.Image);
+            disposableResources.AddRange(skillIcons.Select(s => s.Image));
 
             var relics = (await Task.WhenAll(relicImageTasks)).ToArray();
-            foreach (var r in relics) disposableResources.Add(r);
+            disposableResources.AddRange(relics);
 
             m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
             Dictionary<RelicSet, int> relicActivation = new();
             for (int i = 0; i < 5; i++)
             {
                 var relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
-                if (relic != null)
-                    if (!relicActivation.TryAdd(relic.RelicSet, 1))
-                        relicActivation[relic.RelicSet]++;
+                if (relic == null) continue;
+                if (!relicActivation.TryAdd(relic.RelicSet, 1))
+                    relicActivation[relic.RelicSet]++;
             }
 
             Dictionary<string, int> activeSet = new();

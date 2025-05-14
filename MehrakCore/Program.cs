@@ -19,6 +19,7 @@ using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
+using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
 
@@ -95,6 +96,8 @@ internal class Program
             builder.Services.AddSingleton<GenshinCharacterApiService>();
             builder.Services.AddSingleton<GenshinCharacterCardService>();
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
+            builder.Services.AddTransient<GenshinCharacterCommandService<ApplicationCommandContext>>();
+            builder.Services.AddTransient<GenshinCharacterCommandService<ModalInteractionContext>>();
 
             // LToken Services
             builder.Services.AddKeyedSingleton<IMemoryCache, MemoryCache>("TokenCache");
