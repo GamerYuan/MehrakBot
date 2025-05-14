@@ -3,7 +3,6 @@
 using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
-using MehrakCore.Services;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -12,7 +11,7 @@ using NetCord.Services.ComponentInteractions;
 
 #endregion
 
-namespace MehrakCore.Modules;
+namespace MehrakCore.Services.Genshin;
 
 public class AuthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
@@ -68,9 +67,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
         ]);
 
-    public static ModalProperties AuthModal(string s)
+    public static ModalProperties AuthModal(string server, string character)
     {
-        return new ModalProperties($"character_auth_modal:{s}", "Authenticate")
+        return new ModalProperties($"character_auth_modal:{server}:{character}", "Authenticate")
             .AddComponents([
                 new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
                     .WithPlaceholder("Your Passphrase").WithMaxLength(64)
@@ -81,14 +80,16 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
+    private readonly GenshinCharacterCommandService<ModalInteractionContext> m_Service;
 
     public AuthModalModule(UserRepository userRespository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService)
+        TokenCacheService tokenCacheService, GenshinCharacterCommandService<ModalInteractionContext> service)
     {
         m_UserRespository = userRespository;
         m_Logger = logger;
         m_CookieService = cookieService;
         m_TokenCacheService = tokenCacheService;
+        m_Service = service;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -147,12 +148,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     }
 
     [ComponentInteraction("character_auth_modal")]
-    public async Task CharacterAuth(string characterName)
+    public async Task CharacterAuth(string server, string characterName)
     {
         if (await AuthUser())
         {
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(CharacterSelectionModule.ServerSelection(characterName));
+            m_Service.Context = Context;
+            await m_Service.SendCharacterCardResponseAsync(server, characterName);
         }
     }
 
