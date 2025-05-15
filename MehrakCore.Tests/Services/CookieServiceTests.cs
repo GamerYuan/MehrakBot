@@ -8,7 +8,7 @@ using NSubstitute;
 
 #endregion
 
-namespace MehrakCore.Test.Services;
+namespace MehrakCore.Tests.Services;
 
 public class CookieServiceTests
 {
