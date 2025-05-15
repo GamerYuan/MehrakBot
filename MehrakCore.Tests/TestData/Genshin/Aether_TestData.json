@@ -9,7 +9,7 @@
         "fetter": 0,
         "level": 70,
         "rarity": 5,
-        "actived_constellation_num": 6,
+        "actived_constellation_num": 3,
         "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/image_7/5b215c3fb522b2845905ce5c0c589a19.png",
         "is_chosen": false,
         "side_icon": "https://webstatic.hoyoverse.com/upload/static-resource/2023/06/15/7f6d24a0876515fb2be301e283571304_8610481116576843749.png",
@@ -230,7 +230,7 @@
           "name": "Ravaging Flame",
           "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f721/eeb3fa8f4402f989771201f6fe307fb4.png",
           "effect": "When opposing the Lord of Eroded Primal Fire incarnated by Gosoythoth, after using the Elemental Burst <color=#FFD780FF>Plains Scorcher</color>, all nearby party members will restore 40% of their Max HP. The Traveler will regain 4 Energy per second for the next 10s.",
-          "is_actived": true,
+          "is_actived": false,
           "pos": 4
         },
         {
@@ -238,7 +238,7 @@
           "name": "The Fire Inextinguishable",
           "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f721/620c536c24e82d7638b4da0537dae6c8.png",
           "effect": "When opposing the Lord of Eroded Primal Fire incarnated by Gosoythoth, the Traveler's CRIT Rate increases by 20%, and their CRIT DMG increases by 40%.",
-          "is_actived": true,
+          "is_actived": false,
           "pos": 5
         },
         {
@@ -246,7 +246,7 @@
           "name": "The Sacred Flame Imperishable",
           "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f721/0b632038f14a2c3b0b332ee4debdb404.png",
           "effect": "When opposing the Lord of Eroded Primal Fire incarnated by Gosoythoth, while in the Nightsoul's Blessing state, the Traveler's Movement SPD increases by 20%, their Stamina consumption decreases by 30%, and when they use Normal or Charged Attacks, they will send flaming waves flowing forward, dealing 96% of their ATK to opponents in the wave's path as Nightsoul-aligned <color=#FF9999FF>Pyro DMG</color>.",
-          "is_actived": true,
+          "is_actived": false,
           "pos": 6
         }
       ],
