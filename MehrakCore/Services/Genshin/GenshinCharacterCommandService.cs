@@ -61,7 +61,7 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         {
             m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
                 Context.Interaction.User.Id, region);
-            gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken, "hk4e_global", region);
+            gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken!, "hk4e_global", region);
         }
 
         if (gameUid == null)
@@ -84,7 +84,7 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
 
         var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        var characters = (await m_GenshinCharacterApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region))
+        var characters = (await m_GenshinCharacterApiService.GetAllCharactersAsync(ltuid, ltoken!, gameUid, region))
             .ToArray();
 
         var character =
@@ -99,7 +99,7 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         }
 
         var properties =
-            await GenerateCharacterCardResponseAsync((uint)character.Id!.Value, ltuid, ltoken, gameUid, region);
+            await GenerateCharacterCardResponseAsync((uint)character.Id!.Value, ltuid, ltoken!, gameUid, region);
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             .WithFlags(MessageFlags.IsComponentsV2)
             .AddComponents(new TextDisplayProperties("Command execution completed")));

@@ -18,6 +18,7 @@ public class ImageRepository
     public ImageRepository(MongoDbService database, ILogger<ImageRepository> logger)
     {
         m_Bucket = database.Bucket;
+        m_Logger = logger;
     }
 
     public async Task<ObjectId> UploadFileAsync(string fileNameInDb, Stream sourceStream, string? contentType = null)
@@ -26,11 +27,13 @@ public class ImageRepository
         {
             Metadata = contentType != null ? new BsonDocument("contentType", contentType) : null
         };
+        m_Logger.LogInformation("Uploading file to GridFS {FileNameInDb}", fileNameInDb);
         return await m_Bucket.UploadFromStreamAsync(fileNameInDb, sourceStream, options);
     }
 
     public async Task<Stream> DownloadFileToStreamAsync(string fileNameInDb)
     {
+        m_Logger.LogInformation("Downloading file from GridFS {FileNameInDb}", fileNameInDb);
         MemoryStream stream = new();
         await m_Bucket.DownloadToStreamByNameAsync(fileNameInDb, stream);
         stream.Position = 0;
@@ -39,6 +42,7 @@ public class ImageRepository
 
     public async Task DeleteFileAsync(string fileNameInDb)
     {
+        m_Logger.LogInformation("Deleting file from GridFS {FileNameInDb}", fileNameInDb);
         var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
         var fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
 
@@ -47,6 +51,7 @@ public class ImageRepository
 
     public async Task<bool> FileExistsAsync(string fileNameInDb)
     {
+        m_Logger.LogInformation("Checking if file {FileNameInDb} exists in GridFS", fileNameInDb);
         var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
         var fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
         return fileInfo != null;

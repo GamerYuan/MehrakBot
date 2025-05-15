@@ -187,7 +187,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             m_TokenCacheService.AddCacheEntry(Context.User.Id, user.LtUid, ltoken);
             return true;
         }
-        catch (AuthenticationTagMismatchException e)
+        catch (AuthenticationTagMismatchException)
         {
             m_Logger.LogWarning("User {UserId} provided wrong passphrase", Context.User.Id);
             if (Context.Interaction.Message?.InteractionMetadata?.OriginalResponseMessageId != null)
