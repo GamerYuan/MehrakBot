@@ -224,7 +224,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 var textColor = Color.White;
 
-                ctx.DrawImage(characterPortrait, new Point(-50, (1080 - characterPortrait.Height) / 2), 1f);
+                ctx.DrawImage(characterPortrait, new Point(-50, 50 + (1080 - characterPortrait.Height) / 2), 1f);
 
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, Color.Black, new PointF(73, 58));
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(70, 55));
@@ -236,8 +236,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     var skill = skillIcons[i];
                     var offset = i * 150;
                     var skillEllipse = new EllipsePolygon(120, 920 - offset, 60);
-                    ctx.Fill(Color.DarkSlateGray, skillEllipse).Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
+                    ctx.Fill(Color.DarkSlateGray, skillEllipse);
                     ctx.DrawImage(skill.Image, new Point(70, 870 - offset), 1f);
+                    ctx.Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
                     var talentEllipse = new EllipsePolygon(120, 980 - offset, 25);
                     ctx.Fill(Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
@@ -259,8 +260,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         constellation.Image.Mutate(x => x.Brightness(0.5f));
                     var offset = i * 140;
                     var constEllipse = new EllipsePolygon(1050, 1000 - offset, 50);
-                    ctx.Fill(Color.DarkSlateGray, constEllipse).Draw(backgroundColor, 5f, constEllipse.AsClosedPath());
+                    ctx.Fill(Color.DarkSlateGray, constEllipse);
                     ctx.DrawImage(constellation.Image, new Point(1005, 955 - offset), 1f);
+                    ctx.Draw(backgroundColor, 5f, constEllipse.AsClosedPath());
                 }
 
                 ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
