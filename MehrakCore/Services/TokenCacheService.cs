@@ -38,7 +38,7 @@ public class TokenCacheService
         m_Cache.Set($"ltuid_{userId}", ltuid, options);
     }
 
-    public bool TryGetToken(ulong userId, out string ltoken)
+    public bool TryGetToken(ulong userId, out string? ltoken)
     {
         var result = m_Cache.TryGetValue($"ltoken_{userId}", out ltoken);
         m_Logger.LogDebug("Token retrieval for user {UserId}: {Result}", userId, result ? "Found" : "Not Found");
