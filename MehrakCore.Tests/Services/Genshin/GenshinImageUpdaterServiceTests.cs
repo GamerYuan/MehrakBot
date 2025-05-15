@@ -23,7 +23,8 @@ public class GenshinImageUpdaterServiceTests
     private Mock<MongoDbService> m_DbMock;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<HttpClient> m_HttpClientMock;
-    private Mock<ImageRepository> m_ImageRepoMock;
+
+    private ImageRepository m_ImageRepo;
 
     [SetUp]
     public void Setup()
@@ -44,7 +45,7 @@ public class GenshinImageUpdaterServiceTests
 
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientMock = new Mock<HttpClient>();
-        m_ImageRepoMock = new Mock<ImageRepository>(m_DbMock.Object, new Mock<ILogger<ImageRepository>>().Object);
+        m_ImageRepo = new ImageRepository(m_DbMock.Object, new Mock<ILogger<ImageRepository>>().Object);
 
         m_HttpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(m_HttpClientMock.Object);
     }
@@ -59,9 +60,8 @@ public class GenshinImageUpdaterServiceTests
     public async Task UpdateDataAsync_ShouldDownloadMissingImages()
     {
         // Arrange
-        var imageRepo = m_ImageRepoMock.Object;
         var service = new GenshinImageUpdaterService(
-            imageRepo,
+            m_ImageRepo,
             m_HttpClientFactoryMock.Object,
             NullLogger<GenshinImageUpdaterService>.Instance);
 
@@ -76,21 +76,21 @@ public class GenshinImageUpdaterServiceTests
         // Act
         await service.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
 
-        Assert.Multiple(async () =>
+        await Assert.MultipleAsync(async () =>
         {
             // Assert
-            Assert.That(await imageRepo.FileExistsAsync($"genshin_{characterInfo.Base.Id}"),
+            Assert.That(await m_ImageRepo.FileExistsAsync($"genshin_{characterInfo.Base.Id}"),
                 Is.True);
-            Assert.That(await imageRepo.FileExistsAsync($"genshin_{characterInfo.Weapon.Id}"), Is.True);
+            Assert.That(await m_ImageRepo.FileExistsAsync($"genshin_{characterInfo.Weapon.Id}"), Is.True);
 
             foreach (var id in characterInfo.Skills.Select(x => x.SkillId))
-                Assert.That(await imageRepo.FileExistsAsync($"genshin_{id}"), Is.True);
+                Assert.That(await m_ImageRepo.FileExistsAsync($"genshin_{id}"), Is.True);
 
             foreach (var id in characterInfo.Constellations.Select(x => x.Id))
-                Assert.That(await imageRepo.FileExistsAsync($"genshin_{id}"), Is.True);
+                Assert.That(await m_ImageRepo.FileExistsAsync($"genshin_{id}"), Is.True);
 
             foreach (var id in characterInfo.Relics.Select(x => x.Id))
-                Assert.That(await imageRepo.FileExistsAsync($"genshin_{id}"), Is.True);
+                Assert.That(await m_ImageRepo.FileExistsAsync($"genshin_{id}"), Is.True);
         });
     }
 
@@ -99,7 +99,7 @@ public class GenshinImageUpdaterServiceTests
     {
         // Arrange
         var service = new GenshinImageUpdaterService(
-            m_ImageRepoMock.Object,
+            m_ImageRepo,
             m_HttpClientFactoryMock.Object,
             NullLogger<GenshinImageUpdaterService>.Instance);
 
@@ -110,13 +110,13 @@ public class GenshinImageUpdaterServiceTests
         Assert.That(characterDetail, Is.Not.Null);
 
         // Simulate that the image already exists in the repository
-        await m_ImageRepoMock.Object.UploadFileAsync($"genshin_{characterDetail.List[0].Base.Id}", new MemoryStream());
+        await m_ImageRepo.UploadFileAsync($"genshin_{characterDetail.List[0].Base.Id}", new MemoryStream());
 
         // Act
         await service.UpdateDataAsync(characterDetail.List[0], characterDetail.AvatarWiki);
 
         // Assert
-        var result = await m_ImageRepoMock.Object.FileExistsAsync($"genshin_{characterDetail.List[0].Base.Id}");
+        var result = await m_ImageRepo.FileExistsAsync($"genshin_{characterDetail.List[0].Base.Id}");
         Assert.That(result, Is.True);
     }
 }
