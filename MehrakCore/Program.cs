@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Globalization;
-using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
@@ -118,6 +117,20 @@ internal class Program
 
             var logger = host.Services.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("MehrakBot application starting");
+
+            // Configure MongoDB
+            var imageRepo = host.Services.GetRequiredService<ImageRepository>();
+
+            foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*",
+                         SearchOption.AllDirectories))
+            {
+                var fileName = Path.GetFileName(image);
+                if (await imageRepo.FileExistsAsync(fileName)) continue;
+
+                await using var stream = File.OpenRead(image);
+                await imageRepo.UploadFileAsync(fileName, stream);
+                logger.LogInformation("Uploaded {FileName} to MongoDB, file path {Image}", fileName, image);
+            }
 
             host.AddModules(typeof(Program).Assembly);
 

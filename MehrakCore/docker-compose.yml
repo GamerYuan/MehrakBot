@@ -15,12 +15,8 @@ services:
       - "27018:27017"
     volumes:
       - mongo_data:/data/db
-      - ./Assets:/assets
-      - ./mongodb-entrypoint.sh:/mongodb-entrypoint.sh
     environment:
       - MONGO_INITDB_DATABASE=MehrakBot
-    entrypoint: [ "/mongodb-entrypoint.sh" ]
-    command: [ ]
 
 volumes:
   mongo_data:
