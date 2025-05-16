@@ -58,7 +58,7 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
 
         if (selectedProfile.GameUids == null ||
             !selectedProfile.GameUids.TryGetValue(GameName.Genshin, out var dict) ||
-            !dict.TryGetValue(region, out var gameUid))
+            !dict.TryGetValue(server.ToString(), out var gameUid))
         {
             m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
                 Context.Interaction.User.Id, region);
@@ -78,11 +78,16 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
 
         if (!selectedProfile.GameUids.ContainsKey(GameName.Genshin))
             selectedProfile.GameUids[GameName.Genshin] = new Dictionary<string, string>();
-        if (!selectedProfile.GameUids[GameName.Genshin].TryAdd(region, gameUid))
-            selectedProfile.GameUids[GameName.Genshin][region] = gameUid;
+        if (!selectedProfile.GameUids[GameName.Genshin].TryAdd(server.ToString(), gameUid))
+            selectedProfile.GameUids[GameName.Genshin][server.ToString()] = gameUid;
 
         m_Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
             Context.Interaction.User.Id, region);
+
+        selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+
+        if (!selectedProfile.LastUsedRegions.TryAdd(GameName.Genshin, server))
+            selectedProfile.LastUsedRegions[GameName.Genshin] = server;
 
         var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
 

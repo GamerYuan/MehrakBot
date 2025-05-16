@@ -1,5 +1,6 @@
 #region
 
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
@@ -37,7 +38,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
         string characterName,
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions server,
+        Regions? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -65,12 +66,22 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
             }
 
             var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
+            server ??= selectedProfile.LastUsedRegions?[GameName.Genshin];
+
+            if (server == null)
+            {
+                m_Logger.LogInformation("User {UserId} does not have a server selected", Context.User.Id);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
 
             if (!m_TokenCacheService.TryGetCacheEntry(Context.User.Id, selectedProfile.LtUid, out var ltoken))
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal(characterName, server, profile)));
+                    InteractionCallback.Modal(AuthModalModule.AuthModal(characterName, server.Value, profile)));
             }
             else
             {
@@ -78,7 +89,8 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
                 m_Service.Context = Context;
-                await m_Service.SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken!, characterName, server);
+                await m_Service.SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken!, characterName,
+                    server.Value);
             }
         }
         catch (Exception e)

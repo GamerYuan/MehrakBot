@@ -2,6 +2,7 @@
 
 #region
 
+using System.ComponentModel;
 using NetCord.Services;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
@@ -32,5 +33,7 @@ public enum Regions
     America,
     Europe,
     Asia,
-    [SlashCommandChoice("TW/HK/MO")] Sar
+
+    [SlashCommandChoice("TW/HK/MO")] [Description("TW/HK/MO")]
+    Sar
 }
