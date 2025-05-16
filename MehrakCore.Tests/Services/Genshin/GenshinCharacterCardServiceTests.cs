@@ -43,7 +43,7 @@ public class GenshinCharacterCardServiceTests
         foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*",
                      SearchOption.AllDirectories))
         {
-            var fileName = Path.GetFileName(image);
+            var fileName = Path.GetFileName(image).Split('.')[0];
             if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
 
             await using var stream = File.OpenRead(image);
@@ -88,6 +88,7 @@ public class GenshinCharacterCardServiceTests
     }
 
     // To be used to generate golden image should the generation algorithm be updated
+    // [Test]
     // public async Task GenerateGoldenImage()
     // {
     //     // Arrange
