@@ -2,6 +2,7 @@
 
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -18,7 +19,6 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
     private readonly GenshinCharacterCardService m_GenshinCharacterCardService;
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
     private readonly UserRepository m_UserRepository;
-    private readonly TokenCacheService m_TokenCacheService;
     private readonly ILogger<GenshinCharacterCommandService<TContext>> m_Logger;
 
     public TContext Context { get; set; } = default!;
@@ -26,7 +26,6 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
     public GenshinCharacterCommandService(GenshinCharacterApiService genshinCharacterApiService,
         GameRecordApiService gameRecordApiService, GenshinCharacterCardService genshinCharacterCardService,
         GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
-        TokenCacheService tokenCacheService,
         ILogger<GenshinCharacterCommandService<TContext>> logger)
     {
         m_GenshinCharacterApiService = genshinCharacterApiService;
@@ -34,34 +33,36 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         m_GenshinCharacterCardService = genshinCharacterCardService;
         m_GenshinImageUpdaterService = genshinImageUpdaterService;
         m_UserRepository = userRepository;
-        m_TokenCacheService = tokenCacheService;
         m_Logger = logger;
     }
 
-    public async Task SendCharacterCardResponseAsync(string server, string characterName)
+    public async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Regions server)
     {
-        if (!m_TokenCacheService.TryGetToken(Context.Interaction.User.Id, out var ltoken) ||
-            !m_TokenCacheService.TryGetLtUid(Context.Interaction.User.Id, out var ltuid))
-        {
-            m_Logger.LogInformation("User {UserId} authentication timed out", Context.Interaction.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2)
-                    .WithComponents([
-                        new TextDisplayProperties("Authentication timed out, please try again.")
-                    ]));
-            return;
-        }
-
         var region = GetRegion(server);
         var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-        if (user?.GameUids == null || !user.GameUids.TryGetValue(GameName.Genshin, out var dict) ||
-            !dict.TryGetValue(region, out var gameUid))
+        var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
+
+        // edge case check that probably will never occur
+        // but if user removes their profile while this command is running will result in null
+        if (user?.Profiles == null || selectedProfile == null)
+        {
+            m_Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                Context.Interaction.User.Id, ltuid);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                    new TextDisplayProperties("No profile found. Please select the correct profile")
+                ]));
+            return;
+        }
+
+        if (selectedProfile.GameUids == null ||
+            !selectedProfile.GameUids.TryGetValue(GameName.Genshin, out var dict) ||
+            !dict.TryGetValue(server.ToString(), out var gameUid))
         {
             m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
                 Context.Interaction.User.Id, region);
-            gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken!, "hk4e_global", region);
+            gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken, "hk4e_global", region);
         }
 
         if (gameUid == null)
@@ -73,18 +74,24 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
             return;
         }
 
-        if (user!.GameUids == null) user.GameUids = new Dictionary<GameName, Dictionary<string, string>>();
-        if (!user.GameUids.ContainsKey(GameName.Genshin))
-            user.GameUids[GameName.Genshin] = new Dictionary<string, string>();
-        if (!user.GameUids[GameName.Genshin].TryAdd(region, gameUid))
-            user.GameUids[GameName.Genshin][region] = gameUid;
+        selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
+
+        if (!selectedProfile.GameUids.ContainsKey(GameName.Genshin))
+            selectedProfile.GameUids[GameName.Genshin] = new Dictionary<string, string>();
+        if (!selectedProfile.GameUids[GameName.Genshin].TryAdd(server.ToString(), gameUid))
+            selectedProfile.GameUids[GameName.Genshin][server.ToString()] = gameUid;
 
         m_Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
             Context.Interaction.User.Id, region);
 
+        selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+
+        if (!selectedProfile.LastUsedRegions.TryAdd(GameName.Genshin, server))
+            selectedProfile.LastUsedRegions[GameName.Genshin] = server;
+
         var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        var characters = (await m_GenshinCharacterApiService.GetAllCharactersAsync(ltuid, ltoken!, gameUid, region))
+        var characters = (await m_GenshinCharacterApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region))
             .ToArray();
 
         var character =
@@ -99,7 +106,7 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         }
 
         var properties =
-            await GenerateCharacterCardResponseAsync((uint)character.Id!.Value, ltuid, ltoken!, gameUid, region);
+            await GenerateCharacterCardResponseAsync((uint)character.Id!.Value, ltuid, ltoken, gameUid, region);
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             .WithFlags(MessageFlags.IsComponentsV2)
             .AddComponents(new TextDisplayProperties("Command execution completed")));
@@ -139,14 +146,14 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         return properties;
     }
 
-    private static string GetRegion(string server)
+    private static string GetRegion(Regions server)
     {
         return server switch
         {
-            _ when server.Equals("Asia", StringComparison.OrdinalIgnoreCase) => "os_asia",
-            _ when server.Equals("Europe", StringComparison.OrdinalIgnoreCase) => "os_euro",
-            _ when server.Equals("America", StringComparison.OrdinalIgnoreCase) => "os_usa",
-            _ when server.Equals("SAR", StringComparison.OrdinalIgnoreCase) => "os_cht",
+            Regions.Asia => "os_asia",
+            Regions.Europe => "os_euro",
+            Regions.America => "os_usa",
+            Regions.Sar => "os_cht",
             _ => throw new ArgumentException("Invalid server name")
         };
     }

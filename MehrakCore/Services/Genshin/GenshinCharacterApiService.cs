@@ -17,16 +17,13 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
     private const string BaseUrl = "https://sg-public-api.hoyolab.com/event/game_record/genshin/api";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
-    private readonly GameRecordApiService m_GameRecordApiService;
     private readonly ILogger<GenshinCharacterApiService> m_Logger;
 
     public GenshinCharacterApiService(
         IHttpClientFactory httpClientFactory,
-        GameRecordApiService gameRecordApiService,
         ILogger<GenshinCharacterApiService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
-        m_GameRecordApiService = gameRecordApiService;
         m_Logger = logger;
     }
 
