@@ -35,6 +35,10 @@ public class UserProfile
 {
     [BsonElement("profile_id")] public ushort ProfileId { get; set; }
 
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
+    [BsonElement("guid")]
+    public Guid Guid { get; set; }
+
     [BsonElement("ltuid")] public ulong LtUid { get; set; }
 
     [BsonElement("ltoken")] public string LToken { get; set; } = string.Empty;
