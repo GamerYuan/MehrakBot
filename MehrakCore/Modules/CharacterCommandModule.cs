@@ -1,5 +1,7 @@
 #region
 
+using System.Globalization;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -15,32 +17,36 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
     private readonly TokenCacheService m_TokenCacheService;
     private readonly GenshinCharacterCommandService<ApplicationCommandContext> m_Service;
     private readonly CommandRateLimitService m_RateLimitService;
+    private readonly CommandLocalizerService m_LocalizerService;
 
     public CharacterCommandModule(ILogger<CharacterCommandModule> logger,
         GenshinCharacterCommandService<ApplicationCommandContext> service, TokenCacheService tokenCacheService,
-        CommandRateLimitService rateLimitService)
+        CommandRateLimitService rateLimitService, CommandLocalizerService localizerService)
     {
         m_Logger = logger;
         m_Service = service;
         m_TokenCacheService = tokenCacheService;
         m_RateLimitService = rateLimitService;
+        m_LocalizerService = localizerService;
     }
 
     [SlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "server", Description = "Server",
-            AutocompleteProviderType = typeof(RegionAutoCompleteProvider))]
-        string server,
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions server,
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
         string characterName)
     {
+        var userLocale = new CultureInfo(Context.Interaction.UserLocale);
         try
         {
-            m_Logger.LogInformation("User {UserId} used the character command", Context.User.Id);
+            m_Logger.LogInformation("User {UserId} used the character command, locale: {Locale}", Context.User.Id,
+                Context.Interaction.UserLocale);
             if (m_RateLimitService.IsRateLimited(Context.User.Id))
             {
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
+                    new InteractionMessageProperties()
+                        .WithContent(m_LocalizerService.GetLocalizedString("RateLimitErrorMessage", userLocale))
                         .WithFlags(MessageFlags.Ephemeral)));
                 return;
             }
@@ -52,7 +58,9 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal(server, characterName)));
+                    InteractionCallback.Modal(AuthModalModule.AuthModal(server, characterName,
+                        m_LocalizerService.GetLocalizedString("AuthModalTitle", userLocale),
+                        m_LocalizerService.GetLocalizedString("AuthModalPassphraseLabel", userLocale))));
             }
             else
             {
@@ -70,7 +78,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .WithComponents([
                     new TextDisplayProperties(
-                        "An error occurred while processing your request. Please try again later.")
+                        m_LocalizerService.GetLocalizedString("UnknownErrorMessage", userLocale))
                 ]));
         }
     }

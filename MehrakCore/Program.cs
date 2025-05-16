@@ -104,6 +104,10 @@ internal class Program
             builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
 
+            // Localization Services
+            builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+            builder.Services.AddSingleton<CommandLocalizerService>();
+
             // Other Services
             builder.Services.AddKeyedSingleton<IMemoryCache, MemoryCache>("RateLimitCache");
             builder.Services.AddSingleton<CommandRateLimitService>();
