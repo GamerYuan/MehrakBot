@@ -66,7 +66,11 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
             }
 
             var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
-            server ??= selectedProfile.LastUsedRegions?[GameName.Genshin];
+            if (selectedProfile.LastUsedRegions != null && server == null)
+            {
+                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out var tmp);
+                server = tmp;
+            }
 
             if (server == null)
             {
