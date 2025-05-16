@@ -3,6 +3,8 @@
 using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Services;
+using MehrakCore.Services.Genshin;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -11,16 +13,21 @@ using NetCord.Services.ComponentInteractions;
 
 #endregion
 
-namespace MehrakCore.Services.Genshin;
+namespace MehrakCore.Modules;
 
 public class AuthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserRepository m_UserRepository;
-    private readonly TokenCacheService m_TokenCacheService;
-    private readonly ILogger<AuthCommandModule> m_Logger;
+}
 
-    public AuthCommandModule(UserRepository userRepository, TokenCacheService tokenCacheService,
-        ILogger<AuthCommandModule> logger)
+public class OldAuthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
+{
+    private readonly UserRepository m_UserRepository;
+    private readonly TokenCacheService m_TokenCacheService;
+    private readonly ILogger<OldAuthCommandModule> m_Logger;
+
+    public OldAuthCommandModule(UserRepository userRepository, TokenCacheService tokenCacheService,
+        ILogger<OldAuthCommandModule> logger)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;

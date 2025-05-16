@@ -1,5 +1,7 @@
 #region
 
+using MehrakCore.Services;
+using MehrakCore.Services.Genshin;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -7,7 +9,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Services.Genshin;
+namespace MehrakCore.Modules;
 
 public class CharacterCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
