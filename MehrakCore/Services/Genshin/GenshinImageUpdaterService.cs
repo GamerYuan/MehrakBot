@@ -114,15 +114,10 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             request.Method = HttpMethod.Get;
             request.Headers.Add("X-Rpc-Language", "zh-cn");
             request.RequestUri = new Uri($"{WikiApi}?entry_page_id={avatarId}");
-            var avatarUrl = characterDetail.Image;
-            // special case for Traveler
-            if (avatarId != 20)
-            {
-                var wikiResponse = await client.SendAsync(request);
-                avatarUrl =
-                    (await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync()))?["data"]?["page"]?
-                    ["header_img_url"]?.ToString();
-            }
+            var wikiResponse = await client.SendAsync(request);
+            var avatarUrl =
+                (await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync()))?["data"]?["page"]?
+                ["header_img_url"]?.ToString();
 
             if (string.IsNullOrEmpty(avatarUrl))
             {
