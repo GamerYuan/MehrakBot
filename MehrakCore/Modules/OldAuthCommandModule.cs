@@ -15,9 +15,97 @@ using NetCord.Services.ComponentInteractions;
 
 namespace MehrakCore.Modules;
 
-public class AuthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
+[SlashCommand("profile", "Manage your profile")]
+public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserRepository m_UserRepository;
+    private readonly TokenCacheService m_TokenCacheService;
+    private readonly ILogger<ProfileCommandModule> m_Logger;
+
+    public ProfileCommandModule(UserRepository userRepository, TokenCacheService tokenCacheService,
+        ILogger<ProfileCommandModule> logger)
+    {
+        m_UserRepository = userRepository;
+        m_TokenCacheService = tokenCacheService;
+        m_Logger = logger;
+    }
+
+    [SubSlashCommand("add", "Add a profile")]
+    public async Task AddProfileCommand()
+    {
+        m_Logger.LogInformation("User {UserId} is adding HoYoLAB profile", Context.User.Id);
+        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+
+        if (user?.Profiles != null && user.Profiles.Count() >= 10)
+        {
+            m_Logger.LogInformation("User {UserId} has reached the maximum number of profiles", Context.User.Id);
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("You can only have 10 profiles!"))));
+            return;
+        }
+
+        await RespondAsync(InteractionCallback.Modal(AuthModalModule.AddAuthModal));
+    }
+
+    [SubSlashCommand("delete", "Delete a profile")]
+    public async Task DeleteProfileCommand(
+        [SlashCommandParameter(Name = "profile",
+            Description = "The ID of the profile you want to delete. Leave blank if you wish to delete all profiles.")]
+        ushort profileId = 0)
+    {
+        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+        if (user?.Profiles == null)
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("No profile found!"))));
+            return;
+        }
+
+        if (profileId == 0)
+        {
+            await m_UserRepository.DeleteUserAsync(Context.User.Id);
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("All profiles deleted!"))));
+            return;
+        }
+
+        var profiles = user.Profiles.ToList();
+        for (int i = profiles.Count - 1; i >= 0; i--)
+            if (profiles[i].ProfileId == profileId)
+                profiles.RemoveAt(i);
+            else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
+
+        user.Profiles = profiles;
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+
+        await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+            new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(
+                    new TextDisplayProperties($"Profile {profileId} deleted!"))));
+    }
+
+    [SubSlashCommand("list", "List your profiles")]
+    public async Task ListProfileCommand()
+    {
+        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+        if (user?.Profiles == null || !user.Profiles.Any())
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("No profile found!"))));
+            return;
+        }
+
+        var profileList = user.Profiles.Select(x => new TextDisplayProperties(
+            $"## Profile {x.ProfileId}:\n**HoYoLAB UID:** {x.LtUid}\n### Games:\n" +
+            $"{string.Join('\n', x.GameUids?.Select(y => $"{y.Key.ToString()}, {string.Join(", ", y.Value.Keys, y.Value.Values)}") ?? [])}"));
+        await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+            new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(profileList)));
+    }
 }
 
 public class OldAuthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
@@ -104,7 +192,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     {
         try
         {
-            m_Logger.LogInformation("Processing auth modal submission from user {UserId}", Context.User.Id);
+            m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
 
             var user = await m_UserRespository.GetUserAsync(Context.User.Id);
             user ??= new UserModel
@@ -115,31 +203,44 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             var inputs = Context.Components.OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            InteractionMessageProperties responseMessage = new()
-            {
-                Flags = MessageFlags.Ephemeral
-            };
-
             if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
             {
                 m_Logger.LogWarning("User {UserId} provided invalid UID format", Context.User.Id);
-                responseMessage.Content = "Invalid UID!";
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Invalid UID!"))));
                 return;
             }
 
-            user.LtUid = ltuid;
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
-            user.LToken = await Task.Run(() =>
-                m_CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"]));
-            user.GameUids = new Dictionary<GameName, Dictionary<string, string>>();
+            user.Profiles ??= new List<UserProfile>();
+            if (user.Profiles.Any(x => x.LtUid == ltuid))
+            {
+                m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Profile already exists!"))));
+                return;
+            }
+
+            UserProfile profile = new()
+            {
+                ProfileId = (ushort)(user.Profiles.Count() + 1),
+                Guid = Guid.NewGuid(),
+                LtUid = ltuid,
+                LToken = await Task.Run(() =>
+                    m_CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"])),
+                GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+            };
+
+            user.Profiles = user.Profiles.Append(profile);
 
             await m_UserRespository.CreateOrUpdateUserAsync(user);
-            m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
+            m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
 
-            responseMessage.Content = "Authenticated successfully";
-            m_TokenCacheService.RemoveEntry(Context.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("Added profile successfully!"))));
         }
         catch (Exception e)
         {
