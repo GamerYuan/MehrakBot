@@ -25,7 +25,7 @@ public class TokenCacheService
 
         m_Options = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(m_DefaultExpiration)
-            .RegisterPostEvictionCallback((key, value, reason, state) =>
+            .RegisterPostEvictionCallback((key, _, reason, _) =>
             {
                 m_Logger.LogDebug("Cache entry {Key} evicted due to {Reason}", key, reason);
             });

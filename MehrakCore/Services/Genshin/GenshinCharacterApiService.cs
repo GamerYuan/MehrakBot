@@ -21,7 +21,6 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
 
     public GenshinCharacterApiService(
         IHttpClientFactory httpClientFactory,
-        GameRecordApiService gameRecordApiService,
         ILogger<GenshinCharacterApiService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
