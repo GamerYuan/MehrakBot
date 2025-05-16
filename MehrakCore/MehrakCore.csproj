@@ -47,6 +47,28 @@
         <None Update="appsettings.development.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <None Update="Resources\Localizations\*.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Resources\Services\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Update="Resources\Commands\Strings.zh-CN.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>Strings.zh-CN.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="Resources\Commands\Strings.zh-CN.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Strings.zh-CN.resx</DependentUpon>
+        </Compile>
     </ItemGroup>
 
 </Project>

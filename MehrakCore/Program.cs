@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using MehrakCore.Models;
+using MehrakCore.Providers;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
@@ -108,7 +109,14 @@ internal class Program
             builder.Services.AddSingleton<CommandRateLimitService>();
 
             // NetCord Services
-            builder.Services.AddDiscordGateway().AddApplicationCommands()
+            builder.Services.AddDiscordGateway().AddApplicationCommands(options =>
+                {
+                    options.LocalizationsProvider =
+                        new ResourceLocalizationsProvider(new ResourceLocalizationsProviderConfiguration
+                        {
+                            SupportedCultures = ["en-US", "zh-CN"]
+                        });
+                })
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
                 .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
                 .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();

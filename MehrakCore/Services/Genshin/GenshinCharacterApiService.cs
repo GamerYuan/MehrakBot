@@ -101,6 +101,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
         m_Logger.LogDebug("Sending character detail request to {Endpoint}", request.RequestUri);
         var response = await httpClient.SendAsync(request);
+
         if (!response.IsSuccessStatusCode)
         {
             m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
