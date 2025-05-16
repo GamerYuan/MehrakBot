@@ -99,7 +99,10 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         var profileList = user.Profiles.Select(x => new TextDisplayProperties(
             $"## Profile {x.ProfileId}:\n**HoYoLAB UID:** {x.LtUid}\n### Games:\n" +
-            $"{string.Join('\n', x.GameUids?.Select(y => $"{y.Key.ToString()}, {string.Join(", ", y.Value.Keys, y.Value.Values)}") ?? [])}"));
+            $"{string.Join('\n', x.GameUids?.Select(y =>
+                                     $"{y.Key.ToString()}\n{string.Join(", ", y.Value.Select(z =>
+                                         $"{z.Key}: {z.Value}"))}")
+                                 ?? [])}"));
         await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(profileList)));

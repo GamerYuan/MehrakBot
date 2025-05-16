@@ -1,5 +1,6 @@
 ﻿#region
 
+using MehrakCore.Utility;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Options;
@@ -43,4 +44,6 @@ public class UserProfile
     [BsonDictionaryOptions(DictionaryRepresentation.Document)]
     [BsonRepresentation(BsonType.String)]
     public Dictionary<GameName, Dictionary<string, string>>? GameUids { get; set; } = null;
+
+    [BsonElement("last_used_regions")] public Dictionary<GameName, Regions>? LastUsedRegions { get; set; } = null;
 }
