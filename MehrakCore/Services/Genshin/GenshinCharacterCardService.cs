@@ -26,7 +26,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly Dictionary<int, Image> m_StatImages;
 
     private const string BasePath = "genshin_{0}";
-    private const string StatsPath = "genshin_stats_{0}.png";
+    private const string StatsPath = "genshin_stats_{0}";
 
     private readonly Font m_SmallFont;
     private readonly Font m_MediumFont;
@@ -103,7 +103,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         try
         {
             // Prepare all image loading tasks
-            var overlayTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("bg.png"));
+            var overlayTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_bg"));
             var background = new Image<Rgba32>(3240, 1080);
             disposableResources.Add(background);
 
@@ -469,7 +469,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogTrace("Creating template relic slot image for position {Position}", position);
         try
         {
-            var path = $"genshin_relic_template_{position}.png";
+            var path = $"genshin_relic_template_{position}";
             m_Logger.LogDebug("Loading template relic image from {Path}", path);
 
             var relicImage = await Image.LoadAsync<Rgba32>(

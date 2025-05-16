@@ -124,7 +124,7 @@ internal class Program
             foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*",
                          SearchOption.AllDirectories))
             {
-                var fileName = Path.GetFileName(image);
+                var fileName = Path.GetFileName(image).Split('.')[0];
                 if (await imageRepo.FileExistsAsync(fileName)) continue;
 
                 await using var stream = File.OpenRead(image);
