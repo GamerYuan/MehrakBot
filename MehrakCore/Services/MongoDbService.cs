@@ -37,7 +37,4 @@ public class MongoDbService
     public IMongoCollection<UserModel> Users => m_Database.GetCollection<UserModel>("users");
 
     public GridFSBucket Bucket => new(m_Database);
-
-    // TODO: remove after migration
-    public IMongoDatabase Database => m_Database;
 }

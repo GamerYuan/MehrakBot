@@ -5,7 +5,6 @@ using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -118,9 +117,6 @@ internal class Program
 
             var logger = host.Services.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("MehrakBot application starting");
-
-            var migrate = new UserModelMigration(host.Services.GetRequiredService<MongoDbService>().Database);
-            await migrate.MigrateUsersToProfileStructure();
 
             // Configure MongoDB
             var imageRepo = host.Services.GetRequiredService<ImageRepository>();
