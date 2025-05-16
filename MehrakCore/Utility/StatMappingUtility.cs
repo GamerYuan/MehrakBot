@@ -9,7 +9,7 @@ namespace MehrakCore.Utility;
 public static class StatMappingUtility
 {
     public static IReadOnlyDictionary<int, string> Mapping { get; }
-    private static IReadOnlyDictionary<int, float> DefaultValues;
+    private static readonly IReadOnlyDictionary<int, float> DefaultValues;
 
     static StatMappingUtility()
     {

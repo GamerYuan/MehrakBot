@@ -1,5 +1,10 @@
 #region
 
+using MehrakCore.Models;
+using MehrakCore.Repositories;
+using MehrakCore.Services;
+using MehrakCore.Services.Genshin;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -7,20 +12,22 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Services.Genshin;
+namespace MehrakCore.Modules;
 
 public class CharacterCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ILogger<CharacterCommandModule> m_Logger;
+    private readonly UserRepository m_UserRepository;
     private readonly TokenCacheService m_TokenCacheService;
     private readonly GenshinCharacterCommandService<ApplicationCommandContext> m_Service;
     private readonly CommandRateLimitService m_RateLimitService;
 
-    public CharacterCommandModule(ILogger<CharacterCommandModule> logger,
+    public CharacterCommandModule(ILogger<CharacterCommandModule> logger, UserRepository userRepository,
         GenshinCharacterCommandService<ApplicationCommandContext> service, TokenCacheService tokenCacheService,
         CommandRateLimitService rateLimitService)
     {
         m_Logger = logger;
+        m_UserRepository = userRepository;
         m_Service = service;
         m_TokenCacheService = tokenCacheService;
         m_RateLimitService = rateLimitService;
@@ -28,11 +35,12 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
 
     [SlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "server", Description = "Server",
-            AutocompleteProviderType = typeof(RegionAutoCompleteProvider))]
-        string server,
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
-        string characterName)
+        string characterName,
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
     {
         try
         {
@@ -46,13 +54,34 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
             }
 
             m_RateLimitService.SetRateLimit(Context.User.Id);
+            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
+            {
+                m_Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
+                    Context.User.Id, profile);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
 
-            if (!m_TokenCacheService.TryGetToken(Context.User.Id, out _) ||
-                !m_TokenCacheService.TryGetLtUid(Context.User.Id, out _))
+            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
+            server ??= selectedProfile.LastUsedRegions?[GameName.Genshin];
+
+            if (server == null)
+            {
+                m_Logger.LogInformation("User {UserId} does not have a server selected", Context.User.Id);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
+
+            if (!m_TokenCacheService.TryGetCacheEntry(Context.User.Id, selectedProfile.LtUid, out var ltoken))
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal(server, characterName)));
+                    InteractionCallback.Modal(AuthModalModule.AuthModal(characterName, server.Value, profile)));
             }
             else
             {
@@ -60,7 +89,8 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
                 m_Service.Context = Context;
-                await m_Service.SendCharacterCardResponseAsync(server, characterName);
+                await m_Service.SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken!, characterName,
+                    server.Value);
             }
         }
         catch (Exception e)
@@ -72,21 +102,6 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                     new TextDisplayProperties(
                         "An error occurred while processing your request. Please try again later.")
                 ]));
-        }
-    }
-
-    public class RegionAutoCompleteProvider : IAutocompleteProvider<AutocompleteInteractionContext>
-    {
-        private static readonly List<string> Regions = ["Asia", "Europe", "America", "SAR"];
-
-        public ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> GetChoicesAsync(
-            ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
-        {
-            var choices = Regions
-                .Where(x => x.Contains(option.Value ?? string.Empty, StringComparison.OrdinalIgnoreCase))
-                .Select(x => new ApplicationCommandOptionChoiceProperties(x, x));
-
-            return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(choices);
         }
     }
 }

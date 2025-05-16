@@ -4,7 +4,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Services.Genshin;
+namespace MehrakCore.Modules;
 
 public class PingCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {

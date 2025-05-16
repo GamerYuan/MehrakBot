@@ -1,7 +1,6 @@
 ﻿#region
 
 using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
 
 #endregion
 

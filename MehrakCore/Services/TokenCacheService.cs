@@ -22,40 +22,24 @@ public class TokenCacheService
             m_DefaultExpiration.TotalMinutes);
     }
 
-    public void AddCacheEntry(ulong userId, ulong ltuid, string ltoken)
+    public void AddCacheEntry(ulong ltuid, string ltoken)
     {
+        m_Logger.LogDebug("Adding cache entry with ltuid {LtUid}", ltuid);
+
         var options = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(m_DefaultExpiration)
-            .RegisterPostEvictionCallback((key, value, reason, state) =>
+            .RegisterPostEvictionCallback((key, _, reason, _) =>
             {
-                m_Logger.LogDebug("Token cache entry {Key} evicted due to {Reason}", key, reason);
+                m_Logger.LogDebug("Cache entry {Key} evicted due to {Reason}", key, reason);
             });
 
-        m_Logger.LogDebug("Adding token cache entry for user {UserId} with expiration {Expiration}",
-            userId, DateTime.UtcNow.Add(m_DefaultExpiration));
-
-        m_Cache.Set($"ltoken_{userId}", ltoken, options);
-        m_Cache.Set($"ltuid_{userId}", ltuid, options);
+        m_Cache.Set(ltuid, ltoken, options);
     }
 
-    public bool TryGetToken(ulong userId, out string? ltoken)
+    public bool TryGetCacheEntry(ulong userId, ulong ltuid, out string? ltoken)
     {
-        var result = m_Cache.TryGetValue($"ltoken_{userId}", out ltoken);
-        m_Logger.LogDebug("Token retrieval for user {UserId}: {Result}", userId, result ? "Found" : "Not Found");
+        var result = m_Cache.TryGetValue(ltuid, out ltoken);
+        m_Logger.LogDebug("Cache retrieval for user {UserId}: {Result}", userId, result ? "Found" : "Not Found");
         return result;
-    }
-
-    public bool TryGetLtUid(ulong userId, out ulong ltuid)
-    {
-        var result = m_Cache.TryGetValue($"ltuid_{userId}", out ltuid);
-        m_Logger.LogDebug("LtUid retrieval for user {UserId}: {Result}", userId, result ? "Found" : "Not Found");
-        return result;
-    }
-
-    public void RemoveEntry(ulong userId)
-    {
-        m_Cache.Remove($"ltoken_{userId}");
-        m_Cache.Remove($"ltuid_{userId}");
-        m_Logger.LogDebug("Removed token cache entries for user {UserId}", userId);
     }
 }
