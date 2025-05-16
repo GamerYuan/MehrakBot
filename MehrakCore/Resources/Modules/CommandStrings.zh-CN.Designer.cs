@@ -7,7 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace MehrakCore.Resources.Commands {
+namespace MehrakCore.Resources.Modules {
     using System;
     
     
@@ -21,16 +21,16 @@ namespace MehrakCore.Resources.Commands {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Strings_zh_CN {
-        
+    internal class CommandStrings_zh_CN {
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Strings_zh_CN() {
+        internal CommandStrings_zh_CN() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -38,13 +38,13 @@ namespace MehrakCore.Resources.Commands {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("MehrakCore.Resources.Commands.Strings.zh-CN", typeof(Strings_zh_CN).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("MehrakCore.Resources.Modules.CommandStrings.zh-CN", typeof(CommandStrings_zh_CN).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -56,6 +56,60 @@ namespace MehrakCore.Resources.Commands {
             }
             set {
                 resourceCulture = value;
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 获取角色卡.
+        /// </summary>
+        internal static string Commands_character_Description {
+            get {
+                return ResourceManager.GetString("Commands_character_Description", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 角色.
+        /// </summary>
+        internal static string Commands_character_Name {
+            get {
+                return ResourceManager.GetString("Commands_character_Name", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 角色名.
+        /// </summary>
+        internal static string Commands_character_Parameter_character_Description {
+            get {
+                return ResourceManager.GetString("Commands_character_Parameter_character_Description", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 角色名.
+        /// </summary>
+        internal static string Commands_character_Parameter_character_Name {
+            get {
+                return ResourceManager.GetString("Commands_character_Parameter_character_Name", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 伺服器.
+        /// </summary>
+        internal static string Commands_character_Parameter_server_Description {
+            get {
+                return ResourceManager.GetString("Commands_character_Parameter_server_Description", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 伺服器.
+        /// </summary>
+        internal static string Commands_character_Parameter_server_Name {
+            get {
+                return ResourceManager.GetString("Commands_character_Parameter_server_Name", resourceCulture);
             }
         }
     }

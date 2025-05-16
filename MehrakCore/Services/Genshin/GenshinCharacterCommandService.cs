@@ -1,7 +1,9 @@
 ﻿#region
 
+using System.Globalization;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -19,6 +21,7 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
     private readonly UserRepository m_UserRepository;
     private readonly TokenCacheService m_TokenCacheService;
+    private readonly CommandLocalizerService m_CommandLocalizerService;
     private readonly ILogger<GenshinCharacterCommandService<TContext>> m_Logger;
 
     public TContext Context { get; set; } = default!;
@@ -26,7 +29,7 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
     public GenshinCharacterCommandService(GenshinCharacterApiService genshinCharacterApiService,
         GameRecordApiService gameRecordApiService, GenshinCharacterCardService genshinCharacterCardService,
         GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        TokenCacheService tokenCacheService, CommandLocalizerService commandLocalizerService,
         ILogger<GenshinCharacterCommandService<TContext>> logger)
     {
         m_GenshinCharacterApiService = genshinCharacterApiService;
@@ -35,11 +38,13 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         m_GenshinImageUpdaterService = genshinImageUpdaterService;
         m_UserRepository = userRepository;
         m_TokenCacheService = tokenCacheService;
+        m_CommandLocalizerService = commandLocalizerService;
         m_Logger = logger;
     }
 
-    public async Task SendCharacterCardResponseAsync(string server, string characterName)
+    public async Task SendCharacterCardResponseAsync(Regions server, string characterName)
     {
+        var userLocale = new CultureInfo(Context.Interaction.UserLocale);
         if (!m_TokenCacheService.TryGetToken(Context.Interaction.User.Id, out var ltoken) ||
             !m_TokenCacheService.TryGetLtUid(Context.Interaction.User.Id, out var ltuid))
         {
@@ -48,7 +53,8 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
                 new InteractionMessageProperties()
                     .WithFlags(MessageFlags.IsComponentsV2)
                     .WithComponents([
-                        new TextDisplayProperties("Authentication timed out, please try again.")
+                        new TextDisplayProperties(
+                            m_CommandLocalizerService.GetLocalizedString("AuthTimeoutErrorMessage", userLocale))
                     ]));
             return;
         }
@@ -68,7 +74,8 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         {
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                    new TextDisplayProperties("No game information found. Please select the correct region")
+                    new TextDisplayProperties(
+                        m_CommandLocalizerService.GetLocalizedString("ServerNoGameInformationErrorMessage", userLocale))
                 ]));
             return;
         }
@@ -93,7 +100,8 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         {
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral).WithComponents([
-                    new TextDisplayProperties("Character not found. Please try again.")
+                    new TextDisplayProperties(
+                        m_CommandLocalizerService.GetLocalizedString("CharacterNotFoundErrorMessage", userLocale))
                 ]));
             return;
         }
@@ -102,7 +110,8 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
             await GenerateCharacterCardResponseAsync((uint)character.Id!.Value, ltuid, ltoken!, gameUid, region);
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             .WithFlags(MessageFlags.IsComponentsV2)
-            .AddComponents(new TextDisplayProperties("Command execution completed")));
+            .AddComponents(new TextDisplayProperties(
+                m_CommandLocalizerService.GetLocalizedString("CommandExecutionCompletedMessage", userLocale))));
         var followup = Context.Interaction.SendFollowupMessageAsync(properties);
 
         await Task.WhenAll(followup, updateUser);
@@ -119,7 +128,9 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
             m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
                 region, Context.Interaction.User.Id);
             return new InteractionMessageProperties().WithComponents([
-                new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+                new TextDisplayProperties(
+                    m_CommandLocalizerService.GetLocalizedString("CharacterRetrieveUnsuccessfulMessage",
+                        new CultureInfo(Context.Interaction.UserLocale)))
             ]);
         }
 
@@ -139,14 +150,14 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         return properties;
     }
 
-    private static string GetRegion(string server)
+    private static string GetRegion(Regions server)
     {
         return server switch
         {
-            _ when server.Equals("Asia", StringComparison.OrdinalIgnoreCase) => "os_asia",
-            _ when server.Equals("Europe", StringComparison.OrdinalIgnoreCase) => "os_euro",
-            _ when server.Equals("America", StringComparison.OrdinalIgnoreCase) => "os_usa",
-            _ when server.Equals("SAR", StringComparison.OrdinalIgnoreCase) => "os_cht",
+            Regions.Asia => "os_asia",
+            Regions.Europe => "os_euro",
+            Regions.America => "os_usa",
+            Regions.Sar => "os_cht",
             _ => throw new ArgumentException("Invalid server name")
         };
     }

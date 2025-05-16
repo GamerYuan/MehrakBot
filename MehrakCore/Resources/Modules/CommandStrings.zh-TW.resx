@@ -117,11 +117,41 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AddAuthModalInvalidUIDMessage" xml:space="preserve">
+    <value>UID無效！</value>
+  </data>
+  <data name="AddAuthModalSuccessfulMessage" xml:space="preserve">
+    <value>身份驗證成功。</value>
+  </data>
+  <data name="AuthModalPassphraseLabel" xml:space="preserve">
+    <value>密碼</value>
+  </data>
+  <data name="AuthModalTitle" xml:space="preserve">
+    <value>身份驗證</value>
+  </data>
+  <data name="AuthTimeoutErrorMessage" xml:space="preserve">
+    <value>身份驗證超時，請重試。</value>
+  </data>
+  <data name="AuthUserInvalidPassphraseMessage" xml:space="preserve">
+    <value>密碼無效！</value>
+  </data>
+  <data name="AuthUserNoProfileMessage" xml:space="preserve">
+    <value>未找到個人檔案！請先新增個人資料。</value>
+  </data>
   <data name="Commands_character_Description" xml:space="preserve">
-    <value>获取角色卡</value>
+    <value>生成角色卡</value>
   </data>
   <data name="Commands_character_Name" xml:space="preserve">
     <value>角色</value>
+  </data>
+  <data name="RateLimitErrorMessage" xml:space="preserve">
+    <value>命令使用過於頻繁！請稍後重試。</value>
+  </data>
+  <data name="UnknownErrorMessage" xml:space="preserve">
+    <value>處理您的請求時發生錯誤。請稍後重試。</value>
+  </data>
+  <data name="AddAuthPassphrasePlaceholder" xml:space="preserve">
+    <value>請勿使用與您的 Discord 或 HoYoLAB 帳戶相同的密碼！</value>
   </data>
   <data name="Commands_character_Parameter_character_Description" xml:space="preserve">
     <value>角色名</value>
@@ -134,5 +164,17 @@
   </data>
   <data name="Commands_character_Parameter_server_Name" xml:space="preserve">
     <value>伺服器</value>
+  </data>
+  <data name="ServerNoGameInformationErrorMessage" xml:space="preserve">
+    <value>未找到遊戲資訊。請選擇正確的服務器。</value>
+  </data>
+  <data name="CharacterNotFoundErrorMessage" xml:space="preserve">
+    <value>未找到角色。請重試。</value>
+  </data>
+  <data name="CommandExecutionCompletedMessage" xml:space="preserve">
+    <value>命令執行完成。</value>
+  </data>
+  <data name="CharacterRetrieveUnsuccessfulMessage" xml:space="preserve">
+    <value>檢索角色資料失敗。請重試。</value>
   </data>
 </root>

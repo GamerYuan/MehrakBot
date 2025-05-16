@@ -61,6 +61,10 @@
             <Generator>ResXFileCodeGenerator</Generator>
             <LastGenOutput>Strings.zh-CN.Designer.cs</LastGenOutput>
         </EmbeddedResource>
+        <EmbeddedResource Update="Resources\Modules\CommandStrings.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>CommandStrings.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
@@ -68,6 +72,11 @@
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
             <DependentUpon>Strings.zh-CN.resx</DependentUpon>
+        </Compile>
+        <Compile Update="Resources\Modules\CommandStrings.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>CommandStrings.resx</DependentUpon>
         </Compile>
     </ItemGroup>
 

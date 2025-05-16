@@ -13,73 +13,42 @@ namespace MehrakCore.Providers;
 public class ResourceLocalizationsProvider : ILocalizationsProvider
 {
     private readonly ResourceLocalizationsProviderConfiguration m_Configuration;
-    private Dictionary<string, ResourceManager>? m_ResourceManagers;
+    private readonly ResourceManager m_ResourceManager;
 
     public ResourceLocalizationsProvider(
         ResourceLocalizationsProviderConfiguration? configuration = null)
     {
         m_Configuration = configuration ?? new ResourceLocalizationsProviderConfiguration();
-    }
-
-    private Dictionary<string, ResourceManager> InitializeResourceManagers()
-    {
-        var result = new Dictionary<string, ResourceManager>();
-        // Add the base resource manager
-        var baseResourceManager = new ResourceManager(
-            m_Configuration.ResourceBaseName,
+        m_ResourceManager = new ResourceManager(m_Configuration.ResourceBaseName,
             m_Configuration.ResourceAssembly ?? typeof(ResourceLocalizationsProvider).Assembly);
-
-        // Add resource managers for each culture
-        foreach (var culture in m_Configuration.SupportedCultures)
-            try
-            {
-                result.Add(culture, baseResourceManager);
-            }
-            catch
-            {
-                // no-op
-            }
-
-        return result;
     }
 
-    public async ValueTask<IReadOnlyDictionary<string, string>?> GetLocalizationsAsync(
+    public ValueTask<IReadOnlyDictionary<string, string>?> GetLocalizationsAsync(
         IReadOnlyList<LocalizationPathSegment> path,
         CancellationToken cancellationToken = default)
     {
-        m_ResourceManagers ??= InitializeResourceManagers();
-
         // Build the resource key from the path
         var resourceKey = BuildResourceKey(path);
 
         // Get the localization for each supported culture
         var result = new Dictionary<string, string>();
 
-        foreach (var entry in m_ResourceManagers)
-        {
-            var culture = entry.Key;
-            var resourceManager = entry.Value;
-
-            if (culture == "default" || culture == m_Configuration.DefaultCulture) continue;
-
+        foreach (var culture in m_Configuration.SupportedCultures)
             try
             {
-                CultureInfo cultureInfo = culture == "default"
-                    ? CultureInfo.InvariantCulture
-                    : CultureInfo.GetCultureInfo(culture);
+                var cultureInfo = new CultureInfo(culture);
 
-                var value = resourceManager.GetString(resourceKey, cultureInfo);
+                var value = m_ResourceManager.GetString(resourceKey, cultureInfo);
 
                 if (!string.IsNullOrEmpty(value))
                     result[culture] = value;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // no-op
             }
-        }
 
-        return result;
+        return ValueTask.FromResult<IReadOnlyDictionary<string, string>?>(result);
     }
 
     private string BuildResourceKey(IReadOnlyList<LocalizationPathSegment> path)
@@ -143,14 +112,14 @@ public class ResourceLocalizationsProvider : ILocalizationsProvider
 public class ResourceLocalizationsProviderConfiguration
 {
     /// <summary>
-    /// The base name of the resource file (e.g., "MehrakCore.Resources.Commands.Strings")
+    /// The base name of the resource file (e.g., "MehrakCore.Resources.Modules.CommandStrings")
     /// </summary>
-    public string ResourceBaseName { get; init; } = "MehrakCore.Resources.Commands.Strings";
+    public string ResourceBaseName { get; init; } = "MehrakCore.Resources.Modules.CommandStrings";
 
     /// <summary>
     /// The assembly containing the resource files
     /// </summary>
-    public Assembly? ResourceAssembly { get; init; }
+    public Assembly? ResourceAssembly { get; init; } = null;
 
     /// <summary>
     /// List of supported cultures (e.g., "en-US", "zh-CN", "zh-TW", "ja-JP", "ko-KR")
