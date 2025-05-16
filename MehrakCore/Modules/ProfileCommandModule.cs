@@ -5,6 +5,7 @@ using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -19,14 +20,11 @@ namespace MehrakCore.Modules;
 public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserRepository m_UserRepository;
-    private readonly TokenCacheService m_TokenCacheService;
     private readonly ILogger<ProfileCommandModule> m_Logger;
 
-    public ProfileCommandModule(UserRepository userRepository, TokenCacheService tokenCacheService,
-        ILogger<ProfileCommandModule> logger)
+    public ProfileCommandModule(UserRepository userRepository, ILogger<ProfileCommandModule> logger)
     {
         m_UserRepository = userRepository;
-        m_TokenCacheService = tokenCacheService;
         m_Logger = logger;
     }
 
@@ -52,7 +50,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     public async Task DeleteProfileCommand(
         [SlashCommandParameter(Name = "profile",
             Description = "The ID of the profile you want to delete. Leave blank if you wish to delete all profiles.")]
-        ushort profileId = 0)
+        uint profileId = 0)
     {
         var user = await m_UserRepository.GetUserAsync(Context.User.Id);
         if (user?.Profiles == null)
@@ -108,50 +106,6 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     }
 }
 
-public class OldAuthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
-{
-    private readonly UserRepository m_UserRepository;
-    private readonly TokenCacheService m_TokenCacheService;
-    private readonly ILogger<OldAuthCommandModule> m_Logger;
-
-    public OldAuthCommandModule(UserRepository userRepository, TokenCacheService tokenCacheService,
-        ILogger<OldAuthCommandModule> logger)
-    {
-        m_UserRepository = userRepository;
-        m_Logger = logger;
-        m_TokenCacheService = tokenCacheService;
-    }
-
-    [UserCommand("Authenticate HoYoLAB Profile")]
-    public async Task AuthCommand()
-    {
-        m_Logger.LogInformation("User {UserId} is authenticating HoYoLAB profile", Context.User.Id);
-
-        await RespondAsync(InteractionCallback.Modal(AuthModalModule.AddAuthModal));
-    }
-
-    [UserCommand("Delete Profile")]
-    public async Task DeleteProfileCommand()
-    {
-        m_Logger.LogInformation("User {UserId} requested profile deletion", Context.User.Id);
-
-        var result = await m_UserRepository.DeleteUserAsync(Context.User.Id);
-
-        m_TokenCacheService.RemoveEntry(Context.User.Id);
-
-        m_Logger.LogInformation("Profile deletion for user {UserId}: {Result}",
-            Context.User.Id, result ? "Success" : "Not Found");
-
-        InteractionMessageProperties responseMessage = new()
-        {
-            Content = result ? "Profile deleted!" : "No profile found!",
-            Flags = MessageFlags.Ephemeral
-        };
-
-        await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
-    }
-}
-
 public class AuthModalModule : ComponentInteractionModule<ModalInteractionContext>
 {
     public static ModalProperties AddAuthModal => new ModalProperties("add_auth_modal", "Authenticate")
@@ -162,25 +116,25 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
         ]);
 
-    public static ModalProperties AuthModal(string server, string character)
+    public static ModalProperties AuthModal(string character, Regions server, uint profile)
     {
-        return new ModalProperties($"character_auth_modal:{server}:{character}", "Authenticate")
+        return new ModalProperties($"character_auth_modal:{character}:{server}:{profile}", "Authenticate")
             .AddComponents([
                 new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
                     .WithPlaceholder("Your Passphrase").WithMaxLength(64)
             ]);
     }
 
-    private readonly UserRepository m_UserRespository;
+    private readonly UserRepository m_UserRepository;
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
     private readonly GenshinCharacterCommandService<ModalInteractionContext> m_Service;
 
-    public AuthModalModule(UserRepository userRespository, ILogger<AuthModalModule> logger, CookieService cookieService,
+    public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
         TokenCacheService tokenCacheService, GenshinCharacterCommandService<ModalInteractionContext> service)
     {
-        m_UserRespository = userRespository;
+        m_UserRepository = userRepository;
         m_Logger = logger;
         m_CookieService = cookieService;
         m_TokenCacheService = tokenCacheService;
@@ -194,7 +148,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         {
             m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
 
-            var user = await m_UserRespository.GetUserAsync(Context.User.Id);
+            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
             user ??= new UserModel
             {
                 Id = Context.User.Id
@@ -225,8 +179,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             UserProfile profile = new()
             {
-                ProfileId = (ushort)(user.Profiles.Count() + 1),
-                Guid = Guid.NewGuid(),
+                ProfileId = (uint)user.Profiles.Count() + 1,
                 LtUid = ltuid,
                 LToken = await Task.Run(() =>
                     m_CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"])),
@@ -235,7 +188,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             user.Profiles = user.Profiles.Append(profile);
 
-            await m_UserRespository.CreateOrUpdateUserAsync(user);
+            await m_UserRepository.CreateOrUpdateUserAsync(user);
             m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
 
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -256,44 +209,45 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     }
 
     [ComponentInteraction("character_auth_modal")]
-    public async Task CharacterAuth(string server, string characterName)
+    public async Task CharacterAuth(string characterName,
+        [ComponentInteractionParameter(TypeReaderType = typeof(RegionsEnumTypeReader<ModalInteractionContext>))]
+        Regions server, uint profile = 1)
     {
-        if (await AuthUser())
+        var (success, ltuid, ltoken) = await AuthUser(profile);
+        if (success)
         {
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
             m_Service.Context = Context;
-            await m_Service.SendCharacterCardResponseAsync(server, characterName);
+            await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
         }
     }
 
-    private async Task<bool> AuthUser()
+    private async Task<(bool, ulong, string)> AuthUser(uint profile)
     {
         try
         {
             m_Logger.LogInformation("Processing auth modal submission from user {UserId}", Context.User.Id);
             await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
-            var user = await m_UserRespository.GetUserAsync(Context.User.Id);
-            if (user == null)
+            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
             {
                 m_Logger.LogWarning("User {UserId} not found in database", Context.User.Id);
-                if (Context.Interaction.Message?.InteractionMetadata?.OriginalResponseMessageId != null)
-                    await Context.Interaction.DeleteFollowupMessageAsync(
-                        Context.Interaction.Message.InteractionMetadata
-                            .OriginalResponseMessageId!.Value);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .WithComponents([new TextDisplayProperties("No profile found! Please add a profile first.")]));
-                return false;
+                return (false, 0, string.Empty);
             }
+
+            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
 
             var inputs = Context.Components.OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            var ltoken = m_CookieService.DecryptCookie(user.LToken, inputs["passphrase"]);
+            var ltoken = m_CookieService.DecryptCookie(selectedProfile.LToken, inputs["passphrase"]);
 
-            m_TokenCacheService.AddCacheEntry(Context.User.Id, user.LtUid, ltoken);
-            return true;
+            m_TokenCacheService.AddCacheEntry(selectedProfile.LtUid, ltoken);
+            return (true, selectedProfile.LtUid, ltoken);
         }
         catch (AuthenticationTagMismatchException)
         {
@@ -318,6 +272,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
         }
 
-        return false;
+        return (false, 0, string.Empty);
     }
 }

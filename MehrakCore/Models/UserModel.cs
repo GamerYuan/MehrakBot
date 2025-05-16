@@ -33,11 +33,7 @@ public class UserModel
 
 public class UserProfile
 {
-    [BsonElement("profile_id")] public ushort ProfileId { get; set; }
-
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
-    [BsonElement("guid")]
-    public Guid Guid { get; set; }
+    [BsonElement("profile_id")] public uint ProfileId { get; set; }
 
     [BsonElement("ltuid")] public ulong LtUid { get; set; }
 
