@@ -16,7 +16,8 @@ using NetCord.Services.ComponentInteractions;
 
 namespace MehrakCore.Modules;
 
-[SlashCommand("profile", "Manage your profile")]
+[SlashCommand("profile", "Manage your profile",
+    Contexts = [InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel])]
 public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserRepository m_UserRepository;
