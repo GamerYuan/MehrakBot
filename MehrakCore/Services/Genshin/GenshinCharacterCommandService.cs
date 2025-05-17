@@ -111,7 +111,6 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
             .WithFlags(MessageFlags.IsComponentsV2)
             .AddComponents(new TextDisplayProperties("Command execution completed")));
         var followup = Context.Interaction.SendFollowupMessageAsync(properties);
-
         await Task.WhenAll(followup, updateUser);
     }
 
@@ -143,7 +142,9 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         properties.AddAttachments(new AttachmentProperties("character_card.jpg",
             await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
         properties.AddComponents(
-            new ActionRowProperties().AddButtons(new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)));
+            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                "Remove",
+                ButtonStyle.Danger)));
 
         return properties;
     }
