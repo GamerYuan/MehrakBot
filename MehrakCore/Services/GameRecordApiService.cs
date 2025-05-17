@@ -3,6 +3,7 @@
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
+using MehrakCore.Models;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -74,8 +75,9 @@ public class GameRecordApiService
     /// <param name="ltoken">LToken V2</param>
     /// <param name="gameIdentifier">Game identifier</param>
     /// <param name="region">Region string</param>
-    /// <returns></returns>
-    public async Task<string?> GetUserRegionUidAsync(ulong uid, string ltoken, string gameIdentifier, string region)
+    /// <returns>ApiResult containing the game UID and HTTP status code</returns>
+    public async Task<ApiResult<string>> GetUserRegionUidAsync(ulong uid, string ltoken, string gameIdentifier,
+        string region)
     {
         try
         {
@@ -97,21 +99,15 @@ public class GameRecordApiService
             {
                 m_Logger.LogWarning("Game roles API returned non-success status code: {StatusCode}",
                     response.StatusCode);
-                return null;
+                return ApiResult<string>.Failure(response.StatusCode, "API returned error status code");
             }
 
             var node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             var gameUid = node?["data"]?["list"]?[0]?["game_uid"]?.GetValue<string>();
 
-            if (string.IsNullOrEmpty(gameUid))
-            {
-                m_Logger.LogWarning("No game UID found for user {Uid} on region {Region}", uid, region);
-                return null;
-            }
-
             m_Logger.LogInformation("Successfully retrieved game UID {GameUid} for user {Uid} on {Region}",
                 gameUid, uid, region);
-            return gameUid;
+            return ApiResult<string>.Success(gameUid, node?["retcode"]?.GetValue<int>() ?? 0, response.StatusCode);
         }
         catch (Exception ex)
         {
