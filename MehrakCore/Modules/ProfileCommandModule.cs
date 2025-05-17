@@ -108,6 +108,44 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(profileList)));
     }
+
+    public static string GetHelpString(string subcommand)
+    {
+        return subcommand switch
+        {
+            "add" => "## Profile Add\n" +
+                     "Adds a new HoYoLAB profile to your account.\n" +
+                     "You can add up to 10 profiles.\n" +
+                     "### Usage\n" +
+                     "```/profile add```" +
+                     "You will be prompted with a authentication modal to provide your HoYoLAB details\n" +
+                     "### Parameters\n" +
+                     "HoYoLAB UID: Your HoYoLAB UID\n" +
+                     "HoYoLAB Cookies: Your HoYoLAB Cookies. Retrieve only the `ltoken_v2` value from the cookies that starts with `v2_...`\n" +
+                     "-# [Ctrl] + [Shift] + [I] to open the developer tools in your browser. For Chromium Browser, go to Application Tab; " +
+                     "For Firefox, go to Storage Tab. You may find the `ltoken_v2` cookie entry there\n",
+            "delete" => "## Profile Delete\n" +
+                        "Deletes a HoYoLAB profile from your account.\n" +
+                        "### Usage\n" +
+                        "```/profile delete [profile]```\n" +
+                        "### Parameters\n" +
+                        "[profile]: The ID of the profile you want to delete. Leave blank if you wish to delete all profiles.\n" +
+                        "### Examples\n" +
+                        "```/profile delete\n/profile delete 1```",
+            "list" => "## Profile List\n" +
+                      "Lists all your HoYoLAB profiles.\n" +
+                      "### Usage\n" +
+                      "```/profile list```",
+            _ => "## Profile\n" +
+                 "Manage your HoYoLAB profiles.\n" +
+                 "### Usage\n" +
+                 "```/profile [add|delete|list]```\n" +
+                 "### Parameters\n" +
+                 "[add]: Adds a new HoYoLAB profile to your account.\n" +
+                 "[delete]: Deletes a HoYoLAB profile from your account.\n" +
+                 "[list]: Lists all your HoYoLAB profiles."
+        };
+    }
 }
 
 public class AuthModalModule : ComponentInteractionModule<ModalInteractionContext>
