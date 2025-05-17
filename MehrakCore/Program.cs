@@ -110,7 +110,6 @@ internal class Program
             // NetCord Services
             builder.Services.AddDiscordGateway().AddApplicationCommands()
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
-                .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
                 .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
             var host = builder.Build();
