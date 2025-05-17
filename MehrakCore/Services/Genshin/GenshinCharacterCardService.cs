@@ -366,7 +366,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Right,
                         TextAlignment = TextAlignment.End,
-                        LineSpacing = 1.5f
+                        LineSpacing = 1.5f,
+                        WrappingLength = 500
                     }, relicSetText, Color.White);
 
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
@@ -374,8 +375,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         Origin = new Vector2(2800, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Left,
-                        LineSpacing = 1.5f,
-                        WrappingLength = 500
+                        LineSpacing = 1.5f
                     }, relicSetValueText, Color.White);
                 }
                 else
