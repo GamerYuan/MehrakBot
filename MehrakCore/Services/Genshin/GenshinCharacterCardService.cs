@@ -374,7 +374,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         Origin = new Vector2(2800, 1020),
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Left,
-                        LineSpacing = 1.5f
+                        LineSpacing = 1.5f,
+                        WrappingLength = 500
                     }, relicSetValueText, Color.White);
                 }
                 else
