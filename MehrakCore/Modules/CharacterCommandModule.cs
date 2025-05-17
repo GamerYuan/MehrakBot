@@ -33,7 +33,11 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
         m_RateLimitService = rateLimitService;
     }
 
-    [SlashCommand("character", "Get character card")]
+    [SlashCommand("character", "Get character card",
+        Contexts =
+        [
+            InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
+        ])]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
         string characterName,
