@@ -1,11 +1,13 @@
 ﻿#region
 
 using System.Collections.ObjectModel;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -28,8 +30,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
     }
 
     public async Task<IEnumerable<GenshinBasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken,
-        string gameUid,
-        string region)
+        string gameUid, string region)
     {
         m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
             uid, region, gameUid);
@@ -72,10 +73,8 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         return data.List.OrderBy(x => x.Name);
     }
 
-    public async Task<GenshinCharacterDetail?> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
-        string gameUid,
-        string region,
-        uint characterId)
+    public async Task<ApiResult<GenshinCharacterDetail>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
+        string gameUid, string region, uint characterId)
     {
         m_Logger.LogInformation(
             "Retrieving character data for {CharacterId} for user {Uid} on {Region} server (game UID: {GameUid})",
@@ -102,7 +101,8 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         {
             m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
                 response.StatusCode);
-            return null;
+            return ApiResult<GenshinCharacterDetail>.Failure(response.StatusCode,
+                $"Failed to retrieve character data. Status code: {response.StatusCode}");
         }
 
         var json = await response.Content.ReadFromJsonAsync<CharacterDetailApiResponse>();
@@ -114,6 +114,6 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             throw new JsonException("Failed to deserialize response");
         }
 
-        return data;
+        return ApiResult<GenshinCharacterDetail>.Success(data, json?.Retcode ?? 0, HttpStatusCode.Accepted);
     }
 }

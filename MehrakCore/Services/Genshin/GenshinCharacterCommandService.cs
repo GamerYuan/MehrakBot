@@ -62,7 +62,17 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         {
             m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
                 Context.Interaction.User.Id, region);
-            gameUid = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken, "hk4e_global", region);
+            var result = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken, "hk4e_global", region);
+            if (result.RetCode == -100)
+            {
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                        new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
+                    ]));
+                return;
+            }
+
+            gameUid = result.Data;
         }
 
         if (gameUid == null)
@@ -117,8 +127,19 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
     private async Task<InteractionMessageProperties> GenerateCharacterCardResponseAsync(uint characterId, ulong ltuid,
         string ltoken, string gameUid, string region)
     {
-        var characterDetail =
+        var result =
             await m_GenshinCharacterApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region, characterId);
+
+        if (result.RetCode == 10001)
+        {
+            m_Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}", region,
+                Context.Interaction.User.Id);
+            return new InteractionMessageProperties().WithComponents([
+                new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
+            ]);
+        }
+
+        var characterDetail = result.Data;
 
         if (characterDetail == null || characterDetail.List.Count == 0)
         {
