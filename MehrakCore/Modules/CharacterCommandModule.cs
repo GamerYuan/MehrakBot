@@ -112,4 +112,18 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 ]));
         }
     }
+
+    public static string GetHelpString()
+    {
+        return "## Character\n" +
+               "Get character card\n" +
+               "### Usage\n" +
+               "```/character character [server] [profile]```\n" +
+               "### Parameters\n" +
+               "- `character`: Character Name (Case-insensitive)\n" +
+               "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+               "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+               "### Examples\n" +
+               "```/character Escoffier\n/character Traveler America\n/character Nahida Asia 3```";
+    }
 }
