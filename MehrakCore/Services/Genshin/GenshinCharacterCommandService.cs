@@ -142,6 +142,8 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
             [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
         properties.AddAttachments(new AttachmentProperties("character_card.jpg",
             await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
+        properties.AddComponents(
+            new ActionRowProperties().AddButtons(new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)));
 
         return properties;
     }
