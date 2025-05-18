@@ -41,7 +41,7 @@ public class GenshinImageUpdaterServiceTests
             .AddInMemoryCollection(inMemorySettings)
             .Build();
 
-        m_DbMock = new Mock<MongoDbService>(config, new Mock<ILogger<MongoDbService>>().Object);
+        m_DbMock = new Mock<MongoDbService>(config, NullLogger<MongoDbService>.Instance);
 
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientMock = new Mock<HttpClient>();

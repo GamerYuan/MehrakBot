@@ -3,8 +3,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using MehrakCore.Services;
-using Microsoft.Extensions.Logging;
-using NSubstitute;
+using Microsoft.Extensions.Logging.Abstractions;
 
 #endregion
 
@@ -15,15 +14,13 @@ public class CookieServiceTests
     private string m_Cookie;
     private string m_Passphrase;
     private CookieService m_CookieService;
-    private ILogger<CookieService> m_Logger;
 
     [SetUp]
     public void Setup()
     {
         m_Cookie = "test_cookie";
         m_Passphrase = "test_passphrase";
-        m_Logger = Substitute.For<ILogger<CookieService>>();
-        m_CookieService = new CookieService(m_Logger);
+        m_CookieService = new CookieService(NullLogger<CookieService>.Instance);
     }
 
     [Test]

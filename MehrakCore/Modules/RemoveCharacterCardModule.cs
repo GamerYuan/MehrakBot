@@ -12,7 +12,6 @@ public class RemoveCharacterCardModule : ComponentInteractionModule<ButtonIntera
     [ComponentInteraction("remove_card")]
     public async Task RemoveCharacterCard()
     {
-        Console.WriteLine("Wtf");
         if (Context.Interaction.User.Id != Context.Message.InteractionMetadata?.User.Id) return;
 
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredModifyMessage);
