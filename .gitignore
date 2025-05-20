@@ -6,3 +6,5 @@ riderModule.iml
 .idea
 appsettings.json
 appsettings.development.json
+*.sln.DotSettings.user
+*.user
