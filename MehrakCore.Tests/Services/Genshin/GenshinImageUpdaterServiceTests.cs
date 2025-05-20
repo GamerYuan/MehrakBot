@@ -3,12 +3,10 @@
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
-using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
-using Microsoft.Extensions.Configuration;
+using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Mongo2Go;
 using Moq;
 
 #endregion
@@ -19,8 +17,7 @@ public class GenshinImageUpdaterServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData");
 
-    private MongoDbRunner m_Runner;
-    private Mock<MongoDbService> m_DbMock;
+    private MongoTestHelper m_MongoTestHelper;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<HttpClient> m_HttpClientMock;
 
@@ -29,23 +26,12 @@ public class GenshinImageUpdaterServiceTests
     [SetUp]
     public void Setup()
     {
-        m_Runner = MongoDbRunner.Start();
-
-        var inMemorySettings = new Dictionary<string, string?>
-        {
-            ["MongoDB:ConnectionString"] = m_Runner.ConnectionString,
-            ["MongoDB:DatabaseName"] = "TestDb"
-        };
-
-        IConfiguration config = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
-            .Build();
-
-        m_DbMock = new Mock<MongoDbService>(config, NullLogger<MongoDbService>.Instance);
+        m_MongoTestHelper = new MongoTestHelper();
 
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientMock = new Mock<HttpClient>();
-        m_ImageRepo = new ImageRepository(m_DbMock.Object, new Mock<ILogger<ImageRepository>>().Object);
+        m_ImageRepo =
+            new ImageRepository(m_MongoTestHelper.MongoDbService, new Mock<ILogger<ImageRepository>>().Object);
 
         m_HttpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(m_HttpClientMock.Object);
     }
@@ -53,7 +39,7 @@ public class GenshinImageUpdaterServiceTests
     [TearDown]
     public void TearDown()
     {
-        m_Runner.Dispose();
+        m_MongoTestHelper.Dispose();
     }
 
     [Test]

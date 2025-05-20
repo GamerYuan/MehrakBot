@@ -3,12 +3,9 @@
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
-using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
-using Microsoft.Extensions.Configuration;
+using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Mongo2Go;
-using Moq;
 
 #endregion
 
@@ -18,27 +15,15 @@ public class GenshinCharacterCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData");
 
-    private MongoDbRunner m_MongoDbRunner;
+    private MongoTestHelper m_MongoTestHelper;
     private ImageRepository m_ImageRepository;
 
     [SetUp]
     public async Task Setup()
     {
-        m_MongoDbRunner = MongoDbRunner.Start();
+        m_MongoTestHelper = new MongoTestHelper();
 
-        var inMemorySettings = new Dictionary<string, string?>
-        {
-            ["MongoDB:ConnectionString"] = m_MongoDbRunner.ConnectionString,
-            ["MongoDB:DatabaseName"] = "TestDb"
-        };
-
-        IConfiguration config = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
-            .Build();
-
-        var dbMock = new Mock<MongoDbService>(config, new NullLogger<MongoDbService>());
-
-        m_ImageRepository = new ImageRepository(dbMock.Object, new NullLogger<ImageRepository>());
+        m_ImageRepository = new ImageRepository(m_MongoTestHelper.MongoDbService, new NullLogger<ImageRepository>());
 
         foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*",
                      SearchOption.AllDirectories))
@@ -63,7 +48,7 @@ public class GenshinCharacterCardServiceTests
     [TearDown]
     public void TearDown()
     {
-        m_MongoDbRunner.Dispose();
+        m_MongoTestHelper.Dispose();
     }
 
     [Test]
