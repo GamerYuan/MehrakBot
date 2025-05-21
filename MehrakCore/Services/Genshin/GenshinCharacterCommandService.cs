@@ -1,5 +1,6 @@
 ﻿#region
 
+using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
@@ -14,17 +15,19 @@ namespace MehrakCore.Services.Genshin;
 
 public class GenshinCharacterCommandService<TContext> where TContext : IInteractionContext
 {
-    private readonly GenshinCharacterApiService m_GenshinCharacterApiService;
+    private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_GenshinCharacterApiService;
     private readonly GameRecordApiService m_GameRecordApiService;
-    private readonly GenshinCharacterCardService m_GenshinCharacterCardService;
+    private readonly ICharacterCardService<GenshinCharacterInformation> m_GenshinCharacterCardService;
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<GenshinCharacterCommandService<TContext>> m_Logger;
 
     public TContext Context { get; set; } = default!;
 
-    public GenshinCharacterCommandService(GenshinCharacterApiService genshinCharacterApiService,
-        GameRecordApiService gameRecordApiService, GenshinCharacterCardService genshinCharacterCardService,
+    public GenshinCharacterCommandService(
+        ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> genshinCharacterApiService,
+        GameRecordApiService gameRecordApiService,
+        ICharacterCardService<GenshinCharacterInformation> genshinCharacterCardService,
         GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
         ILogger<GenshinCharacterCommandService<TContext>> logger)
     {

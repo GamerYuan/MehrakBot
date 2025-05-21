@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Globalization;
+using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
@@ -92,8 +93,11 @@ internal class Program
                     UseCookies = false
                 });
             builder.Services.AddSingleton<GameRecordApiService>();
-            builder.Services.AddSingleton<GenshinCharacterApiService>();
-            builder.Services.AddSingleton<GenshinCharacterCardService>();
+            builder.Services
+                .AddSingleton<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>,
+                    GenshinCharacterApiService>();
+            builder.Services
+                .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services.AddTransient<GenshinCharacterCommandService<ApplicationCommandContext>>();
             builder.Services.AddTransient<GenshinCharacterCommandService<ModalInteractionContext>>();

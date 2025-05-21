@@ -12,10 +12,10 @@ public class CommandRateLimitService
 {
     private readonly IMemoryCache m_Cache;
     private readonly TimeSpan m_DefaultExpiration = TimeSpan.FromSeconds(10);
-    private readonly ILogger<TokenCacheService> m_Logger;
+    private readonly ILogger<CommandRateLimitService> m_Logger;
 
     public CommandRateLimitService([FromKeyedServices("RateLimitCache")] IMemoryCache cache,
-        ILogger<TokenCacheService> logger)
+        ILogger<CommandRateLimitService> logger)
     {
         m_Cache = cache;
         m_Logger = logger;
