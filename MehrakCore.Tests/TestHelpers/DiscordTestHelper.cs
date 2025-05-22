@@ -170,7 +170,7 @@ public partial class DiscordTestHelper : IDisposable
         if (interactionRequest.Request.Content == null)
             return string.Empty;
 
-        var contentBytes = await interactionRequest.Content.ReadAsByteArrayAsync();
+        var contentBytes = await interactionRequest.Content!.ReadAsByteArrayAsync();
         var contentType = interactionRequest.Content.Headers.ContentType?.ToString();
 
         if (contentType?.StartsWith("multipart/form-data") == true)
@@ -234,7 +234,7 @@ public partial class DiscordTestHelper : IDisposable
                 partText.Contains("filename="))
             {
                 // Find the boundary between headers and file data
-                int headerEndIndex = partText.IndexOf("\r\n\r\n");
+                int headerEndIndex = partText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
                 if (headerEndIndex > 0)
                 {
                     // Calculate the start position of file bytes in the overall content

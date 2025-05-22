@@ -30,7 +30,6 @@ public class CharacterCommandModuleTests
     private DiscordTestHelper m_DiscordTestHelper;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<IMemoryCache> m_MemoryCacheMock;
-    private Mock<ILogger<CharacterCommandModule>> m_LoggerMock;
     private CommandRateLimitService m_RateLimitService;
     private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiServiceMock;
     private GameRecordApiService m_GameRecordApiService;
@@ -74,7 +73,6 @@ public class CharacterCommandModuleTests
 
         // Setup mocks
         SetupHttpClientMock();
-        m_LoggerMock = new Mock<ILogger<CharacterCommandModule>>();
         m_MemoryCacheMock = new Mock<IMemoryCache>();
         m_CharacterApiServiceMock = new Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>>();
         m_ImageRepositoryMock = new Mock<ImageRepository>(MockBehavior.Strict, m_MongoTestHelper.MongoDbService,
@@ -131,7 +129,7 @@ public class CharacterCommandModuleTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri.ToString().Contains("getUserGameRolesByLtoken")),
+                    req.RequestUri!.ToString().Contains("getUserGameRolesByLtoken")),
                 ItExpr.IsAny<CancellationToken>()
             )
             .ReturnsAsync(new HttpResponseMessage
@@ -176,7 +174,7 @@ public class CharacterCommandModuleTests
 
     private void SetupMemoryCacheMock()
     {
-        object outValue = TestLtoken;
+        object? outValue = TestLtoken;
         m_MemoryCacheMock.Setup(x => x.TryGetValue(It.IsAny<object>(), out outValue))
             .Returns(true);
 
@@ -189,9 +187,9 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenRateLimited_ReturnsRateLimitMessage()
     {
         // Arrange - Set up memory cache to simulate rate limit
-        object rateLimitValue = true;
+        object? rateLimitValue = true;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(true);
 
         // Act
@@ -207,21 +205,21 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenProfileDoesNotExist_ReturnsProfileNotFoundMessage()
     {
         // Arrange - Set up memory cache to simulate no rate limit
-        object rateLimitValue = null;
+        object? rateLimitValue = null;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(false);
 
         // Set up memory cache for creating rate limit
         var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString()))))
+        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
             .Returns(mockCacheEntry.Object);
 
         var user = new UserModel { Id = TestUserId }; // User with no profiles
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia, 1);
+        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -233,14 +231,14 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenServerNotSelected_ReturnsNoCachedServerMessage()
     {
         // Arrange - Set up memory cache to simulate no rate limit
-        object rateLimitValue = null;
+        object? rateLimitValue = null;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(false);
 
         // Set up memory cache for creating rate limit
         var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString()))))
+        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
             .Returns(mockCacheEntry.Object);
 
         var user = new UserModel
@@ -254,7 +252,7 @@ public class CharacterCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act - No server specified
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName, null, 1);
+        await ExecuteCharacterCommand(TestUserId, TestCharacterName);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -265,14 +263,14 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenNotAuthenticated_ShowsAuthModal()
     {
         // Arrange - Set up memory cache to simulate no rate limit
-        object rateLimitValue = null;
+        object? rateLimitValue = null;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(false);
 
         // Set up memory cache for creating rate limit
         var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString()))))
+        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
             .Returns(mockCacheEntry.Object);
 
         var user = new UserModel
@@ -286,13 +284,13 @@ public class CharacterCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Force cache miss for token
-        object tokenValue = null!;
+        object? tokenValue = null!;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestLtuid.ToString())), out tokenValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
             .Returns(false);
 
         // Act
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia, 1);
+        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -306,14 +304,14 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenAuthenticated_SendsCharacterCard()
     {
         // Arrange - Set up memory cache to simulate no rate limit
-        object rateLimitValue = null;
+        object? rateLimitValue = null;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(false);
 
         // Set up memory cache for creating rate limit
         var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString()))))
+        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
             .Returns(mockCacheEntry.Object);
 
         // Setup user with profile and game UID
@@ -330,7 +328,7 @@ public class CharacterCommandModuleTests
                     {
                         {
                             GameName.Genshin,
-                            new Dictionary<string, string> { { Regions.Asia.ToString(), TestGameUid } }
+                            new Dictionary<string, string> { { nameof(Regions.Asia), TestGameUid } }
                         }
                     },
                     LastUsedRegions = new Dictionary<GameName, Regions>
@@ -343,9 +341,9 @@ public class CharacterCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup memory cache to return token
-        object tokenValue = TestLtoken;
+        object? tokenValue = TestLtoken;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestLtuid.ToString())), out tokenValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
             .Returns(true);
 
         // Setup character API
@@ -401,14 +399,14 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenNoGameUidFound_FetchesGameUidFromApi()
     {
         // Arrange - Set up memory cache to simulate no rate limit
-        object rateLimitValue = null;
+        object? rateLimitValue = null;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(false);
 
         // Set up memory cache for creating rate limit
         var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString()))))
+        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
             .Returns(mockCacheEntry.Object);
 
         // Setup user with profile but no game UID
@@ -431,9 +429,9 @@ public class CharacterCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup memory cache to return token
-        object tokenValue = TestLtoken;
+        object? tokenValue = TestLtoken;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestLtuid.ToString())), out tokenValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
             .Returns(true);
 
         // Setup character API
@@ -480,14 +478,14 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenCharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange - Set up memory cache to simulate no rate limit
-        object rateLimitValue = null;
+        object? rateLimitValue = null;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(false);
 
         // Set up memory cache for creating rate limit
         var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString()))))
+        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
             .Returns(mockCacheEntry.Object);
 
         // Setup user with profile and game UID
@@ -504,7 +502,7 @@ public class CharacterCommandModuleTests
                     {
                         {
                             GameName.Genshin,
-                            new Dictionary<string, string> { { Regions.Asia.ToString(), TestGameUid } }
+                            new Dictionary<string, string> { { nameof(Regions.Asia), TestGameUid } }
                         }
                     },
                     LastUsedRegions = new Dictionary<GameName, Regions>
@@ -517,9 +515,9 @@ public class CharacterCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup memory cache to return token
-        object tokenValue = TestLtoken;
+        object? tokenValue = TestLtoken;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestLtuid.ToString())), out tokenValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
             .Returns(true);
 
         // Setup character API to return empty list (character not found)
@@ -531,7 +529,7 @@ public class CharacterCommandModuleTests
             ]);
 
         // Act
-        await ExecuteCharacterCommand(TestUserId, "NonexistentCharacter", Regions.Asia, 1);
+        await ExecuteCharacterCommand(TestUserId, "NonexistentCharacter", Regions.Asia);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -542,14 +540,14 @@ public class CharacterCommandModuleTests
     public async Task CharacterCommand_WhenErrorOccurs_ReturnsErrorMessage()
     {
         // Arrange - Set up memory cache to simulate no rate limit
-        object rateLimitValue = null;
+        object? rateLimitValue = null;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString())), out rateLimitValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
             .Returns(false);
 
         // Set up memory cache for creating rate limit
         var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString().Contains(TestUserId.ToString()))))
+        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
             .Returns(mockCacheEntry.Object);
 
         // Setup user with profile
@@ -572,9 +570,9 @@ public class CharacterCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup memory cache to return token
-        object tokenValue = TestLtoken;
+        object? tokenValue = TestLtoken;
         m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString().Contains(TestLtuid.ToString())), out tokenValue))
+                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
             .Returns(true);
 
         // Force an exception in character API
@@ -583,7 +581,7 @@ public class CharacterCommandModuleTests
             .ThrowsAsync(new Exception("Test exception"));
 
         // Act
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia, 1);
+        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
