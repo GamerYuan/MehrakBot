@@ -1,10 +1,13 @@
 ﻿#region
 
+using MehrakCore.Models;
 using MehrakCore.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mongo2Go;
-using Moq;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 
 #endregion
 
@@ -12,10 +15,14 @@ namespace MehrakCore.Tests.TestHelpers;
 
 public class MongoTestHelper : IDisposable
 {
-    private readonly Mock<MongoDbService> m_DbMock;
-    public MongoDbService MongoDbService => m_DbMock.Object;
+    public MongoDbService MongoDbService { get; }
 
     private readonly MongoDbRunner m_MongoRunner;
+
+    static MongoTestHelper()
+    {
+        BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
+    }
 
     public MongoTestHelper()
     {
@@ -31,7 +38,7 @@ public class MongoTestHelper : IDisposable
             .AddInMemoryCollection(inMemorySettings)
             .Build();
 
-        m_DbMock = new Mock<MongoDbService>(config, NullLogger<MongoDbService>.Instance);
+        MongoDbService = new MongoDbService(config, NullLogger<MongoDbService>.Instance);
     }
 
     public void Dispose()
