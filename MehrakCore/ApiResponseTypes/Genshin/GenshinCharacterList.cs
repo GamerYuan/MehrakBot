@@ -6,46 +6,55 @@ using System.Text.Json.Serialization;
 
 namespace MehrakCore.ApiResponseTypes.Genshin;
 
-public record CharacterListApiResponse(
-    [property: JsonPropertyName("retcode")]
-    int Retcode,
-    [property: JsonPropertyName("message")]
-    string Message,
-    [property: JsonPropertyName("data")] CharacterListData Data
-);
+public class CharacterListApiResponse
+{
+    [JsonPropertyName("retcode")] public int Retcode { get; set; }
 
-public record CharacterListData(
-    [property: JsonPropertyName("list")] IReadOnlyList<GenshinBasicCharacterData> List
-);
+    [JsonPropertyName("message")] public string Message { get; set; }
 
-public record GenshinBasicCharacterData(
-    [property: JsonPropertyName("id")] int? Id,
-    [property: JsonPropertyName("icon")] string Icon,
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("element")]
-    string Element,
-    [property: JsonPropertyName("fetter")] int? Fetter,
-    [property: JsonPropertyName("level")] int? Level,
-    [property: JsonPropertyName("rarity")] int? Rarity,
-    [property: JsonPropertyName("actived_constellation_num")]
-    int? ActivedConstellationNum,
-    [property: JsonPropertyName("image")] string Image,
-    [property: JsonPropertyName("is_chosen")]
-    bool? IsChosen,
-    [property: JsonPropertyName("side_icon")]
-    string SideIcon,
-    [property: JsonPropertyName("weapon_type")]
-    int? WeaponType,
-    [property: JsonPropertyName("weapon")] Weapon Weapon
-) : IBasicCharacterData;
+    [JsonPropertyName("data")] public CharacterListData Data { get; set; }
+}
 
-public record Weapon(
-    [property: JsonPropertyName("id")] int? Id,
-    [property: JsonPropertyName("icon")] string Icon,
-    [property: JsonPropertyName("type")] int? Type,
-    [property: JsonPropertyName("rarity")] int? Rarity,
-    [property: JsonPropertyName("level")] int? Level,
-    [property: JsonPropertyName("affix_level")]
-    int? AffixLevel,
-    [property: JsonPropertyName("name")] string Name
-);
+public class CharacterListData
+{
+    [JsonPropertyName("list")] public List<GenshinBasicCharacterData> List { get; set; }
+}
+
+public class GenshinBasicCharacterData : IBasicCharacterData
+{
+    [JsonPropertyName("id")] public int? Id { get; set; }
+    [JsonPropertyName("icon")] public string Icon { get; set; }
+    [JsonPropertyName("name")] public string Name { get; set; }
+
+    [JsonPropertyName("element")] public string Element { get; set; }
+
+    [JsonPropertyName("fetter")] public int? Fetter { get; set; }
+    [JsonPropertyName("level")] public int? Level { get; set; }
+    [JsonPropertyName("rarity")] public int? Rarity { get; set; }
+
+    [JsonPropertyName("actived_constellation_num")]
+    public int? ActivedConstellationNum { get; set; }
+
+    [JsonPropertyName("image")] public string Image { get; set; }
+
+    [JsonPropertyName("is_chosen")] public bool? IsChosen { get; set; }
+
+    [JsonPropertyName("side_icon")] public string SideIcon { get; set; }
+
+    [JsonPropertyName("weapon_type")] public int? WeaponType { get; set; }
+
+    [JsonPropertyName("weapon")] public Weapon Weapon { get; set; }
+}
+
+public class Weapon
+{
+    [JsonPropertyName("id")] public int? Id { get; set; }
+    [JsonPropertyName("icon")] public string Icon { get; set; }
+    [JsonPropertyName("type")] public int? Type { get; set; }
+    [JsonPropertyName("rarity")] public int? Rarity { get; set; }
+    [JsonPropertyName("level")] public int? Level { get; set; }
+
+    [JsonPropertyName("affix_level")] public int? AffixLevel { get; set; }
+
+    [JsonPropertyName("name")] public string Name { get; set; }
+}

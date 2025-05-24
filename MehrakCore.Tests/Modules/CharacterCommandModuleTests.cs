@@ -352,22 +352,29 @@ public class CharacterCommandModuleTests
             RetCode = 0,
             StatusCode = HttpStatusCode.Accepted,
             Data = new GenshinCharacterDetail
-            (
-                new List<GenshinCharacterInformation>
+            {
+                List = new List<GenshinCharacterInformation>
                 {
-                    new(new BaseCharacterDetail(100000005, "", "Traveler", "", null, null, null,
-                            null, "", null, "", 0, null),
-                        null, null, null, null, null, null, null, null, null)
-                },
-                new Dictionary<string, string>()
-            )
+                    new()
+                    {
+                        Base = new BaseCharacterDetail
+                        {
+                            Id = 100000005,
+                            Name = "Traveler"
+                        }
+                    }
+                }
+            }
         };
 
         m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync([
-                new GenshinBasicCharacterData(10000005, "", "Traveler", "",
-                    0, 0, 0, 0, "", false, "", 0, null)
+                new GenshinBasicCharacterData
+                {
+                    Id = 10000005,
+                    Name = "Traveler"
+                }
             ]);
 
         m_CharacterApiServiceMock.Setup(s => s.GetCharacterDataFromIdAsync(
@@ -375,7 +382,7 @@ public class CharacterCommandModuleTests
             .ReturnsAsync(characterResponse);
 
         // Act
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia, 1);
+        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
 
         // Assert
         m_CharacterApiServiceMock.Verify(s => s.GetAllCharactersAsync(
@@ -440,22 +447,29 @@ public class CharacterCommandModuleTests
             RetCode = 0,
             StatusCode = HttpStatusCode.Accepted,
             Data = new GenshinCharacterDetail
-            (
-                new List<GenshinCharacterInformation>
+            {
+                List = new List<GenshinCharacterInformation>
                 {
-                    new(new BaseCharacterDetail(100000005, "", "Traveler", "", null, null, null,
-                            null, "", null, "", 0, null),
-                        null, null, null, null, null, null, null, null, null)
-                },
-                new Dictionary<string, string>()
-            )
+                    new()
+                    {
+                        Base = new BaseCharacterDetail
+                        {
+                            Id = 100000005,
+                            Name = "Traveler"
+                        }
+                    }
+                }
+            }
         };
 
         m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync([
-                new GenshinBasicCharacterData(10000005, "", "Traveler", "",
-                    0, 0, 0, 0, "", false, "", 0, null)
+                new GenshinBasicCharacterData
+                {
+                    Id = 10000005,
+                    Name = "Traveler"
+                }
             ]);
 
         m_CharacterApiServiceMock.Setup(s => s.GetCharacterDataFromIdAsync(
@@ -463,7 +477,7 @@ public class CharacterCommandModuleTests
             .ReturnsAsync(characterResponse);
 
         // Act
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia, 1);
+        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
 
         // Assert
         // Verify the user is updated with the new game UID
@@ -524,8 +538,11 @@ public class CharacterCommandModuleTests
         m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync([
-                new GenshinBasicCharacterData(10000005, "", "Traveler", "",
-                    0, 0, 0, 0, "", false, "", 0, null)
+                new GenshinBasicCharacterData
+                {
+                    Id = 10000005,
+                    Name = "Traveler"
+                }
             ]);
 
         // Act
