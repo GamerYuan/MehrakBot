@@ -110,7 +110,7 @@ public class CharacterCommandModuleTests
             m_CharacterCardServiceMock.Object,
             m_ImageUpdaterServiceMock.Object,
             m_UserRepository,
-            Mock.Of<ILogger<GenshinCharacterCommandService<ApplicationCommandContext>>>());
+            NullLogger<GenshinCharacterCommandService<ApplicationCommandContext>>.Instance);
 
         m_ServiceProvider = new ServiceCollection().AddSingleton(m_UserRepository).AddSingleton(m_GenshinCommandService)
             .AddSingleton(m_CommandService).AddSingleton(m_TokenCacheService).AddSingleton(m_RateLimitService)

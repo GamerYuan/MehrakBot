@@ -25,6 +25,16 @@ public partial class DiscordTestHelper : IDisposable
     private readonly JsonApplicationCommand m_Command;
     private readonly Mock<IRestRequestHandler> m_RestRequestHandlerMock;
 
+    public DiscordTestHelper() : this(new JsonApplicationCommand
+    {
+        ApplicationId = 123456789UL,
+        Id = 1,
+        Name = "TestCommand",
+        Type = ApplicationCommandType.ChatInput
+    })
+    {
+    }
+
     /// <summary>
     /// Creates a Discord Test Helper for command invocation unit testing
     /// </summary>
@@ -57,15 +67,7 @@ public partial class DiscordTestHelper : IDisposable
         DiscordClient.Dispose();
     }
 
-    /// <summary>
-    /// Creates a mock slash command interaction
-    /// Can create one level of nesting for subcommand
-    /// <param name="userId">The user ID to be used</param>
-    /// <param name="subcommand">The name of the subcommand to invoke</param>
-    /// <param name="parameters">The parameters to be passed to the command</param>
-    /// </summary>
-    public SlashCommandInteraction CreateCommandInteraction(ulong userId, string? subcommand = null,
-        params (string Name, object Value, ApplicationCommandOptionType Type)[] parameters)
+    public void SetupRequestCapture()
     {
         var message = new JsonMessage
         {
@@ -99,6 +101,19 @@ public partial class DiscordTestHelper : IDisposable
                 }
             })
             .ReturnsAsync(() => new HttpResponseMessage { Content = JsonContent.Create(message) });
+    }
+
+    /// <summary>
+    /// Creates a mock slash command interaction
+    /// Can create one level of nesting for subcommand
+    /// <param name="userId">The user ID to be used</param>
+    /// <param name="subcommand">The name of the subcommand to invoke</param>
+    /// <param name="parameters">The parameters to be passed to the command</param>
+    /// </summary>
+    public SlashCommandInteraction CreateCommandInteraction(ulong userId, string? subcommand = null,
+        params (string Name, object Value, ApplicationCommandOptionType Type)[] parameters)
+    {
+        SetupRequestCapture();
 
         var subcommandOption = new JsonApplicationCommandInteractionDataOption
         {
@@ -165,9 +180,9 @@ public partial class DiscordTestHelper : IDisposable
     /// </summary>
     public async Task<string> ExtractInteractionResponseDataAsync()
     {
-        var interactionRequest = m_CapturedRequests.Last();
+        var interactionRequest = m_CapturedRequests.LastOrDefault();
 
-        if (interactionRequest.Request.Content == null)
+        if (interactionRequest.Request?.Content == null)
             return string.Empty;
 
         var contentBytes = await interactionRequest.Content!.ReadAsByteArrayAsync();
@@ -295,7 +310,7 @@ public partial class DiscordTestHelper : IDisposable
         if (!boundaryMatch.Success)
             return string.Empty;
 
-        var boundary = "--" + boundaryMatch.Groups[1].Value;
+        var boundary = "--" + boundaryMatch.Groups[1].Value.Trim('"');
         var content = Encoding.UTF8.GetString(contentBytes);
         // Split the content by boundary
         var parts = content.Split([boundary], StringSplitOptions.RemoveEmptyEntries);
