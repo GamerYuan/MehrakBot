@@ -97,7 +97,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
                 m_Service.Context = Context;
-                await m_Service.SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken!, characterName,
+                await m_Service.SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken, characterName,
                     server.Value);
             }
         }

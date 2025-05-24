@@ -2,7 +2,7 @@
 
 #endregion
 
-namespace MehrakCore.Test.Utility;
+namespace MehrakCore.Tests.Utility;
 
 public class ImageExtensionsTest
 {

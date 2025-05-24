@@ -1,5 +1,6 @@
 #region
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
 #endregion
@@ -10,7 +11,10 @@ public class ApiResult<T>
 {
     public HttpStatusCode StatusCode { get; set; }
     public T? Data { get; set; }
+
+    [MemberNotNullWhen(true, nameof(Data))]
     public bool IsSuccess => (int)StatusCode >= 200 && (int)StatusCode < 300;
+
     public string? ErrorMessage { get; set; }
     public int? RetCode { get; set; }
 

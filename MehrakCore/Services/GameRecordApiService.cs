@@ -107,7 +107,7 @@ public class GameRecordApiService
 
             m_Logger.LogInformation("Successfully retrieved game UID {GameUid} for user {Uid} on {Region}",
                 gameUid, uid, region);
-            return ApiResult<string>.Success(gameUid, node?["retcode"]?.GetValue<int>() ?? 0, response.StatusCode);
+            return ApiResult<string>.Success(gameUid!, node?["retcode"]?.GetValue<int>() ?? 0, response.StatusCode);
         }
         catch (Exception ex)
         {

@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,7 +37,7 @@ public class TokenCacheService
         m_Cache.Set(ltuid, ltoken, options);
     }
 
-    public bool TryGetCacheEntry(ulong userId, ulong ltuid, out string? ltoken)
+    public bool TryGetCacheEntry(ulong userId, ulong ltuid, [NotNullWhen(true)] out string? ltoken)
     {
         var result = m_Cache.TryGetValue(ltuid, out ltoken);
         m_Logger.LogDebug("Cache retrieval for user {UserId}: {Result}", userId, result ? "Found" : "Not Found");

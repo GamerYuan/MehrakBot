@@ -12,7 +12,7 @@ namespace MehrakCore.Utility;
 
 public static class ImageExtensions
 {
-    private static Color StarColor = Color.ParseHex("#FFCC33");
+    private static readonly Color StarColor = Color.ParseHex("#FFCC33");
 
     /// <summary>
     /// Applies a horizontal gradient fade to an image, making it gradually transparent towards the right
