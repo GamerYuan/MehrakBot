@@ -22,6 +22,7 @@ using NetCord.Services.ComponentInteractions;
 
 namespace MehrakCore.Tests.Modules;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class AuthModalModuleTests
 {
     private DiscordTestHelper m_DiscordTestHelper;

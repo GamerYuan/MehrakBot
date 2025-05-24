@@ -24,6 +24,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace MehrakCore.Tests.Modules;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class CharacterCommandModuleTests
 {
     private MongoTestHelper m_MongoTestHelper;

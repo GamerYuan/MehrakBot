@@ -13,6 +13,7 @@ using Moq;
 
 namespace MehrakCore.Tests.Services.Genshin;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class GenshinImageUpdaterServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData");

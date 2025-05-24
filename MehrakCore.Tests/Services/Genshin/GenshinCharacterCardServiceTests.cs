@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MehrakCore.Tests.Services.Genshin;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCharacterCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData");

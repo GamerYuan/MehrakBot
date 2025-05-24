@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MehrakCore.Tests.Services;
 
+[Parallelizable(ParallelScope.Fixtures | ParallelScope.Children)]
 public class CookieServiceTests
 {
     private string m_Cookie;

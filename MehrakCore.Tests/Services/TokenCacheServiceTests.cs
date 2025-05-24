@@ -9,6 +9,7 @@ using Moq;
 
 namespace MehrakCore.Tests.Services;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class TokenCacheServiceTests
 {
     private IMemoryCache m_Cache;

@@ -21,7 +21,7 @@ using NetCord.Services;
 
 namespace MehrakCore.Tests.Services.Genshin;
 
-[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCharacterCommandServiceTests
 {
     private GenshinCharacterCommandService<IInteractionContext> m_Service;

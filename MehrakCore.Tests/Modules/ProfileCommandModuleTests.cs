@@ -15,6 +15,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace MehrakCore.Tests.Modules;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class ProfileCommandModuleTests
 {
     private const ulong TestUserId = 123456789UL;
