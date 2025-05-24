@@ -6,7 +6,6 @@ using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -103,12 +102,16 @@ internal class Program
             builder.Services.AddTransient<GenshinCharacterCommandService<ModalInteractionContext>>();
 
             // LToken Services
-            builder.Services.AddKeyedSingleton<IMemoryCache, MemoryCache>("TokenCache");
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = builder.Configuration["Redis:ConnectionString"];
+                options.InstanceName = "MehrakBot_";
+            });
             builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
 
             // Other Services
-            builder.Services.AddKeyedSingleton<IMemoryCache, MemoryCache>("RateLimitCache");
+            // Replace memory cache with Redis for rate limiting
             builder.Services.AddSingleton<CommandRateLimitService>();
 
             // NetCord Services

@@ -8,11 +8,10 @@ using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Primitives;
 using Moq;
 using NetCord;
 using NetCord.JsonModels;
@@ -29,7 +28,7 @@ public class AuthModalModuleTests
     private MongoTestHelper m_MongoTestHelper;
     private UserRepository m_UserRepository;
     private ServiceProvider m_ServiceProvider;
-    private Mock<IMemoryCache> m_MemoryCacheMock;
+    private Mock<IDistributedCache> m_DistributedCacheMock;
     private TokenCacheService m_TokenCacheService;
     private CookieService m_CookieService;
     private GenshinCharacterCommandService<ModalInteractionContext> m_CommandService;
@@ -53,8 +52,9 @@ public class AuthModalModuleTests
         m_MongoTestHelper = new MongoTestHelper();
         m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
         m_Service = new ComponentInteractionService<ModalInteractionContext>();
-        m_MemoryCacheMock = new Mock<IMemoryCache>();
-        m_TokenCacheService = new TokenCacheService(m_MemoryCacheMock.Object, NullLogger<TokenCacheService>.Instance);
+        m_DistributedCacheMock = new Mock<IDistributedCache>();
+        m_TokenCacheService =
+            new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
         m_CookieService = new CookieService(NullLogger<CookieService>.Instance);
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_CharacterApiServiceMock = new Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>>();
@@ -87,7 +87,7 @@ public class AuthModalModuleTests
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();
 
-        SetupMemoryCacheMock();
+        SetupDistributedCacheMock();
     }
 
     [TearDown]
@@ -98,20 +98,26 @@ public class AuthModalModuleTests
         m_ServiceProvider.Dispose();
     }
 
-    private void SetupMemoryCacheMock()
+    private void SetupDistributedCacheMock()
     {
-        object? value;
-        var entryMock = new Mock<ICacheEntry>();
+        // Default setup for GetAsync to simulate a cache miss
+        m_DistributedCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
-        entryMock.SetupAllProperties();
-        entryMock.Setup(x => x.ExpirationTokens).Returns(new List<IChangeToken>());
-        entryMock.Setup(x => x.PostEvictionCallbacks).Returns(new List<PostEvictionCallbackRegistration>());
+        // Default setup for SetAsync
+        m_DistributedCacheMock.Setup(x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
-        m_MemoryCacheMock.Setup(x => x.TryGetValue(It.IsAny<object>(), out value)).Returns(true);
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.IsAny<object>())).Returns(entryMock.Object);
+        // Default setup for RemoveAsync
+        m_DistributedCacheMock.Setup(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
-    private JsonUser CreateTestUser(ulong userId = TestUserId)
+    private static JsonUser CreateTestUser(ulong userId = TestUserId)
     {
         return new JsonUser
         {

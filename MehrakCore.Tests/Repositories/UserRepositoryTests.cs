@@ -10,7 +10,7 @@ using Moq;
 
 namespace MehrakCore.Tests.Repositories;
 
-[TestFixture]
+[Parallelizable(ParallelScope.Fixtures)]
 public class UserRepositoryTests
 {
     private MongoTestHelper m_MongoHelper;

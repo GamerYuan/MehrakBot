@@ -10,7 +10,7 @@ using MehrakCore.Services;
 using MehrakCore.Services.Genshin;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -30,7 +30,8 @@ public class CharacterCommandModuleTests
     private MongoTestHelper m_MongoTestHelper;
     private DiscordTestHelper m_DiscordTestHelper;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
-    private Mock<IMemoryCache> m_MemoryCacheMock;
+    private Mock<IDistributedCache> m_DistributedCacheMock;
+    private Mock<IDistributedCache> m_RateLimitCacheMock;
     private CommandRateLimitService m_RateLimitService;
     private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiServiceMock;
     private GameRecordApiService m_GameRecordApiService;
@@ -74,7 +75,8 @@ public class CharacterCommandModuleTests
 
         // Setup mocks
         SetupHttpClientMock();
-        m_MemoryCacheMock = new Mock<IMemoryCache>();
+        m_DistributedCacheMock = new Mock<IDistributedCache>();
+        m_RateLimitCacheMock = new Mock<IDistributedCache>();
         m_CharacterApiServiceMock = new Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>>();
         m_ImageRepositoryMock = new Mock<ImageRepository>(MockBehavior.Strict, m_MongoTestHelper.MongoDbService,
             NullLogger<ImageRepository>.Instance);
@@ -88,7 +90,7 @@ public class CharacterCommandModuleTests
             NullLogger<GameRecordApiService>.Instance);
 
         // Create a real instance of CommandRateLimitService with mocked dependencies
-        m_RateLimitService = new CommandRateLimitService(m_MemoryCacheMock.Object,
+        m_RateLimitService = new CommandRateLimitService(m_RateLimitCacheMock.Object,
             NullLogger<CommandRateLimitService>.Instance);
 
         var imageBytes = await File.ReadAllBytesAsync(GoldenImagePath);
@@ -97,12 +99,13 @@ public class CharacterCommandModuleTests
                 It.IsAny<string>()))
             .ReturnsAsync(() => new MemoryStream(imageBytes));
 
-        // Setup MemoryCache mock for TokenCacheService
-        SetupMemoryCacheMock();
+        // Setup Distributed Cache mock for TokenCacheService
+        SetupDistributedCacheMock();
 
         // Create real repositories and services with mocked dependencies
         m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
-        m_TokenCacheService = new TokenCacheService(m_MemoryCacheMock.Object, Mock.Of<ILogger<TokenCacheService>>());
+        m_TokenCacheService =
+            new TokenCacheService(m_DistributedCacheMock.Object, Mock.Of<ILogger<TokenCacheService>>());
 
         // Create GenshinCharacterCommandService with mocked dependencies
         m_GenshinCommandService = new GenshinCharacterCommandService<ApplicationCommandContext>(
@@ -173,25 +176,25 @@ public class CharacterCommandModuleTests
         m_ServiceProvider.Dispose();
     }
 
-    private void SetupMemoryCacheMock()
+    private void SetupDistributedCacheMock()
     {
-        object? outValue = TestLtoken;
-        m_MemoryCacheMock.Setup(x => x.TryGetValue(It.IsAny<object>(), out outValue))
-            .Returns(true);
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
 
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.IsAny<object>()))
-            .Returns(mockCacheEntry.Object);
+        // Setup rate limit cache - default to no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
     }
 
     [Test]
     public async Task CharacterCommand_WhenRateLimited_ReturnsRateLimitMessage()
     {
-        // Arrange - Set up memory cache to simulate rate limit
-        object? rateLimitValue = true;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(true);
+        // Arrange - Set up distributed cache to simulate rate limit
+        byte[] rateBytes = Encoding.UTF8.GetBytes("true");
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rateBytes);
 
         // Act
         await ExecuteCharacterCommand(TestUserId, TestCharacterName);
@@ -205,16 +208,9 @@ public class CharacterCommandModuleTests
     [Test]
     public async Task CharacterCommand_WhenProfileDoesNotExist_ReturnsProfileNotFoundMessage()
     {
-        // Arrange - Set up memory cache to simulate no rate limit
-        object? rateLimitValue = null;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(false);
-
-        // Set up memory cache for creating rate limit
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
-            .Returns(mockCacheEntry.Object);
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         var user = new UserModel { Id = TestUserId }; // User with no profiles
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -231,16 +227,9 @@ public class CharacterCommandModuleTests
     [Test]
     public async Task CharacterCommand_WhenServerNotSelected_ReturnsNoCachedServerMessage()
     {
-        // Arrange - Set up memory cache to simulate no rate limit
-        object? rateLimitValue = null;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(false);
-
-        // Set up memory cache for creating rate limit
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
-            .Returns(mockCacheEntry.Object);
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         var user = new UserModel
         {
@@ -263,16 +252,9 @@ public class CharacterCommandModuleTests
     [Test]
     public async Task CharacterCommand_WhenNotAuthenticated_ShowsAuthModal()
     {
-        // Arrange - Set up memory cache to simulate no rate limit
-        object? rateLimitValue = null;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(false);
-
-        // Set up memory cache for creating rate limit
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
-            .Returns(mockCacheEntry.Object);
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         var user = new UserModel
         {
@@ -285,10 +267,8 @@ public class CharacterCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Force cache miss for token
-        object? tokenValue = null!;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
-            .Returns(false);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         // Act
         await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
@@ -304,16 +284,9 @@ public class CharacterCommandModuleTests
     [Test]
     public async Task CharacterCommand_WhenAuthenticated_SendsCharacterCard()
     {
-        // Arrange - Set up memory cache to simulate no rate limit
-        object? rateLimitValue = null;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(false);
-
-        // Set up memory cache for creating rate limit
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
-            .Returns(mockCacheEntry.Object);
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         // Setup user with profile and game UID
         var user = new UserModel
@@ -341,11 +314,10 @@ public class CharacterCommandModuleTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        // Setup memory cache to return token
-        object? tokenValue = TestLtoken;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
-            .Returns(true);
+        // Setup distributed cache to return token
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
 
         // Setup character API
         var characterResponse = new ApiResult<GenshinCharacterDetail>
@@ -406,16 +378,9 @@ public class CharacterCommandModuleTests
     [Test]
     public async Task CharacterCommand_WhenNoGameUidFound_FetchesGameUidFromApi()
     {
-        // Arrange - Set up memory cache to simulate no rate limit
-        object? rateLimitValue = null;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(false);
-
-        // Set up memory cache for creating rate limit
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
-            .Returns(mockCacheEntry.Object);
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         // Setup user with profile but no game UID
         var user = new UserModel
@@ -436,11 +401,10 @@ public class CharacterCommandModuleTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        // Setup memory cache to return token
-        object? tokenValue = TestLtoken;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
-            .Returns(true);
+        // Setup distributed cache to return token
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
 
         // Setup character API
         var characterResponse = new ApiResult<GenshinCharacterDetail>
@@ -492,16 +456,9 @@ public class CharacterCommandModuleTests
     [Test]
     public async Task CharacterCommand_WhenCharacterNotFound_ReturnsNotFoundMessage()
     {
-        // Arrange - Set up memory cache to simulate no rate limit
-        object? rateLimitValue = null;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(false);
-
-        // Set up memory cache for creating rate limit
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
-            .Returns(mockCacheEntry.Object);
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         // Setup user with profile and game UID
         var user = new UserModel
@@ -529,11 +486,10 @@ public class CharacterCommandModuleTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        // Setup memory cache to return token
-        object? tokenValue = TestLtoken;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
-            .Returns(true);
+        // Setup distributed cache to return token
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
 
         // Setup character API to return empty list (character not found)
         m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
@@ -557,16 +513,9 @@ public class CharacterCommandModuleTests
     [Test]
     public async Task CharacterCommand_WhenErrorOccurs_ReturnsErrorMessage()
     {
-        // Arrange - Set up memory cache to simulate no rate limit
-        object? rateLimitValue = null;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString())), out rateLimitValue))
-            .Returns(false);
-
-        // Set up memory cache for creating rate limit
-        var mockCacheEntry = new Mock<ICacheEntry>();
-        m_MemoryCacheMock.Setup(x => x.CreateEntry(It.Is<object>(k => k.ToString()!.Contains(TestUserId.ToString()))))
-            .Returns(mockCacheEntry.Object);
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
 
         // Setup user with profile
         var user = new UserModel
@@ -587,11 +536,10 @@ public class CharacterCommandModuleTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        // Setup memory cache to return token
-        object? tokenValue = TestLtoken;
-        m_MemoryCacheMock.Setup(x =>
-                x.TryGetValue(It.Is<object>(k => k.ToString()!.Contains(TestLtuid.ToString())), out tokenValue))
-            .Returns(true);
+        // Setup distributed cache to return token
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
 
         // Force an exception in character API
         m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(

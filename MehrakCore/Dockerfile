@@ -16,5 +16,5 @@ WORKDIR /app
 # Copy the published bot from the publish stage
 COPY --from=build /app/out/ /app/
 
-# Your bot’s entry point
+# Your bot's entry point
 ENTRYPOINT ["/app/MehrakCore"]

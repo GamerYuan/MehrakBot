@@ -155,7 +155,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             var ltoken = m_CookieService.DecryptCookie(selectedProfile.LToken, inputs["passphrase"]);
 
-            m_TokenCacheService.AddCacheEntry(selectedProfile.LtUid, ltoken);
+            await m_TokenCacheService.AddCacheEntryAsync(selectedProfile.LtUid, ltoken);
             return (true, selectedProfile.LtUid, ltoken);
         }
         catch (AuthenticationTagMismatchException)

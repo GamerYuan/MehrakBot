@@ -49,7 +49,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
         try
         {
             m_Logger.LogInformation("User {UserId} used the character command", Context.User.Id);
-            if (m_RateLimitService.IsRateLimited(Context.User.Id))
+            if (await m_RateLimitService.IsRateLimitedAsync(Context.User.Id))
             {
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                     new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
@@ -57,7 +57,7 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 return;
             }
 
-            m_RateLimitService.SetRateLimit(Context.User.Id);
+            await m_RateLimitService.SetRateLimitAsync(Context.User.Id);
             var user = await m_UserRepository.GetUserAsync(Context.User.Id);
             if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
             {
@@ -85,7 +85,8 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
                 return;
             }
 
-            if (!m_TokenCacheService.TryGetCacheEntry(Context.User.Id, selectedProfile.LtUid, out var ltoken))
+            var ltoken = await m_TokenCacheService.GetCacheEntry(Context.User.Id, selectedProfile.LtUid);
+            if (ltoken == null)
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(

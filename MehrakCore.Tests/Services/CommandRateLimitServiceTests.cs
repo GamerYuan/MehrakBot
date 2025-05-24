@@ -1,8 +1,12 @@
 #region
 
+using System.Collections;
+using System.Text;
 using MehrakCore.Services;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 #endregion
@@ -12,126 +16,122 @@ namespace MehrakCore.Tests.Services;
 [Parallelizable(ParallelScope.Fixtures)]
 public class CommandRateLimitServiceTests
 {
-    private Mock<IMemoryCache> m_MockCache;
+    private Mock<IDistributedCache> m_MockDistributedCache;
     private Mock<ILogger<CommandRateLimitService>> m_MockLogger;
     private CommandRateLimitService m_Service;
-    private Mock<ICacheEntry> m_MockCacheEntry;
 
     [SetUp]
     public void Setup()
     {
-        m_MockCache = new Mock<IMemoryCache>();
+        m_MockDistributedCache = new Mock<IDistributedCache>();
         m_MockLogger = new Mock<ILogger<CommandRateLimitService>>();
-        m_MockCacheEntry = new Mock<ICacheEntry>();
 
-        // Setup CreateEntry instead of Set
-        m_MockCache
-            .Setup(m => m.CreateEntry(It.IsAny<object>()))
-            .Returns(m_MockCacheEntry.Object);
-
-        m_Service = new CommandRateLimitService(m_MockCache.Object, m_MockLogger.Object);
+        m_Service = new CommandRateLimitService(m_MockDistributedCache.Object, m_MockLogger.Object);
     }
 
     [Test]
-    public void SetRateLimit_ShouldAddEntryToCache()
+    public async Task SetRateLimitAsync_ShouldAddEntryToCache()
     {
         // Arrange
         ulong userId = 123456789;
-        object capturedValue = null;
+        string expectedCacheKey = $"RateLimit_{userId}";
+        byte[] expectedValueBytes = "true"u8.ToArray();
+        DistributedCacheEntryOptions? capturedOptions = null;
 
-        // Setup to capture the value
-        m_MockCacheEntry
-            .SetupSet(e => e.Value = It.IsAny<object>())
-            .Callback<object>(v => capturedValue = v);
+        m_MockDistributedCache
+            .Setup(m => m.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
+            .Callback<string, byte[], DistributedCacheEntryOptions, CancellationToken>((_, _, options, _) =>
+            {
+                capturedOptions = options;
+            })
+            .Returns(Task.CompletedTask);
 
         // Act
-        m_Service.SetRateLimit(userId);
+        await m_Service.SetRateLimitAsync(userId);
 
         // Assert
-        m_MockCache.Verify(m => m.CreateEntry(userId.ToString()), Times.Once);
-        Assert.That(capturedValue, Is.Not.Null);
-        Assert.That(capturedValue, Is.EqualTo(true));
-        m_MockCacheEntry.Verify(e => e.Dispose(), Times.Once);
+        m_MockDistributedCache.Verify(
+            m => m.SetAsync(
+                expectedCacheKey,
+                It.Is<byte[]>(b => StructuralComparisons.StructuralEqualityComparer.Equals(b, expectedValueBytes)),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        Assert.That(capturedOptions, Is.Not.Null);
+        Assert.That(capturedOptions.AbsoluteExpirationRelativeToNow, Is.Not.Null);
+        Assert.That(capturedOptions.AbsoluteExpirationRelativeToNow.Value.TotalSeconds, Is.EqualTo(10).Within(0.1));
     }
 
     [Test]
-    public void SetRateLimit_ShouldSetAbsoluteExpiration()
+    public async Task IsRateLimitedAsync_ShouldReturnTrue_WhenUserIsRateLimited()
     {
         // Arrange
         ulong userId = 123456789;
+        string expectedCacheKey = $"RateLimit_{userId}";
+        byte[] valueBytes = Encoding.UTF8.GetBytes("true");
+
+        m_MockDistributedCache
+            .Setup(m => m.GetAsync(expectedCacheKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(valueBytes);
 
         // Act
-        m_Service.SetRateLimit(userId);
-
-        // Assert
-        m_MockCacheEntry.VerifySet(e =>
-            e.AbsoluteExpirationRelativeToNow =
-                It.Is<TimeSpan?>(ts => ts.HasValue && Math.Abs(ts.Value.TotalSeconds - 10) < 0.1));
-    }
-
-    [Test]
-    public void IsRateLimited_ShouldReturnTrue_WhenUserIsRateLimited()
-    {
-        // Arrange
-        ulong userId = 123456789;
-        object? outValue = true;
-
-        m_MockCache
-            .Setup(m => m.TryGetValue(userId.ToString(), out outValue))
-            .Returns(true);
-
-        // Act
-        bool result = m_Service.IsRateLimited(userId);
+        bool result = await m_Service.IsRateLimitedAsync(userId);
 
         // Assert
         Assert.That(result, Is.True);
-        m_MockCache.Verify(m => m.TryGetValue(userId.ToString(), out outValue), Times.Once);
+        m_MockDistributedCache.Verify(
+            m => m.GetAsync(expectedCacheKey, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Test]
-    public void IsRateLimited_ShouldReturnFalse_WhenUserIsNotRateLimited()
+    public async Task IsRateLimitedAsync_ShouldReturnFalse_WhenUserIsNotRateLimited()
     {
         // Arrange
         ulong userId = 123456789;
-        object? outValue = null;
+        string expectedCacheKey = $"RateLimit_{userId}";
 
-        m_MockCache
-            .Setup(m => m.TryGetValue(userId.ToString(), out outValue))
-            .Returns(false);
+        m_MockDistributedCache
+            .Setup(m => m.GetAsync(expectedCacheKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
 
         // Act
-        bool result = m_Service.IsRateLimited(userId);
+        bool result = await m_Service.IsRateLimitedAsync(userId);
 
         // Assert
         Assert.That(result, Is.False);
-        m_MockCache.Verify(m => m.TryGetValue(userId.ToString(), out outValue), Times.Once);
+        m_MockDistributedCache.Verify(
+            m => m.GetAsync(expectedCacheKey, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Test]
     [Category("LongRunning")]
-    [Parallelizable(ParallelScope.Self)]
-    public void RateLimit_ShouldExpireAfterDefaultTime()
+    public async Task RateLimit_ShouldExpireAfterDefaultTime()
     {
         // Arrange
         ulong userId = 1111111111;
-        var actualMemoryCache = new MemoryCache(new MemoryCacheOptions());
+        var options = new MemoryDistributedCacheOptions();
+        var memoryDistributedCache = new MemoryDistributedCache(Options.Create(options));
         var logger = m_MockLogger.Object;
-        var service = new CommandRateLimitService(actualMemoryCache, logger);
+        var service = new CommandRateLimitService(memoryDistributedCache, logger);
 
         // Act
-        service.SetRateLimit(userId);
-        bool limitedBefore = service.IsRateLimited(userId);
+        await service.SetRateLimitAsync(userId);
+        bool limitedBefore = await service.IsRateLimitedAsync(userId);
 
         // Wait for expiration (slightly longer than the 10 seconds default)
-        Thread.Sleep(TimeSpan.FromSeconds(11));
+        await Task.Delay(TimeSpan.FromSeconds(11));
 
-        bool limitedAfter = service.IsRateLimited(userId);
+        bool limitedAfter = await service.IsRateLimitedAsync(userId);
 
         // Assert
-        Assert.That(limitedBefore, Is.True);
-        Assert.That(limitedAfter, Is.False);
-
-        // Clean up
-        actualMemoryCache.Dispose();
+        Assert.Multiple(() =>
+        {
+            Assert.That(limitedBefore, Is.True);
+            Assert.That(limitedAfter, Is.False);
+        });
     }
 }
