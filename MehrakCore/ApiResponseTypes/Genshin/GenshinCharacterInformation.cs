@@ -136,22 +136,28 @@ public class Relic
     public List<RelicStatProperty> SubPropertyList { get; set; }
 }
 
-public class RelicSet
+public class RelicSet : IEquatable<RelicSet>
 {
     [JsonPropertyName("id")] public int? Id { get; set; }
     [JsonPropertyName("name")] public string Name { get; set; }
 
     [JsonPropertyName("affixes")] public List<RelicAffix> Affixes { get; set; }
 
-    public virtual bool Equals(RelicSet? other)
+    public override bool Equals(object? other)
     {
-        if (other is null) return false;
-        return Id == other.Id;
+        return Equals(other as RelicSet);
     }
 
     public override int GetHashCode()
     {
-        return Id.GetHashCode() + Name.GetHashCode();
+        return HashCode.Combine(Id, Name);
+    }
+
+    public bool Equals(RelicSet? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Id == other.Id && Name == other.Name;
     }
 }
 
