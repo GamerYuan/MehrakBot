@@ -36,7 +36,7 @@ public class GenshinCharacterCardServiceTests
             await m_ImageRepository.UploadFileAsync(fileName, stream);
         }
 
-        foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}TestData/Genshin/Assets", "*"))
+        foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}TestData/Genshin/Assets", "*.png"))
         {
             var fileName = Path.GetFileName(image).Split('.')[0];
             if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
@@ -73,6 +73,27 @@ public class GenshinCharacterCardServiceTests
         Assert.That(file.ToArray(), Is.EqualTo(goldenImage));
     }
 
+    [Test]
+    public async Task GenerateCharacterCard_WithSet_MatchesGoldenImage()
+    {
+        // Arrange
+        var characterDetail =
+            JsonSerializer.Deserialize<GenshinCharacterDetail>(
+                await File.ReadAllTextAsync($"{TestDataPath}/Genshin/Aether_WithSet_TestData.json"));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var service = new GenshinCharacterCardService(m_ImageRepository, new NullLogger<GenshinCharacterCardService>());
+
+        // Act
+        var image = await service.GenerateCharacterCardAsync(characterDetail.List[0], "Test");
+        using var file = new MemoryStream();
+        await image.CopyToAsync(file);
+        var goldenImage = await File.ReadAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage_WithSet.jpg");
+
+        // Assert
+        Assert.That(file.ToArray(), Is.EqualTo(goldenImage));
+    }
+
     // To be used to generate golden image should the generation algorithm be updated
     // [Test]
     // public async Task GenerateGoldenImage()
@@ -81,7 +102,11 @@ public class GenshinCharacterCardServiceTests
     //     var characterDetail =
     //         JsonSerializer.Deserialize<GenshinCharacterDetail>(
     //             await File.ReadAllTextAsync($"{TestDataPath}/Genshin/Aether_TestData.json"));
+    //     var characterDetail2 =
+    //         JsonSerializer.Deserialize<GenshinCharacterDetail>(
+    //             await File.ReadAllTextAsync($"{TestDataPath}/Genshin/Aether_WithSet_TestData.json"));
     //     Assert.That(characterDetail, Is.Not.Null);
+    //     Assert.That(characterDetail2, Is.Not.Null);
     //
     //     var service = new GenshinCharacterCardService(m_ImageRepository, new NullLogger<GenshinCharacterCardService>());
     //
@@ -91,7 +116,16 @@ public class GenshinCharacterCardServiceTests
     //     await image.CopyToAsync(file);
     //     await File.WriteAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage.jpg", file.ToArray());
     //
+    //     var image2 = await service.GenerateCharacterCardAsync(characterDetail2.List[0], "Test");
+    //     using var file2 = new MemoryStream();
+    //     await image2.CopyToAsync(file2);
+    //     await File.WriteAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage_WithSet.jpg", file2.ToArray());
+    //
     //     // Assert
-    //     Assert.That(image, Is.Not.Null);
+    //     Assert.Multiple(() =>
+    //     {
+    //         Assert.That(image, Is.Not.Null);
+    //         Assert.That(image2, Is.Not.Null);
+    //     });
     // }
 }

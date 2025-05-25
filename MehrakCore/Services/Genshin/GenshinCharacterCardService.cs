@@ -218,7 +218,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
             background.Mutate(ctx =>
             {
-                var backgroundColor = GetBackgroundColor(charInfo.Base.Element);
+                var backgroundColor = GetBackgroundColor(charInfo.Base.Element ?? "None");
                 ctx.Fill(backgroundColor);
                 ctx.DrawImage(overlay, PixelColorBlendingMode.Overlay, 1f);
 
@@ -246,7 +246,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
                         TextAlignment = TextAlignment.Center,
-                        Origin = new Vector2(120, 980 - offset)
+                        Origin = new Vector2(120, 983 - offset)
                     }, skill.Data.Level.ToString()!, textColor);
                 }
 
@@ -255,7 +255,6 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
                     var constellation = constellationIcons[i];
-                    constellation.Image.Mutate(x => x.Resize(new Size(90, 0), KnownResamplers.Bicubic, true));
                     if (!constellation.Active)
                         constellation.Image.Mutate(x => x.Brightness(0.5f));
                     var offset = i * 140;
