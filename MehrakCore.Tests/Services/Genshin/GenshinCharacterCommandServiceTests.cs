@@ -245,7 +245,13 @@ public class GenshinCharacterCommandServiceTests
                 x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
             .ReturnsAsync(new List<GenshinBasicCharacterData>
             {
-                new() { Id = characterId, Name = characterName }
+                new()
+                {
+                    Id = characterId,
+                    Name = characterName,
+                    Icon = "",
+                    Weapon = null!
+                }
             });
 
         // Mock character detail API to return authentication error
@@ -302,7 +308,13 @@ public class GenshinCharacterCommandServiceTests
                 x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
             .ReturnsAsync(new List<GenshinBasicCharacterData>
             {
-                new() { Id = characterId, Name = characterName }
+                new()
+                {
+                    Id = characterId,
+                    Name = characterName,
+                    Icon = "",
+                    Weapon = null!
+                }
             });
 
         // Mock character detail API to return empty list
@@ -311,7 +323,8 @@ public class GenshinCharacterCommandServiceTests
             .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
             {
                 RetCode = 0,
-                Data = new GenshinCharacterDetail { List = new List<GenshinCharacterInformation>() }
+                Data = new GenshinCharacterDetail
+                    { List = new List<GenshinCharacterInformation>(), AvatarWiki = new Dictionary<string, string>() }
             });
 
         // Act
@@ -363,7 +376,13 @@ public class GenshinCharacterCommandServiceTests
                 x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
             .ReturnsAsync(new List<GenshinBasicCharacterData>
             {
-                new() { Id = characterId, Name = characterName }
+                new()
+                {
+                    Id = characterId,
+                    Name = characterName,
+                    Icon = "",
+                    Weapon = null!
+                }
             });
 
         // Create a character detail with required data
@@ -373,12 +392,29 @@ public class GenshinCharacterCommandServiceTests
             {
                 Id = characterId,
                 Name = characterName,
-                Weapon = new Weapon { Id = 11406 }
+                Weapon = new Weapon
+                {
+                    Id = 11406,
+                    Icon = "",
+                    Name = null!
+                },
+                Icon = ""
             },
-            Weapon = new WeaponDetail { Id = 11406, Name = "Test Weapon" },
-            Constellations = new List<Constellation>(),
-            Skills = new List<Skill>(),
-            Relics = new List<Relic>()
+            Weapon = new WeaponDetail
+            {
+                Id = 11406,
+                Name = "Test Weapon",
+                Icon = "",
+                TypeName = "",
+                MainProperty = null!
+            },
+            Constellations = [],
+            Skills = [],
+            Relics = [],
+            SelectedProperties = [],
+            BaseProperties = [],
+            ExtraProperties = [],
+            ElementProperties = []
         };
 
         // Mock character detail API to return valid data
@@ -389,7 +425,7 @@ public class GenshinCharacterCommandServiceTests
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
                 {
-                    List = new List<GenshinCharacterInformation> { characterInfo },
+                    List = [characterInfo],
                     AvatarWiki = new Dictionary<string, string> { { "key", "value/123" } }
                 }
             });
@@ -463,7 +499,13 @@ public class GenshinCharacterCommandServiceTests
                 x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
             .ReturnsAsync(new List<GenshinBasicCharacterData>
             {
-                new() { Id = characterId, Name = characterName }
+                new()
+                {
+                    Id = characterId,
+                    Name = characterName,
+                    Icon = "",
+                    Weapon = null!
+                }
             });
 
         // Create a character detail with required data
@@ -473,12 +515,29 @@ public class GenshinCharacterCommandServiceTests
             {
                 Id = characterId,
                 Name = characterName,
-                Weapon = new Weapon { Id = 11406 }
+                Weapon = new Weapon
+                {
+                    Id = 11406,
+                    Icon = "",
+                    Name = ""
+                },
+                Icon = ""
             },
-            Weapon = new WeaponDetail { Id = 11406, Name = "Test Weapon" },
-            Constellations = new List<Constellation>(),
-            Skills = new List<Skill>(),
-            Relics = new List<Relic>()
+            Weapon = new WeaponDetail
+            {
+                Id = 11406,
+                Name = "Test Weapon",
+                Icon = "",
+                TypeName = "",
+                MainProperty = null!
+            },
+            Constellations = [],
+            Skills = [],
+            Relics = [],
+            SelectedProperties = [],
+            BaseProperties = [],
+            ExtraProperties = [],
+            ElementProperties = []
         };
 
         // Mock character detail API to return valid data
@@ -489,7 +548,7 @@ public class GenshinCharacterCommandServiceTests
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
                 {
-                    List = new List<GenshinCharacterInformation> { characterInfo },
+                    List = [characterInfo],
                     AvatarWiki = new Dictionary<string, string> { { "key", "value/123" } }
                 }
             });

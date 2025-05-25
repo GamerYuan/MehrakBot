@@ -326,17 +326,28 @@ public class CharacterCommandModuleTests
             StatusCode = HttpStatusCode.Accepted,
             Data = new GenshinCharacterDetail
             {
-                List = new List<GenshinCharacterInformation>
-                {
-                    new()
+                List =
+                [
+                    new GenshinCharacterInformation
                     {
                         Base = new BaseCharacterDetail
                         {
                             Id = 100000005,
-                            Name = "Traveler"
-                        }
+                            Name = "Traveler",
+                            Icon = "",
+                            Weapon = null!
+                        },
+                        Weapon = null!,
+                        Relics = [],
+                        Constellations = [],
+                        SelectedProperties = [],
+                        BaseProperties = [],
+                        ExtraProperties = [],
+                        ElementProperties = [],
+                        Skills = []
                     }
-                }
+                ],
+                AvatarWiki = []
             }
         };
 
@@ -346,7 +357,9 @@ public class CharacterCommandModuleTests
                 new GenshinBasicCharacterData
                 {
                     Id = 10000005,
-                    Name = "Traveler"
+                    Name = "Traveler",
+                    Icon = "",
+                    Weapon = null!
                 }
             ]);
 
@@ -413,17 +426,28 @@ public class CharacterCommandModuleTests
             StatusCode = HttpStatusCode.Accepted,
             Data = new GenshinCharacterDetail
             {
-                List = new List<GenshinCharacterInformation>
-                {
-                    new()
+                List =
+                [
+                    new GenshinCharacterInformation
                     {
                         Base = new BaseCharacterDetail
                         {
                             Id = 100000005,
-                            Name = "Traveler"
-                        }
+                            Name = "Traveler",
+                            Icon = "",
+                            Weapon = null!
+                        },
+                        Weapon = null!,
+                        Relics = [],
+                        Constellations = [],
+                        SelectedProperties = [],
+                        BaseProperties = [],
+                        ExtraProperties = [],
+                        ElementProperties = [],
+                        Skills = []
                     }
-                }
+                ],
+                AvatarWiki = []
             }
         };
 
@@ -433,7 +457,9 @@ public class CharacterCommandModuleTests
                 new GenshinBasicCharacterData
                 {
                     Id = 10000005,
-                    Name = "Traveler"
+                    Name = "Traveler",
+                    Icon = "",
+                    Weapon = null!
                 }
             ]);
 
@@ -498,7 +524,9 @@ public class CharacterCommandModuleTests
                 new GenshinBasicCharacterData
                 {
                     Id = 10000005,
-                    Name = "Traveler"
+                    Name = "Traveler",
+                    Icon = "",
+                    Weapon = null!
                 }
             ]);
 
