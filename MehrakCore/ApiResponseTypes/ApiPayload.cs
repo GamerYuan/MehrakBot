@@ -21,3 +21,7 @@ public record CharacterDetailPayload(
     [property: JsonPropertyName("character_ids")]
     IReadOnlyList<uint> CharacterId
 );
+
+public record CheckInApiPayload(
+    [property: JsonPropertyName("act_id")] string ActId
+);

@@ -25,9 +25,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
         ]);
 
-    public static ModalProperties AuthModal(string character, Regions server, uint profile)
+    public static ModalProperties AuthModal(string modalType, params object[] parameters)
     {
-        return new ModalProperties($"character_auth_modal:{character}:{server}:{profile}", "Authenticate")
+        // Build the custom ID by joining the type and parameters with colons
+        var customId = modalType;
+        if (parameters.Length > 0) customId += ":" + string.Join(":", parameters);
+
+        return new ModalProperties(customId, "Authenticate")
             .AddComponents([
                 new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
                     .WithPlaceholder("Your Passphrase").WithMaxLength(64)
@@ -38,16 +42,19 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly GenshinCharacterCommandService<ModalInteractionContext> m_Service;
+    private readonly IDailyCheckInService m_GenshinDailyCheckInService;
+    private readonly GenshinCharacterCommandService<ModalInteractionContext> m_GenshinCharacterCommandService;
 
     public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService, GenshinCharacterCommandService<ModalInteractionContext> service)
+        TokenCacheService tokenCacheService, IDailyCheckInService genshinDailyCheckInService,
+        GenshinCharacterCommandService<ModalInteractionContext> genshinCharacterCommandService)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;
         m_CookieService = cookieService;
         m_TokenCacheService = tokenCacheService;
-        m_Service = service;
+        m_GenshinDailyCheckInService = genshinDailyCheckInService;
+        m_GenshinCharacterCommandService = genshinCharacterCommandService;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -126,8 +133,19 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         if (success)
         {
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
-            m_Service.Context = Context;
-            await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+            m_GenshinCharacterCommandService.Context = Context;
+            await m_GenshinCharacterCommandService.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        }
+    }
+
+    [ComponentInteraction("check_in_auth_modal")]
+    public async Task CheckInAuth(uint profile = 1)
+    {
+        var (success, ltuid, ltoken) = await AuthUser(profile);
+        if (success)
+        {
+            m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
+            await m_GenshinDailyCheckInService.CheckInAsync(Context, ltuid, ltoken);
         }
     }
 
