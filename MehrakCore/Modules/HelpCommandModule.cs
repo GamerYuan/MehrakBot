@@ -22,6 +22,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         {
             "character" => CharacterCommandModule.GetHelpString(),
             "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
+            "checkin" => DailyCheckInCommandModule.GetHelpString(),
             _ => "Available commands: `/character`, `/profile [add|delete|list]`.\n" +
                  "Use `/help <command>` to get help about a specific command or subcommand.\n" +
                  "For example: `/help character`"

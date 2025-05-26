@@ -85,4 +85,16 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
                 ]));
         }
     }
+
+    public static string GetHelpString()
+    {
+        return "## Daily Check-In\n" +
+               "Perform HoYoLAB Daily Check-In to collect daily rewards for Genshin Impact\n" +
+               "### Usage\n" +
+               "```/checkin [profile]```\n" +
+               "### Parameters\n" +
+               "- `profile`: Profile ID (Defaults to 1) [Optional]\n" +
+               "### Examples\n" +
+               "```/checkin\n/checkin 2```\n";
+    }
 }
