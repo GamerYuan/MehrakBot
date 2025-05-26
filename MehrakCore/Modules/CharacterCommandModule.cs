@@ -90,7 +90,8 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal(characterName, server.Value, profile)));
+                    InteractionCallback.Modal(AuthModalModule.AuthModal("character_auth_modal", characterName,
+                        server.Value, profile)));
             }
             else
             {
