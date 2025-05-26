@@ -2,7 +2,6 @@
 
 using MehrakCore.Repositories;
 using MehrakCore.Services;
-using MehrakCore.Services.Genshin;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -14,13 +13,13 @@ namespace MehrakCore.Modules;
 
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly GenshinDailyCheckInService m_Service;
+    private readonly IDailyCheckInService m_Service;
     private readonly UserRepository m_UserRepository;
     private readonly CommandRateLimitService m_RateLimitService;
     private readonly TokenCacheService m_TokenCacheService;
     private readonly ILogger<AuthModalModule> m_Logger;
 
-    public DailyCheckInCommandModule(GenshinDailyCheckInService service, UserRepository userRepository,
+    public DailyCheckInCommandModule(IDailyCheckInService service, UserRepository userRepository,
         CommandRateLimitService rateLimitService,
         TokenCacheService tokenCacheService, ILogger<AuthModalModule> logger)
     {

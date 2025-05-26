@@ -42,11 +42,11 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly GenshinDailyCheckInService m_GenshinDailyCheckInService;
+    private readonly IDailyCheckInService m_GenshinDailyCheckInService;
     private readonly GenshinCharacterCommandService<ModalInteractionContext> m_GenshinCharacterCommandService;
 
     public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService, GenshinDailyCheckInService genshinDailyCheckInService,
+        TokenCacheService tokenCacheService, IDailyCheckInService genshinDailyCheckInService,
         GenshinCharacterCommandService<ModalInteractionContext> genshinCharacterCommandService)
     {
         m_UserRepository = userRepository;
