@@ -15,6 +15,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord;
 using NetCord.JsonModels;
+using NetCord.Rest;
+using NetCord.Services;
 using NetCord.Services.ComponentInteractions;
 
 #endregion
@@ -31,13 +33,14 @@ public class AuthModalModuleTests
     private Mock<IDistributedCache> m_DistributedCacheMock;
     private TokenCacheService m_TokenCacheService;
     private CookieService m_CookieService;
-    private GenshinCharacterCommandService<ModalInteractionContext> m_CommandService;
     private ComponentInteractionService<ModalInteractionContext> m_Service;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiServiceMock;
     private GameRecordApiService m_GameRecordApiService;
     private Mock<GenshinImageUpdaterService> m_ImageUpdaterServiceMock;
     private Mock<ICharacterCardService<GenshinCharacterInformation>> m_CharacterCardServiceMock;
+    private GenshinCharacterCommandService<ModalInteractionContext> m_CommandService;
+    private Mock<IDailyCheckInService> m_DailyCheckInServiceMock;
 
     private string m_EncryptedToken;
 
@@ -65,6 +68,7 @@ public class AuthModalModuleTests
             new Mock<ImageRepository>(m_MongoTestHelper.MongoDbService, NullLogger<ImageRepository>.Instance).Object,
             m_HttpClientFactoryMock.Object,
             NullLogger<GenshinImageUpdaterService>.Instance);
+        m_DailyCheckInServiceMock = new Mock<IDailyCheckInService>();
 
         m_CommandService = new GenshinCharacterCommandService<ModalInteractionContext>(
             m_CharacterApiServiceMock.Object,
@@ -84,6 +88,7 @@ public class AuthModalModuleTests
             .AddSingleton(m_TokenCacheService)
             .AddSingleton(m_CookieService)
             .AddSingleton(m_CommandService)
+            .AddSingleton(m_DailyCheckInServiceMock.Object)
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();
 
@@ -102,7 +107,7 @@ public class AuthModalModuleTests
     {
         // Default setup for GetAsync to simulate a cache miss
         m_DistributedCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+            .ReturnsAsync(() => null);
 
         // Default setup for SetAsync
         m_DistributedCacheMock.Setup(x => x.SetAsync(
@@ -623,6 +628,320 @@ public class AuthModalModuleTests
         {
             Assert.That(result, Is.Not.Null);
             Assert.That(extract, Contains.Substring("An error occurred"));
+        });
+    }
+
+    [Test]
+    public async Task CheckInAuth_ValidPassphrase_Success()
+    {
+        // Arrange
+        m_DiscordTestHelper.SetupRequestCapture();
+        var user = CreateTestUser();
+        var jsonInteraction = CreateBaseInteraction(user);
+        jsonInteraction.Data = new JsonInteractionData
+        {
+            CustomId = "check_in_auth_modal:1",
+            Components =
+            [
+                new JsonComponent
+                {
+                    Type = ComponentType.ActionRow,
+                    Components =
+                    [
+                        new JsonComponent
+                        {
+                            Type = ComponentType.TextInput,
+                            CustomId = "passphrase",
+                            Value = SamplePassphrase
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var userModel = new UserModel
+        {
+            Id = TestUserId,
+            Timestamp = DateTime.UtcNow,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = 123456789UL,
+                    LToken = m_EncryptedToken
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(userModel);
+
+        // Setup daily check-in service mock
+        m_DailyCheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<IInteractionContext>(), 123456789UL, SampleToken))
+            .Returns(Task.CompletedTask);
+
+        var interaction = new ModalInteraction(jsonInteraction, null,
+            async (interaction, callback, _, cancellationToken) =>
+                await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
+                    interaction.Token, callback,
+                    null, cancellationToken),
+            m_DiscordTestHelper.DiscordClient.Rest);
+        var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
+
+        // Act
+        var result = await m_Service.ExecuteAsync(context, m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+
+        // Verify daily check-in service was called with correct parameters
+        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<IInteractionContext>(), 123456789UL, SampleToken),
+            Times.Once);
+
+        // Verify token was added to cache
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"TokenCache_{123456789UL}", It.IsAny<byte[]>(),
+            It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task CheckInAuth_UserNotFound_ReturnsError()
+    {
+        // Arrange
+        m_DiscordTestHelper.SetupRequestCapture();
+        var user = CreateTestUser();
+        var jsonInteraction = CreateBaseInteraction(user);
+        jsonInteraction.Data = new JsonInteractionData
+        {
+            CustomId = "check_in_auth_modal:1",
+            Components =
+            [
+                new JsonComponent
+                {
+                    Type = ComponentType.ActionRow,
+                    Components =
+                    [
+                        new JsonComponent
+                        {
+                            Type = ComponentType.TextInput,
+                            CustomId = "passphrase",
+                            Value = SamplePassphrase
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // No user in database
+
+        var interaction = new ModalInteraction(jsonInteraction, null,
+            async (interaction, callback, _, cancellationToken) =>
+                await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
+                    interaction.Token, callback,
+                    null, cancellationToken),
+            m_DiscordTestHelper.DiscordClient.Rest);
+        var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
+
+        // Act
+        var result = await m_Service.ExecuteAsync(context, m_ServiceProvider);
+        var extract = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(extract, Contains.Substring("No profile found!"));
+        });
+
+        // Verify daily check-in service was NOT called
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<IInteractionContext>(), It.IsAny<ulong>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task CheckInAuth_WrongPassphrase_ReturnsError()
+    {
+        // Arrange
+        m_DiscordTestHelper.SetupRequestCapture();
+        var user = CreateTestUser();
+        var jsonInteraction = CreateBaseInteraction(user);
+        jsonInteraction.Data = new JsonInteractionData
+        {
+            CustomId = "check_in_auth_modal:1",
+            Components =
+            [
+                new JsonComponent
+                {
+                    Type = ComponentType.ActionRow,
+                    Components =
+                    [
+                        new JsonComponent
+                        {
+                            Type = ComponentType.TextInput,
+                            CustomId = "passphrase",
+                            Value = "wrong_passphrase" // Wrong passphrase
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var userModel = new UserModel
+        {
+            Id = TestUserId,
+            Timestamp = DateTime.UtcNow,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = 123456789UL,
+                    LToken = m_EncryptedToken
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(userModel);
+
+        var interaction = new ModalInteraction(jsonInteraction, null,
+            async (interaction, callback, _, cancellationToken) =>
+                await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
+                    interaction.Token, callback,
+                    null, cancellationToken),
+            m_DiscordTestHelper.DiscordClient.Rest);
+        var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
+
+        // Act
+        var result = await m_Service.ExecuteAsync(context, m_ServiceProvider);
+        var extract = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Not.Null);
+            Assert.That(extract, Contains.Substring("Invalid passphrase"));
+        });
+
+        // Verify daily check-in service was NOT called
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<IInteractionContext>(), It.IsAny<ulong>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task CheckInAuth_WithCustomProfileId_UsesCorrectProfile()
+    {
+        // Arrange
+        m_DiscordTestHelper.SetupRequestCapture();
+        var user = CreateTestUser();
+        var jsonInteraction = CreateBaseInteraction(user);
+        jsonInteraction.Data = new JsonInteractionData
+        {
+            CustomId = "check_in_auth_modal:2", // Custom profile ID
+            Components =
+            [
+                new JsonComponent
+                {
+                    Type = ComponentType.ActionRow,
+                    Components =
+                    [
+                        new JsonComponent
+                        {
+                            Type = ComponentType.TextInput,
+                            CustomId = "passphrase",
+                            Value = SamplePassphrase
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var userModel = new UserModel
+        {
+            Id = TestUserId,
+            Timestamp = DateTime.UtcNow,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = 123456789UL,
+                    LToken = m_EncryptedToken
+                },
+                new()
+                {
+                    ProfileId = 2,
+                    LtUid = 987654321UL,
+                    LToken = m_EncryptedToken
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(userModel);
+
+        // Setup daily check-in service mock
+        m_DailyCheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<IInteractionContext>(), 987654321UL, SampleToken))
+            .Returns(Task.CompletedTask);
+
+        var interaction = new ModalInteraction(jsonInteraction, null,
+            async (interaction, callback, _, cancellationToken) =>
+                await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
+                    interaction.Token, callback,
+                    null, cancellationToken),
+            m_DiscordTestHelper.DiscordClient.Rest);
+        var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
+
+        // Act
+        var result = await m_Service.ExecuteAsync(context, m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+
+        // Verify daily check-in service was called with correct parameters for profile ID 2
+        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<IInteractionContext>(), 987654321UL, SampleToken),
+            Times.Once);
+    }
+
+    [Test]
+    public void AuthModal_CreatesCorrectModal()
+    {
+        // Arrange & Act
+        var modal = AuthModalModule.AuthModal("test_modal_type", "param1", "param2", 3);
+
+        // Assert
+        Assert.That(modal.CustomId, Is.EqualTo("test_modal_type:param1:param2:3"));
+        Assert.That(modal.Title, Is.EqualTo("Authenticate"));
+        Assert.That(modal.Components.Count, Is.EqualTo(1));
+
+        var textInput = modal.Components.First() as TextInputProperties;
+        Assert.That(textInput, Is.Not.Null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(modal.CustomId, Is.EqualTo("test_modal_type:param1:param2:3"));
+            Assert.That(modal.Title, Is.EqualTo("Authenticate"));
+            Assert.That(modal.Components.Count, Is.EqualTo(1));
+
+            Assert.That(textInput.CustomId, Is.EqualTo("passphrase"));
+            Assert.That(textInput.Style, Is.EqualTo(TextInputStyle.Paragraph));
+            Assert.That(textInput.Label, Is.EqualTo("Passphrase"));
+            Assert.That(textInput.Placeholder, Is.EqualTo("Your Passphrase"));
+            Assert.That(textInput.MaxLength, Is.EqualTo(64));
+        });
+    }
+
+    [Test]
+    public void AuthModal_NoParameters_CreatesBasicModal()
+    {
+        // Arrange & Act
+        var modal = AuthModalModule.AuthModal("test_modal_type");
+
+        var textInput = modal.Components.First() as TextInputProperties;
+        Assert.That(textInput, Is.Not.Null);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(modal.CustomId, Is.EqualTo("test_modal_type"));
+            Assert.That(modal.Title, Is.EqualTo("Authenticate"));
+            Assert.That(modal.Components.Count, Is.EqualTo(1));
+
+            Assert.That(textInput.CustomId, Is.EqualTo("passphrase"));
         });
     }
 }

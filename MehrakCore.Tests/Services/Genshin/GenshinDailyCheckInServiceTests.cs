@@ -14,7 +14,7 @@ using NetCord.Services;
 
 namespace MehrakCore.Tests.Services.Genshin;
 
-[Parallelizable(ParallelScope.Fixtures | ParallelScope.Children)]
+[Parallelizable(ParallelScope.Fixtures)]
 public class GenshinDailyCheckInServiceTests
 {
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
