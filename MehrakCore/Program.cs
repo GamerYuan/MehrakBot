@@ -100,6 +100,7 @@ internal class Program
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services.AddTransient<GenshinCharacterCommandService<ApplicationCommandContext>>();
             builder.Services.AddTransient<GenshinCharacterCommandService<ModalInteractionContext>>();
+            builder.Services.AddTransient<GenshinDailyCheckInService>();
 
             // LToken Services
             builder.Services.AddStackExchangeRedisCache(options =>
