@@ -13,6 +13,7 @@ public class ApiResult<T>
     public T? Data { get; set; }
 
     [MemberNotNullWhen(true, nameof(Data))]
+    [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool IsSuccess => (int)StatusCode >= 200 && (int)StatusCode < 300;
 
     public string? ErrorMessage { get; set; }
