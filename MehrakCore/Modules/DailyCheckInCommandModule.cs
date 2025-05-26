@@ -37,7 +37,7 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
     {
         try
         {
-            m_Logger.LogInformation("User {UserId} used the character command", Context.User.Id);
+            m_Logger.LogInformation("User {UserId} used the daily login command", Context.User.Id);
             if (await m_RateLimitService.IsRateLimitedAsync(Context.User.Id))
             {
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -76,7 +76,7 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error processing character command for user {UserId}", Context.User.Id);
+            m_Logger.LogError(e, "Error processing daily check in command for user {UserId}", Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .WithComponents([
