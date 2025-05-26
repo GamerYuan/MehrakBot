@@ -2,7 +2,7 @@
 
 using System.Net;
 using System.Text.Json.Nodes;
-using MehrakCore.Services.Genshin;
+using MehrakCore.Services;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -15,10 +15,10 @@ using NetCord.Services;
 namespace MehrakCore.Tests.Services.Genshin;
 
 [Parallelizable(ParallelScope.Fixtures)]
-public class GenshinDailyCheckInServiceTests
+public class DailyCheckInServiceTests
 {
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
-    private Mock<ILogger<GenshinDailyCheckInService>> m_LoggerMock;
+    private Mock<ILogger<DailyCheckInService>> m_LoggerMock;
     private DiscordTestHelper m_DiscordTestHelper;
     private Mock<HttpMessageHandler> m_MockHttpMessageHandler;
 
@@ -26,7 +26,7 @@ public class GenshinDailyCheckInServiceTests
     public void Setup()
     {
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        m_LoggerMock = new Mock<ILogger<GenshinDailyCheckInService>>();
+        m_LoggerMock = new Mock<ILogger<DailyCheckInService>>();
         m_DiscordTestHelper = new DiscordTestHelper();
         m_MockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
@@ -62,7 +62,7 @@ public class GenshinDailyCheckInServiceTests
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
 
-        var service = new GenshinDailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, ltuid, ltoken);
@@ -101,7 +101,7 @@ public class GenshinDailyCheckInServiceTests
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
 
-        var service = new GenshinDailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, ltuid, ltoken);
@@ -132,7 +132,7 @@ public class GenshinDailyCheckInServiceTests
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
 
-        var service = new GenshinDailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, ltuid, ltoken);
@@ -156,7 +156,7 @@ public class GenshinDailyCheckInServiceTests
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
 
-        var service = new GenshinDailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, ltuid, ltoken);
