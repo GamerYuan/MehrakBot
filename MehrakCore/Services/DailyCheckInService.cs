@@ -100,8 +100,7 @@ public class DailyCheckInService : IDailyCheckInService
         if (!response.IsSuccessStatusCode)
         {
             m_Logger.LogError("Check-in request failed with status code {StatusCode}", response.StatusCode);
-            return ApiResult<bool>.Failure(response.StatusCode,
-                $"Check-in failed with status code {response.StatusCode}");
+            return ApiResult<bool>.Failure(response.StatusCode, "An unknown error occurred during check-in");
         }
 
         var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -117,18 +116,18 @@ public class DailyCheckInService : IDailyCheckInService
         {
             case -5003:
                 m_Logger.LogInformation("User {UserId} has already checked in today for game {Game}", userId,
-                    nameof(type));
+                    type.ToString());
                 return ApiResult<bool>.Success(false, -5003, response.StatusCode);
             case 0:
-                m_Logger.LogInformation("User {UserId} check-in successful for game {Game}", userId, nameof(type));
+                m_Logger.LogInformation("User {UserId} check-in successful for game {Game}", userId, type.ToString());
                 return ApiResult<bool>.Success(true, 0, response.StatusCode);
             case -10002:
                 m_Logger.LogInformation("User {UserId} does not have a valid account for game {Game}", userId,
-                    nameof(type));
+                    type.ToString());
                 return ApiResult<bool>.Failure(HttpStatusCode.Forbidden, "No valid game account found");
             default:
                 m_Logger.LogError("Check-in failed for user {UserId} for game {Game} with retcode {Retcode}", userId,
-                    nameof(type), retcode);
+                    type.ToString(), retcode);
                 return ApiResult<bool>.Failure(response.StatusCode,
                     $"An unknown error occurred during check-in");
         }

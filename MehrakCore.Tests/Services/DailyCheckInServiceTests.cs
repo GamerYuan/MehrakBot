@@ -12,7 +12,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Genshin;
+namespace MehrakCore.Tests.Services;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class DailyCheckInServiceTests
@@ -21,6 +21,12 @@ public class DailyCheckInServiceTests
     private Mock<ILogger<DailyCheckInService>> m_LoggerMock;
     private DiscordTestHelper m_DiscordTestHelper;
     private Mock<HttpMessageHandler> m_MockHttpMessageHandler;
+
+    // Constants for testing
+    private const string GenshinCheckInApiUrl = "https://sg-hk4e-api.hoyolab.com/event/sol/sign";
+    private const string HsrCheckInApiUrl = "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign";
+    private const string ZzzCheckInApiUrl = "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign";
+    private const string Hi3CheckInApiUrl = "https://sg-public-api.hoyolab.com/event/mani/sign";
 
     [SetUp]
     public void Setup()
@@ -42,22 +48,18 @@ public class DailyCheckInServiceTests
     }
 
     [Test]
-    public async Task CheckInAsync_SuccessfulCheckIn_SendsSuccessMessage()
+    public async Task CheckInAsync_AllGamesSuccessful_SendsSuccessMessage()
     {
         // Arrange
         var userId = 123456789UL;
         var ltuid = 987654321UL;
         var ltoken = "mock-ltoken";
 
-        // Setup HTTP response for successful check-in (retcode 0)
-        var jsonResponse = new JsonObject
-        {
-            ["retcode"] = 0,
-            ["message"] = "OK",
-            ["data"] = new JsonObject()
-        };
-
-        SetupHttpResponse(HttpStatusCode.OK, jsonResponse.ToJsonString());
+        // Setup HTTP responses for successful check-in for all games
+        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
 
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
@@ -69,113 +71,177 @@ public class DailyCheckInServiceTests
 
         // Assert
         var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(responseMessage, Does.Contain("Check in successful").IgnoreCase);
 
-        // Verify HTTP request had proper headers
+        // Verify the message contains success messages for all games
+        Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Success").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Success").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: Success").IgnoreCase);
+
+        // Verify HTTP requests had proper headers
+        VerifyHttpRequestForGame(GenshinCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(HsrCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(ZzzCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(Hi3CheckInApiUrl, ltuid, ltoken, Times.Once());
+    }
+
+    [Test]
+    public async Task CheckInAsync_MixedResults_SendsMixedResultsMessage()
+    {
+        // Arrange
+        var userId = 123456789UL;
+        var ltuid = 987654321UL;
+        var ltoken = "mock-ltoken";
+
+        // Setup HTTP responses with mixed results
+        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
+        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateNoAccountResponse());
+        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.InternalServerError, "");
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
+        var context = CreateMockInteractionContext(interaction);
+
+        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+
+        // Act
+        await service.CheckInAsync(context, ltuid, ltoken);
+
+        // Assert
+        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Verify the message contains the correct mixed results
+        Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Already checked in today").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: No valid game account found").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: An unknown error occurred").IgnoreCase);
+
+        // Verify HTTP requests had proper headers
+        VerifyHttpRequestForGame(GenshinCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(HsrCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(ZzzCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(Hi3CheckInApiUrl, ltuid, ltoken, Times.Once());
+    }
+
+    [Test]
+    public async Task CheckInAsync_AllAlreadyCheckedIn_SendsAlreadyCheckedInMessage()
+    {
+        // Arrange
+        var userId = 123456789UL;
+        var ltuid = 987654321UL;
+        var ltoken = "mock-ltoken";
+
+        // Setup HTTP responses for already checked in for all games
+        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
+        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
+        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
+        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
+        var context = CreateMockInteractionContext(interaction);
+
+        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+
+        // Act
+        await service.CheckInAsync(context, ltuid, ltoken);
+
+        // Assert
+        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Verify the message contains already checked in messages for all games
+        Assert.That(responseMessage, Does.Contain("Genshin Impact: Already checked in today").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Already checked in today").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Already checked in today").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: Already checked in today").IgnoreCase);
+    }
+
+    [Test]
+    public async Task CheckInAsync_ZZZRequest_ContainsProperRpcSignHeader()
+    {
+        // Arrange
+        var userId = 123456789UL;
+        var ltuid = 987654321UL;
+        var ltoken = "mock-ltoken";
+
+        // Setup HTTP responses
+        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
+        var context = CreateMockInteractionContext(interaction);
+
+        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+
+        // Act
+        await service.CheckInAsync(context, ltuid, ltoken);
+
+        // Assert
+        // Verify ZZZ request has the special X-Rpc-Signgame header
         m_MockHttpMessageHandler.Protected()
-            .Verify("SendAsync", Times.Once(), ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Headers.Contains("Cookie") &&
-                    req.Headers.GetValues("Cookie").Any(v =>
-                        v.Contains($"ltuid_v2={ltuid}") && v.Contains($"ltoken_v2={ltoken}"))),
+            .Verify("SendAsync", Times.AtLeastOnce(), ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.ToString() == ZzzCheckInApiUrl &&
+                    req.Headers.Contains("X-Rpc-Signgame") &&
+                    req.Headers.GetValues("X-Rpc-Signgame").First() == "zzz"),
                 ItExpr.IsAny<CancellationToken>());
     }
 
-    [Test]
-    public async Task CheckInAsync_AlreadyCheckedIn_SendsAlreadyCheckedInMessage()
-    {
-        // Arrange
-        var userId = 123456789UL;
-        var ltuid = 987654321UL;
-        var ltoken = "mock-ltoken";
-
-        // Setup HTTP response for already checked in (retcode -5003)
-        var jsonResponse = new JsonObject
-        {
-            ["retcode"] = -5003,
-            ["message"] = "Already checked in",
-            ["data"] = new JsonObject()
-        };
-
-        SetupHttpResponse(HttpStatusCode.OK, jsonResponse.ToJsonString());
-
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
-        var context = CreateMockInteractionContext(interaction);
-
-        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
-
-        // Act
-        await service.CheckInAsync(context, ltuid, ltoken);
-
-        // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(responseMessage, Does.Contain("already checked in").IgnoreCase);
-    }
-
-    [Test]
-    public async Task CheckInAsync_UnknownError_SendsErrorMessage()
-    {
-        // Arrange
-        var userId = 123456789UL;
-        var ltuid = 987654321UL;
-        var ltoken = "mock-ltoken";
-
-        // Setup HTTP response for unknown error (some other retcode)
-        var jsonResponse = new JsonObject
-        {
-            ["retcode"] = -1,
-            ["message"] = "Error",
-            ["data"] = new JsonObject()
-        };
-
-        SetupHttpResponse(HttpStatusCode.OK, jsonResponse.ToJsonString());
-
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
-        var context = CreateMockInteractionContext(interaction);
-
-        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
-
-        // Act
-        await service.CheckInAsync(context, ltuid, ltoken);
-
-        // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(responseMessage, Does.Contain("unknown error").IgnoreCase);
-    }
-
-    [Test]
-    public async Task CheckInAsync_HttpRequestFails_HandlesErrorGracefully()
-    {
-        // Arrange
-        var userId = 123456789UL;
-        var ltuid = 987654321UL;
-        var ltoken = "mock-ltoken";
-
-        // Setup HTTP response for failed request
-        SetupHttpResponse(HttpStatusCode.InternalServerError, "");
-
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
-        var context = CreateMockInteractionContext(interaction);
-
-        var service = new DailyCheckInService(m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
-
-        // Act
-        await service.CheckInAsync(context, ltuid, ltoken);
-
-        // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(responseMessage, Does.Contain("unknown error").IgnoreCase);
-    }
-
-    private void SetupHttpResponse(HttpStatusCode statusCode, string content)
+    private void SetupHttpResponseForUrl(string url, HttpStatusCode statusCode, string content)
     {
         m_MockHttpMessageHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(),
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r => r.RequestUri!.ToString() == url),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = statusCode,
                 Content = new StringContent(content)
             });
+    }
+
+    private void VerifyHttpRequestForGame(string url, ulong ltuid, string ltoken, Times times)
+    {
+        m_MockHttpMessageHandler.Protected()
+            .Verify("SendAsync", times, ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.ToString() == url &&
+                    req.Headers.Contains("Cookie") &&
+                    req.Headers.GetValues("Cookie").Any(v =>
+                        v.Contains($"ltuid_v2={ltuid}") && v.Contains($"ltoken_v2={ltoken}"))),
+                ItExpr.IsAny<CancellationToken>());
+    }
+
+    private static string CreateSuccessResponse()
+    {
+        var jsonResponse = new JsonObject
+        {
+            ["retcode"] = 0,
+            ["message"] = "OK",
+            ["data"] = new JsonObject()
+        };
+        return jsonResponse.ToJsonString();
+    }
+
+    private static string CreateAlreadyCheckedInResponse()
+    {
+        var jsonResponse = new JsonObject
+        {
+            ["retcode"] = -5003,
+            ["message"] = "Already checked in",
+            ["data"] = new JsonObject()
+        };
+        return jsonResponse.ToJsonString();
+    }
+
+    private static string CreateNoAccountResponse()
+    {
+        var jsonResponse = new JsonObject
+        {
+            ["retcode"] = -10002,
+            ["message"] = "No valid game account found",
+            ["data"] = new JsonObject()
+        };
+        return jsonResponse.ToJsonString();
     }
 
     private static IInteractionContext CreateMockInteractionContext(SlashCommandInteraction interaction)
