@@ -136,12 +136,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             m_GenshinCharacterCommandService.Context = Context;
             await m_GenshinCharacterCommandService.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
         }
-        else
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Authentication failed! Please try again."))));
-        }
     }
 
     [ComponentInteraction("check_in_auth_modal")]
@@ -152,12 +146,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         {
             m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
             await m_GenshinDailyCheckInService.CheckInAsync(Context, ltuid, ltoken);
-        }
-        else
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Authentication failed! Please try again."))));
         }
     }
 
