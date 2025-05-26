@@ -20,15 +20,21 @@ public class DailyCheckInService : IDailyCheckInService
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<DailyCheckInService> m_Logger;
 
-    private const string GenshinCheckInApiUrl = "https://sg-hk4e-api.hoyolab.com/event/sol/sign";
-    private const string HsrCheckInApiUrl = "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign";
-    private const string ZzzCheckInApiUrl = "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign";
-    private const string Hi3CheckInApiUrl = "https://sg-public-api.hoyolab.com/event/mani/sign";
+    private static readonly Dictionary<CheckInType, string> CheckInUrls = new()
+    {
+        { CheckInType.GenshinImpact, "https://sg-hk4e-api.hoyolab.com/event/sol/sign" },
+        { CheckInType.HonkaiStarRail, "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign" },
+        { CheckInType.ZenlessZoneZero, "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign" },
+        { CheckInType.HonkaiImpact3, "https://sg-public-api.hoyolab.com/event/mani/sign" }
+    };
 
-    private const string GenshinCheckInActId = "e202102251931481";
-    private const string HsrCheckInActId = "e202303301540311";
-    private const string ZzzCheckInActId = "e202406031448091";
-    private const string Hi3CheckInActId = "e202110291205111";
+    private static readonly Dictionary<CheckInType, string> CheckInActIds = new()
+    {
+        { CheckInType.GenshinImpact, "e202102251931481" },
+        { CheckInType.HonkaiStarRail, "e202303301540311" },
+        { CheckInType.ZenlessZoneZero, "e202406031448091" },
+        { CheckInType.HonkaiImpact3, "e202110291205111" }
+    };
 
     public DailyCheckInService(IHttpClientFactory httpClientFactory, ILogger<DailyCheckInService> logger)
     {
@@ -41,50 +47,52 @@ public class DailyCheckInService : IDailyCheckInService
         var userId = context.Interaction.User.Id;
         m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
 
-        List<Task<ApiResult<bool>>> tasks =
-        [
-            CheckInHelperAsync(CheckInType.GenshinImpact, context.Interaction.User.Id, ltuid, ltoken),
-            CheckInHelperAsync(CheckInType.HonkaiStarRail, context.Interaction.User.Id, ltuid, ltoken),
-            CheckInHelperAsync(CheckInType.ZenlessZoneZero, context.Interaction.User.Id, ltuid, ltoken),
-            CheckInHelperAsync(CheckInType.HonkaiImpact3, context.Interaction.User.Id, ltuid, ltoken)
-        ];
+        var checkInTypes = Enum.GetValues<CheckInType>().ToArray();
+        var tasks = new List<Task<ApiResult<bool>>>(checkInTypes.Length);
+
+        tasks.AddRange(
+            checkInTypes.Select(type => CheckInHelperAsync(type, context.Interaction.User.Id, ltuid, ltoken)));
 
         await Task.WhenAll(tasks);
 
-        var resultMessage = "### Daily check-in results:\n" +
-                            $"Genshin Impact: {(tasks[0].Result.IsSuccess ? tasks[0].Result.Data ?
-                                "Success" : "Already checked in today" : tasks[0].Result.ErrorMessage)}\n" +
-                            $"Honkai: Star Rail: {(tasks[1].Result.IsSuccess ? tasks[1].Result.Data ?
-                                "Success" : "Already checked in today" : tasks[1].Result.ErrorMessage)}\n" +
-                            $"Zenless Zone Zero: {(tasks[2].Result.IsSuccess ? tasks[2].Result.Data ?
-                                "Success" : "Already checked in today" : tasks[2].Result.ErrorMessage)}\n" +
-                            $"Honkai Impact 3rd: {(tasks[3].Result.IsSuccess ? tasks[3].Result.Data ?
-                                "Success" : "Already checked in today" : tasks[3].Result.ErrorMessage)}";
+        var sb = new StringBuilder("### Daily check-in results:\n");
+        for (int i = 0; i < checkInTypes.Length; i++)
+        {
+            var gameResult = tasks[i].Result.IsSuccess
+                ? tasks[i].Result.Data
+                    ? "Success"
+                    : "Already checked in today"
+                : tasks[i].Result.ErrorMessage;
+
+            var gameName = GetFormattedGameName(checkInTypes[i]);
+            sb.AppendLine($"{gameName}: {gameResult}");
+        }
 
         await context.Interaction.SendFollowupMessageAsync(
-            new InteractionMessageProperties().AddComponents(new TextDisplayProperties(resultMessage))
+            new InteractionMessageProperties().AddComponents(new TextDisplayProperties(sb.ToString()))
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
+    }
+
+    private static string GetFormattedGameName(CheckInType type)
+    {
+        return type switch
+        {
+            CheckInType.GenshinImpact => "Genshin Impact",
+            CheckInType.HonkaiStarRail => "Honkai: Star Rail",
+            CheckInType.ZenlessZoneZero => "Zenless Zone Zero",
+            CheckInType.HonkaiImpact3 => "Honkai Impact 3rd",
+            _ => type.ToString()
+        };
     }
 
     private async Task<ApiResult<bool>> CheckInHelperAsync(CheckInType type, ulong userId, ulong ltuid,
         string ltoken)
     {
-        var url = type switch
+        if (!CheckInUrls.TryGetValue(type, out var url) || !CheckInActIds.TryGetValue(type, out var actId))
         {
-            CheckInType.GenshinImpact => GenshinCheckInApiUrl,
-            CheckInType.HonkaiStarRail => HsrCheckInApiUrl,
-            CheckInType.ZenlessZoneZero => ZzzCheckInApiUrl,
-            CheckInType.HonkaiImpact3 => Hi3CheckInApiUrl,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-        };
-        var actId = type switch
-        {
-            CheckInType.GenshinImpact => GenshinCheckInActId,
-            CheckInType.HonkaiStarRail => HsrCheckInActId,
-            CheckInType.ZenlessZoneZero => ZzzCheckInActId,
-            CheckInType.HonkaiImpact3 => Hi3CheckInActId,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-        };
+            m_Logger.LogError("Invalid check-in type: {Type}", type);
+            return ApiResult<bool>.Failure(HttpStatusCode.BadRequest, "Invalid check-in type");
+        }
 
         var httpClient = m_HttpClientFactory.CreateClient("Default");
         var request = new HttpRequestMessage(HttpMethod.Post, url);
