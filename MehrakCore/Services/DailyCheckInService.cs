@@ -48,10 +48,20 @@ public class DailyCheckInService : IDailyCheckInService
         m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
 
         var checkInTypes = Enum.GetValues<CheckInType>().ToArray();
-        var tasks = new List<Task<ApiResult<bool>>>(checkInTypes.Length);
 
-        tasks.AddRange(
-            checkInTypes.Select(type => CheckInHelperAsync(type, context.Interaction.User.Id, ltuid, ltoken)));
+        var tasks = checkInTypes.Select(async type =>
+        {
+            try
+            {
+                return await CheckInHelperAsync(type, context.Interaction.User.Id, ltuid, ltoken);
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogError(ex, "An error occurred while checking in for {Game}", type);
+                return ApiResult<bool>.Failure(HttpStatusCode.InternalServerError,
+                    $"An error occurred while checking in for {type}");
+            }
+        }).ToList();
 
         await Task.WhenAll(tasks);
 
