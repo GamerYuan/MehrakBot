@@ -13,27 +13,27 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Services;
+namespace MehrakCore.Services.Commands.Common;
 
 public class DailyCheckInService : IDailyCheckInService
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<DailyCheckInService> m_Logger;
 
-    private static readonly Dictionary<CheckInType, string> CheckInUrls = new()
+    private static readonly Dictionary<GameName, string> CheckInUrls = new()
     {
-        { CheckInType.GenshinImpact, "https://sg-hk4e-api.hoyolab.com/event/sol/sign" },
-        { CheckInType.HonkaiStarRail, "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign" },
-        { CheckInType.ZenlessZoneZero, "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign" },
-        { CheckInType.HonkaiImpact3, "https://sg-public-api.hoyolab.com/event/mani/sign" }
+        { GameName.Genshin, "https://sg-hk4e-api.hoyolab.com/event/sol/sign" },
+        { GameName.HonkaiStarRail, "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign" },
+        { GameName.ZenlessZoneZero, "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign" },
+        { GameName.HonkaiImpact3, "https://sg-public-api.hoyolab.com/event/mani/sign" }
     };
 
-    private static readonly Dictionary<CheckInType, string> CheckInActIds = new()
+    private static readonly Dictionary<GameName, string> CheckInActIds = new()
     {
-        { CheckInType.GenshinImpact, "e202102251931481" },
-        { CheckInType.HonkaiStarRail, "e202303301540311" },
-        { CheckInType.ZenlessZoneZero, "e202406031448091" },
-        { CheckInType.HonkaiImpact3, "e202110291205111" }
+        { GameName.Genshin, "e202102251931481" },
+        { GameName.HonkaiStarRail, "e202303301540311" },
+        { GameName.ZenlessZoneZero, "e202406031448091" },
+        { GameName.HonkaiImpact3, "e202110291205111" }
     };
 
     public DailyCheckInService(IHttpClientFactory httpClientFactory, ILogger<DailyCheckInService> logger)
@@ -47,7 +47,7 @@ public class DailyCheckInService : IDailyCheckInService
         var userId = context.Interaction.User.Id;
         m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
 
-        var checkInTypes = Enum.GetValues<CheckInType>().ToArray();
+        var checkInTypes = Enum.GetValues<GameName>().ToArray();
 
         var tasks = checkInTypes.Select(async type =>
         {
@@ -83,19 +83,19 @@ public class DailyCheckInService : IDailyCheckInService
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
     }
 
-    private static string GetFormattedGameName(CheckInType type)
+    private static string GetFormattedGameName(GameName type)
     {
         return type switch
         {
-            CheckInType.GenshinImpact => "Genshin Impact",
-            CheckInType.HonkaiStarRail => "Honkai: Star Rail",
-            CheckInType.ZenlessZoneZero => "Zenless Zone Zero",
-            CheckInType.HonkaiImpact3 => "Honkai Impact 3rd",
+            GameName.Genshin => "Genshin Impact",
+            GameName.HonkaiStarRail => "Honkai: Star Rail",
+            GameName.ZenlessZoneZero => "Zenless Zone Zero",
+            GameName.HonkaiImpact3 => "Honkai Impact 3rd",
             _ => type.ToString()
         };
     }
 
-    private async Task<ApiResult<bool>> CheckInHelperAsync(CheckInType type, ulong userId, ulong ltuid,
+    private async Task<ApiResult<bool>> CheckInHelperAsync(GameName type, ulong userId, ulong ltuid,
         string ltoken)
     {
         if (!CheckInUrls.TryGetValue(type, out var url) || !CheckInActIds.TryGetValue(type, out var actId))
@@ -109,7 +109,7 @@ public class DailyCheckInService : IDailyCheckInService
         var requestBody = new CheckInApiPayload(actId);
         request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
 
-        if (type == CheckInType.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
+        if (type == GameName.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
 
         request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
         m_Logger.LogDebug("Sending check-in request to {Endpoint}", request.RequestUri);
@@ -149,13 +149,5 @@ public class DailyCheckInService : IDailyCheckInService
                 return ApiResult<bool>.Failure(response.StatusCode,
                     $"An unknown error occurred during check-in");
         }
-    }
-
-    private enum CheckInType
-    {
-        GenshinImpact,
-        HonkaiStarRail,
-        ZenlessZoneZero,
-        HonkaiImpact3
     }
 }

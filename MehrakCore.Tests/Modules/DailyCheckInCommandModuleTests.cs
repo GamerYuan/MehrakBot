@@ -2,9 +2,11 @@
 
 using System.Text;
 using MehrakCore.Models;
-using MehrakCore.Modules;
+using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
+using MehrakCore.Services.Commands;
+using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,9 +1,11 @@
 #region
 
 using MehrakCore.Models;
+using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
-using MehrakCore.Services.Genshin;
+using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;

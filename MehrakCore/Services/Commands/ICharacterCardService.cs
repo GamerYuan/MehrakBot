@@ -4,7 +4,7 @@ using MehrakCore.ApiResponseTypes;
 
 #endregion
 
-namespace MehrakCore.Services;
+namespace MehrakCore.Services.Commands;
 
 public interface ICharacterCardService<in T> where T : ICharacterInformation
 {

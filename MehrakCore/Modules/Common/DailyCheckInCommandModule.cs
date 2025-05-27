@@ -2,6 +2,8 @@
 
 using MehrakCore.Repositories;
 using MehrakCore.Services;
+using MehrakCore.Services.Commands;
+using MehrakCore.Services.Common;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -9,7 +11,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Modules;
+namespace MehrakCore.Modules.Common;
 
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {

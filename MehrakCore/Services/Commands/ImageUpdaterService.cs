@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace MehrakCore.Services;
+namespace MehrakCore.Services.Commands;
 
 public abstract class ImageUpdaterService<T> where T : ICharacterInformation
 {

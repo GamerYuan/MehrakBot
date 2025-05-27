@@ -1,7 +1,7 @@
 ﻿#region
 
 using MehrakCore.Models;
-using MehrakCore.Modules;
+using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;

@@ -8,7 +8,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Modules;
+namespace MehrakCore.Modules.Common;
 
 [SlashCommand("profile", "Manage your profile",
     Contexts = [InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel])]

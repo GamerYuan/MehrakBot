@@ -3,6 +3,7 @@
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -11,7 +12,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Services.Genshin;
+namespace MehrakCore.Services.Commands.Genshin;
 
 public class GenshinCharacterCommandService<TContext> where TContext : IInteractionContext
 {

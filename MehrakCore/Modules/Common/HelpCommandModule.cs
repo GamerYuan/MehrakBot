@@ -6,7 +6,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Modules;
+namespace MehrakCore.Modules.Common;
 
 public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {

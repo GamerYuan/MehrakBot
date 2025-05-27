@@ -8,7 +8,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Services;
+namespace MehrakCore.Services.Commands;
 
 public interface IDailyCheckInService
 {

@@ -8,7 +8,7 @@ using MongoDB.Driver.GridFS;
 
 #endregion
 
-namespace MehrakCore.Services;
+namespace MehrakCore.Services.Common;
 
 public class MongoDbService
 {

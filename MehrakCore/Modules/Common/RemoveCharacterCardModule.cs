@@ -5,7 +5,7 @@ using NetCord.Services.ComponentInteractions;
 
 #endregion
 
-namespace MehrakCore.Modules;
+namespace MehrakCore.Modules.Common;
 
 public class RemoveCharacterCardModule : ComponentInteractionModule<ButtonInteractionContext>
 {

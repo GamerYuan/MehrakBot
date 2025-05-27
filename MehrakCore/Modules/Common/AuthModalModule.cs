@@ -4,7 +4,9 @@ using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
-using MehrakCore.Services.Genshin;
+using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -13,7 +15,7 @@ using NetCord.Services.ComponentInteractions;
 
 #endregion
 
-namespace MehrakCore.Modules;
+namespace MehrakCore.Modules.Common;
 
 public class AuthModalModule : ComponentInteractionModule<ModalInteractionContext>
 {

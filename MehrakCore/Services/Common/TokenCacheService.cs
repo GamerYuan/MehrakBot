@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace MehrakCore.Services;
+namespace MehrakCore.Services.Common;
 
 public class TokenCacheService
 {
