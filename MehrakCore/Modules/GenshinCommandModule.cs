@@ -1,10 +1,6 @@
 #region
 
-using MehrakCore.Models;
-using MehrakCore.Modules.Common;
-using MehrakCore.Repositories;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Commands;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -16,30 +12,26 @@ using NetCord.Services.ApplicationCommands;
 
 namespace MehrakCore.Modules;
 
-public class CharacterCommandModule : ApplicationCommandModule<ApplicationCommandContext>
+[SlashCommand("genshin", "Genshin Toolbox",
+    Contexts =
+    [
+        InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
+    ])]
+public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
-    private readonly ILogger<CharacterCommandModule> m_Logger;
-    private readonly UserRepository m_UserRepository;
-    private readonly TokenCacheService m_TokenCacheService;
-    private readonly GenshinCharacterCommandService<ApplicationCommandContext> m_Service;
-    private readonly CommandRateLimitService m_RateLimitService;
+    private readonly ILogger<GenshinCommandModule> m_Logger;
+    private readonly ICharacterCommandService<GenshinCommandModule> m_CharacterCommandService;
+    private readonly CommandRateLimitService m_CommandRateLimitService;
 
-    public CharacterCommandModule(ILogger<CharacterCommandModule> logger, UserRepository userRepository,
-        GenshinCharacterCommandService<ApplicationCommandContext> service, TokenCacheService tokenCacheService,
-        CommandRateLimitService rateLimitService)
+    public GenshinCommandModule(ICharacterCommandService<GenshinCommandModule> characterCommandService,
+        CommandRateLimitService commandRateLimitService, ILogger<GenshinCommandModule> logger)
     {
         m_Logger = logger;
-        m_UserRepository = userRepository;
-        m_Service = service;
-        m_TokenCacheService = tokenCacheService;
-        m_RateLimitService = rateLimitService;
+        m_CharacterCommandService = characterCommandService;
+        m_CommandRateLimitService = commandRateLimitService;
     }
 
-    [SlashCommand("character", "Get character card",
-        Contexts =
-        [
-            InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
-        ])]
+    [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
         string characterName,
@@ -48,73 +40,36 @@ public class CharacterCommandModule : ApplicationCommandModule<ApplicationComman
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
-        try
+        m_Logger.LogInformation(
+            "User {User} used the character command with character {CharacterName}, server {Server}, profile {ProfileId}",
+            Context.User.Id, characterName, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        if (string.IsNullOrWhiteSpace(characterName))
         {
-            m_Logger.LogInformation("User {UserId} used the character command", Context.User.Id);
-            if (await m_RateLimitService.IsRateLimitedAsync(Context.User.Id))
-            {
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
-                        .WithFlags(MessageFlags.Ephemeral)));
-                return;
-            }
-
-            await m_RateLimitService.SetRateLimitAsync(Context.User.Id);
-            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
-            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
-            {
-                m_Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
-                    Context.User.Id, profile);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
-                        .WithFlags(MessageFlags.Ephemeral)));
-                return;
-            }
-
-            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
-            if (selectedProfile.LastUsedRegions != null && server == null)
-            {
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out var tmp);
-                server = tmp;
-            }
-
-            if (server == null)
-            {
-                m_Logger.LogInformation("User {UserId} does not have a server selected", Context.User.Id);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
-                        .WithFlags(MessageFlags.Ephemeral)));
-                return;
-            }
-
-            var ltoken = await m_TokenCacheService.GetCacheEntry(Context.User.Id, selectedProfile.LtUid);
-            if (ltoken == null)
-            {
-                m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
-                await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal("character_auth_modal", characterName,
-                        server.Value, profile)));
-            }
-            else
-            {
-                m_Logger.LogInformation("User {UserId} is already authenticated", Context.User.Id);
-                await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-                m_Service.Context = Context;
-                await m_Service.SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken, characterName,
-                    server.Value);
-            }
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithContent("Character name cannot be empty")
+                    .WithFlags(MessageFlags.Ephemeral)));
+            return;
         }
-        catch (Exception e)
+
+        m_CharacterCommandService.Context = Context;
+        await m_CharacterCommandService.ExecuteAsync(characterName, server, profile);
+    }
+
+    private async Task<bool> ValidateRateLimitAsync()
+    {
+        if (await m_CommandRateLimitService.IsRateLimitedAsync(Context.Interaction.User.Id))
         {
-            m_Logger.LogError(e, "Error processing character command for user {UserId}", Context.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([
-                    new TextDisplayProperties(
-                        "An error occurred while processing your request. Please try again later.")
-                ]));
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
+                    .WithFlags(MessageFlags.Ephemeral)));
+            return false;
         }
+
+        await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
+        return true;
     }
 
     public static string GetHelpString()

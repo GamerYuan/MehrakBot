@@ -24,15 +24,15 @@ using NetCord.Services;
 namespace MehrakCore.Tests.Services.Genshin;
 
 [Parallelizable(ParallelScope.Fixtures)]
-public class GenshinCharacterCommandServiceTests
+public class GenshinCharacterCommandExecutorTests
 {
-    private GenshinCharacterCommandService<IInteractionContext> m_Service;
+    private GenshinCharacterCommandExecutor m_Executor;
     private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiMock;
     private GameRecordApiService m_GameRecordApiService;
     private Mock<ICharacterCardService<GenshinCharacterInformation>> m_CharacterCardServiceMock;
     private Mock<GenshinImageUpdaterService> m_ImageUpdaterServiceMock;
     private UserRepository m_UserRepository;
-    private Mock<ILogger<GenshinCharacterCommandService<IInteractionContext>>> m_LoggerMock;
+    private Mock<ILogger<GenshinCharacterCommandExecutor>> m_LoggerMock;
     private DiscordTestHelper m_DiscordTestHelper;
     private MongoTestHelper m_MongoTestHelper;
     private Mock<IInteractionContext> m_ContextMock;
@@ -58,7 +58,7 @@ public class GenshinCharacterCommandServiceTests
             imageRepository,
             Mock.Of<IHttpClientFactory>(),
             Mock.Of<ILogger<GenshinImageUpdaterService>>());
-        m_LoggerMock = new Mock<ILogger<GenshinCharacterCommandService<IInteractionContext>>>();
+        m_LoggerMock = new Mock<ILogger<GenshinCharacterCommandExecutor>>();
 
         // Set up mocked HTTP handler and client factory
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
@@ -83,7 +83,7 @@ public class GenshinCharacterCommandServiceTests
         m_DiscordTestHelper.SetupRequestCapture();
 
         // Create the service under test
-        m_Service = new GenshinCharacterCommandService<IInteractionContext>(
+        m_Executor = new GenshinCharacterCommandExecutor(
             m_CharacterApiMock.Object,
             m_GameRecordApiService,
             m_CharacterCardServiceMock.Object,
@@ -113,7 +113,7 @@ public class GenshinCharacterCommandServiceTests
         const Regions server = Regions.Asia;
 
         // Act
-        await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -151,7 +151,7 @@ public class GenshinCharacterCommandServiceTests
             JsonSerializer.Serialize(new { retcode = -100, message = "Invalid cookies" }));
 
         // Act
-        await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -199,7 +199,7 @@ public class GenshinCharacterCommandServiceTests
             .ReturnsAsync(new List<GenshinBasicCharacterData>());
 
         // Act
-        await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -262,7 +262,7 @@ public class GenshinCharacterCommandServiceTests
             .ReturnsAsync(new ApiResult<GenshinCharacterDetail> { RetCode = 10001 });
 
         // Act
-        await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -330,7 +330,7 @@ public class GenshinCharacterCommandServiceTests
             });
 
         // Act
-        await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -438,7 +438,7 @@ public class GenshinCharacterCommandServiceTests
             .ReturnsAsync(new MemoryStream(new byte[100]));
 
         // Act
-        await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
 
         // Assert
         // Verify the character card was generated
@@ -561,7 +561,7 @@ public class GenshinCharacterCommandServiceTests
             .ReturnsAsync(new MemoryStream(new byte[100]));
 
         // Act
-        await m_Service.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
 
         // Assert
         // Verify the character card was generated

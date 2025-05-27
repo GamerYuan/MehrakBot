@@ -41,7 +41,7 @@ public class AuthModalModuleTests
     private GameRecordApiService m_GameRecordApiService;
     private Mock<GenshinImageUpdaterService> m_ImageUpdaterServiceMock;
     private Mock<ICharacterCardService<GenshinCharacterInformation>> m_CharacterCardServiceMock;
-    private GenshinCharacterCommandService<ModalInteractionContext> m_CommandService;
+    private GenshinCharacterCommandExecutor m_CommandExecutor;
     private Mock<IDailyCheckInService> m_DailyCheckInServiceMock;
 
     private string m_EncryptedToken;
@@ -72,13 +72,13 @@ public class AuthModalModuleTests
             NullLogger<GenshinImageUpdaterService>.Instance);
         m_DailyCheckInServiceMock = new Mock<IDailyCheckInService>();
 
-        m_CommandService = new GenshinCharacterCommandService<ModalInteractionContext>(
+        m_CommandExecutor = new GenshinCharacterCommandExecutor(
             m_CharacterApiServiceMock.Object,
             m_GameRecordApiService,
             m_CharacterCardServiceMock.Object,
             m_ImageUpdaterServiceMock.Object,
             m_UserRepository,
-            NullLogger<GenshinCharacterCommandService<ModalInteractionContext>>.Instance);
+            NullLogger<GenshinCharacterCommandExecutor>.Instance);
 
         m_Service.AddModule<AuthModalModule>();
 
@@ -89,7 +89,7 @@ public class AuthModalModuleTests
             .AddSingleton(m_Service)
             .AddSingleton(m_TokenCacheService)
             .AddSingleton(m_CookieService)
-            .AddSingleton(m_CommandService)
+            .AddSingleton(m_CommandExecutor)
             .AddSingleton(m_DailyCheckInServiceMock.Object)
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();

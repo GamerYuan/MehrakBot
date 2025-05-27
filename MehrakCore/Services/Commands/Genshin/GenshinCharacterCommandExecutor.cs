@@ -2,6 +2,8 @@
 
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
+using MehrakCore.Modules;
+using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
@@ -14,23 +16,25 @@ using NetCord.Services;
 
 namespace MehrakCore.Services.Commands.Genshin;
 
-public class GenshinCharacterCommandService<TContext> where TContext : IInteractionContext
+public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinCommandModule>
 {
     private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_GenshinCharacterApiService;
     private readonly GameRecordApiService m_GameRecordApiService;
     private readonly ICharacterCardService<GenshinCharacterInformation> m_GenshinCharacterCardService;
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
     private readonly UserRepository m_UserRepository;
-    private readonly ILogger<GenshinCharacterCommandService<TContext>> m_Logger;
+    private readonly ILogger<GenshinCharacterCommandExecutor> m_Logger;
+    private readonly TokenCacheService m_TokenCacheService;
 
-    public TContext Context { get; set; } = default!;
+    public IInteractionContext Context { get; set; } = null!;
 
-    public GenshinCharacterCommandService(
+    public GenshinCharacterCommandExecutor(
         ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> genshinCharacterApiService,
         GameRecordApiService gameRecordApiService,
         ICharacterCardService<GenshinCharacterInformation> genshinCharacterCardService,
         GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
-        ILogger<GenshinCharacterCommandService<TContext>> logger)
+        ILogger<GenshinCharacterCommandExecutor> logger,
+        TokenCacheService tokenCacheService)
     {
         m_GenshinCharacterApiService = genshinCharacterApiService;
         m_GameRecordApiService = gameRecordApiService;
@@ -38,6 +42,80 @@ public class GenshinCharacterCommandService<TContext> where TContext : IInteract
         m_GenshinImageUpdaterService = genshinImageUpdaterService;
         m_UserRepository = userRepository;
         m_Logger = logger;
+        m_TokenCacheService = tokenCacheService;
+    }
+
+    /// <summary>
+    /// Executes the character command with the provided parameters.
+    /// </summary>
+    /// <param name="parameters">The list of parameters, must be of length 3</param>
+    /// <exception cref="ArgumentException">Thrown when parameters count is incorrect</exception>
+    public async ValueTask ExecuteAsync(params object?[] parameters)
+    {
+        if (parameters.Length != 3)
+            throw new ArgumentException("Invalid parameters count for character command");
+
+        var characterName = parameters[0] == null ? string.Empty : (string)parameters[0]!;
+        var server = (Regions?)parameters[1];
+        var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
+
+        try
+        {
+            m_Logger.LogInformation("User {UserId} used the character command", Context.Interaction.User.Id);
+            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
+            {
+                m_Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
+                    Context.Interaction.User.Id, profile);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
+
+            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
+            if (selectedProfile.LastUsedRegions != null && !server.HasValue)
+            {
+                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out var tmp);
+                server = tmp;
+            }
+
+            if (server == null)
+            {
+                m_Logger.LogInformation("User {UserId} does not have a server selected", Context.Interaction.User.Id);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
+
+            var ltoken = await m_TokenCacheService.GetCacheEntry(Context.Interaction.User.Id, selectedProfile.LtUid);
+            if (ltoken == null)
+            {
+                m_Logger.LogInformation("User {UserId} is not authenticated", Context.Interaction.User.Id);
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.Modal(AuthModalModule.AuthModal("character_auth_modal", characterName,
+                        server.Value, profile)));
+            }
+            else
+            {
+                m_Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+                await SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken, characterName,
+                    server.Value);
+            }
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .WithComponents([
+                    new TextDisplayProperties(
+                        "An error occurred while processing your request. Please try again later.")
+                ]));
+        }
     }
 
     public async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Regions server)

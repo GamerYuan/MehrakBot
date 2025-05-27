@@ -3,6 +3,7 @@
 using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
+using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
@@ -21,7 +22,6 @@ using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
-using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
 
@@ -95,15 +95,17 @@ internal class Program
                     UseCookies = false
                 });
             builder.Services.AddSingleton<GameRecordApiService>();
+            builder.Services.AddTransient<IDailyCheckInService, DailyCheckInService>();
+
+            // Genshin Services
             builder.Services
                 .AddSingleton<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>,
                     GenshinCharacterApiService>();
             builder.Services
                 .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
-            builder.Services.AddTransient<GenshinCharacterCommandService<ApplicationCommandContext>>();
-            builder.Services.AddTransient<GenshinCharacterCommandService<ModalInteractionContext>>();
-            builder.Services.AddTransient<IDailyCheckInService, DailyCheckInService>();
+            builder.Services
+                .AddTransient<ICharacterCommandService<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
 
             // LToken Services
             builder.Services.AddStackExchangeRedisCache(options =>

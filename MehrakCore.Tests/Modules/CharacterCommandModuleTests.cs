@@ -27,7 +27,7 @@ using NetCord.Services.ApplicationCommands;
 namespace MehrakCore.Tests.Modules;
 
 [Parallelizable(ParallelScope.Fixtures)]
-public class CharacterCommandModuleTests
+public class GenshinCommandModuleTests
 {
     private MongoTestHelper m_MongoTestHelper;
     private DiscordTestHelper m_DiscordTestHelper;
@@ -43,7 +43,7 @@ public class CharacterCommandModuleTests
     private Mock<ImageRepository> m_ImageRepositoryMock;
     private UserRepository m_UserRepository;
     private TokenCacheService m_TokenCacheService;
-    private GenshinCharacterCommandService<ApplicationCommandContext> m_GenshinCommandService;
+    private GenshinCharacterCommandExecutor m_GenshinCommandExecutor;
     private ServiceProvider m_ServiceProvider;
     private ApplicationCommandService<ApplicationCommandContext> m_CommandService;
 
@@ -72,7 +72,7 @@ public class CharacterCommandModuleTests
         m_DiscordTestHelper = new DiscordTestHelper(commandJson);
 
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
-        m_CommandService.AddModule<CharacterCommandModule>();
+        m_CommandService.AddModule<GenshinCommandModule>();
         await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
         // Setup mocks
@@ -110,15 +110,16 @@ public class CharacterCommandModuleTests
             new TokenCacheService(m_DistributedCacheMock.Object, Mock.Of<ILogger<TokenCacheService>>());
 
         // Create GenshinCharacterCommandService with mocked dependencies
-        m_GenshinCommandService = new GenshinCharacterCommandService<ApplicationCommandContext>(
+        m_GenshinCommandExecutor = new GenshinCharacterCommandExecutor(
             m_CharacterApiServiceMock.Object,
             m_GameRecordApiService,
             m_CharacterCardServiceMock.Object,
             m_ImageUpdaterServiceMock.Object,
             m_UserRepository,
-            NullLogger<GenshinCharacterCommandService<ApplicationCommandContext>>.Instance);
+            NullLogger<GenshinCharacterCommandExecutor>.Instance);
 
-        m_ServiceProvider = new ServiceCollection().AddSingleton(m_UserRepository).AddSingleton(m_GenshinCommandService)
+        m_ServiceProvider = new ServiceCollection().AddSingleton(m_UserRepository)
+            .AddSingleton(m_GenshinCommandExecutor)
             .AddSingleton(m_CommandService).AddSingleton(m_TokenCacheService).AddSingleton(m_RateLimitService)
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();

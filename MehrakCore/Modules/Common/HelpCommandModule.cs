@@ -20,7 +20,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         var commands = commandName.ToLowerInvariant().Split(' ');
         var helpMessage = commands[0].TrimStart('/') switch
         {
-            "character" => CharacterCommandModule.GetHelpString(),
+            "character" => GenshinCommandModule.GetHelpString(),
             "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "checkin" => DailyCheckInCommandModule.GetHelpString(),
             _ => "Available commands: \n" +

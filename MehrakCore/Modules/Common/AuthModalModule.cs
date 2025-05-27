@@ -3,9 +3,6 @@
 using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -44,19 +41,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly IDailyCheckInService m_GenshinDailyCheckInService;
-    private readonly GenshinCharacterCommandService<ModalInteractionContext> m_GenshinCharacterCommandService;
 
     public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService, IDailyCheckInService genshinDailyCheckInService,
-        GenshinCharacterCommandService<ModalInteractionContext> genshinCharacterCommandService)
+        TokenCacheService tokenCacheService)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;
         m_CookieService = cookieService;
         m_TokenCacheService = tokenCacheService;
-        m_GenshinDailyCheckInService = genshinDailyCheckInService;
-        m_GenshinCharacterCommandService = genshinCharacterCommandService;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -132,23 +124,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         Regions server, uint profile = 1)
     {
         var (success, ltuid, ltoken) = await AuthUser(profile);
-        if (success)
-        {
-            m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
-            m_GenshinCharacterCommandService.Context = Context;
-            await m_GenshinCharacterCommandService.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
-        }
+        if (success) m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
     }
 
     [ComponentInteraction("check_in_auth_modal")]
     public async Task CheckInAuth(uint profile = 1)
     {
         var (success, ltuid, ltoken) = await AuthUser(profile);
-        if (success)
-        {
-            m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
-            await m_GenshinDailyCheckInService.CheckInAsync(Context, ltuid, ltoken);
-        }
+        if (success) m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
     }
 
     private async Task<(bool, ulong, string)> AuthUser(uint profile)
