@@ -72,17 +72,28 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         return true;
     }
 
-    public static string GetHelpString()
+    public static string GetHelpString(string subcommand = "")
     {
-        return "## Character\n" +
-               "Get character card\n" +
-               "### Usage\n" +
-               "```/character character [server] [profile]```\n" +
-               "### Parameters\n" +
-               "- `character`: Character Name (Case-insensitive)\n" +
-               "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-               "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-               "### Examples\n" +
-               "```/character Escoffier\n/character Traveler America\n/character Nahida Asia 3```";
+        return subcommand switch
+        {
+            "character" => "## Genshin Character\n" +
+                           "Get character card from Genshin Impact\n" +
+                           "### Usage\n" +
+                           "```/genshin character <character> [server] [profile]```\n" +
+                           "### Parameters\n" +
+                           "- `character`: Character Name (Case-insensitive)\n" +
+                           "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                           "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                           "### Examples\n" +
+                           "```/genshin character Fischl\n/genshin character Traveler America\n/genshin character Nahida Asia 3```",
+            _ => "## Genshin Toolbox\n" +
+                 "Genshin Impact related commands and utilities.\n" +
+                 "### Usage\n" +
+                 "```/genshin [character]```\n" +
+                 "### Subcommands\n" +
+                 "- `character`: Get character card from Genshin Impact\n" +
+                 "### Examples\n" +
+                 "```/genshin character Fischl\n/help genshin character```"
+        };
     }
 }
