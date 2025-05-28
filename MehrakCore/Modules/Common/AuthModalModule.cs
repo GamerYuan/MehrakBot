@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -24,13 +23,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
         ]);
 
-    public static ModalProperties AuthModal(string modalType, params object[] parameters)
+    public static ModalProperties AuthModal(string guid, uint profile)
     {
-        // Build the custom ID by joining the type and parameters with colons
-        var customId = modalType;
-        if (parameters.Length > 0) customId += ":" + string.Join(":", parameters);
-
-        return new ModalProperties(customId, "Authenticate")
+        return new ModalProperties($"auth_modal:{guid}:{profile}", "Authenticate")
             .AddComponents([
                 new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
                     .WithPlaceholder("Your Passphrase").WithMaxLength(64)
@@ -41,14 +36,16 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
+    private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
 
     public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService)
+        TokenCacheService tokenCacheService, AuthenticationMiddlewareService authenticationMiddleware)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;
         m_CookieService = cookieService;
         m_TokenCacheService = tokenCacheService;
+        m_AuthenticationMiddleware = authenticationMiddleware;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -118,23 +115,16 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         }
     }
 
-    [ComponentInteraction("character_auth_modal")]
-    public async Task CharacterAuth(string characterName,
-        [ComponentInteractionParameter(TypeReaderType = typeof(RegionsEnumTypeReader<ModalInteractionContext>))]
-        Regions server, uint profile = 1)
+    [ComponentInteraction("auth_modal")]
+    public async Task AuthModalCallback(string guid, uint profile)
     {
-        var (success, ltuid, ltoken) = await AuthUser(profile);
-        if (success) m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
+        var authResult = await AuthenticateUser(profile);
+
+        // Notify the middleware about the authentication result
+        await m_AuthenticationMiddleware.NotifyAuthenticationCompletedAsync(guid, authResult);
     }
 
-    [ComponentInteraction("check_in_auth_modal")]
-    public async Task CheckInAuth(uint profile = 1)
-    {
-        var (success, ltuid, ltoken) = await AuthUser(profile);
-        if (success) m_Logger.LogInformation("User {UserId} successfully authenticated", Context.User.Id);
-    }
-
-    private async Task<(bool, ulong, string)> AuthUser(uint profile)
+    private async Task<AuthenticationResult> AuthenticateUser(uint profile)
     {
         try
         {
@@ -148,7 +138,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .WithComponents([new TextDisplayProperties("No profile found! Please add a profile first.")]));
-                return (false, 0, string.Empty);
+                return AuthenticationResult.Failure(Context.User.Id, "No profile found");
             }
 
             var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
@@ -159,7 +149,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             var ltoken = m_CookieService.DecryptCookie(selectedProfile.LToken, inputs["passphrase"]);
 
             await m_TokenCacheService.AddCacheEntryAsync(selectedProfile.LtUid, ltoken);
-            return (true, selectedProfile.LtUid, ltoken);
+            return AuthenticationResult.Success(Context.User.Id, selectedProfile.LtUid, ltoken);
         }
         catch (AuthenticationTagMismatchException)
         {
@@ -171,19 +161,17 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .WithComponents([new TextDisplayProperties("Invalid passphrase. Please try again.")]));
+            return AuthenticationResult.Failure(Context.User.Id, "Invalid passphrase");
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Error processing auth modal for user {UserId}", Context.User.Id);
 
-            InteractionMessageProperties responseMessage = new()
-            {
-                Content = "An error occurred",
-                Flags = MessageFlags.Ephemeral
-            };
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(
+                    new TextDisplayProperties("An error occurred during authentication. Please try again later."))));
+            return AuthenticationResult.Failure(Context.User.Id, "An error occurred during authentication");
         }
-
-        return (false, 0, string.Empty);
     }
 }

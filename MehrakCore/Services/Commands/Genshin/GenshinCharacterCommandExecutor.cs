@@ -10,13 +10,13 @@ using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
-using NetCord.Services;
+using IInteractionContext = NetCord.Services.IInteractionContext;
 
 #endregion
 
 namespace MehrakCore.Services.Commands.Genshin;
 
-public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinCommandModule>
+public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinCommandModule>, IAuthenticationListener
 {
     private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_GenshinCharacterApiService;
     private readonly GameRecordApiService m_GameRecordApiService;
@@ -25,6 +25,11 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<GenshinCharacterCommandExecutor> m_Logger;
     private readonly TokenCacheService m_TokenCacheService;
+    private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
+
+    // Fields to store pending command parameters during authentication
+    private string? m_PendingCharacterName;
+    private Regions? m_PendingServer;
 
     public IInteractionContext Context { get; set; } = null!;
 
@@ -34,7 +39,8 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
         ICharacterCardService<GenshinCharacterInformation> genshinCharacterCardService,
         GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
         ILogger<GenshinCharacterCommandExecutor> logger,
-        TokenCacheService tokenCacheService)
+        TokenCacheService tokenCacheService,
+        AuthenticationMiddlewareService authenticationMiddleware)
     {
         m_GenshinCharacterApiService = genshinCharacterApiService;
         m_GameRecordApiService = gameRecordApiService;
@@ -43,6 +49,7 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
         m_UserRepository = userRepository;
         m_Logger = logger;
         m_TokenCacheService = tokenCacheService;
+        m_AuthenticationMiddleware = authenticationMiddleware;
     }
 
     /// <summary>
@@ -92,10 +99,19 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
             var ltoken = await m_TokenCacheService.GetCacheEntry(Context.Interaction.User.Id, selectedProfile.LtUid);
             if (ltoken == null)
             {
-                m_Logger.LogInformation("User {UserId} is not authenticated", Context.Interaction.User.Id);
+                m_Logger.LogInformation("User {UserId} is not authenticated, registering with middleware",
+                    Context.Interaction.User.Id);
+
+                // Store pending command parameters
+                m_PendingCharacterName = characterName;
+                m_PendingServer = server.Value;
+
+                // Register with authentication middleware
+                var guid = m_AuthenticationMiddleware.RegisterAuthenticationListener(Context.Interaction.User.Id, this);
+
+                // Send authentication modal
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal("character_auth_modal", characterName,
-                        server.Value, profile)));
+                    InteractionCallback.Modal(AuthModalModule.AuthModal(guid, profile)));
             }
             else
             {
@@ -262,5 +278,44 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
             Regions.Sar => "os_cht",
             _ => throw new ArgumentException("Invalid server name")
         };
+    }
+
+    /// <summary>
+    /// Handles authentication completion from the middleware
+    /// </summary>
+    /// <param name="result">The authentication result</param>
+    public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    {
+        try
+        {
+            if (!result.IsSuccess)
+            {
+                m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                    result.UserId, result.ErrorMessage);
+
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent($"Authentication failed: {result.ErrorMessage}")
+                    .WithFlags(MessageFlags.Ephemeral));
+                return;
+            }
+
+            m_Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
+
+            // Proceed with the original command using stored parameters
+            if (m_PendingCharacterName != null && m_PendingServer.HasValue && result.LToken != null)
+                await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName,
+                    m_PendingServer.Value);
+            else
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent("Error: Missing required parameters for command execution")
+                    .WithFlags(MessageFlags.Ephemeral));
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithContent("An error occurred while processing your authentication")
+                .WithFlags(MessageFlags.Ephemeral));
+        }
     }
 }

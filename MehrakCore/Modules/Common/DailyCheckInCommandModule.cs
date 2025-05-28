@@ -1,7 +1,6 @@
 ﻿#region
 
 using MehrakCore.Repositories;
-using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Logging;
@@ -67,7 +66,7 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
             {
                 m_Logger.LogInformation("User {UserId} is not authenticated", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal("check_in_auth_modal", profile)));
+                    InteractionCallback.Modal(AuthModalModule.AuthModal("test", profile)));
             }
             else
             {

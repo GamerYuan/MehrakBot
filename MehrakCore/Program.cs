@@ -112,9 +112,9 @@ internal class Program
             {
                 options.Configuration = builder.Configuration["Redis:ConnectionString"];
                 options.InstanceName = "MehrakBot_";
-            });
-            builder.Services.AddSingleton<CookieService>();
+            }); builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
+            builder.Services.AddSingleton<AuthenticationMiddlewareService>();
 
             // Other Services
             // Replace memory cache with Redis for rate limiting
