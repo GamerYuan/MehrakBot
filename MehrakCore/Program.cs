@@ -4,6 +4,7 @@ using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Modules;
+using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
@@ -102,10 +103,13 @@ internal class Program
                 .AddSingleton<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>,
                     GenshinCharacterApiService>();
             builder.Services
-                .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
-            builder.Services.AddSingleton<GenshinImageUpdaterService>();
+                .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>(); builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandService<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+
+            // Daily Check-In Services
+            builder.Services
+                .AddTransient<IDailyCheckInCommandService<DailyCheckInCommandModule>, DailyCheckInCommandExecutor>();
 
             // LToken Services
             builder.Services.AddStackExchangeRedisCache(options =>
