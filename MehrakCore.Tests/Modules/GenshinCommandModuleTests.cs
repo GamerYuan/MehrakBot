@@ -29,98 +29,118 @@ namespace MehrakCore.Tests.Modules;
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCommandModuleTests
 {
-    private MongoTestHelper m_MongoTestHelper;
-    private DiscordTestHelper m_DiscordTestHelper;
-    private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
-    private Mock<IDistributedCache> m_DistributedCacheMock;
-    private Mock<IDistributedCache> m_RateLimitCacheMock;
-    private CommandRateLimitService m_RateLimitService;
-    private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiServiceMock;
-    private GameRecordApiService m_GameRecordApiService;
-    private Mock<HttpMessageHandler> m_HttpMessageHandlerMock;
-    private Mock<GenshinImageUpdaterService> m_ImageUpdaterServiceMock;
-    private Mock<ICharacterCardService<GenshinCharacterInformation>> m_CharacterCardServiceMock;
-    private Mock<ImageRepository> m_ImageRepositoryMock;
-    private UserRepository m_UserRepository;
-    private TokenCacheService m_TokenCacheService;
-    private GenshinCharacterCommandExecutor m_GenshinCommandExecutor;
-    private ServiceProvider m_ServiceProvider;
-    private ApplicationCommandService<ApplicationCommandContext> m_CommandService;
-
-    // Test constants
-    private const string GoldenImagePath = "TestData/Genshin/Assets/GoldenImage.jpg";
     private const ulong TestUserId = 123456789UL;
-    private const ulong TestLtuid = 987654321UL;
-    private const string TestLtoken = "mock_ltoken_value";
+    private const ulong TestLtUid = 987654321UL;
+    private const string TestLToken = "test_ltoken_value";
+    private const string TestGuid = "test-guid-12345";
     private const string TestCharacterName = "Traveler";
     private const string TestGameUid = "800000001";
+    private const string GoldenImagePath = "TestData/Genshin/Assets/GoldenImage.jpg";
+
+    private ApplicationCommandService<ApplicationCommandContext> m_CommandService = null!;
+    private UserRepository m_UserRepository = null!;
+    private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiMock = null!;
+    private GameRecordApiService m_GameRecordApiService = null!;
+    private Mock<ICharacterCardService<GenshinCharacterInformation>> m_CharacterCardServiceMock = null!;
+    private Mock<GenshinImageUpdaterService> m_ImageUpdaterServiceMock = null!;
+    private Mock<IDistributedCache> m_DistributedCacheMock = null!;
+    private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
+    private CommandRateLimitService m_CommandRateLimitService = null!;
+    private TokenCacheService m_TokenCacheService = null!;
+    private GenshinCharacterCommandExecutor m_GenshinCharacterCommandExecutor = null!;
+    private DiscordTestHelper m_DiscordTestHelper = null!;
+    private MongoTestHelper m_MongoTestHelper = null!;
+    private ServiceProvider m_ServiceProvider = null!;
+    private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
+    private Mock<HttpMessageHandler> m_HttpMessageHandlerMock = null!;
 
     [SetUp]
     public async Task Setup()
     {
-        // Setup MongoDB helper
+        // Initialize test helpers
+        m_DiscordTestHelper = new DiscordTestHelper();
         m_MongoTestHelper = new MongoTestHelper();
 
-        // Setup Discord helper with character command
+        // Set up command service
         var commandJson = new JsonApplicationCommand
         {
             Id = 123456789UL,
-            Name = "character",
-            Description = "Get character card",
+            Name = "genshin",
+            Description = "Genshin Toolbox",
             Type = ApplicationCommandType.ChatInput
         };
-        m_DiscordTestHelper = new DiscordTestHelper(commandJson);
 
+        m_DiscordTestHelper = new DiscordTestHelper(commandJson);
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
         m_CommandService.AddModule<GenshinCommandModule>();
         await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
-        // Setup mocks
-        SetupHttpClientMock();
+        // Create mocks for dependencies
+        m_CharacterApiMock = new Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>>();
+        m_CharacterCardServiceMock = new Mock<ICharacterCardService<GenshinCharacterInformation>>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
-        m_RateLimitCacheMock = new Mock<IDistributedCache>();
-        m_CharacterApiServiceMock = new Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>>();
-        m_ImageRepositoryMock = new Mock<ImageRepository>(MockBehavior.Strict, m_MongoTestHelper.MongoDbService,
-            NullLogger<ImageRepository>.Instance);
-        m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(MockBehavior.Loose,
-            m_ImageRepositoryMock.Object, m_HttpClientFactoryMock.Object,
-            NullLogger<GenshinImageUpdaterService>.Instance);
-        m_CharacterCardServiceMock = new Mock<ICharacterCardService<GenshinCharacterInformation>>(MockBehavior.Loose);
+        m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
 
-        // Create a real instance of GameRecordApiService with mocked HttpClientFactory
-        m_GameRecordApiService = new GameRecordApiService(m_HttpClientFactoryMock.Object,
+        // Set up authentication middleware to return TestGuid
+        m_AuthenticationMiddlewareMock.Setup(x => x.RegisterAuthenticationListener(
+                It.IsAny<ulong>(), It.IsAny<IAuthenticationListener>()))
+            .Returns(TestGuid);
+
+        var imageRepository =
+            new ImageRepository(m_MongoTestHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
+        m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(
+            imageRepository,
+            Mock.Of<IHttpClientFactory>(),
+            Mock.Of<ILogger<GenshinImageUpdaterService>>());
+
+        // Set up mocked HTTP handler and client factory
+        SetupHttpClientMock();
+
+        // Create real services with mocked dependencies
+        m_GameRecordApiService = new GameRecordApiService(
+            m_HttpClientFactoryMock.Object,
             NullLogger<GameRecordApiService>.Instance);
 
-        // Create a real instance of CommandRateLimitService with mocked dependencies
-        m_RateLimitService = new CommandRateLimitService(m_RateLimitCacheMock.Object,
+        m_TokenCacheService = new TokenCacheService(
+            m_DistributedCacheMock.Object,
+            NullLogger<TokenCacheService>.Instance);
+
+        m_CommandRateLimitService = new CommandRateLimitService(
+            m_DistributedCacheMock.Object,
             NullLogger<CommandRateLimitService>.Instance);
 
+        // Use real UserRepository with in-memory MongoDB
+        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+
+        // Set up default distributed cache behavior
+        SetupDistributedCacheMock();
+
+        // Set up character card service mock
         var imageBytes = await File.ReadAllBytesAsync(GoldenImagePath);
         m_CharacterCardServiceMock.Setup(s => s.GenerateCharacterCardAsync(
                 It.IsAny<GenshinCharacterInformation>(),
                 It.IsAny<string>()))
             .ReturnsAsync(() => new MemoryStream(imageBytes));
 
-        // Setup Distributed Cache mock for TokenCacheService
-        SetupDistributedCacheMock();
-
-        // Create real repositories and services with mocked dependencies
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
-        m_TokenCacheService =
-            new TokenCacheService(m_DistributedCacheMock.Object, Mock.Of<ILogger<TokenCacheService>>());
-
-        // Create GenshinCharacterCommandService with mocked dependencies
-        m_GenshinCommandExecutor = new GenshinCharacterCommandExecutor(
-            m_CharacterApiServiceMock.Object,
+        // Create the executor with all dependencies
+        m_GenshinCharacterCommandExecutor = new GenshinCharacterCommandExecutor(
+            m_CharacterApiMock.Object,
             m_GameRecordApiService,
             m_CharacterCardServiceMock.Object,
             m_ImageUpdaterServiceMock.Object,
             m_UserRepository,
-            NullLogger<GenshinCharacterCommandExecutor>.Instance);
+            NullLogger<GenshinCharacterCommandExecutor>.Instance,
+            m_TokenCacheService,
+            m_AuthenticationMiddlewareMock.Object
+        );
 
-        m_ServiceProvider = new ServiceCollection().AddSingleton(m_UserRepository)
-            .AddSingleton(m_GenshinCommandExecutor)
-            .AddSingleton(m_CommandService).AddSingleton(m_TokenCacheService).AddSingleton(m_RateLimitService)
+        // Set up service provider
+        m_ServiceProvider = new ServiceCollection()
+            .AddSingleton(m_CommandService)
+            .AddSingleton(m_UserRepository)
+            .AddSingleton(m_CommandRateLimitService)
+            .AddSingleton(m_TokenCacheService)
+            .AddSingleton<ICharacterCommandService<GenshinCommandModule>>(m_GenshinCharacterCommandExecutor)
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();
     }
@@ -174,49 +194,35 @@ public class GenshinCommandModuleTests
     [TearDown]
     public void TearDown()
     {
-        m_MongoTestHelper.Dispose();
-        m_DiscordTestHelper.Dispose();
         m_ServiceProvider.Dispose();
+        m_DiscordTestHelper.Dispose();
+        m_MongoTestHelper.Dispose();
     }
 
     private void SetupDistributedCacheMock()
     {
-        // Setup token cache
-        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup rate limit cache - default to no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        // Default setup - no cache entries exist initially
+        m_DistributedCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
+
+        m_DistributedCacheMock.Setup(x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        m_DistributedCacheMock.Setup(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     [Test]
     public async Task CharacterCommand_WhenRateLimited_ReturnsRateLimitMessage()
     {
-        // Arrange - Set up distributed cache to simulate rate limit
-        byte[] rateBytes = Encoding.UTF8.GetBytes("true");
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(rateBytes);
-
-        // Act
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Is.Not.Null);
-        Assert.That(response, Contains.Substring("Used command too frequent!"));
-    }
-
-    [Test]
-    public async Task CharacterCommand_WhenProfileDoesNotExist_ReturnsProfileNotFoundMessage()
-    {
-        // Arrange - Set up rate limit cache to simulate no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => null);
-
-        var user = new UserModel { Id = TestUserId }; // User with no profiles
-        await m_UserRepository.CreateOrUpdateUserAsync(user);
+        // Arrange - Set up rate limit cache to simulate rate limit
+        byte[] rateLimitData = "rate_limited"u8.ToArray();
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rateLimitData);
 
         // Act
         await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
@@ -224,53 +230,14 @@ public class GenshinCommandModuleTests
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
-        Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
+        Assert.That(response.ToLowerInvariant(), Contains.Substring("used command too frequent"));
     }
 
     [Test]
-    public async Task CharacterCommand_WhenServerNotSelected_ReturnsNoCachedServerMessage()
+    public async Task CharacterCommand_WhenUserNotFound_ReturnsUserNotFoundMessage()
     {
         // Arrange - Set up rate limit cache to simulate no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => null);
-
-        var user = new UserModel
-        {
-            Id = TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new() { ProfileId = 1, LtUid = TestLtuid } // No last used region
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(user);
-
-        // Act - No server specified
-        await ExecuteCharacterCommand(TestUserId, TestCharacterName);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("No cached server found"));
-    }
-
-    [Test]
-    public async Task CharacterCommand_WhenNotAuthenticated_ShowsAuthModal()
-    {
-        // Arrange - Set up rate limit cache to simulate no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => null);
-
-        var user = new UserModel
-        {
-            Id = TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new() { ProfileId = 1, LtUid = TestLtuid }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(user);
-
-        // Force cache miss for token
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Act
@@ -278,17 +245,57 @@ public class GenshinCommandModuleTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-
-        // Should show auth modal
         Assert.That(response, Is.Not.Null);
-        Assert.That(response.ToLowerInvariant(), Contains.Substring("character_auth_modal"));
+        Assert.That(response.ToLowerInvariant(), Contains.Substring("you do not have a profile"));
+    }
+
+    [Test]
+    public async Task CharacterCommand_WhenNoTokenCached_TriggersAuthenticationModal()
+    {
+        // Arrange - Set up rate limit cache to simulate no rate limit
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+
+        // Setup user with profile but no cached token
+        var user = new UserModel
+        {
+            Id = TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    {
+                        { GameName.Genshin, Regions.Asia }
+                    }
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+
+        // Setup distributed cache to return null (no cached token)
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+
+        // Act
+        await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
+
+        // Assert
+        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
+            TestUserId, It.IsAny<IAuthenticationListener>()), Times.Once);
+
+        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.ToLowerInvariant(), Contains.Substring("auth_modal"));
     }
 
     [Test]
     public async Task CharacterCommand_WhenAuthenticated_SendsCharacterCard()
     {
         // Arrange - Set up rate limit cache to simulate no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Setup user with profile and game UID
@@ -300,7 +307,7 @@ public class GenshinCommandModuleTests
                 new()
                 {
                     ProfileId = 1,
-                    LtUid = TestLtuid,
+                    LtUid = TestLtUid,
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
                     {
                         {
@@ -318,8 +325,8 @@ public class GenshinCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup distributed cache to return token
-        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Setup character API
@@ -354,7 +361,7 @@ public class GenshinCommandModuleTests
             }
         };
 
-        m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
+        m_CharacterApiMock.Setup(s => s.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync([
                 new GenshinBasicCharacterData
@@ -366,7 +373,7 @@ public class GenshinCommandModuleTests
                 }
             ]);
 
-        m_CharacterApiServiceMock.Setup(s => s.GetCharacterDataFromIdAsync(
+        m_CharacterApiMock.Setup(s => s.GetCharacterDataFromIdAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<uint>()))
             .ReturnsAsync(characterResponse);
 
@@ -374,10 +381,10 @@ public class GenshinCommandModuleTests
         await ExecuteCharacterCommand(TestUserId, TestCharacterName, Regions.Asia);
 
         // Assert
-        m_CharacterApiServiceMock.Verify(s => s.GetAllCharactersAsync(
+        m_CharacterApiMock.Verify(s => s.GetAllCharactersAsync(
             It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
 
-        m_CharacterApiServiceMock.Verify(s => s.GetCharacterDataFromIdAsync(
+        m_CharacterApiMock.Verify(s => s.GetCharacterDataFromIdAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<uint>()),
             Times.Once);
 
@@ -395,7 +402,7 @@ public class GenshinCommandModuleTests
     public async Task CharacterCommand_WhenNoGameUidFound_FetchesGameUidFromApi()
     {
         // Arrange - Set up rate limit cache to simulate no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Setup user with profile but no game UID
@@ -407,7 +414,7 @@ public class GenshinCommandModuleTests
                 new()
                 {
                     ProfileId = 1,
-                    LtUid = TestLtuid,
+                    LtUid = TestLtUid,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
                         { GameName.Genshin, Regions.Asia }
@@ -418,8 +425,8 @@ public class GenshinCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup distributed cache to return token
-        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Setup character API
@@ -454,7 +461,7 @@ public class GenshinCommandModuleTests
             }
         };
 
-        m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
+        m_CharacterApiMock.Setup(s => s.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync([
                 new GenshinBasicCharacterData
@@ -466,7 +473,7 @@ public class GenshinCommandModuleTests
                 }
             ]);
 
-        m_CharacterApiServiceMock.Setup(s => s.GetCharacterDataFromIdAsync(
+        m_CharacterApiMock.Setup(s => s.GetCharacterDataFromIdAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<uint>()))
             .ReturnsAsync(characterResponse);
 
@@ -478,7 +485,7 @@ public class GenshinCommandModuleTests
         var updatedUser = await m_UserRepository.GetUserAsync(TestUserId);
         Assert.That(updatedUser?.Profiles?.FirstOrDefault()?.GameUids, Is.Not.Null);
         Assert.That(updatedUser?.Profiles?.FirstOrDefault()?.GameUids, Contains.Key(GameName.Genshin));
-        Assert.That(updatedUser?.Profiles?.FirstOrDefault()?.GameUids[GameName.Genshin],
+        Assert.That(updatedUser?.Profiles?.FirstOrDefault()?.GameUids?[GameName.Genshin],
             Contains.Key(nameof(Regions.Asia)));
     }
 
@@ -486,7 +493,7 @@ public class GenshinCommandModuleTests
     public async Task CharacterCommand_WhenCharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange - Set up rate limit cache to simulate no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Setup user with profile and game UID
@@ -498,7 +505,7 @@ public class GenshinCommandModuleTests
                 new()
                 {
                     ProfileId = 1,
-                    LtUid = TestLtuid,
+                    LtUid = TestLtUid,
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
                     {
                         {
@@ -516,12 +523,12 @@ public class GenshinCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup distributed cache to return token
-        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Setup character API to return empty list (character not found)
-        m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
+        m_CharacterApiMock.Setup(s => s.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync([
                 new GenshinBasicCharacterData
@@ -545,7 +552,7 @@ public class GenshinCommandModuleTests
     public async Task CharacterCommand_WhenErrorOccurs_ReturnsErrorMessage()
     {
         // Arrange - Set up rate limit cache to simulate no rate limit
-        m_RateLimitCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Setup user with profile
@@ -557,7 +564,7 @@ public class GenshinCommandModuleTests
                 new()
                 {
                     ProfileId = 1,
-                    LtUid = TestLtuid,
+                    LtUid = TestLtUid,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
                         { GameName.Genshin, Regions.Asia }
@@ -568,12 +575,12 @@ public class GenshinCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup distributed cache to return token
-        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLtoken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtuid}", It.IsAny<CancellationToken>()))
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Force an exception in character API
-        m_CharacterApiServiceMock.Setup(s => s.GetAllCharactersAsync(
+        m_CharacterApiMock.Setup(s => s.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ThrowsAsync(new Exception("Test exception"));
 
@@ -601,10 +608,10 @@ public class GenshinCommandModuleTests
 
         if (profile != 1) parameters.Add(("profile", profile, ApplicationCommandOptionType.Integer));
 
-        // Create interaction
+        // Create interaction with the correct subcommand name
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(
             userId,
-            null,
+            "character", // This is the subcommand name
             parameters.ToArray()
         );
 
