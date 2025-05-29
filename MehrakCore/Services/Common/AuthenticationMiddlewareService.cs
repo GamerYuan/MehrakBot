@@ -33,11 +33,11 @@ public class AuthenticationResult
     public static AuthenticationResult Timeout(ulong userId)
     {
         return new AuthenticationResult
-            { IsSuccess = false, UserId = userId, ErrorMessage = "Authentication timed out" };
+        { IsSuccess = false, UserId = userId, ErrorMessage = "Authentication timed out" };
     }
 }
 
-public class AuthenticationMiddlewareService
+public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 {
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
     private readonly ConcurrentDictionary<string, AuthenticationRequest> m_PendingRequests;
