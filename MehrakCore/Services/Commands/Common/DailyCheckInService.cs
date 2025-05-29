@@ -47,7 +47,7 @@ public class DailyCheckInService : IDailyCheckInService
         var userId = context.Interaction.User.Id;
         m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
 
-        var checkInTypes = Enum.GetValues<GameName>().ToArray();
+        var checkInTypes = Enum.GetValues<GameName>();
 
         var tasks = checkInTypes.Select(async type =>
         {

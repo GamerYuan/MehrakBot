@@ -13,12 +13,12 @@ namespace MehrakCore.Modules.Common;
 
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
-    private readonly IDailyCheckInCommandService<DailyCheckInCommandModule> m_Executor;
+    private readonly IDailyCheckInCommandService m_Executor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<DailyCheckInCommandModule> m_Logger;
 
     public DailyCheckInCommandModule(
-        IDailyCheckInCommandService<DailyCheckInCommandModule> executor,
+        IDailyCheckInCommandService executor,
         CommandRateLimitService commandRateLimitService,
         ILogger<DailyCheckInCommandModule> logger)
     {

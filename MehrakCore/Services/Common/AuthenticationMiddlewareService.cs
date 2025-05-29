@@ -59,7 +59,6 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         var request = new AuthenticationRequest
         {
-            Id = guid,
             UserId = userId,
             Listener = listener,
             RequestTime = DateTime.UtcNow
@@ -126,7 +125,6 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
     private class AuthenticationRequest
     {
-        public required string Id { get; init; }
         public ulong UserId { get; init; }
         public IAuthenticationListener Listener { get; init; } = null!;
         public DateTime RequestTime { get; init; }

@@ -128,7 +128,7 @@ public class AuthenticationMiddlewareServiceTests
 
         // Use reflection to test the cleanup behavior more directly
         var guid1 = m_Service.RegisterAuthenticationListener(TestUserId, listener1Mock.Object);
-        var guid2 = m_Service.RegisterAuthenticationListener(TestUserId + 1, listener2Mock.Object);
+        _ = m_Service.RegisterAuthenticationListener(TestUserId + 1, listener2Mock.Object);
 
         // Use reflection to access the private cleanup method
         var cleanupMethod = typeof(AuthenticationMiddlewareService)
@@ -140,7 +140,7 @@ public class AuthenticationMiddlewareServiceTests
 
         if (cleanupMethod != null && pendingRequestsField != null)
         {
-            var pendingRequests = pendingRequestsField.GetValue(m_Service);
+            _ = pendingRequestsField.GetValue(m_Service);
 
             // Invoke cleanup method manually
             cleanupMethod.Invoke(m_Service, new object[] { null! });
@@ -158,7 +158,7 @@ public class AuthenticationMiddlewareServiceTests
     }
 
     [Test]
-    public async Task Constructor_ShouldInitializeCleanupTimer()
+    public void Constructor_ShouldInitializeCleanupTimer()
     {
         // Arrange & Act
         var service = new AuthenticationMiddlewareService(m_LoggerMock.Object);
@@ -217,7 +217,6 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var listeners = new List<Mock<IAuthenticationListener>>();
-        var guids = new List<string>();
 
         // Act - Register multiple listeners concurrently
         var tasks = new List<Task<string>>();
@@ -225,8 +224,9 @@ public class AuthenticationMiddlewareServiceTests
         {
             var listenerMock = new Mock<IAuthenticationListener>();
             listeners.Add(listenerMock);
+            var id = i;
             tasks.Add(Task.Run(() =>
-                m_Service.RegisterAuthenticationListener(TestUserId + (ulong)i, listenerMock.Object)));
+                m_Service.RegisterAuthenticationListener(TestUserId + (ulong)id, listenerMock.Object)));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -248,7 +248,7 @@ public class AuthenticationMiddlewareServiceTests
     public void RegisterAuthenticationListener_ShouldLogDebugMessage()
     {
         // Act
-        var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
+        _ = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
 
         // Assert
         m_LoggerMock.Verify(

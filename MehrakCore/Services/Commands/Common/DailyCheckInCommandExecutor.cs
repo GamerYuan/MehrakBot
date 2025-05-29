@@ -12,7 +12,7 @@ using IInteractionContext = NetCord.Services.IInteractionContext;
 
 namespace MehrakCore.Services.Commands.Common;
 
-public class DailyCheckInCommandExecutor : IDailyCheckInCommandService<DailyCheckInCommandModule>,
+public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
     IAuthenticationListener
 {
     private readonly IDailyCheckInService m_DailyCheckInService;

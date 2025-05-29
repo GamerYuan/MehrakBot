@@ -87,9 +87,9 @@ public class DailyCheckInCommandExecutorTests
     [TearDown]
     public void TearDown()
     {
-        m_MongoTestHelper?.Dispose();
-        m_DiscordTestHelper?.Dispose();
-        m_ServiceProvider?.Dispose();
+        m_MongoTestHelper.Dispose();
+        m_DiscordTestHelper.Dispose();
+        m_ServiceProvider.Dispose();
     }
 
     private async Task ExecuteDailyCheckInCommand(ulong userId, uint? profile = null)
@@ -131,7 +131,7 @@ public class DailyCheckInCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, null);
+        await ExecuteDailyCheckInCommand(TestUserId);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();

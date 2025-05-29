@@ -100,7 +100,7 @@ public class DailyCheckInCommandModuleTests
             .AddSingleton(m_CheckInServiceMock.Object)
             .AddSingleton(m_CommandRateLimitService)
             .AddSingleton(m_TokenCacheService)
-            .AddSingleton<IDailyCheckInCommandService<DailyCheckInCommandModule>>(executor)
+            .AddSingleton<IDailyCheckInCommandService>(executor)
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();
     }

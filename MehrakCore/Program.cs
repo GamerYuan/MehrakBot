@@ -4,7 +4,6 @@ using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Modules;
-using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
@@ -110,7 +109,7 @@ internal class Program
 
             // Daily Check-In Services
             builder.Services
-                .AddTransient<IDailyCheckInCommandService<DailyCheckInCommandModule>, DailyCheckInCommandExecutor>();
+                .AddTransient<IDailyCheckInCommandService, DailyCheckInCommandExecutor>();
 
             // LToken Services
             builder.Services.AddStackExchangeRedisCache(options =>
