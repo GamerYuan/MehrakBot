@@ -25,7 +25,7 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<GenshinCharacterCommandExecutor> m_Logger;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
 
     // Fields to store pending command parameters during authentication
     private string? m_PendingCharacterName;
@@ -37,10 +37,9 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
         ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> genshinCharacterApiService,
         GameRecordApiService gameRecordApiService,
         ICharacterCardService<GenshinCharacterInformation> genshinCharacterCardService,
-        GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
-        ILogger<GenshinCharacterCommandExecutor> logger,
+        GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository, ILogger<GenshinCharacterCommandExecutor> logger,
         TokenCacheService tokenCacheService,
-        AuthenticationMiddlewareService authenticationMiddleware)
+        IAuthenticationMiddlewareService authenticationMiddleware)
     {
         m_GenshinCharacterApiService = genshinCharacterApiService;
         m_GameRecordApiService = gameRecordApiService;

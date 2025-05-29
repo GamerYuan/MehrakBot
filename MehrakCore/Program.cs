@@ -119,6 +119,8 @@ internal class Program
             }); builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
             builder.Services.AddSingleton<AuthenticationMiddlewareService>();
+            builder.Services.AddSingleton<IAuthenticationMiddlewareService>(provider =>
+                provider.GetRequiredService<AuthenticationMiddlewareService>());
 
             // Other Services
             // Replace memory cache with Redis for rate limiting
