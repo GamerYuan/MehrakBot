@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -31,15 +32,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     .WithPlaceholder("Your Passphrase").WithMaxLength(64)
             ]);
     }
-
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly CookieService m_CookieService;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
 
     public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService, AuthenticationMiddlewareService authenticationMiddleware)
+        TokenCacheService tokenCacheService, IAuthenticationMiddlewareService authenticationMiddleware)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;
