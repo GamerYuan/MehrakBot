@@ -4,6 +4,7 @@ using System.Reflection;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NetCord.Services;
 
 #endregion
 
@@ -15,6 +16,7 @@ public class AuthenticationMiddlewareServiceTests
     private Mock<ILogger<AuthenticationMiddlewareService>> m_LoggerMock;
     private AuthenticationMiddlewareService m_Service;
     private Mock<IAuthenticationListener> m_ListenerMock;
+    private Mock<IInteractionContext> m_ContextMock;
 
     private const ulong TestUserId = 123456789UL;
     private const ulong TestLtUid = 987654321UL;
@@ -26,6 +28,7 @@ public class AuthenticationMiddlewareServiceTests
         m_LoggerMock = new Mock<ILogger<AuthenticationMiddlewareService>>();
         m_Service = new AuthenticationMiddlewareService(m_LoggerMock.Object);
         m_ListenerMock = new Mock<IAuthenticationListener>();
+        m_ContextMock = new Mock<IInteractionContext>();
     }
 
     [Test]
@@ -56,7 +59,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Service.NotifyAuthenticationCompletedAsync(guid, result);
@@ -70,7 +73,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var invalidGuid = Guid.NewGuid().ToString();
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Service.NotifyAuthenticationCompletedAsync(invalidGuid, result);
@@ -84,7 +87,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Service.NotifyAuthenticationCompletedAsync(guid, result);
@@ -99,7 +102,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         var expectedException = new InvalidOperationException("Test exception");
 
         m_ListenerMock.Setup(x => x.OnAuthenticationCompletedAsync(It.IsAny<AuthenticationResult>()))
@@ -143,14 +146,14 @@ public class AuthenticationMiddlewareServiceTests
             _ = pendingRequestsField.GetValue(m_Service);
 
             // Invoke cleanup method manually
-            cleanupMethod.Invoke(m_Service, new object[] { null! });
+            cleanupMethod.Invoke(m_Service, [null!]);
 
             // Wait a bit for async cleanup tasks to complete
             await Task.Delay(100);
         }
 
         // Test that valid GUIDs still work (not expired in the short time)
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         await m_Service.NotifyAuthenticationCompletedAsync(guid1, result);
 
         // Assert - Listener should be called since request hasn't expired
@@ -180,7 +183,7 @@ public class AuthenticationMiddlewareServiceTests
         var guid1 = m_Service.RegisterAuthenticationListener(TestUserId, listener1Mock.Object);
         var guid2 = m_Service.RegisterAuthenticationListener(TestUserId + 1, listener2Mock.Object);
 
-        var result1 = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result1 = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         var result2 = AuthenticationResult.Failure(TestUserId + 1, "Test error");
 
         // Act
@@ -200,11 +203,12 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act - Multiple concurrent notifications with the same GUID
         var tasks = new List<Task>();
-        for (int i = 0; i < 10; i++) tasks.Add(m_Service.NotifyAuthenticationCompletedAsync(guid, result));
+        for (int i = 0; i < 10; i++)
+            tasks.Add(m_Service.NotifyAuthenticationCompletedAsync(guid, result));
 
         await Task.WhenAll(tasks);
 
@@ -238,7 +242,8 @@ public class AuthenticationMiddlewareServiceTests
         // Verify all can be notified
         for (int i = 0; i < 10; i++)
         {
-            var successResult = AuthenticationResult.Success(TestUserId + (ulong)i, TestLtUid, TestLToken);
+            var successResult =
+                AuthenticationResult.Success(TestUserId + (ulong)i, TestLtUid, TestLToken, m_ContextMock.Object);
             await m_Service.NotifyAuthenticationCompletedAsync(results[i], successResult);
             listeners[i].Verify(x => x.OnAuthenticationCompletedAsync(successResult), Times.Once);
         }
@@ -266,7 +271,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Service.NotifyAuthenticationCompletedAsync(guid, result);
@@ -287,7 +292,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var invalidGuid = Guid.NewGuid().ToString();
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Service.NotifyAuthenticationCompletedAsync(invalidGuid, result);
@@ -336,7 +341,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, null!);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, null!, m_ContextMock.Object);
 
         // Act
         await m_Service.NotifyAuthenticationCompletedAsync(guid, result);
@@ -350,7 +355,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         var expectedException = new InvalidOperationException("Specific test exception");
 
         m_ListenerMock.Setup(x => x.OnAuthenticationCompletedAsync(It.IsAny<AuthenticationResult>()))
@@ -408,7 +413,8 @@ public class AuthenticationMiddlewareServiceTests
         var notifyTasks = new List<Task>();
         for (int i = 0; i < requestCount; i++)
         {
-            var result = AuthenticationResult.Success(TestUserId + (ulong)i, TestLtUid, TestLToken);
+            var result =
+                AuthenticationResult.Success(TestUserId + (ulong)i, TestLtUid, TestLToken, m_ContextMock.Object);
             notifyTasks.Add(m_Service.NotifyAuthenticationCompletedAsync(guids[i], result));
         }
 
@@ -417,5 +423,45 @@ public class AuthenticationMiddlewareServiceTests
         // Assert - All listeners should have been called exactly once
         for (int i = 0; i < requestCount; i++)
             listeners[i].Verify(x => x.OnAuthenticationCompletedAsync(It.IsAny<AuthenticationResult>()), Times.Once);
+    }
+
+    [Test]
+    public async Task NotifyAuthenticationCompletedAsync_WithNullContext_ShouldStillCallListener()
+    {
+        // Arrange
+        var guid = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, null!);
+
+        // Act
+        await m_Service.NotifyAuthenticationCompletedAsync(guid, result);
+
+        // Assert
+        m_ListenerMock.Verify(x => x.OnAuthenticationCompletedAsync(result), Times.Once);
+    }
+
+    [Test]
+    public async Task NotifyAuthenticationCompletedAsync_WithDifferentContexts_ShouldPassCorrectContext()
+    {
+        // Arrange
+        var contextMock1 = new Mock<IInteractionContext>();
+        var contextMock2 = new Mock<IInteractionContext>();
+
+        var guid1 = m_Service.RegisterAuthenticationListener(TestUserId, m_ListenerMock.Object);
+        var guid2 = m_Service.RegisterAuthenticationListener(TestUserId + 1, m_ListenerMock.Object);
+
+        var result1 = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, contextMock1.Object);
+        var result2 = AuthenticationResult.Success(TestUserId + 1, TestLtUid, TestLToken, contextMock2.Object);
+
+        // Act
+        await m_Service.NotifyAuthenticationCompletedAsync(guid1, result1);
+        await m_Service.NotifyAuthenticationCompletedAsync(guid2, result2);
+
+        // Assert
+        m_ListenerMock.Verify(x => x.OnAuthenticationCompletedAsync(result1), Times.Once);
+        m_ListenerMock.Verify(x => x.OnAuthenticationCompletedAsync(result2), Times.Once);
+
+        // Verify that the results contain the correct contexts
+        Assert.That(result1.Context, Is.EqualTo(contextMock1.Object));
+        Assert.That(result2.Context, Is.EqualTo(contextMock2.Object));
     }
 }

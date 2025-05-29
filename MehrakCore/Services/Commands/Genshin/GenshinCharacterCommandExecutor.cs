@@ -25,9 +25,7 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<GenshinCharacterCommandExecutor> m_Logger;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
-
-    // Fields to store pending command parameters during authentication
+    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;    // Fields to store pending command parameters during authentication
     private string? m_PendingCharacterName;
     private Regions? m_PendingServer;
 
@@ -216,10 +214,65 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
         var properties =
             await GenerateCharacterCardResponseAsync((uint)character.Id!.Value, ltuid, ltoken, gameUid, region);
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-            .WithFlags(MessageFlags.IsComponentsV2)
+            .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
             .AddComponents(new TextDisplayProperties("Command execution completed")));
         var followup = Context.Interaction.SendFollowupMessageAsync(properties);
         await Task.WhenAll(followup, updateUser);
+    }    /// <summary>
+         /// Handles authentication completion from the middleware
+         /// </summary>
+         /// <param name="result">The authentication result</param>
+    public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    {
+        try
+        {
+            if (!result.IsSuccess)
+            {
+                m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                    result.UserId, result.ErrorMessage);
+                if (Context.Interaction != null)
+                {
+                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                        .WithContent($"Authentication failed: {result.ErrorMessage}")
+                        .WithFlags(MessageFlags.Ephemeral));
+                }
+                return;
+            }
+
+            // Update context if available
+            if (result.Context != null)
+            {
+                Context = result.Context;
+            }
+
+            // Check if we have the required pending parameters
+            if (string.IsNullOrEmpty(m_PendingCharacterName) || !m_PendingServer.HasValue)
+            {
+                m_Logger.LogWarning("Missing required parameters for command execution for user {UserId}", result.UserId);
+                if (Context.Interaction != null)
+                {
+                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                        .WithContent("Error: Missing required parameters for command execution")
+                        .WithFlags(MessageFlags.Ephemeral));
+                }
+                return;
+            }
+
+            m_Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
+
+            await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName,
+                m_PendingServer.Value);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
+            if (Context?.Interaction != null)
+            {
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent("An error occurred while processing your authentication")
+                    .WithFlags(MessageFlags.Ephemeral));
+            }
+        }
     }
 
     private async Task<InteractionMessageProperties> GenerateCharacterCardResponseAsync(uint characterId, ulong ltuid,
@@ -278,44 +331,5 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
             Regions.Sar => "os_cht",
             _ => throw new ArgumentException("Invalid server name")
         };
-    }
-
-    /// <summary>
-    /// Handles authentication completion from the middleware
-    /// </summary>
-    /// <param name="result">The authentication result</param>
-    public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
-    {
-        try
-        {
-            if (!result.IsSuccess)
-            {
-                m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
-                    result.UserId, result.ErrorMessage);
-
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent($"Authentication failed: {result.ErrorMessage}")
-                    .WithFlags(MessageFlags.Ephemeral));
-                return;
-            }
-
-            m_Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
-
-            // Proceed with the original command using stored parameters
-            if (m_PendingCharacterName != null && m_PendingServer.HasValue && result.LToken != null)
-                await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName,
-                    m_PendingServer.Value);
-            else
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent("Error: Missing required parameters for command execution")
-                    .WithFlags(MessageFlags.Ephemeral));
-        }
-        catch (Exception ex)
-        {
-            m_Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithContent("An error occurred while processing your authentication")
-                .WithFlags(MessageFlags.Ephemeral));
-        }
     }
 }

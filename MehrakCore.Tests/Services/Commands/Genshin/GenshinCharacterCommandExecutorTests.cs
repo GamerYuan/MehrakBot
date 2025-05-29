@@ -457,9 +457,8 @@ public class GenshinCharacterCommandExecutorTests
 
     [Test]
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationSucceedsButMissingParameters_SendsErrorMessage()
-    {
-        // Arrange
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+    {        // Arrange
+        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         // No pending parameters set
 
         // Act
@@ -532,15 +531,13 @@ public class GenshinCharacterCommandExecutorTests
             .ReturnsAsync(new MemoryStream(new byte[100]));
 
         // First call ExecuteAsync to set pending parameters (no token so will show auth modal)
-        await m_Executor.ExecuteAsync(characterName, server, 1u);
-
-        // Clear the captured request from ExecuteAsync
+        await m_Executor.ExecuteAsync(characterName, server, 1u);        // Clear the captured request from ExecuteAsync
         m_DiscordTestHelper.ClearCapturedRequests();
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult); // Assert
+        await m_Executor.OnAuthenticationCompletedAsync(authResult);// Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
 
@@ -552,9 +549,9 @@ public class GenshinCharacterCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenExceptionOccurs_SendsErrorMessage()
     {
         // Arrange
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
-        // Create a user in the database 
+        // Create a user in the database
         var testUser = new UserModel
         {
             Id = TestUserId,
@@ -759,7 +756,7 @@ public class GenshinCharacterCommandExecutorTests
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
-                    { List = new List<GenshinCharacterInformation>(), AvatarWiki = new Dictionary<string, string>() }
+                { List = new List<GenshinCharacterInformation>(), AvatarWiki = new Dictionary<string, string>() }
             });
 
         // Act

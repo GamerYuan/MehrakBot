@@ -297,7 +297,7 @@ public class DailyCheckInCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulResult_ShouldCallCheckInService()
     {
         // Arrange
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, Mock.Of<IInteractionContext>());
 
         // Set up pending profile by calling ExecuteAsync first
         var user = new UserModel

@@ -119,10 +119,20 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
                 m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                     result.UserId, result.ErrorMessage);
 
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent($"Authentication failed: {result.ErrorMessage}")
-                    .WithFlags(MessageFlags.Ephemeral));
+                // Send error message to user if context is available
+                if (Context.Interaction != null)
+                {
+                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                        .WithContent($"Authentication failed: {result.ErrorMessage}")
+                        .WithFlags(MessageFlags.Ephemeral));
+                }
                 return;
+            }
+
+            // Update context if available
+            if (result.Context != null)
+            {
+                Context = result.Context;
             }
 
             m_Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
