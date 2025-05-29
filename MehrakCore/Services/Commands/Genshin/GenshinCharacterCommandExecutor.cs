@@ -37,7 +37,8 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
         ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> genshinCharacterApiService,
         GameRecordApiService gameRecordApiService,
         ICharacterCardService<GenshinCharacterInformation> genshinCharacterCardService,
-        GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository, ILogger<GenshinCharacterCommandExecutor> logger,
+        GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
+        ILogger<GenshinCharacterCommandExecutor> logger,
         TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware)
     {

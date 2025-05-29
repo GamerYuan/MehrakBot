@@ -4,7 +4,6 @@ using System.Text;
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
-using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Common;
@@ -20,7 +19,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Tests.Modules;
+namespace MehrakCore.Tests.Modules.Common;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class DailyCheckInCommandModuleTests
@@ -64,7 +63,9 @@ public class DailyCheckInCommandModuleTests
         await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
         // Set up real repository
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);        // Set up mocks for dependencies
+        m_UserRepository =
+            new UserRepository(m_MongoTestHelper.MongoDbService,
+                NullLogger<UserRepository>.Instance); // Set up mocks for dependencies
         m_CheckInServiceMock = new Mock<IDailyCheckInService>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
@@ -92,7 +93,7 @@ public class DailyCheckInCommandModuleTests
             m_UserRepository,
             m_TokenCacheService,
             m_AuthenticationMiddlewareMock.Object,
-            NullLogger<DailyCheckInCommandExecutor>.Instance);        // Set up service provider
+            NullLogger<DailyCheckInCommandExecutor>.Instance); // Set up service provider
         m_ServiceProvider = new ServiceCollection()
             .AddSingleton(m_CommandService)
             .AddSingleton(m_UserRepository)
@@ -107,11 +108,13 @@ public class DailyCheckInCommandModuleTests
     private void SetupDistributedCacheMock()
     {
         // Setup rate limit cache - default to no rate limit (null return)
-        m_DistributedCacheMock.Setup(x => x.GetAsync(It.Is<string>(key => key.StartsWith("RateLimit_")), It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("RateLimit_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
 
         // Setup token cache - default to no token (null return)
-        m_DistributedCacheMock.Setup(x => x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
     }
 
@@ -240,7 +243,9 @@ public class DailyCheckInCommandModuleTests
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Extract interaction response data
-        var responseData = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();        // Verify the response contains authentication modal info
+        var responseData =
+            await m_DiscordTestHelper
+                .ExtractInteractionResponseDataAsync(); // Verify the response contains authentication modal info
         Assert.That(responseData, Is.Not.Null);
         Assert.That(responseData, Contains.Substring("auth_modal:test-guid-12345:1"));
     }

@@ -103,7 +103,8 @@ internal class Program
                 .AddSingleton<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>,
                     GenshinCharacterApiService>();
             builder.Services
-                .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>(); builder.Services.AddSingleton<GenshinImageUpdaterService>();
+                .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
+            builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandService<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
 
@@ -116,7 +117,8 @@ internal class Program
             {
                 options.Configuration = builder.Configuration["Redis:ConnectionString"];
                 options.InstanceName = "MehrakBot_";
-            }); builder.Services.AddSingleton<CookieService>();
+            });
+            builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
             builder.Services.AddSingleton<AuthenticationMiddlewareService>();
             builder.Services.AddSingleton<IAuthenticationMiddlewareService>(provider =>

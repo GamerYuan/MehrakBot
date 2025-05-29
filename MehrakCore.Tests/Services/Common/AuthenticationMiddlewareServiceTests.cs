@@ -1,12 +1,13 @@
 #region
 
+using System.Reflection;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Logging;
 using Moq;
 
 #endregion
 
-namespace MehrakCore.Tests.Services;
+namespace MehrakCore.Tests.Services.Common;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class AuthenticationMiddlewareServiceTests
@@ -117,6 +118,7 @@ public class AuthenticationMiddlewareServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
     [Test]
     public async Task CleanupExpiredRequests_ShouldNotifyTimeoutForExpiredRequests()
     {
@@ -130,11 +132,11 @@ public class AuthenticationMiddlewareServiceTests
 
         // Use reflection to access the private cleanup method
         var cleanupMethod = typeof(AuthenticationMiddlewareService)
-            .GetMethod("CleanupExpiredRequests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            .GetMethod("CleanupExpiredRequests", BindingFlags.NonPublic | BindingFlags.Instance);
 
         // Access the private field to modify request times to simulate expiration
         var pendingRequestsField = typeof(AuthenticationMiddlewareService)
-            .GetField("m_PendingRequests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            .GetField("m_PendingRequests", BindingFlags.NonPublic | BindingFlags.Instance);
 
         if (cleanupMethod != null && pendingRequestsField != null)
         {
@@ -202,10 +204,7 @@ public class AuthenticationMiddlewareServiceTests
 
         // Act - Multiple concurrent notifications with the same GUID
         var tasks = new List<Task>();
-        for (int i = 0; i < 10; i++)
-        {
-            tasks.Add(m_Service.NotifyAuthenticationCompletedAsync(guid, result));
-        }
+        for (int i = 0; i < 10; i++) tasks.Add(m_Service.NotifyAuthenticationCompletedAsync(guid, result));
 
         await Task.WhenAll(tasks);
 
@@ -226,7 +225,8 @@ public class AuthenticationMiddlewareServiceTests
         {
             var listenerMock = new Mock<IAuthenticationListener>();
             listeners.Add(listenerMock);
-            tasks.Add(Task.Run(() => m_Service.RegisterAuthenticationListener(TestUserId + (ulong)i, listenerMock.Object)));
+            tasks.Add(Task.Run(() =>
+                m_Service.RegisterAuthenticationListener(TestUserId + (ulong)i, listenerMock.Object)));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -416,8 +416,6 @@ public class AuthenticationMiddlewareServiceTests
 
         // Assert - All listeners should have been called exactly once
         for (int i = 0; i < requestCount; i++)
-        {
             listeners[i].Verify(x => x.OnAuthenticationCompletedAsync(It.IsAny<AuthenticationResult>()), Times.Once);
-        }
     }
 }

@@ -12,7 +12,8 @@ using IInteractionContext = NetCord.Services.IInteractionContext;
 
 namespace MehrakCore.Services.Commands.Common;
 
-public class DailyCheckInCommandExecutor : IDailyCheckInCommandService<DailyCheckInCommandModule>, IAuthenticationListener
+public class DailyCheckInCommandExecutor : IDailyCheckInCommandService<DailyCheckInCommandModule>,
+    IAuthenticationListener
 {
     private readonly IDailyCheckInService m_DailyCheckInService;
     private readonly UserRepository m_UserRepository;
@@ -23,7 +24,9 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService<DailyChec
     // Fields to store pending command parameters during authentication
     private uint? m_PendingProfile;
 
-    public IInteractionContext Context { get; set; } = null!; public DailyCheckInCommandExecutor(
+    public IInteractionContext Context { get; set; } = null!;
+
+    public DailyCheckInCommandExecutor(
         IDailyCheckInService dailyCheckInService,
         UserRepository userRepository,
         TokenCacheService tokenCacheService,
@@ -92,7 +95,8 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService<DailyChec
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error processing daily check-in command for user {UserId}", Context.Interaction.User.Id);
+            m_Logger.LogError(e, "Error processing daily check-in command for user {UserId}",
+                Context.Interaction.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .WithComponents([

@@ -13,7 +13,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Tests.Modules;
+namespace MehrakCore.Tests.Modules.Common;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class ProfileCommandModuleTests

@@ -18,7 +18,7 @@ using NetCord.Services.ComponentInteractions;
 
 #endregion
 
-namespace MehrakCore.Tests.Modules;
+namespace MehrakCore.Tests.Modules.Common;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class AuthModalModuleTests

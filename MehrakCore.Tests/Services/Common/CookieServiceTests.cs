@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 #endregion
 
-namespace MehrakCore.Tests.Services;
+namespace MehrakCore.Tests.Services.Common;
 
 [Parallelizable(ParallelScope.Fixtures | ParallelScope.Children)]
 public class CookieServiceTests

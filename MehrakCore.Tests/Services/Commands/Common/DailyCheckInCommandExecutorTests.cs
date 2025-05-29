@@ -19,7 +19,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Tests.Services;
+namespace MehrakCore.Tests.Services.Commands.Common;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class DailyCheckInCommandExecutorTests
@@ -62,7 +62,8 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup mocks and real services
         m_DailyCheckInServiceMock = new Mock<IDailyCheckInService>();
-        m_DistributedCacheMock = new Mock<IDistributedCache>(); m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
+        m_DistributedCacheMock = new Mock<IDistributedCache>();
+        m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
         m_LoggerMock = new Mock<ILogger<DailyCheckInCommandExecutor>>();
 
         // Create real instances
@@ -214,21 +215,23 @@ public class DailyCheckInCommandExecutorTests
                 new() { ProfileId = 1, LtUid = TestLtUid }
             }
         };
-        await m_UserRepository.CreateOrUpdateUserAsync(user);        // Setup token cache to return null (no cached token)
+        await m_UserRepository.CreateOrUpdateUserAsync(user); // Setup token cache to return null (no cached token)
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
 
-        m_AuthenticationMiddlewareMock.Setup(x => x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()))
+        m_AuthenticationMiddlewareMock.Setup(x =>
+                x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()))
             .Returns(TestGuid);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);        // Assert
+        await ExecuteDailyCheckInCommand(TestUserId, 1u); // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         // Should receive an authentication modal with the expected structure
         Assert.That(response, Contains.Substring("auth_modal:test-guid-12345:1"));
         Assert.That(response, Contains.Substring("Authenticate"));
         Assert.That(response, Contains.Substring("passphrase"));
-        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()),
+        m_AuthenticationMiddlewareMock.Verify(
+            x => x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()),
             Times.Once);
     }
 
@@ -305,9 +308,11 @@ public class DailyCheckInCommandExecutorTests
                 new() { ProfileId = 1, LtUid = TestLtUid }
             }
         };
-        await m_UserRepository.CreateOrUpdateUserAsync(user); m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
-        m_AuthenticationMiddlewareMock.Setup(x => x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()))
+        m_AuthenticationMiddlewareMock.Setup(x =>
+                x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()))
             .Returns(TestGuid);
 
         await ExecuteDailyCheckInCommand(TestUserId, 1u); // This sets m_PendingProfile

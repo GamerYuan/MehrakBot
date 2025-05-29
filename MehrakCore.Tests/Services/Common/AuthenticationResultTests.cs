@@ -4,7 +4,7 @@ using MehrakCore.Services.Common;
 
 #endregion
 
-namespace MehrakCore.Tests.Services;
+namespace MehrakCore.Tests.Services.Common;
 
 [Parallelizable(ParallelScope.Fixtures | ParallelScope.Children)]
 public class AuthenticationResultTests

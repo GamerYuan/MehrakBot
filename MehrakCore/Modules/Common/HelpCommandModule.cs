@@ -1,6 +1,5 @@
 ﻿#region
 
-using MehrakCore.Modules;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;

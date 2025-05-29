@@ -26,6 +26,7 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
     }
+
     [SlashCommand("checkin", "Perform HoYoLAB Daily Check-In")]
     public async Task DailyCheckInCommand(
         [SlashCommandParameter(Name = "profile", Description = "Profile ID (Defaults to 1)")]

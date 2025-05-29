@@ -2,7 +2,6 @@
 
 using System.Net;
 using System.Text.Json.Nodes;
-using MehrakCore.Services;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
@@ -13,7 +12,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Tests.Services;
+namespace MehrakCore.Tests.Services.Commands.Common;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class DailyCheckInServiceTests

@@ -11,7 +11,7 @@ using Moq;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Genshin;
+namespace MehrakCore.Tests.Services.Commands.Genshin;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinImageUpdaterServiceTests

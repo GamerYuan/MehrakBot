@@ -1,7 +1,6 @@
 #region
 
 using System.Text;
-using MehrakCore.Services;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,7 +10,7 @@ using Moq;
 
 #endregion
 
-namespace MehrakCore.Tests.Services;
+namespace MehrakCore.Tests.Services.Common;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class TokenCacheServiceTests

@@ -23,7 +23,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Genshin;
+namespace MehrakCore.Tests.Services.Commands.Genshin;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCharacterCommandExecutorTests
@@ -138,6 +138,7 @@ public class GenshinCharacterCommandExecutorTests
     }
 
     #region ExecuteAsync Tests
+
     [Test]
     public void ExecuteAsync_WhenParametersCountInvalid_ThrowsArgumentException()
     {
@@ -356,7 +357,7 @@ public class GenshinCharacterCommandExecutorTests
             });
 
         m_CharacterCardServiceMock.Setup(x => x.GenerateCharacterCardAsync(characterInfo, "800800800"))
-            .ReturnsAsync(new MemoryStream(new byte[100]));        // Act
+            .ReturnsAsync(new MemoryStream(new byte[100])); // Act
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
@@ -366,13 +367,14 @@ public class GenshinCharacterCommandExecutorTests
         // Verify character card was generated
         m_CharacterCardServiceMock.Verify(x => x.GenerateCharacterCardAsync(characterInfo, "800800800"), Times.Once);
     }
+
     [Test]
     public async Task ExecuteAsync_WhenExceptionOccurs_SendsErrorMessage()
     {
         // Arrange
         const string characterName = "Traveler";
         const Regions server = Regions.Asia;
-        const uint profile = 1;        // Create a user with a profile to avoid the "no profile" path
+        const uint profile = 1; // Create a user with a profile to avoid the "no profile" path
         var testUser = new UserModel
         {
             Id = TestUserId,
@@ -404,9 +406,11 @@ public class GenshinCharacterCommandExecutorTests
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("An error occurred while processing your request"));
     }
+
     [Test]
     public async Task ExecuteAsync_WithNullParameters_HandlesGracefully()
-    {        // Arrange - Create a user with a profile so the null parameters flow can trigger authentication modal
+    {
+        // Arrange - Create a user with a profile so the null parameters flow can trigger authentication modal
         var testUser = new UserModel
         {
             Id = TestUserId,
@@ -536,13 +540,14 @@ public class GenshinCharacterCommandExecutorTests
         var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken);
 
         // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);        // Assert
+        await m_Executor.OnAuthenticationCompletedAsync(authResult); // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
 
         // Verify character card was generated
         m_CharacterCardServiceMock.Verify(x => x.GenerateCharacterCardAsync(characterInfo, "800800800"), Times.Once);
     }
+
     [Test]
     public async Task OnAuthenticationCompletedAsync_WhenExceptionOccurs_SendsErrorMessage()
     {
@@ -754,7 +759,7 @@ public class GenshinCharacterCommandExecutorTests
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
-                { List = new List<GenshinCharacterInformation>(), AvatarWiki = new Dictionary<string, string>() }
+                    { List = new List<GenshinCharacterInformation>(), AvatarWiki = new Dictionary<string, string>() }
             });
 
         // Act

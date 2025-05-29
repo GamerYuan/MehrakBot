@@ -33,7 +33,7 @@ public class AuthenticationResult
     public static AuthenticationResult Timeout(ulong userId)
     {
         return new AuthenticationResult
-        { IsSuccess = false, UserId = userId, ErrorMessage = "Authentication timed out" };
+            { IsSuccess = false, UserId = userId, ErrorMessage = "Authentication timed out" };
     }
 }
 
