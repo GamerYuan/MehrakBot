@@ -22,7 +22,7 @@ public class ImageExtensionsTest
         image.Mutate(ctx => ctx.Clear(Color.Red));
 
         // Act
-        image.Mutate(ctx => ctx.ApplyGradientFade(0.75f));
+        image.Mutate(ctx => ctx.ApplyGradientFade());
 
         // Assert
         Assert.Multiple(() =>

@@ -9,11 +9,6 @@ using MongoDB.Bson.Serialization.Options;
 
 namespace MehrakCore.Models;
 
-public enum GameName
-{
-    Genshin
-}
-
 public class UserModel
 {
     [BsonId] public ulong Id { get; set; }
