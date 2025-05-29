@@ -17,19 +17,17 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService<DailyChec
     private readonly IDailyCheckInService m_DailyCheckInService;
     private readonly UserRepository m_UserRepository;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ILogger<DailyCheckInCommandExecutor> m_Logger;
 
     // Fields to store pending command parameters during authentication
     private uint? m_PendingProfile;
 
-    public IInteractionContext Context { get; set; } = null!;
-
-    public DailyCheckInCommandExecutor(
+    public IInteractionContext Context { get; set; } = null!; public DailyCheckInCommandExecutor(
         IDailyCheckInService dailyCheckInService,
         UserRepository userRepository,
         TokenCacheService tokenCacheService,
-        AuthenticationMiddlewareService authenticationMiddleware,
+        IAuthenticationMiddlewareService authenticationMiddleware,
         ILogger<DailyCheckInCommandExecutor> logger)
     {
         m_DailyCheckInService = dailyCheckInService;

@@ -6,6 +6,7 @@ using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Caching.Distributed;
@@ -27,16 +28,18 @@ public class DailyCheckInCommandModuleTests
     private const ulong TestUserId = 123456789UL;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
+    private const string TestGuid = "test-guid-12345";
 
-    private ApplicationCommandService<ApplicationCommandContext> m_CommandService;
-    private UserRepository m_UserRepository;
-    private Mock<IDailyCheckInService> m_CheckInServiceMock;
-    private Mock<IDistributedCache> m_DistributedCacheMock;
-    private CommandRateLimitService m_RateLimitService;
-    private TokenCacheService m_TokenCacheService;
-    private DiscordTestHelper m_DiscordTestHelper;
-    private MongoTestHelper m_MongoTestHelper;
-    private ServiceProvider m_ServiceProvider;
+    private ApplicationCommandService<ApplicationCommandContext> m_CommandService = null!;
+    private UserRepository m_UserRepository = null!;
+    private Mock<IDailyCheckInService> m_CheckInServiceMock = null!;
+    private Mock<IDistributedCache> m_DistributedCacheMock = null!;
+    private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
+    private CommandRateLimitService m_CommandRateLimitService = null!;
+    private TokenCacheService m_TokenCacheService = null!;
+    private DiscordTestHelper m_DiscordTestHelper = null!;
+    private MongoTestHelper m_MongoTestHelper = null!;
+    private ServiceProvider m_ServiceProvider = null!;
 
     [SetUp]
     public async Task Setup()
@@ -61,14 +64,21 @@ public class DailyCheckInCommandModuleTests
         await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
         // Set up real repository
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
-
-        // Set up mocks for dependencies
+        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);        // Set up mocks for dependencies
         m_CheckInServiceMock = new Mock<IDailyCheckInService>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
+        m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
+
+        // Set up authentication middleware to return TestGuid
+        m_AuthenticationMiddlewareMock.Setup(x => x.RegisterAuthenticationListener(
+                It.IsAny<ulong>(), It.IsAny<IAuthenticationListener>()))
+            .Returns(TestGuid);
+
+        // Set up default cache behavior for rate limiting (no rate limit by default)
+        SetupDistributedCacheMock();
 
         // Create real services with mocked cache
-        m_RateLimitService = new CommandRateLimitService(
+        m_CommandRateLimitService = new CommandRateLimitService(
             m_DistributedCacheMock.Object,
             NullLogger<CommandRateLimitService>.Instance);
 
@@ -76,15 +86,33 @@ public class DailyCheckInCommandModuleTests
             m_DistributedCacheMock.Object,
             NullLogger<TokenCacheService>.Instance);
 
-        // Set up service provider
+        // Create the executor
+        var executor = new DailyCheckInCommandExecutor(
+            m_CheckInServiceMock.Object,
+            m_UserRepository,
+            m_TokenCacheService,
+            m_AuthenticationMiddlewareMock.Object,
+            NullLogger<DailyCheckInCommandExecutor>.Instance);        // Set up service provider
         m_ServiceProvider = new ServiceCollection()
             .AddSingleton(m_CommandService)
             .AddSingleton(m_UserRepository)
             .AddSingleton(m_CheckInServiceMock.Object)
-            .AddSingleton(m_RateLimitService)
+            .AddSingleton(m_CommandRateLimitService)
             .AddSingleton(m_TokenCacheService)
+            .AddSingleton<IDailyCheckInCommandService<DailyCheckInCommandModule>>(executor)
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();
+    }
+
+    private void SetupDistributedCacheMock()
+    {
+        // Setup rate limit cache - default to no rate limit (null return)
+        m_DistributedCacheMock.Setup(x => x.GetAsync(It.Is<string>(key => key.StartsWith("RateLimit_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+
+        // Setup token cache - default to no token (null return)
+        m_DistributedCacheMock.Setup(x => x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
     }
 
     [TearDown]
@@ -212,11 +240,9 @@ public class DailyCheckInCommandModuleTests
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Extract interaction response data
-        var responseData = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-
-        // Verify the response contains authentication modal info
+        var responseData = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();        // Verify the response contains authentication modal info
         Assert.That(responseData, Is.Not.Null);
-        Assert.That(responseData, Contains.Substring("check_in_auth_modal"));
+        Assert.That(responseData, Contains.Substring("auth_modal:test-guid-12345:1"));
     }
 
     [Test]
