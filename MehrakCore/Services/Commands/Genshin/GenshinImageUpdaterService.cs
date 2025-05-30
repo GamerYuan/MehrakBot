@@ -17,7 +17,6 @@ namespace MehrakCore.Services.Commands.Genshin;
 
 public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterInformation>
 {
-    private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/genshin/wapi/entry_page";
     private const string BaseString = "genshin_{0}";
     private const int StandardImageSize = 1280;
 
@@ -30,13 +29,14 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     }
 
     public override async Task UpdateDataAsync(GenshinCharacterInformation characterInformation,
-        IReadOnlyDictionary<string, string> avatarWiki)
+        IEnumerable<Dictionary<string, string>> wiki)
     {
         Logger.LogInformation("Starting image update process for character {CharacterName}, ID: {CharacterId}",
             characterInformation.Base.Name, characterInformation.Base.Id);
         List<Task> tasks = [];
 
         var id = characterInformation.Base.Id;
+        var avatarWiki = wiki.First();
 
         if (id != null)
         {

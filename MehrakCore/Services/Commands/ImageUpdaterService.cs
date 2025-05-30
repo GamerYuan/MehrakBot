@@ -14,6 +14,8 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
     protected readonly IHttpClientFactory HttpClientFactory;
     protected readonly ILogger<ImageUpdaterService<T>> Logger;
 
+    protected const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/genshin/wapi/entry_page";
+
     protected ImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<T>> logger)
     {
@@ -22,5 +24,5 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
         Logger = logger;
     }
 
-    public abstract Task UpdateDataAsync(T characterInformation, IReadOnlyDictionary<string, string> avatarWiki);
+    public abstract Task UpdateDataAsync(T characterInformation, IEnumerable<Dictionary<string, string>> wiki);
 }

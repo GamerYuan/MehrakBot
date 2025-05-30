@@ -25,7 +25,10 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<GenshinCharacterCommandExecutor> m_Logger;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;    // Fields to store pending command parameters during authentication
+
+    private readonly IAuthenticationMiddlewareService
+        m_AuthenticationMiddleware; // Fields to store pending command parameters during authentication
+
     private string? m_PendingCharacterName;
     private Regions? m_PendingServer;
 
@@ -218,10 +221,12 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
             .AddComponents(new TextDisplayProperties("Command execution completed")));
         var followup = Context.Interaction.SendFollowupMessageAsync(properties);
         await Task.WhenAll(followup, updateUser);
-    }    /// <summary>
-         /// Handles authentication completion from the middleware
-         /// </summary>
-         /// <param name="result">The authentication result</param>
+    }
+
+    /// <summary>
+    /// Handles authentication completion from the middleware
+    /// </summary>
+    /// <param name="result">The authentication result</param>
     public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
         try
@@ -230,31 +235,23 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
             {
                 m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                     result.UserId, result.ErrorMessage);
-                if (Context.Interaction != null)
-                {
-                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                        .WithContent($"Authentication failed: {result.ErrorMessage}")
-                        .WithFlags(MessageFlags.Ephemeral));
-                }
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent($"Authentication failed: {result.ErrorMessage}")
+                    .WithFlags(MessageFlags.Ephemeral));
                 return;
             }
 
             // Update context if available
-            if (result.Context != null)
-            {
-                Context = result.Context;
-            }
+            if (result.Context != null) Context = result.Context;
 
             // Check if we have the required pending parameters
             if (string.IsNullOrEmpty(m_PendingCharacterName) || !m_PendingServer.HasValue)
             {
-                m_Logger.LogWarning("Missing required parameters for command execution for user {UserId}", result.UserId);
-                if (Context.Interaction != null)
-                {
-                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                        .WithContent("Error: Missing required parameters for command execution")
-                        .WithFlags(MessageFlags.Ephemeral));
-                }
+                m_Logger.LogWarning("Missing required parameters for command execution for user {UserId}",
+                    result.UserId);
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent("Error: Missing required parameters for command execution")
+                    .WithFlags(MessageFlags.Ephemeral));
                 return;
             }
 
@@ -267,11 +264,9 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
         {
             m_Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
             if (Context?.Interaction != null)
-            {
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithContent("An error occurred while processing your authentication")
                     .WithFlags(MessageFlags.Ephemeral));
-            }
         }
     }
 
@@ -303,7 +298,7 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
 
         var characterInfo = characterDetail.List[0];
 
-        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
+        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, [characterDetail.AvatarWiki]);
 
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
