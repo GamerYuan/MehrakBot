@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Commands.Hsr;
 
-public class HsrCharacterApiService : ICharacterApi<HsrCharacterInformation, HsrCharacterInformation>
+public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrCharacterApiService> m_Logger;
@@ -23,7 +23,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrCharacterInformation, Hsr
         m_Logger = logger;
     }
 
-    public async Task<IEnumerable<HsrCharacterInformation>> GetAllCharactersAsync(ulong uid, string ltoken,
+    public async Task<IEnumerable<HsrBasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken,
         string gameUid,
         string region)
     {
@@ -54,7 +54,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrCharacterInformation, Hsr
             return [];
         }
 
-        if (data?.Data.AvatarList == null)
+        if (data?.HsrBasicCharacterData.AvatarList == null)
         {
             m_Logger.LogWarning("No character data found for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
@@ -63,9 +63,9 @@ public class HsrCharacterApiService : ICharacterApi<HsrCharacterInformation, Hsr
 
         m_Logger.LogInformation(
             "Successfully retrieved {Count} characters for user {Uid} on {Region} server (game UID: {GameUid})",
-            data.Data.AvatarList.Count, uid, region, gameUid);
+            data.HsrBasicCharacterData.AvatarList.Count, uid, region, gameUid);
 
-        return data.Data.AvatarList;
+        return [data.HsrBasicCharacterData];
     }
 
     public async Task<ApiResult<HsrCharacterInformation>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
@@ -74,7 +74,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrCharacterInformation, Hsr
         m_Logger.LogInformation("Retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
             uid, region, gameUid);
         var characterList = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
-        var character = characterList.FirstOrDefault(x => x.Id == characterId);
+        var character = characterList.FirstOrDefault()?.AvatarList.FirstOrDefault(x => x.Id == characterId);
         if (character == null)
             return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
                 $"Character with ID {characterId} not found for user {uid} on {region} server (game UID: {gameUid})");
@@ -91,7 +91,8 @@ public class HsrCharacterApiService : ICharacterApi<HsrCharacterInformation, Hsr
             uid, region, gameUid);
         var characterList = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
         var character =
-            characterList.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+            characterList.FirstOrDefault()?.AvatarList
+                .FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
         if (character == null)
             return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
                 $"Character with name {characterName} not found for user {uid} on {region} server (game UID: {gameUid})");

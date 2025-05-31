@@ -112,11 +112,11 @@ internal class Program
 
             // Hsr Services
             builder.Services
-                .AddSingleton<ICharacterApi<HsrCharacterInformation, HsrCharacterInformation>,
+                .AddSingleton<ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>,
                     HsrCharacterApiService>();
-            // builder.Services
-            //     .AddSingleton<ICharacterCardService<HsrCharacterInformation>, HsrCharacterCardService>();
-            builder.Services.AddSingleton<HsrImageUpdaterService>();
+            builder.Services
+                .AddSingleton<ICharacterCardService<HsrCharacterInformation>, HsrCharacterCardService>();
+            builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandService<HsrCommandModule>, HsrCharacterCommandExecutor>();
 

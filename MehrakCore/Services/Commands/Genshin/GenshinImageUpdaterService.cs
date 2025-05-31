@@ -19,6 +19,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 {
     private const string BaseString = "genshin_{0}";
     private const int StandardImageSize = 1280;
+    private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/genshin/wapi/entry_page";
 
     public GenshinImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<GenshinImageUpdaterService> logger) : base(

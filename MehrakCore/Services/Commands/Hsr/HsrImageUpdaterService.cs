@@ -12,6 +12,7 @@ namespace MehrakCore.Services.Commands.Hsr;
 public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformation>
 {
     private const string BaseString = "hsr_{0}";
+    private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/hsr/wapi/entry_page";
 
     public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<HsrCharacterInformation>> logger) : base(imageRepository, httpClientFactory, logger)
@@ -33,7 +34,7 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
 
         Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
         var result = await Task.WhenAll(UpdateCharacterImageAsync(characterInformation),
-            UpdateEquipImageAsync(characterInformation.Equip, equipWiki["equipWiki"]),
+            UpdateEquipImageAsync(characterInformation.Equip, equipWiki[characterInformation.Equip.Id.ToString()!]),
             UpdateSkillImageAsync(characterInformation.Skills), UpdateRankImageAsync(characterInformation.Ranks),
             UpdateRelicImageAsync(characterInformation.Relics.Concat(characterInformation.Ornaments), relicWiki));
 
@@ -51,7 +52,7 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
 
     private async Task<bool> UpdateCharacterImageAsync(HsrCharacterInformation characterInformation)
     {
-        var filename = string.Format(BaseString, characterInformation.Name);
+        var filename = string.Format(BaseString, characterInformation.Id);
         try
         {
             Logger.LogInformation("Downloading character image for {CharacterName} with {Filename}",
@@ -92,7 +93,9 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
         {
             Logger.LogInformation("Downloading equip image for {EquipName} with {Filename}", equip.Name, filename);
             var client = HttpClientFactory.CreateClient();
-            var wikiResponse = await client.GetAsync($"{WikiApi}?entry_page_id={equipWiki.Split('/')[^1]}");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{WikiApi}?entry_page_id={equipWiki.Split('/')[^1]}");
+            request.Headers.Add("X-Rpc-Wiki_app", "hsr");
+            var wikiResponse = await client.SendAsync(request);
             var wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
 
             var iconUrl = wikiJson?["data"]?["page"]?["icon_url"]?.GetValue<string>();
@@ -227,7 +230,9 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
                 Logger.LogInformation("Fetching wiki data for page ID {WikiPageId}", wikiPageId);
 
                 // Make a single request for this wiki page
-                var wikiResponse = await client.GetAsync($"{WikiApi}?entry_page_id={wikiPageId}");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{WikiApi}?entry_page_id={wikiPageId}");
+                request.Headers.Add("X-Rpc-Wiki_app", "hsr");
+                var wikiResponse = await client.SendAsync(request);
                 var wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
 
                 if (wikiJson == null)
@@ -236,7 +241,7 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
                     return false;
                 }
 
-                var wikiModules = wikiJson["data"]?["modules"]?.AsArray();
+                var wikiModules = wikiJson["data"]?["page"]?["modules"]?.AsArray();
                 var setEntry = wikiModules?.FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set");
 
                 if (setEntry == null)
@@ -245,7 +250,7 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
                     return false;
                 }
 
-                var wikiEntry = setEntry["components"]?.AsArray().First()?.GetValue<string>();
+                var wikiEntry = setEntry["components"]?.AsArray().First()?["data"]?.GetValue<string>();
 
                 if (string.IsNullOrEmpty(wikiEntry))
                 {

@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace MehrakCore.ApiResponseTypes.Hsr;
 
-public class HsrCharacterInformation : IBasicCharacterData, ICharacterInformation, ICharacterDetail
+public class HsrCharacterInformation : ICharacterInformation, ICharacterDetail
 {
     [JsonPropertyName("id")] public int? Id { get; set; }
     [JsonPropertyName("level")] public int? Level { get; set; }
@@ -17,24 +17,22 @@ public class HsrCharacterInformation : IBasicCharacterData, ICharacterInformatio
     [JsonPropertyName("rank")] public int? Rank { get; set; }
     [JsonPropertyName("image")] public string Image { get; set; }
     [JsonPropertyName("equip")] public Equip Equip { get; set; }
-    [JsonPropertyName("relics")] public List<Relic> Relics { get; } = new();
-    [JsonPropertyName("ornaments")] public List<Relic> Ornaments { get; } = new();
-    [JsonPropertyName("ranks")] public List<Rank> Ranks { get; } = new();
-    [JsonPropertyName("properties")] public List<Property> Properties { get; } = new();
-    [JsonPropertyName("skills")] public List<Skill> Skills { get; } = new();
+    [JsonPropertyName("relics")] public List<Relic> Relics { get; set; }
+    [JsonPropertyName("ornaments")] public List<Relic> Ornaments { get; set; }
+    [JsonPropertyName("ranks")] public List<Rank> Ranks { get; set; }
+    [JsonPropertyName("properties")] public List<Property> Properties { get; set; }
+    [JsonPropertyName("skills")] public List<Skill> Skills { get; set; }
     [JsonPropertyName("base_type")] public int? BaseType { get; set; }
     [JsonPropertyName("figure_path")] public string FigurePath { get; set; }
     [JsonPropertyName("element_id")] public int? ElementId { get; set; }
     [JsonPropertyName("servant_detail")] public ServantDetail ServantDetail { get; set; }
 }
 
-public class Data
+public class HsrBasicCharacterData : IBasicCharacterData
 {
     [JsonPropertyName("avatar_list")] public List<HsrCharacterInformation> AvatarList { get; set; }
     [JsonPropertyName("equip_wiki")] public Dictionary<string, string> EquipWiki { get; set; }
     [JsonPropertyName("relic_wiki")] public Dictionary<string, string> RelicWiki { get; set; }
-
-    [JsonPropertyName("relic_properties")] public List<RelicProperty> RelicProperties { get; set; }
 }
 
 public class Equip
@@ -94,19 +92,11 @@ public class Relic
     [JsonPropertyName("properties")] public List<Property> Properties { get; set; }
 }
 
-public class RelicProperty
-{
-    [JsonPropertyName("property_type")] public int? PropertyType { get; set; }
-
-    [JsonPropertyName("modify_property_type")]
-    public int? ModifyPropertyType { get; set; }
-}
-
 public class CharacterListApiResponse
 {
     [JsonPropertyName("retcode")] public int? Retcode { get; set; }
     [JsonPropertyName("message")] public string Message { get; set; }
-    [JsonPropertyName("data")] public Data Data { get; set; }
+    [JsonPropertyName("data")] public HsrBasicCharacterData HsrBasicCharacterData { get; set; }
 }
 
 public class ServantDetail
@@ -116,7 +106,7 @@ public class ServantDetail
     [JsonPropertyName("servant_icon")] public string ServantIcon { get; set; }
 
     [JsonPropertyName("servant_properties")]
-    public List<object> ServantProperties { get; } = new();
+    public List<object> ServantProperties { get; set; }
 
     [JsonPropertyName("servant_skills")] public List<object> ServantSkills { get; set; }
     [JsonPropertyName("is_health_secret")] public bool? IsHealthSecret { get; set; }
@@ -133,7 +123,7 @@ public class Skill
     [JsonPropertyName("pre_point")] public string PrePoint { get; set; }
     [JsonPropertyName("anchor")] public string Anchor { get; set; }
     [JsonPropertyName("remake")] public string Remake { get; set; }
-    [JsonPropertyName("skill_stages")] public List<SkillStage> SkillStages { get; } = new();
+    [JsonPropertyName("skill_stages")] public List<SkillStage> SkillStages { get; set; }
 
     [JsonPropertyName("special_point_type")]
     public string SpecialPointType { get; set; }

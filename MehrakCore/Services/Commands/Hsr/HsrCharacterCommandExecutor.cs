@@ -17,20 +17,24 @@ namespace MehrakCore.Services.Commands.Hsr;
 
 public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandModule>, IAuthenticationListener
 {
-    private readonly ICharacterApi<HsrCharacterInformation, HsrCharacterInformation> m_CharacterApi;
+    private readonly ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> m_CharacterApi;
     private readonly GameRecordApiService m_GameRecordApi;
     private readonly UserRepository m_UserRepository;
     private readonly TokenCacheService m_TokenCacheService;
     private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly ImageUpdaterService<HsrCharacterInformation> m_HsrImageUpdaterService;
+    private readonly ICharacterCardService<HsrCharacterInformation> m_HsrCharacterCardService;
     private readonly ILogger<HsrCharacterCommandExecutor> m_Logger;
     public IInteractionContext Context { get; set; }
 
     private string m_PendingCharacterName = string.Empty;
     private Regions m_PendingServer = Regions.Asia;
 
-    public HsrCharacterCommandExecutor(ICharacterApi<HsrCharacterInformation, HsrCharacterInformation> characterApi,
+    public HsrCharacterCommandExecutor(ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> characterApi,
         GameRecordApiService gameRecordApi, UserRepository userRepository, TokenCacheService tokenCacheService,
         AuthenticationMiddlewareService authenticationMiddleware,
+        ImageUpdaterService<HsrCharacterInformation> hsrImageUpdaterService,
+        ICharacterCardService<HsrCharacterInformation> hsrCharacterCardService,
         ILogger<HsrCharacterCommandExecutor> logger)
     {
         m_CharacterApi = characterApi;
@@ -38,6 +42,8 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
         m_UserRepository = userRepository;
         m_TokenCacheService = tokenCacheService;
         m_AuthenticationMiddleware = authenticationMiddleware;
+        m_HsrImageUpdaterService = hsrImageUpdaterService;
+        m_HsrCharacterCardService = hsrCharacterCardService;
         m_Logger = logger;
     }
 
@@ -178,12 +184,25 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
 
         var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
         var characterInfoTask =
-            m_CharacterApi.GetCharacterDataFromNameAsync(ltuid, ltoken, gameUid, region, characterName);
+            m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region);
         await Task.WhenAll(updateUser, characterInfoTask);
 
-        var characterInfo = characterInfoTask.Result;
+        var characterList = characterInfoTask.Result.FirstOrDefault();
 
-        if (!characterInfo.IsSuccess)
+        if (characterList == null)
+        {
+            m_Logger.LogInformation("No character data found for user {UserId} on {Region} server",
+                Context.Interaction.User.Id, region);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties("No character data found. Please try again.")));
+            return;
+        }
+
+        var characterInfo = characterList.AvatarList
+            .FirstOrDefault(x => x.Name == characterName);
+
+        if (characterInfo == null)
         {
             m_Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
                 characterName, Context.Interaction.User.Id, region);
@@ -193,9 +212,14 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
             return;
         }
 
+        await m_HsrImageUpdaterService.UpdateDataAsync(characterInfo,
+            [characterList.EquipWiki, characterList.RelicWiki]);
+
+        // var response = await GenerateCharacterCardResponseAsync(characterInfo, gameUid);
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
             .AddComponents(new TextDisplayProperties("Command execution completed")));
+        // await Context.Interaction.SendFollowupMessageAsync(response);
     }
 
     public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
@@ -213,9 +237,29 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
             m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, result.ErrorMessage);
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Authentication failed: " + result.ErrorMessage)
-                    .WithFlags(MessageFlags.Ephemeral)));
+                new InteractionMessageProperties()
+                    .AddComponents(new TextDisplayProperties($"Authentication failed: {result.ErrorMessage}"))
+                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)));
         }
+    }
+
+    private async Task<InteractionMessageProperties> GenerateCharacterCardResponseAsync(
+        HsrCharacterInformation characterInfo, string gameUid)
+    {
+        InteractionMessageProperties properties = new();
+        properties.WithFlags(MessageFlags.IsComponentsV2);
+        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
+        properties.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
+        properties.AddComponents(new MediaGalleryProperties().WithItems(
+            [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
+        properties.AddAttachments(new AttachmentProperties("character_card.jpg",
+            await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
+        properties.AddComponents(
+            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                "Remove",
+                ButtonStyle.Danger)));
+
+        return properties;
     }
 
     private static string GetRegion(Regions server)
