@@ -311,7 +311,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     var stat = stats[i];
                     var y = 360 + spacing * i;
                     ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
-                    ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], m_NormalFont, textColor,
+                    ctx.DrawText(StatMappingUtility.GenshinMapping[stat.PropertyType!.Value], m_NormalFont, textColor,
                         new PointF(1264, y));
                     if (StatMappingUtility.IsBaseStat(stat.PropertyType!.Value))
                     {

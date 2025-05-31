@@ -8,12 +8,14 @@ namespace MehrakCore.Utility;
 
 public static class StatMappingUtility
 {
-    public static IReadOnlyDictionary<int, string> Mapping { get; }
-    private static readonly IReadOnlyDictionary<int, float> DefaultValues;
+    public static IReadOnlyDictionary<int, string> GenshinMapping { get; }
+    private static readonly IReadOnlyDictionary<int, float> GenshinDefaultValues;
+
+    public static IReadOnlyDictionary<int, string> HsrMapping { get; }
 
     static StatMappingUtility()
     {
-        Mapping = new ReadOnlyDictionary<int, string>(new Dictionary<int, string>
+        GenshinMapping = new ReadOnlyDictionary<int, string>(new Dictionary<int, string>
         {
             { 1, "HP" },
             { 2, "HP" },
@@ -54,7 +56,63 @@ public static class StatMappingUtility
             { 999999, "Max Stamina" }
         });
 
-        DefaultValues = new ReadOnlyDictionary<int, float>(new Dictionary<int, float>
+        HsrMapping = new ReadOnlyDictionary<int, string>(new Dictionary<int, string>
+        {
+            { 1, "HP" },
+            { 2, "ATK" },
+            { 3, "DEF" },
+            { 4, "SPD" },
+            { 5, "CRIT Rate" },
+            { 6, "CRIT DMG" },
+            { 7, "Outgoing Healing Boost" },
+            { 9, "Energy Regeneration Rate" },
+            { 10, "Effect Hit Rate" },
+            { 11, "Effect RES" },
+            { 12, "Physical DMG Boost" },
+            { 13, "Physical RES Boost" },
+            { 14, "Fire DMG Boost" },
+            { 15, "Fire RES Boost" },
+            { 16, "Ice DMG Boost" },
+            { 17, "Ice RES Boost" },
+            { 18, "Lightning DMG Boost" },
+            { 19, "Lightning RES Boost" },
+            { 20, "Wind DMG Boost" },
+            { 21, "Wind RES Boost" },
+            { 22, "Quantum DMG Boost" },
+            { 23, "Quantum RES Boost" },
+            { 24, "Imaginary DMG Boost" },
+            { 25, "Imaginary RES Boost" },
+            { 26, "Base HP" },
+            { 27, "HP" },
+            { 28, "Base ATK" },
+            { 29, "ATK" },
+            { 30, "Base DEF" },
+            { 31, "DEF" },
+            { 32, "HP" },
+            { 33, "ATK" },
+            { 34, "DEF" },
+            { 35, "SPD" },
+            { 36, "Outgoing Healing Boost" },
+            { 37, "Physical RES Boost" },
+            { 38, "Fire RES Boost" },
+            { 39, "Ice RES Boost" },
+            { 40, "Lightning RES Boost" },
+            { 41, "Wind RES Boost" },
+            { 42, "Quantum RES Boost" },
+            { 43, "Imaginary RES Boost" },
+            { 51, "SPD" },
+            { 52, "CRIT Rate" },
+            { 53, "CRIT DMG" },
+            { 54, "Energy Regeneration Rate" },
+            { 55, "Outgoing Healing Boost" },
+            { 56, "Effect Hit Rate" },
+            { 57, "Effect RES" },
+            { 58, "Break Effect" },
+            { 59, "Break Effect" },
+            { 60, "Max Energy" }
+        });
+
+        GenshinDefaultValues = new ReadOnlyDictionary<int, float>(new Dictionary<int, float>
         {
             { 20, 5 },
             { 22, 50 },
@@ -64,7 +122,7 @@ public static class StatMappingUtility
 
     public static float GetDefaultValue(int propertyType)
     {
-        return DefaultValues.GetValueOrDefault(propertyType, 0);
+        return GenshinDefaultValues.GetValueOrDefault(propertyType, 0);
     }
 
     public static bool IsBaseStat(int propertyType)
