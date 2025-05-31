@@ -33,10 +33,13 @@ public class HsrCharacterApiService : ICharacterApi<HsrCharacterInformation, Hsr
         HttpRequestMessage request = new()
         {
             Method = HttpMethod.Get,
-            RequestUri = new Uri($"{ApiUrl}?server={region}&game_uid={gameUid}&need_wiki=true"),
+            RequestUri = new Uri($"{ApiUrl}?server={region}&role_id={gameUid}&need_wiki=true"),
             Headers =
             {
                 { "Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}" },
+                { "X-Rpc-Client_type", "5" },
+                { "X-Rpc-App_version", "1.5.0" },
+                { "X-Rpc-Language", "en-us" },
                 { "DS", DSGenerator.GenerateDS() }
             }
         };

@@ -2,13 +2,16 @@
 
 using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;
+using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -106,6 +109,16 @@ internal class Program
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandService<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+
+            // Hsr Services
+            builder.Services
+                .AddSingleton<ICharacterApi<HsrCharacterInformation, HsrCharacterInformation>,
+                    HsrCharacterApiService>();
+            // builder.Services
+            //     .AddSingleton<ICharacterCardService<HsrCharacterInformation>, HsrCharacterCardService>();
+            builder.Services.AddSingleton<HsrImageUpdaterService>();
+            builder.Services
+                .AddTransient<ICharacterCommandService<HsrCommandModule>, HsrCharacterCommandExecutor>();
 
             // Daily Check-In Services
             builder.Services

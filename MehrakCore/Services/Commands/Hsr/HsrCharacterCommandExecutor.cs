@@ -1,0 +1,232 @@
+﻿#region
+
+using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Models;
+using MehrakCore.Modules.Common;
+using MehrakCore.Repositories;
+using MehrakCore.Services.Common;
+using MehrakCore.Utility;
+using Microsoft.Extensions.Logging;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services;
+
+#endregion
+
+namespace MehrakCore.Services.Commands.Hsr;
+
+public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandModule>, IAuthenticationListener
+{
+    private readonly ICharacterApi<HsrCharacterInformation, HsrCharacterInformation> m_CharacterApi;
+    private readonly GameRecordApiService m_GameRecordApi;
+    private readonly UserRepository m_UserRepository;
+    private readonly TokenCacheService m_TokenCacheService;
+    private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly ILogger<HsrCharacterCommandExecutor> m_Logger;
+    public IInteractionContext Context { get; set; }
+
+    private string m_PendingCharacterName = string.Empty;
+    private Regions m_PendingServer = Regions.Asia;
+
+    public HsrCharacterCommandExecutor(ICharacterApi<HsrCharacterInformation, HsrCharacterInformation> characterApi,
+        GameRecordApiService gameRecordApi, UserRepository userRepository, TokenCacheService tokenCacheService,
+        AuthenticationMiddlewareService authenticationMiddleware,
+        ILogger<HsrCharacterCommandExecutor> logger)
+    {
+        m_CharacterApi = characterApi;
+        m_GameRecordApi = gameRecordApi;
+        m_UserRepository = userRepository;
+        m_TokenCacheService = tokenCacheService;
+        m_AuthenticationMiddleware = authenticationMiddleware;
+        m_Logger = logger;
+    }
+
+    public async ValueTask ExecuteAsync(params object?[] parameters)
+    {
+        if (parameters.Length != 3)
+            throw new ArgumentException("Invalid parameters count for character command");
+
+        var characterName = parameters[0] == null ? string.Empty : (string)parameters[0]!;
+        var server = (Regions?)parameters[1];
+        var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
+
+        try
+        {
+            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
+            {
+                m_Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
+                    Context.Interaction.User.Id, profile);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
+
+            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
+            if (selectedProfile.LastUsedRegions != null && !server.HasValue)
+            {
+                selectedProfile.LastUsedRegions.TryGetValue(GameName.HonkaiStarRail, out var tmp);
+                server = tmp;
+            }
+
+            if (server == null)
+            {
+                m_Logger.LogInformation("User {UserId} does not have a server selected", Context.Interaction.User.Id);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
+
+            var ltoken = await m_TokenCacheService.GetCacheEntry(Context.Interaction.User.Id, selectedProfile.LtUid);
+            if (ltoken == null)
+            {
+                m_Logger.LogInformation("User {UserId} is not authenticated, registering with middleware",
+                    Context.Interaction.User.Id);
+
+                // Store pending command parameters
+                m_PendingCharacterName = characterName;
+                m_PendingServer = server.Value;
+
+                // Register with authentication middleware
+                var guid = m_AuthenticationMiddleware.RegisterAuthenticationListener(Context.Interaction.User.Id, this);
+
+                // Send authentication modal
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.Modal(AuthModalModule.AuthModal(guid, profile)));
+            }
+            else
+            {
+                m_Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+                await SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken, characterName,
+                    server.Value);
+            }
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError("Error executing character command for user {UserId}: {ErrorMessage}",
+                Context.Interaction.User.Id, e.Message);
+            throw;
+        }
+    }
+
+    private async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Regions server)
+    {
+        var region = GetRegion(server);
+        var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
+
+        var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
+
+        // edge case check that probably will never occur
+        // but if user removes their profile while this command is running will result in null
+        if (user?.Profiles == null || selectedProfile == null)
+        {
+            m_Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                Context.Interaction.User.Id, ltuid);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                    new TextDisplayProperties("No profile found. Please select the correct profile")
+                ]));
+            return;
+        }
+
+        if (selectedProfile.GameUids == null ||
+            !selectedProfile.GameUids.TryGetValue(GameName.HonkaiStarRail, out var dict) ||
+            !dict.TryGetValue(server.ToString(), out var gameUid))
+        {
+            m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
+                Context.Interaction.User.Id, region);
+            var result = await m_GameRecordApi.GetUserRegionUidAsync(ltuid, ltoken, "hkrpg_global", region);
+            if (result.RetCode == -100)
+            {
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                        new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
+                    ]));
+                return;
+            }
+
+            gameUid = result.Data;
+        }
+
+        if (gameUid == null)
+        {
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                    new TextDisplayProperties("No game information found. Please select the correct region")
+                ]));
+            return;
+        }
+
+        selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
+
+        if (!selectedProfile.GameUids.ContainsKey(GameName.HonkaiStarRail))
+            selectedProfile.GameUids[GameName.HonkaiStarRail] = new Dictionary<string, string>();
+        if (!selectedProfile.GameUids[GameName.HonkaiStarRail].TryAdd(server.ToString(), gameUid))
+            selectedProfile.GameUids[GameName.HonkaiStarRail][server.ToString()] = gameUid;
+
+        m_Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
+            Context.Interaction.User.Id, region);
+
+        selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+
+        if (!selectedProfile.LastUsedRegions.TryAdd(GameName.HonkaiStarRail, server))
+            selectedProfile.LastUsedRegions[GameName.HonkaiStarRail] = server;
+
+        var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
+        var characterInfoTask =
+            m_CharacterApi.GetCharacterDataFromNameAsync(ltuid, ltoken, gameUid, region, characterName);
+        await Task.WhenAll(updateUser, characterInfoTask);
+
+        var characterInfo = characterInfoTask.Result;
+
+        if (!characterInfo.IsSuccess)
+        {
+            m_Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
+                characterName, Context.Interaction.User.Id, region);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties("Character not found. Please try again.")));
+            return;
+        }
+
+        await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+            .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+            .AddComponents(new TextDisplayProperties("Command execution completed")));
+    }
+
+    public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    {
+        if (result.IsSuccess)
+        {
+            Context = result.Context;
+            m_Logger.LogInformation("Authentication completed successfully for user {UserId}",
+                Context.Interaction.User.Id);
+            await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName,
+                m_PendingServer);
+        }
+        else
+        {
+            m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                Context.Interaction.User.Id, result.ErrorMessage);
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithContent("Authentication failed: " + result.ErrorMessage)
+                    .WithFlags(MessageFlags.Ephemeral)));
+        }
+    }
+
+    private static string GetRegion(Regions server)
+    {
+        return server switch
+        {
+            Regions.Asia => "prod_official_asia",
+            Regions.Europe => "prod_official_eur",
+            Regions.America => "prod_official_usa",
+            Regions.Sar => "prod_official_cht",
+            _ => throw new ArgumentException("Invalid server name")
+        };
+    }
+}
