@@ -42,7 +42,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger = logger;
 
         var collection = new FontCollection();
-        var fontFamily = collection.Add("Fonts/zh-cn.ttf");
+        var fontFamily = collection.Add("Fonts/genshin.ttf");
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
