@@ -13,6 +13,7 @@ namespace MehrakCore.Utility;
 public static class ImageExtensions
 {
     private static readonly Color StarColor = Color.ParseHex("#FFCC33");
+    private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 100)); // Semi-transparent black for shadow
 
     /// <summary>
     /// Applies a horizontal gradient fade to an image, making it gradually transparent towards the right
@@ -63,6 +64,71 @@ public static class ImageExtensions
                 var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
                 var starPolygon = new Polygon(points);
 
+                ctx.Fill(StarColor, starPolygon);
+            }
+        });
+        return image;
+    }
+
+    public static Image<Rgba32> GenerateFourSidedStarRating(int starCount, bool isHorizontal = true,
+        bool drawShadow = true)
+    {
+        starCount = Math.Clamp(starCount, 1, 5);
+
+        const int starSize = 30;
+        const float shadowExpansion = 1.3f; // Shadow is 20% larger than the star
+
+        // Determine dimensions based on orientation
+        int width, height;
+        if (isHorizontal)
+        {
+            width = 5 * starSize;
+            height = starSize;
+        }
+        else
+        {
+            width = starSize;
+            height = 5 * starSize;
+        }
+
+        var image = new Image<Rgba32>(width, height);
+
+        image.Mutate(ctx =>
+        {
+            ctx.Clear(Color.Transparent);
+
+            for (int i = 0; i < starCount; i++)
+            {
+                float centerX, centerY;
+
+                if (isHorizontal)
+                {
+                    centerX = i * starSize + 15; // Left-aligned horizontally
+                    centerY = 15f;
+                }
+                else
+                {
+                    centerX = 15f;
+                    centerY = i * starSize + 15; // Top-aligned vertically
+                }
+
+                // Draw shadow only if requested
+                if (drawShadow)
+                {
+                    // Create shadow first (expanded on all sides)
+                    var shadowPoints = CreateStarPoints(
+                        centerX,
+                        centerY,
+                        (float)starSize / 2 * shadowExpansion, // Larger outer radius
+                        (float)starSize / 4 * shadowExpansion, // Larger inner radius
+                        4);
+                    var shadowPolygon = new Polygon(shadowPoints);
+                    ctx.Fill(ShadowColor, shadowPolygon);
+                }
+
+                // Then create the actual star on top
+                var starPoints = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 4);
+                var starPolygon = new Polygon(starPoints);
                 ctx.Fill(StarColor, starPolygon);
             }
         });

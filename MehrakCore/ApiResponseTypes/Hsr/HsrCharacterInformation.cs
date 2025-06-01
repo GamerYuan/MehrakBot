@@ -16,7 +16,7 @@ public class HsrCharacterInformation : ICharacterInformation, ICharacterDetail
     [JsonPropertyName("rarity")] public int? Rarity { get; set; }
     [JsonPropertyName("rank")] public int? Rank { get; set; }
     [JsonPropertyName("image")] public string Image { get; set; }
-    [JsonPropertyName("equip")] public Equip Equip { get; set; }
+    [JsonPropertyName("equip")] public Equip? Equip { get; set; }
     [JsonPropertyName("relics")] public List<Relic> Relics { get; set; }
     [JsonPropertyName("ornaments")] public List<Relic> Ornaments { get; set; }
     [JsonPropertyName("ranks")] public List<Rank> Ranks { get; set; }

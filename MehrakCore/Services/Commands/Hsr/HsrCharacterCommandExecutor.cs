@@ -215,19 +215,23 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
         await m_HsrImageUpdaterService.UpdateDataAsync(characterInfo,
             [characterList.EquipWiki, characterList.RelicWiki]);
 
-        // var response = await GenerateCharacterCardResponseAsync(characterInfo, gameUid);
+        // await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+        //     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+        //     .AddComponents(new TextDisplayProperties("Command execution completed")));
+        // var response = $"{characterInfo.Name}, Lv. {characterInfo.Level}\n" +
+        //                $"{characterInfo.Equip.Name}, Lv. {characterInfo.Equip.Level}\n\n" +
+        //                $"{string.Join('\n',
+        //                    string.Join('\t', characterInfo.Properties.Select(x =>
+        //                        $"{StatMappingUtility.HsrMapping[x.PropertyType!.Value]}: {x.Final}")))}\n";
+        //
+        // await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+        //     .WithFlags(MessageFlags.IsComponentsV2).AddComponents(new TextDisplayProperties(response)));
+
+        var response = await GenerateCharacterCardResponseAsync(characterInfo, gameUid);
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
             .AddComponents(new TextDisplayProperties("Command execution completed")));
-        var response = $"{characterInfo.Name}, Lv. {characterInfo.Level}\n" +
-                       $"{characterInfo.Equip.Name}, Lv. {characterInfo.Equip.Level}\n\n" +
-                       $"{string.Join('\n',
-                           string.Join('\t', characterInfo.Properties.Select(x =>
-                               $"{StatMappingUtility.HsrMapping[x.PropertyType!.Value]}: {x.Final}")))}\n";
-
-        await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-            .WithFlags(MessageFlags.IsComponentsV2).AddComponents(new TextDisplayProperties(response)));
-        // await Context.Interaction.SendFollowupMessageAsync(response);
+        await Context.Interaction.SendFollowupMessageAsync(response);
     }
 
     public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
