@@ -14,6 +14,8 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
     private const string BaseString = "hsr_{0}";
     private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/hsr/wapi/entry_page";
 
+    private readonly Dictionary<int, string> m_SetMapping = new();
+
     public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<HsrCharacterInformation>> logger) : base(imageRepository, httpClientFactory, logger)
     {
@@ -32,11 +34,18 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
         var equipWiki = wikiArr[0];
         var relicWiki = wikiArr[1];
 
-        Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
-        var result = await Task.WhenAll(UpdateCharacterImageAsync(characterInformation),
-            UpdateEquipImageAsync(characterInformation.Equip, equipWiki[characterInformation.Equip.Id.ToString()!]),
+        List<Task<bool>> tasks =
+        [
+            UpdateCharacterImageAsync(characterInformation),
             UpdateSkillImageAsync(characterInformation.Skills), UpdateRankImageAsync(characterInformation.Ranks),
-            UpdateRelicImageAsync(characterInformation.Relics.Concat(characterInformation.Ornaments), relicWiki));
+            UpdateRelicImageAsync(characterInformation.Relics.Concat(characterInformation.Ornaments), relicWiki)
+        ];
+        if (characterInformation.Equip != null)
+            tasks.Add(UpdateEquipImageAsync(characterInformation.Equip,
+                equipWiki[characterInformation.Equip.Id.ToString()!]));
+
+        Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
+        var result = await Task.WhenAll(tasks);
 
         if (!result.All(x => x))
         {
@@ -48,6 +57,11 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
 
         Logger.LogInformation("Successfully updated HSR character data for {CharacterName}",
             characterInformation.Name);
+    }
+
+    public string GetRelicSetName(int relicId)
+    {
+        return m_SetMapping.TryGetValue(relicId, out var setName) ? setName : string.Empty;
     }
 
     private async Task<bool> UpdateCharacterImageAsync(HsrCharacterInformation characterInformation)
@@ -250,28 +264,8 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
         {
             var relicsList = relics.Where(r => relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty)).ToList();
 
-            // First check which relics already exist in the repository
-            var relicsToDownload = new List<Relic>();
-            foreach (var relic in relicsList)
-            {
-                var filename = string.Format(BaseString, relic.Id);
-                if (!await ImageRepository.FileExistsAsync(filename))
-                    relicsToDownload.Add(relic);
-                else
-                    Logger.LogInformation(
-                        "Relic image for {RelicName} with ID {RelicId} already exists, skipping download",
-                        relic.Name, relic.Id);
-            }
-
-            // If all relics already exist, return success
-            if (relicsToDownload.Count == 0)
-            {
-                Logger.LogInformation("All relic images already exist, skipping wiki page fetching");
-                return true;
-            }
-
-            // Group relics that need downloading by their wiki page
-            var relicsByWikiPage = relicsToDownload
+            // Group relics by their wiki page
+            var relicsByWikiPage = relicsList
                 .GroupBy(r => relicWikiPages[r.Id.ToString() ?? string.Empty]);
 
             var client = HttpClientFactory.CreateClient();
@@ -300,6 +294,8 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
                     overallSuccess = false;
                     continue;
                 }
+
+                var setName = wikiJson["data"]?["page"]?["name"]?.GetValue<string>();
 
                 var wikiModules = wikiJson["data"]?["page"]?["modules"]?.AsArray();
                 var setEntry = wikiModules?.FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set");
@@ -357,13 +353,19 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
                         actualRelicId = matchedId!;
                         Logger.LogInformation("Matched wiki relic {RelicName} to relic ID {RelicId}", relicName,
                             actualRelicId);
+
+                        // Add to set mapping regardless of download status
+                        var relicIdInt = int.Parse(actualRelicId);
+                        if (!m_SetMapping.ContainsKey(relicIdInt))
+                        {
+                            m_SetMapping.Add(relicIdInt, setName!);
+                            Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}",
+                                relicIdInt, setName);
+                        }
                     }
                     else
                     {
-                        // Use the wiki ID if no match is found
-                        actualRelicId = wikiRelicId;
-                        Logger.LogInformation("No match found for wiki relic {RelicName}, using wiki ID {RelicId}",
-                            relicName, actualRelicId);
+                        continue;
                     }
 
                     var filename = string.Format(BaseString, actualRelicId);

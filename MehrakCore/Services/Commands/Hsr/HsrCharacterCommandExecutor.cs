@@ -121,117 +121,117 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
 
     private async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Regions server)
     {
-        var region = GetRegion(server);
-        var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
-
-        var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
-
-        // edge case check that probably will never occur
-        // but if user removes their profile while this command is running will result in null
-        if (user?.Profiles == null || selectedProfile == null)
+        try
         {
-            m_Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
-                Context.Interaction.User.Id, ltuid);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                    new TextDisplayProperties("No profile found. Please select the correct profile")
-                ]));
-            return;
-        }
+            var region = GetRegion(server);
+            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-        if (selectedProfile.GameUids == null ||
-            !selectedProfile.GameUids.TryGetValue(GameName.HonkaiStarRail, out var dict) ||
-            !dict.TryGetValue(server.ToString(), out var gameUid))
-        {
-            m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
-                Context.Interaction.User.Id, region);
-            var result = await m_GameRecordApi.GetUserRegionUidAsync(ltuid, ltoken, "hkrpg_global", region);
-            if (result.RetCode == -100)
+            var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
+
+            // edge case check that probably will never occur
+            // but if user removes their profile while this command is running will result in null
+            if (user?.Profiles == null || selectedProfile == null)
             {
+                m_Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                    Context.Interaction.User.Id, ltuid);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
+                        new TextDisplayProperties("No profile found. Please select the correct profile")
                     ]));
                 return;
             }
 
-            gameUid = result.Data;
-        }
+            if (selectedProfile.GameUids == null ||
+                !selectedProfile.GameUids.TryGetValue(GameName.HonkaiStarRail, out var dict) ||
+                !dict.TryGetValue(server.ToString(), out var gameUid))
+            {
+                m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
+                    Context.Interaction.User.Id, region);
+                var result = await m_GameRecordApi.GetUserRegionUidAsync(ltuid, ltoken, "hkrpg_global", region);
+                if (result.RetCode == -100)
+                {
+                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                        .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                            new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
+                        ]));
+                    return;
+                }
 
-        if (gameUid == null)
-        {
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                    new TextDisplayProperties("No game information found. Please select the correct region")
-                ]));
-            return;
-        }
+                gameUid = result.Data;
+            }
 
-        selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
+            if (gameUid == null)
+            {
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                        new TextDisplayProperties("No game information found. Please select the correct region")
+                    ]));
+                return;
+            }
 
-        if (!selectedProfile.GameUids.ContainsKey(GameName.HonkaiStarRail))
-            selectedProfile.GameUids[GameName.HonkaiStarRail] = new Dictionary<string, string>();
-        if (!selectedProfile.GameUids[GameName.HonkaiStarRail].TryAdd(server.ToString(), gameUid))
-            selectedProfile.GameUids[GameName.HonkaiStarRail][server.ToString()] = gameUid;
+            selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
 
-        m_Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
-            Context.Interaction.User.Id, region);
+            if (!selectedProfile.GameUids.ContainsKey(GameName.HonkaiStarRail))
+                selectedProfile.GameUids[GameName.HonkaiStarRail] = new Dictionary<string, string>();
+            if (!selectedProfile.GameUids[GameName.HonkaiStarRail].TryAdd(server.ToString(), gameUid))
+                selectedProfile.GameUids[GameName.HonkaiStarRail][server.ToString()] = gameUid;
 
-        selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
-
-        if (!selectedProfile.LastUsedRegions.TryAdd(GameName.HonkaiStarRail, server))
-            selectedProfile.LastUsedRegions[GameName.HonkaiStarRail] = server;
-
-        var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
-        var characterInfoTask =
-            m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region);
-        await Task.WhenAll(updateUser, characterInfoTask);
-
-        var characterList = characterInfoTask.Result.FirstOrDefault();
-
-        if (characterList == null)
-        {
-            m_Logger.LogInformation("No character data found for user {UserId} on {Region} server",
+            m_Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
                 Context.Interaction.User.Id, region);
+
+            selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+
+            if (!selectedProfile.LastUsedRegions.TryAdd(GameName.HonkaiStarRail, server))
+                selectedProfile.LastUsedRegions[GameName.HonkaiStarRail] = server;
+
+            var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
+            var characterInfoTask =
+                m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region);
+            await Task.WhenAll(updateUser, characterInfoTask);
+
+            var characterList = characterInfoTask.Result.FirstOrDefault();
+
+            if (characterList == null)
+            {
+                m_Logger.LogInformation("No character data found for user {UserId} on {Region} server",
+                    Context.Interaction.User.Id, region);
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("No character data found. Please try again.")));
+                return;
+            }
+
+            var characterInfo = characterList.AvatarList
+                .FirstOrDefault(x => x.Name == characterName);
+
+            if (characterInfo == null)
+            {
+                m_Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
+                    characterName, Context.Interaction.User.Id, region);
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("Character not found. Please try again.")));
+                return;
+            }
+
+            await m_HsrImageUpdaterService.UpdateDataAsync(characterInfo,
+                [characterList.EquipWiki, characterList.RelicWiki]);
+
+            var response = await GenerateCharacterCardResponseAsync(characterInfo, gameUid);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties("No character data found. Please try again.")));
-            return;
+                .AddComponents(new TextDisplayProperties("Command execution completed")));
+            await Context.Interaction.SendFollowupMessageAsync(response);
         }
-
-        var characterInfo = characterList.AvatarList
-            .FirstOrDefault(x => x.Name == characterName);
-
-        if (characterInfo == null)
+        catch (Exception e)
         {
-            m_Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
-                characterName, Context.Interaction.User.Id, region);
+            m_Logger.LogError(
+                "Error sending character card response with character {CharacterName} for user {UserId}: {ErrorMessage}",
+                characterName, Context.Interaction.User.Id, e.Message);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties("Character not found. Please try again.")));
-            return;
+                .AddComponents(new TextDisplayProperties($"An unknown error occurred, please try again later.")));
         }
-
-        await m_HsrImageUpdaterService.UpdateDataAsync(characterInfo,
-            [characterList.EquipWiki, characterList.RelicWiki]);
-
-        // await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-        //     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-        //     .AddComponents(new TextDisplayProperties("Command execution completed")));
-        // var response = $"{characterInfo.Name}, Lv. {characterInfo.Level}\n" +
-        //                $"{characterInfo.Equip.Name}, Lv. {characterInfo.Equip.Level}\n\n" +
-        //                $"{string.Join('\n',
-        //                    string.Join('\t', characterInfo.Properties.Select(x =>
-        //                        $"{StatMappingUtility.HsrMapping[x.PropertyType!.Value]}: {x.Final}")))}\n";
-        //
-        // await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-        //     .WithFlags(MessageFlags.IsComponentsV2).AddComponents(new TextDisplayProperties(response)));
-
-        var response = await GenerateCharacterCardResponseAsync(characterInfo, gameUid);
-        await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-            .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-            .AddComponents(new TextDisplayProperties("Command execution completed")));
-        await Context.Interaction.SendFollowupMessageAsync(response);
     }
 
     public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
@@ -248,10 +248,9 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
         {
             m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, result.ErrorMessage);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties()
-                    .AddComponents(new TextDisplayProperties($"Authentication failed: {result.ErrorMessage}"))
-                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)));
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .AddComponents(new TextDisplayProperties($"Authentication failed: {result.ErrorMessage}"))
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
         }
     }
 

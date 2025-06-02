@@ -1,6 +1,8 @@
 ﻿#region
 
+using System.Numerics;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -20,6 +22,7 @@ namespace MehrakCore.Services.Commands.Hsr;
 public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInformation>
 {
     private readonly ImageRepository m_ImageRepository;
+    private readonly HsrImageUpdaterService m_ImageUpdater;
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
     private readonly Dictionary<int, Image> m_StatImages;
@@ -35,10 +38,12 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
     private readonly JpegEncoder m_JpegEncoder;
     private readonly Image<Rgba32> m_RelicSlotTemplate;
 
-
-    public HsrCharacterCardService(ImageRepository imageRepository, ILogger<HsrCharacterCardService> logger)
+    public HsrCharacterCardService(ImageRepository imageRepository,
+        ImageUpdaterService<HsrCharacterInformation> imageUpdater,
+        ILogger<HsrCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
+        m_ImageUpdater = (HsrImageUpdaterService)imageUpdater;
         m_Logger = logger;
 
         var fontFamily = new FontCollection().Add("Fonts/hsr.ttf");
@@ -69,6 +74,13 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             return new KeyValuePair<int, Image>(x, image);
         }).ToBlockingEnumerable().ToDictionary(x => x.Key, x => x.Value);
 
+        m_RelicSlotTemplate = new Image<Rgba32>(750, 150);
+        m_RelicSlotTemplate.Mutate(x =>
+        {
+            x.Fill(Color.SlateGray);
+            x.ApplyRoundedCorners(30);
+        });
+
         m_Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);
 
         m_Logger.LogInformation("HsrCharacterCardService initialized");
@@ -84,10 +96,12 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         {
             var backgroundTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_bg"));
 
-            var characterPortraitTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+            var characterPortraitTask = Image.LoadAsync<Rgba32>(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format(BasePath, characterInformation.Id)));
-            var equipImageTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format(BasePath, characterInformation.Equip.Id)));
+            var equipImageTask = characterInformation.Equip == null
+                ? Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template"))
+                : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+                    string.Format(BasePath, characterInformation.Equip.Id)));
             var rankTasks = characterInformation.Ranks.Select(async x =>
             {
                 var image = await Image.LoadAsync(
@@ -116,38 +130,62 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 return chainImages;
             }).ToArray();
 
-            // var relicImageTasks = Enumerable.Range(0, 5).Select(async i =>
-            // {
-            //     var relic = characterInformation.Relics.FirstOrDefault(x => x.Pos == i + 1);
-            //     if (relic != null)
-            //     {
-            //         var relicImage = await CreateRelicSlotImageAsync(relic);
-            //         return relicImage;
-            //     }
-            //     else
-            //     {
-            //         var templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
-            //         return templateRelicImage;
-            //     }
-            // }).ToArray();
-            // var ornamentImageTasks = Enumerable.Range(0, 2).Select(async i =>
-            // {
-            //     var ornament = characterInformation.Ornaments.FirstOrDefault(x => x.Pos == i + 1);
-            //     if (ornament != null)
-            //     {
-            //         var ornamentImage = await CreateRelicSlotImageAsync(ornament);
-            //         return ornamentImage;
-            //     }
-            //     else
-            //     {
-            //         var templateOrnamentImage = await CreateTemplateRelicSlotImageAsync(i + 1);
-            //         return templateOrnamentImage;
-            //     }
-            // }).ToArray();
+            var relicImageTasks = Enumerable.Range(0, 4).Select(async i =>
+            {
+                var relic = characterInformation.Relics.FirstOrDefault(x => x.Pos == i + 1);
+                if (relic != null)
+                {
+                    var relicImage = await CreateRelicSlotImageAsync(relic);
+                    return relicImage;
+                }
+                else
+                {
+                    var templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
+                    return templateRelicImage;
+                }
+            }).ToArray();
+            var ornamentImageTasks = Enumerable.Range(0, 2).Select(async i =>
+            {
+                var ornament = characterInformation.Ornaments.FirstOrDefault(x => x.Pos == i + 5);
+                if (ornament != null)
+                {
+                    var ornamentImage = await CreateRelicSlotImageAsync(ornament);
+                    return ornamentImage;
+                }
+                else
+                {
+                    var templateOrnamentImage = await CreateTemplateRelicSlotImageAsync(i + 5);
+                    return templateOrnamentImage;
+                }
+            }).ToArray();
+
+            Dictionary<string, int> activeRelicSet = new();
+            foreach (var relic in characterInformation.Relics)
+            {
+                var setName = m_ImageUpdater.GetRelicSetName(relic.Id!.Value);
+                if (!activeRelicSet.TryAdd(setName, 1))
+                    activeRelicSet[setName]++;
+            }
+
+            activeRelicSet = activeRelicSet
+                .Where(x => x.Value >= 2)
+                .ToDictionary(x => x.Key, x => x.Value);
+
+            Dictionary<string, int> activeOrnamentSet = new();
+            foreach (var ornament in characterInformation.Ornaments)
+            {
+                var setName = m_ImageUpdater.GetRelicSetName(ornament.Id!.Value);
+                if (!activeOrnamentSet.TryAdd(setName, 1))
+                    activeOrnamentSet[setName]++;
+            }
+
+            activeOrnamentSet = activeOrnamentSet
+                .Where(x => x.Value >= 2)
+                .ToDictionary(x => x.Key, x => x.Value);
 
             await Task.WhenAll(backgroundTask, characterPortraitTask, equipImageTask, Task.WhenAll(rankTasks),
                 Task.WhenAll(baseSkillTasks),
-                Task.WhenAll(skillTasks) /*, Task.WhenAll(relicImageTasks), Task.WhenAll(ornamentImageTasks)*/);
+                Task.WhenAll(skillTasks), Task.WhenAll(relicImageTasks), Task.WhenAll(ornamentImageTasks));
 
             var backgroundImage = backgroundTask.Result;
             var characterPortrait = characterPortraitTask.Result;
@@ -155,22 +193,28 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             var ranks = rankTasks.Select(x => x.Result).Reverse().ToArray();
             var baseSkillImages = baseSkillTasks.Select(x => x.Result).ToArray();
             var skillImages = skillTasks.Select(x => x.Result).ToArray();
-            // var relicImages = await Task.WhenAll(relicImageTasks);
-            // var ornamentImages = await Task.WhenAll(ornamentImageTasks);
+            var stats = characterInformation.Properties.Where(x =>
+                float.Parse(x.Final.TrimEnd('%')) >
+                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.HonkaiStarRail)).ToList();
+            if (stats.Count < 7)
+                stats = stats.Concat(characterInformation.Properties).DistinctBy(x => x.PropertyType!.Value).Take(7)
+                    .OrderBy(x => x.PropertyType!.Value).ToList();
+            var relicImages = await Task.WhenAll(relicImageTasks);
+            var ornamentImages = await Task.WhenAll(ornamentImageTasks);
             m_Logger.LogInformation("All resources loaded successfully for character card generation");
 
             disposableResources.AddRange(backgroundImage, characterPortrait, equipImage);
             disposableResources.AddRange(ranks.Select(x => x.Image));
             disposableResources.AddRange(baseSkillImages.Select(x => x.Image));
             disposableResources.AddRange(skillImages.SelectMany(x => x.Select(y => y.Image)));
-            // disposableResources.AddRange(relicImages);
-            // disposableResources.AddRange(ornamentImages);
+            disposableResources.AddRange(relicImages);
+            disposableResources.AddRange(ornamentImages);
             characterPortrait.Mutate(x => x.Resize(1000, 0, KnownResamplers.Bicubic));
 
             backgroundImage.Mutate(ctx =>
             {
                 ctx.DrawImage(characterPortrait,
-                    new Point(400 - characterPortrait.Width / 2, 800 - characterPortrait.Height / 2), 1f);
+                    new Point(400 - characterPortrait.Width / 2, 700 - characterPortrait.Height / 2), 1f);
             });
 
             // draw blur
@@ -196,9 +240,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 ctx.DrawText(characterInformation.Name, m_TitleFont, Color.Black, new PointF(73, 53));
                 ctx.DrawText(characterInformation.Name, m_TitleFont, Color.White, new PointF(70, 50));
                 ctx.DrawText($"Lv. {characterInformation.Level.ToString()!}", m_NormalFont, Color.Black,
-                    new PointF(73, 113));
+                    new PointF(73, 123));
                 ctx.DrawText($"Lv. {characterInformation.Level.ToString()!}", m_NormalFont, Color.White,
-                    new PointF(70, 110));
+                    new PointF(70, 120));
                 ctx.DrawImage(overlay, new Point(800, 0), 1f);
 
                 for (int i = 0; i < ranks.Length; i++)
@@ -285,6 +329,80 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 }
                 else
                 {
+                    var rectangle = new RectangleF(1000, 700, 300, 420);
+                    ctx.DrawImage(equipImage, new Point(1000, 775), 1f);
+                    ctx.Draw(Color.White, 5f, rectangle);
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    {
+                        Origin = new PointF(1000, 680),
+                        WrappingLength = 300,
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, "No Light Cone", Color.White);
+                }
+
+                var statOffset = 1100 / stats.Count;
+                for (int i = 0; i < stats.Count; i++)
+                {
+                    var offset = i * statOffset;
+                    var property = stats[i];
+                    var statImage = m_StatImages.GetValueOrDefault(property.PropertyType!.Value);
+                    if (statImage == null)
+                    {
+                        m_Logger.LogWarning("Stat image not found for property type {PropertyType}",
+                            property.PropertyType);
+                        continue;
+                    }
+
+                    statImage.Mutate(x => x.Resize(48, 0, KnownResamplers.Bicubic, true));
+                    ctx.DrawImage(statImage, new Point(1400, 75 + offset), 1f);
+                    ctx.DrawText(StatMappingUtility.HsrMapping[property.PropertyType!.Value], m_NormalFont, Color.White,
+                        new PointF(1460, 80 + offset));
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    {
+                        Origin = new PointF(2140, 80 + offset),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, property.Final, Color.White);
+                }
+
+                for (int i = 0; i < relicImages.Length; i++)
+                {
+                    var offset = i * 170;
+                    ctx.DrawImage(relicImages[i], new Point(2200, 50 + offset), 1f);
+                }
+
+                var k = 0;
+                foreach (var relicSet in activeRelicSet)
+                {
+                    var offset = k * 30;
+                    ctx.DrawText(relicSet.Value.ToString(), m_SmallFont, Color.White,
+                        new PointF(2200, 720 + offset));
+                    ctx.DrawText(relicSet.Key, m_SmallFont, Color.White, new PointF(2230, 720 + offset));
+                    k++;
+                }
+
+                for (int i = 0; i < ornamentImages.Length; i++)
+                {
+                    var offset = i * 170;
+                    ctx.DrawImage(ornamentImages[ornamentImages.Length - 1 - i], new Point(2200, 1000 - offset), 1f);
+                }
+
+                k = 0;
+                foreach (var ornamentSet in activeOrnamentSet)
+                {
+                    var offset = k * 30;
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    {
+                        Origin = new PointF(2940, 820 - offset),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, ornamentSet.Value.ToString(), Color.White);
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    {
+                        Origin = new PointF(2910, 820 - offset),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, ornamentSet.Key, Color.White);
+                    k++;
                 }
             });
 
@@ -311,15 +429,61 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         var relicImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
             string.Format(BasePath, relic.Id)));
         var relicSlotImage = m_RelicSlotTemplate.Clone();
-        relicSlotImage.Mutate(ctx => ctx.DrawImage(relicImage, new Point(0, 0), 1f));
+        relicImage.Mutate(x =>
+        {
+            x.Resize(150, 0);
+            x.ApplyGradientFade(0.5f);
+        });
+        relicSlotImage.Mutate(ctx =>
+        {
+            ctx.DrawImage(relicImage, new Point(10, 10), 1f);
+            ctx.DrawImage(ImageExtensions.GenerateFourSidedStarRating(relic.Rarity!.Value), new Point(20, 115), 1f);
+            ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(125, 10), 1f);
+            ctx.DrawText(new RichTextOptions(m_NormalFont)
+            {
+                Origin = new PointF(230, 60),
+                HorizontalAlignment = HorizontalAlignment.Right
+            }, relic.MainProperty.Value, Color.White);
+            ctx.DrawText($"+{relic.Level}", m_SmallFont, Color.White, new PointF(180, 20));
+
+            for (var i = 0; i < relic.Properties.Count; i++)
+            {
+                var subStat = relic.Properties[i];
+                var subStatImage = m_StatImages[subStat.PropertyType!.Value];
+                var xOffset = i % 2 * 245;
+                var yOffset = i / 2 * 70;
+                ctx.DrawImage(subStatImage, new Point(260 + xOffset, 15 + yOffset), 1f);
+                ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(310 + xOffset, 20 + yOffset));
+                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
+                ctx.DrawText(rolls, m_NormalFont, Color.White, new PointF(435 + xOffset, 10 + yOffset));
+            }
+
+            relicImage.Dispose();
+        });
         return relicSlotImage;
     }
 
     private async Task<Image> CreateTemplateRelicSlotImageAsync(int slot)
     {
-        var templatePath = string.Format("hsr_relic_slot_{0}", slot);
-        var templateImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(templatePath));
-        return templateImage;
+        var path = $"hsr_relic_template_{slot}";
+        m_Logger.LogDebug("Loading template relic image from {Path}", path);
+
+        var relicImage = await Image.LoadAsync<Rgba32>(
+            await m_ImageRepository.DownloadFileToStreamAsync(path));
+        relicImage.Mutate(x => x.Resize(new Size(0, 130), KnownResamplers.Bicubic, true));
+        var template = m_RelicSlotTemplate.Clone();
+        template.Mutate(ctx =>
+        {
+            ctx.DrawImage(relicImage, new Point(25, 10), 1f);
+            ctx.DrawText(new RichTextOptions(m_NormalFont)
+            {
+                Origin = new Vector2(425, 75),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            }, "No Relic", Color.White);
+        });
+
+        return template;
     }
 
     private static List<List<Skill>> BuildSkillTree(List<Skill> skills)
