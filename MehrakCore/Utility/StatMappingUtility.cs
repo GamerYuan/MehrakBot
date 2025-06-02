@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Collections.ObjectModel;
+using MehrakCore.Models;
 
 #endregion
 
@@ -12,6 +13,7 @@ public static class StatMappingUtility
     private static readonly IReadOnlyDictionary<int, float> GenshinDefaultValues;
 
     public static IReadOnlyDictionary<int, string> HsrMapping { get; }
+    private static readonly IReadOnlyDictionary<int, float> HsrDefaultValues;
 
     static StatMappingUtility()
     {
@@ -118,11 +120,25 @@ public static class StatMappingUtility
             { 22, 50 },
             { 23, 100 }
         });
+
+        HsrDefaultValues = new ReadOnlyDictionary<int, float>(new Dictionary<int, float>
+        {
+            { 5, 5 },
+            { 6, 50 },
+            { 9, 100 },
+            { 52, 5 },
+            { 53, 50 }
+        });
     }
 
-    public static float GetDefaultValue(int propertyType)
+    public static float GetDefaultValue(int propertyType, GameName gameName)
     {
-        return GenshinDefaultValues.GetValueOrDefault(propertyType, 0);
+        return gameName switch
+        {
+            GameName.Genshin => GenshinDefaultValues.GetValueOrDefault(propertyType, 0),
+            GameName.HonkaiStarRail => HsrDefaultValues.GetValueOrDefault(propertyType, 0),
+            _ => throw new InvalidOperationException("Unsupported game name.")
+        };
     }
 
     public static bool IsBaseStat(int propertyType)

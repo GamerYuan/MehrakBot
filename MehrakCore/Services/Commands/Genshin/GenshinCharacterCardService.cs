@@ -2,6 +2,7 @@
 
 using System.Numerics;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -200,13 +201,14 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             // 3. Other stats
             var bonusStats = charInfo.SelectedProperties.OrderBy(x => x.PropertyType)
                 .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
+                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin)).ToArray();
 
             StatProperty[] stats;
             if (bonusStats.Length >= 6)
                 stats = charInfo.BaseProperties.Take(4)
                     .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).Concat(bonusStats)
+                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin))
+                    .Concat(bonusStats)
                     .DistinctBy(x => x.PropertyType)
                     .ToArray();
             else
