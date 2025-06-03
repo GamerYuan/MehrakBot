@@ -199,7 +199,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
             }
 
             var characterInfo = characterList.AvatarList
-                .FirstOrDefault(x => x.Name == characterName);
+                .FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
 
             if (characterInfo == null)
             {
