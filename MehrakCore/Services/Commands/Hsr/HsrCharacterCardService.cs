@@ -358,7 +358,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 {
                     equipImage.Mutate(x => x.Resize(300, 0, KnownResamplers.Bicubic));
                     ctx.DrawImage(equipImage, new Point(1000, 700), 1f);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
                         Origin = new PointF(1000, 630),
                         WrappingLength = 300,
