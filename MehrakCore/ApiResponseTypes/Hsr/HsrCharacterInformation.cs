@@ -106,9 +106,9 @@ public class ServantDetail
     [JsonPropertyName("servant_icon")] public string ServantIcon { get; set; }
 
     [JsonPropertyName("servant_properties")]
-    public List<object> ServantProperties { get; set; }
+    public List<Property> ServantProperties { get; set; }
 
-    [JsonPropertyName("servant_skills")] public List<object> ServantSkills { get; set; }
+    [JsonPropertyName("servant_skills")] public List<Skill> ServantSkills { get; set; }
     [JsonPropertyName("is_health_secret")] public bool? IsHealthSecret { get; set; }
 }
 
