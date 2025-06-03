@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Repositories;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Commands.Hsr;
 
-public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformation>
+public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformation>
 {
     private const string BaseString = "hsr_{0}";
     private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/hsr/wapi/entry_page";
@@ -258,7 +259,7 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
         }
     }
 
-    private async Task<bool> UpdateRelicImageAsync(IEnumerable<Relic> relics, Dictionary<string, string> relicWikiPages)
+    public async Task<bool> UpdateRelicImageAsync(IEnumerable<Relic> relics, Dictionary<string, string> relicWikiPages)
     {
         try
         {
@@ -345,26 +346,24 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
                         continue;
                     }
 
+                    relicName = QuotationMarkRegex().Replace(relicName, "'"); // Normalize quotes
+
                     // Try to match with our original relics by name
-                    string actualRelicId;
-                    if (relicNameToIdMap.TryGetValue(relicName.ToLowerInvariant(), out var matchedId))
+                    if (relicNameToIdMap.TryGetValue(relicName.ToLowerInvariant(), out var actualRelicId))
                     {
-                        // Use our original relic ID if we have a match
-                        actualRelicId = matchedId!;
                         Logger.LogInformation("Matched wiki relic {RelicName} to relic ID {RelicId}", relicName,
                             actualRelicId);
 
                         // Add to set mapping regardless of download status
-                        var relicIdInt = int.Parse(actualRelicId);
-                        if (!m_SetMapping.ContainsKey(relicIdInt))
-                        {
-                            m_SetMapping.Add(relicIdInt, setName!);
+                        var relicIdInt = int.Parse(actualRelicId!);
+                        if (m_SetMapping.TryAdd(relicIdInt, setName!))
                             Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}",
                                 relicIdInt, setName);
-                        }
                     }
                     else
                     {
+                        Logger.LogInformation("No mapping found for relic {RelicName} in set {SetName}",
+                            relicName, setName);
                         continue;
                     }
 
@@ -416,4 +415,7 @@ public class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformatio
             throw;
         }
     }
+
+    [GeneratedRegex(@"\u2018|\u2019")]
+    private static partial Regex QuotationMarkRegex();
 }
