@@ -31,7 +31,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
     private const string StatsPath = "hsr_stats_{0}";
 
     private readonly Font m_SmallFont;
-    private readonly Font m_MediumFont;
     private readonly Font m_NormalFont;
     private readonly Font m_TitleFont;
 
@@ -50,7 +49,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
-        m_MediumFont = fontFamily.CreateFont(32);
         m_SmallFont = fontFamily.CreateFont(28);
 
         m_JpegEncoder = new JpegEncoder
@@ -217,6 +215,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             disposableResources.AddRange(skillImages.SelectMany(x => x.Select(y => y.Image)));
             disposableResources.AddRange(relicImages);
             disposableResources.AddRange(ornamentImages);
+            disposableResources.AddRange(servantImages.Select(x => x.Image));
             characterPortrait.Mutate(x => x.Resize(1000, 0, KnownResamplers.Bicubic));
 
             backgroundImage.Mutate(ctx =>
@@ -245,12 +244,33 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
             backgroundImage.Mutate(ctx =>
             {
-                ctx.DrawText(characterInformation.Name, m_TitleFont, Color.Black, new PointF(73, 53));
-                ctx.DrawText(characterInformation.Name, m_TitleFont, Color.White, new PointF(70, 50));
+                ctx.DrawText(new RichTextOptions(m_TitleFont)
+                {
+                    Origin = new PointF(73, 53),
+                    WrappingLength = 700,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                }, characterInformation.Name, Color.Black);
+                ctx.DrawText(new RichTextOptions(m_TitleFont)
+                {
+                    Origin = new PointF(70, 50),
+                    WrappingLength = 700,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                }, characterInformation.Name, Color.White);
+
+                var bounds = TextMeasurer.MeasureBounds(characterInformation.Name, new RichTextOptions(m_TitleFont)
+                {
+                    Origin = new PointF(70, 50),
+                    WrappingLength = 700,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                });
+
                 ctx.DrawText($"Lv. {characterInformation.Level.ToString()!}", m_NormalFont, Color.Black,
-                    new PointF(73, 123));
+                    new PointF(73, bounds.Bottom + 23));
                 ctx.DrawText($"Lv. {characterInformation.Level.ToString()!}", m_NormalFont, Color.White,
-                    new PointF(70, 120));
+                    new PointF(70, bounds.Bottom + 20));
                 ctx.DrawImage(overlay, new Point(800, 0), 1f);
 
                 for (int i = 0; i < ranks.Length; i++)
