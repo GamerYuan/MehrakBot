@@ -77,7 +77,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         m_RelicSlotTemplate = new Image<Rgba32>(750, 150);
         m_RelicSlotTemplate.Mutate(x =>
         {
-            x.Fill(Color.SlateGray);
+            x.Fill(new Rgba32(255, 255, 255, 0.1f));
             x.ApplyRoundedCorners(30);
         });
 
@@ -183,9 +183,16 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 .Where(x => x.Value >= 2)
                 .ToDictionary(x => x.Key, x => x.Value);
 
+            var servantTask = characterInformation.ServantDetail.ServantSkills.Select(async x =>
+            {
+                var image = await Image.LoadAsync(
+                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
+                return (Data: x, Image: image);
+            }).ToArray();
+
             await Task.WhenAll(backgroundTask, characterPortraitTask, equipImageTask, Task.WhenAll(rankTasks),
-                Task.WhenAll(baseSkillTasks),
-                Task.WhenAll(skillTasks), Task.WhenAll(relicImageTasks), Task.WhenAll(ornamentImageTasks));
+                Task.WhenAll(baseSkillTasks), Task.WhenAll(skillTasks), Task.WhenAll(relicImageTasks),
+                Task.WhenAll(ornamentImageTasks), Task.WhenAll(servantTask));
 
             var backgroundImage = backgroundTask.Result;
             var characterPortrait = characterPortraitTask.Result;
@@ -199,8 +206,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             if (stats.Count < 7)
                 stats = stats.Concat(characterInformation.Properties).DistinctBy(x => x.PropertyType!.Value).Take(7)
                     .OrderBy(x => x.PropertyType!.Value).ToList();
-            var relicImages = await Task.WhenAll(relicImageTasks);
-            var ornamentImages = await Task.WhenAll(ornamentImageTasks);
+            var relicImages = relicImageTasks.Select(x => x.Result).ToArray();
+            var ornamentImages = ornamentImageTasks.Select(x => x.Result).ToArray();
+            var servantImages = servantTask.Select(x => x.Result).ToArray();
             m_Logger.LogInformation("All resources loaded successfully for character card generation");
 
             disposableResources.AddRange(backgroundImage, characterPortrait, equipImage);
@@ -258,18 +266,18 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < baseSkillImages.Length; i++)
                 {
-                    var offset = i * 110;
-                    var ellipse = new EllipsePolygon(new PointF(895, 90 + offset), 50);
+                    var offset = i * 100;
+                    var ellipse = new EllipsePolygon(new PointF(900, 80 + offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                    baseSkillImages[i].Image.Mutate(x => x.Resize(90, 0));
-                    ctx.DrawImage(baseSkillImages[i].Image, new Point(850, 45 + offset), 1f);
+                    baseSkillImages[i].Image.Mutate(x => x.Resize(80, 0));
+                    ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
                     ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
 
-                    var levelEllipse = new EllipsePolygon(new PointF(860, 125 + offset), 20);
+                    var levelEllipse = new EllipsePolygon(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                         {
-                            Origin = new PointF(859, 126 + offset),
+                            Origin = new PointF(864, 116 + offset),
                             HorizontalAlignment = HorizontalAlignment.Center,
                             VerticalAlignment = VerticalAlignment.Center
                         }, baseSkillImages[i].Data.Level!.ToString()!,
@@ -278,7 +286,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < skillImages.Length; i++)
                 {
-                    var yOffset = i * 110;
+                    var yOffset = i * 100;
                     for (int j = 0; j < skillImages[i].Length; j++)
                     {
                         var skill = skillImages[i][j];
@@ -288,22 +296,42 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                         if (skill.Data.PointType == 3)
                         {
                             var xOffset = j * 100;
-                            var ellipse = new EllipsePolygon(new PointF(1005 + xOffset, 90 + yOffset), 45);
+                            var ellipse = new EllipsePolygon(new PointF(1020 + xOffset, 80 + yOffset), 45);
                             skill.Image.Mutate(x => x.Resize(80, 0));
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                            ctx.DrawImage(skill.Image, new Point(965 + xOffset, 50 + yOffset), 1f);
+                            ctx.DrawImage(skill.Image, new Point(980 + xOffset, 40 + yOffset), 1f);
                             ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
                         }
                         else
                         {
                             var xOffset = (j - 1) * 100;
-                            var ellipse = new EllipsePolygon(new PointF(1105 + xOffset, 95 + yOffset), 30);
+                            var ellipse = new EllipsePolygon(new PointF(1120 + xOffset, 80 + yOffset), 30);
                             skill.Image.Mutate(x => x.Resize(50, 0));
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                            ctx.DrawImage(skill.Image, new Point(1080 + xOffset, 70 + yOffset), 1f);
+                            ctx.DrawImage(skill.Image, new Point(1095 + xOffset, 55 + yOffset), 1f);
                             ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
                         }
                     }
+                }
+
+                for (int i = 0; i < servantImages.Length; i++)
+                {
+                    var offset = i * 120;
+                    var ellipse = new EllipsePolygon(new PointF(900 + offset, 480), 45);
+                    ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
+                    servantImages[i].Image.Mutate(x => x.Resize(80, 0));
+                    ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);
+                    ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
+
+                    var levelEllipse = new EllipsePolygon(new PointF(865 + offset, 515), 20);
+                    ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                        {
+                            Origin = new PointF(864 + offset, 516),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, servantImages[i].Data.Level!.ToString()!,
+                        servantImages[i].Data.IsRankWork ?? false ? Color.Aqua : Color.White);
                 }
 
                 if (characterInformation.Equip != null)

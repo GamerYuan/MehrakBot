@@ -38,7 +38,8 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         List<Task<bool>> tasks =
         [
             UpdateCharacterImageAsync(characterInformation),
-            UpdateSkillImageAsync(characterInformation.Skills), UpdateRankImageAsync(characterInformation.Ranks),
+            UpdateSkillImageAsync(characterInformation.Skills.Concat(characterInformation.ServantDetail.ServantSkills)),
+            UpdateRankImageAsync(characterInformation.Ranks),
             UpdateRelicImageAsync(characterInformation.Relics.Concat(characterInformation.Ornaments), relicWiki)
         ];
         if (characterInformation.Equip != null)
