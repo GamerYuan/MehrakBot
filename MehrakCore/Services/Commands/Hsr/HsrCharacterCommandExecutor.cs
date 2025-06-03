@@ -70,11 +70,8 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
             }
 
             var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
-            if (selectedProfile.LastUsedRegions != null && !server.HasValue)
-            {
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.HonkaiStarRail, out var tmp);
-                server = tmp;
-            }
+            if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
+                selectedProfile.LastUsedRegions.TryGetValue(GameName.HonkaiStarRail, out var tmp)) server = tmp;
 
             if (server == null)
             {

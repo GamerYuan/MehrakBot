@@ -82,11 +82,8 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
             }
 
             var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
-            if (selectedProfile.LastUsedRegions != null && !server.HasValue)
-            {
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out var tmp);
-                server = tmp;
-            }
+            if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
+                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out var tmp)) server = tmp;
 
             if (server == null)
             {
