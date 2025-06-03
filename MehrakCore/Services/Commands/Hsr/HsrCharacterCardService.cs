@@ -32,6 +32,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
     private readonly Font m_SmallFont;
     private readonly Font m_NormalFont;
+    private readonly Font m_MediumFont;
     private readonly Font m_TitleFont;
 
     private readonly JpegEncoder m_JpegEncoder;
@@ -49,6 +50,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
+        m_MediumFont = fontFamily.CreateFont(32);
         m_SmallFont = fontFamily.CreateFont(28);
 
         m_JpegEncoder = new JpegEncoder
@@ -380,7 +382,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     var rectangle = new RectangleF(1000, 700, 300, 420);
                     ctx.DrawImage(equipImage, new Point(1000, 775), 1f);
                     ctx.Draw(Color.White, 5f, rectangle);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
                         Origin = new PointF(1000, 680),
                         WrappingLength = 300,
