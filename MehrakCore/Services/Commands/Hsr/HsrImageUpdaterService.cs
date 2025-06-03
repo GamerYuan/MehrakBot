@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using MehrakCore.ApiResponseTypes.Hsr;
@@ -15,7 +16,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private const string BaseString = "hsr_{0}";
     private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/hsr/wapi/entry_page";
 
-    private readonly Dictionary<int, string> m_SetMapping = new();
+    private readonly ConcurrentDictionary<int, string> m_SetMapping = new();
 
     public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<HsrCharacterInformation>> logger) : base(imageRepository, httpClientFactory, logger)
