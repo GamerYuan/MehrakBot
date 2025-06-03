@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -14,19 +15,31 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrCharacterApiService> m_Logger;
+    private readonly IMemoryCache m_MemoryCache;
 
     private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/avatar/info";
+    private const int CacheExpirationMinutes = 10;
 
-    public HsrCharacterApiService(IHttpClientFactory httpClientFactory, ILogger<HsrCharacterApiService> logger)
+    public HsrCharacterApiService(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache,
+        ILogger<HsrCharacterApiService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
+        m_MemoryCache = memoryCache;
     }
 
     public async Task<IEnumerable<HsrBasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken,
-        string gameUid,
-        string region)
+        string gameUid, string region)
     {
+        var cacheKey = $"hsr_characters_{gameUid}";
+
+        // Try to get data from cache first
+        if (m_MemoryCache.TryGetValue(cacheKey, out IEnumerable<HsrBasicCharacterData>? cachedData))
+        {
+            m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", gameUid);
+            return cachedData!;
+        }
+
         var client = m_HttpClientFactory.CreateClient("Default");
         m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
             uid, region, gameUid);
@@ -65,7 +78,16 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
             "Successfully retrieved {Count} characters for user {Uid} on {Region} server (game UID: {GameUid})",
             data.HsrBasicCharacterData.AvatarList.Count, uid, region, gameUid);
 
-        return [data.HsrBasicCharacterData];
+        var result = new[] { data.HsrBasicCharacterData };
+
+        var cacheOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheExpirationMinutes));
+
+        m_MemoryCache.Set(cacheKey, result, cacheOptions);
+        m_Logger.LogInformation("Cached character data for game UID: {GameUid} for {Minutes} minutes",
+            gameUid, CacheExpirationMinutes);
+
+        return result;
     }
 
     public async Task<ApiResult<HsrCharacterInformation>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,

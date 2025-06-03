@@ -137,7 +137,7 @@ internal class Program
                 provider.GetRequiredService<AuthenticationMiddlewareService>());
 
             // Other Services
-            // Replace memory cache with Redis for rate limiting
+            builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<CommandRateLimitService>();
 
             // NetCord Services
