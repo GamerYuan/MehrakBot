@@ -1,5 +1,6 @@
 ﻿#region
 
+using MehrakCore.Provider.Commands.Hsr;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
@@ -29,7 +30,8 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
+            AutocompleteProviderType = typeof(HsrCharacterAutocompleteProvider))]
         string characterName,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Regions? server = null,

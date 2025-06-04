@@ -119,6 +119,7 @@ internal class Program
             builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandService<HsrCommandModule>, HsrCharacterCommandExecutor>();
+            builder.Services.AddSingleton<HsrCharacterAutocompleteService>();
 
             // Daily Check-In Services
             builder.Services
