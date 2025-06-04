@@ -5,7 +5,10 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 #endregion
 
@@ -82,7 +85,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             Logger.LogInformation("Downloading character image for {CharacterName} with {Filename}",
                 characterInformation.Name, filename);
-            var client = HttpClientFactory.CreateClient();
+            var client = HttpClientFactory.CreateClient("Default");
             var imageResponse = await client.GetAsync(characterInformation.Image);
 
             if (!imageResponse.IsSuccessStatusCode)
@@ -93,8 +96,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return false;
             }
 
-            var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-            await ImageRepository.UploadFileAsync(filename, imageStream);
+            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            using var image = await Image.LoadAsync(imageStream);
+            image.Mutate(x => x.Resize(1000, 0));
+            using var processedStream = new MemoryStream();
+            await image.SaveAsPngAsync(processedStream);
+            processedStream.Position = 0;
+
+            await ImageRepository.UploadFileAsync(filename, processedStream, "png");
             return true;
         }
         catch (HttpRequestException e)
@@ -125,7 +134,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             }
 
             Logger.LogInformation("Downloading equip image for {EquipName} with {Filename}", equip.Name, filename);
-            var client = HttpClientFactory.CreateClient();
+            var client = HttpClientFactory.CreateClient("Default");
             var request = new HttpRequestMessage(HttpMethod.Get, $"{WikiApi}?entry_page_id={equipWiki.Split('/')[^1]}");
             request.Headers.Add("X-Rpc-Wiki_app", "hsr");
             var wikiResponse = await client.SendAsync(request);
@@ -146,8 +155,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return false;
             }
 
-            var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-            await ImageRepository.UploadFileAsync(filename, imageStream);
+            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            using var image = await Image.LoadAsync(imageStream);
+            image.Mutate(x => x.Resize(300, 0));
+            using var processedStream = new MemoryStream();
+            await image.SaveAsPngAsync(processedStream);
+            processedStream.Position = 0;
+
+            await ImageRepository.UploadFileAsync(filename, processedStream, "png");
             return true;
         }
         catch (HttpRequestException e)
@@ -168,11 +183,12 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     {
         try
         {
-            var client = HttpClientFactory.CreateClient();
+            var client = HttpClientFactory.CreateClient("Default");
 
             return await skills.ToAsyncEnumerable().SelectAwait(async skill =>
             {
-                var filename = string.Format(BaseString, skill.PointId);
+                var filename = string.Format(BaseString,
+                    skill.PointType == 1 ? StatBonusRegex().Replace(skill.SkillStages[0].Name, "") : skill.PointId);
                 if (await ImageRepository.FileExistsAsync(filename))
                 {
                     Logger.LogInformation(
@@ -200,8 +216,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                     return false;
                 }
 
-                var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-                await ImageRepository.UploadFileAsync(filename, imageStream);
+                await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
+                using var image = await Image.LoadAsync(imageStream);
+                image.Mutate(x => x.Resize(skill.PointType == 1 ? 50 : 80, 0));
+                using var processedStream = new MemoryStream();
+                await image.SaveAsPngAsync(processedStream);
+                processedStream.Position = 0;
+
+                await ImageRepository.UploadFileAsync(filename, processedStream, "png");
 
                 Logger.LogInformation("Successfully processed skill image for {SkillName}", skill.SkillStages[0].Name);
                 return true;
@@ -216,7 +238,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
     private async Task<bool> UpdateRankImageAsync(IEnumerable<Rank> ranks)
     {
-        var client = HttpClientFactory.CreateClient();
+        var client = HttpClientFactory.CreateClient("Default");
         try
         {
             return await ranks.ToAsyncEnumerable().SelectAwait(async rank =>
@@ -247,8 +269,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                     return false;
                 }
 
-                var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-                await ImageRepository.UploadFileAsync(filename, imageStream);
+                await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
+                using var image = await Image.LoadAsync(imageStream);
+                image.Mutate(x => x.Resize(80, 0));
+                using var processedStream = new MemoryStream();
+                await image.SaveAsPngAsync(processedStream);
+                processedStream.Position = 0;
+
+                await ImageRepository.UploadFileAsync(filename, processedStream, "png");
 
                 Logger.LogInformation("Successfully processed rank image for {RankName}", rank.Name);
                 return true;
@@ -268,7 +296,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             var allRelics = relics.ToList();
             var (relicsInWiki, relicsNotInWiki) = SeparateRelicsByWikiAvailability(allRelics, relicWikiPages);
 
-            var client = HttpClientFactory.CreateClient();
+            var client = HttpClientFactory.CreateClient("Default");
             var overallSuccess = true;
 
             // Process relics that have wiki entries
@@ -317,7 +345,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
         foreach (var wikiGroup in relicsByWikiPage)
         {
-            var client = HttpClientFactory.CreateClient();
+            var client = HttpClientFactory.CreateClient("Default");
             var wikiPageUrl = wikiGroup.Key;
             var wikiPageId = wikiPageUrl.Split('/')[^1];
             Logger.LogInformation("Fetching wiki data for page ID {WikiPageId}", wikiPageId);
@@ -491,8 +519,18 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return false;
             }
 
-            var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-            await ImageRepository.UploadFileAsync(filename, imageStream);
+            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            using var image = await Image.LoadAsync(imageStream);
+            image.Mutate(x =>
+            {
+                x.Resize(150, 0);
+                x.ApplyGradientFade(0.5f);
+            });
+            using var processedStream = new MemoryStream();
+            await image.SaveAsPngAsync(processedStream);
+            processedStream.Position = 0;
+
+            await ImageRepository.UploadFileAsync(filename, processedStream, "png");
 
             if (string.IsNullOrEmpty(source))
                 Logger.LogInformation("Successfully processed relic image for {RelicName}", relicName);
@@ -511,4 +549,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
     [GeneratedRegex(@"\u2018|\u2019")]
     private static partial Regex QuotationMarkRegex();
+
+    [GeneratedRegex(@"[\s:]")]
+    private static partial Regex StatBonusRegex();
 }
