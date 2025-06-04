@@ -372,14 +372,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             if (setEntry == null)
             {
                 Logger.LogWarning("No set entry found for wiki page ID {WikiPageId}", wikiPageId);
-                return null;
+                return (setName ?? string.Empty, null);
             }
 
             var wikiEntry = setEntry["components"]?.AsArray().First()?["data"]?.GetValue<string>();
             if (string.IsNullOrEmpty(wikiEntry))
             {
                 Logger.LogWarning("No wiki entry found for wiki page ID {WikiPageId}", wikiPageId);
-                return null;
+                return (setName ?? string.Empty, null);
             }
 
             var jsonObject = JsonNode.Parse(wikiEntry);
