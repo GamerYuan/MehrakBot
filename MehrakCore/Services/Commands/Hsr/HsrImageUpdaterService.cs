@@ -265,148 +265,25 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     {
         try
         {
-            var relicsList = relics.Where(r => relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty)).ToList();
-
-            // Group relics by their wiki page
-            var relicsByWikiPage = relicsList
-                .GroupBy(r => relicWikiPages[r.Id.ToString() ?? string.Empty]);
+            var allRelics = relics.ToList();
+            var (relicsInWiki, relicsNotInWiki) = SeparateRelicsByWikiAvailability(allRelics, relicWikiPages);
 
             var client = HttpClientFactory.CreateClient();
             var overallSuccess = true;
 
-            // Create a dictionary to map wiki relic names to our relic IDs for correct file naming
-            var relicNameToIdMap = relicsList.ToDictionary(
-                r => r.Name.ToLowerInvariant(),
-                r => r.Id.ToString());
-
-            foreach (var wikiGroup in relicsByWikiPage)
+            // Process relics that have wiki entries
+            if (relicsInWiki.Count != 0)
             {
-                var wikiPageUrl = wikiGroup.Key;
-                var wikiPageId = wikiPageUrl.Split('/')[^1];
-                Logger.LogInformation("Fetching wiki data for page ID {WikiPageId}", wikiPageId);
+                var success = await ProcessRelicsWithWikiData(relicsInWiki, relicWikiPages);
+                overallSuccess = overallSuccess && success;
+            } // Process relics without wiki entries using direct icon URLs
 
-                // Make a single request for this wiki page
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{WikiApi}?entry_page_id={wikiPageId}");
-                request.Headers.Add("X-Rpc-Wiki_app", "hsr");
-                var wikiResponse = await client.SendAsync(request);
-                var wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
+            if (relicsNotInWiki.Count != 0)
+            {
+                Logger.LogInformation("Processing {Count} relics not found in wiki pages", relicsNotInWiki.Count);
 
-                if (wikiJson == null)
-                {
-                    Logger.LogWarning("Failed to parse relic wiki JSON for page ID {WikiPageId}", wikiPageId);
-                    overallSuccess = false;
-                    continue;
-                }
-
-                var setName = wikiJson["data"]?["page"]?["name"]?.GetValue<string>();
-
-                var wikiModules = wikiJson["data"]?["page"]?["modules"]?.AsArray();
-                var setEntry = wikiModules?.FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set");
-
-                if (setEntry == null)
-                {
-                    Logger.LogWarning("No set entry found for wiki page ID {WikiPageId}", wikiPageId);
-                    overallSuccess = false;
-                    continue;
-                }
-
-                var wikiEntry = setEntry["components"]?.AsArray().First()?["data"]?.GetValue<string>();
-
-                if (string.IsNullOrEmpty(wikiEntry))
-                {
-                    Logger.LogWarning("No wiki entry found for wiki page ID {WikiPageId}", wikiPageId);
-                    overallSuccess = false;
-                    continue;
-                }
-
-                // Parse the JSON response
-                var jsonObject = JsonNode.Parse(wikiEntry);
-                var relicList = jsonObject?["list"]?.AsArray();
-
-                if (relicList == null || relicList.Count == 0)
-                {
-                    Logger.LogWarning("No relic list found for wiki page ID {WikiPageId}", wikiPageId);
-                    overallSuccess = false;
-                    continue;
-                }
-
-                Logger.LogInformation("Found {Count} relics in set with page ID {WikiPageId}", relicList.Count,
-                    wikiPageId);
-
-                // Process each relic in this wiki page group
-                foreach (var relicNode in relicList)
-                {
-                    var relicName = relicNode?["title"]?.GetValue<string>();
-                    var wikiRelicId = relicNode?["id"]?.GetValue<string>();
-                    var iconUrl = relicNode?["icon_url"]?.GetValue<string>();
-
-                    if (string.IsNullOrEmpty(relicName) || string.IsNullOrEmpty(wikiRelicId) ||
-                        string.IsNullOrEmpty(iconUrl))
-                    {
-                        Logger.LogWarning("Missing data for relic in set {WikiPageId}", wikiPageId);
-                        overallSuccess = false;
-                        continue;
-                    }
-
-                    relicName = QuotationMarkRegex().Replace(relicName, "'"); // Normalize quotes
-
-                    // Try to match with our original relics by name
-                    if (relicNameToIdMap.TryGetValue(relicName.ToLowerInvariant(), out var actualRelicId))
-                    {
-                        Logger.LogInformation("Matched wiki relic {RelicName} to relic ID {RelicId}", relicName,
-                            actualRelicId);
-
-                        // Add to set mapping regardless of download status
-                        var relicIdInt = int.Parse(actualRelicId!);
-                        if (m_SetMapping.TryAdd(relicIdInt, setName!))
-                            Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}",
-                                relicIdInt, setName);
-                    }
-                    else
-                    {
-                        Logger.LogInformation("No mapping found for relic {RelicName} in set {SetName}",
-                            relicName, setName);
-                        continue;
-                    }
-
-                    var filename = string.Format(BaseString, actualRelicId);
-
-                    // Skip if already exists
-                    if (await ImageRepository.FileExistsAsync(filename))
-                    {
-                        Logger.LogInformation(
-                            "Relic image for {RelicName} with ID {RelicId} already exists, skipping download",
-                            relicName, actualRelicId);
-                        continue;
-                    }
-
-                    // Download and upload the image
-                    try
-                    {
-                        Logger.LogInformation("Downloading relic image for {RelicName} with ID {RelicId}", relicName,
-                            actualRelicId);
-                        var imageResponse = await client.GetAsync(iconUrl);
-
-                        if (!imageResponse.IsSuccessStatusCode)
-                        {
-                            Logger.LogWarning("Failed to download image for relic {RelicName}: {StatusCode}",
-                                relicName, imageResponse.StatusCode);
-                            overallSuccess = false;
-                            continue;
-                        }
-
-                        var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-                        await ImageRepository.UploadFileAsync(filename, imageStream);
-
-                        Logger.LogInformation("Successfully processed relic image for {RelicName}", relicName);
-                    }
-                    catch (HttpRequestException e)
-                    {
-                        Logger.LogError("Error downloading relic image for {RelicName} with {Filename}: {Message}",
-                            relicName, filename, e.Message);
-                        overallSuccess = false;
-                    }
-                }
+                var success = await ProcessRelicsWithDirectIcons(relicsNotInWiki, client);
+                overallSuccess = overallSuccess && success;
             }
 
             return overallSuccess;
@@ -415,6 +292,220 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         {
             Logger.LogError("Error updating relic data: {Message}", e.Message);
             throw;
+        }
+    }
+
+    private static (List<Relic> RelicsInWiki, List<Relic> RelicsNotInWiki) SeparateRelicsByWikiAvailability(
+        List<Relic> allRelics, Dictionary<string, string> relicWikiPages)
+    {
+        var relicsInWiki = allRelics
+            .Where(r => relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty))
+            .ToList();
+
+        var relicsNotInWiki = allRelics
+            .Where(r => !relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty))
+            .ToList();
+
+        return (relicsInWiki, relicsNotInWiki);
+    }
+
+    private async Task<bool> ProcessRelicsWithWikiData(List<Relic> relics, Dictionary<string, string> relicWikiPages)
+    {
+        var relicsByWikiPage = relics.GroupBy(r => relicWikiPages[r.Id.ToString() ?? string.Empty]);
+        var relicNameToIdMap = relics.ToDictionary(r => r.Name.ToLowerInvariant(), r => r.Id.ToString());
+        var overallSuccess = true;
+
+        foreach (var wikiGroup in relicsByWikiPage)
+        {
+            var client = HttpClientFactory.CreateClient();
+            var wikiPageUrl = wikiGroup.Key;
+            var wikiPageId = wikiPageUrl.Split('/')[^1];
+            Logger.LogInformation("Fetching wiki data for page ID {WikiPageId}", wikiPageId);
+
+            var wikiData = await FetchWikiDataAsync(client, wikiPageId);
+            if (wikiData == null)
+            {
+                // Fallback to direct icons for this group
+                var success = await ProcessRelicsWithDirectIcons(wikiGroup.ToList(), client);
+                overallSuccess = overallSuccess && success;
+                continue;
+            }
+
+            var (setName, relicList) = wikiData.Value;
+            if (relicList == null || relicList.Count == 0)
+            {
+                Logger.LogWarning("No relic list found for wiki page ID {WikiPageId}, falling back to direct icons",
+                    wikiPageId);
+                var success = await ProcessRelicsWithDirectIcons(wikiGroup.ToList(), client, setName);
+                overallSuccess = overallSuccess && success;
+                continue;
+            }
+
+            Logger.LogInformation("Found {Count} relics in set with page ID {WikiPageId}", relicList.Count, wikiPageId);
+
+            var success2 = await ProcessWikiRelicList(relicList, setName, relicNameToIdMap, client);
+            overallSuccess = overallSuccess && success2;
+        }
+
+        return overallSuccess;
+    }
+
+    private async Task<(string SetName, JsonArray? RelicList)?> FetchWikiDataAsync(HttpClient client, string wikiPageId)
+    {
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{WikiApi}?entry_page_id={wikiPageId}");
+            request.Headers.Add("X-Rpc-Wiki_app", "hsr");
+            var wikiResponse = await client.SendAsync(request);
+            var wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
+
+            if (wikiJson == null)
+            {
+                Logger.LogWarning("Failed to parse relic wiki JSON for page ID {WikiPageId}", wikiPageId);
+                return null;
+            }
+
+            var setName = wikiJson["data"]?["page"]?["name"]?.GetValue<string>();
+            var wikiModules = wikiJson["data"]?["page"]?["modules"]?.AsArray();
+            var setEntry = wikiModules?.FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set");
+
+            if (setEntry == null)
+            {
+                Logger.LogWarning("No set entry found for wiki page ID {WikiPageId}", wikiPageId);
+                return null;
+            }
+
+            var wikiEntry = setEntry["components"]?.AsArray().First()?["data"]?.GetValue<string>();
+            if (string.IsNullOrEmpty(wikiEntry))
+            {
+                Logger.LogWarning("No wiki entry found for wiki page ID {WikiPageId}", wikiPageId);
+                return null;
+            }
+
+            var jsonObject = JsonNode.Parse(wikiEntry);
+            var relicList = jsonObject?["list"]?.AsArray();
+
+            return (setName ?? string.Empty, relicList);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("Error fetching wiki data for page ID {WikiPageId}: {Message}", wikiPageId, e.Message);
+            return null;
+        }
+    }
+
+    private async Task<bool> ProcessWikiRelicList(JsonArray relicList, string setName,
+        Dictionary<string, string?> relicNameToIdMap, HttpClient client)
+    {
+        var overallSuccess = true;
+
+        foreach (var relicNode in relicList)
+        {
+            var relicName = relicNode?["title"]?.GetValue<string>();
+            var wikiRelicId = relicNode?["id"]?.GetValue<string>();
+            var iconUrl = relicNode?["icon_url"]?.GetValue<string>();
+
+            if (string.IsNullOrEmpty(relicName) || string.IsNullOrEmpty(wikiRelicId) || string.IsNullOrEmpty(iconUrl))
+            {
+                Logger.LogWarning("Missing data for relic in set {SetName}", setName);
+                overallSuccess = false;
+                continue;
+            }
+
+            relicName = QuotationMarkRegex().Replace(relicName, "'"); // Normalize quotes
+
+            if (!relicNameToIdMap.TryGetValue(relicName.ToLowerInvariant(), out var actualRelicId) ||
+                actualRelicId == null)
+            {
+                Logger.LogInformation("No mapping found for relic {RelicName} in set {SetName}", relicName, setName);
+                continue;
+            }
+
+            Logger.LogInformation("Matched wiki relic {RelicName} to relic ID {RelicId}", relicName, actualRelicId);
+
+            // Add to set mapping regardless of download status
+            var relicIdInt = int.Parse(actualRelicId);
+            if (m_SetMapping.TryAdd(relicIdInt, setName))
+                Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}", relicIdInt,
+                    setName);
+
+            var success = await DownloadAndSaveRelicImage(actualRelicId, iconUrl, relicName, client);
+            overallSuccess = overallSuccess && success;
+        }
+
+        return overallSuccess;
+    }
+
+    private async Task<bool> ProcessRelicsWithDirectIcons(List<Relic> relics, HttpClient client, string? setName = null)
+    {
+        var overallSuccess = true;
+
+        foreach (var relic in relics)
+        {
+            if (string.IsNullOrEmpty(relic.Icon))
+            {
+                Logger.LogWarning("No icon URL found for relic {RelicName} with ID {RelicId}", relic.Name, relic.Id);
+                overallSuccess = false;
+                continue;
+            }
+
+            if (setName != null && m_SetMapping.TryAdd(relic.Id!.Value, setName))
+                Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}",
+                    relic.Id.Value, setName);
+
+            var success = await DownloadAndSaveRelicImage(relic.Id.ToString()!, relic.Icon, relic.Name, client,
+                "from Icon URL");
+            overallSuccess = overallSuccess && success;
+        }
+
+        return overallSuccess;
+    }
+
+    private async Task<bool> DownloadAndSaveRelicImage(string relicId, string iconUrl, string relicName,
+        HttpClient client, string source = "")
+    {
+        var filename = string.Format(BaseString, relicId);
+
+        // Skip if already exists
+        if (await ImageRepository.FileExistsAsync(filename))
+        {
+            Logger.LogInformation("Relic image for {RelicName} with ID {RelicId} already exists, skipping download",
+                relicName, relicId);
+            return true;
+        }
+
+        try
+        {
+            if (string.IsNullOrEmpty(source))
+                Logger.LogInformation("Downloading relic image for {RelicName} with ID {RelicId}", relicName, relicId);
+            else
+                Logger.LogInformation("Downloading relic image {Source} for {RelicName} with ID {RelicId}", source,
+                    relicName, relicId);
+
+            var imageResponse = await client.GetAsync(iconUrl);
+
+            if (!imageResponse.IsSuccessStatusCode)
+            {
+                Logger.LogWarning("Failed to download image for relic {RelicName}: {StatusCode}", relicName,
+                    imageResponse.StatusCode);
+                return false;
+            }
+
+            var imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            await ImageRepository.UploadFileAsync(filename, imageStream);
+
+            if (string.IsNullOrEmpty(source))
+                Logger.LogInformation("Successfully processed relic image for {RelicName}", relicName);
+            else
+                Logger.LogInformation("Successfully processed relic image for {RelicName} {Source}", relicName, source);
+
+            return true;
+        }
+        catch (HttpRequestException e)
+        {
+            Logger.LogError("Error downloading relic image for {RelicName} with {Filename}: {Message}", relicName,
+                filename, e.Message);
+            return false;
         }
     }
 
