@@ -279,6 +279,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 ctx.DrawText($"Lv. {characterInformation.Level.ToString()!}", m_NormalFont, Color.White,
                     new PointF(70, bounds.Bottom + 20));
                 ctx.DrawImage(overlay, new Point(800, 0), 1f);
+                ctx.DrawText(gameUid, m_SmallFont, Color.White, new PointF(70, 1150));
 
                 for (int i = 0; i < ranks.Length; i++)
                 {
