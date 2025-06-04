@@ -551,5 +551,5 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private static partial Regex QuotationMarkRegex();
 
     [GeneratedRegex(@"[\s:]")]
-    private static partial Regex StatBonusRegex();
+    public static partial Regex StatBonusRegex();
 }

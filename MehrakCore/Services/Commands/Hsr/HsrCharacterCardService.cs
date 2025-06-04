@@ -125,7 +125,8 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 {
                     var image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(x.PointType == 1
-                            ? string.Format(BasePath, x.SkillStages[0].Name.Replace(" ", ""))
+                            ? string.Format(BasePath,
+                                HsrImageUpdaterService.StatBonusRegex().Replace(x.SkillStages[0].Name, ""))
                             : string.Format(BasePath, x.PointId)));
                     return (Data: x, Image: image);
                 }));
@@ -191,6 +192,8 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
                 return (Data: x, Image: image);
             }).ToArray();
+
+            var accentColor = GetAccentColor(characterInformation.Element);
 
             await Task.WhenAll(backgroundTask, characterPortraitTask, equipImageTask, Task.WhenAll(rankTasks),
                 Task.WhenAll(baseSkillTasks), Task.WhenAll(skillTasks), Task.WhenAll(relicImageTasks),
@@ -285,7 +288,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     if (!ranks[i].Active) ranks[i].Image.Mutate(x => x.Brightness(0.5f));
                     // ranks[i].Image.Mutate(x => x.Resize(80, 0));
                     ctx.DrawImage(ranks[i].Image, new Point(860, 1075 - offset), 1f);
-                    ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
+                    ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
                 }
 
                 for (int i = 0; i < baseSkillImages.Length; i++)
@@ -295,7 +298,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     // baseSkillImages[i].Image.Mutate(x => x.Resize(80, 0));
                     ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
-                    ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
+                    ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
 
                     var levelEllipse = new EllipsePolygon(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
@@ -324,7 +327,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                             // skill.Image.Mutate(x => x.Resize(80, 0));
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(980 + xOffset, 40 + yOffset), 1f);
-                            ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
+                            ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
                         }
                         else
                         {
@@ -333,7 +336,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                             // skill.Image.Mutate(x => x.Resize(50, 0));
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(1095 + xOffset, 55 + yOffset), 1f);
-                            ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
+                            ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
                         }
                     }
                 }
@@ -345,7 +348,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     // servantImages[i].Image.Mutate(x => x.Resize(80, 0));
                     ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);
-                    ctx.Draw(Color.DarkBlue, 5, ellipse.AsClosedPath());
+                    ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
 
                     var levelEllipse = new EllipsePolygon(new PointF(865 + offset, 515), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
@@ -600,5 +603,20 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         }
 
         return chain;
+    }
+
+    private static Color GetAccentColor(string element)
+    {
+        return element switch
+        {
+            _ when element.Equals("Physical", StringComparison.OrdinalIgnoreCase) => Color.ParseHex("#acabab"),
+            _ when element.Equals("Fire", StringComparison.OrdinalIgnoreCase) => Color.ParseHex("#e83e3e"),
+            _ when element.Equals("Ice", StringComparison.OrdinalIgnoreCase) => Color.ParseHex("#1fb6d1"),
+            _ when element.Equals("Lightning", StringComparison.OrdinalIgnoreCase) => Color.ParseHex("#bb4cd3"),
+            _ when element.Equals("Wind", StringComparison.OrdinalIgnoreCase) => Color.ParseHex("#3cc088"),
+            _ when element.Equals("Quantum", StringComparison.OrdinalIgnoreCase) => Color.ParseHex("#5058e0"),
+            _ when element.Equals("Imaginary", StringComparison.OrdinalIgnoreCase) => Color.ParseHex("#d6c146"),
+            _ => Color.DarkBlue
+        };
     }
 }
