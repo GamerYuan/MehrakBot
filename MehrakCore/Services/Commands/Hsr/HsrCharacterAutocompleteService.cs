@@ -4,6 +4,8 @@ public class HsrCharacterAutocompleteService
 {
     private List<string> CharacterNames { get; }
 
+    private const int Limit = 25;
+
     public HsrCharacterAutocompleteService()
     {
         CharacterNames =
@@ -11,30 +13,9 @@ public class HsrCharacterAutocompleteService
                 .OrderBy(x => x).ToList();
     }
 
-    public IReadOnlyList<string> FindCharacter(string query, int skip, int limit, out bool more)
+    public IReadOnlyList<string> FindCharacter(string query)
     {
-        var result = CharacterNames.Where(x => x.Contains(query, StringComparison.InvariantCultureIgnoreCase))
-            .Skip(skip);
-        List<string> list = new(limit);
-
-        using var enumerator = result.GetEnumerator();
-        int i = 0;
-        while (true)
-            if (enumerator.MoveNext())
-            {
-                list.Add(enumerator.Current);
-                if (++i >= limit)
-                {
-                    more = enumerator.MoveNext();
-                    break;
-                }
-            }
-            else
-            {
-                more = false;
-                break;
-            }
-
-        return list;
+        return CharacterNames.Where(x => x.Contains(query, StringComparison.InvariantCultureIgnoreCase)).Take(Limit)
+            .ToList();
     }
 }

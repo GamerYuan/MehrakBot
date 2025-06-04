@@ -16,7 +16,6 @@ public class HsrCharacterAutocompleteProvider(HsrCharacterAutocompleteService au
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(option.Value!, 0, 25, out _)
-            .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
+            .FindCharacter(option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }
