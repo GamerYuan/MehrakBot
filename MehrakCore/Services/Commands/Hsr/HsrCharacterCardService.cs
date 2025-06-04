@@ -50,7 +50,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
-        m_MediumFont = fontFamily.CreateFont(32);
+        m_MediumFont = fontFamily.CreateFont(36);
         m_SmallFont = fontFamily.CreateFont(28);
 
         m_JpegEncoder = new JpegEncoder
@@ -361,32 +361,32 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 if (characterInformation.Equip != null)
                 {
                     // equipImage.Mutate(x => x.Resize(300, 0, KnownResamplers.Bicubic));
-                    ctx.DrawImage(equipImage, new Point(1000, 700), 1f);
-                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    ctx.DrawImage(equipImage, new Point(1000, 730), 1f);
+                    ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
-                        Origin = new PointF(1000, 630),
+                        Origin = new PointF(1000, 660),
                         WrappingLength = 300,
                         VerticalAlignment = VerticalAlignment.Bottom
                     }, characterInformation.Equip.Name, Color.White);
-                    var equipEllipse = new EllipsePolygon(new PointF(1020, 660), 20);
+                    var equipEllipse = new EllipsePolygon(new PointF(1020, 690), 20);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), equipEllipse);
                     ctx.DrawText(((char)(0x215F + characterInformation.Equip.Rank!.Value)).ToString(), m_SmallFont,
-                        Color.Gold, new PointF(1007, 646));
+                        Color.Gold, new PointF(1007, 676));
                     ctx.Draw(Color.Gold, 2f, equipEllipse.AsClosedPath());
                     ctx.DrawText($"Lv. {characterInformation.Equip.Level!.Value}", m_NormalFont, Color.White,
-                        new PointF(1080, 640));
+                        new PointF(1080, 670));
                     var stars = ImageExtensions.GenerateFourSidedStarRating(characterInformation.Equip.Rarity!.Value,
                         false);
-                    ctx.DrawImage(stars, new Point(990, 700), 1f);
+                    ctx.DrawImage(stars, new Point(990, 730), 1f);
                 }
                 else
                 {
-                    var rectangle = new RectangleF(1000, 700, 300, 420);
-                    ctx.DrawImage(equipImage, new Point(1000, 775), 1f);
+                    var rectangle = new RectangleF(1000, 730, 300, 420);
+                    ctx.DrawImage(equipImage, new Point(1000, 805), 1f);
                     ctx.Draw(Color.White, 5f, rectangle);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
-                        Origin = new PointF(1000, 680),
+                        Origin = new PointF(1000, 710),
                         WrappingLength = 300,
                         VerticalAlignment = VerticalAlignment.Bottom
                     }, "No Light Cone", Color.White);
