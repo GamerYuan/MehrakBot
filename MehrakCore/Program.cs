@@ -2,13 +2,16 @@
 
 using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;
+using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -107,6 +110,17 @@ internal class Program
             builder.Services
                 .AddTransient<ICharacterCommandService<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
 
+            // Hsr Services
+            builder.Services
+                .AddSingleton<ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>,
+                    HsrCharacterApiService>();
+            builder.Services
+                .AddSingleton<ICharacterCardService<HsrCharacterInformation>, HsrCharacterCardService>();
+            builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
+            builder.Services
+                .AddTransient<ICharacterCommandService<HsrCommandModule>, HsrCharacterCommandExecutor>();
+            builder.Services.AddSingleton<HsrCharacterAutocompleteService>();
+
             // Daily Check-In Services
             builder.Services
                 .AddTransient<IDailyCheckInCommandService, DailyCheckInCommandExecutor>();
@@ -119,12 +133,10 @@ internal class Program
             });
             builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
-            builder.Services.AddSingleton<AuthenticationMiddlewareService>();
-            builder.Services.AddSingleton<IAuthenticationMiddlewareService>(provider =>
-                provider.GetRequiredService<AuthenticationMiddlewareService>());
+            builder.Services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
 
             // Other Services
-            // Replace memory cache with Redis for rate limiting
+            builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<CommandRateLimitService>();
 
             // NetCord Services

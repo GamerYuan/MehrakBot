@@ -116,4 +116,32 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
 
         return ApiResult<GenshinCharacterDetail>.Success(data, json?.Retcode ?? 0, HttpStatusCode.Accepted);
     }
+
+    public async Task<ApiResult<GenshinCharacterDetail>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
+        string gameUid, string region, string characterName)
+    {
+        m_Logger.LogInformation(
+            "Retrieving character data for {CharacterName} for user {Uid} on {Region} server (game UID: {GameUid})",
+            characterName, uid, region, gameUid);
+
+        var characters = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
+        var character =
+            characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+
+        if (character == null)
+        {
+            m_Logger.LogWarning("Character {CharacterName} not found for user {Uid}", characterName, uid);
+            throw new KeyNotFoundException($"Character '{characterName}' not found");
+        }
+
+        var result = await GetCharacterDataFromIdAsync(uid, ltoken, gameUid, region, (uint)character.Id!);
+        if (!result.IsSuccess)
+        {
+            m_Logger.LogError("Failed to retrieve data for character {CharacterName} for user {Uid}",
+                characterName, uid);
+            throw new Exception($"Failed to retrieve data for character '{characterName}'");
+        }
+
+        return ApiResult<GenshinCharacterDetail>.Success(result.Data);
+    }
 }

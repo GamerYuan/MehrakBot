@@ -77,21 +77,21 @@ public class GenshinCharacterInformation : ICharacterInformation
     [JsonPropertyName("weapon")] public required WeaponDetail Weapon { get; init; }
     [JsonPropertyName("relics")] public required IReadOnlyList<Relic> Relics { get; init; }
 
-    [JsonPropertyName("constellations")] public required IReadOnlyList<Constellation> Constellations { get; init; }
+    [JsonPropertyName("constellations")] public required List<Constellation> Constellations { get; init; }
 
-    [JsonPropertyName("costumes")] public IReadOnlyList<object>? Costumes { get; init; }
+    [JsonPropertyName("costumes")] public List<object>? Costumes { get; init; }
 
     [JsonPropertyName("selected_properties")]
     public required IReadOnlyList<StatProperty> SelectedProperties { get; init; }
 
-    [JsonPropertyName("base_properties")] public required IReadOnlyList<StatProperty> BaseProperties { get; init; }
+    [JsonPropertyName("base_properties")] public required List<StatProperty> BaseProperties { get; init; }
 
-    [JsonPropertyName("extra_properties")] public required IReadOnlyList<StatProperty> ExtraProperties { get; init; }
+    [JsonPropertyName("extra_properties")] public required List<StatProperty> ExtraProperties { get; init; }
 
     [JsonPropertyName("element_properties")]
-    public required IReadOnlyList<StatProperty> ElementProperties { get; init; }
+    public required List<StatProperty> ElementProperties { get; init; }
 
-    [JsonPropertyName("skills")] public required IReadOnlyList<Skill> Skills { get; init; }
+    [JsonPropertyName("skills")] public required List<Skill> Skills { get; init; }
 }
 
 public class Skill
@@ -133,7 +133,7 @@ public class Relic
     [JsonPropertyName("main_property")] public required RelicStatProperty MainProperty { get; init; }
 
     [JsonPropertyName("sub_property_list")]
-    public required IReadOnlyList<RelicStatProperty> SubPropertyList { get; init; }
+    public required List<RelicStatProperty> SubPropertyList { get; init; }
 }
 
 public class RelicSet : IEquatable<RelicSet>
@@ -141,7 +141,7 @@ public class RelicSet : IEquatable<RelicSet>
     [JsonPropertyName("id")] public int? Id { get; init; }
     [JsonPropertyName("name")] public required string Name { get; init; }
 
-    [JsonPropertyName("affixes")] public required IReadOnlyList<RelicAffix> Affixes { get; init; }
+    [JsonPropertyName("affixes")] public required List<RelicAffix> Affixes { get; init; }
 
     public override bool Equals(object? other)
     {

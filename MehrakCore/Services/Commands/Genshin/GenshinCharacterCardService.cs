@@ -2,6 +2,7 @@
 
 using System.Numerics;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger = logger;
 
         var collection = new FontCollection();
-        var fontFamily = collection.Add("Fonts/zh-cn.ttf");
+        var fontFamily = collection.Add("Fonts/genshin.ttf");
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
@@ -200,13 +201,14 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             // 3. Other stats
             var bonusStats = charInfo.SelectedProperties.OrderBy(x => x.PropertyType)
                 .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).ToArray();
+                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin)).ToArray();
 
             StatProperty[] stats;
             if (bonusStats.Length >= 6)
                 stats = charInfo.BaseProperties.Take(4)
                     .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value)).Concat(bonusStats)
+                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin))
+                    .Concat(bonusStats)
                     .DistinctBy(x => x.PropertyType)
                     .ToArray();
             else
@@ -311,7 +313,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     var stat = stats[i];
                     var y = 360 + spacing * i;
                     ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
-                    ctx.DrawText(StatMappingUtility.Mapping[stat.PropertyType!.Value], m_NormalFont, textColor,
+                    ctx.DrawText(StatMappingUtility.GenshinMapping[stat.PropertyType!.Value], m_NormalFont, textColor,
                         new PointF(1264, y));
                     if (StatMappingUtility.IsBaseStat(stat.PropertyType!.Value))
                     {

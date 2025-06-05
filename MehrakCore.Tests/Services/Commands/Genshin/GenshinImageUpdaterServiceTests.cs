@@ -61,7 +61,7 @@ public class GenshinImageUpdaterServiceTests
         Assert.That(characterInfo, Is.Not.Null);
 
         // Act
-        await service.UpdateDataAsync(characterInfo, characterDetail.AvatarWiki);
+        await service.UpdateDataAsync(characterInfo, [characterDetail.AvatarWiki]);
 
         await Assert.MultipleAsync(async () =>
         {
@@ -100,7 +100,7 @@ public class GenshinImageUpdaterServiceTests
         await m_ImageRepo.UploadFileAsync($"genshin_{characterDetail.List[0].Base.Id}", new MemoryStream());
 
         // Act
-        await service.UpdateDataAsync(characterDetail.List[0], characterDetail.AvatarWiki);
+        await service.UpdateDataAsync(characterDetail.List[0], [characterDetail.AvatarWiki]);
 
         // Assert
         var result = await m_ImageRepo.FileExistsAsync($"genshin_{characterDetail.List[0].Base.Id}");

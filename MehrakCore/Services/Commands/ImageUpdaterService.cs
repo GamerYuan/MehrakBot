@@ -22,5 +22,5 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
         Logger = logger;
     }
 
-    public abstract Task UpdateDataAsync(T characterInformation, IReadOnlyDictionary<string, string> avatarWiki);
+    public abstract Task UpdateDataAsync(T characterInformation, IEnumerable<Dictionary<string, string>> wiki);
 }
