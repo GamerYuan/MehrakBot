@@ -540,6 +540,8 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             }, "No Relic", Color.White);
+
+            relicImage.Dispose();
         });
 
         return template;
