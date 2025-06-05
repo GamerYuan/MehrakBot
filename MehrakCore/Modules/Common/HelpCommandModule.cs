@@ -22,11 +22,13 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         {
             "genshin" => GenshinCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
+            "hsr" => HsrCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "checkin" => DailyCheckInCommandModule.GetHelpString(),
             _ => "Available commands: \n" +
-                 "- `/genshin [character]`\n" +
                  "- `/profile [add|delete|list]`\n" +
                  "- `/checkin`\n" +
+                 "- `/genshin [character]`\n" +
+                 "- `/hsr [character]`\n" +
                  "Use `/help <command>` to get help about a specific command or subcommand.\n" +
                  "For example: `/help genshin` or `/help genshin character`"
         };
