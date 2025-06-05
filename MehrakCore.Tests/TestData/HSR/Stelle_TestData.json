@@ -1,0 +1,880 @@
+﻿{
+  "id": 8006,
+  "level": 80,
+  "name": "Trailblazer",
+  "element": "imaginary",
+  "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/33279d8d4dbc87b0ffd70799f8fb977a.png",
+  "rarity": 5,
+  "rank": 6,
+  "image": "https://act-webstatic.hoyoverse.com/game_record/hkrpg/custom/avatar_image/8006@2x.png",
+  "equip": {
+    "id": 21004,
+    "level": 80,
+    "rank": 3,
+    "name": "Memories of the Past",
+    "desc": "An old photo lies on the far end of the table in the guardian's residence.\nShe would always subconsciously move her eyes away whenever she happened to see it.\nThe memories of the past had already become distant, but the dreams of today still linger.",
+    "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/374dea4b048a0ffeae54361fb844316c.png",
+    "rarity": 4
+  },
+  "relics": [
+    {
+      "id": 61181,
+      "level": 15,
+      "pos": 1,
+      "name": "Watchmaker's Telescoping Lens",
+      "desc": "An eyepiece with gold carvings. The lens reflects the wonders from far away to help its owner peer through the illusory dreams.",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/6d2a11096f305d7dd11c4081b197dffe.png",
+      "rarity": 5,
+      "main_property": {
+        "property_type": 27,
+        "value": "705",
+        "times": 0
+      },
+      "properties": [
+        {
+          "property_type": 31,
+          "value": "33",
+          "times": 2
+        },
+        {
+          "property_type": 34,
+          "value": "9.7%",
+          "times": 2
+        },
+        {
+          "property_type": 56,
+          "value": "8.2%",
+          "times": 2
+        },
+        {
+          "property_type": 59,
+          "value": "16.8%",
+          "times": 3
+        }
+      ]
+    },
+    {
+      "id": 61182,
+      "level": 15,
+      "pos": 2,
+      "name": "Watchmaker's Fortuitous Wristwatch",
+      "desc": "A wristwatch of fine craftsmanship. It contains a unique watch face and clock hands. It is said to be the symbol of good luck in the Dreamscape.",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/989ee269c370c35f9d3843ba9d1636ac.png",
+      "rarity": 5,
+      "main_property": {
+        "property_type": 29,
+        "value": "352",
+        "times": 0
+      },
+      "properties": [
+        {
+          "property_type": 32,
+          "value": "8.2%",
+          "times": 2
+        },
+        {
+          "property_type": 34,
+          "value": "15.6%",
+          "times": 3
+        },
+        {
+          "property_type": 57,
+          "value": "7.3%",
+          "times": 2
+        },
+        {
+          "property_type": 59,
+          "value": "5.8%",
+          "times": 1
+        }
+      ]
+    },
+    {
+      "id": 61183,
+      "level": 15,
+      "pos": 3,
+      "name": "Watchmaker's Illusory Formal Suit",
+      "desc": "A splendid and luxurious formal suit with leather collars. It is magnificent and elegant, usually reserved for formal occasions such as feasts.",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/8a2dab502c381fffe1ea974ccdc5e8ee.png",
+      "rarity": 5,
+      "main_property": {
+        "property_type": 32,
+        "value": "43.2%",
+        "times": 0
+      },
+      "properties": [
+        {
+          "property_type": 27,
+          "value": "110",
+          "times": 3
+        },
+        {
+          "property_type": 29,
+          "value": "50",
+          "times": 3
+        },
+        {
+          "property_type": 33,
+          "value": "4.3%",
+          "times": 1
+        },
+        {
+          "property_type": 59,
+          "value": "6.4%",
+          "times": 1
+        }
+      ]
+    },
+    {
+      "id": 61184,
+      "level": 15,
+      "pos": 4,
+      "name": "Watchmaker's Dream-Concealing Dress Shoes",
+      "desc": "A pair of elegant leather shoes. The wearer had once stealthily walked upon dreams in an enigmatic form.",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/309eb16e237b093f80884e27a5246a04.png",
+      "rarity": 5,
+      "main_property": {
+        "property_type": 51,
+        "value": "25",
+        "times": 0
+      },
+      "properties": [
+        {
+          "property_type": 32,
+          "value": "4.3%",
+          "times": 1
+        },
+        {
+          "property_type": 33,
+          "value": "7.7%",
+          "times": 2
+        },
+        {
+          "property_type": 52,
+          "value": "2.9%",
+          "times": 1
+        },
+        {
+          "property_type": 53,
+          "value": "23.9%",
+          "times": 4
+        }
+      ]
+    }
+  ],
+  "ornaments": [
+    {
+      "id": 63075,
+      "level": 15,
+      "pos": 5,
+      "name": "Talia's Nailscrap Town",
+      "desc": "Encapsulated in the plane is Talia's miserable desolate small town called Nailscrap. For a short-lived peace, bandits chose this place for its water supplies and built this small town out of rags, rebars, and planks.",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/c986796feca9e5c91ecd5e28b17962ad.png",
+      "rarity": 5,
+      "main_property": {
+        "property_type": 32,
+        "value": "43.2%",
+        "times": 0
+      },
+      "properties": [
+        {
+          "property_type": 29,
+          "value": "38",
+          "times": 2
+        },
+        {
+          "property_type": 31,
+          "value": "61",
+          "times": 3
+        },
+        {
+          "property_type": 57,
+          "value": "4.3%",
+          "times": 1
+        },
+        {
+          "property_type": 59,
+          "value": "11.0%",
+          "times": 2
+        }
+      ]
+    },
+    {
+      "id": 63076,
+      "level": 15,
+      "pos": 6,
+      "name": "Talia's Exposed Electric Wire",
+      "desc": "This is a stretch of wire scavenged from the junkyard. Despite bits of its insulation falling off, there is still some use left in it. No such thing as useless trash exists in Talia's small bandit towns.",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/8809e1649c467574bf4e15160418d38e.png",
+      "rarity": 5,
+      "main_property": {
+        "property_type": 59,
+        "value": "64.8%",
+        "times": 0
+      },
+      "properties": [
+        {
+          "property_type": 29,
+          "value": "19",
+          "times": 1
+        },
+        {
+          "property_type": 33,
+          "value": "15.1%",
+          "times": 4
+        },
+        {
+          "property_type": 34,
+          "value": "4.3%",
+          "times": 1
+        },
+        {
+          "property_type": 51,
+          "value": "6",
+          "times": 3
+        }
+      ]
+    }
+  ],
+  "ranks": [
+    {
+      "id": 800601,
+      "pos": 1,
+      "name": "Best Seat in the House",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/30889e5762814c9c8ef585e1602b047f.png",
+      "desc": "After using Skill for the first time, immediately recovers 1 Skill Point(s).",
+      "is_unlocked": true
+    },
+    {
+      "id": 800602,
+      "pos": 2,
+      "name": "Jailbreaking Rainbowwalk",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/48c6c8ac6edd880391b2be3b8069d4e1.png",
+      "desc": "When the battle starts, the Trailblazer's Energy Regeneration Rate increases by 25%, lasting for 3 turn(s).",
+      "is_unlocked": true
+    },
+    {
+      "id": 800603,
+      "pos": 3,
+      "name": "Sanatorium for Rest Notes",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/c2625aca603b34754324ca10f1054599.png",
+      "desc": "Skill Lv. +2, up to a maximum of Lv. 15.\nTalent Lv. +2, up to a maximum of Lv. 15.",
+      "is_unlocked": true
+    },
+    {
+      "id": 800604,
+      "pos": 4,
+      "name": "Dove in Tophat",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/fc5d6061e27cda689e5cdd313e0bf6f7.png",
+      "desc": "While the Trailblazer is on the field, increases the Break Effect of all teammates (excluding the Trailblazer), by an amount equal to 15% of the Trailblazer's Break Effect.",
+      "is_unlocked": true
+    },
+    {
+      "id": 800605,
+      "pos": 5,
+      "name": "Poem Favors Rhythms of Old",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/799f8ccd7893ae992d0a439ac54d22cf.png",
+      "desc": "Ultimate Lv. +2, up to a maximum of Lv. 15.\nBasic ATK Lv. +1, up to a maximum of Lv. 10.",
+      "is_unlocked": true
+    },
+    {
+      "id": 800606,
+      "pos": 6,
+      "name": "Tomorrow, Rest in Spotlight",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/63414a172270b517f7232da9736c3533.png",
+      "desc": "The number of additional DMG applications by the Skill increases by 2.",
+      "is_unlocked": true
+    }
+  ],
+  "properties": [
+    {
+      "property_type": 1,
+      "base": "2039",
+      "add": "2833",
+      "final": "4872"
+    },
+    {
+      "property_type": 2,
+      "base": "869",
+      "add": "697",
+      "final": "1567"
+    },
+    {
+      "property_type": 3,
+      "base": "1076",
+      "add": "414",
+      "final": "1490"
+    },
+    {
+      "property_type": 4,
+      "base": "105",
+      "add": "31",
+      "final": "136"
+    },
+    {
+      "property_type": 5,
+      "base": "7.9%",
+      "add": "0.0%",
+      "final": "7.9%"
+    },
+    {
+      "property_type": 6,
+      "base": "73.9%",
+      "add": "0.0%",
+      "final": "73.9%"
+    },
+    {
+      "property_type": 24,
+      "base": "8.0%",
+      "add": "0.0%",
+      "final": "8.0%"
+    },
+    {
+      "property_type": 58,
+      "base": "216.2%",
+      "add": "0.0%",
+      "final": "216.2%"
+    },
+    {
+      "property_type": 7,
+      "base": "0.0%",
+      "add": "0.0%",
+      "final": "0.0%"
+    },
+    {
+      "property_type": 9,
+      "base": "100.0%",
+      "add": "0.0%",
+      "final": "100.0%"
+    },
+    {
+      "property_type": 10,
+      "base": "8.2%",
+      "add": "0.0%",
+      "final": "8.2%"
+    },
+    {
+      "property_type": 11,
+      "base": "21.6%",
+      "add": "0.0%",
+      "final": "21.6%"
+    }
+  ],
+  "skills": [
+    {
+      "point_id": "8006001",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/4cf94cc52489d1eedfd5254b002c5e18.png",
+      "level": 2,
+      "is_activated": true,
+      "is_rank_work": true,
+      "pre_point": "0",
+      "anchor": "Point01",
+      "remake": "Basic ATK",
+      "skill_stages": [
+        {
+          "desc": "Deals Imaginary DMG equal to 60% of the Trailblazer's ATK to a single enemy.",
+          "name": "Swing Dance Etiquette",
+          "level": 2,
+          "remake": "Basic ATK",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/2cb8f7258022086034438314abc2d088.png",
+          "is_activated": true,
+          "is_rank_work": true,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006002",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/be6db9eb56f73f400f7b95571aeb9298.png",
+      "level": 9,
+      "is_activated": true,
+      "is_rank_work": true,
+      "pre_point": "0",
+      "anchor": "Point02",
+      "remake": "Skill",
+      "skill_stages": [
+        {
+          "desc": "Deals Imaginary DMG equal to 46% of the Trailblazer's ATK to a single target enemy and additionally deals DMG for 4 times, with each time dealing Imaginary DMG equal to 46% of the Trailblazer's ATK to a random enemy.",
+          "name": "Halftime to Make It Rain",
+          "level": 9,
+          "remake": "Skill",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/61d16fe6d378dea7a954eb99c4c167e8.png",
+          "is_activated": true,
+          "is_rank_work": true,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006003",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/e10bf629cad0a0e51faa227f8959b779.png",
+      "level": 11,
+      "is_activated": true,
+      "is_rank_work": true,
+      "pre_point": "0",
+      "anchor": "Point03",
+      "remake": "Ultimate",
+      "skill_stages": [
+        {
+          "desc": "Grants all allies the Backup Dancer effect, lasting for 3 turn(s). This duration decreases by 1 at the start of Trailblazer's every turn. Allies with the Backup Dancer effect have their Break Effect increased by 31%. And when they attack enemy targets that are in the Weakness Broken state, the Toughness Reduction of the attack will be converted into 1 instance of Super Break DMG.",
+          "name": "All-Out Footlight Parade",
+          "level": 11,
+          "remake": "Ultimate",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/5d1081378a13ac4dbe67d767c68383a3.png",
+          "is_activated": true,
+          "is_rank_work": true,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006004",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/adbbd01c420695f4606b479e9e8b9f44.png",
+      "level": 9,
+      "is_activated": true,
+      "is_rank_work": true,
+      "pre_point": "0",
+      "anchor": "Point04",
+      "remake": "Talent",
+      "skill_stages": [
+        {
+          "desc": "The Trailblazer immediately regenerates 9.3 Energy when an enemy target's Weakness is Broken.",
+          "name": "Full-on Aerial Dance",
+          "level": 9,
+          "remake": "Talent",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/6363b4335be7f079099dc081876183ba.png",
+          "is_activated": true,
+          "is_rank_work": true,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006007",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/ec924c9421bf70b5ee46226347c03124.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point05",
+      "remake": "Technique",
+      "skill_stages": [
+        {
+          "desc": "After the Technique is used, at the start of the next battle, all allies' Break Effect increases by 30%, lasting for 2 turn(s).",
+          "name": "Now! I'm the Band!",
+          "level": 1,
+          "remake": "Technique",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/9aaa11d585f3ea52f5ef6ebb3de3865c.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006101",
+      "point_type": 3,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/7cbd1b46f212314d7b265f90ced67e93.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point06",
+      "remake": "Bonus Ability",
+      "skill_stages": [
+        {
+          "desc": "When the number of enemy targets on the field is 5 (or more)/4/3/2/1, the Super Break DMG triggered by the Backup Dancer effect increases by 20%/30%/40%/50%/60%.",
+          "name": "Dance With the One",
+          "level": 1,
+          "remake": "Bonus Ability",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/7cbd1b46f212314d7b265f90ced67e93.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006102",
+      "point_type": 3,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/7712ab26f0879cd4871eaaa237576c9d.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point07",
+      "remake": "Bonus Ability",
+      "skill_stages": [
+        {
+          "desc": "When using Skill, additionally increases the Toughness Reduction of the first instance of DMG by 100%.",
+          "name": "Shuffle Along",
+          "level": 1,
+          "remake": "Bonus Ability",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/7712ab26f0879cd4871eaaa237576c9d.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006103",
+      "point_type": 3,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/4ecf75f56145b71a1d9406a8da311536.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point08",
+      "remake": "Bonus Ability",
+      "skill_stages": [
+        {
+          "desc": "After ally targets break weakness, additionally delays the action of the enemy target by 30%.",
+          "name": "Hat of the Theater",
+          "level": 1,
+          "remake": "Bonus Ability",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/4ecf75f56145b71a1d9406a8da311536.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006201",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point09",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Break Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006203",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006202",
+      "anchor": "Point11",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Break Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006205",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006102",
+      "anchor": "Point13",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Break Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006207",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006201",
+      "anchor": "Point15",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Break Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006210",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006208",
+      "anchor": "Point18",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Break Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/99c348bd012867d523005e437a350ace.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006202",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/fdfc8b2fb5d8d729385431ed9d4e6dff.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006101",
+      "anchor": "Point10",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "DMG Boost: Imaginary",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/fdfc8b2fb5d8d729385431ed9d4e6dff.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006206",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/fdfc8b2fb5d8d729385431ed9d4e6dff.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006205",
+      "anchor": "Point14",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "DMG Boost: Imaginary",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/fdfc8b2fb5d8d729385431ed9d4e6dff.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006209",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/fdfc8b2fb5d8d729385431ed9d4e6dff.png",
+      "level": 1,
+      "is_activated": false,
+      "is_rank_work": false,
+      "pre_point": "8006208",
+      "anchor": "Point17",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "DMG Boost: Imaginary",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/fdfc8b2fb5d8d729385431ed9d4e6dff.png",
+          "is_activated": false,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006204",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/9ac5bac24f40dc970ca2589c18767a73.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006201",
+      "anchor": "Point12",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Effect RES Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/9ac5bac24f40dc970ca2589c18767a73.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "8006208",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/9ac5bac24f40dc970ca2589c18767a73.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "8006103",
+      "anchor": "Point16",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Effect RES Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/9ac5bac24f40dc970ca2589c18767a73.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "special_point_type": "PointTypeNormal"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    }
+  ],
+  "base_type": 4,
+  "figure_path": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_ua979c/330de8cf77bd4888753502c9567486e9.png",
+  "element_id": 64,
+  "servant_detail": {
+    "servant_id": "0",
+    "servant_name": "",
+    "servant_icon": "",
+    "servant_properties": [],
+    "servant_skills": [],
+    "is_health_secret": false
+  }
+}
