@@ -65,4 +65,25 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
         return true;
     }
+
+    public static string GetHelpString(string subcommand = "")
+    {
+        return subcommand switch
+        {
+            "character" => "## HSR Character\n" +
+                           "Get character card from Honkai: Star Rail\n" +
+                           "### Usage\n" +
+                           "```/hsr character <character> [server] [profile]```\n" +
+                           "### Parameters\n" +
+                           "- `character`: Character Name (Case-insensitive)\n" +
+                           "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                           "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                           "### Examples\n" +
+                           "```/hsr character Trailblazer\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```",
+            _ => "## Honkai: Star Rail Toolbox\n" +
+                 "Honkai: Star Rail related commands and utilities.\n" +
+                 "### Subcommands\n" +
+                 "- `character`: Get character card from Honkai: Star Rail\n"
+        };
+    }
 }

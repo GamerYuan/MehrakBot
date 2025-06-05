@@ -88,12 +88,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                            "```/genshin character Fischl\n/genshin character Traveler America\n/genshin character Nahida Asia 3```",
             _ => "## Genshin Toolbox\n" +
                  "Genshin Impact related commands and utilities.\n" +
-                 "### Usage\n" +
-                 "```/genshin [character]```\n" +
                  "### Subcommands\n" +
-                 "- `character`: Get character card from Genshin Impact\n" +
-                 "### Examples\n" +
-                 "```/genshin character Fischl\n/help genshin character```"
+                 "- `character`: Get character card from Genshin Impact\n"
         };
     }
 }
