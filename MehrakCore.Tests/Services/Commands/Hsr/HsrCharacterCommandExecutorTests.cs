@@ -535,7 +535,7 @@ public class HsrCharacterCommandExecutorTests
         var testCharacterData = CreateTestCharacterInfo();
         var characterList = new HsrBasicCharacterData
         {
-            AvatarList = new List<HsrCharacterInformation> { testCharacterData },
+            AvatarList = [testCharacterData],
             EquipWiki = new Dictionary<string, string>(),
             RelicWiki = new Dictionary<string, string>()
         };
@@ -650,6 +650,7 @@ public class HsrCharacterCommandExecutorTests
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
             .ReturnsAsync(mockStream);
+        m_DiscordTestHelper.ClearCapturedRequests();
 
         // Act
         await m_Executor.ExecuteAsync(characterName, server, profile);
@@ -660,6 +661,8 @@ public class HsrCharacterCommandExecutorTests
         m_ImageUpdaterServiceMock.Verify(
             x => x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
                 It.IsAny<IEnumerable<Dictionary<string, string>>>()), Times.Once);
+        var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        Assert.That(bytes, Is.Not.Empty);
     }
 
     [Test]
@@ -717,14 +720,22 @@ public class HsrCharacterCommandExecutorTests
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
             .ReturnsAsync(mockStream);
+        m_DiscordTestHelper.ClearCapturedRequests();
 
         // Act
-        await m_Executor.ExecuteAsync(characterName, server, profile); // Assert
+        await m_Executor.ExecuteAsync(characterName, server, profile);
+
+        // Assert
         var updatedUser = await m_UserRepository.GetUserAsync(TestUserId);
         var updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
+        var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(updatedProfile?.GameUids, Is.Not.Null);
-        Assert.That(updatedProfile?.GameUids?.ContainsKey(GameName.HonkaiStarRail), Is.True);
-        Assert.That(updatedProfile?.GameUids?[GameName.HonkaiStarRail][server.ToString()], Is.EqualTo(TestGameUid));
+        Assert.Multiple(() =>
+        {
+            Assert.That(updatedProfile?.GameUids?.ContainsKey(GameName.HonkaiStarRail), Is.True);
+            Assert.That(updatedProfile?.GameUids?[GameName.HonkaiStarRail][server.ToString()], Is.EqualTo(TestGameUid));
+            Assert.That(bytes, Is.Not.Empty);
+        });
         m_CharacterCardServiceMock.Verify(
             x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
     }
@@ -822,7 +833,7 @@ public class HsrCharacterCommandExecutorTests
 
     #region Helper Methods
 
-    private HsrCharacterInformation CreateTestCharacterInfo()
+    private static HsrCharacterInformation CreateTestCharacterInfo()
     {
         return JsonSerializer.Deserialize<HsrCharacterInformation>(
             File.ReadAllText("TestData/Hsr/Stelle_TestData.json"))!;
@@ -833,7 +844,7 @@ public class HsrCharacterCommandExecutorTests
         var testCharacterData = CreateTestCharacterInfo();
         var characterList = new HsrBasicCharacterData
         {
-            AvatarList = new List<HsrCharacterInformation> { testCharacterData },
+            AvatarList = [testCharacterData],
             EquipWiki = new Dictionary<string, string>(),
             RelicWiki = new Dictionary<string, string>()
         };
