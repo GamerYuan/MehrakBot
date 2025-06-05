@@ -17,7 +17,7 @@ namespace MehrakCore.Tests.Services.Commands.Hsr;
 
 public class HsrCharacterCardServiceTests
 {
-    private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "HSR");
+    private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr");
 
     private MongoTestHelper m_MongoTestHelper;
     private ImageRepository m_ImageRepository;
@@ -42,7 +42,7 @@ public class HsrCharacterCardServiceTests
 
         foreach (var image in Directory.EnumerateFiles(Path.Combine(TestDataPath, "Assets"), "*.png")
                      .Concat(
-                         Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets", "HSR"), " *.png")))
+                         Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr"), " *.png")))
         {
             var fileName = Path.GetFileName(image).Split('.')[0];
             if (await m_ImageRepository.FileExistsAsync(fileName)) continue;

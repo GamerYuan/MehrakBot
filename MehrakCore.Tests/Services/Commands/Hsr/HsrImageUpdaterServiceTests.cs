@@ -26,7 +26,9 @@ public class HsrImageUpdaterServiceTests
     private HttpClient m_HttpClient;
     private HsrImageUpdaterService m_Service;
     private HsrCharacterInformation m_StelleTestData;
-    private static readonly string TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "TestData", "HSR", "Assets");
+
+    private static readonly string
+        TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "Assets");
 
     [SetUp]
     public async Task Setup()
@@ -48,7 +50,7 @@ public class HsrImageUpdaterServiceTests
 
         // Load test data
         var testDataJson =
-            await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "HSR",
+            await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr",
                 "Stelle_TestData.json"));
         m_StelleTestData = JsonSerializer.Deserialize<HsrCharacterInformation>(testDataJson)!;
     }

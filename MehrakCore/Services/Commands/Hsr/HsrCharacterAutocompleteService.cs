@@ -9,7 +9,7 @@ public class HsrCharacterAutocompleteService
     public HsrCharacterAutocompleteService()
     {
         CharacterNames =
-            File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Assets", "HSR", "hsr_character_list.txt"))
+            File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "hsr_character_list.txt"))
                 .OrderBy(x => x).ToList();
     }
 
