@@ -88,6 +88,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
     public async Task<Stream> GenerateCharacterCardAsync(HsrCharacterInformation characterInformation, string gameUid)
     {
+        ArgumentNullException.ThrowIfNull(characterInformation);
+        ArgumentNullException.ThrowIfNull(gameUid);
+
         m_Logger.LogInformation("Generating character card for {CharacterName}", characterInformation.Name);
 
         List<IDisposable> disposableResources = [];
