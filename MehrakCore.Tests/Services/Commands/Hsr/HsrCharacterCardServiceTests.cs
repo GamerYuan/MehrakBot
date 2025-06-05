@@ -39,12 +39,11 @@ public class HsrCharacterCardServiceTests
 
         m_HsrImageUpdaterService = new HsrImageUpdaterService(m_ImageRepository, m_HttpClientFactoryMock.Object,
             new NullLogger<HsrImageUpdaterService>());
-
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(TestDataPath, "Assets"), "*.png")
-                     .Concat(
-                         Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr"), " *.png")))
+        foreach (var image in
+                 Directory.EnumerateFiles(Path.Combine(TestDataPath, "Assets"), "*.png").Concat(
+                     Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr"), "*.png")))
         {
-            var fileName = Path.GetFileName(image).Split('.')[0];
+            var fileName = Path.GetFileNameWithoutExtension(image);
             if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
 
             await using var stream = File.OpenRead(image);
