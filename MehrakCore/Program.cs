@@ -133,9 +133,7 @@ internal class Program
             });
             builder.Services.AddSingleton<CookieService>();
             builder.Services.AddSingleton<TokenCacheService>();
-            builder.Services.AddSingleton<AuthenticationMiddlewareService>();
-            builder.Services.AddSingleton<IAuthenticationMiddlewareService>(provider =>
-                provider.GetRequiredService<AuthenticationMiddlewareService>());
+            builder.Services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
 
             // Other Services
             builder.Services.AddMemoryCache();

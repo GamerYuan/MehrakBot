@@ -21,7 +21,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
     private readonly GameRecordApiService m_GameRecordApi;
     private readonly UserRepository m_UserRepository;
     private readonly TokenCacheService m_TokenCacheService;
-    private readonly AuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ImageUpdaterService<HsrCharacterInformation> m_HsrImageUpdaterService;
     private readonly ICharacterCardService<HsrCharacterInformation> m_HsrCharacterCardService;
     private readonly ILogger<HsrCharacterCommandExecutor> m_Logger;
@@ -32,7 +32,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
 
     public HsrCharacterCommandExecutor(ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> characterApi,
         GameRecordApiService gameRecordApi, UserRepository userRepository, TokenCacheService tokenCacheService,
-        AuthenticationMiddlewareService authenticationMiddleware,
+        IAuthenticationMiddlewareService authenticationMiddleware,
         ImageUpdaterService<HsrCharacterInformation> hsrImageUpdaterService,
         ICharacterCardService<HsrCharacterInformation> hsrCharacterCardService,
         ILogger<HsrCharacterCommandExecutor> logger)
