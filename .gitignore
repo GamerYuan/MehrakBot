@@ -8,3 +8,9 @@ appsettings.json
 appsettings.development.json
 *.sln.DotSettings.user
 *.user
+
+.env
+/MehrakCore/Config/nginx/
+
+*_key.pem
+*_token.txt

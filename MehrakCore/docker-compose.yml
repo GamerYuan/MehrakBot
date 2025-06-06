@@ -42,6 +42,7 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.size=10GB'
     networks:
       - mehrak-network
 
@@ -49,8 +50,19 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_SERVER_DOMAIN=${DOMAIN}
+      - GF_SERVER_ROOT_URL=https://${DOMAIN}/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_COOKIE_SAMESITE=strict
     networks:
       - mehrak-network
 
@@ -67,6 +79,21 @@ services:
       - ./Config/nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - grafana
+    networks:
+      - mehrak-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     networks:
       - mehrak-network
 
