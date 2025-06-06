@@ -55,5 +55,6 @@ public class MetricsService : BackgroundService
             metricsConfig.Host, metricsConfig.Port, metricsConfig.Endpoint);
 
         BotMetrics.Initialize(m_Client);
+        m_Logger.LogInformation("Bot metrics initialized");
     }
 }

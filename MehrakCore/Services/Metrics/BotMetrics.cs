@@ -33,6 +33,12 @@ public static class BotMetrics
         new CounterConfiguration { LabelNames = ["user_id"] }
     );
 
+    private static readonly Counter CharacterSelection = Prometheus.Metrics.CreateCounter(
+        "discord_character_selections_total",
+        "Total number of character selections by game",
+        new CounterConfiguration { LabelNames = ["game", "character", "user_id"] }
+    );
+
     private static readonly Gauge MemoryUsage = Prometheus.Metrics.CreateGauge(
         "discord_memory_bytes",
         "Current memory usage of the bot"
@@ -54,6 +60,11 @@ public static class BotMetrics
         CommandsByName.WithLabels(command).Inc();
         CommandResults.WithLabels(command, success ? "success" : "failure").Inc();
         CommandsByUser.WithLabels(user.Id.ToString()).Inc();
+    }
+
+    public static void TrackCharacterSelection(string game, string character, User user)
+    {
+        CharacterSelection.WithLabels(game, character, user.Id.ToString()).Inc();
     }
 
     private static async Task UpdateMetrics(GatewayClient client)
