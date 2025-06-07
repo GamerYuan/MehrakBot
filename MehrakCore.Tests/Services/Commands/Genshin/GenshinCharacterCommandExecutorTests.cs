@@ -590,7 +590,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("An error occurred while processing your authentication"));
+        Assert.That(response, Contains.Substring("An error occurred while processing your request"));
     }
 
     #endregion
