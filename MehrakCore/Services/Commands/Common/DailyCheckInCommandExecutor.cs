@@ -3,6 +3,7 @@
 using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
+using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -103,6 +104,7 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
                     new TextDisplayProperties(
                         "An error occurred while processing your request. Please try again later.")
                 ]));
+            BotMetrics.TrackCommand(Context.Interaction.User, "checkin", false);
         }
     }
 
@@ -120,20 +122,14 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
                     result.UserId, result.ErrorMessage);
 
                 // Send error message to user if context is available
-                if (Context.Interaction != null)
-                {
-                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                        .WithContent($"Authentication failed: {result.ErrorMessage}")
-                        .WithFlags(MessageFlags.Ephemeral));
-                }
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent($"Authentication failed: {result.ErrorMessage}")
+                    .WithFlags(MessageFlags.Ephemeral));
                 return;
             }
 
             // Update context if available
-            if (result.Context != null)
-            {
-                Context = result.Context;
-            }
+            if (result.Context != null) Context = result.Context;
 
             m_Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
 

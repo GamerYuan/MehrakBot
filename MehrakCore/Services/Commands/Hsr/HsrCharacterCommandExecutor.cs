@@ -5,6 +5,7 @@ using MehrakCore.Models;
 using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
+using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -219,6 +220,9 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(response);
+            BotMetrics.TrackCommand(Context.Interaction.User, "hsr character", true);
+            BotMetrics.TrackCharacterSelection(nameof(GameName.HonkaiStarRail), characterName,
+                Context.Interaction.User);
         }
         catch (Exception e)
         {
@@ -228,6 +232,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties($"An unknown error occurred, please try again later.")));
+            BotMetrics.TrackCommand(Context.Interaction.User, "hsr character", false);
         }
     }
 

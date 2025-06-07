@@ -11,6 +11,8 @@ services:
       - redis
     networks:
       - mehrak-network
+    environment:
+      - DOTNET_ENVIRONMENT=Development
 
   mongodb:
     image: mongo:latest
@@ -19,7 +21,7 @@ services:
     volumes:
       - mongo_data:/data/db
     environment:
-      - MONGO_INITDB_DATABASE=MehrakBot
+      - MONGO_INITDB_DATABASE=Mehrak-Dev
     networks:
       - mehrak-network
 
@@ -37,8 +39,10 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - ./Config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
+    ports:
+      - "9091:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -51,17 +55,9 @@ services:
     container_name: grafana
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
-      - GF_SERVER_DOMAIN=${DOMAIN}
-      - GF_SERVER_ROOT_URL=https://${DOMAIN}
-      - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SECURITY_COOKIE_SAMESITE=strict
     networks:
       - mehrak-network
 
@@ -73,26 +69,11 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Config/nginx/conf.d:/etc/nginx/conf.d
-      - ./Config/nginx/ssl:/etc/nginx/ssl:ro
-      - ./Config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - ./config/nginx/ssl:/etc/nginx/ssl
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - grafana
-    networks:
-      - mehrak-network
-
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: unless-stopped
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
     networks:
       - mehrak-network
 

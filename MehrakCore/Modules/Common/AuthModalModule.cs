@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
+using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -101,6 +102,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("Added profile successfully!"))));
+            BotMetrics.TrackCommand(Context.Interaction.User, "profile add", true);
         }
         catch (Exception e)
         {
@@ -112,6 +114,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 Flags = MessageFlags.Ephemeral
             };
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
+            BotMetrics.TrackCommand(Context.Interaction.User, "profile add", false);
         }
     }
 

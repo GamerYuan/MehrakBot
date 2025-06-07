@@ -1,6 +1,7 @@
 ﻿#region
 
 using MehrakCore.Repositories;
+using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -87,6 +88,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(
                     new TextDisplayProperties($"Profile {profileId} deleted!"))));
+        BotMetrics.TrackCommand(Context.Interaction.User, "profile delete", true);
     }
 
     [SubSlashCommand("list", "List your profiles")]
@@ -110,6 +112,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(profileList)));
+        BotMetrics.TrackCommand(Context.Interaction.User, "profile list", true);
     }
 
     public static string GetHelpString(string subcommand)
