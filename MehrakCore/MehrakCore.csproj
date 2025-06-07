@@ -21,6 +21,7 @@
         <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.363"/>
         <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.363"/>
         <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.363"/>
+        <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1"/>
         <PackageReference Include="Serilog" Version="4.2.0"/>
         <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0"/>
         <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1"/>

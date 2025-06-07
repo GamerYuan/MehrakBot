@@ -13,6 +13,7 @@ using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Common;
+using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -143,6 +144,9 @@ internal class Program
             builder.Services.AddDiscordGateway().AddApplicationCommands()
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
                 .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
+
+            // Metrics
+            builder.Services.AddHostedService<MetricsService>();
 
             var host = builder.Build();
 

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
+using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -81,6 +82,7 @@ public class DailyCheckInService : IDailyCheckInService
         await context.Interaction.SendFollowupMessageAsync(
             new InteractionMessageProperties().AddComponents(new TextDisplayProperties(sb.ToString()))
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
+        BotMetrics.TrackCommand(context.Interaction.User, "checkin", true);
     }
 
     private static string GetFormattedGameName(GameName type)
