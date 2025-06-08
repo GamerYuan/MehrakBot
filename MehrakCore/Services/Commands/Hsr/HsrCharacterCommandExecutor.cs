@@ -221,8 +221,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(response);
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr character", true);
-            BotMetrics.TrackCharacterSelection(nameof(GameName.HonkaiStarRail), characterName.ToLowerInvariant(),
-                Context.Interaction.User);
+            BotMetrics.TrackCharacterSelection(nameof(GameName.HonkaiStarRail), characterName);
         }
         catch (Exception e)
         {
