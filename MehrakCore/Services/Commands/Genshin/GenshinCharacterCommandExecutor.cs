@@ -222,7 +222,8 @@ public class GenshinCharacterCommandExecutor : ICharacterCommandService<GenshinC
             var followup = Context.Interaction.SendFollowupMessageAsync(properties);
             await Task.WhenAll(followup, updateUser);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", true);
-            BotMetrics.TrackCharacterSelection(nameof(GameName.Genshin), characterName, Context.Interaction.User);
+            BotMetrics.TrackCharacterSelection(nameof(GameName.Genshin), characterName.ToLowerInvariant(),
+                Context.Interaction.User);
         }
         catch (Exception ex)
         {
