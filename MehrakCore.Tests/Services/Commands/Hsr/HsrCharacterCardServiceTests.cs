@@ -178,9 +178,6 @@ public class HsrCharacterCardServiceTests
             Assert.That(generatedImage.Height, Is.EqualTo(goldenImage.Height),
                 $"Generated image height should match golden image height for {testName}");
         });
-
-        var debugPath = Path.Combine(TestDataPath, "Assets", $"{testName}_Generated_Debug.jpg");
-        await File.WriteAllBytesAsync(debugPath, generatedImageBytes);
     }
 
     // To be used to generate golden image should the generation algorithm be updated

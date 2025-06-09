@@ -513,7 +513,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 var yOffset = i / 2 * 70;
                 ctx.DrawImage(subStatImage, new Point(260 + xOffset, 15 + yOffset), 1f);
                 ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(310 + xOffset, 20 + yOffset));
-                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
+                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
                 ctx.DrawText(rolls, m_NormalFont, Color.White, new PointF(435 + xOffset, 10 + yOffset));
             }
 
