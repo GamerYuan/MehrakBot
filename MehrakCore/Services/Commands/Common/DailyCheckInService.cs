@@ -87,7 +87,8 @@ public class DailyCheckInService : IDailyCheckInService
         await context.Interaction.SendFollowupMessageAsync(
             new InteractionMessageProperties().AddComponents(new TextDisplayProperties(sb.ToString()))
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
-        if (tasks.All(x => x.Result.Data))
+
+        if (tasks.All(x => x.Result.IsSuccess || x.Result.StatusCode == HttpStatusCode.Forbidden))
         {
             user.Profiles!.First(x => x.ProfileId == profile).LastCheckIn = DateTime.UtcNow;
             await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -152,6 +153,10 @@ public class DailyCheckInService : IDailyCheckInService
             case 0:
                 m_Logger.LogInformation("User {UserId} check-in successful for game {Game}", userId, type.ToString());
                 return ApiResult<bool>.Success(true, 0, response.StatusCode);
+            case 10001:
+                m_Logger.LogInformation("User {UserId} has invalid cookies", userId);
+                return ApiResult<bool>.Failure(HttpStatusCode.Unauthorized,
+                    "Invalid cookies, please re-authenticate your profile");
             case -10002:
                 m_Logger.LogInformation("User {UserId} does not have a valid account for game {Game}", userId,
                     type.ToString());
