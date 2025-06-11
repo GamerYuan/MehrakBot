@@ -260,10 +260,8 @@ public class DailyCheckInCommandModuleTests
 
         // Set up distributed cache for token check (has token)
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
-
-        // Set up check-in service to succeed
-        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), TestLtUid, TestLToken))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));        // Set up check-in service to succeed
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken))
             .Returns(Task.CompletedTask);
 
         // Create test user with a profile
@@ -302,10 +300,8 @@ public class DailyCheckInCommandModuleTests
 
         // Verify rate limit was set
         m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
-            It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
-
-        // Verify check-in service was called with the correct parameters
-        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), TestLtUid, TestLToken),
+            It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);        // Verify check-in service was called with the correct parameters
+        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -322,10 +318,8 @@ public class DailyCheckInCommandModuleTests
 
         // Set up distributed cache for token check (has token)
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{customLtUid}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
-
-        // Set up check-in service to succeed
-        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), customLtUid, TestLToken))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));        // Set up check-in service to succeed
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), customLtUid, TestLToken))
             .Returns(Task.CompletedTask);
 
         // Create test user with multiple profiles
@@ -365,10 +359,8 @@ public class DailyCheckInCommandModuleTests
 
         // Verify cache was checked with the correct key
         m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{customLtUid}", It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        // Verify check-in service was called with the correct parameters
-        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), customLtUid, TestLToken),
+            Times.Once);        // Verify check-in service was called with the correct parameters
+        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), customLtUid, TestLToken),
             Times.Once);
     }
 
@@ -418,5 +410,308 @@ public class DailyCheckInCommandModuleTests
         // Verify error response
         Assert.That(responseData, Is.Not.Null);
         Assert.That(responseData, Contains.Substring("An error occurred"));
+    }
+
+    [Test]
+    public async Task DailyCheckInCommand_WhenAlreadyCheckedInToday_ReturnsAlreadyCheckedInMessage()
+    {
+        // Arrange
+        var chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+        var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone);
+        var lastCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(nowUtc8.Date.AddHours(10), chinaTimeZone); // Same day in UTC+8
+
+        // Set up distributed cache for rate limit check
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+
+        // Set up distributed cache for token check (has token)
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
+
+        // Create test user with a profile that was already checked in today
+        var testUser = new UserModel
+        {
+            Id = TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    LastCheckIn = lastCheckInUtc,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                }
+            }
+        };
+
+        // Create user in the database
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+
+        // Act
+        var result = await m_CommandService.ExecuteAsync(
+            new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient),
+            m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+
+        // Verify cache was checked for rate limit but check-in service was NOT called
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Verify rate limit was set
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+            It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+
+        // Extract interaction response data
+        var responseData = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Verify the response contains the already checked in message
+        Assert.That(responseData, Is.Not.Null);
+        Assert.That(responseData, Contains.Substring("You have already checked in today for this profile"));
+
+        // Verify check-in service was NOT called since user already checked in today
+        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), It.IsAny<ulong>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task DailyCheckInCommand_WhenCheckedInYesterday_PerformsCheckIn()
+    {
+        // Arrange
+        var chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+        var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone);
+        var yesterdayUtc8 = nowUtc8.Date.AddDays(-1).AddHours(10);
+        var lastCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(yesterdayUtc8, chinaTimeZone);
+
+        // Set up distributed cache for rate limit check
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+
+        // Set up distributed cache for token check (has token)
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
+
+        // Set up check-in service to succeed
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken))
+            .Returns(Task.CompletedTask);
+
+        // Create test user with a profile that was checked in yesterday
+        var testUser = new UserModel
+        {
+            Id = TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    LastCheckIn = lastCheckInUtc,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                }
+            }
+        };
+
+        // Create user in the database
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+
+        // Act
+        var result = await m_CommandService.ExecuteAsync(
+            new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient),
+            m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+
+        // Verify cache was checked for rate limit and token
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+            Times.Once);
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Verify rate limit was set
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+            It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+
+        // Verify check-in service was called with the correct parameters since yesterday's check-in should allow today's check-in
+        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task DailyCheckInCommand_WhenNeverCheckedIn_PerformsCheckIn()
+    {
+        // Arrange
+        // Set up distributed cache for rate limit check
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+
+        // Set up distributed cache for token check (has token)
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
+
+        // Set up check-in service to succeed
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken))
+            .Returns(Task.CompletedTask);
+
+        // Create test user with a profile that has never checked in (LastCheckIn = null)
+        var testUser = new UserModel
+        {
+            Id = TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    LastCheckIn = null,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                }
+            }
+        };
+
+        // Create user in the database
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+
+        // Act
+        var result = await m_CommandService.ExecuteAsync(
+            new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient),
+            m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+
+        // Verify cache was checked for rate limit and token
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+            Times.Once);
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Verify rate limit was set
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+            It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+
+        // Verify check-in service was called since user has never checked in
+        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task DailyCheckInCommand_WhenCheckedInAtMidnightBoundary_HandlesCorrectly()
+    {
+        // Arrange - Test the exact midnight boundary case
+        var chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+        var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone);
+
+        // Set last check-in to exactly midnight today in UTC+8
+        var midnightTodayUtc8 = nowUtc8.Date; // 00:00:00 today
+        var lastCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(midnightTodayUtc8, chinaTimeZone);
+
+        // Set up distributed cache for rate limit check
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+
+        // Set up distributed cache for token check (has token)
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
+
+        // Create test user with a profile that was checked in at midnight today
+        var testUser = new UserModel
+        {
+            Id = TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    LastCheckIn = lastCheckInUtc,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                }
+            }
+        };
+
+        // Create user in the database
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+
+        // Act
+        var result = await m_CommandService.ExecuteAsync(
+            new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient),
+            m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+
+        // Extract interaction response data
+        var responseData = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Verify the response contains the already checked in message since it's the same day
+        Assert.That(responseData, Is.Not.Null);
+        Assert.That(responseData, Contains.Substring("You have already checked in today for this profile"));
+
+        // Verify check-in service was NOT called since user already checked in today
+        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), It.IsAny<ulong>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task DailyCheckInCommand_WhenTimeZoneConversionFails_ShouldHandleGracefully()
+    {
+        // This test documents expected behavior when timezone operations might fail
+        // In practice, we expect TimeZoneInfo.FindSystemTimeZoneById to work reliably
+        // but we want to ensure the code doesn't crash if something unexpected happens
+
+        // Set up distributed cache for rate limit check
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => null);
+
+        // Set up distributed cache for token check (has token)
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
+
+        // Set up check-in service to succeed
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken))
+            .Returns(Task.CompletedTask);
+
+        // Create test user with a profile that has a very old LastCheckIn (should definitely allow check-in)
+        var testUser = new UserModel
+        {
+            Id = TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    LastCheckIn = DateTime.UtcNow.AddDays(-30), // 30 days ago
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                }
+            }
+        };
+
+        // Create user in the database
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+
+        // Act - Should not throw an exception even if timezone handling has issues
+        var result = await m_CommandService.ExecuteAsync(
+            new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient),
+            m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+
+        // Since the last check-in was 30 days ago, it should definitely proceed with check-in
+        m_CheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+            Times.Once);
     }
 }

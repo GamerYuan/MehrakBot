@@ -1,5 +1,6 @@
 #region
 
+using MehrakCore.Models;
 using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
@@ -8,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using IInteractionContext = NetCord.Services.IInteractionContext;
+
+// Added for TimeZoneInfo
 
 #endregion
 
@@ -22,7 +25,7 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ILogger<DailyCheckInCommandExecutor> m_Logger;
 
-    // Fields to store pending command parameters during authentication
+    private UserModel? m_PendingUser;
     private uint? m_PendingProfile;
 
     public IInteractionContext Context { get; set; } = null!;
@@ -70,6 +73,24 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
 
             var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
 
+            if (selectedProfile.LastCheckIn.HasValue)
+            {
+                var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+                var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
+                var lastCheckInUtc8 = TimeZoneInfo.ConvertTimeFromUtc(selectedProfile.LastCheckIn.Value, timeZoneInfo);
+
+                if (lastCheckInUtc8.Date == nowUtc8.Date)
+                {
+                    m_Logger.LogInformation("User {UserId} has already checked in today for profile {ProfileId}",
+                        Context.Interaction.User.Id, profile);
+                    await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                        new InteractionMessageProperties()
+                            .WithContent("You have already checked in today for this profile.")
+                            .WithFlags(MessageFlags.Ephemeral)));
+                    return;
+                }
+            }
+
             var ltoken = await m_TokenCacheService.GetCacheEntry(Context.Interaction.User.Id, selectedProfile.LtUid);
             if (ltoken == null)
             {
@@ -78,6 +99,7 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
 
                 // Store pending command parameters
                 m_PendingProfile = profile;
+                m_PendingUser = user;
 
                 // Register with authentication middleware
                 var guid = m_AuthenticationMiddleware.RegisterAuthenticationListener(Context.Interaction.User.Id, this);
@@ -91,7 +113,7 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
                 m_Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-                await m_DailyCheckInService.CheckInAsync(Context, selectedProfile.LtUid, ltoken);
+                await m_DailyCheckInService.CheckInAsync(Context, user, profile, selectedProfile.LtUid, ltoken);
             }
         }
         catch (Exception e)
@@ -135,7 +157,8 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
 
             // Proceed with the original command using stored parameters
             if (m_PendingProfile.HasValue && result.LToken != null)
-                await m_DailyCheckInService.CheckInAsync(Context, result.LtUid, result.LToken);
+                await m_DailyCheckInService.CheckInAsync(Context, m_PendingUser!, m_PendingProfile.Value, result.LtUid,
+                    result.LToken);
             else
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithContent("Error: Missing required parameters for command execution")

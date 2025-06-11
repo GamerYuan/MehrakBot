@@ -15,6 +15,7 @@ using SixLabors.ImageSharp;
 
 namespace MehrakCore.Tests.Services.Commands.Hsr;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class HsrCharacterCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr");

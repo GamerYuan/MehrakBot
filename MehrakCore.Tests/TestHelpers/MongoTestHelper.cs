@@ -26,7 +26,7 @@ public class MongoTestHelper : IDisposable
 
     public MongoTestHelper()
     {
-        m_MongoRunner = MongoDbRunner.Start();
+        m_MongoRunner = MongoDbRunner.Start(logger: NullLogger<MongoDbRunner>.Instance);
 
         var inMemorySettings = new Dictionary<string, string?>
         {
