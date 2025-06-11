@@ -459,8 +459,28 @@ public class HsrImageUpdaterServiceTests
     {
         var character = JsonSerializer.Deserialize<HsrCharacterInformation>(
             JsonSerializer.Serialize(m_StelleTestData))!;
-        character.Equip = null;
-        return character;
+        var characterNoEquip = new HsrCharacterInformation
+        {
+            Id = character.Id,
+            Name = character.Name,
+            Icon = character.Icon,
+            Image = character.Image,
+            Equip = null, // No equipment
+            Relics = character.Relics,
+            Ornaments = character.Ornaments,
+            Skills = character.Skills,
+            Properties = character.Properties,
+            Rarity = character.Rarity,
+            Element = character.Element,
+            Level = character.Level,
+            BaseType = character.BaseType,
+            Rank = character.Rank,
+            FigurePath = character.FigurePath,
+            ElementId = character.ElementId,
+            ServantDetail = character.ServantDetail,
+            Ranks = character.Ranks
+        };
+        return characterNoEquip;
     }
 
     private List<Relic> CreateRelicsWithoutIcons()
