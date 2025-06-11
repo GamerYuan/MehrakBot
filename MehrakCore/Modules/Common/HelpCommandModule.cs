@@ -39,6 +39,8 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         return new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
             .AddComponents([
                 new ComponentContainerProperties().AddComponents(new TextDisplayProperties(helpMessage))
+                    .AddComponents(new TextDisplayProperties(
+                        "-# Check out the bot's documentation at https://gameryuan.gitbook.io/mehrak for more information!"))
             ]);
     }
 }
