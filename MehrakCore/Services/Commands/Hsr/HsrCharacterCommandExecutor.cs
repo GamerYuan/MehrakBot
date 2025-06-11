@@ -26,7 +26,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
     private readonly ImageUpdaterService<HsrCharacterInformation> m_HsrImageUpdaterService;
     private readonly ICharacterCardService<HsrCharacterInformation> m_HsrCharacterCardService;
     private readonly ILogger<HsrCharacterCommandExecutor> m_Logger;
-    public IInteractionContext Context { get; set; }
+    public IInteractionContext Context { get; set; } = null!;
 
     private string m_PendingCharacterName = string.Empty;
     private Regions m_PendingServer = Regions.Asia;
@@ -199,8 +199,8 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
                 return;
             }
 
-            var characterInfo = characterList.AvatarList
-                .FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+            var characterInfo = characterList.AvatarList?
+                .FirstOrDefault(x => x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
 
             if (characterInfo == null)
             {
@@ -213,7 +213,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandMo
             }
 
             await m_HsrImageUpdaterService.UpdateDataAsync(characterInfo,
-                [characterList.EquipWiki, characterList.RelicWiki]);
+                [characterList.EquipWiki!, characterList.RelicWiki!]);
 
             var response = await GenerateCharacterCardResponseAsync(characterInfo, gameUid);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()

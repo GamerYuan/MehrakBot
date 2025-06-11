@@ -42,9 +42,10 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         List<Task<bool>> tasks =
         [
             UpdateCharacterImageAsync(characterInformation),
-            UpdateSkillImageAsync(characterInformation.Skills.Concat(characterInformation.ServantDetail.ServantSkills)),
-            UpdateRankImageAsync(characterInformation.Ranks),
-            UpdateRelicImageAsync(characterInformation.Relics.Concat(characterInformation.Ornaments), relicWiki)
+            UpdateSkillImageAsync(
+                characterInformation.Skills!.Concat(characterInformation.ServantDetail!.ServantSkills!)),
+            UpdateRankImageAsync(characterInformation.Ranks!),
+            UpdateRelicImageAsync(characterInformation.Relics!.Concat(characterInformation.Ornaments!), relicWiki)
         ];
         if (characterInformation.Equip != null)
             tasks.Add(UpdateEquipImageAsync(characterInformation.Equip,
@@ -188,17 +189,17 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             return await skills.ToAsyncEnumerable().SelectAwait(async skill =>
             {
                 var filename = string.Format(BaseString,
-                    skill.PointType == 1 ? StatBonusRegex().Replace(skill.SkillStages[0].Name, "") : skill.PointId);
+                    skill.PointType == 1 ? StatBonusRegex().Replace(skill.SkillStages![0].Name!, "") : skill.PointId);
                 if (await ImageRepository.FileExistsAsync(filename))
                 {
                     Logger.LogInformation(
                         "Skill image for {SkillName} with {Filename} already exists, skipping download",
-                        skill.SkillStages[0].Name, filename);
+                        skill.SkillStages![0].Name, filename);
                     return true;
                 }
 
                 Logger.LogInformation("Downloading skill image for {SkillName} with {Filename}",
-                    skill.SkillStages[0].Name, filename);
+                    skill.SkillStages![0].Name, filename);
 
                 var iconUrl = skill.ItemUrl;
                 if (string.IsNullOrEmpty(iconUrl))
@@ -340,7 +341,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private async Task<bool> ProcessRelicsWithWikiData(List<Relic> relics, Dictionary<string, string> relicWikiPages)
     {
         var relicsByWikiPage = relics.GroupBy(r => relicWikiPages[r.Id.ToString() ?? string.Empty]);
-        var relicNameToIdMap = relics.ToDictionary(r => r.Name.ToLowerInvariant(), r => r.Id.ToString());
+        var relicNameToIdMap = relics.ToDictionary(r => r.Name!.ToLowerInvariant(), r => r.Id.ToString());
         var overallSuccess = true;
 
         foreach (var wikiGroup in relicsByWikiPage)
@@ -481,7 +482,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}",
                     relic.Id.Value, setName);
 
-            var success = await DownloadAndSaveRelicImage(relic.Id.ToString()!, relic.Icon, relic.Name, client,
+            var success = await DownloadAndSaveRelicImage(relic.Id.ToString()!, relic.Icon, relic.Name!, client,
                 "from Icon URL");
             overallSuccess = overallSuccess && success;
         }

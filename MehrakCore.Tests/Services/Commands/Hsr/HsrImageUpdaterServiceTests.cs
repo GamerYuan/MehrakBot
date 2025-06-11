@@ -150,7 +150,7 @@ public class HsrImageUpdaterServiceTests
         };
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics, relicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!, relicWiki);
 
         // Assert
         Assert.That(result, Is.True);
@@ -166,7 +166,7 @@ public class HsrImageUpdaterServiceTests
         var emptyRelicWiki = new Dictionary<string, string>();
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics, emptyRelicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!, emptyRelicWiki);
 
         // Assert
         Assert.That(result, Is.True);
@@ -194,7 +194,7 @@ public class HsrImageUpdaterServiceTests
         // Arrange
         SetupWikiRelicResponses();
         var relicWiki = new Dictionary<string, string> { { "61181", "entry_page/relic1" } };
-        await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics.Take(1), relicWiki);
+        await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!.Take(1), relicWiki);
 
         // Act
         var setName = m_Service.GetRelicSetName(61181);
@@ -485,7 +485,7 @@ public class HsrImageUpdaterServiceTests
 
     private List<Relic> CreateRelicsWithoutIcons()
     {
-        return m_StelleTestData.Relics.Select(r => new Relic
+        return m_StelleTestData.Relics!.Select(r => new Relic
         {
             Id = r.Id,
             Name = r.Name,
@@ -564,7 +564,7 @@ public class HsrImageUpdaterServiceTests
         var relicWiki = new Dictionary<string, string> { { "61181", "entry_page/relic1" } };
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics.Take(1), relicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!.Take(1), relicWiki);
 
         // Assert - Should fallback to direct icons when wiki fails
         Assert.That(result, Is.True);
@@ -579,7 +579,7 @@ public class HsrImageUpdaterServiceTests
         var relicWiki = new Dictionary<string, string> { { "61181", "entry_page/relic1" } };
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics.Take(1), relicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!.Take(1), relicWiki);
 
         // Assert - Should fallback to direct icons when wiki JSON is invalid
         Assert.That(result, Is.True);
@@ -594,7 +594,7 @@ public class HsrImageUpdaterServiceTests
         var relicWiki = new Dictionary<string, string> { { "61181", "entry_page/relic1" } };
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics.Take(1), relicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!.Take(1), relicWiki);
 
         // Assert - Should fallback to direct icons when no set entry
         Assert.That(result, Is.True);
@@ -615,7 +615,7 @@ public class HsrImageUpdaterServiceTests
         };
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics.Take(4), relicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!.Take(4), relicWiki);
 
         // Assert
         Assert.That(result, Is.True);
@@ -663,7 +663,7 @@ public class HsrImageUpdaterServiceTests
         var relicWiki = new Dictionary<string, string> { { "61181", "entry_page/relic1" } };
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics.Take(1), relicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!.Take(1), relicWiki);
 
         // Assert
         Assert.That(result, Is.True);
@@ -678,7 +678,7 @@ public class HsrImageUpdaterServiceTests
         var relicWiki = new Dictionary<string, string>();
 
         // Act
-        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics.Take(2), relicWiki);
+        var result = await m_Service.UpdateRelicImageAsync(m_StelleTestData.Relics!.Take(2), relicWiki);
 
         // Assert - Should return false when some images fail
         Assert.That(result, Is.False);

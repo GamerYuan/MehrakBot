@@ -67,7 +67,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
             return [];
         }
 
-        if (data?.HsrBasicCharacterData.AvatarList == null)
+        if (data?.HsrBasicCharacterData?.AvatarList == null)
         {
             m_Logger.LogWarning("No character data found for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
@@ -96,7 +96,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
         m_Logger.LogInformation("Retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
             uid, region, gameUid);
         var characterList = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
-        var character = characterList.FirstOrDefault()?.AvatarList.FirstOrDefault(x => x.Id == characterId);
+        var character = characterList.FirstOrDefault()?.AvatarList?.FirstOrDefault(x => x.Id == characterId);
         if (character == null)
             return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
                 $"Character with ID {characterId} not found for user {uid} on {region} server (game UID: {gameUid})");
@@ -113,8 +113,8 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
             uid, region, gameUid);
         var characterList = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
         var character =
-            characterList.FirstOrDefault()?.AvatarList
-                .FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+            characterList.FirstOrDefault()?.AvatarList?
+                .FirstOrDefault(x => x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
         if (character == null)
             return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
                 $"Character with name {characterName} not found for user {uid} on {region} server (game UID: {gameUid})");

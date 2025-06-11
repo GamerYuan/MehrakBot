@@ -105,16 +105,16 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 ? Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template"))
                 : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                     string.Format(BasePath, characterInformation.Equip.Id)));
-            var rankTasks = characterInformation.Ranks.Select(async x =>
+            var rankTasks = characterInformation.Ranks!.Select(async x =>
             {
                 var image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.Id)));
                 return (Active: x.IsUnlocked!.Value, Image: image);
             }).ToArray();
 
-            var baseSkill = characterInformation.Skills.Where(x => x.PointType == 2 && x.Remake != "Technique")
+            var baseSkill = characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")
                 .ToArray();
-            var skillChains = BuildSkillTree(characterInformation.Skills.Where(x => x.PointType != 2).ToList());
+            var skillChains = BuildSkillTree(characterInformation.Skills!.Where(x => x.PointType != 2).ToList());
 
             var baseSkillTasks = baseSkill.Select(async x =>
             {
@@ -129,7 +129,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     var image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(x.PointType == 1
                             ? string.Format(BasePath,
-                                HsrImageUpdaterService.StatBonusRegex().Replace(x.SkillStages[0].Name, ""))
+                                HsrImageUpdaterService.StatBonusRegex().Replace(x.SkillStages![0].Name!, ""))
                             : string.Format(BasePath, x.PointId)));
                     return (Data: x, Image: image);
                 }));
@@ -138,7 +138,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
             var relicImageTasks = Enumerable.Range(0, 4).Select(async i =>
             {
-                var relic = characterInformation.Relics.FirstOrDefault(x => x.Pos == i + 1);
+                var relic = characterInformation.Relics!.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic != null)
                 {
                     var relicImage = await CreateRelicSlotImageAsync(relic);
@@ -152,7 +152,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             }).ToArray();
             var ornamentImageTasks = Enumerable.Range(0, 2).Select(async i =>
             {
-                var ornament = characterInformation.Ornaments.FirstOrDefault(x => x.Pos == i + 5);
+                var ornament = characterInformation.Ornaments!.FirstOrDefault(x => x.Pos == i + 5);
                 if (ornament != null)
                 {
                     var ornamentImage = await CreateRelicSlotImageAsync(ornament);
@@ -166,7 +166,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             }).ToArray();
 
             Dictionary<string, int> activeRelicSet = new();
-            foreach (var relic in characterInformation.Relics)
+            foreach (var relic in characterInformation.Relics!)
             {
                 var setName = m_ImageUpdater.GetRelicSetName(relic.Id!.Value);
                 if (!activeRelicSet.TryAdd(setName, 1))
@@ -178,7 +178,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 .ToDictionary(x => x.Key, x => x.Value);
 
             Dictionary<string, int> activeOrnamentSet = new();
-            foreach (var ornament in characterInformation.Ornaments)
+            foreach (var ornament in characterInformation.Ornaments!)
             {
                 var setName = m_ImageUpdater.GetRelicSetName(ornament.Id!.Value);
                 if (!activeOrnamentSet.TryAdd(setName, 1))
@@ -189,14 +189,14 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 .Where(x => x.Value >= 2)
                 .ToDictionary(x => x.Key, x => x.Value);
 
-            var servantTask = characterInformation.ServantDetail.ServantSkills.Select(async x =>
+            var servantTask = characterInformation.ServantDetail!.ServantSkills!.Select(async x =>
             {
                 var image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
                 return (Data: x, Image: image);
             }).ToArray();
 
-            var accentColor = GetAccentColor(characterInformation.Element);
+            var accentColor = GetAccentColor(characterInformation.Element!);
 
             await Task.WhenAll(backgroundTask, characterPortraitTask, equipImageTask, Task.WhenAll(rankTasks),
                 Task.WhenAll(baseSkillTasks), Task.WhenAll(skillTasks), Task.WhenAll(relicImageTasks),
@@ -208,11 +208,11 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             var ranks = rankTasks.Select(x => x.Result).Reverse().ToArray();
             var baseSkillImages = baseSkillTasks.Select(x => x.Result).ToArray();
             var skillImages = skillTasks.Select(x => x.Result).ToArray();
-            var stats = characterInformation.Properties.Where(x =>
-                float.Parse(x.Final.TrimEnd('%')) >
+            var stats = characterInformation.Properties!.Where(x =>
+                float.Parse(x.Final!.TrimEnd('%')) >
                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.HonkaiStarRail)).ToList();
             if (stats.Count < 7)
-                stats = stats.Concat(characterInformation.Properties).DistinctBy(x => x.PropertyType!.Value).Take(7)
+                stats = stats.Concat(characterInformation.Properties!).DistinctBy(x => x.PropertyType!.Value).Take(7)
                     .OrderBy(x => x.PropertyType!.Value).ToList();
             var relicImages = relicImageTasks.Select(x => x.Result).ToArray();
             var ornamentImages = ornamentImageTasks.Select(x => x.Result).ToArray();
@@ -260,16 +260,16 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     WrappingLength = 700,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
-                }, characterInformation.Name, Color.Black);
+                }, characterInformation.Name!, Color.Black);
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 700,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
-                }, characterInformation.Name, Color.White);
+                }, characterInformation.Name!, Color.White);
 
-                var bounds = TextMeasurer.MeasureBounds(characterInformation.Name, new RichTextOptions(m_TitleFont)
+                var bounds = TextMeasurer.MeasureBounds(characterInformation.Name!, new RichTextOptions(m_TitleFont)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 700,
@@ -374,7 +374,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                         Origin = new PointF(1000, 660),
                         WrappingLength = 300,
                         VerticalAlignment = VerticalAlignment.Bottom
-                    }, characterInformation.Equip.Name, Color.White);
+                    }, characterInformation.Equip.Name!, Color.White);
                     var equipEllipse = new EllipsePolygon(new PointF(1020, 690), 20);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), equipEllipse);
                     ctx.DrawText(((char)(0x215F + characterInformation.Equip.Rank!.Value)).ToString(), m_SmallFont,
@@ -420,7 +420,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     {
                         Origin = new PointF(2140, 80 + offset),
                         HorizontalAlignment = HorizontalAlignment.Right
-                    }, property.Final, Color.White);
+                    }, property.Final!, Color.White);
                 }
 
                 for (int i = 0; i < relicImages.Length; i++)
@@ -497,22 +497,22 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         {
             ctx.DrawImage(relicImage, new Point(10, 0), 1f);
             ctx.DrawImage(ImageExtensions.GenerateFourSidedStarRating(relic.Rarity!.Value), new Point(20, 115), 1f);
-            ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(125, 10), 1f);
+            ctx.DrawImage(m_StatImages[relic.MainProperty!.PropertyType!.Value], new Point(125, 10), 1f);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
                 Origin = new PointF(230, 60),
                 HorizontalAlignment = HorizontalAlignment.Right
-            }, relic.MainProperty.Value, Color.White);
+            }, relic.MainProperty!.Value!, Color.White);
             ctx.DrawText($"+{relic.Level}", m_SmallFont, Color.White, new PointF(180, 20));
 
-            for (var i = 0; i < relic.Properties.Count; i++)
+            for (var i = 0; i < relic.Properties!.Count; i++)
             {
                 var subStat = relic.Properties[i];
                 var subStatImage = m_StatImages[subStat.PropertyType!.Value];
                 var xOffset = i % 2 * 245;
                 var yOffset = i / 2 * 70;
                 ctx.DrawImage(subStatImage, new Point(260 + xOffset, 15 + yOffset), 1f);
-                ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(310 + xOffset, 20 + yOffset));
+                ctx.DrawText(subStat.Value!, m_NormalFont, Color.White, new PointF(310 + xOffset, 20 + yOffset));
                 var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
                 ctx.DrawText(rolls, m_NormalFont, Color.White, new PointF(435 + xOffset, 10 + yOffset));
             }
@@ -550,7 +550,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
     private static List<List<Skill>> BuildSkillTree(List<Skill> skills)
     {
         var result = new List<List<Skill>>();
-        var skillLookup = skills.ToDictionary(s => s.PointId, s => s);
+        var skillLookup = skills.ToDictionary(s => s.PointId!, s => s);
         var processed = new HashSet<string>();
 
         // Find all skills that have point_type == 3 and can be roots
@@ -565,7 +565,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         // Build chains from each root
         foreach (var rootSkill in potentialRoots)
         {
-            if (processed.Contains(rootSkill.PointId))
+            if (processed.Contains(rootSkill.PointId!))
                 continue;
 
             var chain = BuildChainFromRoot(rootSkill, processed, skills);
@@ -574,7 +574,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
         // Collect any remaining unprocessed skills
         var unprocessedSkills = skills
-            .Where(skill => !processed.Contains(skill.PointId))
+            .Where(skill => !processed.Contains(skill.PointId!))
             .OrderBy(skill => skill.Anchor) // Sort by anchor as required
             .ToList();
 
@@ -594,15 +594,15 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         {
             var current = queue.Dequeue();
 
-            if (processed.Contains(current.PointId))
+            if (processed.Contains(current.PointId!))
                 continue;
 
             chain.Add(current);
-            processed.Add(current.PointId);
+            processed.Add(current.PointId!);
 
             // Find all skills that have this skill as their pre_point
             var childSkills = allSkills
-                .Where(s => s.PrePoint == current.PointId && !processed.Contains(s.PointId))
+                .Where(s => s.PrePoint == current.PointId && !processed.Contains(s.PointId!))
                 .ToList();
 
             foreach (var childSkill in childSkills) queue.Enqueue(childSkill);
