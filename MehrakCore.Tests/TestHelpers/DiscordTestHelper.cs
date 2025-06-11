@@ -168,9 +168,9 @@ public partial class DiscordTestHelper : IDisposable
         };
 
         return new SlashCommandInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id, interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             DiscordClient.Rest);
     }
 

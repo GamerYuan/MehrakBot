@@ -194,10 +194,10 @@ public class AuthModalModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
 
         var interaction = new ModalInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
                     interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             m_DiscordTestHelper.DiscordClient.Rest);
         var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
 
@@ -246,10 +246,10 @@ public class AuthModalModuleTests
         // No user in database
 
         var interaction = new ModalInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
                     interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             m_DiscordTestHelper.DiscordClient.Rest);
         var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
 
@@ -313,10 +313,10 @@ public class AuthModalModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
 
         var interaction = new ModalInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
                     interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             m_DiscordTestHelper.DiscordClient.Rest);
         var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient); // Act
         var result = await m_Service.ExecuteAsync(context, m_ServiceProvider);
@@ -387,10 +387,10 @@ public class AuthModalModuleTests
         };
 
         var interaction = new ModalInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
                     interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             m_DiscordTestHelper.DiscordClient.Rest);
         var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
 
@@ -467,10 +467,10 @@ public class AuthModalModuleTests
         };
 
         var interaction = new ModalInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
                     interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             m_DiscordTestHelper.DiscordClient.Rest);
         var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
 
@@ -558,10 +558,10 @@ public class AuthModalModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
 
         var interaction = new ModalInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
                     interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             m_DiscordTestHelper.DiscordClient.Rest);
         var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
 
@@ -591,10 +591,10 @@ public class AuthModalModuleTests
         };
 
         var interaction = new ModalInteraction(jsonInteraction, null,
-            async (interaction, callback, _, cancellationToken) =>
+            async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
                     interaction.Token, callback,
-                    null, cancellationToken),
+                    false, null, cancellationToken),
             m_DiscordTestHelper.DiscordClient.Rest);
         var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient); // Act
         var result = await m_Service.ExecuteAsync(context, m_ServiceProvider);
