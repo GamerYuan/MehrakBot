@@ -34,6 +34,6 @@ public enum Regions
     Europe,
     Asia,
 
-    [SlashCommandChoice("TW/HK/MO")] [Description("TW/HK/MO")]
+    [SlashCommandChoice(Name = "TW/HK/MO")] [Description("TW/HK/MO")]
     Sar
 }
