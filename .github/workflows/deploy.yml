@@ -12,15 +12,16 @@ jobs:
     name: Deploy to Server
     runs-on: ubuntu-24.04
 
-    # only proceed if Validation succeeded, on a push to main
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'master'
-
+      github.event.workflow_run.head_branch != 'master' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
@@ -32,6 +33,7 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.BOT_CORE_PATH }}
-            git pull origin master
+            git fetch --tags
+            git checkout ${{ github.event.workflow_run.head_branch }}
             docker compose build --pull
             docker compose up -d --remove-orphans

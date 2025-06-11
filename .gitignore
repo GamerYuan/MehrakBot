@@ -12,5 +12,7 @@ appsettings.development.json
 .env
 /MehrakCore/Config/nginx/
 
+logs/
+
 *_key.pem
 *_token.txt
