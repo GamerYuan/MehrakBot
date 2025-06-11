@@ -236,6 +236,104 @@ public class DailyCheckInServiceTests
                 ItExpr.IsAny<CancellationToken>());
     }
 
+    [Test]
+    public async Task CheckInAsync_InvalidCookies_SendsInvalidCookiesMessage()
+    {
+        // Arrange
+        var userId = 123456789UL;
+        var ltuid = 987654321UL;
+        var ltoken = "invalid-ltoken";
+        var profile = 1u;
+
+        var user = new UserModel
+        {
+            Id = userId,
+            Profiles = new List<UserProfile>
+            {
+                new() { ProfileId = profile, LtUid = ltuid }
+            }
+        };
+
+        // Setup HTTP responses for invalid cookies for all games
+        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
+        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
+        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
+        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
+        var context = CreateMockInteractionContext(interaction);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+
+        // Act
+        await service.CheckInAsync(context, user, profile, ltuid, ltoken);
+
+        // Assert
+        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Verify the message contains invalid cookies error for all games
+        Assert.That(responseMessage, Does.Contain("Genshin Impact: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+
+        // Verify HTTP requests had proper headers
+        VerifyHttpRequestForGame(GenshinCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(HsrCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(ZzzCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(Hi3CheckInApiUrl, ltuid, ltoken, Times.Once());
+
+        // Note: User profile is not updated since authentication failed
+    }
+
+    [Test]
+    public async Task CheckInAsync_MixedResultsWithInvalidCookies_SendsMixedResultsMessage()
+    {
+        // Arrange
+        var userId = 123456789UL;
+        var ltuid = 987654321UL;
+        var ltoken = "partially-invalid-ltoken";
+        var profile = 1u;
+
+        var user = new UserModel
+        {
+            Id = userId,
+            Profiles = new List<UserProfile>
+            {
+                new() { ProfileId = profile, LtUid = ltuid }
+            }
+        };
+
+        // Setup HTTP responses with mixed results including invalid cookies
+        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
+        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
+        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
+        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateNoAccountResponse());
+
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
+        var context = CreateMockInteractionContext(interaction);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+
+        // Act
+        await service.CheckInAsync(context, user, profile, ltuid, ltoken);
+
+        // Assert
+        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Verify the message contains the correct mixed results including invalid cookies
+        Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Already checked in today").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: No valid game account found").IgnoreCase);
+
+        // Verify HTTP requests had proper headers
+        VerifyHttpRequestForGame(GenshinCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(HsrCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(ZzzCheckInApiUrl, ltuid, ltoken, Times.Once());
+        VerifyHttpRequestForGame(Hi3CheckInApiUrl, ltuid, ltoken, Times.Once());
+
+        // Note: User profile is not updated since not all check-ins were successful or valid
+    }
+
     private void SetupHttpResponseForUrl(string url, HttpStatusCode statusCode, string content)
     {
         m_MockHttpMessageHandler.Protected()
@@ -288,6 +386,17 @@ public class DailyCheckInServiceTests
         {
             ["retcode"] = -10002,
             ["message"] = "No valid game account found",
+            ["data"] = new JsonObject()
+        };
+        return jsonResponse.ToJsonString();
+    }
+
+    private static string CreateInvalidCookiesResponse()
+    {
+        var jsonResponse = new JsonObject
+        {
+            ["retcode"] = 10001,
+            ["message"] = "Invalid cookies",
             ["data"] = new JsonObject()
         };
         return jsonResponse.ToJsonString();
