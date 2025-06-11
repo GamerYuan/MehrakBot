@@ -24,6 +24,8 @@ public class UserProfile
 
     [BsonElement("ltoken")] public string LToken { get; set; } = string.Empty;
 
+    [BsonElement("last_checkin")] public DateTime? LastCheckIn { get; set; }
+
     [BsonElement("game_uids")]
     [BsonDictionaryOptions(DictionaryRepresentation.Document)]
     [BsonRepresentation(BsonType.String)]

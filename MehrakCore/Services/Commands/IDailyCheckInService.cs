@@ -4,6 +4,7 @@
 
 #region
 
+using MehrakCore.Models;
 using NetCord.Services;
 
 #endregion
@@ -12,5 +13,5 @@ namespace MehrakCore.Services.Commands;
 
 public interface IDailyCheckInService
 {
-    public Task CheckInAsync(IInteractionContext context, ulong ltuid, string ltoken);
+    public Task CheckInAsync(IInteractionContext context, UserModel user, uint profile, ulong ltuid, string ltoken);
 }

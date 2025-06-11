@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
+using MehrakCore.Repositories;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -18,6 +19,7 @@ namespace MehrakCore.Services.Commands.Common;
 
 public class DailyCheckInService : IDailyCheckInService
 {
+    private readonly UserRepository m_UserRepository;
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<DailyCheckInService> m_Logger;
 
@@ -37,13 +39,16 @@ public class DailyCheckInService : IDailyCheckInService
         { GameName.HonkaiImpact3, "e202110291205111" }
     };
 
-    public DailyCheckInService(IHttpClientFactory httpClientFactory, ILogger<DailyCheckInService> logger)
+    public DailyCheckInService(UserRepository userRepository, IHttpClientFactory httpClientFactory,
+        ILogger<DailyCheckInService> logger)
     {
+        m_UserRepository = userRepository;
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
     }
 
-    public async Task CheckInAsync(IInteractionContext context, ulong ltuid, string ltoken)
+    public async Task CheckInAsync(IInteractionContext context, UserModel user, uint profile, ulong ltuid,
+        string ltoken)
     {
         var userId = context.Interaction.User.Id;
         m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
@@ -82,6 +87,12 @@ public class DailyCheckInService : IDailyCheckInService
         await context.Interaction.SendFollowupMessageAsync(
             new InteractionMessageProperties().AddComponents(new TextDisplayProperties(sb.ToString()))
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
+        if (tasks.All(x => x.Result.Data))
+        {
+            user.Profiles!.First(x => x.ProfileId == profile).LastCheckIn = DateTime.UtcNow;
+            await m_UserRepository.CreateOrUpdateUserAsync(user);
+        }
+
         BotMetrics.TrackCommand(context.Interaction.User, "checkin", true);
     }
 
