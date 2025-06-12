@@ -177,6 +177,6 @@ public class DailyCheckInService : IDailyCheckInService
             Ping ping = new();
             var reply = await ping.SendPingAsync(new Uri(x.Value).Host);
             return ($"{GetFormattedGameName(x.Key)}", reply.Status == IPStatus.Success);
-        }).ToBlockingEnumerable());
+        }).ToEnumerable());
     }
 }
