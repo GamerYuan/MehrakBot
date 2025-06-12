@@ -1,6 +1,6 @@
-﻿HEADERnamespace a;
+﻿namespace MehrakCore.Services;
 
-public class IApiService
+public interface IApiService
 {
-    
+    public Task<IEnumerable<(string, bool)>> GetApiStatusAsync();
 }

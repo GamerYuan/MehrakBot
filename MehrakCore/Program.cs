@@ -5,7 +5,6 @@ using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;
-using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
@@ -28,6 +27,7 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
+using StackExchange.Redis;
 
 #endregion
 
@@ -127,9 +127,12 @@ internal class Program
                 .AddTransient<IDailyCheckInCommandService, DailyCheckInCommandExecutor>();
 
             // LToken Services
+            IConnectionMultiplexer multiplexer = await ConnectionMultiplexer.ConnectAsync(
+                builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
+            builder.Services.AddSingleton(multiplexer);
             builder.Services.AddStackExchangeRedisCache(options =>
             {
-                options.Configuration = builder.Configuration["Redis:ConnectionString"];
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
                 options.InstanceName = "MehrakBot_";
             });
             builder.Services.AddSingleton<CookieService>();
