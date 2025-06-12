@@ -3,6 +3,7 @@
 using MehrakCore.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
@@ -37,4 +38,17 @@ public class MongoDbService
     public IMongoCollection<UserModel> Users => m_Database.GetCollection<UserModel>("users");
 
     public GridFSBucket Bucket => new(m_Database);
+
+    public async Task<bool> IsConnected()
+    {
+        try
+        {
+            _ = await m_Database.RunCommandAsync((Command<BsonDocument>)"{ping:1}") != null;
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
 }

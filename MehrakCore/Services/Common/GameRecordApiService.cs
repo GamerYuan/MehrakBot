@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Net.Http.Json;
+using System.Net.NetworkInformation;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Common;
 
-public class GameRecordApiService
+public class GameRecordApiService : IApiService
 {
     private const string GameRecordApiUrl =
         "https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard";
@@ -114,5 +115,21 @@ public class GameRecordApiService
             m_Logger.LogError(ex, "Error retrieving game UID for user {Uid} on {Region}", uid, region);
             throw;
         }
+    }
+
+    public async Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
+    {
+        Ping gameRecordPing = new();
+        Ping gameUserRolePing = new();
+
+        var tasks = new List<(string, bool)>
+        {
+            ("Game Record API",
+                (await gameRecordPing.SendPingAsync(new Uri(GameRecordApiUrl).Host)).Status == IPStatus.Success),
+            ("Game User Role API",
+                (await gameUserRolePing.SendPingAsync(new Uri(GameUserRoleApiUrl).Host)).Status == IPStatus.Success)
+        };
+
+        return tasks;
     }
 }

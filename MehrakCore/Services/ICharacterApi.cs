@@ -7,7 +7,7 @@ using MehrakCore.Models;
 
 namespace MehrakCore.Services;
 
-public interface ICharacterApi<T1, T2> where T1 : IBasicCharacterData where T2 : ICharacterDetail
+public interface ICharacterApi<T1, T2> : IApiService where T1 : IBasicCharacterData where T2 : ICharacterDetail
 {
     public Task<IEnumerable<T1>>
         GetAllCharactersAsync(ulong uid, string ltoken, string gameUid, string region);

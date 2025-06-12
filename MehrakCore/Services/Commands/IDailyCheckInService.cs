@@ -11,7 +11,7 @@ using NetCord.Services;
 
 namespace MehrakCore.Services.Commands;
 
-public interface IDailyCheckInService
+public interface IDailyCheckInService : IApiService
 {
     public Task CheckInAsync(IInteractionContext context, UserModel user, uint profile, ulong ltuid, string ltoken);
 }

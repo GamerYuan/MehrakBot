@@ -3,6 +3,7 @@
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
@@ -143,5 +144,15 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         }
 
         return ApiResult<GenshinCharacterDetail>.Success(result.Data);
+    }
+
+    public async Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
+    {
+        Ping ping = new();
+        var result = await ping.SendPingAsync(new Uri(BaseUrl).Host);
+        return new List<(string, bool)>
+        {
+            ("Genshin Impact", result.Status == IPStatus.Success)
+        };
     }
 }
