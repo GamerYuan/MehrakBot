@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using MehrakCore.Models;
+using Microsoft.Extensions.Logging;
 
 #endregion
 
@@ -10,12 +11,14 @@ namespace MehrakCore.Services.Common;
 public class PrometheusClientService
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
+    private readonly ILogger<PrometheusClientService> m_Logger;
 
     private const string PrometheusBaseUrl = "http://prometheus:9090/api/v1/";
 
-    public PrometheusClientService(IHttpClientFactory httpClientFactory)
+    public PrometheusClientService(IHttpClientFactory httpClientFactory, ILogger<PrometheusClientService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
+        m_Logger = logger;
     }
 
     public async ValueTask<SystemResource> GetSystemResourceAsync()
@@ -71,7 +74,7 @@ public class PrometheusClientService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error querying Prometheus: {ex.Message}");
+            m_Logger.LogWarning("Error querying Prometheus: {Message}", ex.Message);
             return null;
         }
     }
