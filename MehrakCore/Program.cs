@@ -142,6 +142,7 @@ internal class Program
             // Other Services
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<CommandRateLimitService>();
+            builder.Services.AddTransient<PrometheusClientService>();
 
             // NetCord Services
             builder.Services.AddDiscordGateway().AddApplicationCommands()
