@@ -152,7 +152,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         var result = await ping.SendPingAsync(new Uri(BaseUrl).Host);
         return new List<(string, bool)>
         {
-            ("Genshin Impact Character API", result.Status == IPStatus.Success)
+            ("Genshin Impact", result.Status == IPStatus.Success)
         };
     }
 }

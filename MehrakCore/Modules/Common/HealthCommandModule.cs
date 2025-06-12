@@ -24,10 +24,11 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     private readonly ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> m_HsrCharacterApi;
     private readonly GatewayClient m_GatewayClient;
     private readonly PrometheusClientService m_PrometheusClientService;
+    private readonly GameRecordApiService m_GameRecordApiService;
 
     public HealthCommandModule(MongoDbService mongoDbService, IConnectionMultiplexer redisConnection,
         IDailyCheckInService dailyCheckInService, GatewayClient gatewayClient,
-        PrometheusClientService prometheusClientService,
+        PrometheusClientService prometheusClientService, GameRecordApiService gameRecordApiService,
         ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> genshinCharacterApi,
         ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> hsrCharacterApi)
     {
@@ -36,6 +37,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         m_DailyCheckInService = dailyCheckInService;
         m_GatewayClient = gatewayClient;
         m_PrometheusClientService = prometheusClientService;
+        m_GameRecordApiService = gameRecordApiService;
         m_GenshinCharacterApi = genshinCharacterApi;
         m_HsrCharacterApi = hsrCharacterApi;
     }
@@ -58,36 +60,44 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         var checkinStatus = m_DailyCheckInService.GetApiStatusAsync();
         var genshinApiStatus = m_GenshinCharacterApi.GetApiStatusAsync();
         var hsrApiStatus = m_HsrCharacterApi.GetApiStatusAsync();
+        var gameRecordApiStatus = m_GameRecordApiService.GetApiStatusAsync();
 
-        var apiTask = await Task.WhenAll(checkinStatus, genshinApiStatus, hsrApiStatus);
+        await Task.WhenAll(checkinStatus, genshinApiStatus, hsrApiStatus, gameRecordApiStatus);
         var apiStatus = string.Join('\n',
-            apiTask.SelectMany(x => x).Select(x => $"{x.Item1}: {(x.Item2 ? "Online" : "Offline")}"));
+            $"**Daily Check In API**\n{FormatApiStatus(checkinStatus.Result)}\n" +
+            $"**Character API**\n{FormatApiStatus(genshinApiStatus.Result)}\n{FormatApiStatus(hsrApiStatus.Result)}\n" +
+            $"**Other API**\n{FormatApiStatus(gameRecordApiStatus.Result)}");
 
         var convert = Math.Pow(1024, 3);
-        container.AddComponents(new TextDisplayProperties("### Health Report"));
+        container.AddComponents(new TextDisplayProperties("## Health Report"));
         container.AddComponents(new ComponentSeparatorProperties());
         if (systemUsage.CpuUsage < 0)
             container.AddComponents(new TextDisplayProperties(
-                $"__System Resources__\n" +
+                $"### __System Resources__\n" +
                 $"System monitor is offline"));
         else
             container.AddComponents(new TextDisplayProperties(
-                $"__System Resources__\n" +
+                $"### __System Resources__\n" +
                 $"CPU: {systemUsage.CpuUsage:N2}%\n" +
                 $"Memory: {systemUsage.MemoryUsed / convert:N2}/{systemUsage.MemoryTotal / convert:N2} GB " +
                 $"{(double)systemUsage.MemoryUsed / systemUsage.MemoryTotal * 100:N2}%"));
 
         container.AddComponents(new ComponentSeparatorProperties());
-        container.AddComponents(new TextDisplayProperties($"__System Status__\n" +
+        container.AddComponents(new TextDisplayProperties($"### __System Status__\n" +
                                                           $"MongoDB: {(mongoDbStatus ? "Online" : "Offline")}\n" +
                                                           $"Redis: {(cacheStatus ? "Online" : "Offline")}\n" +
                                                           $"Prometheus: {(systemUsage.CpuUsage > 0 ? "Online" : "Offline")}\n" +
                                                           $"Discord Latency: {m_GatewayClient.Latency.TotalMilliseconds} ms"));
 
         container.AddComponents(new ComponentSeparatorProperties());
-        container.AddComponents(new TextDisplayProperties($"__API Status__\n" +
+        container.AddComponents(new TextDisplayProperties($"### __API Status__\n" +
                                                           $"{apiStatus}"));
 
         await RespondAsync(InteractionCallback.Message(response));
+    }
+
+    private static string FormatApiStatus(IEnumerable<(string, bool)> apiStatus)
+    {
+        return string.Join('\n', apiStatus.Select(x => $"{x.Item1}: {(x.Item2 ? "Online" : "Offline")}"));
     }
 }

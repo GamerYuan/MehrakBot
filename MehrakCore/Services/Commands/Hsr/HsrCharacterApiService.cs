@@ -132,7 +132,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
         var result = await ping.SendPingAsync(new Uri(ApiUrl).Host);
         return new List<(string, bool)>
         {
-            ("Honkai: Star Rail Character API", result.Status == IPStatus.Success)
+            ("Honkai: Star Rail", result.Status == IPStatus.Success)
         };
     }
 }
