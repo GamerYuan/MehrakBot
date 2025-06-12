@@ -5,6 +5,8 @@ using System.Text;
 
 #endregion
 
+namespace MehrakCore.Utility;
+
 public static class DSGenerator
 {
     private const string Salt = "6s25p5ox5y14umn1p61aqyyvbvvl3lrt";

@@ -11,7 +11,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Modules.Common;
+namespace MehrakCore.Modules;
 
 [SlashCommand("hsr", "Honkai: Star Rail Toolbox")]
 public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
