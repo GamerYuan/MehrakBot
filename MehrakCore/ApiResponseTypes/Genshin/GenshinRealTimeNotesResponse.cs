@@ -54,7 +54,7 @@ public class DailyTask
     public int StoredAttendanceRefreshCountdown { get; init; }
 }
 
-public class Data
+public class GenshinRealTimeNotesData : IRealTimeNotesData
 {
     [JsonPropertyName("current_resin")] public int CurrentResin { get; init; }
 
