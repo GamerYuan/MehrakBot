@@ -14,7 +14,7 @@ using NetCord.Rest;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Genshin;
+namespace MehrakCore.Services.Commands.Genshin.Character;
 
 public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharacterCommandExecutor>,
     ICharacterCommandExecutor<GenshinCommandModule>

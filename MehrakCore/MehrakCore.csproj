@@ -53,4 +53,8 @@
         </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Services\Commands\Genshin\RealTimeNotes\" />
+    </ItemGroup>
+
 </Project>

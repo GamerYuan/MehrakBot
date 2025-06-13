@@ -10,6 +10,7 @@ using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Commands.Genshin.Character;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;

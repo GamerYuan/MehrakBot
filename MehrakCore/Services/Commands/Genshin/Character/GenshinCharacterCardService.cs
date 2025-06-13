@@ -17,7 +17,7 @@ using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Genshin;
+namespace MehrakCore.Services.Commands.Genshin.Character;
 
 public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacterInformation>
 {

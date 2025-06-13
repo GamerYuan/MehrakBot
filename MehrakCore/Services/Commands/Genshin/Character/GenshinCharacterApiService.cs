@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Genshin;
+namespace MehrakCore.Services.Commands.Genshin.Character;
 
 public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>
 {
