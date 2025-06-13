@@ -1,6 +1,6 @@
 ﻿#region
 
-using MehrakCore.Services.Commands.Hsr;
+using MehrakCore.Services.Commands.Hsr.Character;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;

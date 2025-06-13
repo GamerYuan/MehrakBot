@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr;
+namespace MehrakCore.Services.Commands.Hsr.Character;
 
 public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>
 {

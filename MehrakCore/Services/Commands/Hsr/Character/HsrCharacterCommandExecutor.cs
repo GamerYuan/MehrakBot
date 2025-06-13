@@ -5,6 +5,7 @@ using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
@@ -15,9 +16,9 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr;
+namespace MehrakCore.Services.Commands.Hsr.Character;
 
-public class HsrCharacterCommandExecutor : ICharacterCommandService<HsrCommandModule>, IAuthenticationListener
+public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandModule>, IAuthenticationListener
 {
     private readonly ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> m_CharacterApi;
     private readonly GameRecordApiService m_GameRecordApi;

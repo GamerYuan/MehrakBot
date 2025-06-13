@@ -1,6 +1,6 @@
 #region
 
-using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -20,14 +20,14 @@ namespace MehrakCore.Modules;
 public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
     private readonly ILogger<GenshinCommandModule> m_Logger;
-    private readonly ICharacterCommandService<GenshinCommandModule> m_CharacterCommandService;
+    private readonly ICharacterCommandExecutor<GenshinCommandModule> m_CharacterCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
 
-    public GenshinCommandModule(ICharacterCommandService<GenshinCommandModule> characterCommandService,
+    public GenshinCommandModule(ICharacterCommandExecutor<GenshinCommandModule> characterCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<GenshinCommandModule> logger)
     {
         m_Logger = logger;
-        m_CharacterCommandService = characterCommandService;
+        m_CharacterCommandExecutor = characterCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
     }
 
@@ -54,8 +54,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        m_CharacterCommandService.Context = Context;
-        await m_CharacterCommandService.ExecuteAsync(characterName, server, profile);
+        m_CharacterCommandExecutor.Context = Context;
+        await m_CharacterCommandExecutor.ExecuteAsync(characterName, server, profile);
     }
 
     private async Task<bool> ValidateRateLimitAsync()

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr;
+namespace MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 
 public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNotesData>
 {

@@ -1,7 +1,7 @@
 ﻿#region
 
 using MehrakCore.Provider.Commands.Hsr;
-using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -16,14 +16,14 @@ namespace MehrakCore.Modules;
 [SlashCommand("hsr", "Honkai: Star Rail Toolbox")]
 public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
-    public ICharacterCommandService<HsrCommandModule> CharacterCommandService { get; }
+    public ICharacterCommandExecutor<HsrCommandModule> CharacterCommandExecutor { get; }
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<HsrCommandModule> m_Logger;
 
-    public HsrCommandModule(ICharacterCommandService<HsrCommandModule> characterCommandService,
+    public HsrCommandModule(ICharacterCommandExecutor<HsrCommandModule> characterCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger)
     {
-        CharacterCommandService = characterCommandService;
+        CharacterCommandExecutor = characterCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
     }
@@ -48,8 +48,8 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             return;
         }
 
-        CharacterCommandService.Context = Context;
-        await CharacterCommandService.ExecuteAsync(characterName, server, profile);
+        CharacterCommandExecutor.Context = Context;
+        await CharacterCommandExecutor.ExecuteAsync(characterName, server, profile);
     }
 
     private async Task<bool> ValidateRateLimitAsync()

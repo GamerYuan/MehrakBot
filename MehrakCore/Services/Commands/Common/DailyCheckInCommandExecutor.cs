@@ -3,6 +3,7 @@
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,7 @@ using IInteractionContext = NetCord.Services.IInteractionContext;
 
 namespace MehrakCore.Services.Commands.Common;
 
-public class DailyCheckInCommandExecutor : IDailyCheckInCommandService,
+public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
     IAuthenticationListener
 {
     private readonly IDailyCheckInService m_DailyCheckInService;

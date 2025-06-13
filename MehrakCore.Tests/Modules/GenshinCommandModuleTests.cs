@@ -8,6 +8,7 @@ using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
@@ -140,7 +141,7 @@ public class GenshinCommandModuleTests
             .AddSingleton(m_UserRepository)
             .AddSingleton(m_CommandRateLimitService)
             .AddSingleton(m_TokenCacheService)
-            .AddSingleton<ICharacterCommandService<GenshinCommandModule>>(m_GenshinCharacterCommandExecutor)
+            .AddSingleton<ICharacterCommandExecutor<GenshinCommandModule>>(m_GenshinCharacterCommandExecutor)
             .AddLogging(l => l.AddProvider(NullLoggerProvider.Instance))
             .BuildServiceProvider();
     }

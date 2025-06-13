@@ -1,4 +1,4 @@
-﻿namespace MehrakCore.Services.Commands.Hsr;
+﻿namespace MehrakCore.Services.Commands.Hsr.Character;
 
 public class HsrCharacterAutocompleteService
 {
