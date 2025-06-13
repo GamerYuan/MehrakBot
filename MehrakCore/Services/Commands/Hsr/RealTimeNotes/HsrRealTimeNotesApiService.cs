@@ -31,7 +31,7 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
     {
         var client = m_HttpClientFactory.CreateClient("Default");
         var request = new HttpRequestMessage(HttpMethod.Get, $"{ApiUrl}?role_id={roleId}&server={server}");
-        request.Headers.Add("Cookie", $"ltuid={ltuid}; ltoken={ltoken}");
+        request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
         request.Headers.Add("X-Rpc-Client_type", "5");
         request.Headers.Add("X-Rpc-App_version", "1.5.0");
         request.Headers.Add("X-Rpc-Language", "en-us");
@@ -51,6 +51,13 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
             m_Logger.LogError("Failed to parse JSON response from real-time notes API");
             return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                 "Failed to parse JSON response from real-time notes API");
+        }
+
+        if (json["retcode"]!.GetValue<int>() == 10001)
+        {
+            m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
+            return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
+                "Invalid ltuid or ltoken provided for real-time notes API");
         }
 
         if (json["data"] == null)

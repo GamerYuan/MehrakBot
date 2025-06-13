@@ -13,6 +13,7 @@ using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
+using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Configuration;
@@ -123,6 +124,9 @@ internal class Program
             builder.Services
                 .AddTransient<ICharacterCommandExecutor<HsrCommandModule>, HsrCharacterCommandExecutor>();
             builder.Services.AddSingleton<HsrCharacterAutocompleteService>();
+            builder.Services.AddSingleton<IRealTimeNotesApiService<HsrRealTimeNotesData>, HsrRealTimeNotesApiService>();
+            builder.Services
+                .AddTransient<IRealTimeNotesCommandExecutor<HsrCommandModule>, HsrRealTimeNotesCommandExecutor>();
 
             // Daily Check-In Services
             builder.Services

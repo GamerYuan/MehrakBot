@@ -16,14 +16,17 @@ namespace MehrakCore.Modules;
 [SlashCommand("hsr", "Honkai: Star Rail Toolbox")]
 public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
-    public ICharacterCommandExecutor<HsrCommandModule> CharacterCommandExecutor { get; }
+    private readonly ICharacterCommandExecutor<HsrCommandModule> m_CharacterCommandExecutor;
+    private readonly IRealTimeNotesCommandExecutor<HsrCommandModule> m_RealTimeNotesCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<HsrCommandModule> m_Logger;
 
     public HsrCommandModule(ICharacterCommandExecutor<HsrCommandModule> characterCommandExecutor,
+        IRealTimeNotesCommandExecutor<HsrCommandModule> realTimeNotesCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger)
     {
-        CharacterCommandExecutor = characterCommandExecutor;
+        m_CharacterCommandExecutor = characterCommandExecutor;
+        m_RealTimeNotesCommandExecutor = realTimeNotesCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
     }
@@ -48,8 +51,21 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             return;
         }
 
-        CharacterCommandExecutor.Context = Context;
-        await CharacterCommandExecutor.ExecuteAsync(characterName, server, profile);
+        m_CharacterCommandExecutor.Context = Context;
+        await m_CharacterCommandExecutor.ExecuteAsync(characterName, server, profile);
+    }
+
+    [SubSlashCommand("notes", "Get real-time notes")]
+    public async Task RealTimeNotesCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_RealTimeNotesCommandExecutor.Context = Context;
+        await m_RealTimeNotesCommandExecutor.ExecuteAsync(server, profile);
     }
 
     private async Task<bool> ValidateRateLimitAsync()
