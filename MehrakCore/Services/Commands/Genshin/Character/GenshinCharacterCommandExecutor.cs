@@ -20,7 +20,6 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
     ICharacterCommandExecutor<GenshinCommandModule>
 {
     private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_GenshinCharacterApiService;
-    private readonly GameRecordApiService m_GameRecordApiService;
     private readonly ICharacterCardService<GenshinCharacterInformation> m_GenshinCharacterCardService;
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
 
@@ -35,10 +34,9 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
         ILogger<GenshinCharacterCommandExecutor> logger,
         TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware)
-        : base(userRepository, tokenCacheService, authenticationMiddleware, logger)
+        : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApiService, logger)
     {
         m_GenshinCharacterApiService = genshinCharacterApiService;
-        m_GameRecordApiService = gameRecordApiService;
         m_GenshinCharacterCardService = genshinCharacterCardService;
         m_GenshinImageUpdaterService = genshinImageUpdaterService;
     }
@@ -73,15 +71,10 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
-            // Store pending command parameters for authentication completion
             m_PendingCharacterName = characterName;
             m_PendingServer = cachedServer!.Value;
 
-            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile, () =>
-            {
-                // Action executed when authentication is needed
-                // Pending parameters are already stored above
-            });
+            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
 
             if (ltoken != null)
             {
@@ -110,64 +103,9 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             var region = GetRegion(server);
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
-
-            // edge case check that probably will never occur
-            // but if user removes their profile while this command is running will result in null
-            if (user?.Profiles == null || selectedProfile == null)
-            {
-                Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
-                    Context.Interaction.User.Id, ltuid);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("No profile found. Please select the correct profile")
-                    ]));
-                return;
-            }
-
-            if (selectedProfile.GameUids == null ||
-                !selectedProfile.GameUids.TryGetValue(GameName.Genshin, out var dict) ||
-                !dict.TryGetValue(server.ToString(), out var gameUid))
-            {
-                Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
-                    Context.Interaction.User.Id, region);
-                var result = await m_GameRecordApiService.GetUserRegionUidAsync(ltuid, ltoken, "hk4e_global", region);
-                if (result.RetCode == -100)
-                {
-                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                        .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                            new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
-                        ]));
-                    return;
-                }
-
-                gameUid = result.Data;
-            }
-
-            if (gameUid == null)
-            {
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("No game information found. Please select the correct region")
-                    ]));
-                return;
-            }
-
-            selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
-
-            if (!selectedProfile.GameUids.ContainsKey(GameName.Genshin))
-                selectedProfile.GameUids[GameName.Genshin] = new Dictionary<string, string>();
-            if (!selectedProfile.GameUids[GameName.Genshin].TryAdd(server.ToString(), gameUid))
-                selectedProfile.GameUids[GameName.Genshin][server.ToString()] = gameUid;
-            Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
-                Context.Interaction.User.Id, region);
-
-            selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
-
-            if (!selectedProfile.LastUsedRegions.TryAdd(GameName.Genshin, server))
-                selectedProfile.LastUsedRegions[GameName.Genshin] = server;
-
-            var updateUser = UserRepository.CreateOrUpdateUserAsync(user);
+            var result = await GetAndUpdateGameUidAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            if (!result.IsSuccess) return;
+            var gameUid = result.Data;
 
             var characters = (await m_GenshinCharacterApiService.GetAllCharactersAsync(ltuid, ltoken, gameUid, region))
                 .ToArray();
@@ -188,8 +126,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
-            var followup = Context.Interaction.SendFollowupMessageAsync(properties);
-            await Task.WhenAll(followup, updateUser);
+            await Context.Interaction.SendFollowupMessageAsync(properties);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", true);
             BotMetrics.TrackCharacterSelection(nameof(GameName.Genshin), characterName);
         }

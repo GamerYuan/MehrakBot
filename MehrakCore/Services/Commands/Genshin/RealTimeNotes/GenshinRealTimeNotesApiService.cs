@@ -27,8 +27,7 @@ public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRe
     }
 
     public async Task<ApiResult<GenshinRealTimeNotesData>> GetRealTimeNotesAsync(string roleId, string server,
-        ulong ltuid,
-        string ltoken)
+        ulong ltuid, string ltoken)
     {
         var client = m_HttpClientFactory.CreateClient("Default");
         var request = new HttpRequestMessage(HttpMethod.Get, $"{ApiUrl}?role_id={roleId}&server={server}");

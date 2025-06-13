@@ -88,12 +88,17 @@ public class DailyCheckInCommandModuleTests
             m_DistributedCacheMock.Object,
             NullLogger<TokenCacheService>.Instance);
 
+        var gameRecordApiService = new GameRecordApiService(
+            Mock.Of<IHttpClientFactory>(),
+            NullLogger<GameRecordApiService>.Instance);
+
         // Create the executor
         var executor = new DailyCheckInCommandExecutor(
             m_CheckInServiceMock.Object,
             m_UserRepository,
             m_TokenCacheService,
             m_AuthenticationMiddlewareMock.Object,
+            gameRecordApiService,
             NullLogger<DailyCheckInCommandExecutor>.Instance); // Set up service provider
         m_ServiceProvider = new ServiceCollection()
             .AddSingleton(m_CommandService)

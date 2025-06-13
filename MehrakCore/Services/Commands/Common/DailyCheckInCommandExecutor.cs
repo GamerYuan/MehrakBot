@@ -26,8 +26,9 @@ public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInComma
         UserRepository userRepository,
         TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
+        GameRecordApiService gameRecordApiService,
         ILogger<DailyCheckInCommandExecutor> logger)
-        : base(userRepository, tokenCacheService, authenticationMiddleware, logger)
+        : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApiService, logger)
     {
         m_DailyCheckInService = dailyCheckInService;
     }
@@ -69,11 +70,10 @@ public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInComma
                 }
             }
 
-            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile, () =>
-            {
-                m_PendingProfile = profile;
-                m_PendingUser = user;
-            });
+            m_PendingProfile = profile;
+            m_PendingUser = user;
+
+            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
 
             if (ltoken != null)
             {

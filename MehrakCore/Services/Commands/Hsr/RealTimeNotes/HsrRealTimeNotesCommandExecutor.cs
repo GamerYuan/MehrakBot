@@ -21,7 +21,6 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
 {
     private readonly IRealTimeNotesApiService<HsrRealTimeNotesData> m_ApiService;
     private readonly ImageRepository m_ImageRepository;
-    private readonly GameRecordApiService m_GameRecordApi;
 
     private Regions m_PendingServer;
 
@@ -29,11 +28,10 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         UserRepository userRepository, ImageRepository imageRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrRealTimeNotesCommandExecutor> logger)
-        : base(userRepository, tokenCacheService, authenticationMiddleware, logger)
+        : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApi, logger)
     {
         m_ApiService = apiService;
         m_ImageRepository = imageRepository;
-        m_GameRecordApi = gameRecordApi;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -58,9 +56,8 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
             var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
             if (!await ValidateServerAsync(cachedServer))
                 return;
-
-            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile,
-                () => { m_PendingServer = cachedServer!.Value; });
+            m_PendingServer = cachedServer!.Value;
+            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
 
             if (ltoken != null)
             {
@@ -106,68 +103,14 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
             var region = RegionUtility.GetRegion(server);
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
+            var result = await GetAndUpdateGameUidAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
+                RegionUtility.GetRegion(server));
 
-            // edge case check that probably will never occur
-            // but if user removes their profile while this command is running will result in null
-            if (user?.Profiles == null || selectedProfile == null)
-            {
-                Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
-                    Context.Interaction.User.Id, ltuid);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("No profile found. Please select the correct profile")
-                    ]));
-                return;
-            }
+            if (!result.IsSuccess) return;
 
-            if (selectedProfile.GameUids == null ||
-                !selectedProfile.GameUids.TryGetValue(GameName.HonkaiStarRail, out var dict) ||
-                !dict.TryGetValue(server.ToString(), out var gameUid))
-            {
-                Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
-                    Context.Interaction.User.Id, region);
-                var result = await m_GameRecordApi.GetUserRegionUidAsync(ltuid, ltoken, "hkrpg_global", region);
-                if (result.RetCode == -100)
-                {
-                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                        .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                            new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
-                        ]));
-                    return;
-                }
+            var gameUid = result.Data;
+            var notesResult = await m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
 
-                gameUid = result.Data;
-            }
-
-            if (gameUid == null)
-            {
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("No game information found. Please select the correct region")
-                    ]));
-                return;
-            }
-
-            selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
-
-            if (!selectedProfile.GameUids.ContainsKey(GameName.HonkaiStarRail))
-                selectedProfile.GameUids[GameName.HonkaiStarRail] = new Dictionary<string, string>();
-            if (!selectedProfile.GameUids[GameName.HonkaiStarRail].TryAdd(server.ToString(), gameUid))
-                selectedProfile.GameUids[GameName.HonkaiStarRail][server.ToString()] = gameUid;
-            Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
-                Context.Interaction.User.Id, region);
-
-            selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
-
-            if (!selectedProfile.LastUsedRegions.TryAdd(GameName.HonkaiStarRail, server))
-                selectedProfile.LastUsedRegions[GameName.HonkaiStarRail] = server;
-
-            var updateUser = UserRepository.CreateOrUpdateUserAsync(user);
-            var realTimeNotes = m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
-            await Task.WhenAll(updateUser, realTimeNotes);
-
-            var notesResult = await realTimeNotes;
             if (!notesResult.IsSuccess)
             {
                 Logger.LogError("Failed to fetch real-time notes for user {UserId}: {ErrorMessage}",
