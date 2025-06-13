@@ -3,7 +3,6 @@
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;
-using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
@@ -12,22 +11,17 @@ using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
-using NetCord.Services;
 
 #endregion
 
 namespace MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 
-public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<HsrCommandModule>, IAuthenticationListener
+public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNotesCommandExecutor>,
+    IRealTimeNotesCommandExecutor<HsrCommandModule>
 {
     private readonly IRealTimeNotesApiService<HsrRealTimeNotesData> m_ApiService;
-    private readonly UserRepository m_UserRepository;
     private readonly ImageRepository m_ImageRepository;
-    private readonly TokenCacheService m_TokenCacheService;
-    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly GameRecordApiService m_GameRecordApi;
-    private readonly ILogger<HsrRealTimeNotesCommandExecutor> m_Logger;
-    public IInteractionContext Context { get; set; } = null!;
 
     private Regions m_PendingServer;
 
@@ -35,77 +29,50 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
         UserRepository userRepository, ImageRepository imageRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrRealTimeNotesCommandExecutor> logger)
+        : base(userRepository, tokenCacheService, authenticationMiddleware, logger)
     {
         m_ApiService = apiService;
-        m_UserRepository = userRepository;
         m_ImageRepository = imageRepository;
-        m_TokenCacheService = tokenCacheService;
-        m_AuthenticationMiddleware = authenticationMiddleware;
         m_GameRecordApi = gameRecordApi;
-        m_Logger = logger;
     }
 
-    public async ValueTask ExecuteAsync(params object?[] parameters)
+    public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
         if (parameters.Length != 2)
-            throw new ArgumentException("Invalid parameters count for character command");
+            throw new ArgumentException("Invalid parameters count for real-time notes command");
 
         var server = (Regions?)parameters[0];
         var profile = parameters[1] == null ? 1 : (uint)parameters[1]!;
 
         try
         {
-            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
-            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
-            {
-                m_Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
-                    Context.Interaction.User.Id, profile);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
-                        .WithFlags(MessageFlags.Ephemeral)));
+            var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
+            if (user == null || selectedProfile == null)
                 return;
-            }
 
-            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
+            // Auto-select server from cache if not provided
             if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.HonkaiStarRail, out var tmp)) server = tmp;
+                selectedProfile.LastUsedRegions.TryGetValue(GameName.HonkaiStarRail, out var tmp))
+                server = tmp;
 
-            if (server == null)
-            {
-                m_Logger.LogInformation("User {UserId} does not have a server selected", Context.Interaction.User.Id);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
-                        .WithFlags(MessageFlags.Ephemeral)));
+            var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
+            if (!await ValidateServerAsync(cachedServer))
                 return;
-            }
 
-            var ltoken = await m_TokenCacheService.GetCacheEntry(Context.Interaction.User.Id, selectedProfile.LtUid);
-            if (ltoken == null)
+            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile,
+                () => { m_PendingServer = cachedServer!.Value; });
+
+            if (ltoken != null)
             {
-                m_Logger.LogInformation("User {UserId} is not authenticated, registering with middleware",
-                    Context.Interaction.User.Id);
-
-                // Store pending command parameters
-                m_PendingServer = server.Value;
-
-                // Register with authentication middleware
-                var guid = m_AuthenticationMiddleware.RegisterAuthenticationListener(Context.Interaction.User.Id, this);
-
-                // Send authentication modal
-                await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal(guid, profile)));
-            }
-            else
-            {
-                m_Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
+                Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-                await SendRealTimeNotesAsync(selectedProfile.LtUid, ltoken, server.Value);
+                await SendRealTimeNotesAsync(selectedProfile.LtUid, ltoken, cachedServer!.Value);
             }
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error executing real-time notes command for user {UserId}",
+            Logger.LogError(e, "Error executing real-time notes command for user {UserId}",
                 Context.Interaction.User.Id);
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithContent("An error occurred while processing your request")
@@ -113,18 +80,18 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
         }
     }
 
-    public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
         if (result.IsSuccess)
         {
             Context = result.Context;
-            m_Logger.LogInformation("Authentication completed successfully for user {UserId}",
+            Logger.LogInformation("Authentication completed successfully for user {UserId}",
                 Context.Interaction.User.Id);
             await SendRealTimeNotesAsync(result.LtUid, result.LToken, m_PendingServer);
         }
         else
         {
-            m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+            Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, result.ErrorMessage);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .AddComponents(new TextDisplayProperties($"Authentication failed: {result.ErrorMessage}"))
@@ -137,7 +104,7 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
         try
         {
             var region = RegionUtility.GetRegion(server);
-            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
             var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
 
@@ -145,7 +112,7 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
             // but if user removes their profile while this command is running will result in null
             if (user?.Profiles == null || selectedProfile == null)
             {
-                m_Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
                     Context.Interaction.User.Id, ltuid);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
@@ -158,7 +125,7 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
                 !selectedProfile.GameUids.TryGetValue(GameName.HonkaiStarRail, out var dict) ||
                 !dict.TryGetValue(server.ToString(), out var gameUid))
             {
-                m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
+                Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
                     Context.Interaction.User.Id, region);
                 var result = await m_GameRecordApi.GetUserRegionUidAsync(ltuid, ltoken, "hkrpg_global", region);
                 if (result.RetCode == -100)
@@ -188,8 +155,7 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
                 selectedProfile.GameUids[GameName.HonkaiStarRail] = new Dictionary<string, string>();
             if (!selectedProfile.GameUids[GameName.HonkaiStarRail].TryAdd(server.ToString(), gameUid))
                 selectedProfile.GameUids[GameName.HonkaiStarRail][server.ToString()] = gameUid;
-
-            m_Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
+            Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
                 Context.Interaction.User.Id, region);
 
             selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
@@ -197,14 +163,14 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
             if (!selectedProfile.LastUsedRegions.TryAdd(GameName.HonkaiStarRail, server))
                 selectedProfile.LastUsedRegions[GameName.HonkaiStarRail] = server;
 
-            var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
+            var updateUser = UserRepository.CreateOrUpdateUserAsync(user);
             var realTimeNotes = m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
             await Task.WhenAll(updateUser, realTimeNotes);
 
             var notesResult = await realTimeNotes;
             if (!notesResult.IsSuccess)
             {
-                m_Logger.LogError("Failed to fetch real-time notes for user {UserId}: {ErrorMessage}",
+                Logger.LogError("Failed to fetch real-time notes for user {UserId}: {ErrorMessage}",
                     Context.Interaction.User.Id, notesResult.ErrorMessage);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -215,13 +181,13 @@ public class HsrRealTimeNotesCommandExecutor : IRealTimeNotesCommandExecutor<Hsr
 
             var notesData = notesResult.Data;
             await Context.Interaction.SendFollowupMessageAsync(await BuildRealTimeNotes(notesData, server, gameUid));
-            m_Logger.LogInformation("Successfully fetched real-time notes for user {UserId} in region {Region}",
+            Logger.LogInformation("Successfully fetched real-time notes for user {UserId} in region {Region}",
                 Context.Interaction.User.Id, region);
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr notes", true);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(
+            Logger.LogError(
                 "Error sending real-time notes response with for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, e.Message);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()

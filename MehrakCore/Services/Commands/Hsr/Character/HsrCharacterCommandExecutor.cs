@@ -3,7 +3,6 @@
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;
-using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
@@ -12,23 +11,18 @@ using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
-using NetCord.Services;
 
 #endregion
 
 namespace MehrakCore.Services.Commands.Hsr.Character;
 
-public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandModule>, IAuthenticationListener
+public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterCommandExecutor>,
+    ICharacterCommandExecutor<HsrCommandModule>
 {
     private readonly ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> m_CharacterApi;
     private readonly GameRecordApiService m_GameRecordApi;
-    private readonly UserRepository m_UserRepository;
-    private readonly TokenCacheService m_TokenCacheService;
-    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ImageUpdaterService<HsrCharacterInformation> m_HsrImageUpdaterService;
     private readonly ICharacterCardService<HsrCharacterInformation> m_HsrCharacterCardService;
-    private readonly ILogger<HsrCharacterCommandExecutor> m_Logger;
-    public IInteractionContext Context { get; set; } = null!;
 
     private string m_PendingCharacterName = string.Empty;
     private Regions m_PendingServer = Regions.Asia;
@@ -39,18 +33,15 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
         ImageUpdaterService<HsrCharacterInformation> hsrImageUpdaterService,
         ICharacterCardService<HsrCharacterInformation> hsrCharacterCardService,
         ILogger<HsrCharacterCommandExecutor> logger)
+        : base(userRepository, tokenCacheService, authenticationMiddleware, logger)
     {
         m_CharacterApi = characterApi;
         m_GameRecordApi = gameRecordApi;
-        m_UserRepository = userRepository;
-        m_TokenCacheService = tokenCacheService;
-        m_AuthenticationMiddleware = authenticationMiddleware;
         m_HsrImageUpdaterService = hsrImageUpdaterService;
         m_HsrCharacterCardService = hsrCharacterCardService;
-        m_Logger = logger;
     }
 
-    public async ValueTask ExecuteAsync(params object?[] parameters)
+    public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
         if (parameters.Length != 3)
             throw new ArgumentException("Invalid parameters count for character command");
@@ -58,62 +49,37 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
         var characterName = parameters[0] == null ? string.Empty : (string)parameters[0]!;
         var server = (Regions?)parameters[1];
         var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
-
         try
         {
-            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
-            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
-            {
-                m_Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
-                    Context.Interaction.User.Id, profile);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
-                        .WithFlags(MessageFlags.Ephemeral)));
+            var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
+            if (user == null || selectedProfile == null)
                 return;
-            }
 
-            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
-            if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.HonkaiStarRail, out var tmp)) server = tmp;
+            // Try to get cached server or use provided server
+            if (!server.HasValue)
+                server = GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
 
-            if (server == null)
-            {
-                m_Logger.LogInformation("User {UserId} does not have a server selected", Context.Interaction.User.Id);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
-                        .WithFlags(MessageFlags.Ephemeral)));
+            if (!await ValidateServerAsync(server))
                 return;
-            }
 
-            var ltoken = await m_TokenCacheService.GetCacheEntry(Context.Interaction.User.Id, selectedProfile.LtUid);
-            if (ltoken == null)
+            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile, () =>
             {
-                m_Logger.LogInformation("User {UserId} is not authenticated, registering with middleware",
-                    Context.Interaction.User.Id);
-
-                // Store pending command parameters
                 m_PendingCharacterName = characterName;
-                m_PendingServer = server.Value;
+                m_PendingServer = server!.Value;
+            });
 
-                // Register with authentication middleware
-                var guid = m_AuthenticationMiddleware.RegisterAuthenticationListener(Context.Interaction.User.Id, this);
-
-                // Send authentication modal
-                await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal(guid, profile)));
-            }
-            else
+            if (ltoken != null)
             {
-                m_Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
+                Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
                 await SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken, characterName,
-                    server.Value);
+                    server!.Value);
             }
         }
         catch (Exception e)
         {
-            m_Logger.LogError("Error executing character command for user {UserId}: {ErrorMessage}",
+            Logger.LogError("Error executing character command for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, e.Message);
             throw;
         }
@@ -124,7 +90,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
         try
         {
             var region = RegionUtility.GetRegion(server);
-            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
             var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
 
@@ -132,7 +98,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
             // but if user removes their profile while this command is running will result in null
             if (user?.Profiles == null || selectedProfile == null)
             {
-                m_Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
                     Context.Interaction.User.Id, ltuid);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
@@ -145,7 +111,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
                 !selectedProfile.GameUids.TryGetValue(GameName.HonkaiStarRail, out var dict) ||
                 !dict.TryGetValue(server.ToString(), out var gameUid))
             {
-                m_Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
+                Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
                     Context.Interaction.User.Id, region);
                 var result = await m_GameRecordApi.GetUserRegionUidAsync(ltuid, ltoken, "hkrpg_global", region);
                 if (result.RetCode == -100)
@@ -176,7 +142,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
             if (!selectedProfile.GameUids[GameName.HonkaiStarRail].TryAdd(server.ToString(), gameUid))
                 selectedProfile.GameUids[GameName.HonkaiStarRail][server.ToString()] = gameUid;
 
-            m_Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
+            Logger.LogDebug("Found game UID {GameUid} for User {UserId} in region {Region}", gameUid,
                 Context.Interaction.User.Id, region);
 
             selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
@@ -184,7 +150,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
             if (!selectedProfile.LastUsedRegions.TryAdd(GameName.HonkaiStarRail, server))
                 selectedProfile.LastUsedRegions[GameName.HonkaiStarRail] = server;
 
-            var updateUser = m_UserRepository.CreateOrUpdateUserAsync(user);
+            var updateUser = UserRepository.CreateOrUpdateUserAsync(user);
             var characterInfoTask =
                 m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region);
             await Task.WhenAll(updateUser, characterInfoTask);
@@ -193,7 +159,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
 
             if (characterList == null)
             {
-                m_Logger.LogInformation("No character data found for user {UserId} on {Region} server",
+                Logger.LogInformation("No character data found for user {UserId} on {Region} server",
                     Context.Interaction.User.Id, region);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -206,7 +172,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
 
             if (characterInfo == null)
             {
-                m_Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
+                Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
                     characterName, Context.Interaction.User.Id, region);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -227,7 +193,7 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
         }
         catch (Exception e)
         {
-            m_Logger.LogError(
+            Logger.LogError(
                 "Error sending character card response with character {CharacterName} for user {UserId}: {ErrorMessage}",
                 characterName, Context.Interaction.User.Id, e.Message);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
@@ -237,23 +203,21 @@ public class HsrCharacterCommandExecutor : ICharacterCommandExecutor<HsrCommandM
         }
     }
 
-    public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
         if (result.IsSuccess)
         {
             Context = result.Context;
-            m_Logger.LogInformation("Authentication completed successfully for user {UserId}",
+            Logger.LogInformation("Authentication completed successfully for user {UserId}",
                 Context.Interaction.User.Id);
             await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName,
                 m_PendingServer);
         }
         else
         {
-            m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+            Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, result.ErrorMessage);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .AddComponents(new TextDisplayProperties($"Authentication failed: {result.ErrorMessage}"))
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
         }
     }
 

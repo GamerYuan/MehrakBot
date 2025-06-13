@@ -1,7 +1,6 @@
 #region
 
 using MehrakCore.Models;
-using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
@@ -9,27 +8,18 @@ using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
-using IInteractionContext = NetCord.Services.IInteractionContext;
-
-// Added for TimeZoneInfo
 
 #endregion
 
 namespace MehrakCore.Services.Commands.Common;
 
-public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
-    IAuthenticationListener
+public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInCommandExecutor>,
+    IDailyCheckInCommandExecutor
 {
     private readonly IDailyCheckInService m_DailyCheckInService;
-    private readonly UserRepository m_UserRepository;
-    private readonly TokenCacheService m_TokenCacheService;
-    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
-    private readonly ILogger<DailyCheckInCommandExecutor> m_Logger;
 
     private UserModel? m_PendingUser;
     private uint? m_PendingProfile;
-
-    public IInteractionContext Context { get; set; } = null!;
 
     public DailyCheckInCommandExecutor(
         IDailyCheckInService dailyCheckInService,
@@ -37,12 +27,9 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
         TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         ILogger<DailyCheckInCommandExecutor> logger)
+        : base(userRepository, tokenCacheService, authenticationMiddleware, logger)
     {
         m_DailyCheckInService = dailyCheckInService;
-        m_UserRepository = userRepository;
-        m_TokenCacheService = tokenCacheService;
-        m_AuthenticationMiddleware = authenticationMiddleware;
-        m_Logger = logger;
     }
 
     /// <summary>
@@ -50,29 +37,19 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
     /// </summary>
     /// <param name="parameters">The list of parameters, must be of length 1 (profile ID)</param>
     /// <exception cref="ArgumentException">Thrown when parameters count is incorrect</exception>
-    public async ValueTask ExecuteAsync(params object?[] parameters)
+    public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
         if (parameters.Length != 1)
             throw new ArgumentException("Invalid parameters count for daily check-in command");
 
         var profile = parameters[0] == null ? 1u : (uint)parameters[0]!;
-
         try
         {
-            m_Logger.LogInformation("User {UserId} used the daily check-in command", Context.Interaction.User.Id);
+            Logger.LogInformation("User {UserId} used the daily check-in command", Context.Interaction.User.Id);
 
-            var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
-            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
-            {
-                m_Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
-                    Context.Interaction.User.Id, profile);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
-                        .WithFlags(MessageFlags.Ephemeral)));
+            var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
+            if (user == null || selectedProfile == null)
                 return;
-            }
-
-            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
 
             if (selectedProfile.LastCheckIn.HasValue)
             {
@@ -82,7 +59,7 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
 
                 if (lastCheckInUtc8.Date == nowUtc8.Date)
                 {
-                    m_Logger.LogInformation("User {UserId} has already checked in today for profile {ProfileId}",
+                    Logger.LogInformation("User {UserId} has already checked in today for profile {ProfileId}",
                         Context.Interaction.User.Id, profile);
                     await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                         new InteractionMessageProperties()
@@ -92,26 +69,15 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
                 }
             }
 
-            var ltoken = await m_TokenCacheService.GetCacheEntry(Context.Interaction.User.Id, selectedProfile.LtUid);
-            if (ltoken == null)
+            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile, () =>
             {
-                m_Logger.LogInformation("User {UserId} is not authenticated, registering with middleware",
-                    Context.Interaction.User.Id);
-
-                // Store pending command parameters
                 m_PendingProfile = profile;
                 m_PendingUser = user;
+            });
 
-                // Register with authentication middleware
-                var guid = m_AuthenticationMiddleware.RegisterAuthenticationListener(Context.Interaction.User.Id, this);
-
-                // Send authentication modal
-                await Context.Interaction.SendResponseAsync(
-                    InteractionCallback.Modal(AuthModalModule.AuthModal(guid, profile)));
-            }
-            else
+            if (ltoken != null)
             {
-                m_Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
+                Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
                 await m_DailyCheckInService.CheckInAsync(Context, user, profile, selectedProfile.LtUid, ltoken);
@@ -119,7 +85,7 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error processing daily check-in command for user {UserId}",
+            Logger.LogError(e, "Error processing daily check-in command for user {UserId}",
                 Context.Interaction.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -135,26 +101,22 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
     /// Handles authentication completion from the middleware
     /// </summary>
     /// <param name="result">The authentication result</param>
-    public async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
         try
         {
             if (!result.IsSuccess)
             {
-                m_Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                     result.UserId, result.ErrorMessage);
-
-                // Send error message to user if context is available
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent($"Authentication failed: {result.ErrorMessage}")
-                    .WithFlags(MessageFlags.Ephemeral));
+                await SendAuthenticationErrorAsync(result.ErrorMessage);
                 return;
             }
 
             // Update context if available
             if (result.Context != null) Context = result.Context;
 
-            m_Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
+            Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
 
             // Proceed with the original command using stored parameters
             if (m_PendingProfile.HasValue && result.LToken != null)
@@ -167,7 +129,7 @@ public class DailyCheckInCommandExecutor : IDailyCheckInCommandExecutor,
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
+            Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithContent("An error occurred while processing your authentication")
                 .WithFlags(MessageFlags.Ephemeral));
