@@ -7,7 +7,6 @@ using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
@@ -114,11 +113,13 @@ public class HsrRealTimeNotesCommandExecutorTests
         // Setup test image assets
         SetupTestImageAssets();
     }
+
     private void SetupDistributedCacheMock()
     {
         // Default setup for token cache - no token by default (not authenticated)
         SetupTokenCacheForNotAuthenticated();
     }
+
     private void SetupTokenCacheForAuthenticated()
     {
         // Setup token cache to return a valid token (user is authenticated)
@@ -137,6 +138,7 @@ public class HsrRealTimeNotesCommandExecutorTests
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
     }
+
     private void SetupTestImageAssets()
     {
         // Use real images from the Assets folder
@@ -184,6 +186,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         var ex = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync("param1").AsTask());
         Assert.That(ex.Message, Contains.Substring("Invalid parameters count"));
     }
+
     [Test]
     public async Task ExecuteAsync_WhenUserDoesNotExist_SendsErrorResponse()
     {
@@ -198,6 +201,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
+
     [Test]
     public async Task ExecuteAsync_WhenUserHasNoMatchingProfile_SendsErrorResponse()
     {
@@ -398,7 +402,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         SetupGameRecordApi();
 
         // Act
-        await m_Executor.ExecuteAsync(server, profile);        // Assert
+        await m_Executor.ExecuteAsync(server, profile); // Assert
         m_ApiServiceMock.Verify(x => x.GetRealTimeNotesAsync(
             It.IsAny<string>(), "prod_official_eur", TestLtUid, TestLToken), Times.Once);
     }
@@ -424,7 +428,7 @@ public class HsrRealTimeNotesCommandExecutorTests
             .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(notesData));
 
         // Setup game record API
-        SetupGameRecordApi();        // Set up the executor with a pending server (normally set during ExecuteAsync)
+        SetupGameRecordApi(); // Set up the executor with a pending server (normally set during ExecuteAsync)
         await m_Executor.ExecuteAsync(server, profile); // This will trigger authentication
 
         var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
@@ -504,7 +508,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Set up authenticated user
-        SetupAuthenticatedUser();        // Setup API service to return success with full stamina
+        SetupAuthenticatedUser(); // Setup API service to return success with full stamina
         var notesData = CreateTestNotesData();
         // Create a version with full stamina
         var fullStaminaData = new HsrRealTimeNotesData
@@ -556,7 +560,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Set up authenticated user
-        SetupAuthenticatedUser();        // Setup API service to return success with no expeditions
+        SetupAuthenticatedUser(); // Setup API service to return success with no expeditions
         var baseNotesData = CreateTestNotesData();
         var noExpeditionsData = new HsrRealTimeNotesData
         {
@@ -608,7 +612,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Set up authenticated user
-        SetupAuthenticatedUser();        // Setup API service to return success with fully claimed weekly
+        SetupAuthenticatedUser(); // Setup API service to return success with fully claimed weekly
         var baseNotesData = CreateTestNotesData();
         var fullyClaimed = new HsrRealTimeNotesData
         {
@@ -698,6 +702,7 @@ public class HsrRealTimeNotesCommandExecutorTests
             }
         };
     }
+
     private void SetupAuthenticatedUser()
     {
         // Set up the token cache to return a valid token (using GetStringAsync as TokenCacheService does)

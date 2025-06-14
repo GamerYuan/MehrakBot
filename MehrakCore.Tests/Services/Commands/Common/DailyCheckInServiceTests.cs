@@ -271,10 +271,14 @@ public class DailyCheckInServiceTests
         var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
 
         // Verify the message contains invalid cookies error for all games
-        Assert.That(responseMessage, Does.Contain("Genshin Impact: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-        Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-        Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-        Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage,
+            Does.Contain("Genshin Impact: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage,
+            Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage,
+            Does.Contain("Zenless Zone Zero: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage,
+            Does.Contain("Honkai Impact 3rd: Invalid cookies, please re-authenticate your profile").IgnoreCase);
 
         // Verify HTTP requests had proper headers
         VerifyHttpRequestForGame(GenshinCheckInApiUrl, ltuid, ltoken, Times.Once());
@@ -321,7 +325,8 @@ public class DailyCheckInServiceTests
 
         // Verify the message contains the correct mixed results including invalid cookies
         Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
-        Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
+        Assert.That(responseMessage,
+            Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Already checked in today").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: No valid game account found").IgnoreCase);
 
