@@ -10,8 +10,8 @@ using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Commands.Executor;
-using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Commands.Genshin.Character;
+using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
@@ -114,6 +114,11 @@ internal class Program
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandExecutor<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+            builder.Services
+                .AddSingleton<IRealTimeNotesApiService<GenshinRealTimeNotesData>, GenshinRealTimeNotesApiService>();
+            builder.Services
+                .AddTransient<IRealTimeNotesCommandExecutor<GenshinCommandModule>,
+                    GenshinRealTimeNotesCommandExecutor>();
 
             // Hsr Services
             builder.Services
