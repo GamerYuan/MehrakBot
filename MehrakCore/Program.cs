@@ -9,8 +9,12 @@ using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
-using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Commands.Executor;
+using MehrakCore.Services.Commands.Genshin.Character;
+using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Commands.Hsr;
+using MehrakCore.Services.Commands.Hsr.Character;
+using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Configuration;
@@ -109,7 +113,12 @@ internal class Program
                 .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
-                .AddTransient<ICharacterCommandService<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+                .AddTransient<ICharacterCommandExecutor<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+            builder.Services
+                .AddSingleton<IRealTimeNotesApiService<GenshinRealTimeNotesData>, GenshinRealTimeNotesApiService>();
+            builder.Services
+                .AddTransient<IRealTimeNotesCommandExecutor<GenshinCommandModule>,
+                    GenshinRealTimeNotesCommandExecutor>();
 
             // Hsr Services
             builder.Services
@@ -119,12 +128,15 @@ internal class Program
                 .AddSingleton<ICharacterCardService<HsrCharacterInformation>, HsrCharacterCardService>();
             builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
             builder.Services
-                .AddTransient<ICharacterCommandService<HsrCommandModule>, HsrCharacterCommandExecutor>();
+                .AddTransient<ICharacterCommandExecutor<HsrCommandModule>, HsrCharacterCommandExecutor>();
             builder.Services.AddSingleton<HsrCharacterAutocompleteService>();
+            builder.Services.AddSingleton<IRealTimeNotesApiService<HsrRealTimeNotesData>, HsrRealTimeNotesApiService>();
+            builder.Services
+                .AddTransient<IRealTimeNotesCommandExecutor<HsrCommandModule>, HsrRealTimeNotesCommandExecutor>();
 
             // Daily Check-In Services
             builder.Services
-                .AddTransient<IDailyCheckInCommandService, DailyCheckInCommandExecutor>();
+                .AddTransient<IDailyCheckInCommandExecutor, DailyCheckInCommandExecutor>();
 
             // LToken Services
             IConnectionMultiplexer multiplexer = await ConnectionMultiplexer.ConnectAsync(

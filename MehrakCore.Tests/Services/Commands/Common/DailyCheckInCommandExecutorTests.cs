@@ -71,11 +71,16 @@ public class DailyCheckInCommandExecutorTests
         m_TokenCacheService =
             new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
 
+        var gameRecordApiService = new GameRecordApiService(
+            Mock.Of<IHttpClientFactory>(),
+            NullLogger<GameRecordApiService>.Instance);
+
         m_Executor = new DailyCheckInCommandExecutor(
             m_DailyCheckInServiceMock.Object,
             m_UserRepository,
             m_TokenCacheService,
             m_AuthenticationMiddlewareMock.Object,
+            gameRecordApiService,
             m_LoggerMock.Object);
 
         // Setup service provider for command execution
@@ -234,6 +239,7 @@ public class DailyCheckInCommandExecutorTests
             x => x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()),
             Times.Once);
     }
+
     [Test]
     public async Task ExecuteAsync_WithValidProfileAndToken_ShouldCallCheckInService()
     {
@@ -254,8 +260,10 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);        // Assert
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), 1u, TestLtUid, TestLToken),
+        await ExecuteDailyCheckInCommand(TestUserId, 1u); // Assert
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), 1u, TestLtUid,
+                TestLToken),
             Times.Once);
     }
 
@@ -265,7 +273,8 @@ public class DailyCheckInCommandExecutorTests
         // Arrange
         var chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
         var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone);
-        var lastCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(nowUtc8.Date.AddHours(10), chinaTimeZone); // Same day in UTC+8
+        var lastCheckInUtc =
+            TimeZoneInfo.ConvertTimeToUtc(nowUtc8.Date.AddHours(10), chinaTimeZone); // Same day in UTC+8
 
         var user = new UserModel
         {
@@ -290,7 +299,9 @@ public class DailyCheckInCommandExecutorTests
         Assert.That(response, Contains.Substring("You have already checked in today for this profile"));
 
         // Verify that the check-in service was NOT called
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), It.IsAny<ulong>(), It.IsAny<string>()),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                It.IsAny<ulong>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -322,7 +333,9 @@ public class DailyCheckInCommandExecutorTests
         await ExecuteDailyCheckInCommand(TestUserId, 1u);
 
         // Assert
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -333,7 +346,8 @@ public class DailyCheckInCommandExecutorTests
         var chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
 
         // Previous check-in was at 23:30 China time yesterday
-        var yesterdayUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone).Date.AddDays(-1).AddHours(23).AddMinutes(30);
+        var yesterdayUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone).Date.AddDays(-1)
+            .AddHours(23).AddMinutes(30);
         var lastCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(yesterdayUtc8, chinaTimeZone);
 
         var user = new UserModel
@@ -355,7 +369,9 @@ public class DailyCheckInCommandExecutorTests
         await ExecuteDailyCheckInCommand(TestUserId, 1u);
 
         // Assert
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -382,7 +398,9 @@ public class DailyCheckInCommandExecutorTests
         await ExecuteDailyCheckInCommand(TestUserId, 1u);
 
         // Assert
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -402,9 +420,10 @@ public class DailyCheckInCommandExecutorTests
 
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);        // Make CheckInAsync throw an exception
+            .ReturnsAsync(tokenBytes); // Make CheckInAsync throw an exception
         m_DailyCheckInServiceMock.Setup(x =>
-                x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), It.IsAny<ulong>(), It.IsAny<string>()))
+                x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                    It.IsAny<ulong>(), It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
         // Act
@@ -441,7 +460,9 @@ public class DailyCheckInCommandExecutorTests
         await m_Executor.OnAuthenticationCompletedAsync(result);
 
         // Assert
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<IInteractionContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<IInteractionContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid,
+                TestLToken),
             Times.Once);
     }
 
@@ -488,7 +509,8 @@ public class DailyCheckInCommandExecutorTests
         // Act
         await ExecuteDailyCheckInCommand(TestUserId, 2u); // Select profile 2        // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid + 1, TestLToken), Times.Once);
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                TestLtUid + 1, TestLToken), Times.Once);
     }
 
     [Test]
@@ -535,7 +557,9 @@ public class DailyCheckInCommandExecutorTests
         await ExecuteDailyCheckInCommand(TestUserId, 1u);
 
         // Assert
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -573,7 +597,9 @@ public class DailyCheckInCommandExecutorTests
         Assert.That(response, Contains.Substring("You have already checked in today for this profile"));
 
         // Verify that the check-in service was NOT called
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), It.IsAny<ulong>(), It.IsAny<string>()),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                It.IsAny<ulong>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -603,7 +629,9 @@ public class DailyCheckInCommandExecutorTests
         // Act & Assert - Should not throw an exception
         await ExecuteDailyCheckInCommand(TestUserId, 1u);
 
-        m_DailyCheckInServiceMock.Verify(x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid, TestLToken),
+        m_DailyCheckInServiceMock.Verify(
+            x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
+                TestLtUid, TestLToken),
             Times.Once);
     }
 }

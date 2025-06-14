@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.Processing;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Genshin;
+namespace MehrakCore.Services.Commands.Genshin.Character;
 
 public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterInformation>
 {

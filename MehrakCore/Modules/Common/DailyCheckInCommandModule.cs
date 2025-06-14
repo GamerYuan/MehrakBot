@@ -1,6 +1,6 @@
 ﻿#region
 
-using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -13,12 +13,12 @@ namespace MehrakCore.Modules.Common;
 
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
-    private readonly IDailyCheckInCommandService m_Executor;
+    private readonly IDailyCheckInCommandExecutor m_Executor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<DailyCheckInCommandModule> m_Logger;
 
     public DailyCheckInCommandModule(
-        IDailyCheckInCommandService executor,
+        IDailyCheckInCommandExecutor executor,
         CommandRateLimitService commandRateLimitService,
         ILogger<DailyCheckInCommandModule> logger)
     {

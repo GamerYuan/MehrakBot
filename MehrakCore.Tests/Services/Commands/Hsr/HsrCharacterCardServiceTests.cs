@@ -6,6 +6,7 @@ using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Hsr;
+using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;

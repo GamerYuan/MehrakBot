@@ -8,7 +8,7 @@ using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Hsr;
+using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;

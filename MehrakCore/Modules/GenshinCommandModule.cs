@@ -1,6 +1,6 @@
 #region
 
-using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -20,14 +20,17 @@ namespace MehrakCore.Modules;
 public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
     private readonly ILogger<GenshinCommandModule> m_Logger;
-    private readonly ICharacterCommandService<GenshinCommandModule> m_CharacterCommandService;
+    private readonly ICharacterCommandExecutor<GenshinCommandModule> m_CharacterCommandExecutor;
+    private readonly IRealTimeNotesCommandExecutor<GenshinCommandModule> m_NotesCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
 
-    public GenshinCommandModule(ICharacterCommandService<GenshinCommandModule> characterCommandService,
+    public GenshinCommandModule(ICharacterCommandExecutor<GenshinCommandModule> characterCommandExecutor,
+        IRealTimeNotesCommandExecutor<GenshinCommandModule> notesCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<GenshinCommandModule> logger)
     {
         m_Logger = logger;
-        m_CharacterCommandService = characterCommandService;
+        m_CharacterCommandExecutor = characterCommandExecutor;
+        m_NotesCommandExecutor = notesCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
     }
 
@@ -54,8 +57,25 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        m_CharacterCommandService.Context = Context;
-        await m_CharacterCommandService.ExecuteAsync(characterName, server, profile);
+        m_CharacterCommandExecutor.Context = Context;
+        await m_CharacterCommandExecutor.ExecuteAsync(characterName, server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("notes", "Get real-time notes")]
+    public async Task NotesCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the notes command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_NotesCommandExecutor.Context = Context;
+        await m_NotesCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     private async Task<bool> ValidateRateLimitAsync()

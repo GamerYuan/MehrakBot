@@ -8,7 +8,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Services.Commands;
+namespace MehrakCore.Services.Commands.Executor;
 
 public interface ICommandExecutor
 {
