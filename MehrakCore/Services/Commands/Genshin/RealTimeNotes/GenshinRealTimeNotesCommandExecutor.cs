@@ -183,7 +183,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
                         ? $"{data.CurrentExpeditionNum}/{data.MaxExpeditionNum}"
                         : "None Dispatched!"),
                     new TextDisplayProperties(data.CurrentExpeditionNum > 0
-                        ? $"-# Completes <t:{currTime + data.Expeditions!.Max(x => x.RemainedTime)}:R>"
+                        ? $"-# Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
                         : "-# To be dispatched")
                 ]),
             new ComponentSectionProperties(
@@ -196,7 +196,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
                         : $"{data.CurrentHomeCoin}/{data.MaxHomeCoin}"),
                     new TextDisplayProperties(data.CurrentHomeCoin == data.MaxHomeCoin
                         ? "-# To be collected"
-                        : $"-# Recovers <t:{currTime + data.HomeCoinRecoveryTime}:R>")
+                        : $"-# Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>")
                 ]),
             new ComponentSectionProperties(
                     new ComponentSectionThumbnailProperties(
