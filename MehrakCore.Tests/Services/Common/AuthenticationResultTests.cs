@@ -12,7 +12,8 @@ namespace MehrakCore.Tests.Services.Common;
 public class AuthenticationResultTests
 {
     private const ulong TestUserId = 123456789UL;
-    private const ulong TestLtUid = 987654321UL; private const string TestLToken = "test_ltoken_value";
+    private const ulong TestLtUid = 987654321UL;
+    private const string TestLToken = "test_ltoken_value";
     private const string TestErrorMessage = "Test error message";
 
     private Mock<IInteractionContext> m_ContextMock;
@@ -27,7 +28,7 @@ public class AuthenticationResultTests
     public void Success_ShouldCreateSuccessfulResult()
     {
         // Act
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);        // Assert
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object); // Assert
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
@@ -38,6 +39,7 @@ public class AuthenticationResultTests
             Assert.That(result.ErrorMessage, Is.Null);
         });
     }
+
     [Test]
     public void Failure_ShouldCreateFailureResult()
     {
@@ -55,6 +57,7 @@ public class AuthenticationResultTests
             Assert.That(result.Context, Is.Null);
         });
     }
+
     [Test]
     public void Timeout_ShouldCreateTimeoutResult()
     {
@@ -72,11 +75,12 @@ public class AuthenticationResultTests
             Assert.That(result.Context, Is.Null);
         });
     }
+
     [Test]
     public void Success_WithNullLToken_ShouldCreateResultWithNullLToken()
     {
         // Act
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, null!, m_ContextMock.Object);        // Assert
+        var result = AuthenticationResult.Success(TestUserId, TestLtUid, null!, m_ContextMock.Object); // Assert
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
@@ -115,13 +119,15 @@ public class AuthenticationResultTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(result.IsSuccess, Is.True); Assert.That(result.UserId, Is.EqualTo(TestUserId));
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.UserId, Is.EqualTo(TestUserId));
             Assert.That(result.LtUid, Is.EqualTo(TestLtUid));
             Assert.That(result.LToken, Is.EqualTo(string.Empty));
             Assert.That(result.Context, Is.Not.Null);
             Assert.That(result.ErrorMessage, Is.Null);
         });
     }
+
     [Test]
     public void Failure_WithEmptyErrorMessage_ShouldCreateResultWithEmptyError()
     {

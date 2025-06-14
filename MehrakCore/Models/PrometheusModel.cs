@@ -1,6 +1,12 @@
 ﻿#region
 
+#region
+
 using System.Text.Json.Serialization;
+
+#endregion
+
+namespace MehrakCore.Models;
 
 #endregion
 

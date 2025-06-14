@@ -10,6 +10,7 @@ using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Commands.Executor;
+using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Commands.Genshin.Character;
 using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Commands.Hsr;
