@@ -100,7 +100,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
     {
         try
         {
-            var region = GetRegion(server);
+            var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
             var result = await GetAndUpdateGameUidAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
@@ -234,17 +234,5 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
                 ButtonStyle.Danger)));
 
         return properties;
-    }
-
-    private static string GetRegion(Regions server)
-    {
-        return server switch
-        {
-            Regions.Asia => "os_asia",
-            Regions.Europe => "os_euro",
-            Regions.America => "os_usa",
-            Regions.Sar => "os_cht",
-            _ => throw new ArgumentException("Invalid server name")
-        };
     }
 }

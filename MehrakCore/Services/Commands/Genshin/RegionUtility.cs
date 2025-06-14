@@ -4,7 +4,7 @@ using MehrakCore.Utility;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr;
+namespace MehrakCore.Services.Commands.Genshin;
 
 internal static class RegionUtility
 {
@@ -12,10 +12,10 @@ internal static class RegionUtility
     {
         return server switch
         {
-            Regions.Asia => "prod_official_asia",
-            Regions.Europe => "prod_official_eur",
-            Regions.America => "prod_official_usa",
-            Regions.Sar => "prod_official_cht",
+            Regions.Asia => "os_asia",
+            Regions.Europe => "os_euro",
+            Regions.America => "os_usa",
+            Regions.Sar => "os_cht",
             _ => throw new ArgumentException("Invalid server name")
         };
     }

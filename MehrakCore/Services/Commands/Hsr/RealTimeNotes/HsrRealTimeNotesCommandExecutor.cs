@@ -64,7 +64,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
                 Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-                await SendRealTimeNotesAsync(selectedProfile.LtUid, ltoken, cachedServer!.Value);
+                await SendRealTimeNotesAsync(selectedProfile.LtUid, ltoken, cachedServer.Value);
             }
         }
         catch (Exception e)
@@ -100,11 +100,11 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
     {
         try
         {
-            var region = RegionUtility.GetRegion(server);
+            var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
             var result = await GetAndUpdateGameUidAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
-                RegionUtility.GetRegion(server));
+                server.GetRegion());
 
             if (!result.IsSuccess) return;
 
@@ -148,7 +148,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_weekly");
         var rogueImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_rogue");
 
-        var weeklyReset = GetNextWeeklyResetUnix(region);
+        var weeklyReset = region.GetNextWeeklyResetUnix();
         InteractionMessageProperties result = new();
         result.WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral);
         var container = new ComponentContainerProperties();
@@ -199,22 +199,5 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
             new AttachmentProperties("hsr_weekly.png", await weeklyImage),
             new AttachmentProperties("hsr_rogue.png", await rogueImage));
         return result;
-    }
-
-    private static long GetNextWeeklyResetUnix(Regions region)
-    {
-        var tz = region.GetTimeZoneInfo();
-        var nowUtc = DateTime.UtcNow;
-        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
-
-        // Calculate days until next Monday
-        var daysUntilMonday = ((int)DayOfWeek.Monday - (int)nowLocal.DayOfWeek + 7) % 7;
-        if (daysUntilMonday == 0 && nowLocal.TimeOfDay >= TimeSpan.FromHours(4))
-            daysUntilMonday = 7; // If it's already Monday after 4AM, go to next week
-
-        var nextMondayLocal = nowLocal.Date.AddDays(daysUntilMonday).AddHours(4);
-
-        // Convert back to UTC
-        return new DateTimeOffset(nextMondayLocal).ToUnixTimeSeconds();
     }
 }
