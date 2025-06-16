@@ -25,7 +25,7 @@ public class GenshinCodeRedeemApiService : ICodeRedeemApiService<GenshinCommandM
         m_Logger = logger;
     }
 
-    public async Task<ApiResult<string>> RedeemCodeAsync(string code, string region, string gameUid, ulong ltuid,
+    public async ValueTask<ApiResult<string>> RedeemCodeAsync(string code, string region, string gameUid, ulong ltuid,
         string ltoken)
     {
         var client = m_HttpClientFactory.CreateClient("Default");
