@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Common;
+using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -22,7 +23,9 @@ public class DailyCheckInServiceTests
 {
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
     private UserRepository m_UserRepository = null!;
+    private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<DailyCheckInService>> m_LoggerMock = null!;
+    private Mock<ILogger<GameRecordApiService>> m_GameRecordApiLoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<HttpMessageHandler> m_MockHttpMessageHandler = null!;
@@ -33,6 +36,9 @@ public class DailyCheckInServiceTests
     private const string ZzzCheckInApiUrl = "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign";
     private const string Hi3CheckInApiUrl = "https://sg-public-api.hoyolab.com/event/mani/sign";
 
+    private const string GameRecordApiUrl =
+        "https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard";
+
     [SetUp]
     public void Setup()
     {
@@ -40,12 +46,17 @@ public class DailyCheckInServiceTests
         m_MongoTestHelper = new MongoTestHelper();
         m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
         m_LoggerMock = new Mock<ILogger<DailyCheckInService>>();
+        m_GameRecordApiLoggerMock = new Mock<ILogger<GameRecordApiService>>();
         m_DiscordTestHelper = new DiscordTestHelper();
         m_MockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
         // Setup HttpClient with mock handler
         var httpClient = new HttpClient(m_MockHttpMessageHandler.Object);
         m_HttpClientFactoryMock.Setup(factory => factory.CreateClient("Default")).Returns(httpClient);
+
+        // Create GameRecordApiService with mocked dependencies
+        m_GameRecordApiService =
+            new GameRecordApiService(m_HttpClientFactoryMock.Object, m_GameRecordApiLoggerMock.Object);
     }
 
     [TearDown]
@@ -73,6 +84,9 @@ public class DailyCheckInServiceTests
             }
         };
 
+        // Setup GameRecord API to return valid user data (passes guard clause)
+        SetupGameRecordApiResponse(ltuid, true);
+
         // Setup HTTP responses for successful check-in for all games
         SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
@@ -81,7 +95,8 @@ public class DailyCheckInServiceTests
 
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
-        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
+            m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, user, profile, ltuid, ltoken);
@@ -122,7 +137,12 @@ public class DailyCheckInServiceTests
             {
                 new() { ProfileId = profile, LtUid = ltuid }
             }
-        }; // Setup HTTP responses with mixed results
+        };
+
+        // Setup GameRecord API to return valid user data (passes guard clause)
+        SetupGameRecordApiResponse(ltuid, true);
+
+        // Setup HTTP responses with mixed results
         SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateNoAccountResponse());
@@ -130,7 +150,8 @@ public class DailyCheckInServiceTests
 
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
-        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
+            m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, user, profile, ltuid, ltoken);
@@ -171,6 +192,9 @@ public class DailyCheckInServiceTests
             }
         };
 
+        // Setup GameRecord API to return valid user data (passes guard clause)
+        SetupGameRecordApiResponse(ltuid, true);
+
         // Setup HTTP responses for already checked in for all games
         SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
@@ -179,7 +203,8 @@ public class DailyCheckInServiceTests
 
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
-        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
+            m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, user, profile, ltuid, ltoken);
@@ -213,6 +238,9 @@ public class DailyCheckInServiceTests
             }
         };
 
+        // Setup GameRecord API to return valid user data (passes guard clause)
+        SetupGameRecordApiResponse(ltuid, true);
+
         // Setup HTTP responses
         SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
@@ -221,7 +249,8 @@ public class DailyCheckInServiceTests
 
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
-        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
+            m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, user, profile, ltuid, ltoken);
@@ -254,15 +283,15 @@ public class DailyCheckInServiceTests
             }
         };
 
-        // Setup HTTP responses for invalid cookies for all games
-        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
-        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
-        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
-        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
+        // Setup GameRecord API to return invalid data (fails guard clause)
+        SetupGameRecordApiResponse(ltuid, false);
+
+        // Note: Individual game API responses are not needed since the guard clause will fail first
 
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
-        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
+            m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, user, profile, ltuid, ltoken);
@@ -270,32 +299,18 @@ public class DailyCheckInServiceTests
         // Assert
         var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
 
-        // Verify the message contains invalid cookies error for all games
+        // Verify the message contains the guard clause failure message
         Assert.That(responseMessage,
-            Does.Contain("Genshin Impact: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-        Assert.That(responseMessage,
-            Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-        Assert.That(responseMessage,
-            Does.Contain("Zenless Zone Zero: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-        Assert.That(responseMessage,
-            Does.Contain("Honkai Impact 3rd: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-
-        // Verify HTTP requests had proper headers
-        VerifyHttpRequestForGame(GenshinCheckInApiUrl, ltuid, ltoken, Times.Once());
-        VerifyHttpRequestForGame(HsrCheckInApiUrl, ltuid, ltoken, Times.Once());
-        VerifyHttpRequestForGame(ZzzCheckInApiUrl, ltuid, ltoken, Times.Once());
-        VerifyHttpRequestForGame(Hi3CheckInApiUrl, ltuid, ltoken, Times.Once());
-
-        // Note: User profile is not updated since authentication failed
+            Does.Contain("Invalid UID or Cookies. Please re-authenticate your profile").IgnoreCase);
     }
 
     [Test]
-    public async Task CheckInAsync_MixedResultsWithInvalidCookies_SendsMixedResultsMessage()
+    public async Task CheckInAsync_GameRecordApiReturnsNull_SendsInvalidCookiesMessage()
     {
         // Arrange
         var userId = 123456789UL;
         var ltuid = 987654321UL;
-        var ltoken = "partially-invalid-ltoken";
+        var ltoken = "invalid-ltoken";
         var profile = 1u;
 
         var user = new UserModel
@@ -307,15 +322,13 @@ public class DailyCheckInServiceTests
             }
         };
 
-        // Setup HTTP responses with mixed results including invalid cookies
-        SetupHttpResponseForUrl(GenshinCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
-        SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateInvalidCookiesResponse());
-        SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
-        SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateNoAccountResponse());
+        // Setup GameRecord API to return null (fails guard clause)
+        SetupGameRecordApiResponse(ltuid, false);
 
         var interaction = m_DiscordTestHelper.CreateCommandInteraction(userId);
         var context = CreateMockInteractionContext(interaction);
-        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_LoggerMock.Object);
+        var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
+            m_LoggerMock.Object);
 
         // Act
         await service.CheckInAsync(context, user, profile, ltuid, ltoken);
@@ -323,20 +336,18 @@ public class DailyCheckInServiceTests
         // Assert
         var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
 
-        // Verify the message contains the correct mixed results including invalid cookies
-        Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
+        // Verify the message contains the guard clause failure message
         Assert.That(responseMessage,
-            Does.Contain("Honkai: Star Rail: Invalid cookies, please re-authenticate your profile").IgnoreCase);
-        Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Already checked in today").IgnoreCase);
-        Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: No valid game account found").IgnoreCase);
+            Does.Contain("Invalid UID or Cookies. Please re-authenticate your profile").IgnoreCase);
 
-        // Verify HTTP requests had proper headers
-        VerifyHttpRequestForGame(GenshinCheckInApiUrl, ltuid, ltoken, Times.Once());
-        VerifyHttpRequestForGame(HsrCheckInApiUrl, ltuid, ltoken, Times.Once());
-        VerifyHttpRequestForGame(ZzzCheckInApiUrl, ltuid, ltoken, Times.Once());
-        VerifyHttpRequestForGame(Hi3CheckInApiUrl, ltuid, ltoken, Times.Once());
-
-        // Note: User profile is not updated since not all check-ins were successful or valid
+        // Verify that individual game check-in APIs were not called since guard clause failed
+        m_MockHttpMessageHandler.Protected()
+            .Verify("SendAsync", Times.Never(), ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.ToString() == GenshinCheckInApiUrl ||
+                    req.RequestUri!.ToString() == HsrCheckInApiUrl ||
+                    req.RequestUri!.ToString() == ZzzCheckInApiUrl ||
+                    req.RequestUri!.ToString() == Hi3CheckInApiUrl),
+                ItExpr.IsAny<CancellationToken>());
     }
 
     private void SetupHttpResponseForUrl(string url, HttpStatusCode statusCode, string content)
@@ -403,6 +414,52 @@ public class DailyCheckInServiceTests
             ["retcode"] = 10001,
             ["message"] = "Invalid cookies",
             ["data"] = new JsonObject()
+        };
+        return jsonResponse.ToJsonString();
+    }
+
+    private void SetupGameRecordApiResponse(ulong ltuid, bool isValid)
+    {
+        var gameRecordUrl = $"{GameRecordApiUrl}?uid={ltuid}";
+
+        // Setup successful GameRecord API response
+        SetupHttpResponseForUrl(gameRecordUrl, HttpStatusCode.OK,
+            // Setup failed GameRecord API response (invalid cookies)
+            isValid ? CreateValidGameRecordResponse() : CreateInvalidGameRecordResponse());
+    }
+
+    private static string CreateValidGameRecordResponse()
+    {
+        var jsonResponse = new JsonObject
+        {
+            ["retcode"] = 0,
+            ["message"] = "OK",
+            ["data"] = new JsonObject
+            {
+                ["list"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["game_id"] = 2,
+                        ["game_name"] = "Genshin Impact",
+                        ["game_role_id"] = "123456789",
+                        ["nickname"] = "TestPlayer",
+                        ["region"] = "os_usa",
+                        ["level"] = 60
+                    }
+                }
+            }
+        };
+        return jsonResponse.ToJsonString();
+    }
+
+    private static string CreateInvalidGameRecordResponse()
+    {
+        var jsonResponse = new JsonObject
+        {
+            ["retcode"] = 10001,
+            ["message"] = "Invalid cookies",
+            ["data"] = null
         };
         return jsonResponse.ToJsonString();
     }
