@@ -18,7 +18,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
     ICodeRedeemExecutor<GenshinCommandModule>
 {
     private readonly ICodeRedeemApiService<GenshinCommandModule> m_ApiService;
-    private string m_PendingCode;
+    private string m_PendingCode = string.Empty;
     private Regions? m_PendingServer = null!;
 
     public GenshinCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
@@ -41,6 +41,8 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
 
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code cannot be null or empty.");
+
+        code = code.ToUpperInvariant().Trim();
 
         try
         {
@@ -79,9 +81,47 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
         }
     }
 
-    public override Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (!result.IsSuccess)
+            {
+                Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                    result.UserId, result.ErrorMessage);
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent($"Authentication failed: {result.ErrorMessage}")
+                    .WithFlags(MessageFlags.Ephemeral));
+                return;
+            }
+
+            // Update context if available
+            if (result.Context != null) Context = result.Context;
+
+            // Check if we have the required pending parameters
+            if (string.IsNullOrEmpty(m_PendingCode) || !m_PendingServer.HasValue)
+            {
+                Logger.LogWarning("Missing required parameters for command execution for user {UserId}",
+                    result.UserId);
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent("Error: Missing required parameters for command execution")
+                    .WithFlags(MessageFlags.Ephemeral));
+                return;
+            }
+
+            Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
+
+            await RedeemCodeAsync(m_PendingCode, result.LtUid, result.LToken,
+                m_PendingServer.Value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
+            if (Context?.Interaction != null)
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithContent("An error occurred while processing your authentication")
+                    .WithFlags(MessageFlags.Ephemeral));
+        }
     }
 
     private async ValueTask RedeemCodeAsync(string code, ulong ltuid, string ltoken, Regions server)
