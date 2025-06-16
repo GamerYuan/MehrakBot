@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -22,6 +23,7 @@ public class DailyCheckInService : IDailyCheckInService
 {
     private readonly UserRepository m_UserRepository;
     private readonly IHttpClientFactory m_HttpClientFactory;
+    private readonly GameRecordApiService m_GameRecordApiService;
     private readonly ILogger<DailyCheckInService> m_Logger;
 
     private static readonly Dictionary<GameName, string> CheckInUrls = new()
@@ -41,10 +43,11 @@ public class DailyCheckInService : IDailyCheckInService
     };
 
     public DailyCheckInService(UserRepository userRepository, IHttpClientFactory httpClientFactory,
-        ILogger<DailyCheckInService> logger)
+        GameRecordApiService gameRecordApiService, ILogger<DailyCheckInService> logger)
     {
         m_UserRepository = userRepository;
         m_HttpClientFactory = httpClientFactory;
+        m_GameRecordApiService = gameRecordApiService;
         m_Logger = logger;
     }
 
@@ -53,6 +56,16 @@ public class DailyCheckInService : IDailyCheckInService
     {
         var userId = context.Interaction.User.Id;
         m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
+
+        var userData = await m_GameRecordApiService.GetUserDataAsync(ltuid, ltoken);
+        if (userData == null)
+        {
+            await context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().AddComponents(new TextDisplayProperties(
+                        "Invalid UID or Cookies. Please re-authenticate your profile."))
+                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
+            return;
+        }
 
         var checkInTypes = Enum.GetValues<GameName>();
 
@@ -154,10 +167,6 @@ public class DailyCheckInService : IDailyCheckInService
             case 0:
                 m_Logger.LogInformation("User {UserId} check-in successful for game {Game}", userId, type.ToString());
                 return ApiResult<bool>.Success(true, 0, response.StatusCode);
-            case 10001:
-                m_Logger.LogInformation("User {UserId} has invalid cookies", userId);
-                return ApiResult<bool>.Failure(HttpStatusCode.Unauthorized,
-                    "Invalid cookies, please re-authenticate your profile");
             case -10002:
                 m_Logger.LogInformation("User {UserId} does not have a valid account for game {Game}", userId,
                     type.ToString());
