@@ -12,6 +12,7 @@ using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Commands.Genshin.Character;
+using MehrakCore.Services.Commands.Genshin.CodeRedeem;
 using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
@@ -120,6 +121,9 @@ internal class Program
             builder.Services
                 .AddTransient<IRealTimeNotesCommandExecutor<GenshinCommandModule>,
                     GenshinRealTimeNotesCommandExecutor>();
+            builder.Services.AddSingleton<ICodeRedeemApiService<GenshinCommandModule>, GenshinCodeRedeemApiService>();
+            builder.Services
+                .AddTransient<ICodeRedeemExecutor<GenshinCommandModule>, GenshinCodeRedeemExecutor>();
 
             // Hsr Services
             builder.Services
