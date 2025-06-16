@@ -119,13 +119,8 @@ public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInComma
             Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
 
             // Proceed with the original command using stored parameters
-            if (m_PendingProfile.HasValue && result.LToken != null)
-                await m_DailyCheckInService.CheckInAsync(Context, m_PendingUser!, m_PendingProfile.Value, result.LtUid,
-                    result.LToken);
-            else
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent("Error: Missing required parameters for command execution")
-                    .WithFlags(MessageFlags.Ephemeral));
+            await m_DailyCheckInService.CheckInAsync(Context, m_PendingUser!, m_PendingProfile!.Value, result.LtUid,
+                result.LToken);
         }
         catch (Exception ex)
         {
