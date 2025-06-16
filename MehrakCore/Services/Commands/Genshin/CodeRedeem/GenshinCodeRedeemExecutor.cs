@@ -19,7 +19,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
 {
     private readonly ICodeRedeemApiService<GenshinCommandModule> m_ApiService;
     private string m_PendingCode = string.Empty;
-    private Regions? m_PendingServer = null!;
+    private Regions? m_PendingServer;
 
     public GenshinCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
