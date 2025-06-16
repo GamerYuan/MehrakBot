@@ -62,11 +62,6 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             if (user == null || selectedProfile == null)
                 return;
 
-            // Auto-select server from cache if not provided
-            if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out var tmp))
-                server = tmp;
-
             var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.Genshin);
             if (!await ValidateServerAsync(cachedServer))
                 return;
