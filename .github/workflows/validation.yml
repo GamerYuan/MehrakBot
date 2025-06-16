@@ -1,4 +1,8 @@
 name: Validation
+permissions:
+  contents: read
+  actions: write
+  checks: write
 
 on:
   push:
