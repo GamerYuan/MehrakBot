@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Common;
 
-public class GameRecordApiService : IApiService
+public class GameRecordApiService : IApiService<object>
 {
     private const string GameRecordApiUrl =
         "https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard";
