@@ -448,10 +448,23 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     var subStatImage = m_StatImages[subStat.PropertyType!.Value];
                     var xOffset = i % 2 * 290;
                     var yOffset = i / 2 * 80;
-                    ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
-                    ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(439 + xOffset, 30 + yOffset));
+                    var color = Color.White;
+                    if (subStat.PropertyType is 2 or 5 or 8)
+                    {
+                        var dim = subStatImage.CloneAs<Rgba32>();
+                        dim.Mutate(x => x.Brightness(0.5f));
+                        ctx.DrawImage(dim, new Point(375 + xOffset, 26 + yOffset), 1f);
+                        color = Color.FromRgb(128, 128, 128);
+                    }
+                    else
+                    {
+                        ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
+                    }
+
+                    ctx.DrawText(subStat.Value, m_NormalFont, color, new PointF(439 + xOffset, 30 + yOffset));
+
                     var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
-                    ctx.DrawText(rolls, m_NormalFont, Color.White, new PointF(575 + xOffset, 15 + yOffset));
+                    ctx.DrawText(rolls, m_NormalFont, color, new PointF(575 + xOffset, 15 + yOffset));
                 }
 
                 relicImage.Dispose();
