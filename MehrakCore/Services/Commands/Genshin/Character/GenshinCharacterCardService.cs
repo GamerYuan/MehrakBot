@@ -287,7 +287,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     x.ApplyRoundedCorners(10);
                 });
                 ctx.DrawImage(statBackground, new Point(1450, 230), 1f);
-                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1450, 236),
+                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1455, 236),
                     1f);
                 ctx.DrawText(charInfo.Weapon.MainProperty.Final, m_NormalFont, textColor, new PointF(1514, 240));
                 if (charInfo.Weapon.SubProperty != null)
@@ -301,7 +301,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         x.ApplyRoundedCorners(10);
                     });
                     ctx.DrawImage(substatBackground, new Point(1630, 230), 1f);
-                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1630, 236),
+                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1635, 236),
                         1f);
                     ctx.DrawText(charInfo.Weapon.SubProperty.Final, m_NormalFont, textColor, new PointF(1694, 240));
                 }
