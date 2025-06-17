@@ -499,10 +499,22 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 var subStatImage = m_StatImages[subStat.PropertyType!.Value];
                 var xOffset = i % 2 * 245;
                 var yOffset = i / 2 * 70;
-                ctx.DrawImage(subStatImage, new Point(260 + xOffset, 15 + yOffset), 1f);
-                ctx.DrawText(subStat.Value!, m_NormalFont, Color.White, new PointF(310 + xOffset, 20 + yOffset));
+                var color = Color.White;
+                if (subStat.PropertyType is 27 or 29 or 31)
+                {
+                    var dim = subStatImage.CloneAs<Rgba32>();
+                    dim.Mutate(x => x.Brightness(0.5f));
+                    ctx.DrawImage(dim, new Point(260 + xOffset, 15 + yOffset), 1f);
+                    color = Color.FromRgb(128, 128, 128);
+                }
+                else
+                {
+                    ctx.DrawImage(subStatImage, new Point(260 + xOffset, 15 + yOffset), 1f);
+                }
+
+                ctx.DrawText(subStat.Value!, m_NormalFont, color, new PointF(310 + xOffset, 20 + yOffset));
                 var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
-                ctx.DrawText(rolls, m_NormalFont, Color.White, new PointF(435 + xOffset, 10 + yOffset));
+                ctx.DrawText(rolls, m_NormalFont, color, new PointF(435 + xOffset, 10 + yOffset));
             }
 
             relicImage.Dispose();
