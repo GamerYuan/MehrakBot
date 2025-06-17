@@ -70,7 +70,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             var path = string.Format(StatsPath, x);
             m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
             var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
-            // image.Mutate(ctx => ctx.Resize(new Size(48, 0), KnownResamplers.Bicubic, true));
             return new KeyValuePair<int, Image>(x, image);
         }).ToBlockingEnumerable().ToDictionary(x => x.Key, x => x.Value);
 
@@ -226,7 +225,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             disposableResources.AddRange(relicImages);
             disposableResources.AddRange(ornamentImages);
             disposableResources.AddRange(servantImages.Select(x => x.Image));
-            // characterPortrait.Mutate(x => x.Resize(1000, 0, KnownResamplers.Bicubic));
 
             backgroundImage.Mutate(ctx =>
             {
@@ -328,7 +326,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                         {
                             var xOffset = j * 100;
                             var ellipse = new EllipsePolygon(new PointF(1020 + xOffset, 80 + yOffset), 45);
-                            // skill.Image.Mutate(x => x.Resize(80, 0));
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(980 + xOffset, 40 + yOffset), 1f);
                             ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
@@ -337,7 +334,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                         {
                             var xOffset = (j - 1) * 100;
                             var ellipse = new EllipsePolygon(new PointF(1120 + xOffset, 80 + yOffset), 30);
-                            // skill.Image.Mutate(x => x.Resize(50, 0));
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(1095 + xOffset, 55 + yOffset), 1f);
                             ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
@@ -350,7 +346,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     var offset = i * 120;
                     var ellipse = new EllipsePolygon(new PointF(900 + offset, 480), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                    // servantImages[i].Image.Mutate(x => x.Resize(80, 0));
                     ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);
                     ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
 
@@ -367,7 +362,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 if (characterInformation.Equip != null)
                 {
-                    // equipImage.Mutate(x => x.Resize(300, 0, KnownResamplers.Bicubic));
                     ctx.DrawImage(equipImage, new Point(1000, 730), 1f);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
@@ -412,7 +406,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                         continue;
                     }
 
-                    // statImage.Mutate(x => x.Resize(48, 0, KnownResamplers.Bicubic, true));
                     ctx.DrawImage(statImage, new Point(1400, 75 + offset), 1f);
                     ctx.DrawText(StatMappingUtility.HsrMapping[property.PropertyType!.Value], m_NormalFont, Color.White,
                         new PointF(1460, 80 + offset));
@@ -488,11 +481,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         var relicImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
             string.Format(BasePath, relic.Id)));
         var relicSlotImage = m_RelicSlotTemplate.Clone();
-        // relicImage.Mutate(x =>
-        // {
-        //     x.Resize(150, 0);
-        //     x.ApplyGradientFade(0.5f);
-        // });
         relicSlotImage.Mutate(ctx =>
         {
             ctx.DrawImage(relicImage, new Point(10, 0), 1f);
@@ -529,7 +517,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
         var relicImage = await Image.LoadAsync<Rgba32>(
             await m_ImageRepository.DownloadFileToStreamAsync(path));
-        // relicImage.Mutate(x => x.Resize(new Size(0, 130), KnownResamplers.Bicubic, true));
         var template = m_RelicSlotTemplate.Clone();
         template.Mutate(ctx =>
         {
