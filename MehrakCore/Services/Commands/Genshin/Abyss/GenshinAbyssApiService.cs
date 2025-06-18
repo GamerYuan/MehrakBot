@@ -23,8 +23,8 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
         m_Logger = logger;
     }
 
-    private async ValueTask<ApiResult<GenshinAbyssInformation>> GetAbyssInformationAsync(string gameUid, string region,
-        string ltuid, string ltoken)
+    public async ValueTask<ApiResult<GenshinAbyssInformation>> GetAbyssInformationAsync(string gameUid, string region,
+        ulong ltuid, string ltoken)
     {
         try
         {

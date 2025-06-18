@@ -11,6 +11,7 @@ using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin;
+using MehrakCore.Services.Commands.Genshin.Abyss;
 using MehrakCore.Services.Commands.Genshin.Character;
 using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Commands.Hsr;
@@ -120,6 +121,9 @@ internal class Program
             builder.Services
                 .AddTransient<IRealTimeNotesCommandExecutor<GenshinCommandModule>,
                     GenshinRealTimeNotesCommandExecutor>();
+            builder.Services.AddTransient<GenshinAbyssCommandExecutor>();
+            builder.Services.AddSingleton<IApiService<GenshinAbyssCommandExecutor>, GenshinAbyssApiService>();
+            builder.Services.AddSingleton<ICommandService<GenshinAbyssCommandExecutor>, GenshinAbyssCardService>();
 
             // Hsr Services
             builder.Services
