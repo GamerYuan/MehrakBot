@@ -17,7 +17,7 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
     protected readonly IHttpClientFactory HttpClientFactory;
     protected readonly ILogger<ImageUpdaterService<T>> Logger;
 
-    protected virtual string AvatarString => "{0}.png";
+    protected virtual string AvatarString => "{0}";
     private const int AvatarSize = 150;
 
     protected ImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
