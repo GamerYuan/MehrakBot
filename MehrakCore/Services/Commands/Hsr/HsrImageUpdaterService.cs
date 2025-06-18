@@ -21,6 +21,8 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
     private readonly ConcurrentDictionary<int, string> m_SetMapping = new();
 
+    protected override string AvatarString => "hsr_avatar_{0}.png";
+
     public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<HsrCharacterInformation>> logger) : base(imageRepository, httpClientFactory, logger)
     {
