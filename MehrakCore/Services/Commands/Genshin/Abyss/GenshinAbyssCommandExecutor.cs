@@ -17,6 +17,7 @@ namespace MehrakCore.Services.Commands.Genshin.Abyss;
 
 public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandModule>
 {
+    private readonly GenshinImageUpdaterService m_ImageUpdaterService;
     private readonly GenshinAbyssApiService m_ApiService;
     private readonly GenshinAbyssCardService m_CommandService;
 
@@ -25,11 +26,13 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
 
     public GenshinAbyssCommandExecutor(ICommandService<GenshinAbyssCommandExecutor> commandService,
         IApiService<GenshinAbyssCommandExecutor> apiService,
+        GenshinImageUpdaterService imageUpdaterService,
         UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<GenshinCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)
     {
+        m_ImageUpdaterService = imageUpdaterService;
         m_ApiService = (GenshinAbyssApiService)apiService;
         m_CommandService = (GenshinAbyssCardService)commandService;
     }
@@ -120,12 +123,19 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             }
 
             var abyssData = abyssInfo.Data;
+            var floorData = abyssData.Floors!.FirstOrDefault(x => x.Index == floor);
 
-            if (abyssData.Floors!.All(x => x.Index != floor))
+            if (floorData == null)
             {
                 await SendErrorMessageAsync($"No clear record found for floor {floor}. Please try again later.");
                 return;
             }
+
+            var tasks = floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!)).DistinctBy(x => x.Id)
+                .Select(async x =>
+                    await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString()!, x.Icon!));
+
+            await Task.WhenAll(tasks);
 
             var message = await GenerateAbyssCardAsync(floor, gameUid, abyssData);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
