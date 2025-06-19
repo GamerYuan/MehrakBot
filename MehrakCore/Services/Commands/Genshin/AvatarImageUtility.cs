@@ -30,7 +30,8 @@ internal static class AvatarImageUtility
         NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
     }
 
-    public static Image<Rgba32> GetStyledAvatarImage(this Avatar avatar, Image portrait, int constellation = 0)
+    public static Image<Rgba32> GetStyledAvatarImage(this Avatar avatar, Image portrait, int constellation = 0,
+        string text = "")
     {
         if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
 
@@ -43,11 +44,11 @@ internal static class AvatarImageUtility
             ctx.DrawImage(portrait, new Point(0, 0), 1f);
             ctx.Fill(Color.PeachPuff, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(75, 180),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, $"Lv. {avatar.Level}", Color.Black);
+            {
+                Origin = new PointF(75, 180),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom
+            }, string.IsNullOrEmpty(text) ? $"Lv. {avatar.Level}" : text, Color.Black);
             var constIcon = ImageExtensions.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
             if (constellation == 6)
             {
