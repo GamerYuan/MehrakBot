@@ -39,7 +39,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
-        if (parameters.Length != 1)
+        if (parameters.Length != 3)
             throw new ArgumentException("Invalid number of parameters provided.");
 
         var floor = (uint)parameters[0]!;
@@ -155,6 +155,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
         GenshinAbyssInformation abyssData)
     {
         InteractionMessageProperties abyssCard = new();
+        abyssCard.WithFlags(MessageFlags.IsComponentsV2);
         ComponentContainerProperties container = [];
         abyssCard.AddComponents([container]);
 
@@ -162,14 +163,14 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             new TextDisplayProperties(
                 $"### {Context.Interaction.User.Username}'s Abyss Information (Floor {floor})"),
             new TextDisplayProperties(
-                $"Cycle start: <t:{abyssData.StartTime}:F>\nCycle end: <t:{abyssData.EndTime}:F>"),
+                $"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
             new MediaGalleryProperties().AddItems(
                 new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://abyss_card.jpg"))),
             new TextDisplayProperties(
                 $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
         );
         abyssCard.AddAttachments(new AttachmentProperties("abyss_card.jpg",
-            await m_CommandService.GetAbyssCardAsync(gameUid, abyssData)));
+            await m_CommandService.GetAbyssCardAsync(floor, gameUid, abyssData)));
         return abyssCard;
     }
 }
