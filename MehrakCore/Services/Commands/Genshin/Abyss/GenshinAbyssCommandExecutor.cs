@@ -18,6 +18,7 @@ namespace MehrakCore.Services.Commands.Genshin.Abyss;
 public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandModule>
 {
     private readonly GenshinImageUpdaterService m_ImageUpdaterService;
+    private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_CharacterApi;
     private readonly GenshinAbyssApiService m_ApiService;
     private readonly GenshinAbyssCardService m_CommandService;
 
@@ -27,12 +28,14 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
     public GenshinAbyssCommandExecutor(ICommandService<GenshinAbyssCommandExecutor> commandService,
         IApiService<GenshinAbyssCommandExecutor> apiService,
         GenshinImageUpdaterService imageUpdaterService,
+        ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> characterApi,
         UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<GenshinCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)
     {
         m_ImageUpdaterService = imageUpdaterService;
+        m_CharacterApi = characterApi;
         m_ApiService = (GenshinAbyssApiService)apiService;
         m_CommandService = (GenshinAbyssCardService)commandService;
     }
@@ -135,9 +138,19 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 .Select(async x =>
                     await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString()!, x.Icon!));
 
+            var charList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToList();
+            if (charList.Count == 0)
+            {
+                Logger.LogWarning("No characters found for gameUid: {GameUid}, region: {Region}", gameUid, region);
+                await SendErrorMessageAsync($"Failed to fetch character list. Please try again later.");
+                return;
+            }
+
+            var constMap = charList.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
+
             await Task.WhenAll(tasks);
 
-            var message = await GenerateAbyssCardAsync(floor, gameUid, abyssData);
+            var message = await GenerateAbyssCardAsync(floor, gameUid, abyssData, constMap);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
@@ -152,7 +165,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
     }
 
     private async ValueTask<InteractionMessageProperties> GenerateAbyssCardAsync(uint floor, string gameUid,
-        GenshinAbyssInformation abyssData)
+        GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
     {
         InteractionMessageProperties abyssCard = new();
         abyssCard.WithFlags(MessageFlags.IsComponentsV2);
@@ -170,7 +183,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
         );
         abyssCard.AddAttachments(new AttachmentProperties("abyss_card.jpg",
-            await m_CommandService.GetAbyssCardAsync(floor, gameUid, abyssData)));
+            await m_CommandService.GetAbyssCardAsync(floor, gameUid, abyssData, constMap)));
         return abyssCard;
     }
 }
