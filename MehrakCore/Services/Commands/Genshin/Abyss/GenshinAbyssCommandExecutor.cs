@@ -110,11 +110,11 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
         {
             var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
-            var response = await GetAndUpdateGameUidAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            var response = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
             if (!response.IsSuccess)
                 return;
 
-            var gameUid = response.Data;
+            var gameUid = response.Data.GameUid!;
             var abyssInfo = await m_ApiService.GetAbyssInformationAsync(gameUid, region, ltuid, ltoken);
             if (!abyssInfo.IsSuccess)
             {

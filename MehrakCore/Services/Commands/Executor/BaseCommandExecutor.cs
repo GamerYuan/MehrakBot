@@ -1,6 +1,7 @@
 #region
 
 using System.Net;
+using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
 using MehrakCore.Repositories;
@@ -154,7 +155,13 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
             Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
                 Context.Interaction.User.Id, region);
             var result =
-                await m_GameRecordApi.GetUserRegionUidAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
+                await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
+            if (!result.IsSuccess)
+            {
+                await SendErrorMessageAsync("Failed to retrieve game profile. Please try again later.");
+                return ApiResult<string>.Failure(HttpStatusCode.BadGateway, "Failed to retrieve game profile");
+            }
+
             if (result.RetCode == -100)
             {
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
@@ -164,7 +171,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
                 return ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Invalid HoYoLAB UID or Cookies");
             }
 
-            gameUid = result.Data;
+            gameUid = result.Data.GameUid;
         }
 
         if (gameUid == null)
@@ -194,6 +201,65 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
         await UserRepository.CreateOrUpdateUserAsync(user).ConfigureAwait(false);
 
         return ApiResult<string>.Success(gameUid);
+    }
+
+    protected async Task<ApiResult<UserGameData>> GetAndUpdateGameDataAsync(UserModel? user, GameName gameName,
+        ulong ltuid, string ltoken, Regions server, string region)
+    {
+        var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
+
+        // edge case check that probably will never occur
+        // but if user removes their profile while this command is running will result in null
+        if (user?.Profiles == null || selectedProfile == null)
+        {
+            Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                Context.Interaction.User.Id, ltuid);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                    new TextDisplayProperties("No profile found. Please select the correct profile")
+                ]));
+            return ApiResult<UserGameData>.Failure(HttpStatusCode.BadRequest,
+                "No profile found for the specified ltuid");
+        }
+
+        var result =
+            await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
+        if (!result.IsSuccess)
+        {
+            await SendErrorMessageAsync("Failed to retrieve game profile. Please try again later.");
+            return ApiResult<UserGameData>.Failure(HttpStatusCode.BadGateway, "Failed to retrieve game profile");
+        }
+
+        if (result.RetCode == -100)
+        {
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                    new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
+                ]));
+            return ApiResult<UserGameData>.Failure(HttpStatusCode.BadRequest, "Invalid HoYoLAB UID or Cookies");
+        }
+
+        if (selectedProfile.GameUids == null ||
+            !selectedProfile.GameUids.TryGetValue(gameName, out var dict) ||
+            !dict.ContainsKey(server.ToString()))
+        {
+            var gameUid = result.Data.GameUid!;
+            selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
+            if (!selectedProfile.GameUids.ContainsKey(gameName))
+                selectedProfile.GameUids[gameName] = new Dictionary<string, string>();
+
+            if (!selectedProfile.GameUids[gameName].TryAdd(server.ToString(), gameUid))
+                selectedProfile.GameUids[gameName][server.ToString()] = gameUid;
+        }
+
+        // Update last used regions
+        selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+
+        if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
+            selectedProfile.LastUsedRegions[gameName] = server;
+
+        await UserRepository.CreateOrUpdateUserAsync(user).ConfigureAwait(false);
+        return ApiResult<UserGameData>.Success(result.Data);
     }
 
     /// <summary>

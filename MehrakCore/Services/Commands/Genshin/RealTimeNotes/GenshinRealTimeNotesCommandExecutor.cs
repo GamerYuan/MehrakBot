@@ -104,12 +104,12 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
             var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameUidAsync(user, GameName.Genshin, ltuid, ltoken, server,
+            var result = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server,
                 server.GetRegion());
 
             if (!result.IsSuccess) return;
 
-            var gameUid = result.Data;
+            var gameUid = result.Data.GameUid!;
             var notesResult = await m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
 
             if (!notesResult.IsSuccess)
