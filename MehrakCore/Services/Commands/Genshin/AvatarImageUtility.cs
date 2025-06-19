@@ -16,8 +16,6 @@ namespace MehrakCore.Services.Commands.Genshin;
 
 internal static class AvatarImageUtility
 {
-    private static readonly Image<Rgba32> FourStarAvatarBackground = new(150, 180);
-    private static readonly Image<Rgba32> FiveStarAvatarBackground = new(150, 180);
     private static readonly Font NormalFont;
 
     private static readonly Color NormalConstColor;
@@ -25,26 +23,24 @@ internal static class AvatarImageUtility
 
     static AvatarImageUtility()
     {
-        FourStarAvatarBackground.Mutate(x => { x.Fill(Color.Purple); });
-        FiveStarAvatarBackground.Mutate(x => { x.Fill(Color.Gold); });
-
         var collection = new FontCollection();
         var fontFamily = collection.Add("Fonts/genshin.ttf");
         NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
 
-        NormalConstColor = Rgba32.ParseHex("454545BF");
-        GoldConstTextColor = Color.ParseHex("AD7F00");
+        NormalConstColor = new Rgba32(69, 69, 69, 200);
+        GoldConstTextColor = Color.ParseHex("8A6500");
     }
 
     public static Image<Rgba32> GetStyledAvatarImage(this Avatar avatar, Image portrait, int constellation = 0)
     {
         if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
 
-        var avatarImage = GetAvatarBackground(avatar.Rarity!.Value);
+        var avatarImage = new Image<Rgba32>(150, 180);
         var rectangle = new RectangleF(0, 150, 150, 30);
 
         avatarImage.Mutate(ctx =>
         {
+            ctx.Fill(avatar.Rarity!.Value == 4 ? Color.Purple : Color.Gold);
             ctx.DrawImage(portrait, new Point(0, 0), 1f);
             ctx.Fill(Color.PeachPuff, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
@@ -79,15 +75,5 @@ internal static class AvatarImageUtility
         });
 
         return avatarImage;
-    }
-
-    private static Image<Rgba32> GetAvatarBackground(int rarity)
-    {
-        return rarity switch
-        {
-            4 => FourStarAvatarBackground.Clone(),
-            5 => FiveStarAvatarBackground.Clone(),
-            _ => throw new ArgumentOutOfRangeException(nameof(rarity), "Invalid rarity value")
-        };
     }
 }
