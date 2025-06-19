@@ -18,17 +18,16 @@ internal static class AvatarImageUtility
 {
     private static readonly Font NormalFont;
 
-    private static readonly Color NormalConstColor;
-    private static readonly Color GoldConstTextColor;
+    private static readonly Color GoldBackgroundColor = new Rgb24(183, 125, 76);
+    private static readonly Color PurpleBackgroundColor = new Rgb24(132, 104, 173);
+    private static readonly Color NormalConstColor = new Rgba32(69, 69, 69, 200);
+    private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
 
     static AvatarImageUtility()
     {
         var collection = new FontCollection();
         var fontFamily = collection.Add("Fonts/genshin.ttf");
         NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
-
-        NormalConstColor = new Rgba32(69, 69, 69, 200);
-        GoldConstTextColor = Color.ParseHex("8A6500");
     }
 
     public static Image<Rgba32> GetStyledAvatarImage(this Avatar avatar, Image portrait, int constellation = 0)
@@ -40,7 +39,7 @@ internal static class AvatarImageUtility
 
         avatarImage.Mutate(ctx =>
         {
-            ctx.Fill(avatar.Rarity!.Value == 4 ? Color.Purple : Color.Gold);
+            ctx.Fill(avatar.Rarity!.Value == 4 ? PurpleBackgroundColor : GoldBackgroundColor);
             ctx.DrawImage(portrait, new Point(0, 0), 1f);
             ctx.Fill(Color.PeachPuff, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
