@@ -28,26 +28,6 @@ public class Battle
     [JsonPropertyName("settle_date_time")] public SettleDateTime? SettleDateTime { get; init; }
 }
 
-public class BottomHalfFloorMonster
-{
-    [JsonPropertyName("name")] public string? Name { get; init; }
-
-    [JsonPropertyName("icon")] public string? Icon { get; init; }
-
-    [JsonPropertyName("level")] public int? Level { get; init; }
-}
-
-public class DamageRank
-{
-    [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
-
-    [JsonPropertyName("avatar_icon")] public string? AvatarIcon { get; init; }
-
-    [JsonPropertyName("value")] public int? Value { get; init; }
-
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
-}
-
 public class GenshinAbyssInformation
 {
     [JsonPropertyName("schedule_id")] public int? ScheduleId { get; init; }
@@ -63,19 +43,19 @@ public class GenshinAbyssInformation
 
     [JsonPropertyName("max_floor")] public string? MaxFloor { get; init; }
 
-    [JsonPropertyName("reveal_rank")] public List<RevealRank>? RevealRank { get; init; }
+    [JsonPropertyName("reveal_rank")] public List<RankDetails>? RevealRank { get; init; }
 
-    [JsonPropertyName("defeat_rank")] public List<DefeatRank>? DefeatRank { get; init; }
+    [JsonPropertyName("defeat_rank")] public List<RankDetails>? DefeatRank { get; init; }
 
-    [JsonPropertyName("damage_rank")] public List<DamageRank>? DamageRank { get; init; }
+    [JsonPropertyName("damage_rank")] public List<RankDetails>? DamageRank { get; init; }
 
-    [JsonPropertyName("take_damage_rank")] public List<TakeDamageRank>? TakeDamageRank { get; init; }
+    [JsonPropertyName("take_damage_rank")] public List<RankDetails>? TakeDamageRank { get; init; }
 
     [JsonPropertyName("normal_skill_rank")]
-    public List<NormalSkillRank>? NormalSkillRank { get; init; }
+    public List<RankDetails>? NormalSkillRank { get; init; }
 
     [JsonPropertyName("energy_skill_rank")]
-    public List<EnergySkillRank>? EnergySkillRank { get; init; }
+    public List<RankDetails>? EnergySkillRank { get; init; }
 
     [JsonPropertyName("floors")] public List<Floor>? Floors { get; init; }
 
@@ -87,28 +67,6 @@ public class GenshinAbyssInformation
     public bool? IsJustSkippedFloor { get; init; }
 
     [JsonPropertyName("skipped_floor")] public string? SkippedFloor { get; init; }
-}
-
-public class DefeatRank
-{
-    [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
-
-    [JsonPropertyName("avatar_icon")] public string? AvatarIcon { get; init; }
-
-    [JsonPropertyName("value")] public int? Value { get; init; }
-
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
-}
-
-public class EnergySkillRank
-{
-    [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
-
-    [JsonPropertyName("avatar_icon")] public string? AvatarIcon { get; init; }
-
-    [JsonPropertyName("value")] public int? Value { get; init; }
-
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
 }
 
 public class Floor
@@ -127,7 +85,7 @@ public class Floor
 
     [JsonPropertyName("levels")] public List<Level>? Levels { get; init; }
 
-    [JsonPropertyName("settle_date_time")] public object? SettleDateTime { get; init; }
+    [JsonPropertyName("settle_date_time")] public SettleDateTime? SettleDateTime { get; init; }
 
     [JsonPropertyName("ley_line_disorder")]
     public List<string>? LeyLineDisorder { get; init; }
@@ -144,24 +102,13 @@ public class Level
     [JsonPropertyName("battles")] public List<Battle>? Battles { get; init; }
 
     [JsonPropertyName("top_half_floor_monster")]
-    public List<TopHalfFloorMonster>? TopHalfFloorMonster { get; init; }
+    public List<MonsterList>? TopHalfFloorMonster { get; init; }
 
     [JsonPropertyName("bottom_half_floor_monster")]
-    public List<BottomHalfFloorMonster>? BottomHalfFloorMonster { get; init; }
+    public List<MonsterList>? BottomHalfFloorMonster { get; init; }
 }
 
-public class NormalSkillRank
-{
-    [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
-
-    [JsonPropertyName("avatar_icon")] public string? AvatarIcon { get; init; }
-
-    [JsonPropertyName("value")] public int? Value { get; init; }
-
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
-}
-
-public class RevealRank
+public class RankDetails
 {
     [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
 
@@ -187,18 +134,7 @@ public class SettleDateTime
     [JsonPropertyName("second")] public int? Second { get; init; }
 }
 
-public class TakeDamageRank
-{
-    [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
-
-    [JsonPropertyName("avatar_icon")] public string? AvatarIcon { get; init; }
-
-    [JsonPropertyName("value")] public int? Value { get; init; }
-
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
-}
-
-public class TopHalfFloorMonster
+public class MonsterList
 {
     [JsonPropertyName("name")] public string? Name { get; init; }
 
