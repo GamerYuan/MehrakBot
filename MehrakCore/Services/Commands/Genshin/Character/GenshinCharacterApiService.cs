@@ -9,6 +9,7 @@ using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -21,11 +22,14 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinCharacterApiService> m_Logger;
+    private readonly IMemoryCache m_Cache;
+    private const int CacheExpirationMinutes = 10;
 
-    public GenshinCharacterApiService(
+    public GenshinCharacterApiService(IMemoryCache cache,
         IHttpClientFactory httpClientFactory,
         ILogger<GenshinCharacterApiService> logger)
     {
+        m_Cache = cache;
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
     }
@@ -35,6 +39,13 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
     {
         m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
             uid, region, gameUid);
+        var cacheKey = $"genshin_characters_{gameUid}";
+
+        if (m_Cache.TryGetValue(cacheKey, out IEnumerable<GenshinBasicCharacterData>? cachedEntry))
+        {
+            m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", gameUid);
+            return cachedEntry!;
+        }
 
         var payload = new CharacterListPayload
         (
@@ -71,7 +82,13 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         m_Logger.LogInformation("Successfully retrieved {CharacterCount} characters for user {Uid}",
             data.List.Count, uid);
 
-        return data.List.OrderBy(x => x.Name);
+        var cacheOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheExpirationMinutes));
+        m_Cache.Set(cacheKey, data.List, cacheOptions);
+        m_Logger.LogInformation("Cached character data for game UID: {GameUid} for {Minutes} minutes",
+            gameUid, CacheExpirationMinutes);
+
+        return data.List;
     }
 
     public async Task<ApiResult<GenshinCharacterDetail>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
