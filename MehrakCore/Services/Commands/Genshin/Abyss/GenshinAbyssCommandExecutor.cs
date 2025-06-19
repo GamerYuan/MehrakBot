@@ -1,5 +1,6 @@
 ﻿#region
 
+using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Modules;
@@ -137,6 +138,11 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             var tasks = floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!)).DistinctBy(x => x.Id)
                 .Select(async x =>
                     await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString()!, x.Icon!));
+            var sideAvatarTasks = abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
+                .Concat(abyssData.EnergySkillRank!)
+                .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
+                .Select(async x =>
+                    await m_ImageUpdaterService.UpdateSideAvatarAsync(x.AvatarId.ToString()!, x.AvatarIcon!));
 
             var charList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToList();
             if (charList.Count == 0)
@@ -149,8 +155,9 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             var constMap = charList.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
 
             await Task.WhenAll(tasks);
+            await Task.WhenAll(sideAvatarTasks);
 
-            var message = await GenerateAbyssCardAsync(floor, gameUid, abyssData, constMap);
+            var message = await GenerateAbyssCardAsync(floor, response.Data, abyssData, constMap);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
@@ -164,7 +171,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
         }
     }
 
-    private async ValueTask<InteractionMessageProperties> GenerateAbyssCardAsync(uint floor, string gameUid,
+    private async ValueTask<InteractionMessageProperties> GenerateAbyssCardAsync(uint floor, UserGameData gameData,
         GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
     {
         InteractionMessageProperties abyssCard = new();
@@ -183,7 +190,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
         );
         abyssCard.AddAttachments(new AttachmentProperties("abyss_card.jpg",
-            await m_CommandService.GetAbyssCardAsync(floor, gameUid, abyssData, constMap)));
+            await m_CommandService.GetAbyssCardAsync(floor, gameData, abyssData, constMap)));
         return abyssCard;
     }
 }
