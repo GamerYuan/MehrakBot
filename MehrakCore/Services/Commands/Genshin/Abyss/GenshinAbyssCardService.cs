@@ -288,7 +288,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
     {
         const int avatarWidth = 150;
 
-        int offset = (4 - avatarIds.Count) * avatarWidth + 10;
+        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         var rosterImage = new Image<Rgba32>(650, 200);
 
