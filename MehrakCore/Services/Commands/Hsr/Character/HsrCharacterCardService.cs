@@ -46,7 +46,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         m_ImageUpdater = (HsrImageUpdaterService)imageUpdater;
         m_Logger = logger;
 
-        var fontFamily = new FontCollection().Add("Fonts/hsr.ttf");
+        var fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);

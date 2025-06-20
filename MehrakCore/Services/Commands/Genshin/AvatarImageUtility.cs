@@ -26,7 +26,7 @@ internal static class AvatarImageUtility
     static AvatarImageUtility()
     {
         var collection = new FontCollection();
-        var fontFamily = collection.Add("Fonts/genshin.ttf");
+        var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
         NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
     }
 

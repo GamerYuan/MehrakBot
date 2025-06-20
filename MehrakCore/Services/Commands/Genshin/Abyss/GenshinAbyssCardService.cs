@@ -44,7 +44,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         m_Logger = logger;
 
         var collection = new FontCollection();
-        var fontFamily = collection.Add("Fonts/genshin.ttf");
+        var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
