@@ -131,7 +131,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
 
             if (floorData == null)
             {
-                await SendErrorMessageAsync($"No clear record found for floor {floor}. Please try again later.");
+                await SendErrorMessageAsync($"No clear record found for floor {floor}.");
                 return;
             }
 
@@ -191,6 +191,9 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
         );
         abyssCard.AddAttachments(new AttachmentProperties("abyss_card.jpg",
             await m_CommandService.GetAbyssCardAsync(floor, gameData, abyssData, constMap)));
+        abyssCard.AddComponents(
+            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                "Remove", ButtonStyle.Danger)));
         return abyssCard;
     }
 }
