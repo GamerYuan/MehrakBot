@@ -26,11 +26,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
+          envs: TAG_NAME
           script: |
             set -e
             cd ${{ secrets.BOT_CORE_PATH }}
             git fetch --tags
-            # Use the specific tag that was pushed
             git checkout "$TAG_NAME"
             docker compose build --pull
             docker compose up -d --remove-orphans
