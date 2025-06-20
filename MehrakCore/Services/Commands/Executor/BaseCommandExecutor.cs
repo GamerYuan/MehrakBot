@@ -158,17 +158,9 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
                 await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
             if (!result.IsSuccess)
             {
-                await SendErrorMessageAsync("Failed to retrieve game profile. Please try again later.");
-                return ApiResult<string>.Failure(HttpStatusCode.BadGateway, "Failed to retrieve game profile");
-            }
-
-            if (result.RetCode == -100)
-            {
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                        new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
-                    ]));
-                return ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Invalid HoYoLAB UID or Cookies");
+                await SendErrorMessageAsync(result.ErrorMessage ?? "An error occurred while retrieving game profile");
+                return ApiResult<string>.Failure(HttpStatusCode.BadGateway,
+                    result.ErrorMessage ?? "An error occurred while retrieving game profile");
             }
 
             gameUid = result.Data.GameUid;
@@ -226,17 +218,15 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
             await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
         if (!result.IsSuccess)
         {
+            if (result.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                await SendAuthenticationErrorAsync(
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                return result;
+            }
+
             await SendErrorMessageAsync("Failed to retrieve game profile. Please try again later.");
             return ApiResult<UserGameData>.Failure(HttpStatusCode.BadGateway, "Failed to retrieve game profile");
-        }
-
-        if (result.RetCode == -100)
-        {
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                    new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
-                ]));
-            return ApiResult<UserGameData>.Failure(HttpStatusCode.BadRequest, "Invalid HoYoLAB UID or Cookies");
         }
 
         if (selectedProfile.GameUids == null ||

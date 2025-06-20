@@ -21,7 +21,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Commands.Genshin.CodeRedeem;
+namespace MehrakCore.Tests.Services.Commands.Genshin;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCodeRedeemExecutorTests
@@ -99,15 +99,15 @@ public class GenshinCodeRedeemExecutorTests
     [TearDown]
     public void TearDown()
     {
-        m_DiscordTestHelper?.Dispose();
-        m_MongoTestHelper?.Dispose();
+        m_DiscordTestHelper.Dispose();
+        m_MongoTestHelper.Dispose();
     }
 
     [Test]
     public async Task ExecuteAsync_ValidCodeAndUser_ShouldRedeemCodeSuccessfully()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
         var gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -161,7 +161,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task ExecuteAsync_ProfileNotFound_ShouldSendErrorResponse()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
         // Don't add profile to user
 
         // Act
@@ -176,7 +176,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task ExecuteAsync_CodeRedemptionFails_ShouldSendErrorResponse()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
         var gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -194,9 +194,9 @@ public class GenshinCodeRedeemExecutorTests
     public async Task ExecuteAsync_CodeToUpperCase_ShouldConvertCodeToUpperCase()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
         var gameRecord = CreateTestGameRecord();
-        var lowercaseCode = "testcode123";
+        const string lowercaseCode = "testcode123";
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -217,7 +217,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task OnAuthenticationCompletedAsync_SuccessfulAuth_ShouldRedeemCode()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
         var gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -272,7 +272,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task ExecuteAsync_GameRecordApiFails_ShouldSendErrorResponse()
     {
         // Arrange
-        var user = await CreateTestUserWithoutGameUid();
+        await CreateTestUserWithoutGameUid();
 
         SetupHttpResponseForGameRecordFailure();
 
@@ -288,7 +288,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task ExecuteAsync_WithNullServer_ShouldUseCachedServer()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
         var gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -310,7 +310,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task ExecuteAsync_DefaultProfile_ShouldUseProfile1()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
         var gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -332,7 +332,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task ExecuteAsync_ExceptionDuringExecution_ShouldSendErrorResponse()
     {
         // Arrange
-        var user = await CreateTestUserAsync();
+        await CreateTestUserAsync();
 
         // Setup to throw an exception
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
@@ -351,7 +351,7 @@ public class GenshinCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("An error occurred while redeeming the code. Please try again later."));
     }
 
-    private async Task<UserModel> CreateTestUserAsync()
+    private async Task CreateTestUserAsync()
     {
         var user = new UserModel
         {
@@ -373,7 +373,7 @@ public class GenshinCodeRedeemExecutorTests
                         {
                             GameName.Genshin, new Dictionary<string, string>
                             {
-                                { Regions.America.ToString(), TestGameUid }
+                                { nameof(Regions.America), TestGameUid }
                             }
                         }
                     }
@@ -382,33 +382,9 @@ public class GenshinCodeRedeemExecutorTests
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
-        return user;
     }
 
-    private async Task<UserModel> CreateTestUserWithoutAuth()
-    {
-        var user = new UserModel
-        {
-            Id = TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
-                    {
-                        { GameName.Genshin, Regions.America },
-                        { GameName.HonkaiStarRail, Regions.America }
-                    }
-                }
-            }
-        };
-
-        await m_UserRepository.CreateOrUpdateUserAsync(user);
-        return user;
-    }
-
-    private async Task<UserModel> CreateTestUserWithoutGameUid()
+    private async Task CreateTestUserWithoutGameUid()
     {
         var user = new UserModel
         {
@@ -431,7 +407,6 @@ public class GenshinCodeRedeemExecutorTests
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
-        return user;
     }
 
     private static object CreateTestGameRecord()
@@ -476,8 +451,12 @@ public class GenshinCodeRedeemExecutorTests
     {
         var errorResponse = new
         {
-            retcode = -1,
-            message = "Failed to get game record"
+            retcode = 0,
+            message = "OK",
+            data = new
+            {
+                list = Array.Empty<object>()
+            }
         };
 
         var json = JsonSerializer.Serialize(errorResponse);
