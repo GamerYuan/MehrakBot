@@ -131,15 +131,7 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
             var result = await GetAndUpdateGameUidAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server, region);
-            if (!result.IsSuccess)
-            {
-                Logger.LogError("Failed to get game UID for user {UserId}: {ErrorMessage}",
-                    Context.Interaction.User.Id, result.ErrorMessage);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
-                    .AddComponents(new TextDisplayProperties(result.ErrorMessage)));
-                return;
-            }
+            if (!result.IsSuccess) return;
 
             var gameUid = result.Data;
             var response = await m_ApiService.RedeemCodeAsync(code, region, gameUid, ltuid, ltoken);
