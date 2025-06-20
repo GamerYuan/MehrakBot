@@ -181,7 +181,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
 
         container.AddComponents(
             new TextDisplayProperties(
-                $"### {Context.Interaction.User.Username}'s Abyss Information (Floor {floor})"),
+                $"### <@{Context.Interaction.User.Id}>'s Abyss Summary (Floor {floor})"),
             new TextDisplayProperties(
                 $"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
             new MediaGalleryProperties().AddItems(
