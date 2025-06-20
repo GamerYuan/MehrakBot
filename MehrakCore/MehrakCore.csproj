@@ -36,6 +36,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="MehrakCore.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
