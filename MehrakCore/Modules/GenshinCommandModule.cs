@@ -112,7 +112,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
     }
 
-    [SubSlashCommand("abyss", "Get Abyss status card")]
+    [SubSlashCommand("abyss", "Get Spiral Abyss summary card")]
     public async Task AbyssCommand(
         [SlashCommandParameter(Name = "floor", Description = "Floor Number (9-12)")]
         uint floor,
@@ -157,6 +157,16 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     {
         return subcommand switch
         {
+            "abyss" => "## Spiral Abyss\n" +
+                       "Get Spiral Abyss summary card\n" +
+                       "### Usage\n" +
+                       "```/genshin abyss <floor> [server] [profile]```\n" +
+                       "### Parameters\n" +
+                       "- `floor`: Floor Number (9-12)\n" +
+                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                       "### Examples\n" +
+                       "```/genshin abyss 9\n/genshin abyss 12 Asia 2```",
             "character" => "## Genshin Character\n" +
                            "Get character card from Genshin Impact\n" +
                            "### Usage\n" +
@@ -167,6 +177,16 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
                            "```/genshin character Fischl\n/genshin character Traveler America\n/genshin character Nahida Asia 3```",
+            "codes" => "## Redemption Codes\n" +
+                       "Redeem Genshin Impact codes\n" +
+                       "### Usage\n" +
+                       "```/genshin codes <code> [server] [profile]```\n" +
+                       "### Parameters\n" +
+                       "- `code`: Redemption Code (Case-insensitive)\n" +
+                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                       "### Examples\n" +
+                       "```/genshin codes GENSHINGIFT\n/genshin codes GENSHINGIFT Asia 2```",
             _ => "## Genshin Toolbox\n" +
                  "Genshin Impact related commands and utilities.\n" +
                  "### Subcommands\n" +

@@ -24,6 +24,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
             "genshin" => GenshinCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "hsr" => HsrCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
+            "health" => HealthCommandModule.GetHelpString(),
             "checkin" => DailyCheckInCommandModule.GetHelpString(),
             _ => "Available commands: \n" +
                  "- `/profile [add|delete|list]`\n" +
