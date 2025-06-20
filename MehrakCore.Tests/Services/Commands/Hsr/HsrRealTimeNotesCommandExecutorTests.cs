@@ -254,7 +254,9 @@ public class HsrRealTimeNotesCommandExecutorTests
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
             TestUserId, It.IsAny<IAuthenticationListener>()), Times.Once);
-    }    [Test]
+    }
+
+    [Test]
     public async Task ExecuteAsync_WhenUserAuthenticated_DefersResponseAndFetchesNotes()
     {
         // Arrange
@@ -282,7 +284,9 @@ public class HsrRealTimeNotesCommandExecutorTests
         // Assert
         m_ApiServiceMock.Verify(x => x.GetRealTimeNotesAsync(
             It.IsAny<string>(), It.IsAny<string>(), TestLtUid, TestLToken), Times.Once);
-    }    [Test]
+    }
+
+    [Test]
     public async Task ExecuteAsync_WhenApiReturnsError_SendsErrorResponse()
     {
         // Arrange
@@ -309,7 +313,9 @@ public class HsrRealTimeNotesCommandExecutorTests
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("An error occurred: API Error"));
-    }    [Test]
+    }
+
+    [Test]
     public async Task ExecuteAsync_WhenSuccessful_BuildsAndSendsRealTimeNotesCard()
     {
         // Arrange
@@ -341,7 +347,9 @@ public class HsrRealTimeNotesCommandExecutorTests
         Assert.That(response, Contains.Substring("Assignments"));
         Assert.That(response, Contains.Substring("Echoes of War"));
         Assert.That(response, Contains.Substring("Simulated Universe"));
-    }    [Test]
+    }
+
+    [Test]
     public async Task ExecuteAsync_WhenExceptionThrown_SendsGenericErrorResponse()
     {
         // Arrange
@@ -368,7 +376,9 @@ public class HsrRealTimeNotesCommandExecutorTests
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("An unknown error occurred, please try again later"));
-    }[Test]
+    }
+
+    [Test]
     public async Task ExecuteAsync_WithCachedServerFromProfile_UsesCorrectServer()
     {
         // Arrange
@@ -399,7 +409,9 @@ public class HsrRealTimeNotesCommandExecutorTests
 
     #endregion
 
-    #region OnAuthenticationCompletedAsync Tests    [Test]
+    #region OnAuthenticationCompletedAsync Tests
+
+    [Test]
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationSuccessful_SendsRealTimeNotes()
     {
         // Arrange
@@ -416,7 +428,8 @@ public class HsrRealTimeNotesCommandExecutorTests
             .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(notesData));
 
         // Setup game record API for the correct region
-        SetupGameRecordApiForSuccessfulResponse(server); // Set up the executor with a pending server (normally set during ExecuteAsync)
+        SetupGameRecordApiForSuccessfulResponse(
+            server); // Set up the executor with a pending server (normally set during ExecuteAsync)
         await m_Executor.ExecuteAsync(server, profile); // This will trigger authentication
 
         var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
@@ -445,7 +458,9 @@ public class HsrRealTimeNotesCommandExecutorTests
 
     #endregion
 
-    #region BuildRealTimeNotes Tests    [Test]
+    #region BuildRealTimeNotes Tests
+
+    [Test]
     public async Task BuildRealTimeNotes_CreatesCorrectMessageStructure()
     {
         // Arrange
@@ -519,7 +534,8 @@ public class HsrRealTimeNotesCommandExecutorTests
             RogueTournWeeklyCur = notesData.RogueTournWeeklyCur,
             CurrentTs = notesData.CurrentTs,
             RogueTournExpIsFull = notesData.RogueTournExpIsFull
-        };        m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
+        };
+        m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
             .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(fullStaminaData));
 
@@ -569,7 +585,8 @@ public class HsrRealTimeNotesCommandExecutorTests
             RogueTournWeeklyCur = baseNotesData.RogueTournWeeklyCur,
             CurrentTs = baseNotesData.CurrentTs,
             RogueTournExpIsFull = baseNotesData.RogueTournExpIsFull
-        };        m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
+        };
+        m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
             .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(noExpeditionsData));
 
@@ -620,7 +637,8 @@ public class HsrRealTimeNotesCommandExecutorTests
             RogueTournWeeklyCur = baseNotesData.RogueTournWeeklyCur,
             CurrentTs = baseNotesData.CurrentTs,
             RogueTournExpIsFull = baseNotesData.RogueTournExpIsFull
-        };        m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
+        };
+        m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
             .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(fullyClaimed));
 
@@ -690,7 +708,9 @@ public class HsrRealTimeNotesCommandExecutorTests
     {
         // Set up the token cache to return a valid token (using GetStringAsync as TokenCacheService does)
         SetupTokenCacheForAuthenticated();
-    }    private string CreateValidGameRecordResponse(Regions region = Regions.Asia)
+    }
+
+    private string CreateValidGameRecordResponse(Regions region = Regions.Asia)
     {
         var regionMapping = region switch
         {
