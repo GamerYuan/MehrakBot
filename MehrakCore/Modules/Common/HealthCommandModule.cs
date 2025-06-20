@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Net.NetworkInformation;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Services;
@@ -26,6 +27,16 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     private readonly PrometheusClientService m_PrometheusClientService;
     private readonly GameRecordApiService m_GameRecordApiService;
 
+    private static readonly Dictionary<string, string> HealthCheckComponents = new()
+    {
+        { "HoYoLAB API", "sg-public-api.hoyolab.com" },
+        { "HoYoLAB Genshin API", "sg-hk4e-api.hoyolab.com" },
+        { "HoYoLAB Genshin Operations API", "public-operation-hk4e.hoyolab.com" },
+        { "HoYoLAB Posts API", "bbs-api-os.hoyolab.com" },
+        { "HoYoLAB Account API", "api-account-os.hoyolab.com" },
+        { "HoYoWiki API", "sg-wiki-api-static.hoyolab.com" }
+    };
+
     public HealthCommandModule(MongoDbService mongoDbService, IConnectionMultiplexer redisConnection,
         IDailyCheckInService dailyCheckInService, GatewayClient gatewayClient,
         PrometheusClientService prometheusClientService, GameRecordApiService gameRecordApiService,
@@ -47,19 +58,52 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         Contexts = [InteractionContextType.Guild])]
     public async Task CheckHealthAsync()
     {
+        await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
+
         InteractionMessageProperties response = new();
         var container = new ComponentContainerProperties();
         response.WithFlags(MessageFlags.IsComponentsV2);
         response.AddComponents([container]);
 
-        var systemUsage = await m_PrometheusClientService.GetSystemResourceAsync();
+        var systemUsageTask = m_PrometheusClientService.GetSystemResourceAsync();
 
         var mongoDbStatus = await m_MongoDbService.IsConnected();
         var cacheStatus = m_RedisConnection.IsConnected;
-    }
 
-    private static string FormatApiStatus(IEnumerable<(string, bool)> apiStatus)
-    {
-        return string.Join('\n', apiStatus.Select(x => $"{x.Item1}: {(x.Item2 ? "Online" : "Offline")}"));
+        var apiStatus = string.Join('\n', HealthCheckComponents.ToAsyncEnumerable().SelectAwait(async x =>
+        {
+            Ping ping = new();
+            var pingResult = await ping.SendPingAsync(x.Value);
+            return $"**{x.Key}**: {(pingResult.Status == IPStatus.Success ? "Online" : "Offline")}";
+        }).ToBlockingEnumerable());
+
+        var systemUsage = await systemUsageTask;
+
+        var convert = Math.Pow(1024, 3);
+        container.AddComponents(new TextDisplayProperties("## Health Report"));
+        container.AddComponents(new ComponentSeparatorProperties());
+        if (systemUsage.CpuUsage < 0)
+            container.AddComponents(new TextDisplayProperties(
+                $"### __System Resources__\n" +
+                $"System monitor is offline"));
+        else
+            container.AddComponents(new TextDisplayProperties(
+                $"### __System Resources__\n" +
+                $"CPU: {systemUsage.CpuUsage:N2}%\n" +
+                $"Memory: {systemUsage.MemoryUsed / convert:N2}/{systemUsage.MemoryTotal / convert:N2} GB " +
+                $"{(double)systemUsage.MemoryUsed / systemUsage.MemoryTotal * 100:N2}%"));
+
+        container.AddComponents(new ComponentSeparatorProperties());
+        container.AddComponents(new TextDisplayProperties($"### __System Status__\n" +
+                                                          $"**MongoDB**: {(mongoDbStatus ? "Online" : "Offline")}\n" +
+                                                          $"**Redis**: {(cacheStatus ? "Online" : "Offline")}\n" +
+                                                          $"**Prometheus**: {(systemUsage.CpuUsage > 0 ? "Online" : "Offline")}\n" +
+                                                          $"**Discord Latency**: {m_GatewayClient.Latency.TotalMilliseconds} ms"));
+
+        container.AddComponents(new ComponentSeparatorProperties());
+        container.AddComponents(new TextDisplayProperties($"### __API Status__\n" +
+                                                          $"{apiStatus}"));
+
+        await Context.Interaction.SendFollowupMessageAsync(response);
     }
 }
