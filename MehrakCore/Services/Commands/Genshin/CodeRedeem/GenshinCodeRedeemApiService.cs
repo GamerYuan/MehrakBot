@@ -61,6 +61,7 @@ public class GenshinCodeRedeemApiService : ICodeRedeemApiService<GenshinCommandM
         {
             0 => ApiResult<string>.Success("Redeemed Successfully!"),
             -2001 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Expired"),
+            -2003 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Invalid Code"),
             -2016 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption in Cooldown"),
             -2017 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Already Used"),
             _ => ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
