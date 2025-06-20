@@ -135,9 +135,17 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 return;
             }
 
-            var tasks = floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!)).DistinctBy(x => x.Id)
+            var tasks = floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!))
+                .Concat(abyssData.RevealRank!.Select(x => new Avatar
+                {
+                    Icon = x.AvatarIcon,
+                    Id = x.AvatarId,
+                    Rarity = x.Rarity
+                }))
+                .DistinctBy(x => x.Id)
                 .Select(async x =>
                     await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString()!, x.Icon!));
+
             var sideAvatarTasks = abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
                 .Concat(abyssData.EnergySkillRank!)
                 .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
