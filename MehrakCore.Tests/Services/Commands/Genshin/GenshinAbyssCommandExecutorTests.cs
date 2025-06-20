@@ -103,9 +103,9 @@ public class GenshinAbyssCommandExecutorTests
 
         // Setup virtual method mocks for ImageUpdaterService
         m_ImageUpdaterServiceMock.Setup(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(Task.CompletedTask);
+            .Returns(ValueTask.CompletedTask);
         m_ImageUpdaterServiceMock.Setup(x => x.UpdateSideAvatarAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(Task.CompletedTask);
+            .Returns(ValueTask.CompletedTask);
 
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
         m_LoggerMock = new Mock<ILogger<GenshinCommandModule>>();

@@ -31,7 +31,7 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
 
     public abstract Task UpdateDataAsync(T characterInformation, IEnumerable<Dictionary<string, string>> wiki);
 
-    public virtual async Task UpdateAvatarAsync(string avatarId, string avatarUrl)
+    public virtual async ValueTask UpdateAvatarAsync(string avatarId, string avatarUrl)
     {
         if (string.IsNullOrEmpty(avatarId) || string.IsNullOrEmpty(avatarUrl))
         {
@@ -61,7 +61,7 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
         await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
     }
 
-    public virtual async Task UpdateSideAvatarAsync(string avatarId, string avatarUrl)
+    public virtual async ValueTask UpdateSideAvatarAsync(string avatarId, string avatarUrl)
     {
         if (string.IsNullOrEmpty(avatarId) || string.IsNullOrEmpty(avatarUrl))
         {
