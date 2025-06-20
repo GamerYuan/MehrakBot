@@ -462,7 +462,18 @@ public class GenshinRealTimeNotesCommandExecutorTests
         {
             retcode = 0,
             message = "OK",
-            data = TestGameUid
+            data = new
+            {
+                list = new[]
+                {
+                    new
+                    {
+                        game_uid = TestGameUid,
+                        nickname = "TestPlayer",
+                        level = 60
+                    }
+                }
+            }
         };
 
         var responseContent = new StringContent(
@@ -474,7 +485,8 @@ public class GenshinRealTimeNotesCommandExecutorTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri != null && req.RequestUri.ToString().Contains("game_record")),
+                    req.RequestUri != null && req.RequestUri.ToString().Contains("getUserGameRolesByLtoken",
+                        StringComparison.OrdinalIgnoreCase)),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {

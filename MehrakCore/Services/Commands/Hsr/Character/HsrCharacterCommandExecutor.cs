@@ -89,12 +89,12 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
             var region = RegionUtility.GetRegion(server);
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameUidAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
+            var result = await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
                 region);
 
             if (!result.IsSuccess) return;
 
-            var gameUid = result.Data;
+            var gameUid = result.Data.GameUid!;
             var characterList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region))
                 .FirstOrDefault();
 

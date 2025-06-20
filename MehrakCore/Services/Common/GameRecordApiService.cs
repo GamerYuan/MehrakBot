@@ -2,6 +2,7 @@
 
 using System.Net.Http.Json;
 using System.Net.NetworkInformation;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Common;
 
-public class GameRecordApiService : IApiService
+public class GameRecordApiService : IApiService<object>
 {
     private const string GameRecordApiUrl =
         "https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard";
@@ -77,7 +78,7 @@ public class GameRecordApiService : IApiService
     /// <param name="gameIdentifier">Game identifier</param>
     /// <param name="region">Region string</param>
     /// <returns>ApiResult containing the game UID and HTTP status code</returns>
-    public async Task<ApiResult<string>> GetUserRegionUidAsync(ulong uid, string ltoken, string gameIdentifier,
+    public async Task<ApiResult<UserGameData>> GetUserGameDataAsync(ulong uid, string ltoken, string gameIdentifier,
         string region)
     {
         try
@@ -100,15 +101,16 @@ public class GameRecordApiService : IApiService
             {
                 m_Logger.LogWarning("Game roles API returned non-success status code: {StatusCode}",
                     response.StatusCode);
-                return ApiResult<string>.Failure(response.StatusCode, "API returned error status code");
+                return ApiResult<UserGameData>.Failure(response.StatusCode, "API returned error status code");
             }
 
             var node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            var gameUid = node?["data"]?["list"]?[0]?["game_uid"]?.GetValue<string>();
+            var gameUid = node?["data"]?["list"]?[0].Deserialize<UserGameData>();
 
             m_Logger.LogInformation("Successfully retrieved game UID {GameUid} for user {Uid} on {Region}",
                 gameUid, uid, region);
-            return ApiResult<string>.Success(gameUid!, node?["retcode"]?.GetValue<int>() ?? 0, response.StatusCode);
+            return ApiResult<UserGameData>.Success(gameUid!, node?["retcode"]?.GetValue<int>() ?? 0,
+                response.StatusCode);
         }
         catch (Exception ex)
         {

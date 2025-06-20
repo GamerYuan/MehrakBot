@@ -245,8 +245,7 @@ public class HsrCharacterCommandExecutorTests
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
                         { GameName.HonkaiStarRail, Regions.Asia }
-                    },
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    },                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
                 }
             }
         };
@@ -257,6 +256,9 @@ public class HsrCharacterCommandExecutorTests
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
+
+        // Setup game record API for fetching game UID
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
 
         // Setup character API
         SetupCharacterApiForSuccessfulResponse();
@@ -332,13 +334,14 @@ public class HsrCharacterCommandExecutorTests
                 }
             }
         };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache to return a token
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);        // Setup token cache to return a token
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
         // Setup character API
         SetupCharacterApiForSuccessfulResponse();
@@ -473,9 +476,10 @@ public class HsrCharacterCommandExecutorTests
             }
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Set pending parameters
-        await m_Executor.ExecuteAsync("Trailblazer", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Trailblazer", Regions.Asia, 1u); var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
 
         SetupCharacterApiForSuccessfulResponse();
 
@@ -523,13 +527,14 @@ public class HsrCharacterCommandExecutorTests
                 }
             }
         };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache to return a token
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);        // Setup token cache to return a token
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
         // Setup character API to return data without the requested character
         var testCharacterData = CreateTestCharacterInfo();
@@ -580,13 +585,14 @@ public class HsrCharacterCommandExecutorTests
                 }
             }
         };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache to return a token
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);        // Setup token cache to return a token
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
         // Setup character API to return empty data
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
@@ -629,13 +635,14 @@ public class HsrCharacterCommandExecutorTests
                 }
             }
         };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache to return a token
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);        // Setup token cache to return a token
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
         SetupCharacterApiForSuccessfulResponse();
 
@@ -692,20 +699,8 @@ public class HsrCharacterCommandExecutorTests
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes); // Setup HTTP handler to return game UID
-        var gameRoleApiResponse = new
-        {
-            retcode = 0,
-            data = new
-            {
-                list = new[]
-                {
-                    new { game_uid = TestGameUid }
-                }
-            }
-        };
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK,
-            JsonSerializer.Serialize(gameRoleApiResponse));
+            .ReturnsAsync(tokenBytes);        // Setup HTTP handler to return game UID
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
         SetupCharacterApiForSuccessfulResponse();
 
@@ -767,14 +762,8 @@ public class HsrCharacterCommandExecutorTests
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes); // Setup HTTP handler to return invalid auth error
-        var gameRoleApiResponse = new
-        {
-            retcode = -100,
-            data = (object?)null
-        };
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK,
-            JsonSerializer.Serialize(gameRoleApiResponse)); // Act
+            .ReturnsAsync(tokenBytes);        // Setup HTTP handler to return invalid auth error
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateInvalidAuthGameRecordResponse());// Act
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
@@ -811,13 +800,16 @@ public class HsrCharacterCommandExecutorTests
                 }
             }
         };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache to return a token
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);        // Setup token cache to return a token
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes); // Setup character API to return empty list (simulates no character data)
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup character API to return empty list (simulates no character data)
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
             .ReturnsAsync(new List<HsrBasicCharacterData>());
 
@@ -832,6 +824,51 @@ public class HsrCharacterCommandExecutorTests
     #endregion
 
     #region Helper Methods
+
+    private string CreateValidGameRecordResponse(Regions region = Regions.Asia)
+    {
+        var regionMapping = region switch
+        {
+            Regions.Asia => "prod_official_asia",
+            Regions.Europe => "prod_official_eur",
+            Regions.America => "prod_official_usa",
+            Regions.Sar => "prod_official_cht",
+            _ => "prod_official_asia"
+        };
+
+        var gameRecord = new
+        {
+            retcode = 0,
+            message = "OK",
+            data = new
+            {
+                list = new[]
+                {
+                    new
+                    {
+                        game_uid = TestGameUid,
+                        nickname = "TestPlayer",
+                        region = regionMapping,
+                        level = 70,
+                        region_name = region.ToString()
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(gameRecord);
+    }
+
+    private string CreateInvalidAuthGameRecordResponse()
+    {
+        var gameRecord = new
+        {
+            retcode = -100,
+            data = (object?)null
+        };
+
+        return JsonSerializer.Serialize(gameRecord);
+    }
 
     private static HsrCharacterInformation CreateTestCharacterInfo()
     {
@@ -904,14 +941,16 @@ public class HsrCharacterCommandExecutorTests
                     }
                 }
             }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+        }; await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         // Setup token cache to return a token
         var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(inputRegion));
 
         SetupCharacterApiForSuccessfulResponse();
 
@@ -954,8 +993,7 @@ public class HsrCharacterCommandExecutorTests
                         }
                     },
                     LastUsedRegions = new Dictionary<GameName, Regions>
-                    {
-                        { GameName.HonkaiStarRail, Regions.Asia } // Different from what we'll use
+                    {                        { GameName.HonkaiStarRail, Regions.Asia } // Different from what we'll use
                     }
                 }
             }
@@ -967,6 +1005,9 @@ public class HsrCharacterCommandExecutorTests
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
         SetupCharacterApiForSuccessfulResponse();
 

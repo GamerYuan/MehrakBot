@@ -103,12 +103,12 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
             var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameUidAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
+            var result = await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
                 server.GetRegion());
 
             if (!result.IsSuccess) return;
 
-            var gameUid = result.Data;
+            var gameUid = result.Data.GameUid!;
             var notesResult = await m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
 
             if (!notesResult.IsSuccess)
