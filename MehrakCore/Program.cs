@@ -17,6 +17,7 @@ using MehrakCore.Services.Commands.Genshin.CodeRedeem;
 using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
+using MehrakCore.Services.Commands.Hsr.CodeRedeem;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
@@ -142,6 +143,9 @@ internal class Program
             builder.Services.AddSingleton<IRealTimeNotesApiService<HsrRealTimeNotesData>, HsrRealTimeNotesApiService>();
             builder.Services
                 .AddTransient<IRealTimeNotesCommandExecutor<HsrCommandModule>, HsrRealTimeNotesCommandExecutor>();
+            builder.Services.AddSingleton<ICodeRedeemApiService<HsrCommandModule>, HsrCodeRedeemApiService>();
+            builder.Services
+                .AddTransient<ICodeRedeemExecutor<HsrCommandModule>, HsrCodeRedeemExecutor>();
 
             // Daily Check-In Services
             builder.Services

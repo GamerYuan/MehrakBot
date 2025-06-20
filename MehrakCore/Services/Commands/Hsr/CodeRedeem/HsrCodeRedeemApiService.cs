@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Commands.Hsr.CodeRedeem;
 
-public class HsrCodeRedeemApiService : ICodeRedeemApiService<GenshinCommandModule>
+public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
 {
     private const string ApiUrl = "https://public-operation-hkrpg.hoyolab.com/common/apicdkey/api/webExchangeCdkeyHyl";
 
