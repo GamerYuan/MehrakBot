@@ -5,6 +5,7 @@ using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
+using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -142,6 +143,7 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                     .AddComponents(new TextDisplayProperties($"Code redeemed successfully: {code}")));
+                BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", true);
             }
             else
             {
@@ -150,6 +152,7 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                     .AddComponents(new TextDisplayProperties(response.ErrorMessage)));
+                BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", false);
             }
         }
         catch (Exception e)
@@ -159,6 +162,7 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                 .AddComponents(new TextDisplayProperties(
                     "An error occurred while redeeming the code. Please try again later.")));
+            BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", false);
         }
     }
 }
