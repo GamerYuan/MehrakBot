@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Text.Json.Nodes;
 using MehrakCore.Models;
 using MehrakCore.Modules;
@@ -67,12 +66,5 @@ public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
             _ => ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
                 $"API returned an error: {json["message"]?.ToString() ?? "Unknown error"}")
         };
-    }
-
-    public async Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
-    {
-        var ping = new Ping();
-        var reply = await ping.SendPingAsync("public-operation-hkrpg.hoyolab.com", 1000);
-        return [("Honkai: Star Rail: ", reply.Status == IPStatus.Success)];
     }
 }
