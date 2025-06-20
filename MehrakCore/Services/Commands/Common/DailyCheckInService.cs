@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -177,15 +176,5 @@ public class DailyCheckInService : IDailyCheckInService
                 return ApiResult<bool>.Failure(response.StatusCode,
                     $"An unknown error occurred during check-in");
         }
-    }
-
-    public Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
-    {
-        return Task.FromResult(CheckInUrls.ToAsyncEnumerable().SelectAwait(async x =>
-        {
-            Ping ping = new();
-            var reply = await ping.SendPingAsync(new Uri(x.Value).Host);
-            return ($"{GetFormattedGameName(x.Key)}", reply.Status == IPStatus.Success);
-        }).ToEnumerable());
     }
 }

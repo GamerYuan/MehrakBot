@@ -2,7 +2,6 @@
 
 using System.Net;
 using System.Net.Http.Json;
-using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
@@ -142,21 +141,5 @@ public class GameRecordApiService : IApiService<object>
             m_Logger.LogError(ex, "Error retrieving game UID for user {Uid} on {Region}", uid, region);
             throw;
         }
-    }
-
-    public async Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
-    {
-        Ping gameRecordPing = new();
-        Ping gameUserRolePing = new();
-
-        var tasks = new List<(string, bool)>
-        {
-            ("Game Record API",
-                (await gameRecordPing.SendPingAsync(new Uri(GameRecordApiUrl).Host)).Status == IPStatus.Success),
-            ("Game User Role API",
-                (await gameUserRolePing.SendPingAsync(new Uri(GameUserRoleApiUrl).Host)).Status == IPStatus.Success)
-        };
-
-        return tasks;
     }
 }
