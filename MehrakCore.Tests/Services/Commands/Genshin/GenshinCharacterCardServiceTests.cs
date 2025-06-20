@@ -67,7 +67,18 @@ public class GenshinCharacterCardServiceTests
         var image = await service.GenerateCharacterCardAsync(characterDetail.List[0], "Test");
         using var file = new MemoryStream();
         await image.CopyToAsync(file);
+
+        // Save generated image to output folder for comparison
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory, "GenshinCharacter_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, file.ToArray());
+
         var goldenImage = await File.ReadAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage.jpg");
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinCharacter_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert
         Assert.That(file.ToArray(), Is.EqualTo(goldenImage));
@@ -88,7 +99,18 @@ public class GenshinCharacterCardServiceTests
         var image = await service.GenerateCharacterCardAsync(characterDetail.List[0], "Test");
         using var file = new MemoryStream();
         await image.CopyToAsync(file);
+
+        // Save generated image to output folder for comparison
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory, "GenshinCharacterWithSet_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, file.ToArray());
+
         var goldenImage = await File.ReadAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage_WithSet.jpg");
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinCharacterWithSet_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert
         Assert.That(file.ToArray(), Is.EqualTo(goldenImage));

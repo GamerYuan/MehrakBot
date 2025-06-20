@@ -78,6 +78,17 @@ public class GenshinAbyssCardServiceTests
         memoryStream.Position = 0;
 
         var bytes = memoryStream.ToArray();
+
+        // Save generated image to output folder for comparison
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data1_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, bytes);
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data1_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
+
         Assert.That(bytes, Is.Not.Empty);
         Assert.That(bytes, Is.EqualTo(goldenImage));
     }
@@ -101,6 +112,17 @@ public class GenshinAbyssCardServiceTests
         memoryStream.Position = 0;
 
         var bytes = memoryStream.ToArray();
+
+        // Save generated image to output folder for comparison
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data2_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, bytes);
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data2_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
+
         Assert.That(bytes, Is.Not.Empty);
         Assert.That(bytes, Is.EqualTo(goldenImage));
     }
