@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Genshin;
@@ -80,12 +79,5 @@ public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRe
             return ApiResult<GenshinRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while fetching real-time notes");
         }
-    }
-
-    public async Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
-    {
-        Ping ping = new();
-        var result = await ping.SendPingAsync(new Uri(ApiUrl).Host);
-        return [("Genshin Impact", result.Status == IPStatus.Success)];
     }
 }

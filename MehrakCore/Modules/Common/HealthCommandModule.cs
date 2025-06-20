@@ -56,44 +56,6 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
 
         var mongoDbStatus = await m_MongoDbService.IsConnected();
         var cacheStatus = m_RedisConnection.IsConnected;
-
-        var checkinStatus = m_DailyCheckInService.GetApiStatusAsync();
-        var genshinApiStatus = m_GenshinCharacterApi.GetApiStatusAsync();
-        var hsrApiStatus = m_HsrCharacterApi.GetApiStatusAsync();
-        var gameRecordApiStatus = m_GameRecordApiService.GetApiStatusAsync();
-
-        await Task.WhenAll(checkinStatus, genshinApiStatus, hsrApiStatus, gameRecordApiStatus);
-        var apiStatus = string.Join('\n',
-            $"**Daily Check In API**\n{FormatApiStatus(checkinStatus.Result)}\n" +
-            $"**Character API**\n{FormatApiStatus(genshinApiStatus.Result)}\n{FormatApiStatus(hsrApiStatus.Result)}\n" +
-            $"**Other API**\n{FormatApiStatus(gameRecordApiStatus.Result)}");
-
-        var convert = Math.Pow(1024, 3);
-        container.AddComponents(new TextDisplayProperties("## Health Report"));
-        container.AddComponents(new ComponentSeparatorProperties());
-        if (systemUsage.CpuUsage < 0)
-            container.AddComponents(new TextDisplayProperties(
-                $"### __System Resources__\n" +
-                $"System monitor is offline"));
-        else
-            container.AddComponents(new TextDisplayProperties(
-                $"### __System Resources__\n" +
-                $"CPU: {systemUsage.CpuUsage:N2}%\n" +
-                $"Memory: {systemUsage.MemoryUsed / convert:N2}/{systemUsage.MemoryTotal / convert:N2} GB " +
-                $"{(double)systemUsage.MemoryUsed / systemUsage.MemoryTotal * 100:N2}%"));
-
-        container.AddComponents(new ComponentSeparatorProperties());
-        container.AddComponents(new TextDisplayProperties($"### __System Status__\n" +
-                                                          $"MongoDB: {(mongoDbStatus ? "Online" : "Offline")}\n" +
-                                                          $"Redis: {(cacheStatus ? "Online" : "Offline")}\n" +
-                                                          $"Prometheus: {(systemUsage.CpuUsage > 0 ? "Online" : "Offline")}\n" +
-                                                          $"Discord Latency: {m_GatewayClient.Latency.TotalMilliseconds} ms"));
-
-        container.AddComponents(new ComponentSeparatorProperties());
-        container.AddComponents(new TextDisplayProperties($"### __API Status__\n" +
-                                                          $"{apiStatus}"));
-
-        await RespondAsync(InteractionCallback.Message(response));
     }
 
     private static string FormatApiStatus(IEnumerable<(string, bool)> apiStatus)
