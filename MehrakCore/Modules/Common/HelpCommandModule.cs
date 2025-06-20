@@ -29,8 +29,8 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
             _ => "Available commands: \n" +
                  "- `/profile [add|delete|list]`\n" +
                  "- `/checkin`\n" +
-                 "- `/genshin [character]`\n" +
-                 "- `/hsr [character]`\n" +
+                 "- `/genshin [abyss|character|codes]`\n" +
+                 "- `/hsr [character|codes]`\n" +
                  "Use `/help <command>` to get help about a specific command or subcommand.\n" +
                  "For example: `/help genshin` or `/help genshin character`"
         };
