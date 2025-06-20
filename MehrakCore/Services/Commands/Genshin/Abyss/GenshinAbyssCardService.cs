@@ -96,8 +96,8 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Bottom
                     },
-                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!)):d} - " +
-                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!)):d}",
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!)):dd/MM/yyyy} - " +
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!)):dd/MM/yyyy}",
                     Color.White);
 
                 ctx.DrawText($"{gameData.Nickname}·AR {gameData.Level}", m_NormalFont, Color.White,
