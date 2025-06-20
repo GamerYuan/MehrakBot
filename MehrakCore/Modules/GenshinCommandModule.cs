@@ -23,11 +23,13 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     private readonly ILogger<GenshinCommandModule> m_Logger;
     private readonly ICharacterCommandExecutor<GenshinCommandModule> m_CharacterCommandExecutor;
     private readonly IRealTimeNotesCommandExecutor<GenshinCommandModule> m_NotesCommandExecutor;
+    private readonly ICodeRedeemExecutor<GenshinCommandModule> m_CodesRedeemExecutor;
     private readonly GenshinAbyssCommandExecutor m_AbyssCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
 
     public GenshinCommandModule(ICharacterCommandExecutor<GenshinCommandModule> characterCommandExecutor,
         IRealTimeNotesCommandExecutor<GenshinCommandModule> notesCommandExecutor,
+        ICodeRedeemExecutor<GenshinCommandModule> codesRedeemExecutor,
         GenshinAbyssCommandExecutor abyssCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<GenshinCommandModule> logger)
     {
@@ -35,6 +37,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         m_CharacterCommandExecutor = characterCommandExecutor;
         m_NotesCommandExecutor = notesCommandExecutor;
         m_AbyssCommandExecutor = abyssCommandExecutor;
+        m_CodesRedeemExecutor = codesRedeemExecutor;
         m_CommandRateLimitService = commandRateLimitService;
     }
 
@@ -80,6 +83,33 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         m_NotesCommandExecutor.Context = Context;
         await m_NotesCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
+    public async Task CodesCommand(
+        [SlashCommandParameter(Name = "code", Description = "Redemption Code (Case-insensitive)")]
+        string code,
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
+            Context.User.Id, code, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithContent("Redemption code cannot be empty")
+                    .WithFlags(MessageFlags.Ephemeral)));
+            return;
+        }
+
+        m_CodesRedeemExecutor.Context = Context;
+        await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("abyss", "Get Abyss status card")]

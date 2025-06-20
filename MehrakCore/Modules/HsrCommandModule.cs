@@ -18,17 +18,20 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 {
     private readonly ICharacterCommandExecutor<HsrCommandModule> m_CharacterCommandExecutor;
     private readonly IRealTimeNotesCommandExecutor<HsrCommandModule> m_RealTimeNotesCommandExecutor;
+    private readonly ICodeRedeemExecutor<HsrCommandModule> m_CodesRedeemExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<HsrCommandModule> m_Logger;
 
     public HsrCommandModule(ICharacterCommandExecutor<HsrCommandModule> characterCommandExecutor,
         IRealTimeNotesCommandExecutor<HsrCommandModule> realTimeNotesCommandExecutor,
-        CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger)
+        CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger,
+        ICodeRedeemExecutor<HsrCommandModule> codesRedeemExecutor)
     {
         m_CharacterCommandExecutor = characterCommandExecutor;
         m_RealTimeNotesCommandExecutor = realTimeNotesCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
+        m_CodesRedeemExecutor = codesRedeemExecutor;
     }
 
     [SubSlashCommand("character", "Get character card")]
@@ -80,6 +83,33 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
         return true;
+    }
+
+    [SubSlashCommand("codes", "Redeem Honkai: Star Rail codes")]
+    public async Task CodesCommand(
+        [SlashCommandParameter(Name = "code", Description = "Redemption Code (Case-insensitive)")]
+        string code,
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
+            Context.User.Id, code, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithContent("Redemption code cannot be empty")
+                    .WithFlags(MessageFlags.Ephemeral)));
+            return;
+        }
+
+        m_CodesRedeemExecutor.Context = Context;
+        await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")

@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -104,7 +105,31 @@ public class GameRecordApiService : IApiService<object>
             }
 
             var node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            var gameUid = node?["data"]?["list"]?[0].Deserialize<UserGameData>();
+
+            if (node?["retcode"]?.GetValue<int>() == -100)
+            {
+                m_Logger.LogWarning("Invalid ltoken or ltuid for user {Uid} on {Region}",
+                    uid, region);
+                return ApiResult<UserGameData>.Failure(HttpStatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate");
+            }
+
+            if (node?["retcode"]?.GetValue<int>() != 0)
+            {
+                m_Logger.LogWarning("Game roles API returned error code: {Retcode} - {Message}",
+                    node?["retcode"], node?["message"]);
+                return ApiResult<UserGameData>.Failure(HttpStatusCode.InternalServerError,
+                    $"An error occurred while retrieving profile information");
+            }
+
+            if (node["data"]?["list"] == null || node["data"]?["list"]?.AsArray().Count == 0)
+            {
+                m_Logger.LogWarning("No game data found for user {Uid} on {Region}", uid, region);
+                return ApiResult<UserGameData>.Failure(HttpStatusCode.NotFound,
+                    "No game information found. Please select the correct region");
+            }
+
+            var gameUid = node["data"]?["list"]?[0].Deserialize<UserGameData>();
 
             m_Logger.LogInformation("Successfully retrieved game UID {GameUid} for user {Uid} on {Region}",
                 gameUid, uid, region);
