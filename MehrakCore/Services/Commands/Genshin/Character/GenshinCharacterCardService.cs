@@ -287,7 +287,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     x.ApplyRoundedCorners(10);
                 });
                 ctx.DrawImage(statBackground, new Point(1450, 230), 1f);
-                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1450, 236),
+                ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1455, 236),
                     1f);
                 ctx.DrawText(charInfo.Weapon.MainProperty.Final, m_NormalFont, textColor, new PointF(1514, 240));
                 if (charInfo.Weapon.SubProperty != null)
@@ -301,7 +301,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         x.ApplyRoundedCorners(10);
                     });
                     ctx.DrawImage(substatBackground, new Point(1630, 230), 1f);
-                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1630, 236),
+                    ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1635, 236),
                         1f);
                     ctx.DrawText(charInfo.Weapon.SubProperty.Final, m_NormalFont, textColor, new PointF(1694, 240));
                 }
@@ -448,10 +448,23 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     var subStatImage = m_StatImages[subStat.PropertyType!.Value];
                     var xOffset = i % 2 * 290;
                     var yOffset = i / 2 * 80;
-                    ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
-                    ctx.DrawText(subStat.Value, m_NormalFont, Color.White, new PointF(439 + xOffset, 30 + yOffset));
+                    var color = Color.White;
+                    if (subStat.PropertyType is 2 or 5 or 8)
+                    {
+                        var dim = subStatImage.CloneAs<Rgba32>();
+                        dim.Mutate(x => x.Brightness(0.5f));
+                        ctx.DrawImage(dim, new Point(375 + xOffset, 26 + yOffset), 1f);
+                        color = Color.FromRgb(128, 128, 128);
+                    }
+                    else
+                    {
+                        ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
+                    }
+
+                    ctx.DrawText(subStat.Value, m_NormalFont, color, new PointF(439 + xOffset, 30 + yOffset));
+
                     var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
-                    ctx.DrawText(rolls, m_NormalFont, Color.White, new PointF(575 + xOffset, 15 + yOffset));
+                    ctx.DrawText(rolls, m_NormalFont, color, new PointF(575 + xOffset, 15 + yOffset));
                 }
 
                 relicImage.Dispose();
