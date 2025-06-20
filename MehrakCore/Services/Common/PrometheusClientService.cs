@@ -63,19 +63,11 @@ public class PrometheusClientService
 
     private async Task<PrometheusResponse?> QueryPrometheusAsync(string query)
     {
-        try
-        {
-            var encodedQuery = Uri.EscapeDataString(query);
-            var url = $"{PrometheusBaseUrl}/query?query={encodedQuery}";
+        var encodedQuery = Uri.EscapeDataString(query);
+        var url = $"{PrometheusBaseUrl}/query?query={encodedQuery}";
 
-            var httpClient = m_HttpClientFactory.CreateClient();
-            var response = await httpClient.GetStringAsync(url);
-            return JsonSerializer.Deserialize<PrometheusResponse>(response);
-        }
-        catch (Exception ex)
-        {
-            m_Logger.LogWarning("Error querying Prometheus: {Message}", ex.Message);
-            return null;
-        }
+        var httpClient = m_HttpClientFactory.CreateClient();
+        var response = await httpClient.GetStringAsync(url);
+        return JsonSerializer.Deserialize<PrometheusResponse>(response);
     }
 }

@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
@@ -124,15 +123,5 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
             "Successfully retrieved character data for user {Uid} on {Region} server (game UID: {GameUid})",
             uid, region, gameUid);
         return ApiResult<HsrCharacterInformation>.Success(character);
-    }
-
-    public async Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
-    {
-        Ping ping = new();
-        var result = await ping.SendPingAsync(new Uri(ApiUrl).Host);
-        return new List<(string, bool)>
-        {
-            ("Honkai: Star Rail", result.Status == IPStatus.Success)
-        };
     }
 }

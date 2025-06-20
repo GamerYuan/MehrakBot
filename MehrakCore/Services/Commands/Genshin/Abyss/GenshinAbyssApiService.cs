@@ -75,9 +75,4 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
                 "An unknown error occurred. Please try again later");
         }
     }
-
-    public async Task<IEnumerable<(string, bool)>> GetApiStatusAsync()
-    {
-        throw new NotImplementedException();
-    }
 }
