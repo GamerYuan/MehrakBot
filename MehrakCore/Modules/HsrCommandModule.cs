@@ -136,6 +136,15 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
                        "```/hsr codes HONKAISTARRAIL\n/hsr codes HONKAISTARRAIL Asia 2```",
+            "notes" => "## Real-time Notes\n" +
+                       "Get real-time notes for Honkai: Star Rail\n" +
+                       "### Usage\n" +
+                       "```/hsr notes [server] [profile]```\n" +
+                       "### Parameters\n" +
+                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                       "### Examples\n" +
+                       "```/hsr notes\n/hsr notes Asia 2```",
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
