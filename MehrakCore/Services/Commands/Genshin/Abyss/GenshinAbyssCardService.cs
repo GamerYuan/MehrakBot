@@ -78,15 +78,13 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
             disposableResources.AddRange(portraitImages.Values);
             disposableResources.AddRange(imageDict.Values);
             disposableResources.AddRange(sideAvatarImages.Values);
-            //var background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss"));
-            var background = new Image<Rgba32>(1500, 1595);
+            var background =
+                await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"));
             disposableResources.Add(background);
             var floorData = abyssData.Floors!.First(x => x.Index == floor);
 
             background.Mutate(ctx =>
             {
-                ctx.Clear(Color.DarkSlateBlue);
-
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
