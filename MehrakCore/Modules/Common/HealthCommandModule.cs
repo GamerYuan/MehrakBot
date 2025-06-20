@@ -32,6 +32,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         { "HoYoLAB API", "sg-public-api.hoyolab.com" },
         { "HoYoLAB Genshin API", "sg-hk4e-api.hoyolab.com" },
         { "HoYoLAB Genshin Operations API", "public-operation-hk4e.hoyolab.com" },
+        { "HoYoLAB HSR Operations API", "public-operation-hkrpg.hoyolab.com" },
         { "HoYoLAB Posts API", "bbs-api-os.hoyolab.com" },
         { "HoYoLAB Account API", "api-account-os.hoyolab.com" },
         { "HoYoWiki API", "sg-wiki-api-static.hoyolab.com" }
