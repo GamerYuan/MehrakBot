@@ -7,6 +7,7 @@ using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
+using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -170,12 +171,14 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin abyss", true);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error generating Abyss card for floor {Floor} and server {Server}",
                 floor, server);
             await SendErrorMessageAsync("An error occurred while generating the Abyss card. Please try again later.");
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin abyss", false);
         }
     }
 
