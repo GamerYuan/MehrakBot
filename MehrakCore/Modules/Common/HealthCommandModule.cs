@@ -70,13 +70,14 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         var mongoDbStatus = await m_MongoDbService.IsConnected();
         var cacheStatus = m_RedisConnection.IsConnected;
 
-        var apiStatus = string.Join('\n', HealthCheckComponents.ToAsyncEnumerable().SelectAwait(async x =>
+        var pingTasks = HealthCheckComponents.Select(async x =>
         {
             Ping ping = new();
             var pingResult = await ping.SendPingAsync(x.Value);
             return $"**{x.Key}**: {(pingResult.Status == IPStatus.Success ? "Online" : "Offline")}";
-        }).ToBlockingEnumerable());
+        }).ToList();
 
+        var apiStatus = string.Join('\n', await Task.WhenAll(pingTasks));
         var systemUsage = await systemUsageTask;
 
         var convert = Math.Pow(1024, 3);
