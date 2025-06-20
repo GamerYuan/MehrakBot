@@ -37,6 +37,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="MehrakCore.Tests"/>
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2"/>
     </ItemGroup>
 
     <ItemGroup>
