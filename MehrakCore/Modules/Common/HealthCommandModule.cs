@@ -108,4 +108,13 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
 
         await Context.Interaction.SendFollowupMessageAsync(response);
     }
+
+    public static string GetHelpString()
+    {
+        return "## Health\n" +
+               "Checks the health status of Mehrak and HoYoverse public APIs.\n" +
+               "### Usage\n" +
+               "```/health```\n" +
+               "-# This command is only available to users with the `Manage Server` or `Administrator` permissions.\n";
+    }
 }
