@@ -145,7 +145,8 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
                 .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
                     new TextDisplayProperties("No profile found. Please select the correct profile")
                 ]));
-            return ApiResult<string>.Failure(HttpStatusCode.BadRequest, "No profile found for the specified ltuid");
+            return ApiResult<string>.Failure(HttpStatusCode.BadRequest,
+                "No profile found. Please select the correct profile");
         }
 
         if (selectedProfile.GameUids == null ||
@@ -211,7 +212,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
                     new TextDisplayProperties("No profile found. Please select the correct profile")
                 ]));
             return ApiResult<UserGameData>.Failure(HttpStatusCode.BadRequest,
-                "No profile found for the specified ltuid");
+                "No profile found. Please select the correct profile");
         }
 
         var result =
