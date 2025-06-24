@@ -173,7 +173,9 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
                         ? $"{data.AcceptedExpeditionNum}/{data.MaxStamina}"
                         : "None Accepted!"),
                     new TextDisplayProperties(data.AcceptedExpeditionNum > 0
-                        ? $"-# Completes <t:{data.Expeditions!.Max(x => x.FinishTs)}:R>"
+                        ? data.Expeditions!.Max(x => x.FinishTs) > DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                            ? $"-# Completes <t:{data.Expeditions!.Max(x => x.FinishTs)}:R>"
+                            : "-# All Assignments Completed!"
                         : "-# To be dispatched")
                 ]),
             new ComponentSectionProperties(

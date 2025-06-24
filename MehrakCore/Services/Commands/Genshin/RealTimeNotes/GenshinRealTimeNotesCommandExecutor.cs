@@ -183,7 +183,9 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
                         ? $"{data.CurrentExpeditionNum}/{data.MaxExpeditionNum}"
                         : "None Dispatched!"),
                     new TextDisplayProperties(data.CurrentExpeditionNum > 0
-                        ? $"-# Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
+                        ? data.Expeditions!.Max(x => long.Parse(x.RemainedTime!)) > 0
+                            ? $"-# Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
+                            : "-# All Expeditions Completed"
                         : "-# To be dispatched")
                 ]),
             new ComponentSectionProperties(
