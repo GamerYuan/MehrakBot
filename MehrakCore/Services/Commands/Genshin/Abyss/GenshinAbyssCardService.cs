@@ -52,7 +52,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         m_AbyssStarIconLit = Image.LoadAsync(m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars").Result)
             .Result;
         m_AbyssStarIconUnlit = m_AbyssStarIconLit.CloneAs<Rgba32>();
-        m_AbyssStarIconUnlit.Mutate(ctx => ctx.Brightness(0.5f));
+        m_AbyssStarIconUnlit.Mutate(ctx => ctx.Brightness(0.35f));
     }
 
     public async ValueTask<Stream> GetAbyssCardAsync(uint floor, UserGameData gameData,
@@ -253,7 +253,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     for (int j = 0; j < 3; j++)
                     {
                         int xOffset = 1310 + j * 40;
-                        ctx.DrawImage(j < floorData.Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
+                        ctx.DrawImage(j < floorData.Levels[i].Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
                             new Point(xOffset, offset - 45), 1f);
                     }
 
