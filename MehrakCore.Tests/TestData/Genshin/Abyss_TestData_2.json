@@ -376,12 +376,12 @@
       "icon": "",
       "is_unlock": true,
       "settle_time": "0",
-      "star": 9,
+      "star": 3,
       "max_star": 9,
       "levels": [
         {
           "index": 1,
-          "star": 3,
+          "star": 2,
           "max_star": 3,
           "battles": [
             {
@@ -481,7 +481,7 @@
         },
         {
           "index": 2,
-          "star": 3,
+          "star": 1,
           "max_star": 3,
           "battles": [
             {
@@ -564,7 +564,7 @@
         },
         {
           "index": 3,
-          "star": 3,
+          "star": 0,
           "max_star": 3,
           "battles": [
             {
@@ -633,7 +633,7 @@
       "ley_line_disorder": []
     }
   ],
-  "total_star": 36,
+  "total_star": 30,
   "is_unlock": true,
   "is_just_skipped_floor": false,
   "skipped_floor": "10-3"
