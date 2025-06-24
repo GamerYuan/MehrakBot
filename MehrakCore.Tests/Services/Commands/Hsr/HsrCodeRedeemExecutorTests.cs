@@ -39,7 +39,6 @@ public class HsrCodeRedeemExecutorTests
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<HsrCommandModule>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -61,7 +60,6 @@ public class HsrCodeRedeemExecutorTests
 
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Setup HTTP client
         var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
@@ -69,7 +67,8 @@ public class HsrCodeRedeemExecutorTests
             .Returns(httpClient);
 
         // Initialize services
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheService =
             new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
         m_GameRecordApiService =
@@ -103,7 +102,6 @@ public class HsrCodeRedeemExecutorTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     [Test]

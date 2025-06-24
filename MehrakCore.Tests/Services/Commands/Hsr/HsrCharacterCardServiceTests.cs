@@ -20,7 +20,6 @@ public class HsrCharacterCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr");
 
-    private MongoTestHelper m_MongoTestHelper;
     private ImageRepository m_ImageRepository;
     private HsrImageUpdaterService m_HsrImageUpdaterService;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
@@ -29,9 +28,8 @@ public class HsrCharacterCardServiceTests
     [SetUp]
     public async Task Setup()
     {
-        m_MongoTestHelper = new MongoTestHelper();
-
-        m_ImageRepository = new ImageRepository(m_MongoTestHelper.MongoDbService, new NullLogger<ImageRepository>());
+        m_ImageRepository =
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, new NullLogger<ImageRepository>());
 
         m_HttpClientMock = new Mock<HttpClient>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
@@ -40,16 +38,6 @@ public class HsrCharacterCardServiceTests
 
         m_HsrImageUpdaterService = new HsrImageUpdaterService(m_ImageRepository, m_HttpClientFactoryMock.Object,
             new NullLogger<HsrImageUpdaterService>());
-        foreach (var image in
-                 Directory.EnumerateFiles(Path.Combine(TestDataPath, "Assets"), "*.png").Concat(
-                     Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr"), "*.png")))
-        {
-            var fileName = Path.GetFileNameWithoutExtension(image);
-            if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
-
-            await using var stream = File.OpenRead(image);
-            await m_ImageRepository.UploadFileAsync(fileName, stream);
-        }
 
         var dict =
             (ConcurrentDictionary<int, string>)typeof(HsrImageUpdaterService).GetField("m_SetMapping",
@@ -65,12 +53,6 @@ public class HsrCharacterCardServiceTests
         dict.TryAdd(63076, "Talia: Kingdom of Banditry");
         dict.TryAdd(63105, "Broken Keel");
         dict.TryAdd(63106, "Broken Keel");
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        m_MongoTestHelper.Dispose();
     }
 
     [Test]

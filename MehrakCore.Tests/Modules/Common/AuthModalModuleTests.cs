@@ -24,7 +24,6 @@ namespace MehrakCore.Tests.Modules.Common;
 public class AuthModalModuleTests
 {
     private DiscordTestHelper m_DiscordTestHelper;
-    private MongoTestHelper m_MongoTestHelper;
     private UserRepository m_UserRepository;
     private ServiceProvider m_ServiceProvider;
     private Mock<IDistributedCache> m_DistributedCacheMock;
@@ -43,8 +42,8 @@ public class AuthModalModuleTests
     public void Setup()
     {
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_Service = new ComponentInteractionService<ModalInteractionContext>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
         m_TokenCacheService =
@@ -72,7 +71,6 @@ public class AuthModalModuleTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
         m_ServiceProvider.Dispose();
     }
 

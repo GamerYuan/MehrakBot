@@ -39,7 +39,6 @@ public class HsrRealTimeNotesCommandExecutorTests
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<HsrRealTimeNotesCommandExecutor>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -53,7 +52,6 @@ public class HsrRealTimeNotesCommandExecutorTests
     {
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Create mocks for dependencies
         m_ApiServiceMock = new Mock<IRealTimeNotesApiService<HsrRealTimeNotesData>>();
@@ -73,7 +71,8 @@ public class HsrRealTimeNotesCommandExecutorTests
         m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
 
         // Create real services with mocked dependencies
-        m_ImageRepository = new ImageRepository(m_MongoTestHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
+        m_ImageRepository =
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
         m_GameRecordApiService = new GameRecordApiService(
             m_HttpClientFactoryMock.Object,
             NullLogger<GameRecordApiService>.Instance);
@@ -83,7 +82,8 @@ public class HsrRealTimeNotesCommandExecutorTests
             NullLogger<TokenCacheService>.Instance);
 
         // Use real UserRepository with in-memory MongoDB
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
 
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
@@ -148,6 +148,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         foreach (var imageName in imageNames)
         {
             var imagePath = Path.Combine(assetsPath, $"{imageName}.png");
+            // TODO: wtf is this
             if (File.Exists(imagePath))
             {
                 using var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
@@ -174,7 +175,6 @@ public class HsrRealTimeNotesCommandExecutorTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     #region ExecuteAsync Tests

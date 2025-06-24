@@ -38,7 +38,6 @@ public class DailyCheckInCommandModuleTests
     private CommandRateLimitService m_CommandRateLimitService = null!;
     private TokenCacheService m_TokenCacheService = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private ServiceProvider m_ServiceProvider = null!;
 
     [SetUp]
@@ -55,9 +54,6 @@ public class DailyCheckInCommandModuleTests
         // Create the test helper
         m_DiscordTestHelper = new DiscordTestHelper(command);
 
-        // Set up MongoDB
-        m_MongoTestHelper = new MongoTestHelper();
-
         // Set up command service
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
         m_CommandService.AddModule<DailyCheckInCommandModule>();
@@ -65,7 +61,7 @@ public class DailyCheckInCommandModuleTests
 
         // Set up real repository
         m_UserRepository =
-            new UserRepository(m_MongoTestHelper.MongoDbService,
+            new UserRepository(MongoTestHelper.Instance.MongoDbService,
                 NullLogger<UserRepository>.Instance); // Set up mocks for dependencies
         m_CheckInServiceMock = new Mock<IDailyCheckInService>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
@@ -129,7 +125,6 @@ public class DailyCheckInCommandModuleTests
     {
         m_ServiceProvider.Dispose();
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     [Test]

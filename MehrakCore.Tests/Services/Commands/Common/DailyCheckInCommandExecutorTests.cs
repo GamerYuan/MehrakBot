@@ -24,7 +24,6 @@ namespace MehrakCore.Tests.Services.Commands.Common;
 [Parallelizable(ParallelScope.Fixtures)]
 public class DailyCheckInCommandExecutorTests
 {
-    private MongoTestHelper m_MongoTestHelper;
     private DiscordTestHelper m_DiscordTestHelper;
     private DailyCheckInCommandExecutor m_Executor;
     private Mock<IDailyCheckInService> m_DailyCheckInServiceMock;
@@ -44,9 +43,6 @@ public class DailyCheckInCommandExecutorTests
     [SetUp]
     public async Task Setup()
     {
-        // Setup MongoDB helper
-        m_MongoTestHelper = new MongoTestHelper();
-
         // Setup Discord helper with daily check-in command
         var commandJson = new JsonApplicationCommand
         {
@@ -67,7 +63,8 @@ public class DailyCheckInCommandExecutorTests
         m_LoggerMock = new Mock<ILogger<DailyCheckInCommandExecutor>>();
 
         // Create real instances
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheService =
             new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
 
@@ -92,7 +89,6 @@ public class DailyCheckInCommandExecutorTests
     [TearDown]
     public void TearDown()
     {
-        m_MongoTestHelper.Dispose();
         m_DiscordTestHelper.Dispose();
         m_ServiceProvider.Dispose();
     }

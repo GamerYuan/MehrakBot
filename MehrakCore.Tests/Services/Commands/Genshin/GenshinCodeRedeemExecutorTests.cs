@@ -38,7 +38,6 @@ public class GenshinCodeRedeemExecutorTests
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<GenshinCommandModule>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -60,13 +59,13 @@ public class GenshinCodeRedeemExecutorTests
 
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Setup HTTP client
         var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(httpClient); // Initialize services
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheService =
             new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
         m_GameRecordApiService =
@@ -100,7 +99,6 @@ public class GenshinCodeRedeemExecutorTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     [Test]

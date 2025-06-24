@@ -23,7 +23,6 @@ public class ProfileCommandModuleTests
     private ApplicationCommandService<ApplicationCommandContext> m_CommandService;
     private UserRepository m_UserRepository;
     private DiscordTestHelper m_DiscordTestHelper;
-    private MongoTestHelper m_MongoTestHelper;
     private ServiceProvider m_ServiceProvider;
 
     [SetUp]
@@ -40,16 +39,14 @@ public class ProfileCommandModuleTests
         // Create the test helper
         m_DiscordTestHelper = new DiscordTestHelper(command);
 
-        // Set up MongoDB
-        m_MongoTestHelper = new MongoTestHelper();
-
         // Set up command service
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
         m_CommandService.AddModule<ProfileCommandModule>();
         await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
         // Set up real repository
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
 
         // Set up service provider
         m_ServiceProvider = new ServiceCollection().AddSingleton(m_CommandService).AddSingleton(m_UserRepository)
@@ -62,7 +59,6 @@ public class ProfileCommandModuleTests
     {
         m_ServiceProvider.Dispose();
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     [Test]

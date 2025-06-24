@@ -39,7 +39,6 @@ public class GenshinRealTimeNotesCommandExecutorTests
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<GenshinRealTimeNotesData>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -53,7 +52,6 @@ public class GenshinRealTimeNotesCommandExecutorTests
     {
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Create mocks for dependencies
         m_ApiServiceMock = new Mock<IRealTimeNotesApiService<GenshinRealTimeNotesData>>();
@@ -73,7 +71,8 @@ public class GenshinRealTimeNotesCommandExecutorTests
         m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
 
         // Create real services with mocked dependencies
-        m_ImageRepository = new ImageRepository(m_MongoTestHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
+        m_ImageRepository =
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
         m_GameRecordApiService = new GameRecordApiService(
             m_HttpClientFactoryMock.Object,
             NullLogger<GameRecordApiService>.Instance);
@@ -83,7 +82,8 @@ public class GenshinRealTimeNotesCommandExecutorTests
             NullLogger<TokenCacheService>.Instance);
 
         // Use real UserRepository with in-memory MongoDB
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
 
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
@@ -116,7 +116,6 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     private void SetupDistributedCacheMock()

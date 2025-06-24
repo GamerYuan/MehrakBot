@@ -27,7 +27,6 @@ public class DailyCheckInServiceTests
     private Mock<ILogger<DailyCheckInService>> m_LoggerMock = null!;
     private Mock<ILogger<GameRecordApiService>> m_GameRecordApiLoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<HttpMessageHandler> m_MockHttpMessageHandler = null!;
 
     // Constants for testing
@@ -43,8 +42,8 @@ public class DailyCheckInServiceTests
     public void Setup()
     {
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        m_MongoTestHelper = new MongoTestHelper();
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_LoggerMock = new Mock<ILogger<DailyCheckInService>>();
         m_GameRecordApiLoggerMock = new Mock<ILogger<GameRecordApiService>>();
         m_DiscordTestHelper = new DiscordTestHelper();
@@ -63,7 +62,6 @@ public class DailyCheckInServiceTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     [Test]

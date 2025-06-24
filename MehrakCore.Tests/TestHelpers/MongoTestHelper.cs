@@ -13,19 +13,16 @@ using MongoDB.Bson.Serialization.Serializers;
 
 namespace MehrakCore.Tests.TestHelpers;
 
-public class MongoTestHelper : IDisposable
+public sealed class MongoTestHelper : IDisposable
 {
+    public static MongoTestHelper Instance { get; private set; } = null!;
     public MongoDbService MongoDbService { get; }
 
     private readonly MongoDbRunner m_MongoRunner;
 
-    static MongoTestHelper()
-    {
-        BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
-    }
-
     public MongoTestHelper()
     {
+        BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
         m_MongoRunner = MongoDbRunner.Start(logger: NullLogger<MongoDbRunner>.Instance);
 
         var inMemorySettings = new Dictionary<string, string?>
@@ -39,6 +36,8 @@ public class MongoTestHelper : IDisposable
             .Build();
 
         MongoDbService = new MongoDbService(config, NullLogger<MongoDbService>.Instance);
+
+        Instance = this;
     }
 
     public void Dispose()

@@ -41,7 +41,6 @@ public class HsrCharacterCommandExecutorTests
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<HsrCharacterCommandExecutor>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -55,7 +54,6 @@ public class HsrCharacterCommandExecutorTests
     {
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Create mocks for dependencies
         m_CharacterApiMock = new Mock<ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>>();
@@ -70,7 +68,7 @@ public class HsrCharacterCommandExecutorTests
             .Returns(TestGuid);
 
         var imageRepository =
-            new ImageRepository(m_MongoTestHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
 
         m_ImageUpdaterServiceMock = new Mock<ImageUpdaterService<HsrCharacterInformation>>(
             imageRepository,
@@ -93,7 +91,8 @@ public class HsrCharacterCommandExecutorTests
             NullLogger<TokenCacheService>.Instance);
 
         // Use real UserRepository with in-memory MongoDB
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
 
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
@@ -134,7 +133,6 @@ public class HsrCharacterCommandExecutorTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     #region ExecuteAsync Tests

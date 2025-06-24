@@ -19,7 +19,6 @@ namespace MehrakCore.Tests.Services.Commands.Hsr;
 [Parallelizable(ParallelScope.Fixtures)]
 public class HsrImageUpdaterServiceTests
 {
-    private MongoTestHelper m_MongoHelper;
     private ImageRepository m_ImageRepository;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<HttpMessageHandler> m_HttpMessageHandlerMock;
@@ -33,8 +32,8 @@ public class HsrImageUpdaterServiceTests
     [SetUp]
     public async Task Setup()
     {
-        m_MongoHelper = new MongoTestHelper();
-        m_ImageRepository = new ImageRepository(m_MongoHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
+        m_ImageRepository =
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
 
         // Setup HTTP client mock
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
@@ -59,7 +58,6 @@ public class HsrImageUpdaterServiceTests
     public void TearDown()
     {
         m_HttpClient.Dispose();
-        m_MongoHelper.Dispose();
     }
 
     [Test]

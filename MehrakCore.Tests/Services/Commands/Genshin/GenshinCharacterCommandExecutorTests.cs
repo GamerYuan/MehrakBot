@@ -42,7 +42,6 @@ public class GenshinCharacterCommandExecutorTests
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<GenshinCharacterCommandExecutor>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -56,7 +55,6 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Create mocks for dependencies
         m_CharacterApiMock = new Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>>();
@@ -71,7 +69,7 @@ public class GenshinCharacterCommandExecutorTests
             .Returns(TestGuid);
 
         var imageRepository =
-            new ImageRepository(m_MongoTestHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
 
         m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(
             imageRepository,
@@ -94,7 +92,8 @@ public class GenshinCharacterCommandExecutorTests
             NullLogger<TokenCacheService>.Instance);
 
         // Use real UserRepository with in-memory MongoDB
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
 
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
@@ -135,7 +134,6 @@ public class GenshinCharacterCommandExecutorTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     #region ExecuteAsync Tests

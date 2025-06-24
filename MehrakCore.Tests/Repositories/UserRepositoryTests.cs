@@ -13,22 +13,14 @@ namespace MehrakCore.Tests.Repositories;
 [Parallelizable(ParallelScope.Fixtures)]
 public class UserRepositoryTests
 {
-    private MongoTestHelper m_MongoHelper;
     private UserRepository m_UserRepository;
     private Mock<ILogger<UserRepository>> m_LoggerMock;
 
     [SetUp]
     public void Setup()
     {
-        m_MongoHelper = new MongoTestHelper();
         m_LoggerMock = new Mock<ILogger<UserRepository>>();
-        m_UserRepository = new UserRepository(m_MongoHelper.MongoDbService, m_LoggerMock.Object);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        m_MongoHelper.Dispose();
+        m_UserRepository = new UserRepository(MongoTestHelper.Instance.MongoDbService, m_LoggerMock.Object);
     }
 
     [Test]

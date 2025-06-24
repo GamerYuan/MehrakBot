@@ -45,7 +45,6 @@ public class GenshinAbyssCommandExecutorTests
     private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<GenshinCommandModule>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -60,7 +59,6 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Load test data
         m_AbyssTestDataJson = await File.ReadAllTextAsync(
@@ -74,9 +72,9 @@ public class GenshinAbyssCommandExecutorTests
 
         // Setup distributed cache
         m_DistributedCacheMock = new Mock<IDistributedCache>(); // Create repositories and services
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService,
+        m_UserRepository = new UserRepository(MongoTestHelper.Instance.MongoDbService,
             new Mock<ILogger<UserRepository>>().Object);
-        m_ImageRepository = new ImageRepository(m_MongoTestHelper.MongoDbService,
+        m_ImageRepository = new ImageRepository(MongoTestHelper.Instance.MongoDbService,
             new Mock<ILogger<ImageRepository>>().Object);
 
         // Setup image assets (required for card service)
@@ -140,7 +138,6 @@ public class GenshinAbyssCommandExecutorTests
     public void TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     private async Task SetupImageAssets()
