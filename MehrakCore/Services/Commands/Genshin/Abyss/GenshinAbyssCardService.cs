@@ -252,7 +252,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     for (int j = 0; j < 3; j++)
                     {
                         int xOffset = 1310 + j * 40;
-                        ctx.DrawImage(i < floorData.Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
+                        ctx.DrawImage(j < floorData.Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
                             new Point(xOffset, offset - 45), 1f);
                     }
 
