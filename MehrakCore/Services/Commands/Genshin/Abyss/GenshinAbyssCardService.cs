@@ -61,7 +61,9 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         List<IDisposable> disposableResources = [];
         try
         {
-            var portraitImages = await abyssData.Floors!.SelectMany(x => x.Levels!.SelectMany(y => y.Battles!))
+            var floorData = abyssData.Floors!.First(x => x.Index == floor);
+
+            var portraitImages = await floorData.Levels!.SelectMany(y => y.Battles!)
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAwaitAsync(
                     async x => await Task.FromResult(x),
                     async x => await Image.LoadAsync(
@@ -81,7 +83,6 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
             var background =
                 await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"));
             disposableResources.Add(background);
-            var floorData = abyssData.Floors!.First(x => x.Index == floor);
 
             background.Mutate(ctx =>
             {
@@ -252,7 +253,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     for (int j = 0; j < 3; j++)
                     {
                         int xOffset = 1310 + j * 40;
-                        ctx.DrawImage(i < floorData.Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
+                        ctx.DrawImage(j < floorData.Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
                             new Point(xOffset, offset - 45), 1f);
                     }
 
