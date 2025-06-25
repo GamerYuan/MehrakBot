@@ -21,14 +21,6 @@ public class TestSetup
         var imageRepository =
             new ImageRepository(m_MongoTestHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
 
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "TestData"),
-                     "*.png", SearchOption.AllDirectories))
-        {
-            var fileName = Path.GetFileNameWithoutExtension(image);
-            await using var stream = File.OpenRead(image);
-            await imageRepository.UploadFileAsync(fileName, stream);
-        }
-
         foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"),
                      "*.png", SearchOption.AllDirectories))
         {

@@ -41,7 +41,8 @@ public class GenshinAbyssCardServiceTests
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
         var goldenImage =
-            await File.ReadAllBytesAsync(Path.Combine(TestDataPath, "Genshin", "Assets", "Abyss_GoldenImage_1.jpg"));
+            await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+                "TestAssets", "Abyss_GoldenImage_1.jpg"));
 
         var userGameData = GetTestUserGameData();
 
@@ -75,7 +76,8 @@ public class GenshinAbyssCardServiceTests
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
         var goldenImage =
-            await File.ReadAllBytesAsync(Path.Combine(TestDataPath, "Genshin", "Assets", "Abyss_GoldenImage_2.jpg"));
+            await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+                "TestAssets", "Abyss_GoldenImage_2.jpg"));
 
         var userGameData = GetTestUserGameData();
 

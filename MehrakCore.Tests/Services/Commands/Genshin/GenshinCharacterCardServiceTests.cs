@@ -47,7 +47,8 @@ public class GenshinCharacterCardServiceTests
         var outputImagePath = Path.Combine(outputDirectory, "GenshinCharacter_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, file.ToArray());
 
-        var goldenImage = await File.ReadAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage.jpg");
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+            "TestAssets", "GoldenImage.jpg"));
 
         // Save golden image to output folder for comparison
         var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinCharacter_Golden.jpg");
@@ -79,7 +80,8 @@ public class GenshinCharacterCardServiceTests
         var outputImagePath = Path.Combine(outputDirectory, "GenshinCharacterWithSet_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, file.ToArray());
 
-        var goldenImage = await File.ReadAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage_WithSet.jpg");
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+            "TestAssets", "GoldenImage_WithSet.jpg"));
 
         // Save golden image to output folder for comparison
         var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinCharacterWithSet_Golden.jpg");
