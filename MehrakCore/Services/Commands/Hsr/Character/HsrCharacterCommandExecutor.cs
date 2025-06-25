@@ -134,9 +134,9 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
         }
         catch (Exception e)
         {
-            Logger.LogError(
-                "Error sending character card response with character {CharacterName} for user {UserId}: {ErrorMessage}",
-                characterName, Context.Interaction.User.Id, e.Message);
+            Logger.LogError(e,
+                "Error sending character card response with character {CharacterName} for user {UserId}",
+                characterName, Context.Interaction.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties($"An unknown error occurred, please try again later.")));
