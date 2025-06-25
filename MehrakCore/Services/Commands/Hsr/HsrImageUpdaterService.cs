@@ -49,9 +49,9 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             UpdateRankImageAsync(characterInformation.Ranks!),
             UpdateRelicImageAsync(characterInformation.Relics!.Concat(characterInformation.Ornaments!), relicWiki)
         ];
-        if (characterInformation.Equip != null)
-            tasks.Add(UpdateEquipImageAsync(characterInformation.Equip,
-                equipWiki[characterInformation.Equip.Id.ToString()!]));
+        if (characterInformation.Equip != null &&
+            equipWiki.TryGetValue(characterInformation.Equip.Id.ToString()!, out var equipWikiUrl))
+            tasks.Add(UpdateEquipImageAsync(characterInformation.Equip, equipWikiUrl));
 
         Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
         var result = await Task.WhenAll(tasks);
