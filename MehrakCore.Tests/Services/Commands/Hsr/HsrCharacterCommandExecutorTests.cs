@@ -27,7 +27,7 @@ namespace MehrakCore.Tests.Services.Commands.Hsr;
 [Parallelizable(ParallelScope.Fixtures)]
 public class HsrCharacterCommandExecutorTests
 {
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
@@ -97,8 +97,10 @@ public class HsrCharacterCommandExecutorTests
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         // Set up interaction context
-        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
         m_ContextMock = new Mock<IInteractionContext>();
         m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
 
@@ -130,9 +132,10 @@ public class HsrCharacterCommandExecutorTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     #region ExecuteAsync Tests
@@ -171,7 +174,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -202,7 +205,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -233,7 +236,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -280,7 +283,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -298,7 +301,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(TestUserId, m_Executor),
+        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
             Times.Once);
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("auth_modal"));
@@ -314,7 +317,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -362,7 +365,7 @@ public class HsrCharacterCommandExecutorTests
         // Arrange
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -409,7 +412,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -438,7 +441,7 @@ public class HsrCharacterCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationFails_SendsErrorMessage()
     {
         // Arrange
-        var authResult = AuthenticationResult.Failure(TestUserId, "Authentication failed");
+        var authResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -455,7 +458,7 @@ public class HsrCharacterCommandExecutorTests
         // Arrange
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -476,7 +479,7 @@ public class HsrCharacterCommandExecutorTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Set pending parameters
         await m_Executor.ExecuteAsync("Trailblazer", Regions.Asia, 1u);
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup game record API
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
@@ -508,7 +511,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -566,7 +569,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -616,7 +619,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -682,7 +685,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -721,7 +724,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var updatedUser = await m_UserRepository.GetUserAsync(TestUserId);
+        var updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         var updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
         var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(updatedProfile?.GameUids, Is.Not.Null);
@@ -745,7 +748,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -781,7 +784,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -923,7 +926,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -977,7 +980,7 @@ public class HsrCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -1029,7 +1032,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var updatedUser = await m_UserRepository.GetUserAsync(TestUserId);
+        var updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         var updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
         Assert.That(updatedProfile?.LastUsedRegions?[GameName.HonkaiStarRail], Is.EqualTo(server));
     }

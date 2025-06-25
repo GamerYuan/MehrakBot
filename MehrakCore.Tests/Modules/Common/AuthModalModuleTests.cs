@@ -36,7 +36,7 @@ public class AuthModalModuleTests
 
     private const string SamplePassphrase = "sample_passphrase";
     private const string SampleToken = "sample_token";
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
 
     [SetUp]
     public void Setup()
@@ -65,6 +65,8 @@ public class AuthModalModuleTests
             .BuildServiceProvider();
 
         SetupDistributedCacheMock();
+
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
     }
 
     [TearDown]
@@ -93,7 +95,7 @@ public class AuthModalModuleTests
             .Returns(Task.CompletedTask);
     }
 
-    private static JsonUser CreateTestUser(ulong userId = TestUserId)
+    private JsonUser CreateTestUser(ulong userId)
     {
         return new JsonUser
         {
@@ -143,7 +145,7 @@ public class AuthModalModuleTests
     {
         // Arrange
         m_DiscordTestHelper.SetupRequestCapture();
-        var user = CreateTestUser();
+        var user = CreateTestUser(m_TestUserId);
         var jsonInteraction = CreateBaseInteraction(user);
         var testGuid = "test-guid-12345";
         jsonInteraction.Data = new JsonInteractionData
@@ -169,7 +171,7 @@ public class AuthModalModuleTests
 
         var userModel = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>
             {
@@ -217,7 +219,7 @@ public class AuthModalModuleTests
     {
         // Arrange
         m_DiscordTestHelper.SetupRequestCapture();
-        var user = CreateTestUser();
+        var user = CreateTestUser(m_TestUserId);
         var jsonInteraction = CreateBaseInteraction(user);
         var testGuid = "test-guid-12345";
         jsonInteraction.Data = new JsonInteractionData
@@ -270,7 +272,7 @@ public class AuthModalModuleTests
     {
         // Arrange
         m_DiscordTestHelper.SetupRequestCapture();
-        var user = CreateTestUser();
+        var user = CreateTestUser(m_TestUserId);
         var jsonInteraction = CreateBaseInteraction(user);
         var testGuid = "test-guid-12345";
         jsonInteraction.Data = new JsonInteractionData
@@ -296,7 +298,7 @@ public class AuthModalModuleTests
 
         var userModel = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>
             {
@@ -335,7 +337,7 @@ public class AuthModalModuleTests
     {
         // Arrange
         m_DiscordTestHelper.SetupRequestCapture();
-        var user = CreateTestUser();
+        var user = CreateTestUser(m_TestUserId);
         var jsonInteraction = CreateBaseInteraction(user);
         jsonInteraction.Data = new JsonInteractionData
         {
@@ -400,7 +402,7 @@ public class AuthModalModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Check that the user was created with the correct profile
-        var savedUser = await m_UserRepository.GetUserAsync(TestUserId);
+        var savedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(savedUser, Is.Not.Null);
         Assert.That(savedUser.Profiles?.ToList(), Has.Count.EqualTo(1));
         Assert.Multiple(() =>
@@ -415,7 +417,7 @@ public class AuthModalModuleTests
     {
         // Arrange
         m_DiscordTestHelper.SetupRequestCapture();
-        var user = CreateTestUser();
+        var user = CreateTestUser(m_TestUserId);
         var jsonInteraction = CreateBaseInteraction(user);
         jsonInteraction.Data = new JsonInteractionData
         {
@@ -489,7 +491,7 @@ public class AuthModalModuleTests
     {
         // Arrange
         m_DiscordTestHelper.SetupRequestCapture();
-        var user = CreateTestUser();
+        var user = CreateTestUser(m_TestUserId);
         var jsonInteraction = CreateBaseInteraction(user);
         jsonInteraction.Data = new JsonInteractionData
         {
@@ -541,7 +543,7 @@ public class AuthModalModuleTests
         // Create user with existing profile
         var userModel = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>
             {
@@ -580,7 +582,7 @@ public class AuthModalModuleTests
     {
         // Arrange
         m_DiscordTestHelper.SetupRequestCapture();
-        var user = CreateTestUser();
+        var user = CreateTestUser(m_TestUserId);
         var jsonInteraction = CreateBaseInteraction(user);
         jsonInteraction.Data = new JsonInteractionData
         {

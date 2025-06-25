@@ -27,7 +27,7 @@ namespace MehrakCore.Tests.Services.Commands.Hsr;
 [Parallelizable(ParallelScope.Fixtures)]
 public class HsrCodeRedeemExecutorTests
 {
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestCode = "TESTCODE123";
@@ -86,8 +86,10 @@ public class HsrCodeRedeemExecutorTests
             m_CodeRedeemApiServiceMock.Object,
             m_LoggerMock.Object);
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         // Setup Discord interaction
-        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "code",
+        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code",
             ("code", TestCode, ApplicationCommandOptionType.String),
             ("server", "America", ApplicationCommandOptionType.String),
             ("profile", 1, ApplicationCommandOptionType.Integer));
@@ -99,9 +101,10 @@ public class HsrCodeRedeemExecutorTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     [Test]
@@ -283,7 +286,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(TestUserId, m_Executor),
+        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
             Times.Once);
 
         // Verify that modal was sent (this would be captured by the DiscordTestHelper)
@@ -306,7 +309,7 @@ public class HsrCodeRedeemExecutorTests
         SetupTokenCacheEmpty();
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -324,7 +327,7 @@ public class HsrCodeRedeemExecutorTests
     public async Task OnAuthenticationCompletedAsync_FailedAuth_ShouldSendErrorResponse()
     {
         // Arrange
-        var authResult = AuthenticationResult.Failure(TestUserId, "Authentication failed");
+        var authResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -338,7 +341,7 @@ public class HsrCodeRedeemExecutorTests
     public async Task OnAuthenticationCompletedAsync_MissingPendingParameters_ShouldSendErrorResponse()
     {
         // Arrange
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act - Don't set pending parameters first
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -363,7 +366,7 @@ public class HsrCodeRedeemExecutorTests
         var pendingCodeField = executorType.GetField("m_PendingCode", BindingFlags.NonPublic | BindingFlags.Instance);
         pendingCodeField?.SetValue(m_Executor, string.Empty);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -389,7 +392,7 @@ public class HsrCodeRedeemExecutorTests
             executorType.GetField("m_PendingServer", BindingFlags.NonPublic | BindingFlags.Instance);
         pendingServerField?.SetValue(m_Executor, null);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -505,7 +508,7 @@ public class HsrCodeRedeemExecutorTests
 
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -525,7 +528,7 @@ public class HsrCodeRedeemExecutorTests
         SetupTokenCacheEmpty();
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, null!);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, null!);
 
         // Act & Assert - Should not throw exception
         Assert.DoesNotThrowAsync(async () => await m_Executor.OnAuthenticationCompletedAsync(authResult));
@@ -572,10 +575,10 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         var newContextMock = new Mock<IInteractionContext>();
-        var newInteraction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "code");
+        var newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
         newContextMock.Setup(x => x.Interaction).Returns(newInteraction);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, newContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -659,7 +662,7 @@ public class HsrCodeRedeemExecutorTests
         // Setup HTTP response for game record failure
         SetupHttpResponseForGameRecordFailure();
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -698,7 +701,7 @@ public class HsrCodeRedeemExecutorTests
         // Arrange
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -735,9 +738,9 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Delete user from database to simulate user being deleted during auth process
-        await m_UserRepository.DeleteUserAsync(TestUserId);
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -795,7 +798,7 @@ public class HsrCodeRedeemExecutorTests
                 It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("Service unavailable"));
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -832,7 +835,7 @@ public class HsrCodeRedeemExecutorTests
     {
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -865,7 +868,7 @@ public class HsrCodeRedeemExecutorTests
     {
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -890,7 +893,7 @@ public class HsrCodeRedeemExecutorTests
     {
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()

@@ -26,7 +26,7 @@ namespace MehrakCore.Tests.Services.Commands.Genshin;
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinRealTimeNotesCommandExecutorTests
 {
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
@@ -88,8 +88,10 @@ public class GenshinRealTimeNotesCommandExecutorTests
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         // Set up interaction context
-        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
         m_ContextMock = new Mock<IInteractionContext>();
         m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
 
@@ -107,15 +109,13 @@ public class GenshinRealTimeNotesCommandExecutorTests
         {
             Context = m_ContextMock.Object
         };
-
-        // Setup test image assets
-        SetupTestImageAssets();
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     private void SetupDistributedCacheMock()
@@ -143,23 +143,6 @@ public class GenshinRealTimeNotesCommandExecutorTests
             .ReturnsAsync((byte[]?)null);
     }
 
-    private void SetupTestImageAssets()
-    {
-        // Use real images from the Assets folder
-        var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin");
-        var imageNames = new[]
-            { "genshin_resin", "genshin_expedition", "genshin_teapot", "genshin_weekly", "genshin_transformer" };
-
-        foreach (var imageName in imageNames)
-        {
-            var imagePath = Path.Combine(assetsPath, $"{imageName}.png");
-            if (!File.Exists(imagePath)) continue;
-
-            var imageBytes = File.ReadAllBytes(imagePath);
-            m_ImageRepository.UploadFileAsync(imageName, new MemoryStream(imageBytes)).GetAwaiter().GetResult();
-        }
-    }
-
     #region Test Methods
 
     [Test]
@@ -184,7 +167,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
 
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>()
         };
@@ -249,7 +232,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
-            TestUserId, It.IsAny<IAuthenticationListener>()), Times.Once);
+            m_TestUserId, It.IsAny<IAuthenticationListener>()), Times.Once);
     }
 
     [Test]
@@ -360,7 +343,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         // Execute first to set up pending state
         await m_Executor.ExecuteAsync(server, profile);
 
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup API service to return success
         var notesData = CreateTestNotesData();
@@ -388,7 +371,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithFailedResult_SendsErrorMessage()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(TestUserId, "Invalid authentication token");
+        var result = AuthenticationResult.Failure(m_TestUserId, "Invalid authentication token");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -406,7 +389,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     {
         return new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>
             {
@@ -424,7 +407,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     {
         return new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>
             {

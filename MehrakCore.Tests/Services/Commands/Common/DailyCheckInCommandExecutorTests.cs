@@ -35,7 +35,7 @@ public class DailyCheckInCommandExecutorTests
     private ServiceProvider m_ServiceProvider;
     private ApplicationCommandService<ApplicationCommandContext> m_CommandService;
 
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
@@ -72,6 +72,8 @@ public class DailyCheckInCommandExecutorTests
             Mock.Of<IHttpClientFactory>(),
             NullLogger<GameRecordApiService>.Instance);
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         m_Executor = new DailyCheckInCommandExecutor(
             m_DailyCheckInServiceMock.Object,
             m_UserRepository,
@@ -87,10 +89,11 @@ public class DailyCheckInCommandExecutorTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
         m_ServiceProvider.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     private async Task ExecuteDailyCheckInCommand(ulong userId, uint? profile = null)
@@ -128,11 +131,11 @@ public class DailyCheckInCommandExecutorTests
     public async Task ExecuteAsync_WithNullProfile_ShouldUseDefaultProfile()
     {
         // Arrange
-        var user = new UserModel { Id = TestUserId, Profiles = new List<UserProfile>() };
+        var user = new UserModel { Id = m_TestUserId, Profiles = new List<UserProfile>() };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId);
+        await ExecuteDailyCheckInCommand(m_TestUserId);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -143,11 +146,11 @@ public class DailyCheckInCommandExecutorTests
     public async Task ExecuteAsync_WithUserHavingNoProfiles_ShouldReturnNoProfileMessage()
     {
         // Arrange
-        var user = new UserModel { Id = TestUserId, Profiles = new List<UserProfile>() };
+        var user = new UserModel { Id = m_TestUserId, Profiles = new List<UserProfile>() };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -158,11 +161,11 @@ public class DailyCheckInCommandExecutorTests
     public async Task ExecuteAsync_WithUserHavingNullProfiles_ShouldReturnNoProfileMessage()
     {
         // Arrange
-        var user = new UserModel { Id = TestUserId, Profiles = null };
+        var user = new UserModel { Id = m_TestUserId, Profiles = null };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -175,7 +178,7 @@ public class DailyCheckInCommandExecutorTests
         // Arrange
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 2, LtUid = TestLtUid }
@@ -184,7 +187,7 @@ public class DailyCheckInCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u); // Profile 1 doesn't exist
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u); // Profile 1 doesn't exist
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -197,7 +200,7 @@ public class DailyCheckInCommandExecutorTests
         // Arrange - Don't create any user
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -210,7 +213,7 @@ public class DailyCheckInCommandExecutorTests
         // Arrange
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid }
@@ -221,18 +224,18 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync((byte[]?)null);
 
         m_AuthenticationMiddlewareMock.Setup(x =>
-                x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()))
+                x.RegisterAuthenticationListener(m_TestUserId, It.IsAny<IAuthenticationListener>()))
             .Returns(TestGuid);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u); // Assert
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u); // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         // Should receive an authentication modal with the expected structure
         Assert.That(response, Contains.Substring("auth_modal:test-guid-12345:1"));
         Assert.That(response, Contains.Substring("Authenticate"));
         Assert.That(response, Contains.Substring("passphrase"));
         m_AuthenticationMiddlewareMock.Verify(
-            x => x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()),
+            x => x.RegisterAuthenticationListener(m_TestUserId, It.IsAny<IAuthenticationListener>()),
             Times.Once);
     }
 
@@ -242,7 +245,7 @@ public class DailyCheckInCommandExecutorTests
         // Arrange
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = null }
@@ -256,7 +259,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u); // Assert
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u); // Assert
         m_DailyCheckInServiceMock.Verify(
             x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), 1u, TestLtUid,
                 TestLToken),
@@ -274,7 +277,7 @@ public class DailyCheckInCommandExecutorTests
 
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
@@ -288,7 +291,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -312,7 +315,7 @@ public class DailyCheckInCommandExecutorTests
 
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
@@ -326,7 +329,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
@@ -348,7 +351,7 @@ public class DailyCheckInCommandExecutorTests
 
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
@@ -362,7 +365,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
@@ -377,7 +380,7 @@ public class DailyCheckInCommandExecutorTests
         // Arrange
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = null }
@@ -391,7 +394,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
@@ -406,7 +409,7 @@ public class DailyCheckInCommandExecutorTests
         // Arrange - Create a scenario that will throw an exception
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid }
@@ -423,7 +426,7 @@ public class DailyCheckInCommandExecutorTests
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -434,12 +437,12 @@ public class DailyCheckInCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulResult_ShouldCallCheckInService()
     {
         // Arrange
-        var result = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, Mock.Of<IInteractionContext>());
+        var result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, Mock.Of<IInteractionContext>());
 
         // Set up pending profile by calling ExecuteAsync first
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid }
@@ -449,10 +452,10 @@ public class DailyCheckInCommandExecutorTests
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
         m_AuthenticationMiddlewareMock.Setup(x =>
-                x.RegisterAuthenticationListener(TestUserId, It.IsAny<IAuthenticationListener>()))
+                x.RegisterAuthenticationListener(m_TestUserId, It.IsAny<IAuthenticationListener>()))
             .Returns(TestGuid);
 
-        await ExecuteDailyCheckInCommand(TestUserId, 1u); // This sets m_PendingProfile        // Act
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u); // This sets m_PendingProfile        // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
 
         // Assert
@@ -466,10 +469,10 @@ public class DailyCheckInCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithFailedResult_ShouldSendErrorMessage()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(TestUserId, "Authentication failed");
+        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Create interaction context for the error message
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
         var context = new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient);
         m_Executor.Context = context;
 
@@ -487,7 +490,7 @@ public class DailyCheckInCommandExecutorTests
         // Arrange
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid },
@@ -503,7 +506,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 2u); // Select profile 2        // Assert
+        await ExecuteDailyCheckInCommand(m_TestUserId, 2u); // Select profile 2        // Assert
         m_DailyCheckInServiceMock.Verify(
             x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
                 TestLtUid + 1, TestLToken), Times.Once);
@@ -513,7 +516,7 @@ public class DailyCheckInCommandExecutorTests
     public void Context_ShouldBeSettable()
     {
         // Arrange
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
         var newContext = new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient);
 
         // Act
@@ -536,7 +539,7 @@ public class DailyCheckInCommandExecutorTests
 
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
@@ -550,7 +553,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
@@ -572,7 +575,7 @@ public class DailyCheckInCommandExecutorTests
 
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
@@ -586,7 +589,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -609,7 +612,7 @@ public class DailyCheckInCommandExecutorTests
         // For now, let's test with a normal scenario since we can't easily mock TimeZoneInfo
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = null }
@@ -623,7 +626,7 @@ public class DailyCheckInCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Act & Assert - Should not throw an exception
-        await ExecuteDailyCheckInCommand(TestUserId, 1u);
+        await ExecuteDailyCheckInCommand(m_TestUserId, 1u);
 
         m_DailyCheckInServiceMock.Verify(
             x => x.CheckInAsync(It.IsAny<ApplicationCommandContext>(), It.IsAny<UserModel>(), It.IsAny<uint>(),

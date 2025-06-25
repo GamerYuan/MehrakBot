@@ -26,11 +26,12 @@ namespace MehrakCore.Tests.Services.Commands.Hsr;
 [Parallelizable(ParallelScope.Fixtures)]
 public class HsrRealTimeNotesCommandExecutorTests
 {
-    private const ulong TestUserId = 123456789UL;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
     private const string TestGameUid = "test_game_uid_12345";
+
+    private ulong m_TestUserId;
 
     private HsrRealTimeNotesCommandExecutor m_Executor = null!;
     private Mock<IRealTimeNotesApiService<HsrRealTimeNotesData>> m_ApiServiceMock = null!;
@@ -83,13 +84,15 @@ public class HsrRealTimeNotesCommandExecutorTests
 
         // Use real UserRepository with in-memory MongoDB
         m_UserRepository =
-            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
-
-        // Set up default distributed cache behavior
+            new UserRepository(MongoTestHelper.Instance.MongoDbService,
+                NullLogger<UserRepository>.Instance); // Set up default distributed cache behavior
         SetupDistributedCacheMock();
 
+        // Generate unique user ID for this test
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         // Set up interaction context
-        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
         m_ContextMock = new Mock<IInteractionContext>();
         m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
 
@@ -109,9 +112,6 @@ public class HsrRealTimeNotesCommandExecutorTests
         {
             Context = m_ContextMock.Object
         };
-
-        // Setup test image assets
-        SetupTestImageAssets();
     }
 
     private void SetupDistributedCacheMock()
@@ -139,42 +139,11 @@ public class HsrRealTimeNotesCommandExecutorTests
             .ReturnsAsync((byte[]?)null);
     }
 
-    private void SetupTestImageAssets()
-    {
-        // Use real images from the Assets folder
-        var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets");
-        var imageNames = new[] { "hsr_tbp", "hsr_assignment", "hsr_weekly", "hsr_rogue" };
-
-        foreach (var imageName in imageNames)
-        {
-            var imagePath = Path.Combine(assetsPath, $"{imageName}.png");
-            // TODO: wtf is this
-            if (File.Exists(imagePath))
-            {
-                using var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
-                m_ImageRepository.UploadFileAsync(imageName, fileStream, "image/png").GetAwaiter().GetResult();
-            }
-            else
-            {
-                // Fallback: create a minimal test image if the asset doesn't exist
-                var testImageData = new byte[]
-                {
-                    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-                    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-                    0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-                    0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-                    0x42, 0x60, 0x82
-                };
-                using var memoryStream = new MemoryStream(testImageData);
-                m_ImageRepository.UploadFileAsync(imageName, memoryStream, "image/png").GetAwaiter().GetResult();
-            }
-        }
-    }
-
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     #region ExecuteAsync Tests
@@ -249,11 +218,9 @@ public class HsrRealTimeNotesCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
-        await m_Executor.ExecuteAsync(server, profile);
-
-        // Assert
+        await m_Executor.ExecuteAsync(server, profile); // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
-            TestUserId, It.IsAny<IAuthenticationListener>()), Times.Once);
+            m_TestUserId, It.IsAny<IAuthenticationListener>()), Times.Once);
     }
 
     [Test]
@@ -432,7 +399,7 @@ public class HsrRealTimeNotesCommandExecutorTests
             server); // Set up the executor with a pending server (normally set during ExecuteAsync)
         await m_Executor.ExecuteAsync(server, profile); // This will trigger authentication
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -446,7 +413,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationFailed_SendsErrorResponse()
     {
         // Arrange
-        var authResult = AuthenticationResult.Failure(TestUserId, "Authentication failed");
+        var authResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -646,9 +613,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         SetupGameRecordApiForSuccessfulResponse(server);
 
         // Act
-        await m_Executor.ExecuteAsync(server, profile);
-
-        // Assert
+        await m_Executor.ExecuteAsync(server, profile); // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("Fully Claimed!"));
     }
@@ -661,7 +626,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     {
         return new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>
             {
@@ -679,7 +644,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     {
         return new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
             Profiles = new List<UserProfile>
             {

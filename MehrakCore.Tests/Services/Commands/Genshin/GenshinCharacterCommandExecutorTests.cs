@@ -29,7 +29,7 @@ namespace MehrakCore.Tests.Services.Commands.Genshin;
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCharacterCommandExecutorTests
 {
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
@@ -98,8 +98,10 @@ public class GenshinCharacterCommandExecutorTests
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         // Set up interaction context
-        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
         m_ContextMock = new Mock<IInteractionContext>();
         m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
 
@@ -131,9 +133,10 @@ public class GenshinCharacterCommandExecutorTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     #region ExecuteAsync Tests
@@ -172,7 +175,7 @@ public class GenshinCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -203,7 +206,7 @@ public class GenshinCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -234,7 +237,7 @@ public class GenshinCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -269,7 +272,7 @@ public class GenshinCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -290,7 +293,7 @@ public class GenshinCharacterCommandExecutorTests
         Assert.That(response, Contains.Substring("auth_modal:test-guid-12345:1"));
 
         // Verify authentication middleware was called
-        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(TestUserId, m_Executor),
+        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
             Times.Once);
     }
 
@@ -308,7 +311,7 @@ public class GenshinCharacterCommandExecutorTests
 
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -376,7 +379,7 @@ public class GenshinCharacterCommandExecutorTests
         const uint profile = 1; // Create a user with a profile to avoid the "no profile" path
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -412,7 +415,7 @@ public class GenshinCharacterCommandExecutorTests
         // Arrange - Create a user with a profile so the null parameters flow can trigger authentication modal
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -444,7 +447,7 @@ public class GenshinCharacterCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationFails_SendsErrorMessage()
     {
         // Arrange
-        var authResult = AuthenticationResult.Failure(TestUserId, "Invalid passphrase");
+        var authResult = AuthenticationResult.Failure(m_TestUserId, "Invalid passphrase");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -458,7 +461,7 @@ public class GenshinCharacterCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationSucceedsButMissingParameters_SendsErrorMessage()
     {
         // Arrange
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         // No pending parameters set
 
         // Act
@@ -480,7 +483,7 @@ public class GenshinCharacterCommandExecutorTests
         // Set pending parameters by calling ExecuteAsync first
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -534,7 +537,7 @@ public class GenshinCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, 1u); // Clear the captured request from ExecuteAsync
         m_DiscordTestHelper.ClearCapturedRequests();
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult); // Assert
@@ -549,12 +552,12 @@ public class GenshinCharacterCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenExceptionOccurs_SendsErrorMessage()
     {
         // Arrange
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Create a user in the database
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -609,7 +612,7 @@ public class GenshinCharacterCommandExecutorTests
         // Create and save user with profile and game UID
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -656,7 +659,7 @@ public class GenshinCharacterCommandExecutorTests
         // Create and save user with profile and game UID
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -716,7 +719,7 @@ public class GenshinCharacterCommandExecutorTests
         // Create and save user with profile and game UID
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -781,7 +784,7 @@ public class GenshinCharacterCommandExecutorTests
         // Create and save user with profile and game UID
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -864,7 +867,7 @@ public class GenshinCharacterCommandExecutorTests
         // Create and save user with profile but no game UID
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -931,7 +934,7 @@ public class GenshinCharacterCommandExecutorTests
         m_CharacterCardServiceMock.Verify(x => x.GenerateCharacterCardAsync(characterInfo, gameUid), Times.Once);
 
         // Verify user profile was updated with the game UID
-        var updatedUser = await m_UserRepository.GetUserAsync(TestUserId);
+        var updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(updatedUser?.Profiles?.First().GameUids?[GameName.Genshin][server.ToString()], Is.EqualTo(gameUid));
         Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[GameName.Genshin], Is.EqualTo(server));
 

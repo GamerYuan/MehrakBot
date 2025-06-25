@@ -26,7 +26,7 @@ public class HsrCharacterCardServiceTests
     private Mock<HttpClient> m_HttpClientMock;
 
     [SetUp]
-    public async Task Setup()
+    public void Setup()
     {
         m_ImageRepository =
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, new NullLogger<ImageRepository>());

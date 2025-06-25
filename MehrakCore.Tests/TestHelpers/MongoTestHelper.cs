@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Collections.Concurrent;
 using MehrakCore.Models;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +21,9 @@ public sealed class MongoTestHelper : IDisposable
 
     private readonly MongoDbRunner m_MongoRunner;
 
+    private readonly ConcurrentDictionary<ulong, int> m_TestUserIds = [];
+    private readonly Random m_Random = new();
+
     public MongoTestHelper()
     {
         BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
@@ -38,6 +42,15 @@ public sealed class MongoTestHelper : IDisposable
         MongoDbService = new MongoDbService(config, NullLogger<MongoDbService>.Instance);
 
         Instance = this;
+    }
+
+    public ulong GetUniqueUserId()
+    {
+        var userId = (ulong)(1_000_000_000 + m_Random.Next(0, 1_000_000_000));
+        while (!m_TestUserIds.TryAdd(userId, 1))
+            userId = (ulong)(1_000_000_000 + m_Random.Next(0, 1_000_000_000));
+
+        return userId;
     }
 
     public void Dispose()
