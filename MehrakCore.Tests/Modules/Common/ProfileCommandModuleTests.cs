@@ -18,13 +18,12 @@ namespace MehrakCore.Tests.Modules.Common;
 [Parallelizable(ParallelScope.Fixtures)]
 public class ProfileCommandModuleTests
 {
-    private const ulong TestUserId = 123456789UL;
-
     private ApplicationCommandService<ApplicationCommandContext> m_CommandService;
     private UserRepository m_UserRepository;
     private DiscordTestHelper m_DiscordTestHelper;
-    private MongoTestHelper m_MongoTestHelper;
     private ServiceProvider m_ServiceProvider;
+    private readonly List<ulong> m_TestUserIds = new();
+    private readonly Random m_Random = new();
 
     [SetUp]
     public async Task Setup()
@@ -40,16 +39,14 @@ public class ProfileCommandModuleTests
         // Create the test helper
         m_DiscordTestHelper = new DiscordTestHelper(command);
 
-        // Set up MongoDB
-        m_MongoTestHelper = new MongoTestHelper();
-
         // Set up command service
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
         m_CommandService.AddModule<ProfileCommandModule>();
         await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
         // Set up real repository
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
 
         // Set up service provider
         m_ServiceProvider = new ServiceCollection().AddSingleton(m_CommandService).AddSingleton(m_UserRepository)
@@ -58,20 +55,33 @@ public class ProfileCommandModuleTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
+        // Clean up all test users created during this test
+        foreach (var userId in m_TestUserIds)
+        {
+            await m_UserRepository.DeleteUserAsync(userId);
+        }
+        m_TestUserIds.Clear();
+
         m_ServiceProvider.Dispose();
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
+    private ulong GetUniqueUserId()
+    {
+        var userId = (ulong)(1_000_000_000 + m_Random.Next(0, 1_000_000_000));
+        m_TestUserIds.Add(userId);
+        return userId;
+    }
     [Test]
     public async Task ListProfileCommand_WithProfiles_DisplaysCorrectProfiles()
     {
         // Arrange
+        var testUserId = GetUniqueUserId();
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = testUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -91,7 +101,7 @@ public class ProfileCommandModuleTests
         // Clear captured requests
         m_DiscordTestHelper.ClearCapturedRequests();
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "list");
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(testUserId, "list");
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -111,14 +121,14 @@ public class ProfileCommandModuleTests
         Assert.That(responseData, Contains.Substring("Profile 2"));
         Assert.That(responseData, Contains.Substring("222222"));
     }
-
     [Test]
     public async Task ListProfileCommand_WithNoProfiles_DisplaysNoProfilesMessage()
     {
         // Arrange
+        var testUserId = GetUniqueUserId();
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = testUserId,
             Profiles = new List<UserProfile>()
         };
 
@@ -128,7 +138,7 @@ public class ProfileCommandModuleTests
         // Clear captured requests
         m_DiscordTestHelper.ClearCapturedRequests();
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "list");
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(testUserId, "list");
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -145,14 +155,14 @@ public class ProfileCommandModuleTests
         Assert.That(responseData, Is.Not.Null);
         Assert.That(responseData, Contains.Substring("No profile found"));
     }
-
     [Test]
     public async Task DeleteProfileCommand_WithSpecificId_RemovesCorrectProfile()
     {
         // Arrange
+        var testUserId = GetUniqueUserId();
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = testUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -173,7 +183,7 @@ public class ProfileCommandModuleTests
         m_DiscordTestHelper.ClearCapturedRequests();
 
         // Set up delete command with profile ID 1
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "delete",
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(testUserId, "delete",
             ("profile", 1, ApplicationCommandOptionType.Integer));
 
         // Act
@@ -185,7 +195,7 @@ public class ProfileCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify the profile with ID 1 was removed
-        var updatedUser = await m_UserRepository.GetUserAsync(TestUserId);
+        var updatedUser = await m_UserRepository.GetUserAsync(testUserId);
         Assert.That(updatedUser, Is.Not.Null);
 
         Assert.Multiple(() =>
@@ -203,14 +213,14 @@ public class ProfileCommandModuleTests
         Assert.That(responseData, Is.Not.Null);
         Assert.That(responseData, Contains.Substring("Profile 1 deleted"));
     }
-
     [Test]
     public async Task DeleteProfileCommand_WithNoId_RemovesAllProfiles()
     {
         // Arrange
+        var testUserId = GetUniqueUserId();
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = testUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -228,10 +238,8 @@ public class ProfileCommandModuleTests
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         // Clear captured requests
-        m_DiscordTestHelper.ClearCapturedRequests();
-
-        // Set up delete command with no profile ID (delete all)
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "delete");
+        m_DiscordTestHelper.ClearCapturedRequests();        // Set up delete command with no profile ID (delete all)
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(testUserId, "delete");
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -239,10 +247,8 @@ public class ProfileCommandModuleTests
             m_ServiceProvider);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-
-        // Verify user was deleted
-        var deletedUser = await m_UserRepository.GetUserAsync(TestUserId);
+        Assert.That(result, Is.Not.Null);        // Verify user was deleted
+        var deletedUser = await m_UserRepository.GetUserAsync(testUserId);
         Assert.That(deletedUser, Is.Null);
 
         // Extract interaction response data
@@ -252,14 +258,14 @@ public class ProfileCommandModuleTests
         Assert.That(responseData, Is.Not.Null);
         Assert.That(responseData, Contains.Substring("All profiles deleted"));
     }
-
     [Test]
     public async Task DeleteProfileCommand_WithNoProfiles_ShowsNoProfileMessage()
     {
         // Arrange
+        var testUserId = GetUniqueUserId();
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = testUserId,
             Profiles = new List<UserProfile>()
         };
 
@@ -269,7 +275,7 @@ public class ProfileCommandModuleTests
         // Clear captured requests
         m_DiscordTestHelper.ClearCapturedRequests();
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "delete",
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(testUserId, "delete",
             ("profile", 1, ApplicationCommandOptionType.Integer));
 
         // Act

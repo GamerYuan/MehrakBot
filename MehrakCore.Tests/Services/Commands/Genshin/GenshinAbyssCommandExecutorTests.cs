@@ -28,7 +28,7 @@ namespace MehrakCore.Tests.Services.Commands.Genshin;
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinAbyssCommandExecutorTests
 {
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGameUid = "800000000";
@@ -45,7 +45,6 @@ public class GenshinAbyssCommandExecutorTests
     private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<GenshinCommandModule>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -60,7 +59,6 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Load test data
         m_AbyssTestDataJson = await File.ReadAllTextAsync(
@@ -74,9 +72,9 @@ public class GenshinAbyssCommandExecutorTests
 
         // Setup distributed cache
         m_DistributedCacheMock = new Mock<IDistributedCache>(); // Create repositories and services
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService,
+        m_UserRepository = new UserRepository(MongoTestHelper.Instance.MongoDbService,
             new Mock<ILogger<UserRepository>>().Object);
-        m_ImageRepository = new ImageRepository(m_MongoTestHelper.MongoDbService,
+        m_ImageRepository = new ImageRepository(MongoTestHelper.Instance.MongoDbService,
             new Mock<ILogger<ImageRepository>>().Object);
 
         // Setup image assets (required for card service)
@@ -110,8 +108,10 @@ public class GenshinAbyssCommandExecutorTests
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
         m_LoggerMock = new Mock<ILogger<GenshinCommandModule>>();
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         // Setup Discord interaction
-        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "abyss",
+        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "abyss",
             ("floor", TestFloor, ApplicationCommandOptionType.Integer),
             ("server", "america", ApplicationCommandOptionType.String),
             ("profile", TestProfileId, ApplicationCommandOptionType.Integer));
@@ -137,10 +137,10 @@ public class GenshinAbyssCommandExecutorTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     private async Task SetupImageAssets()
@@ -264,7 +264,7 @@ public class GenshinAbyssCommandExecutorTests
         // Assert
         // Verify authentication was requested
         m_AuthenticationMiddlewareMock.Verify(
-            x => x.RegisterAuthenticationListener(TestUserId, m_Executor),
+            x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
             Times.Once);
     }
 
@@ -276,7 +276,7 @@ public class GenshinAbyssCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithFailedAuthentication_LogsError()
     {
         // Arrange
-        var failureResult = AuthenticationResult.Failure(TestUserId, "Authentication failed");
+        var failureResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(failureResult);
@@ -299,7 +299,7 @@ public class GenshinAbyssCommandExecutorTests
         await CreateTestUserWithProfile();
         await SetupSuccessfulApiResponses();
 
-        var successResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(successResult);
@@ -388,7 +388,7 @@ public class GenshinAbyssCommandExecutorTests
     {
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -410,7 +410,7 @@ public class GenshinAbyssCommandExecutorTests
     {
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -677,7 +677,7 @@ public class GenshinAbyssCommandExecutorTests
         // Create user with matching ltuid so the flow continues past profile validation
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -693,7 +693,7 @@ public class GenshinAbyssCommandExecutorTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        var successResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup to throw exception during HTTP processing
         m_HttpMessageHandlerMock.Protected()

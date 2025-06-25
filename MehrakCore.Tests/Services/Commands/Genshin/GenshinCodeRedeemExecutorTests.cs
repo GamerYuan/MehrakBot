@@ -26,7 +26,7 @@ namespace MehrakCore.Tests.Services.Commands.Genshin;
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCodeRedeemExecutorTests
 {
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestCode = "TESTCODE123";
@@ -38,7 +38,6 @@ public class GenshinCodeRedeemExecutorTests
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<GenshinCommandModule>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
@@ -60,13 +59,13 @@ public class GenshinCodeRedeemExecutorTests
 
         // Initialize test helpers
         m_DiscordTestHelper = new DiscordTestHelper();
-        m_MongoTestHelper = new MongoTestHelper();
 
         // Setup HTTP client
         var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(httpClient); // Initialize services
-        m_UserRepository = new UserRepository(m_MongoTestHelper.MongoDbService, NullLogger<UserRepository>.Instance);
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheService =
             new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
         m_GameRecordApiService =
@@ -84,8 +83,10 @@ public class GenshinCodeRedeemExecutorTests
             m_CodeRedeemApiServiceMock.Object,
             m_LoggerMock.Object);
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         // Setup Discord interaction
-        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId, "code",
+        m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code",
             ("code", TestCode, ApplicationCommandOptionType.String),
             ("server", "America", ApplicationCommandOptionType.String),
             ("profile", 1, ApplicationCommandOptionType.Integer));
@@ -97,10 +98,10 @@ public class GenshinCodeRedeemExecutorTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
     [Test]
@@ -226,7 +227,7 @@ public class GenshinCodeRedeemExecutorTests
         // Set pending parameters by calling ExecuteAsync first
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -244,7 +245,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task OnAuthenticationCompletedAsync_FailedAuth_ShouldSendErrorResponse()
     {
         // Arrange
-        var authResult = AuthenticationResult.Failure(TestUserId, "Authentication failed");
+        var authResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -258,7 +259,7 @@ public class GenshinCodeRedeemExecutorTests
     public async Task OnAuthenticationCompletedAsync_MissingPendingParameters_ShouldSendErrorResponse()
     {
         // Arrange
-        var authResult = AuthenticationResult.Success(TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act - Don't set pending parameters first
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -355,7 +356,7 @@ public class GenshinCodeRedeemExecutorTests
     {
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -388,7 +389,7 @@ public class GenshinCodeRedeemExecutorTests
     {
         var user = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()

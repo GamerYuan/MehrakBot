@@ -13,29 +13,23 @@ namespace MehrakCore.Tests.Repositories;
 [Parallelizable(ParallelScope.Fixtures)]
 public class UserRepositoryTests
 {
-    private MongoTestHelper m_MongoHelper;
     private UserRepository m_UserRepository;
     private Mock<ILogger<UserRepository>> m_LoggerMock;
+    private readonly List<ulong> m_TestUserIds = new();
+    private readonly Random m_Random = new();
 
     [SetUp]
     public void Setup()
     {
-        m_MongoHelper = new MongoTestHelper();
         m_LoggerMock = new Mock<ILogger<UserRepository>>();
-        m_UserRepository = new UserRepository(m_MongoHelper.MongoDbService, m_LoggerMock.Object);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        m_MongoHelper.Dispose();
+        m_UserRepository = new UserRepository(MongoTestHelper.Instance.MongoDbService, m_LoggerMock.Object);
     }
 
     [Test]
     public async Task GetUserAsync_ShouldReturnNull_WhenUserDoesNotExist()
     {
         // Arrange
-        var nonExistentUserId = 12345UL;
+        var nonExistentUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
         // Act
         var result = await m_UserRepository.GetUserAsync(nonExistentUserId);
@@ -43,12 +37,11 @@ public class UserRepositoryTests
         // Assert
         Assert.That(result, Is.Null);
     }
-
     [Test]
     public async Task GetUserAsync_ShouldReturnUser_WhenUserExists()
     {
         // Arrange
-        var userId = 67890UL;
+        var userId = MongoTestHelper.Instance.GetUniqueUserId();
         var user = new UserModel
         {
             Id = userId,
@@ -74,12 +67,11 @@ public class UserRepositoryTests
         Assert.That(result.Profiles, Is.Not.Null);
         Assert.That(result.Profiles.First().ProfileId, Is.EqualTo(1));
     }
-
     [Test]
     public async Task CreateOrUpdateUserAsync_ShouldCreateNewUser_WhenUserDoesNotExist()
     {
         // Arrange
-        var userId = 13579UL;
+        var userId = MongoTestHelper.Instance.GetUniqueUserId();
         var user = new UserModel
         {
             Id = userId,
@@ -105,12 +97,11 @@ public class UserRepositoryTests
         Assert.That(createdUser.Profiles, Is.Not.Null);
         Assert.That(createdUser.Profiles.First().LtUid, Is.EqualTo(54321));
     }
-
     [Test]
     public async Task CreateOrUpdateUserAsync_ShouldUpdateExistingUser()
     {
         // Arrange
-        var userId = 24680UL;
+        var userId = MongoTestHelper.Instance.GetUniqueUserId();
         var originalUser = new UserModel
         {
             Id = userId,
@@ -153,12 +144,11 @@ public class UserRepositoryTests
         Assert.That(result.Profiles.First().LtUid, Is.EqualTo(22222));
         Assert.That(result.Profiles.First().LToken, Is.EqualTo("updated-token"));
     }
-
     [Test]
     public async Task DeleteUserAsync_ShouldReturnTrue_WhenUserExists()
     {
         // Arrange
-        var userId = 11223UL;
+        var userId = MongoTestHelper.Instance.GetUniqueUserId();
         var user = new UserModel
         {
             Id = userId,
@@ -183,12 +173,11 @@ public class UserRepositoryTests
         Assert.That(result, Is.True);
         Assert.That(deletedUser, Is.Null);
     }
-
     [Test]
     public async Task DeleteUserAsync_ShouldReturnFalse_WhenUserDoesNotExist()
     {
         // Arrange
-        var nonExistentUserId = 99999UL;
+        var nonExistentUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
         // Act
         var result = await m_UserRepository.DeleteUserAsync(nonExistentUserId);
