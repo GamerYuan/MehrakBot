@@ -157,7 +157,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             if (charList.Count == 0)
             {
                 Logger.LogWarning("No characters found for gameUid: {GameUid}, region: {Region}", gameUid, region);
-                await SendErrorMessageAsync($"Failed to fetch character list. Please try again later.");
+                await SendErrorMessageAsync("Failed to fetch character list. Please try again later.");
                 return;
             }
 
@@ -172,6 +172,13 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(message);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin abyss", true);
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error generating Abyss card for floor {Floor} and server {Server}: {Message}",
+                floor, server, e.Message);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin abyss", false);
         }
         catch (Exception ex)
         {

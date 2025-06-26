@@ -72,7 +72,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
             m_Logger.LogError(e, "Failed to get Abyss information for gameUid: {GameUid}, region: {Region}",
                 gameUid, region);
             return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
-                "An unknown error occurred. Please try again later");
+                "An error occurred while fetching Abyss information");
         }
     }
 }
