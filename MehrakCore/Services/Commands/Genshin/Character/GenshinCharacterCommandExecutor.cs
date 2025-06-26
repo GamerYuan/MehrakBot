@@ -128,12 +128,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
         {
             Logger.LogError(ex, "Error sending character card response for user {UserId}",
                 Context.Interaction.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
-                .WithComponents([
-                    new TextDisplayProperties(
-                        "An error occurred while processing your request. Please try again later.")
-                ]));
+            await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
         }
     }
