@@ -2,6 +2,7 @@
 
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -35,74 +36,83 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     public override async Task UpdateDataAsync(GenshinCharacterInformation characterInformation,
         IEnumerable<Dictionary<string, string>> wiki)
     {
-        Logger.LogInformation("Starting image update process for character {CharacterName}, ID: {CharacterId}",
-            characterInformation.Base.Name, characterInformation.Base.Id);
-        List<Task> tasks = [];
-
-        var id = characterInformation.Base.Id;
-        var avatarWiki = wiki.First();
-
-        if (id != null)
+        try
         {
-            var characterImageFilename = string.Format(BaseString, id.Value);
-            if (!await ImageRepository.FileExistsAsync(characterImageFilename))
+            Logger.LogInformation("Starting image update process for character {CharacterName}, ID: {CharacterId}",
+                characterInformation.Base.Name, characterInformation.Base.Id);
+            List<Task> tasks = [];
+
+            var id = characterInformation.Base.Id;
+            var avatarWiki = wiki.First();
+
+            if (id != null)
             {
-                Logger.LogInformation(
-                    "Character image for {CharacterName}, ID: {CharacterId} not found. Scheduling download.",
-                    characterInformation.Base.Name, id.Value);
-                tasks.Add(UpdateCharacterImageTask(characterInformation.Base,
-                    int.Parse(avatarWiki.Values.First().Split('/')[^1])));
+                var characterImageFilename = string.Format(BaseString, id.Value);
+                if (!await ImageRepository.FileExistsAsync(characterImageFilename))
+                {
+                    Logger.LogInformation(
+                        "Character image for {CharacterName}, ID: {CharacterId} not found. Scheduling download.",
+                        characterInformation.Base.Name, id.Value);
+                    tasks.Add(UpdateCharacterImageTask(characterInformation.Base,
+                        int.Parse(avatarWiki.Values.First().Split('/')[^1])));
+                }
+                else
+                {
+                    Logger.LogDebug("Character image {CharacterName}, ID: {CharacterId} already exists.",
+                        characterInformation.Base.Name, id.Value);
+                }
             }
             else
             {
-                Logger.LogDebug("Character image {CharacterName}, ID: {CharacterId} already exists.",
-                    characterInformation.Base.Name, id.Value);
+                Logger.LogWarning("Character information provided without a base ID.");
             }
-        }
-        else
-        {
-            Logger.LogWarning("Character information provided without a base ID.");
-        }
 
 
-        var weaponId = characterInformation.Base.Weapon.Id;
+            var weaponId = characterInformation.Base.Weapon.Id;
 
-        if (weaponId != null)
-        {
-            Logger.LogDebug("Weapon ID {WeaponId} not in cache. Checking image existence.", weaponId.Value);
-            var weaponImageFilename = string.Format(BaseString, weaponId.Value);
-            if (!await ImageRepository.FileExistsAsync(weaponImageFilename))
+            if (weaponId != null)
             {
-                Logger.LogInformation("Weapon image for ID {WeaponId} not found. Scheduling download.",
-                    weaponId.Value);
-                tasks.Add(UpdateWeaponImageTask(characterInformation.Weapon));
+                Logger.LogDebug("Weapon ID {WeaponId} not in cache. Checking image existence.", weaponId.Value);
+                var weaponImageFilename = string.Format(BaseString, weaponId.Value);
+                if (!await ImageRepository.FileExistsAsync(weaponImageFilename))
+                {
+                    Logger.LogInformation("Weapon image for ID {WeaponId} not found. Scheduling download.",
+                        weaponId.Value);
+                    tasks.Add(UpdateWeaponImageTask(characterInformation.Weapon));
+                }
+                else
+                {
+                    Logger.LogDebug("Weapon image {Filename} already exists.", weaponImageFilename);
+                }
             }
             else
             {
-                Logger.LogDebug("Weapon image {Filename} already exists.", weaponImageFilename);
+                Logger.LogWarning("Character information provided without a weapon ID.");
+            }
+
+            tasks.AddRange(UpdateConstellationIconTasks(characterInformation.Constellations));
+            tasks.AddRange(UpdateSkillIconTasks(characterInformation.Skills));
+
+            tasks.AddRange(UpdateRelicIconTasks(characterInformation.Relics));
+
+            if (tasks.Count > 0)
+            {
+                Logger.LogInformation("Waiting for {TaskCount} image update tasks to complete.", tasks.Count);
+                await Task.WhenAll(tasks);
+                Logger.LogInformation("All image update tasks completed for character ID: {CharacterId}",
+                    characterInformation.Base.Id);
+            }
+            else
+            {
+                Logger.LogInformation("No image updates required for character ID: {CharacterId}",
+                    characterInformation.Base.Id);
             }
         }
-        else
+        catch (Exception e)
         {
-            Logger.LogWarning("Character information provided without a weapon ID.");
-        }
-
-        tasks.AddRange(UpdateConstellationIconTasks(characterInformation.Constellations));
-        tasks.AddRange(UpdateSkillIconTasks(characterInformation.Skills));
-
-        tasks.AddRange(UpdateRelicIconTasks(characterInformation.Relics));
-
-        if (tasks.Count > 0)
-        {
-            Logger.LogInformation("Waiting for {TaskCount} image update tasks to complete.", tasks.Count);
-            await Task.WhenAll(tasks);
-            Logger.LogInformation("All image update tasks completed for character ID: {CharacterId}",
-                characterInformation.Base.Id);
-        }
-        else
-        {
-            Logger.LogInformation("No image updates required for character ID: {CharacterId}",
-                characterInformation.Base.Id);
+            Logger.LogError(e, "Error updating images for character {CharacterName}, ID: {CharacterId}",
+                characterInformation.Base.Name, characterInformation.Base.Id);
+            throw new CommandException("An error occurred while updating images for the character.", e);
         }
     }
 
