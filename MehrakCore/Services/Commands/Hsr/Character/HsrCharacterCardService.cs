@@ -467,8 +467,8 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to generate character card for {CharacterName}",
-                characterInformation.Name);
+            m_Logger.LogError(ex, "Failed to generate character card for Character {CharacterInfo}",
+                characterInformation.ToString());
             throw new CommandException("An error occurred while generating the character card", ex);
         }
         finally

@@ -400,8 +400,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to generate character card for {CharacterName} (ID: {CharacterId})",
-                charInfo.Base.Name, charInfo.Base.Id);
+            m_Logger.LogError(ex, "Failed to generate character card for Character {CharacterInfo}",
+                charInfo.ToString());
             throw new CommandException("An error occurred while generating the character card", ex);
         }
         finally
