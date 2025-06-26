@@ -72,9 +72,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
         {
             Logger.LogError(e, "Error executing real-time notes command for user {UserId}",
                 Context.Interaction.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("An error occurred while processing your request")
-                    .WithFlags(MessageFlags.Ephemeral)));
+            await SendErrorMessageAsync();
         }
     }
 
@@ -91,9 +89,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
         {
             Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, result.ErrorMessage);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .AddComponents(new TextDisplayProperties($"Authentication failed: {result.ErrorMessage}"))
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
         }
     }
 
@@ -115,9 +111,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
             if (!notesResult.IsSuccess)
             {
                 Logger.LogError("Failed to fetch real-time notes: {ErrorMessage}", notesResult.ErrorMessage);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent(notesResult.ErrorMessage)
-                        .WithFlags(MessageFlags.Ephemeral)));
+                await SendErrorMessageAsync(notesResult.ErrorMessage);
                 return;
             }
 
@@ -125,9 +119,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
             if (notesData == null)
             {
                 Logger.LogError("No data found in real-time notes response");
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent("No data found in real-time notes response")
-                        .WithFlags(MessageFlags.Ephemeral)));
+                await SendErrorMessageAsync("No data found in real-time notes response");
                 return;
             }
 
@@ -136,13 +128,18 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
                 Context.Interaction.User.Id, region);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin notes", true);
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error fetching real-time notes for user {UserId} in region {Region}",
+                Context.Interaction.User.Id, server);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin notes", false);
+        }
         catch (Exception e)
         {
             Logger.LogError(e, "Error fetching real-time notes for user {UserId} in region {Region}",
                 Context.Interaction.User.Id, server);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("An unknown error occurred, please try again later")
-                    .WithFlags(MessageFlags.Ephemeral)));
+            await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin notes", false);
         }
     }
@@ -150,93 +147,102 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
     private async ValueTask<InteractionMessageProperties> BuildRealTimeNotes(GenshinRealTimeNotesData data,
         Regions region, string uid)
     {
-        var resinImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_resin");
-        var expeditionImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_expedition");
-        var teapotImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_teapot");
-        var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
-        var transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
-
-        var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var weeklyReset = region.GetNextWeeklyResetUnix();
-
-        InteractionMessageProperties response = new();
-        response.WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral);
-        ComponentContainerProperties container =
-        [
-            new TextDisplayProperties($"## Genshin Impact Real-Time Notes (UID: {uid})"),
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(
-                        new ComponentMediaProperties("attachment://genshin_resin.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Original Resin"),
-                    new TextDisplayProperties($"{data.CurrentResin}/{data.MaxResin}"),
-                    new TextDisplayProperties(data.CurrentResin == data.MaxResin
-                        ? "Already Full!"
-                        : $"-# Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>")
-                ]),
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(
-                        new ComponentMediaProperties("attachment://genshin_expedition.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Expeditions"),
-                    new TextDisplayProperties(data.CurrentExpeditionNum > 0
-                        ? $"{data.CurrentExpeditionNum}/{data.MaxExpeditionNum}"
-                        : "None Dispatched!"),
-                    new TextDisplayProperties(data.CurrentExpeditionNum > 0
-                        ? data.Expeditions!.Max(x => long.Parse(x.RemainedTime!)) > 0
-                            ? $"-# Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
-                            : "-# All Expeditions Completed"
-                        : "-# To be dispatched")
-                ]),
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(
-                        new ComponentMediaProperties("attachment://genshin_teapot.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Serenitea Pot"),
-                    new TextDisplayProperties(data.CurrentHomeCoin == data.MaxHomeCoin
-                        ? "Already Full!"
-                        : $"{data.CurrentHomeCoin}/{data.MaxHomeCoin}"),
-                    new TextDisplayProperties(data.CurrentHomeCoin == data.MaxHomeCoin
-                        ? "-# To be collected"
-                        : $"-# Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>")
-                ]),
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(
-                        new ComponentMediaProperties("attachment://genshin_weekly.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Weekly Bosses"),
-                    new TextDisplayProperties(
-                        $"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}"),
-                    new TextDisplayProperties(
-                        $"-# Resets <t:{weeklyReset}:R>")
-                ])
-        ];
-
-        response.AddComponents([container]);
-
-        response.WithAttachments([
-            new AttachmentProperties("genshin_resin.png", await resinImage),
-            new AttachmentProperties("genshin_expedition.png", await expeditionImage),
-            new AttachmentProperties("genshin_teapot.png", await teapotImage),
-            new AttachmentProperties("genshin_weekly.png", await weeklyImage)
-        ]);
-
-        if (data.Transformer?.Obtained == true)
+        try
         {
-            container.AddComponents([
+            var resinImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_resin");
+            var expeditionImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_expedition");
+            var teapotImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_teapot");
+            var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
+            var transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
+
+            var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var weeklyReset = region.GetNextWeeklyResetUnix();
+
+            InteractionMessageProperties response = new();
+            response.WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral);
+            ComponentContainerProperties container =
+            [
+                new TextDisplayProperties($"## Genshin Impact Real-Time Notes (UID: {uid})"),
                 new ComponentSectionProperties(
                         new ComponentSectionThumbnailProperties(
-                            new ComponentMediaProperties("attachment://genshin_transformer.png")))
+                            new ComponentMediaProperties("attachment://genshin_resin.png")))
                     .WithComponents([
-                        new TextDisplayProperties("### Parametric Transformer"),
-                        new TextDisplayProperties(data.Transformer.RecoveryTime!.Reached ? "Not Claimed!" : "Claimed!"),
+                        new TextDisplayProperties("### Original Resin"),
+                        new TextDisplayProperties($"{data.CurrentResin}/{data.MaxResin}"),
+                        new TextDisplayProperties(data.CurrentResin == data.MaxResin
+                            ? "Already Full!"
+                            : $"-# Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>")
+                    ]),
+                new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(
+                            new ComponentMediaProperties("attachment://genshin_expedition.png")))
+                    .WithComponents([
+                        new TextDisplayProperties("### Expeditions"),
+                        new TextDisplayProperties(data.CurrentExpeditionNum > 0
+                            ? $"{data.CurrentExpeditionNum}/{data.MaxExpeditionNum}"
+                            : "None Dispatched!"),
+                        new TextDisplayProperties(data.CurrentExpeditionNum > 0
+                            ? data.Expeditions!.Max(x => long.Parse(x.RemainedTime!)) > 0
+                                ? $"-# Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
+                                : "-# All Expeditions Completed"
+                            : "-# To be dispatched")
+                    ]),
+                new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(
+                            new ComponentMediaProperties("attachment://genshin_teapot.png")))
+                    .WithComponents([
+                        new TextDisplayProperties("### Serenitea Pot"),
+                        new TextDisplayProperties(data.CurrentHomeCoin == data.MaxHomeCoin
+                            ? "Already Full!"
+                            : $"{data.CurrentHomeCoin}/{data.MaxHomeCoin}"),
+                        new TextDisplayProperties(data.CurrentHomeCoin == data.MaxHomeCoin
+                            ? "-# To be collected"
+                            : $"-# Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>")
+                    ]),
+                new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(
+                            new ComponentMediaProperties("attachment://genshin_weekly.png")))
+                    .WithComponents([
+                        new TextDisplayProperties("### Weekly Bosses"),
+                        new TextDisplayProperties(
+                            $"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}"),
                         new TextDisplayProperties(
                             $"-# Resets <t:{weeklyReset}:R>")
                     ])
-            ]);
-            response.AddAttachments(new AttachmentProperties("genshin_transformer.png", await transformerImage));
-        }
+            ];
 
-        return response;
+            response.AddComponents([container]);
+
+            response.WithAttachments([
+                new AttachmentProperties("genshin_resin.png", await resinImage),
+                new AttachmentProperties("genshin_expedition.png", await expeditionImage),
+                new AttachmentProperties("genshin_teapot.png", await teapotImage),
+                new AttachmentProperties("genshin_weekly.png", await weeklyImage)
+            ]);
+
+            if (data.Transformer?.Obtained == true)
+            {
+                container.AddComponents([
+                    new ComponentSectionProperties(
+                            new ComponentSectionThumbnailProperties(
+                                new ComponentMediaProperties("attachment://genshin_transformer.png")))
+                        .WithComponents([
+                            new TextDisplayProperties("### Parametric Transformer"),
+                            new TextDisplayProperties(data.Transformer.RecoveryTime!.Reached
+                                ? "Not Claimed!"
+                                : "Claimed!"),
+                            new TextDisplayProperties(
+                                $"-# Resets <t:{weeklyReset}:R>")
+                        ])
+                ]);
+                response.AddAttachments(new AttachmentProperties("genshin_transformer.png", await transformerImage));
+            }
+
+            return response;
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while generating real-time notes response", e);
+        }
     }
 }
