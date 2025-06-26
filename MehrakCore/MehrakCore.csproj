@@ -41,7 +41,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="appsettings.json">
+        <None Include="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
         <None Include="..\Assets\**\*.*" Exclude="..\Assets\.git\**\*;..\Assets\.gitattributes">
@@ -51,7 +51,7 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-        <None Update="appsettings.development.json">
+        <None Include="appsettings.development.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
     </ItemGroup>
