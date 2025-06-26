@@ -1,0 +1,42 @@
+name: Create Release
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  create_release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ASSETS_PAT }}
+          lfs: true
+          submodules: recursive
+
+      - name: Create Assets Archive
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if [ -d "Assets" ]; then
+            echo "Creating assets archive..."
+            cd Assets
+            zip -r "../assets-$TAG_NAME.zip" . -x "*.git*" ".gitattributes"
+          else
+            echo "No assets directory found!"
+            exit 1
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          token: ${{ secrets.ASSETS_PAT }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          files: |
+            assets-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.ASSETS_PAT }}
