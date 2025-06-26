@@ -87,12 +87,7 @@ public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInComma
         {
             Logger.LogError(e, "Error processing daily check-in command for user {UserId}",
                 Context.Interaction.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([
-                    new TextDisplayProperties(
-                        "An error occurred while processing your request. Please try again later.")
-                ]));
+            await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "checkin", false);
         }
     }
@@ -122,17 +117,17 @@ public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInComma
             await m_DailyCheckInService.CheckInAsync(Context, m_PendingUser!, m_PendingProfile!.Value, result.LtUid,
                 result.LToken);
         }
-        catch (Exception ex)
+        catch (CommandException e)
         {
-            Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithContent("An error occurred while processing your authentication")
-                .WithFlags(MessageFlags.Ephemeral));
+            Logger.LogError(e, "Error processing daily check-in command for user {UserId}",
+                result.UserId);
+            await SendErrorMessageAsync(e.Message);
         }
-        finally
+        catch (Exception e)
         {
-            // Clear pending parameters
-            m_PendingProfile = null;
+            Logger.LogError(e, "Error processing daily check-in command for user {UserId}",
+                result.UserId);
+            await SendErrorMessageAsync();
         }
     }
 }

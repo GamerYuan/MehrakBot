@@ -53,62 +53,72 @@ public class DailyCheckInService : IDailyCheckInService
     public async Task CheckInAsync(IInteractionContext context, UserModel user, uint profile, ulong ltuid,
         string ltoken)
     {
-        var userId = context.Interaction.User.Id;
-        m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
-
-        var userData = await m_GameRecordApiService.GetUserDataAsync(ltuid, ltoken);
-        if (userData == null)
+        try
         {
+            var userId = context.Interaction.User.Id;
+            m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
+
+            var userData = await m_GameRecordApiService.GetUserDataAsync(ltuid, ltoken);
+            if (userData == null)
+            {
+                await context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().AddComponents(new TextDisplayProperties(
+                            "Invalid UID or Cookies. Please re-authenticate your profile."))
+                        .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
+                return;
+            }
+
+            var checkInTypes = Enum.GetValues<GameName>();
+
+            var tasks = checkInTypes.Select(async type =>
+            {
+                try
+                {
+                    return await CheckInHelperAsync(type, context.Interaction.User.Id, ltuid, ltoken);
+                }
+                catch (Exception ex)
+                {
+                    m_Logger.LogError(ex, "An error occurred while checking in for {Game}", type);
+                    return ApiResult<bool>.Failure(HttpStatusCode.InternalServerError,
+                        $"An error occurred while checking in for {type}");
+                }
+            }).ToList();
+
+            await Task.WhenAll(tasks);
+
+            var sb = new StringBuilder("### Daily check-in results:\n");
+            for (int i = 0; i < checkInTypes.Length; i++)
+            {
+                var gameResult = tasks[i].Result.IsSuccess
+                    ? tasks[i].Result.Data
+                        ? "Success"
+                        : "Already checked in today"
+                    : tasks[i].Result.ErrorMessage;
+
+                var gameName = GetFormattedGameName(checkInTypes[i]);
+                sb.AppendLine($"{gameName}: {gameResult}");
+            }
+
             await context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().AddComponents(new TextDisplayProperties(
-                        "Invalid UID or Cookies. Please re-authenticate your profile."))
+                new InteractionMessageProperties().AddComponents(new TextDisplayProperties(sb.ToString()))
                     .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
-            return;
-        }
 
-        var checkInTypes = Enum.GetValues<GameName>();
-
-        var tasks = checkInTypes.Select(async type =>
-        {
-            try
+            if (tasks.All(x => x.Result.IsSuccess || x.Result.StatusCode == HttpStatusCode.Forbidden))
             {
-                return await CheckInHelperAsync(type, context.Interaction.User.Id, ltuid, ltoken);
+                user.Profiles!.First(x => x.ProfileId == profile).LastCheckIn = DateTime.UtcNow;
+                await m_UserRepository.CreateOrUpdateUserAsync(user);
             }
-            catch (Exception ex)
-            {
-                m_Logger.LogError(ex, "An error occurred while checking in for {Game}", type);
-                return ApiResult<bool>.Failure(HttpStatusCode.InternalServerError,
-                    $"An error occurred while checking in for {type}");
-            }
-        }).ToList();
 
-        await Task.WhenAll(tasks);
-
-        var sb = new StringBuilder("### Daily check-in results:\n");
-        for (int i = 0; i < checkInTypes.Length; i++)
-        {
-            var gameResult = tasks[i].Result.IsSuccess
-                ? tasks[i].Result.Data
-                    ? "Success"
-                    : "Already checked in today"
-                : tasks[i].Result.ErrorMessage;
-
-            var gameName = GetFormattedGameName(checkInTypes[i]);
-            sb.AppendLine($"{gameName}: {gameResult}");
+            BotMetrics.TrackCommand(context.Interaction.User, "checkin", true);
         }
-
-        await context.Interaction.SendFollowupMessageAsync(
-            new InteractionMessageProperties().AddComponents(new TextDisplayProperties(sb.ToString()))
-                .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
-
-        if (tasks.All(x => x.Result.IsSuccess || x.Result.StatusCode == HttpStatusCode.Forbidden))
+        catch (Exception e)
         {
-            user.Profiles!.First(x => x.ProfileId == profile).LastCheckIn = DateTime.UtcNow;
-            await m_UserRepository.CreateOrUpdateUserAsync(user);
+            m_Logger.LogError(e, "An error occurred while performing daily check-in for user {UserId}",
+                context.Interaction.User.Id);
+            throw new CommandException("An error occurred while performing daily check-in", e);
         }
-
-        BotMetrics.TrackCommand(context.Interaction.User, "checkin", true);
     }
+
 
     private static string GetFormattedGameName(GameName type)
     {
