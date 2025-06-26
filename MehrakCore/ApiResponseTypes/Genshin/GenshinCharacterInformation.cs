@@ -92,6 +92,12 @@ public class GenshinCharacterInformation : ICharacterInformation
     public required List<StatProperty> ElementProperties { get; init; }
 
     [JsonPropertyName("skills")] public required List<Skill> Skills { get; init; }
+
+    public override string ToString()
+    {
+        return
+            $"Id: {Base.Id}, Name: {Base.Name}, Weapon: {Weapon.Name}, Artifacts: {string.Join(", ", Relics.Select(x => x.Name))}";
+    }
 }
 
 public class Skill

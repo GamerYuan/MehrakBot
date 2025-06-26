@@ -26,6 +26,13 @@ public class HsrCharacterInformation : ICharacterInformation, ICharacterDetail
     [JsonPropertyName("figure_path")] public string? FigurePath { get; init; }
     [JsonPropertyName("element_id")] public int? ElementId { get; init; }
     [JsonPropertyName("servant_detail")] public ServantDetail? ServantDetail { get; init; }
+
+    public override string ToString()
+    {
+        return
+            $"Id: {Id}, Name: {Name}, Equip: {Equip?.Name ?? "No Equip"}, Relics: {string.Join(", ", Relics?.Select(x => x.Name ?? string.Empty) ?? [])}, " +
+            $"Ornaments: {string.Join(", ", Ornaments?.Select(x => x.Name) ?? [])}";
+    }
 }
 
 public class HsrBasicCharacterData : IBasicCharacterData
