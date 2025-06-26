@@ -467,8 +467,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to load background image for character card");
-            throw;
+            m_Logger.LogError(ex, "Failed to generate character card for {CharacterName}",
+                characterInformation.Name);
+            throw new CommandException("An error occurred while generating the character card", ex);
         }
         finally
         {
