@@ -185,9 +185,10 @@ internal class Program
             // Configure MongoDB
             var imageRepo = host.Services.GetRequiredService<ImageRepository>();
 
-            foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*",
+            foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*.png",
                          SearchOption.AllDirectories))
             {
+                if (image.Contains("Test")) continue;
                 var fileName = Path.GetFileName(image).Split('.')[0];
                 if (await imageRepo.FileExistsAsync(fileName)) continue;
 

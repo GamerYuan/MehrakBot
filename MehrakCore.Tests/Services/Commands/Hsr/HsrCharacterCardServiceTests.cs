@@ -60,7 +60,8 @@ public class HsrCharacterCardServiceTests
     {
         // Arrange
         var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
-        var goldenImagePath = Path.Combine(TestDataPath, "Assets", "Stelle_GoldenImage.jpg");
+        var goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
+            "Stelle_GoldenImage.jpg");
         var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);
@@ -80,7 +81,8 @@ public class HsrCharacterCardServiceTests
     {
         // Arrange
         var testDataPath = Path.Combine(TestDataPath, "Stelle_NoEquip_NoRelic_TestData.json");
-        var goldenImagePath = Path.Combine(TestDataPath, "Assets", "Stelle_NoEquip_NoRelic_GoldenImage.jpg");
+        var goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
+            "Stelle_NoEquip_NoRelic_GoldenImage.jpg");
         var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);
@@ -100,7 +102,8 @@ public class HsrCharacterCardServiceTests
     {
         // Arrange
         var testDataPath = Path.Combine(TestDataPath, "Stelle_Remembrance_TestData.json");
-        var goldenImagePath = Path.Combine(TestDataPath, "Assets", "Stelle_Remembrance_GoldenImage.jpg");
+        var goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
+            "Stelle_Remembrance_GoldenImage.jpg");
         var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);

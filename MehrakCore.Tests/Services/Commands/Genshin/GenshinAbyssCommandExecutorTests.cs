@@ -146,19 +146,8 @@ public class GenshinAbyssCommandExecutorTests
     private async Task SetupImageAssets()
     {
         // Load images from main Assets directory
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"), "*",
+        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"), "*.png",
                      SearchOption.AllDirectories))
-        {
-            var fileName = Path.GetFileName(image).Split('.')[0];
-            if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
-
-            await using var stream = File.OpenRead(image);
-            await m_ImageRepository.UploadFileAsync(fileName, stream);
-        }
-
-        // Load images from TestData/Genshin/Assets directory
-        foreach (var image in Directory.EnumerateFiles(
-                     Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin", "Assets"), "*.png"))
         {
             var fileName = Path.GetFileName(image).Split('.')[0];
             if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
