@@ -84,45 +84,20 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
 
     public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
-        try
+        if (!result.IsSuccess)
         {
-            if (!result.IsSuccess)
-            {
-                Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
-                    result.UserId, result.ErrorMessage);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent($"Authentication failed: {result.ErrorMessage}")
-                    .WithFlags(MessageFlags.Ephemeral));
-                return;
-            }
-
-            // Update context if available
-            if (result.Context != null) Context = result.Context;
-
-            // Check if we have the required pending parameters
-            if (string.IsNullOrEmpty(m_PendingCode) || !m_PendingServer.HasValue)
-            {
-                Logger.LogWarning("Missing required parameters for command execution for user {UserId}",
-                    result.UserId);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent("Error: Missing required parameters for command execution")
-                    .WithFlags(MessageFlags.Ephemeral));
-                return;
-            }
-
-            Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
-
-            await RedeemCodeAsync(m_PendingCode, result.LtUid, result.LToken,
-                m_PendingServer.Value);
+            Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                result.UserId, result.ErrorMessage);
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
+            return;
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
-            if (Context?.Interaction != null)
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent("An error occurred while processing your authentication")
-                    .WithFlags(MessageFlags.Ephemeral));
-        }
+
+        if (result.Context != null) Context = result.Context;
+
+        Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
+
+        await RedeemCodeAsync(m_PendingCode, result.LtUid, result.LToken,
+            m_PendingServer!.Value);
     }
 
     private async ValueTask RedeemCodeAsync(string code, ulong ltuid, string ltoken, Regions server)
@@ -150,19 +125,14 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             {
                 Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", code,
                     Context.Interaction.User.Id, response.ErrorMessage);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
-                    .AddComponents(new TextDisplayProperties(response.ErrorMessage)));
+                await SendAuthenticationErrorAsync(response.ErrorMessage);
                 BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
             }
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", code, Context.Interaction.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
-                .AddComponents(new TextDisplayProperties(
-                    "An error occurred while redeeming the code. Please try again later.")));
+            await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
         }
     }
