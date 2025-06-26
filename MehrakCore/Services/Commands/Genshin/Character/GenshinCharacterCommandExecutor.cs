@@ -82,12 +82,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
         catch (Exception e)
         {
             Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([
-                    new TextDisplayProperties(
-                        "An error occurred while processing your request. Please try again later.")
-                ]));
+            await SendErrorMessageAsync();
         }
     }
 
@@ -109,10 +104,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
                 characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
             if (character == null)
             {
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral).WithComponents([
-                        new TextDisplayProperties("Character not found. Please try again.")
-                    ]));
+                await SendErrorMessageAsync("Character not found. Please try again.");
                 return;
             }
 
@@ -124,6 +116,13 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             await Context.Interaction.SendFollowupMessageAsync(properties);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", true);
             BotMetrics.TrackCharacterSelection(nameof(GameName.Genshin), characterName);
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error processing character command for user {UserId}",
+                Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
         }
         catch (Exception ex)
         {
@@ -151,83 +150,76 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             {
                 Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                     result.UserId, result.ErrorMessage);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent($"Authentication failed: {result.ErrorMessage}")
-                    .WithFlags(MessageFlags.Ephemeral));
+                await SendAuthenticationErrorAsync(result.ErrorMessage);
                 return;
             }
 
             // Update context if available
             if (result.Context != null) Context = result.Context;
 
-            // Check if we have the required pending parameters
-            if (string.IsNullOrEmpty(m_PendingCharacterName) || !m_PendingServer.HasValue)
-            {
-                Logger.LogWarning("Missing required parameters for command execution for user {UserId}",
-                    result.UserId);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent("Error: Missing required parameters for command execution")
-                    .WithFlags(MessageFlags.Ephemeral));
-                return;
-            }
-
             Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
 
-            await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName,
-                m_PendingServer.Value);
+            await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName!,
+                m_PendingServer!.Value);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
-            if (Context?.Interaction != null)
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithContent("An error occurred while processing your authentication")
-                    .WithFlags(MessageFlags.Ephemeral));
+            await SendErrorMessageAsync();
         }
     }
 
     private async Task<InteractionMessageProperties> GenerateCharacterCardResponseAsync(uint characterId, ulong ltuid,
         string ltoken, string gameUid, string region)
     {
-        var result =
-            await m_GenshinCharacterApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region, characterId);
-        if (result.RetCode == 10001)
+        try
         {
-            Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}", region,
-                Context.Interaction.User.Id);
-            return new InteractionMessageProperties().WithComponents([
-                new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
-            ]);
+            var result =
+                await m_GenshinCharacterApiService.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, region,
+                    characterId);
+            if (result.RetCode == 10001)
+            {
+                Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}", region,
+                    Context.Interaction.User.Id);
+                return new InteractionMessageProperties().WithComponents([
+                    new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please authenticate again.")
+                ]);
+            }
+
+            var characterDetail = result.Data;
+
+            if (characterDetail == null || characterDetail.List.Count == 0)
+            {
+                Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
+                    region, Context.Interaction.User.Id);
+                return new InteractionMessageProperties().WithComponents([
+                    new TextDisplayProperties("Failed to retrieve character data. Please try again.")
+                ]);
+            }
+
+            var characterInfo = characterDetail.List[0];
+
+            await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, [characterDetail.AvatarWiki]);
+
+            InteractionMessageProperties properties = new();
+            properties.WithFlags(MessageFlags.IsComponentsV2);
+            properties.WithAllowedMentions(
+                new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
+            properties.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
+            properties.AddComponents(new MediaGalleryProperties().WithItems(
+                [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
+            properties.AddAttachments(new AttachmentProperties("character_card.jpg",
+                await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
+            properties.AddComponents(
+                new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                    "Remove",
+                    ButtonStyle.Danger)));
+
+            return properties;
         }
-
-        var characterDetail = result.Data;
-
-        if (characterDetail == null || characterDetail.List.Count == 0)
+        catch (Exception e)
         {
-            Logger.LogError("Failed to retrieve character data {CharacterId} for user {UserId}",
-                region, Context.Interaction.User.Id);
-            return new InteractionMessageProperties().WithComponents([
-                new TextDisplayProperties("Failed to retrieve character data. Please try again.")
-            ]);
+            throw new CommandException("An error occurred while generating character card", e);
         }
-
-        var characterInfo = characterDetail.List[0];
-
-        await m_GenshinImageUpdaterService.UpdateDataAsync(characterInfo, [characterDetail.AvatarWiki]);
-
-        InteractionMessageProperties properties = new();
-        properties.WithFlags(MessageFlags.IsComponentsV2);
-        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
-        properties.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
-        properties.AddComponents(new MediaGalleryProperties().WithItems(
-            [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
-        properties.AddAttachments(new AttachmentProperties("character_card.jpg",
-            await m_GenshinCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
-        properties.AddComponents(
-            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
-                "Remove",
-                ButtonStyle.Danger)));
-
-        return properties;
     }
 }
