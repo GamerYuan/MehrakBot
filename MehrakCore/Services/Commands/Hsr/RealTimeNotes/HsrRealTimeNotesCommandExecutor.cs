@@ -71,9 +71,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         {
             Logger.LogError(e, "Error executing real-time notes command for user {UserId}",
                 Context.Interaction.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("An error occurred while processing your request")
-                    .WithFlags(MessageFlags.Ephemeral)));
+            await SendErrorMessageAsync();
         }
     }
 
@@ -90,9 +88,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         {
             Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, result.ErrorMessage);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .AddComponents(new TextDisplayProperties($"Authentication failed: {result.ErrorMessage}"))
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
         }
     }
 
@@ -115,9 +111,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
             {
                 Logger.LogError("Failed to fetch real-time notes for user {UserId}: {ErrorMessage}",
                     Context.Interaction.User.Id, notesResult.ErrorMessage);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"An error occurred: {notesResult.ErrorMessage}")));
+                await SendErrorMessageAsync(notesResult.ErrorMessage);
                 BotMetrics.TrackCommand(Context.Interaction.User, "hsr notes", false);
                 return;
             }
@@ -128,14 +122,19 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
                 Context.Interaction.User.Id, region);
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr notes", true);
         }
+        catch (CommandException e)
+        {
+            Logger.LogError("Error processing real-time notes command for user {UserId}: {ErrorMessage}",
+                Context.Interaction.User.Id, e.Message);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "hsr notes", false);
+        }
         catch (Exception e)
         {
             Logger.LogError(
                 "Error sending real-time notes response with for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, e.Message);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties($"An unknown error occurred, please try again later.")));
+            await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr notes", false);
         }
     }
@@ -143,63 +142,72 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
     private async ValueTask<InteractionMessageProperties> BuildRealTimeNotes(HsrRealTimeNotesData data, Regions region,
         string uid)
     {
-        var tbpImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_tbp");
-        var assignmentImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_assignment");
-        var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_weekly");
-        var rogueImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_rogue");
+        try
+        {
+            var tbpImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_tbp");
+            var assignmentImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_assignment");
+            var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_weekly");
+            var rogueImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_rogue");
 
-        var weeklyReset = region.GetNextWeeklyResetUnix();
-        InteractionMessageProperties result = new();
-        result.WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral);
-        var container = new ComponentContainerProperties();
-        result.AddComponents([container]);
-        container.AddComponents(new TextDisplayProperties($"## HSR Real-Time Notes (UID: {uid})"));
-        container.AddComponents(
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(new ComponentMediaProperties("attachment://hsr_tbp.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Trailblaze Power"),
-                    new TextDisplayProperties($"{data.CurrentStamina}/{data.MaxStamina}"),
-                    new TextDisplayProperties(data.CurrentStamina == data.MaxStamina
-                        ? "-# Already Full!"
-                        : $"-# Recovers <t:{data.StaminaFullTs}:R>")
-                ]),
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(
-                        new ComponentMediaProperties("attachment://hsr_assignment.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Assignments"),
-                    new TextDisplayProperties(data.AcceptedExpeditionNum > 0
-                        ? $"{data.AcceptedExpeditionNum}/{data.MaxStamina}"
-                        : "None Accepted!"),
-                    new TextDisplayProperties(data.AcceptedExpeditionNum > 0
-                        ? data.Expeditions!.Max(x => x.FinishTs) > DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                            ? $"-# Completes <t:{data.Expeditions!.Max(x => x.FinishTs)}:R>"
-                            : "-# All Assignments Completed!"
-                        : "-# To be dispatched")
-                ]),
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(
-                        new ComponentMediaProperties("attachment://hsr_weekly.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Echoes of War"),
-                    new TextDisplayProperties(data.WeeklyCocoonCnt > 0
-                        ? $"Claimed {data.WeeklyCocoonLimit - data.WeeklyCocoonCnt}/{data.WeeklyCocoonLimit}"
-                        : "Fully Claimed!"),
-                    new TextDisplayProperties($"-# Resets <t:{weeklyReset}:R>")
-                ]),
-            new ComponentSectionProperties(
-                    new ComponentSectionThumbnailProperties(new ComponentMediaProperties("attachment://hsr_rogue.png")))
-                .WithComponents([
-                    new TextDisplayProperties("### Simulated Universe"),
-                    new TextDisplayProperties($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
-                    new TextDisplayProperties($"-# Resets <t:{weeklyReset}:R>")
-                ])
-        );
-        result.AddAttachments(new AttachmentProperties("hsr_tbp.png", await tbpImage),
-            new AttachmentProperties("hsr_assignment.png", await assignmentImage),
-            new AttachmentProperties("hsr_weekly.png", await weeklyImage),
-            new AttachmentProperties("hsr_rogue.png", await rogueImage));
-        return result;
+            var weeklyReset = region.GetNextWeeklyResetUnix();
+            InteractionMessageProperties result = new();
+            result.WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral);
+            var container = new ComponentContainerProperties();
+            result.AddComponents([container]);
+            container.AddComponents(new TextDisplayProperties($"## HSR Real-Time Notes (UID: {uid})"));
+            container.AddComponents(
+                new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(
+                            new ComponentMediaProperties("attachment://hsr_tbp.png")))
+                    .WithComponents([
+                        new TextDisplayProperties("### Trailblaze Power"),
+                        new TextDisplayProperties($"{data.CurrentStamina}/{data.MaxStamina}"),
+                        new TextDisplayProperties(data.CurrentStamina == data.MaxStamina
+                            ? "-# Already Full!"
+                            : $"-# Recovers <t:{data.StaminaFullTs}:R>")
+                    ]),
+                new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(
+                            new ComponentMediaProperties("attachment://hsr_assignment.png")))
+                    .WithComponents([
+                        new TextDisplayProperties("### Assignments"),
+                        new TextDisplayProperties(data.AcceptedExpeditionNum > 0
+                            ? $"{data.AcceptedExpeditionNum}/{data.MaxStamina}"
+                            : "None Accepted!"),
+                        new TextDisplayProperties(data.AcceptedExpeditionNum > 0
+                            ? data.Expeditions!.Max(x => x.FinishTs) > DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                                ? $"-# Completes <t:{data.Expeditions!.Max(x => x.FinishTs)}:R>"
+                                : "-# All Assignments Completed!"
+                            : "-# To be dispatched")
+                    ]),
+                new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(
+                            new ComponentMediaProperties("attachment://hsr_weekly.png")))
+                    .WithComponents([
+                        new TextDisplayProperties("### Echoes of War"),
+                        new TextDisplayProperties(data.WeeklyCocoonCnt > 0
+                            ? $"Claimed {data.WeeklyCocoonLimit - data.WeeklyCocoonCnt}/{data.WeeklyCocoonLimit}"
+                            : "Fully Claimed!"),
+                        new TextDisplayProperties($"-# Resets <t:{weeklyReset}:R>")
+                    ]),
+                new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(
+                            new ComponentMediaProperties("attachment://hsr_rogue.png")))
+                    .WithComponents([
+                        new TextDisplayProperties("### Simulated Universe"),
+                        new TextDisplayProperties($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
+                        new TextDisplayProperties($"-# Resets <t:{weeklyReset}:R>")
+                    ])
+            );
+            result.AddAttachments(new AttachmentProperties("hsr_tbp.png", await tbpImage),
+                new AttachmentProperties("hsr_assignment.png", await assignmentImage),
+                new AttachmentProperties("hsr_weekly.png", await weeklyImage),
+                new AttachmentProperties("hsr_rogue.png", await rogueImage));
+            return result;
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while generating real-time notes response", e);
+        }
     }
 }
