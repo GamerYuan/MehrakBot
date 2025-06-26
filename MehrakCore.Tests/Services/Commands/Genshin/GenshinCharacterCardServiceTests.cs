@@ -16,40 +16,13 @@ public class GenshinCharacterCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData");
 
-    private MongoTestHelper m_MongoTestHelper;
     private ImageRepository m_ImageRepository;
 
     [SetUp]
-    public async Task Setup()
+    public void Setup()
     {
-        m_MongoTestHelper = new MongoTestHelper();
-
-        m_ImageRepository = new ImageRepository(m_MongoTestHelper.MongoDbService, new NullLogger<ImageRepository>());
-
-        foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*",
-                     SearchOption.AllDirectories))
-        {
-            var fileName = Path.GetFileName(image).Split('.')[0];
-            if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
-
-            await using var stream = File.OpenRead(image);
-            await m_ImageRepository.UploadFileAsync(fileName, stream);
-        }
-
-        foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}TestData/Genshin/Assets", "*.png"))
-        {
-            var fileName = Path.GetFileName(image).Split('.')[0];
-            if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
-
-            await using var stream = File.OpenRead(image);
-            await m_ImageRepository.UploadFileAsync(fileName, stream);
-        }
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        m_MongoTestHelper.Dispose();
+        m_ImageRepository =
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, new NullLogger<ImageRepository>());
     }
 
     [Test]

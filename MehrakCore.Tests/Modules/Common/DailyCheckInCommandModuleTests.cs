@@ -25,7 +25,7 @@ namespace MehrakCore.Tests.Modules.Common;
 [Parallelizable(ParallelScope.Fixtures)]
 public class DailyCheckInCommandModuleTests
 {
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
@@ -38,7 +38,6 @@ public class DailyCheckInCommandModuleTests
     private CommandRateLimitService m_CommandRateLimitService = null!;
     private TokenCacheService m_TokenCacheService = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
-    private MongoTestHelper m_MongoTestHelper = null!;
     private ServiceProvider m_ServiceProvider = null!;
 
     [SetUp]
@@ -55,9 +54,6 @@ public class DailyCheckInCommandModuleTests
         // Create the test helper
         m_DiscordTestHelper = new DiscordTestHelper(command);
 
-        // Set up MongoDB
-        m_MongoTestHelper = new MongoTestHelper();
-
         // Set up command service
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
         m_CommandService.AddModule<DailyCheckInCommandModule>();
@@ -65,7 +61,7 @@ public class DailyCheckInCommandModuleTests
 
         // Set up real repository
         m_UserRepository =
-            new UserRepository(m_MongoTestHelper.MongoDbService,
+            new UserRepository(MongoTestHelper.Instance.MongoDbService,
                 NullLogger<UserRepository>.Instance); // Set up mocks for dependencies
         m_CheckInServiceMock = new Mock<IDailyCheckInService>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
@@ -78,6 +74,8 @@ public class DailyCheckInCommandModuleTests
 
         // Set up default cache behavior for rate limiting (no rate limit by default)
         SetupDistributedCacheMock();
+
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
         // Create real services with mocked cache
         m_CommandRateLimitService = new CommandRateLimitService(
@@ -129,7 +127,6 @@ public class DailyCheckInCommandModuleTests
     {
         m_ServiceProvider.Dispose();
         m_DiscordTestHelper.Dispose();
-        m_MongoTestHelper.Dispose();
     }
 
     [Test]
@@ -137,10 +134,10 @@ public class DailyCheckInCommandModuleTests
     {
         // Arrange
         // Set up distributed cache to indicate user is rate limited
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync("true"u8.ToArray());
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -151,11 +148,11 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Cache should not be set since user was already rate limited
-        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{m_TestUserId}", It.IsAny<byte[]>(),
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Never);
 
         // Extract interaction response data
@@ -171,10 +168,10 @@ public class DailyCheckInCommandModuleTests
     {
         // Arrange
         // Set up distributed cache to indicate user is not rate limited
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -185,9 +182,9 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked and rate limit was set
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
-        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{m_TestUserId}", It.IsAny<byte[]>(),
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Extract interaction response data
@@ -203,7 +200,7 @@ public class DailyCheckInCommandModuleTests
     {
         // Arrange
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (no token)
@@ -213,7 +210,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -228,7 +225,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -239,13 +236,13 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked for rate limit and token
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
         m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
-        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{m_TestUserId}", It.IsAny<byte[]>(),
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Extract interaction response data
@@ -261,7 +258,7 @@ public class DailyCheckInCommandModuleTests
     {
         // Arrange
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
@@ -274,7 +271,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -289,7 +286,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -300,13 +297,13 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked for rate limit and token
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
         m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
-        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{m_TestUserId}", It.IsAny<byte[]>(),
                 It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()),
             Times.Once); // Verify check-in service was called with the correct parameters
         m_CheckInServiceMock.Verify(
@@ -323,7 +320,7 @@ public class DailyCheckInCommandModuleTests
         const ulong customLtUid = 555555UL;
 
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
@@ -336,7 +333,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with multiple profiles
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -357,7 +354,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId,
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId,
             parameters: [("profile", customProfileId, ApplicationCommandOptionType.Integer)]);
 
         // Act
@@ -382,7 +379,7 @@ public class DailyCheckInCommandModuleTests
     {
         // Arrange
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache to throw an exception when retrieving token
@@ -392,7 +389,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -407,7 +404,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -435,7 +432,7 @@ public class DailyCheckInCommandModuleTests
             TimeZoneInfo.ConvertTimeToUtc(nowUtc8.Date.AddHours(10), chinaTimeZone); // Same day in UTC+8
 
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
@@ -445,7 +442,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile that was already checked in today
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -461,7 +458,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -472,11 +469,11 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked for rate limit but check-in service was NOT called
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
-        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{m_TestUserId}", It.IsAny<byte[]>(),
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Extract interaction response data
@@ -503,7 +500,7 @@ public class DailyCheckInCommandModuleTests
         var lastCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(yesterdayUtc8, chinaTimeZone);
 
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
@@ -518,7 +515,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile that was checked in yesterday
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -534,7 +531,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -545,13 +542,13 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked for rate limit and token
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
         m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
-        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{m_TestUserId}", It.IsAny<byte[]>(),
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify check-in service was called with the correct parameters since yesterday's check-in should allow today's check-in
@@ -566,7 +563,7 @@ public class DailyCheckInCommandModuleTests
     {
         // Arrange
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
@@ -581,7 +578,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile that has never checked in (LastCheckIn = null)
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -597,7 +594,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -608,13 +605,13 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked for rate limit and token
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
         m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
-        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{TestUserId}", It.IsAny<byte[]>(),
+        m_DistributedCacheMock.Verify(x => x.SetAsync($"RateLimit_{m_TestUserId}", It.IsAny<byte[]>(),
             It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify check-in service was called since user has never checked in
@@ -636,7 +633,7 @@ public class DailyCheckInCommandModuleTests
         var lastCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(midnightTodayUtc8, chinaTimeZone);
 
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
@@ -646,7 +643,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile that was checked in at midnight today
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -662,7 +659,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act
         var result = await m_CommandService.ExecuteAsync(
@@ -694,7 +691,7 @@ public class DailyCheckInCommandModuleTests
         // but we want to ensure the code doesn't crash if something unexpected happens
 
         // Set up distributed cache for rate limit check
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{TestUserId}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
@@ -709,7 +706,7 @@ public class DailyCheckInCommandModuleTests
         // Create test user with a profile that has a very old LastCheckIn (should definitely allow check-in)
         var testUser = new UserModel
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles = new List<UserProfile>
             {
                 new()
@@ -725,7 +722,7 @@ public class DailyCheckInCommandModuleTests
         // Create user in the database
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(TestUserId);
+        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
 
         // Act - Should not throw an exception even if timezone handling has issues
         var result = await m_CommandService.ExecuteAsync(

@@ -15,7 +15,6 @@ namespace MehrakCore.Tests.Services.Commands.Genshin;
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinAbyssCardServiceTests
 {
-    private MongoTestHelper m_MongoHelper;
     private ImageRepository m_ImageRepository;
     private GenshinAbyssCardService m_Service;
 
@@ -25,38 +24,12 @@ public class GenshinAbyssCardServiceTests
     private static readonly string TestDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
 
     [SetUp]
-    public async Task Setup()
+    public void Setup()
     {
-        m_MongoHelper = new MongoTestHelper();
-        m_ImageRepository = new ImageRepository(m_MongoHelper.MongoDbService, NullLogger<ImageRepository>.Instance);
-
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"), "*",
-                     SearchOption.AllDirectories))
-        {
-            var fileName = Path.GetFileName(image).Split('.')[0];
-            if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
-
-            await using var stream = File.OpenRead(image);
-            await m_ImageRepository.UploadFileAsync(fileName, stream);
-        }
-
-        foreach (var image in Directory.EnumerateFiles(
-                     Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin", "Assets"), "*.png"))
-        {
-            var fileName = Path.GetFileName(image).Split('.')[0];
-            if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
-
-            await using var stream = File.OpenRead(image);
-            await m_ImageRepository.UploadFileAsync(fileName, stream);
-        }
+        m_ImageRepository =
+            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
 
         m_Service = new GenshinAbyssCardService(m_ImageRepository, NullLogger<GenshinAbyssCardService>.Instance);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        m_MongoHelper.Dispose();
     }
 
     [Test]

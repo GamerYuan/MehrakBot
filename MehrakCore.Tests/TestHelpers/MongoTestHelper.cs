@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Collections.Concurrent;
 using MehrakCore.Models;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Configuration;
@@ -13,19 +14,19 @@ using MongoDB.Bson.Serialization.Serializers;
 
 namespace MehrakCore.Tests.TestHelpers;
 
-public class MongoTestHelper : IDisposable
+public sealed class MongoTestHelper : IDisposable
 {
+    public static MongoTestHelper Instance { get; private set; } = null!;
     public MongoDbService MongoDbService { get; }
 
     private readonly MongoDbRunner m_MongoRunner;
 
-    static MongoTestHelper()
-    {
-        BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
-    }
+    private readonly ConcurrentDictionary<ulong, int> m_TestUserIds = [];
+    private readonly Random m_Random = new();
 
     public MongoTestHelper()
     {
+        BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
         m_MongoRunner = MongoDbRunner.Start(logger: NullLogger<MongoDbRunner>.Instance);
 
         var inMemorySettings = new Dictionary<string, string?>
@@ -39,6 +40,17 @@ public class MongoTestHelper : IDisposable
             .Build();
 
         MongoDbService = new MongoDbService(config, NullLogger<MongoDbService>.Instance);
+
+        Instance = this;
+    }
+
+    public ulong GetUniqueUserId()
+    {
+        var userId = (ulong)(1_000_000_000 + m_Random.Next(0, 1_000_000_000));
+        while (!m_TestUserIds.TryAdd(userId, 1))
+            userId = (ulong)(1_000_000_000 + m_Random.Next(0, 1_000_000_000));
+
+        return userId;
     }
 
     public void Dispose()
