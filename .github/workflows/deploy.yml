@@ -14,13 +14,6 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          lfs: true
-          submodules: recursive
-          token: ${{ secrets.ASSETS_PAT }}
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         env:
@@ -36,6 +29,7 @@ jobs:
             cd ${{ secrets.BOT_CORE_PATH }}
             git fetch --tags
             git checkout "$TAG_NAME"
-            git lfs pull
+            git submodule sync
+            git submodule update --init --recursive
             docker compose build --pull
             docker compose up -d --remove-orphans
