@@ -296,7 +296,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// Sends an error response for general errors.
     /// </summary>
     protected async Task SendErrorMessageAsync(
-        string message = "An error occurred while processing your request. Please try again later.")
+        string message = "An unknown error occurred while processing your request")
     {
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
