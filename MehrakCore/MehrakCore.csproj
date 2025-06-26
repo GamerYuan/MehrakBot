@@ -41,8 +41,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="appsettings.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <None Include="appsettings.json" Condition="Exists('appsettings.json')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Include="..\Assets\**\*.*" Exclude="..\Assets\.git\**\*;..\Assets\.gitattributes">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -50,9 +50,9 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-        <None Update="appsettings.development.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.development.json')">
+        <None Include="appsettings.development.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 

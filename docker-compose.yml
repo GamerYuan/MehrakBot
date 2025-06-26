@@ -1,3 +1,4 @@
+name: mehrakcore
 services:
   bot:
     image: mehrak:latest

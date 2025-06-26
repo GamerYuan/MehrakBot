@@ -1,8 +1,11 @@
+name: mehrakcore
 services:
   bot:
     image: mehrak:latest
     build:
       context: .
+      args:
+        DOTNET_ENVIRONMENT: Development
       dockerfile: Dockerfile
     ports:
       - "5000:80"
