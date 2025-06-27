@@ -119,15 +119,15 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error processing character command for user {UserId}",
-                Context.Interaction.User.Id);
+            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
+                characterName, Context.Interaction.User.Id);
             await SendErrorMessageAsync(e.Message);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Logger.LogError(ex, "Error sending character card response for user {UserId}",
-                Context.Interaction.User.Id);
+            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
+                characterName, Context.Interaction.User.Id);
             await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
         }
@@ -157,10 +157,19 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName!,
                 m_PendingServer!.Value);
         }
-        catch (Exception ex)
+        catch (CommandException e)
         {
-            Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
+            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
+                m_PendingCharacterName, Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
+                m_PendingCharacterName, Context.Interaction.User.Id);
             await SendErrorMessageAsync();
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
         }
     }
 
