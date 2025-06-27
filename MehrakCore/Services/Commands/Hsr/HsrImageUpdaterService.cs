@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -37,35 +38,42 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     public override async Task UpdateDataAsync(HsrCharacterInformation characterInformation,
         IEnumerable<Dictionary<string, string>> wiki)
     {
-        var wikiArr = wiki.ToArray();
-        var equipWiki = wikiArr[0];
-        var relicWiki = wikiArr[1];
-
-        List<Task<bool>> tasks =
-        [
-            UpdateCharacterImageAsync(characterInformation),
-            UpdateSkillImageAsync(
-                characterInformation.Skills!.Concat(characterInformation.ServantDetail!.ServantSkills!)),
-            UpdateRankImageAsync(characterInformation.Ranks!),
-            UpdateRelicImageAsync(characterInformation.Relics!.Concat(characterInformation.Ornaments!), relicWiki)
-        ];
-        if (characterInformation.Equip != null &&
-            equipWiki.TryGetValue(characterInformation.Equip.Id.ToString()!, out var equipWikiUrl))
-            tasks.Add(UpdateEquipImageAsync(characterInformation.Equip, equipWikiUrl));
-
-        Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
-        var result = await Task.WhenAll(tasks);
-
-        if (!result.All(x => x))
+        try
         {
-            Logger.LogWarning("Some images failed to update for character {CharacterName}",
-                characterInformation.Name);
-            throw new InvalidOperationException(
-                "Failed to update some images for the character. Check logs for details.");
-        }
+            var wikiArr = wiki.ToArray();
+            var equipWiki = wikiArr[0];
+            var relicWiki = wikiArr[1];
 
-        Logger.LogInformation("Successfully updated HSR character data for {CharacterName}",
-            characterInformation.Name);
+            List<Task<bool>> tasks =
+            [
+                UpdateCharacterImageAsync(characterInformation),
+                UpdateSkillImageAsync(
+                    characterInformation.Skills!.Concat(characterInformation.ServantDetail!.ServantSkills!)),
+                UpdateRankImageAsync(characterInformation.Ranks!),
+                UpdateRelicImageAsync(characterInformation.Relics!.Concat(characterInformation.Ornaments!), relicWiki)
+            ];
+            if (characterInformation.Equip != null &&
+                equipWiki.TryGetValue(characterInformation.Equip.Id.ToString()!, out var equipWikiUrl))
+                tasks.Add(UpdateEquipImageAsync(characterInformation.Equip, equipWikiUrl));
+
+            Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
+            var result = await Task.WhenAll(tasks);
+
+            if (!result.All(x => x))
+            {
+                Logger.LogWarning("Some images failed to update for character {CharacterName}",
+                    characterInformation.Name);
+                throw new InvalidOperationException(
+                    "Failed to update some images for the character. Check logs for details.");
+            }
+
+            Logger.LogInformation("Successfully updated HSR character data for {CharacterName}",
+                characterInformation.Name);
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while updating character image", e);
+        }
     }
 
     public string GetRelicSetName(int relicId)
@@ -109,15 +117,9 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             await ImageRepository.UploadFileAsync(filename, processedStream, "png");
             return true;
         }
-        catch (HttpRequestException e)
-        {
-            Logger.LogError("Error downloading character image for {CharacterName} with {Filename}: {Message}",
-                characterInformation.Name, filename, e.Message);
-            throw;
-        }
         catch (Exception e)
         {
-            Logger.LogError("Error updating character data for {CharacterName} with {Filename}: {Message}",
+            Logger.LogError("Error updating character image for {CharacterName} with {Filename}: {Message}",
                 characterInformation.Name, filename, e.Message);
             throw;
         }
@@ -167,12 +169,6 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             await ImageRepository.UploadFileAsync(filename, processedStream, "png");
             return true;
-        }
-        catch (HttpRequestException e)
-        {
-            Logger.LogError("Error downloading equip image for {EquipName} with {Filename}: {Message}", equip.Name,
-                filename, e.Message);
-            throw;
         }
         catch (Exception e)
         {
@@ -292,7 +288,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
     }
 
-    public async Task<bool> UpdateRelicImageAsync(IEnumerable<Relic> relics, Dictionary<string, string> relicWikiPages)
+    private async Task<bool> UpdateRelicImageAsync(IEnumerable<Relic> relics, Dictionary<string, string> relicWikiPages)
     {
         try
         {
@@ -542,7 +538,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             return true;
         }
-        catch (HttpRequestException e)
+        catch (Exception e)
         {
             Logger.LogError("Error downloading relic image for {RelicName} with {Filename}: {Message}", relicName,
                 filename, e.Message);

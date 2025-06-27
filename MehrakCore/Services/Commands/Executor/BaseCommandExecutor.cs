@@ -51,19 +51,26 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// </summary>
     protected async Task<(UserModel? user, UserProfile? profile)> ValidateUserAndProfileAsync(uint profileId)
     {
-        var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
-        if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profileId))
+        try
         {
-            Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
-                Context.Interaction.User.Id, profileId);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return (null, null);
-        }
+            var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profileId))
+            {
+                Logger.LogInformation("User {UserId} does not have a profile with ID {ProfileId}",
+                    Context.Interaction.User.Id, profileId);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("You do not have a profile with this ID")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return (null, null);
+            }
 
-        var selectedProfile = user.Profiles.First(x => x.ProfileId == profileId);
-        return (user, selectedProfile);
+            var selectedProfile = user.Profiles.First(x => x.ProfileId == profileId);
+            return (user, selectedProfile);
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while validating user and profile", e);
+        }
     }
 
     /// <summary>
@@ -82,16 +89,23 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// </summary>
     protected async Task<bool> ValidateServerAsync(Regions? server)
     {
-        if (server == null)
+        try
         {
-            Logger.LogInformation("User {UserId} does not have a server selected", Context.Interaction.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return false;
-        }
+            if (server == null)
+            {
+                Logger.LogInformation("User {UserId} does not have a server selected", Context.Interaction.User.Id);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent("No cached server found. Please select a server")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return false;
+            }
 
-        return true;
+            return true;
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while validating server", e);
+        }
     }
 
     /// <summary>
@@ -133,124 +147,139 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     protected async ValueTask<ApiResult<string>> GetAndUpdateGameUidAsync(UserModel? user, GameName gameName,
         ulong ltuid, string ltoken, Regions server, string region)
     {
-        var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
-
-        // edge case check that probably will never occur
-        // but if user removes their profile while this command is running will result in null
-        if (user?.Profiles == null || selectedProfile == null)
+        try
         {
-            Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
-                Context.Interaction.User.Id, ltuid);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                    new TextDisplayProperties("No profile found. Please select the correct profile")
-                ]));
-            return ApiResult<string>.Failure(HttpStatusCode.BadRequest,
-                "No profile found. Please select the correct profile");
-        }
+            var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
 
-        if (selectedProfile.GameUids == null ||
-            !selectedProfile.GameUids.TryGetValue(gameName, out var dict) ||
-            !dict.TryGetValue(server.ToString(), out var gameUid))
-        {
-            Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
-                Context.Interaction.User.Id, region);
-            var result =
-                await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
-            if (!result.IsSuccess)
+            // edge case check that probably will never occur
+            // but if user removes their profile while this command is running will result in null
+            if (user?.Profiles == null || selectedProfile == null)
             {
-                await SendErrorMessageAsync(result.ErrorMessage ?? "An error occurred while retrieving game profile");
-                return ApiResult<string>.Failure(HttpStatusCode.BadGateway,
-                    result.ErrorMessage ?? "An error occurred while retrieving game profile");
+                Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                    Context.Interaction.User.Id, ltuid);
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                        new TextDisplayProperties("No profile found. Please select the correct profile")
+                    ]));
+                return ApiResult<string>.Failure(HttpStatusCode.BadRequest,
+                    "No profile found. Please select the correct profile");
             }
 
-            gameUid = result.Data.GameUid;
-        }
-
-        if (gameUid == null)
-        {
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                    new TextDisplayProperties("No game information found. Please select the correct region")
-                ]));
-            return ApiResult<string>.Failure(HttpStatusCode.BadRequest,
-                "No game information found. Please select the correct region");
-        }
-
-        // Update game UIDs
-        selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
-        if (!selectedProfile.GameUids.ContainsKey(gameName))
-            selectedProfile.GameUids[gameName] = new Dictionary<string, string>();
-
-        if (!selectedProfile.GameUids[gameName].TryAdd(server.ToString(), gameUid))
-            selectedProfile.GameUids[gameName][server.ToString()] = gameUid;
-
-        // Update last used regions
-        selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
-
-        if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
-            selectedProfile.LastUsedRegions[gameName] = server;
-
-        await UserRepository.CreateOrUpdateUserAsync(user).ConfigureAwait(false);
-
-        return ApiResult<string>.Success(gameUid);
-    }
-
-    protected async Task<ApiResult<UserGameData>> GetAndUpdateGameDataAsync(UserModel? user, GameName gameName,
-        ulong ltuid, string ltoken, Regions server, string region)
-    {
-        var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
-
-        // edge case check that probably will never occur
-        // but if user removes their profile while this command is running will result in null
-        if (user?.Profiles == null || selectedProfile == null)
-        {
-            Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
-                Context.Interaction.User.Id, ltuid);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
-                    new TextDisplayProperties("No profile found. Please select the correct profile")
-                ]));
-            return ApiResult<UserGameData>.Failure(HttpStatusCode.BadRequest,
-                "No profile found. Please select the correct profile");
-        }
-
-        var result =
-            await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
-        if (!result.IsSuccess)
-        {
-            if (result.StatusCode == HttpStatusCode.Unauthorized)
+            if (selectedProfile.GameUids == null ||
+                !selectedProfile.GameUids.TryGetValue(gameName, out var dict) ||
+                !dict.TryGetValue(server.ToString(), out var gameUid))
             {
-                await SendAuthenticationErrorAsync(
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again");
-                return result;
+                Logger.LogDebug("User {UserId} does not have a game UID for region {Region}",
+                    Context.Interaction.User.Id, region);
+                var result =
+                    await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
+                if (!result.IsSuccess)
+                {
+                    await SendErrorMessageAsync(
+                        result.ErrorMessage ?? "An error occurred while retrieving game profile");
+                    return ApiResult<string>.Failure(HttpStatusCode.BadGateway,
+                        result.ErrorMessage ?? "An error occurred while retrieving game profile");
+                }
+
+                gameUid = result.Data.GameUid;
             }
 
-            await SendErrorMessageAsync("Failed to retrieve game profile. Please try again later.");
-            return ApiResult<UserGameData>.Failure(HttpStatusCode.BadGateway, "Failed to retrieve game profile");
-        }
+            if (gameUid == null)
+            {
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                        new TextDisplayProperties("No game information found. Please select the correct region")
+                    ]));
+                return ApiResult<string>.Failure(HttpStatusCode.BadRequest,
+                    "No game information found. Please select the correct region");
+            }
 
-        if (selectedProfile.GameUids == null ||
-            !selectedProfile.GameUids.TryGetValue(gameName, out var dict) ||
-            !dict.ContainsKey(server.ToString()))
-        {
-            var gameUid = result.Data.GameUid!;
+            // Update game UIDs
             selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
             if (!selectedProfile.GameUids.ContainsKey(gameName))
                 selectedProfile.GameUids[gameName] = new Dictionary<string, string>();
 
             if (!selectedProfile.GameUids[gameName].TryAdd(server.ToString(), gameUid))
                 selectedProfile.GameUids[gameName][server.ToString()] = gameUid;
+
+            // Update last used regions
+            selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+
+            if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
+                selectedProfile.LastUsedRegions[gameName] = server;
+
+            await UserRepository.CreateOrUpdateUserAsync(user).ConfigureAwait(false);
+
+            return ApiResult<string>.Success(gameUid);
         }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while updating user data", e);
+        }
+    }
 
-        // Update last used regions
-        selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+    protected async Task<ApiResult<UserGameData>> GetAndUpdateGameDataAsync(UserModel? user, GameName gameName,
+        ulong ltuid, string ltoken, Regions server, string region)
+    {
+        try
+        {
+            var selectedProfile = user?.Profiles?.FirstOrDefault(x => x.LtUid == ltuid);
 
-        if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
-            selectedProfile.LastUsedRegions[gameName] = server;
+            // edge case check that probably will never occur
+            // but if user removes their profile while this command is running will result in null
+            if (user?.Profiles == null || selectedProfile == null)
+            {
+                Logger.LogDebug("User {UserId} does not have a profile with ltuid {LtUid}",
+                    Context.Interaction.User.Id, ltuid);
+                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.IsComponentsV2).WithComponents([
+                        new TextDisplayProperties("No profile found. Please select the correct profile")
+                    ]));
+                return ApiResult<UserGameData>.Failure(HttpStatusCode.BadRequest,
+                    "No profile found. Please select the correct profile");
+            }
 
-        await UserRepository.CreateOrUpdateUserAsync(user).ConfigureAwait(false);
-        return ApiResult<UserGameData>.Success(result.Data);
+            var result =
+                await m_GameRecordApi.GetUserGameDataAsync(ltuid, ltoken, GetGameIdentifier(gameName), region);
+            if (!result.IsSuccess)
+            {
+                if (result.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    await SendAuthenticationErrorAsync(
+                        "Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                    return result;
+                }
+
+                await SendErrorMessageAsync("Failed to retrieve game profile. Please try again later.");
+                return ApiResult<UserGameData>.Failure(HttpStatusCode.BadGateway, "Failed to retrieve game profile");
+            }
+
+            if (selectedProfile.GameUids == null ||
+                !selectedProfile.GameUids.TryGetValue(gameName, out var dict) ||
+                !dict.ContainsKey(server.ToString()))
+            {
+                var gameUid = result.Data.GameUid!;
+                selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
+                if (!selectedProfile.GameUids.ContainsKey(gameName))
+                    selectedProfile.GameUids[gameName] = new Dictionary<string, string>();
+
+                if (!selectedProfile.GameUids[gameName].TryAdd(server.ToString(), gameUid))
+                    selectedProfile.GameUids[gameName][server.ToString()] = gameUid;
+            }
+
+            // Update last used regions
+            selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+
+            if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
+                selectedProfile.LastUsedRegions[gameName] = server;
+
+            await UserRepository.CreateOrUpdateUserAsync(user).ConfigureAwait(false);
+            return ApiResult<UserGameData>.Success(result.Data);
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while updating user data", e);
+        }
     }
 
     /// <summary>
@@ -267,7 +296,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// Sends an error response for general errors.
     /// </summary>
     protected async Task SendErrorMessageAsync(
-        string message = "An error occurred while processing your request. Please try again later.")
+        string message = "An unknown error occurred while processing your request")
     {
         await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
             .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)

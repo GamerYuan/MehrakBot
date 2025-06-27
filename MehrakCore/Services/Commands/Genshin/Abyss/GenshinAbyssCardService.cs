@@ -3,6 +3,7 @@
 using System.Numerics;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
 using MehrakCore.Repositories;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
@@ -277,7 +278,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Failed to get abyss card for {GameUid}", gameData.GameUid!);
-            throw;
+            throw new CommandException("An error occurred while generating abyss card", ex);
         }
         finally
         {

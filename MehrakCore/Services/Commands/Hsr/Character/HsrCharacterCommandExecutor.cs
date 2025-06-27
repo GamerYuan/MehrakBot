@@ -54,8 +54,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
                 return;
 
             // Try to get cached server or use provided server
-            if (!server.HasValue)
-                server = GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
+            server ??= GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
 
             if (!await ValidateServerAsync(server))
                 return;
@@ -71,14 +70,20 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
                 await SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken, characterName,
-                    server!.Value);
+                    server.Value);
             }
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError("Error executing character command for user {UserId}: {ErrorMessage}",
+                Context.Interaction.User.Id, e.Message);
+            await SendErrorMessageAsync(e.Message);
         }
         catch (Exception e)
         {
             Logger.LogError("Error executing character command for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, e.Message);
-            throw;
+            await SendErrorMessageAsync();
         }
     }
 
@@ -86,7 +91,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
     {
         try
         {
-            var region = RegionUtility.GetRegion(server);
+            var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
             var result = await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
@@ -132,14 +137,19 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr character", true);
             BotMetrics.TrackCharacterSelection(nameof(GameName.HonkaiStarRail), characterName);
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error sending character card response with character {CharacterName} for user {UserId}",
+                characterName, Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "hsr character", false);
+        }
         catch (Exception e)
         {
             Logger.LogError(e,
                 "Error sending character card response with character {CharacterName} for user {UserId}",
                 characterName, Context.Interaction.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties($"An unknown error occurred, please try again later.")));
+            await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr character", false);
         }
     }
@@ -165,19 +175,31 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
     private async Task<InteractionMessageProperties> GenerateCharacterCardResponseAsync(
         HsrCharacterInformation characterInfo, string gameUid)
     {
-        InteractionMessageProperties properties = new();
-        properties.WithFlags(MessageFlags.IsComponentsV2);
-        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
-        properties.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
-        properties.AddComponents(new MediaGalleryProperties().WithItems(
-            [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
-        properties.AddAttachments(new AttachmentProperties("character_card.jpg",
-            await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
-        properties.AddComponents(
-            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
-                "Remove",
-                ButtonStyle.Danger)));
+        try
+        {
+            InteractionMessageProperties properties = new();
+            properties.WithFlags(MessageFlags.IsComponentsV2);
+            properties.WithAllowedMentions(
+                new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
+            properties.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
+            properties.AddComponents(new MediaGalleryProperties().WithItems(
+                [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
+            properties.AddAttachments(new AttachmentProperties("character_card.jpg",
+                await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
+            properties.AddComponents(
+                new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                    "Remove",
+                    ButtonStyle.Danger)));
 
-        return properties;
+            return properties;
+        }
+        catch (CommandException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while generating character card response", e);
+        }
     }
 }

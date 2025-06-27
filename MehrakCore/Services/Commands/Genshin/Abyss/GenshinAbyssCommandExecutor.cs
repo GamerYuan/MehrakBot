@@ -74,6 +74,12 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 await GetAbyssCardAsync(floor, server.Value, selectedProfile.LtUid, ltoken).ConfigureAwait(false);
             }
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error processing Abyss command for user {UserId} profile {Profile}",
+                Context.Interaction.User.Id, profile);
+            await SendErrorMessageAsync(e.Message);
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error processing Abyss command for user {UserId} profile {Profile}",
@@ -84,26 +90,18 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
 
     public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
-        try
+        if (!result.IsSuccess)
         {
-            if (!result.IsSuccess)
-            {
-                Logger.LogError("Authentication failed for user {UserId}: {ErrorMessage}", Context.Interaction.User.Id,
-                    result.ErrorMessage);
-                return;
-            }
+            Logger.LogError("Authentication failed for user {UserId}: {ErrorMessage}", Context.Interaction.User.Id,
+                result.ErrorMessage);
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
+            return;
+        }
 
-            Context = result.Context;
-            Logger.LogInformation("Authentication completed successfully for user {UserId}",
-                Context.Interaction.User.Id);
-            await GetAbyssCardAsync(m_PendingFloor, m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error during authentication completion for user {UserId}",
-                Context.Interaction.User.Id);
-            await SendErrorMessageAsync();
-        }
+        Context = result.Context;
+        Logger.LogInformation("Authentication completed successfully for user {UserId}",
+            Context.Interaction.User.Id);
+        await GetAbyssCardAsync(m_PendingFloor, m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
     private async ValueTask GetAbyssCardAsync(uint floor, Regions server, ulong ltuid, string ltoken)
@@ -157,7 +155,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             if (charList.Count == 0)
             {
                 Logger.LogWarning("No characters found for gameUid: {GameUid}, region: {Region}", gameUid, region);
-                await SendErrorMessageAsync($"Failed to fetch character list. Please try again later.");
+                await SendErrorMessageAsync("Failed to fetch character list. Please try again later.");
                 return;
             }
 
@@ -173,6 +171,13 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             await Context.Interaction.SendFollowupMessageAsync(message);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin abyss", true);
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error generating Abyss card for floor {Floor} and server {Server}: {Message}",
+                floor, server, e.Message);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin abyss", false);
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error generating Abyss card for floor {Floor} and server {Server}",
@@ -185,26 +190,37 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
     private async ValueTask<InteractionMessageProperties> GenerateAbyssCardAsync(uint floor, UserGameData gameData,
         GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
     {
-        InteractionMessageProperties abyssCard = new();
-        abyssCard.WithFlags(MessageFlags.IsComponentsV2);
-        ComponentContainerProperties container = [];
-        abyssCard.AddComponents([container]);
+        try
+        {
+            InteractionMessageProperties abyssCard = new();
+            abyssCard.WithFlags(MessageFlags.IsComponentsV2);
+            ComponentContainerProperties container = [];
+            abyssCard.AddComponents([container]);
 
-        container.AddComponents(
-            new TextDisplayProperties(
-                $"### <@{Context.Interaction.User.Id}>'s Abyss Summary (Floor {floor})"),
-            new TextDisplayProperties(
-                $"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
-            new MediaGalleryProperties().AddItems(
-                new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://abyss_card.jpg"))),
-            new TextDisplayProperties(
-                $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
-        );
-        abyssCard.AddAttachments(new AttachmentProperties("abyss_card.jpg",
-            await m_CommandService.GetAbyssCardAsync(floor, gameData, abyssData, constMap)));
-        abyssCard.AddComponents(
-            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
-                "Remove", ButtonStyle.Danger)));
-        return abyssCard;
+            container.AddComponents(
+                new TextDisplayProperties(
+                    $"### <@{Context.Interaction.User.Id}>'s Abyss Summary (Floor {floor})"),
+                new TextDisplayProperties(
+                    $"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
+                new MediaGalleryProperties().AddItems(
+                    new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://abyss_card.jpg"))),
+                new TextDisplayProperties(
+                    $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
+            );
+            abyssCard.AddAttachments(new AttachmentProperties("abyss_card.jpg",
+                await m_CommandService.GetAbyssCardAsync(floor, gameData, abyssData, constMap)));
+            abyssCard.AddComponents(
+                new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                    "Remove", ButtonStyle.Danger)));
+            return abyssCard;
+        }
+        catch (CommandException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while generating the Abyss card.", e);
+        }
     }
 }
