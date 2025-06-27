@@ -73,12 +73,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
         catch (Exception e)
         {
             Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([
-                    new TextDisplayProperties(
-                        "An error occurred while processing your request. Please try again later.")
-                ]));
+            await SendErrorMessageAsync();
         }
     }
 
@@ -132,7 +127,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
         catch (Exception e)
         {
             Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", code, Context.Interaction.User.Id);
-            await SendErrorMessageAsync();
+            await SendErrorMessageAsync("An error occurred while redeeming the code");
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
         }
     }
