@@ -70,6 +70,11 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
                 await RedeemCodeAsync(code, selectedProfile.LtUid, ltoken, cachedServer.Value);
             }
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+        }
         catch (Exception e)
         {
             Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
@@ -120,9 +125,15 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             {
                 Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", code,
                     Context.Interaction.User.Id, response.ErrorMessage);
-                await SendAuthenticationErrorAsync(response.ErrorMessage);
+                await SendErrorMessageAsync(response.ErrorMessage);
                 BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
             }
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", code, Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
         }
         catch (Exception e)
         {

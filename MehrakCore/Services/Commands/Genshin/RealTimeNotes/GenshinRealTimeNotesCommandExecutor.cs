@@ -240,6 +240,10 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
 
             return response;
         }
+        catch (CommandException)
+        {
+            throw;
+        }
         catch (Exception e)
         {
             throw new CommandException("An error occurred while generating real-time notes response", e);

@@ -74,6 +74,12 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                 await GetAbyssCardAsync(floor, server.Value, selectedProfile.LtUid, ltoken).ConfigureAwait(false);
             }
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error processing Abyss command for user {UserId} profile {Profile}",
+                Context.Interaction.User.Id, profile);
+            await SendErrorMessageAsync(e.Message);
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error processing Abyss command for user {UserId} profile {Profile}",
@@ -84,27 +90,18 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
 
     public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
-        try
+        if (!result.IsSuccess)
         {
-            if (!result.IsSuccess)
-            {
-                Logger.LogError("Authentication failed for user {UserId}: {ErrorMessage}", Context.Interaction.User.Id,
-                    result.ErrorMessage);
-                await SendAuthenticationErrorAsync(result.ErrorMessage);
-                return;
-            }
+            Logger.LogError("Authentication failed for user {UserId}: {ErrorMessage}", Context.Interaction.User.Id,
+                result.ErrorMessage);
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
+            return;
+        }
 
-            Context = result.Context;
-            Logger.LogInformation("Authentication completed successfully for user {UserId}",
-                Context.Interaction.User.Id);
-            await GetAbyssCardAsync(m_PendingFloor, m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error during authentication completion for user {UserId}",
-                Context.Interaction.User.Id);
-            await SendErrorMessageAsync();
-        }
+        Context = result.Context;
+        Logger.LogInformation("Authentication completed successfully for user {UserId}",
+            Context.Interaction.User.Id);
+        await GetAbyssCardAsync(m_PendingFloor, m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
     private async ValueTask GetAbyssCardAsync(uint floor, Regions server, ulong ltuid, string ltoken)

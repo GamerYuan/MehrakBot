@@ -79,11 +79,40 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
                 await SendCharacterCardResponseAsync(selectedProfile.LtUid, ltoken, characterName, cachedServer.Value);
             }
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
+                characterName, Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+        }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
+            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
+                characterName, Context.Interaction.User.Id);
             await SendErrorMessageAsync();
         }
+    }
+
+    /// <summary>
+    /// Handles authentication completion from the middleware
+    /// </summary>
+    /// <param name="result">The authentication result</param>
+    public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                result.UserId, result.ErrorMessage);
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
+            return;
+        }
+
+        Context = result.Context;
+
+        Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
+
+        await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName!,
+            m_PendingServer!.Value);
     }
 
     public async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Regions server)
@@ -128,46 +157,6 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
         {
             Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
                 characterName, Context.Interaction.User.Id);
-            await SendErrorMessageAsync();
-            BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
-        }
-    }
-
-    /// <summary>
-    /// Handles authentication completion from the middleware
-    /// </summary>
-    /// <param name="result">The authentication result</param>
-    public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
-    {
-        try
-        {
-            if (!result.IsSuccess)
-            {
-                Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
-                    result.UserId, result.ErrorMessage);
-                await SendAuthenticationErrorAsync(result.ErrorMessage);
-                return;
-            }
-
-            // Update context if available
-            if (result.Context != null) Context = result.Context;
-
-            Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
-
-            await SendCharacterCardResponseAsync(result.LtUid, result.LToken, m_PendingCharacterName!,
-                m_PendingServer!.Value);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
-                m_PendingCharacterName, Context.Interaction.User.Id);
-            await SendErrorMessageAsync(e.Message);
-            BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, "Error processing character command for character {CharacterName} user {UserId}",
-                m_PendingCharacterName, Context.Interaction.User.Id);
             await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", false);
         }
@@ -220,6 +209,10 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
                     ButtonStyle.Danger)));
 
             return properties;
+        }
+        catch (CommandException)
+        {
+            throw;
         }
         catch (Exception e)
         {
