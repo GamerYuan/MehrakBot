@@ -38,7 +38,7 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - ./Config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./MehrakCore/Config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -75,9 +75,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Config/nginx/conf.d:/etc/nginx/conf.d
-      - ./Config/nginx/ssl:/etc/nginx/ssl:ro
-      - ./Config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./MehrakCore/Config/nginx/conf.d:/etc/nginx/conf.d
+      - ./MehrakCore/Config/nginx/ssl:/etc/nginx/ssl:ro
+      - ./MehrakCore/Config/nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - grafana
     networks:
