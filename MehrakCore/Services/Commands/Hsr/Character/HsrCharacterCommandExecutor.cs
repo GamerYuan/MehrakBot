@@ -73,6 +73,12 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
                     server.Value);
             }
         }
+        catch (CommandException e)
+        {
+            Logger.LogError("Error executing character command for user {UserId}: {ErrorMessage}",
+                Context.Interaction.User.Id, e.Message);
+            await SendErrorMessageAsync(e.Message);
+        }
         catch (Exception e)
         {
             Logger.LogError("Error executing character command for user {UserId}: {ErrorMessage}",
@@ -169,19 +175,31 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
     private async Task<InteractionMessageProperties> GenerateCharacterCardResponseAsync(
         HsrCharacterInformation characterInfo, string gameUid)
     {
-        InteractionMessageProperties properties = new();
-        properties.WithFlags(MessageFlags.IsComponentsV2);
-        properties.WithAllowedMentions(new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
-        properties.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
-        properties.AddComponents(new MediaGalleryProperties().WithItems(
-            [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
-        properties.AddAttachments(new AttachmentProperties("character_card.jpg",
-            await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
-        properties.AddComponents(
-            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
-                "Remove",
-                ButtonStyle.Danger)));
+        try
+        {
+            InteractionMessageProperties properties = new();
+            properties.WithFlags(MessageFlags.IsComponentsV2);
+            properties.WithAllowedMentions(
+                new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
+            properties.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
+            properties.AddComponents(new MediaGalleryProperties().WithItems(
+                [new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://character_card.jpg"))]));
+            properties.AddAttachments(new AttachmentProperties("character_card.jpg",
+                await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterInfo, gameUid)));
+            properties.AddComponents(
+                new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                    "Remove",
+                    ButtonStyle.Danger)));
 
-        return properties;
+            return properties;
+        }
+        catch (CommandException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new CommandException("An error occurred while generating character card response", e);
+        }
     }
 }

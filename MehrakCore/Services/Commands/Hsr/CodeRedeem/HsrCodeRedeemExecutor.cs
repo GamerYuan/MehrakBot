@@ -78,29 +78,20 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
 
     public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
     {
-        try
+        if (!result.IsSuccess)
         {
-            if (!result.IsSuccess)
-            {
-                Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
-                    result.UserId, result.ErrorMessage);
-                await SendAuthenticationErrorAsync(result.ErrorMessage);
-                return;
-            }
-
-            // Update context if available
-            if (result.Context != null) Context = result.Context;
-
-            Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
-
-            await RedeemCodeAsync(m_PendingCode, result.LtUid, result.LToken,
-                m_PendingServer!.Value);
+            Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
+                result.UserId, result.ErrorMessage);
+            await SendAuthenticationErrorAsync(result.ErrorMessage);
+            return;
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error handling authentication completion for user {UserId}", result.UserId);
-            await SendErrorMessageAsync();
-        }
+
+        Context = result.Context;
+
+        Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
+
+        await RedeemCodeAsync(m_PendingCode, result.LtUid, result.LToken,
+            m_PendingServer!.Value);
     }
 
     private async ValueTask RedeemCodeAsync(string code, ulong ltuid, string ltoken, Regions server)

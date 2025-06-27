@@ -67,6 +67,12 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
                 await SendRealTimeNotesAsync(selectedProfile.LtUid, ltoken, cachedServer.Value);
             }
         }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error executing real-time notes command for user {UserId}",
+                Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+        }
         catch (Exception e)
         {
             Logger.LogError(e, "Error executing real-time notes command for user {UserId}",
@@ -204,6 +210,10 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
                 new AttachmentProperties("hsr_weekly.png", await weeklyImage),
                 new AttachmentProperties("hsr_rogue.png", await rogueImage));
             return result;
+        }
+        catch (CommandException)
+        {
+            throw;
         }
         catch (Exception e)
         {
