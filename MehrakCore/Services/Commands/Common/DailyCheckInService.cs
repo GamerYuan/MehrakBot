@@ -8,11 +8,7 @@ using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
-using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
-using NetCord;
-using NetCord.Rest;
-using NetCord.Services;
 
 #endregion
 
@@ -50,23 +46,17 @@ public class DailyCheckInService : IDailyCheckInService
         m_Logger = logger;
     }
 
-    public async Task CheckInAsync(IInteractionContext context, UserModel user, uint profile, ulong ltuid,
+    public async Task<ApiResult<string>> CheckInAsync(ulong userId, UserModel user, uint profile, ulong ltuid,
         string ltoken)
     {
         try
         {
-            var userId = context.Interaction.User.Id;
             m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
 
             var userData = await m_GameRecordApiService.GetUserDataAsync(ltuid, ltoken);
             if (userData == null)
-            {
-                await context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().AddComponents(new TextDisplayProperties(
-                            "Invalid UID or Cookies. Please re-authenticate your profile."))
-                        .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
-                return;
-            }
+                return ApiResult<string>.Failure(HttpStatusCode.Unauthorized,
+                    "Invalid UID or Cookies. Please re-authenticate your profile");
 
             var checkInTypes = Enum.GetValues<GameName>();
 
@@ -74,7 +64,7 @@ public class DailyCheckInService : IDailyCheckInService
             {
                 try
                 {
-                    return await CheckInHelperAsync(type, context.Interaction.User.Id, ltuid, ltoken);
+                    return await CheckInHelperAsync(type, userId, ltuid, ltoken);
                 }
                 catch (Exception ex)
                 {
@@ -99,23 +89,20 @@ public class DailyCheckInService : IDailyCheckInService
                 sb.AppendLine($"{gameName}: {gameResult}");
             }
 
-            await context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().AddComponents(new TextDisplayProperties(sb.ToString()))
-                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
-
             if (tasks.All(x => x.Result.IsSuccess || x.Result.StatusCode == HttpStatusCode.Forbidden))
             {
                 user.Profiles!.First(x => x.ProfileId == profile).LastCheckIn = DateTime.UtcNow;
                 await m_UserRepository.CreateOrUpdateUserAsync(user);
             }
 
-            BotMetrics.TrackCommand(context.Interaction.User, "checkin", true);
+            return ApiResult<string>.Success(sb.ToString());
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "An error occurred while performing daily check-in for user {UserId}",
-                context.Interaction.User.Id);
-            throw new CommandException("An error occurred while performing daily check-in", e);
+                userId);
+            return ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
+                "An unknown error occurred while performing daily check-in");
         }
     }
 
