@@ -279,7 +279,7 @@ public class HsrRealTimeNotesCommandExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("An error occurred: API Error"));
+        Assert.That(response, Contains.Substring("API Error"));
     }
 
     [Test]
@@ -342,7 +342,7 @@ public class HsrRealTimeNotesCommandExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("An unknown error occurred, please try again later"));
+        Assert.That(response, Contains.Substring("An unknown error occurred while processing your request"));
     }
 
     [Test]

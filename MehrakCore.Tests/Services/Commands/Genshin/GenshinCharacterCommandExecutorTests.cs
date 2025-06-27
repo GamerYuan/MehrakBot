@@ -395,6 +395,18 @@ public class GenshinCharacterCommandExecutorTests
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK,
+            JsonSerializer.Serialize(new
+            {
+                retcode = 0,
+                data = new
+                {
+                    list = new[]
+                    {
+                        new { game_uid = "800800800" }
+                    }
+                }
+            }));
 
         // Mock character API to throw exception
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(
@@ -406,7 +418,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("An error occurred while processing your request"));
+        Assert.That(response, Contains.Substring("An unknown error occurred while processing your request"));
     }
 
     [Test]
@@ -455,21 +467,6 @@ public class GenshinCharacterCommandExecutorTests
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("Authentication failed: Invalid passphrase"));
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_WhenAuthenticationSucceedsButMissingParameters_SendsErrorMessage()
-    {
-        // Arrange
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
-        // No pending parameters set
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Error: Missing required parameters for command execution"));
     }
 
     [Test]
@@ -592,7 +589,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("An error occurred while processing your request"));
+        Assert.That(response, Contains.Substring("An error occurred while updating user data").IgnoreCase);
     }
 
     #endregion

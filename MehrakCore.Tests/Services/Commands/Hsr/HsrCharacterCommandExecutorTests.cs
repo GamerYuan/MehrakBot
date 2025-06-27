@@ -389,17 +389,18 @@ public class HsrCharacterCommandExecutorTests
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedToken);
 
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
         // Make the character API throw an exception
         m_CharacterApiMock.Setup(x =>
                 x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("API error"));
+            .ThrowsAsync(new CommandException("An error occurred while retrieving character data"));
 
         // Act
         await m_Executor.ExecuteAsync("Stelle", Regions.Asia, 1u);
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("An unknown error occurred, please try again later."));
+        Assert.That(response, Contains.Substring("An error occurred while retrieving character data"));
     }
 
     [Test]

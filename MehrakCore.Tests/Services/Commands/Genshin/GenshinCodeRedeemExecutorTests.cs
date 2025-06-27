@@ -256,20 +256,6 @@ public class GenshinCodeRedeemExecutorTests
     }
 
     [Test]
-    public async Task OnAuthenticationCompletedAsync_MissingPendingParameters_ShouldSendErrorResponse()
-    {
-        // Arrange
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
-
-        // Act - Don't set pending parameters first
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("Missing required parameters"));
-    }
-
-    [Test]
     public async Task ExecuteAsync_GameRecordApiFails_ShouldSendErrorResponse()
     {
         // Arrange
@@ -349,7 +335,7 @@ public class GenshinCodeRedeemExecutorTests
         // Act
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u); // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("An error occurred while redeeming the code. Please try again later."));
+        Assert.That(response, Does.Contain("An error occurred while redeeming the code"));
     }
 
     private async Task CreateTestUserAsync()

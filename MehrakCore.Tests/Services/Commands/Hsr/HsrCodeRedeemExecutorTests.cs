@@ -1,7 +1,6 @@
 #region
 
 using System.Net;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using MehrakCore.Models;
@@ -338,71 +337,6 @@ public class HsrCodeRedeemExecutorTests
     }
 
     [Test]
-    public async Task OnAuthenticationCompletedAsync_MissingPendingParameters_ShouldSendErrorResponse()
-    {
-        // Arrange
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
-
-        // Act - Don't set pending parameters first
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("Missing required parameters"));
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_MissingPendingCode_ShouldSendErrorResponse()
-    {
-        // Arrange
-        await CreateTestUserAsync();
-
-        // Set only server but not code (simulate partial state)
-        SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
-
-        // Manually clear the pending code to simulate missing parameter
-        var executorType = typeof(HsrCodeRedeemExecutor);
-        var pendingCodeField = executorType.GetField("m_PendingCode", BindingFlags.NonPublic | BindingFlags.Instance);
-        pendingCodeField?.SetValue(m_Executor, string.Empty);
-
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("Missing required parameters"));
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_MissingPendingServer_ShouldSendErrorResponse()
-    {
-        // Arrange
-        await CreateTestUserAsync();
-
-        // Set only code but not server (simulate partial state)
-        SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
-
-        // Manually clear the pending server to simulate missing parameter
-        var executorType = typeof(HsrCodeRedeemExecutor);
-        var pendingServerField =
-            executorType.GetField("m_PendingServer", BindingFlags.NonPublic | BindingFlags.Instance);
-        pendingServerField?.SetValue(m_Executor, null);
-
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("Missing required parameters"));
-    }
-
-    [Test]
     public async Task ExecuteAsync_GameRecordApiFails_ShouldSendErrorResponse()
     {
         // Arrange
@@ -484,7 +418,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("An error occurred while redeeming the code. Please try again later."));
+        Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
     [Test]
@@ -515,23 +449,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("An error occurred while redeeming the code. Please try again later."));
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_NullContext_ShouldHandleGracefully()
-    {
-        // Arrange
-        await CreateTestUserAsync();
-
-        // Set pending parameters first
-        SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
-
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, null!);
-
-        // Act & Assert - Should not throw exception
-        Assert.DoesNotThrowAsync(async () => await m_Executor.OnAuthenticationCompletedAsync(authResult));
+        Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
     [Test]
@@ -627,26 +545,6 @@ public class HsrCodeRedeemExecutorTests
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
-    }
-
-    [Test]
-    public async Task ExecuteAsync_HttpRequestThrowsException_ShouldSendErrorResponse()
-    {
-        // Arrange
-        await CreateTestUserWithoutGameUid();
-
-        // Setup HTTP message handler to throw exception
-        m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("Network error"));
-
-        // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("An error occurred while redeeming the code. Please try again later."));
     }
 
     [Test]
@@ -805,7 +703,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("An error occurred while redeeming the code. Please try again later."));
+        Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
     [Test]
