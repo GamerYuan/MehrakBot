@@ -47,14 +47,16 @@ public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
             {
                 m_Logger.LogError("Failed to redeem code {Code} for uid {GameUid}. Status code: {StatusCode}",
                     code, gameUid, response.StatusCode);
-                return ApiResult<string>.Failure(HttpStatusCode.InternalServerError, "API returned an error");
+                return ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
+                    "An error occurred while redeeming the code");
             }
 
             var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse JSON response for code {Code} and uid {GameUid}", code, gameUid);
-                return ApiResult<string>.Failure(HttpStatusCode.InternalServerError, "Failed to parse API response");
+                return ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
+                    "An error occurred while redeeming the code");
             }
 
             var retCode = json["retcode"]?.GetValue<int>() ?? -1;
@@ -66,7 +68,7 @@ public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
                 -2016 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption in Cooldown"),
                 -2017 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Already Used"),
                 _ => ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
-                    $"API returned an error: {json["message"]?.ToString() ?? "Unknown error"}")
+                    "An error occurred while redeeming the code")
             };
         }
         catch (Exception e)

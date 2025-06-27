@@ -119,7 +119,7 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
             {
                 Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", code,
                     Context.Interaction.User.Id, response.ErrorMessage);
-                await SendErrorMessageAsync();
+                await SendErrorMessageAsync(response.ErrorMessage);
                 BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", false);
             }
         }
