@@ -11,8 +11,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
 
 #endregion
 
@@ -92,16 +90,15 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var context = CreateMockInteractionContext(interaction);
         var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
             m_LoggerMock.Object);
 
         // Act
-        await service.CheckInAsync(context, user, TestProfile, TestLtuid, TestLtoken);
+        var response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response.IsSuccess, Is.True);
+        var responseMessage = response.Data;
 
         // Verify the message contains success messages for all games
         Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
@@ -141,16 +138,15 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateNoAccountResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.InternalServerError, "");
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var context = CreateMockInteractionContext(interaction);
         var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
             m_LoggerMock.Object);
 
         // Act
-        await service.CheckInAsync(context, user, TestProfile, TestLtuid, TestLtoken);
+        var response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response.IsSuccess, Is.True);
+        var responseMessage = response.Data;
 
         // Verify the message contains the correct mixed results
         Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
@@ -188,18 +184,18 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var context = CreateMockInteractionContext(interaction);
         var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
             m_LoggerMock.Object);
 
         // Act
-        await service.CheckInAsync(context, user, TestProfile, TestLtuid, TestLtoken);
+        var response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response.IsSuccess, Is.True);
+        var responseMessage = response.Data;
 
-        // Verify the message contains already checked in messages for all games        Assert.That(responseMessage, Does.Contain("Genshin Impact: Already checked in today").IgnoreCase);
+        // Verify the message contains already checked in messages for all games
+        Assert.That(responseMessage, Does.Contain("Genshin Impact: Already checked in today").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Already checked in today").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Already checked in today").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: Already checked in today").IgnoreCase);
@@ -228,13 +224,11 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var context = CreateMockInteractionContext(interaction);
         var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
             m_LoggerMock.Object);
 
         // Act
-        await service.CheckInAsync(context, user, TestProfile, TestLtuid, TestLtoken);
+        await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
 
         // Assert
         // Verify ZZZ request has the special X-Rpc-Signgame header
@@ -263,16 +257,15 @@ public class DailyCheckInServiceTests
 
         // Note: Individual game API responses are not needed since the guard clause will fail first
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var context = CreateMockInteractionContext(interaction);
         var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
             m_LoggerMock.Object);
 
         // Act
-        await service.CheckInAsync(context, user, TestProfile, TestLtuid, TestLtoken);
+        var response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response.IsSuccess, Is.False);
+        var responseMessage = response.ErrorMessage;
 
         // Verify the message contains the guard clause failure message
         Assert.That(responseMessage,
@@ -294,16 +287,15 @@ public class DailyCheckInServiceTests
         // Setup GameRecord API to return null (fails guard clause)
         SetupGameRecordApiResponse(TestLtuid, false);
 
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var context = CreateMockInteractionContext(interaction);
         var service = new DailyCheckInService(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
             m_LoggerMock.Object);
 
         // Act
-        await service.CheckInAsync(context, user, TestProfile, TestLtuid, TestLtoken);
+        var response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response.IsSuccess, Is.False);
+        var responseMessage = response.ErrorMessage;
 
         // Verify the message contains the guard clause failure message
         Assert.That(responseMessage,
@@ -376,17 +368,6 @@ public class DailyCheckInServiceTests
         return jsonResponse.ToJsonString();
     }
 
-    private static string CreateInvalidCookiesResponse()
-    {
-        var jsonResponse = new JsonObject
-        {
-            ["retcode"] = 10001,
-            ["message"] = "Invalid cookies",
-            ["data"] = new JsonObject()
-        };
-        return jsonResponse.ToJsonString();
-    }
-
     private void SetupGameRecordApiResponse(ulong ltuid, bool isValid)
     {
         var gameRecordUrl = $"{GameRecordApiUrl}?uid={ltuid}";
@@ -431,12 +412,5 @@ public class DailyCheckInServiceTests
             ["data"] = null
         };
         return jsonResponse.ToJsonString();
-    }
-
-    private static IInteractionContext CreateMockInteractionContext(SlashCommandInteraction interaction)
-    {
-        var contextMock = new Mock<IInteractionContext>();
-        contextMock.SetupGet(x => x.Interaction).Returns(interaction);
-        return contextMock.Object;
     }
 }
