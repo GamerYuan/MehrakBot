@@ -254,7 +254,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
                                 Origin = new Vector2(xOffset + 765, y + 10)
-                            }, $"Lv. {buff.Level}", Color.White);
+                            }, $"Lv. {buff.Level}", buff.Level > 0 ? Color.White : Color.Gray);
                     }
                 }
             });
