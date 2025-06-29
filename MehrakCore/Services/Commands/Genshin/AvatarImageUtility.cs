@@ -35,12 +35,26 @@ internal static class AvatarImageUtility
     {
         if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
 
+        return GetStyledAvatarImageHelper(avatar.Rarity!.Value, avatar.Level!.Value, portrait, constellation, text);
+    }
+
+    public static Image<Rgba32> GetStyledAvatarImage(this ItAvatar avatar, Image portrait, int constellation = 0,
+        string text = "")
+    {
+        if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
+
+        return GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, portrait, constellation, text);
+    }
+
+    private static Image<Rgba32> GetStyledAvatarImageHelper(int rarity, int level, Image portrait, int constellation,
+        string text)
+    {
         var avatarImage = new Image<Rgba32>(150, 180);
         var rectangle = new RectangleF(0, 150, 150, 30);
 
         avatarImage.Mutate(ctx =>
         {
-            ctx.Fill(avatar.Rarity!.Value == 4 ? PurpleBackgroundColor : GoldBackgroundColor);
+            ctx.Fill(rarity == 4 ? PurpleBackgroundColor : GoldBackgroundColor);
             ctx.DrawImage(portrait, new Point(0, 0), 1f);
             ctx.Fill(Color.PeachPuff, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
@@ -48,7 +62,7 @@ internal static class AvatarImageUtility
                 Origin = new PointF(75, 180),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
-            }, string.IsNullOrEmpty(text) ? $"Lv. {avatar.Level}" : text, Color.Black);
+            }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.Black);
             var constIcon = ImageExtensions.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
             if (constellation == 6)
             {
