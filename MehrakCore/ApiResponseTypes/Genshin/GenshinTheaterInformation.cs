@@ -53,7 +53,7 @@ public class Detail
 
     [JsonPropertyName("backup_avatars")] public required List<ItAvatar> BackupAvatars { get; init; }
 
-    [JsonPropertyName("fight_statisic")] public required FightStatisic FightStatisic { get; init; }
+    [JsonPropertyName("fight_statisic")] public required FightStatistic FightStatistic { get; init; }
 }
 
 public class DetailStat
@@ -91,22 +91,33 @@ public class EndDateTime
     [JsonPropertyName("second")] public int Second { get; init; }
 }
 
-public class FightStatisic
+public class ItRankAvatar
+{
+    [JsonPropertyName("avatar_id")] public int AvatarId { get; init; }
+
+    [JsonPropertyName("avatar_icon")] public string? AvatarIcon { get; init; }
+
+    [JsonPropertyName("value")] public required string Value { get; init; }
+
+    [JsonPropertyName("rarity")] public int Rarity { get; init; }
+}
+
+public class FightStatistic
 {
     [JsonPropertyName("max_defeat_avatar")]
-    public required RankAvatar MaxDefeatAvatar { get; init; }
+    public required ItRankAvatar MaxDefeatAvatar { get; init; }
 
     [JsonPropertyName("max_damage_avatar")]
-    public required RankAvatar MaxDamageAvatar { get; init; }
+    public required ItRankAvatar MaxDamageAvatar { get; init; }
 
     [JsonPropertyName("max_take_damage_avatar")]
-    public required RankAvatar MaxTakeDamageAvatar { get; init; }
+    public required ItRankAvatar MaxTakeDamageAvatar { get; init; }
 
     [JsonPropertyName("total_coin_consumed")]
-    public required RankAvatar TotalCoinConsumed { get; init; }
+    public required ItRankAvatar TotalCoinConsumed { get; init; }
 
     [JsonPropertyName("shortest_avatar_list")]
-    public required List<RankAvatar> ShortestAvatarList { get; init; }
+    public required List<ItRankAvatar> ShortestAvatarList { get; init; }
 
     [JsonPropertyName("total_use_time")] public int TotalUseTime { get; init; }
 
