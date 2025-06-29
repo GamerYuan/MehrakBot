@@ -71,7 +71,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                 async x => x.Value.GetStyledAvatarImage(
                     await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{x.Value.AvatarId}")),
-                    x.Value.AvatarType != 1 ? 0 : constMap[x.Value.AvatarId]));
+                    x.Value.AvatarType, x.Value.AvatarType != 1 ? 0 : constMap[x.Value.AvatarId]));
             var buffImages = await buffMap.ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Key),
                     async x =>

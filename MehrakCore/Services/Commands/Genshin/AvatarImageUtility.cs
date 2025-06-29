@@ -17,6 +17,7 @@ namespace MehrakCore.Services.Commands.Genshin;
 internal static class AvatarImageUtility
 {
     private static readonly Font NormalFont;
+    private static readonly Font SmallFont;
 
     private static readonly Color GoldBackgroundColor = new Rgb24(183, 125, 76);
     private static readonly Color PurpleBackgroundColor = new Rgb24(132, 104, 173);
@@ -28,6 +29,7 @@ internal static class AvatarImageUtility
         var collection = new FontCollection();
         var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
         NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
+        SmallFont = fontFamily.CreateFont(18, FontStyle.Regular);
     }
 
     public static Image<Rgba32> GetStyledAvatarImage(this Avatar avatar, Image portrait, int constellation = 0,
@@ -38,12 +40,42 @@ internal static class AvatarImageUtility
         return GetStyledAvatarImageHelper(avatar.Rarity!.Value, avatar.Level!.Value, portrait, constellation, text);
     }
 
-    public static Image<Rgba32> GetStyledAvatarImage(this ItAvatar avatar, Image portrait, int constellation = 0,
+    public static Image<Rgba32> GetStyledAvatarImage(this ItAvatar avatar, Image portrait, int avatarType,
+        int constellation = 0,
         string text = "")
     {
         if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
 
-        return GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, portrait, constellation, text);
+        var image = GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, portrait, constellation, text);
+        switch (avatarType)
+        {
+            case 2:
+                image.Mutate(ctx =>
+                {
+                    var overlay = ImageExtensions.CreateRoundedRectanglePath(80, 35, 15);
+                    ctx.Fill(Color.FromRgb(225, 118, 128), overlay.Translate(90, -10));
+                    ctx.DrawText(new RichTextOptions(SmallFont)
+                    {
+                        Origin = new PointF(98, 3),
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, "Trial", Color.White);
+                });
+                break;
+            case 3:
+                image.Mutate(ctx =>
+                {
+                    var overlay = ImageExtensions.CreateRoundedRectanglePath(130, 35, 15);
+                    ctx.Fill(Color.FromRgb(73, 128, 185), overlay.Translate(50, -10));
+                    ctx.DrawText(new RichTextOptions(SmallFont)
+                    {
+                        Origin = new PointF(63, 3),
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, "Support", Color.White);
+                });
+                break;
+        }
+
+        return image;
     }
 
     private static Image<Rgba32> GetStyledAvatarImageHelper(int rarity, int level, Image portrait, int constellation,
