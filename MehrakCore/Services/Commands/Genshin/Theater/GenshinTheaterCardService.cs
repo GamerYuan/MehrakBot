@@ -33,6 +33,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
+    private readonly Image m_Background;
     private readonly Image m_TheaterStarLit;
     private readonly Image m_TheaterStarUnlit;
     private readonly Image m_TheaterBuff;
@@ -56,6 +57,8 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         m_TheaterStarUnlit.Mutate(ctx => ctx.Brightness(0.5f));
 
         m_TheaterBuff = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_buff").Result);
+        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_bg").Result);
+        m_Background.Mutate(x => x.Brightness(0.35f));
     }
 
     public async Task<Stream> GetTheaterCardAsync(GenshinTheaterInformation theaterData, UserGameData userGameData,
@@ -88,19 +91,34 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
             var sideAvatarImages = await fightStats.DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.AvatarId),
-                    async x => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync($"genshin_side_avatar_{x.AvatarId}")));
+                    async x =>
+                    {
+                        var image = await Image.LoadAsync(
+                            await m_ImageRepository.DownloadFileToStreamAsync($"genshin_side_avatar_{x.AvatarId}"));
+                        image.Mutate(ctx => ctx.Resize(100, 0));
+                        return image;
+                    });
 
             disposableResources.AddRange(avatarImages.Values);
             disposableResources.AddRange(buffImages.Values);
             disposableResources.AddRange(sideAvatarImages.Values);
 
-            var background = new Image<Rgba32>(1900, 2100);
+            var maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
+
+            var height = 590 +
+                         (maxRound + 1) / 2 * 300;
+            // 1900 x height
+            var background = m_Background.CloneAs<Rgba32>();
             disposableResources.Add(background);
 
             background.Mutate(ctx =>
             {
-                ctx.Clear(Color.RebeccaPurple);
+                if (height > background.Height)
+                    ctx.Resize(0, height);
+                var rectangle = new Rectangle(ctx.GetCurrentSize().Width / 2 - 1900 / 2,
+                    ctx.GetCurrentSize().Height / 2 - height / 2, 1900, height);
+                ctx.Crop(rectangle);
+                ctx.GaussianBlur(10);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
@@ -154,68 +172,81 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     Origin = new Vector2(885, 400),
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, theaterData.Stat.RentCnt.ToString(), Color.White);
-                ctx.DrawLine(Color.White, 2f, new PointF(80, 450), new PointF(885, 450));
+                ctx.DrawLine(Color.White, 2f, new PointF(70, 450), new PointF(885, 450));
 
                 ctx.DrawText("Total Cast Time", m_NormalFont, Color.White, new PointF(70, 480));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(885, 480),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, theaterData.Detail.FightStatistic.TotalUseTime.ToString(), Color.White);
+                    {
+                        Origin = new Vector2(885, 480),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, TimeSpan.FromSeconds(theaterData.Detail.FightStatistic.TotalUseTime).ToString(@"mm\:ss"),
+                    Color.White);
 
-                var overlay = ImageExtensions.CreateRoundedRectanglePath(875, 150, 15).Translate(985, 50);
-
-                for (int i = 0; i < 3; i++)
-                {
-                    ctx.Fill(OverlayColor, overlay);
-                    overlay = overlay.Translate(0, 170);
-                }
+                var statBackground = ImageExtensions.CreateRoundedRectanglePath(875, 360, 15).Translate(985, 50);
+                ctx.Fill(OverlayColor, statBackground);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(1135, 125),
+                    Origin = new Vector2(1135, 105),
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Highest Damage Dealt", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
-                        Origin = new Vector2(1830, 125),
+                        Origin = new Vector2(1820, 105),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Center
                     }, $"{theaterData.Detail.FightStatistic.MaxDamageAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDamageAvatar.AvatarId],
-                    new Point(985, 30), 1f);
+                    new Point(1005, 40), 1f);
+                ctx.DrawLine(Color.White, 2f, new PointF(1020, 165), new PointF(1820, 165));
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(1135, 295),
+                    Origin = new Vector2(1135, 225),
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Damage Taken", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
-                        Origin = new Vector2(1830, 295),
+                        Origin = new Vector2(1820, 225),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Center
                     }, $"{theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.AvatarId],
-                    new Point(985, 200), 1f);
+                    new Point(1005, 160), 1f);
+                ctx.DrawLine(Color.White, 2f, new PointF(1020, 285), new PointF(1820, 285));
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(1135, 465),
+                    Origin = new Vector2(1135, 345),
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Opponents Defeated", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
-                        Origin = new Vector2(1830, 465),
+                        Origin = new Vector2(1820, 345),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Center
                     }, $"{theaterData.Detail.FightStatistic.MaxDefeatAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDefeatAvatar.AvatarId],
-                    new Point(985, 370), 1f);
+                    new Point(1005, 280), 1f);
+
+                var starBackground = ImageExtensions.CreateRoundedRectanglePath(875, 110, 15).Translate(985, 430);
+                ctx.Fill(OverlayColor, starBackground);
+                ctx.DrawText("Star Challenge Stellas", m_NormalFont, Color.White, new PointF(1005, 470));
+
+                for (int i = theaterData.Stat.GetMedalRoundList.Count - 1; i >= 0; i--)
+                    ctx.DrawImage(theaterData.Stat.GetMedalRoundList[i] == 1
+                            ? m_TheaterStarLit
+                            : m_TheaterStarUnlit,
+                        new Point(1800 - (theaterData.Stat.GetMedalRoundList.Count - 1 - i) * 45, 465), 1f);
+
+                var hasFastest = false;
 
                 for (int i = 0; i < theaterData.Detail.RoundsData.Count; i++)
                 {
-                    int xOffset = 50 + (i % 2 == 0 ? 0 : 945);
+                    int xOffset = i == maxRound - 1 &&
+                                  maxRound % 2 == 1
+                        ? 512
+                        : 50 + (i % 2 == 0 ? 0 : 945);
                     int yOffset = 660 + i / 2 * 300;
                     var roundData = theaterData.Detail.RoundsData[i];
 
@@ -242,7 +273,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         }, $"Lv. {roundData.SplendourBuff!.Summary.TotalLevel}", Color.White);
 
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 680, yOffset),
-                        new PointF(xOffset + 850, yOffset - 5));
+                        new PointF(xOffset + 850, yOffset));
 
                     for (int j = 0; j < roundData.SplendourBuff!.Buffs.Count; j++)
                     {
@@ -256,6 +287,49 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                                 Origin = new Vector2(xOffset + 765, y + 10)
                             }, $"Lv. {buff.Level}", buff.Level > 0 ? Color.White : Color.Gray);
                     }
+
+                    if (!hasFastest && roundData.Avatars.Select(x => x.AvatarId).SequenceEqual(
+                            theaterData.Detail.FightStatistic.ShortestAvatarList.Select(x => x.AvatarId
+                            )))
+                    {
+                        hasFastest = true;
+                        var fastestBackground = ImageExtensions.CreateRoundedRectanglePath(190, 50, 15);
+                        ctx.Fill(Color.FromRgba(128, 128, 128, 128),
+                            fastestBackground.Translate(xOffset + 400, yOffset - 60));
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            Origin = new Vector2(xOffset + 412, yOffset - 45)
+                        }, "Fastest Act", Color.Gold);
+                    }
+                }
+
+                for (int i = theaterData.Detail.RoundsData.Count; i < maxRound; i++)
+                {
+                    int xOffset = i == maxRound - 1 && maxRound % 2 == 1
+                        ? 512
+                        : 50 + (i % 2 == 0 ? 0 : 945);
+                    int yOffset = 660 + i / 2 * 300;
+
+                    var avatarBackground = ImageExtensions.CreateRoundedRectanglePath(670, 270, 15);
+                    ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
+
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            Origin = new Vector2(xOffset + 15, yOffset - 45)
+                        }, $"Act {i + 1}", Color.White);
+
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    {
+                        Origin = new Vector2(xOffset + 335, yOffset + 80),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, "No Clear Records", Color.White);
+
+                    var buffBackground = ImageExtensions.CreateRoundedRectanglePath(195, 270, 15);
+                    ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
+                    ctx.DrawLine(new SolidPen(new PenOptions(Color.White, 5f) { EndCapStyle = EndCapStyle.Round }),
+                        new PointF(xOffset + 690, yOffset + 180),
+                        new PointF(xOffset + 845, yOffset - 50));
                 }
             });
 
@@ -306,6 +380,18 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
             2 => "Normal Mode",
             3 => "Hard Mode",
             4 => "Visionary Mode",
+            _ => throw new ArgumentException("Difficulty must be between 1 and 4", nameof(difficulty))
+        };
+    }
+
+    private static int GetMaxRound(int difficulty)
+    {
+        return difficulty switch
+        {
+            1 => 3,
+            2 => 6,
+            3 => 8,
+            4 => 10,
             _ => throw new ArgumentException("Difficulty must be between 1 and 4", nameof(difficulty))
         };
     }
