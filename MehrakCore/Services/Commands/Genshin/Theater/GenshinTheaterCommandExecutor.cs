@@ -109,7 +109,7 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
             var userData = response.Data;
             var gameUid = response.Data.GameUid!;
 
-            var theaterDataResult = await m_ApiService.GetTheaterDataAsync(gameUid, server.ToString(), ltuid, ltoken);
+            var theaterDataResult = await m_ApiService.GetTheaterDataAsync(gameUid, region, ltuid, ltoken);
             if (!theaterDataResult.IsSuccess)
             {
                 await SendErrorMessageAsync(theaterDataResult.ErrorMessage);
@@ -117,11 +117,18 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
             }
 
             var theaterData = theaterDataResult.Data;
-            if (!theaterData.HasDetailData || theaterData.Schedule.ScheduleId != 1)
-            {
-                await SendErrorMessageAsync("Imaginarium Theater is not unlocked yet.");
-                return;
-            }
+
+            var updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
+                .Select(async x => await m_ImageUpdaterService.UpdateAvatarAsync(x.AvatarId.ToString(), x.Image));
+            var sideAvatarTask =
+                ((ItRankAvatar[])
+                [
+                    theaterData.Detail.FightStatistic.MaxDamageAvatar,
+                    theaterData.Detail.FightStatistic.MaxDefeatAvatar,
+                    theaterData.Detail.FightStatistic.MaxTakeDamageAvatar
+                ]).DistinctBy(x => x.AvatarId)
+                .Select(async x =>
+                    await m_ImageUpdaterService.UpdateSideAvatarAsync(x.AvatarId.ToString(), x.AvatarIcon!));
 
             var charList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToList();
             if (charList.Count == 0)
@@ -138,8 +145,14 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
                 return;
             }
 
+            await Task.WhenAll(updateImageTask);
+            await Task.WhenAll(sideAvatarTask);
+
             var theaterCard = await GetTheaterCardAsync(theaterData, userData, constMap, buffMap.Data);
 
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(theaterCard);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin theater", true);
         }
@@ -165,9 +178,10 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
         try
         {
             InteractionMessageProperties response = new();
+            response.WithFlags(MessageFlags.IsComponentsV2);
             ComponentContainerProperties container =
             [
-                new TextDisplayProperties($"### <@{Context.Interaction.User.Id}'s Imaginarium Theater Summary"),
+                new TextDisplayProperties($"### <@{Context.Interaction.User.Id}>'s Imaginarium Theater Summary"),
                 new TextDisplayProperties(
                     $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
                 new MediaGalleryProperties().AddItems(
@@ -178,11 +192,11 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
 
             response.AddAttachments(new AttachmentProperties("theater_card.jpg",
                 await m_CommandService.GetTheaterCardAsync(theaterData, userData, constMap, buffMap)));
+
+            response.AddComponents([container]);
             response.AddComponents(
                 new ActionRowProperties().AddButtons(new ButtonProperties("remove_card",
                     "Remove", ButtonStyle.Danger)));
-
-            response.AddComponents([container]);
             return response;
         }
         catch (CommandException)
