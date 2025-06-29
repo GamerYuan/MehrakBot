@@ -80,7 +80,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
             }
 
             var theaterData = theaterInfo[0];
-            if (!theaterData.HasDetailData || theaterData.Schedule.ScheduleId != 1)
+            if (!theaterData.HasDetailData || theaterData.Schedule.ScheduleType != 1)
             {
                 m_Logger.LogError("No Theater data found for this cycle for gameUid: {GameUid}", gameUid);
                 return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.NotFound,
