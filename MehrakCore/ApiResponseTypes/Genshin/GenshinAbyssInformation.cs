@@ -43,19 +43,19 @@ public class GenshinAbyssInformation
 
     [JsonPropertyName("max_floor")] public string? MaxFloor { get; init; }
 
-    [JsonPropertyName("reveal_rank")] public List<RankDetails>? RevealRank { get; init; }
+    [JsonPropertyName("reveal_rank")] public List<RankAvatar>? RevealRank { get; init; }
 
-    [JsonPropertyName("defeat_rank")] public List<RankDetails>? DefeatRank { get; init; }
+    [JsonPropertyName("defeat_rank")] public List<RankAvatar>? DefeatRank { get; init; }
 
-    [JsonPropertyName("damage_rank")] public List<RankDetails>? DamageRank { get; init; }
+    [JsonPropertyName("damage_rank")] public List<RankAvatar>? DamageRank { get; init; }
 
-    [JsonPropertyName("take_damage_rank")] public List<RankDetails>? TakeDamageRank { get; init; }
+    [JsonPropertyName("take_damage_rank")] public List<RankAvatar>? TakeDamageRank { get; init; }
 
     [JsonPropertyName("normal_skill_rank")]
-    public List<RankDetails>? NormalSkillRank { get; init; }
+    public List<RankAvatar>? NormalSkillRank { get; init; }
 
     [JsonPropertyName("energy_skill_rank")]
-    public List<RankDetails>? EnergySkillRank { get; init; }
+    public List<RankAvatar>? EnergySkillRank { get; init; }
 
     [JsonPropertyName("floors")] public List<Floor>? Floors { get; init; }
 
@@ -108,7 +108,7 @@ public class Level
     public List<MonsterList>? BottomHalfFloorMonster { get; init; }
 }
 
-public class RankDetails
+public class RankAvatar
 {
     [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
 

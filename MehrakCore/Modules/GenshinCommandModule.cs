@@ -2,6 +2,7 @@
 
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin.Abyss;
+using MehrakCore.Services.Commands.Genshin.Theater;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -25,18 +26,21 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     private readonly IRealTimeNotesCommandExecutor<GenshinCommandModule> m_NotesCommandExecutor;
     private readonly ICodeRedeemExecutor<GenshinCommandModule> m_CodesRedeemExecutor;
     private readonly GenshinAbyssCommandExecutor m_AbyssCommandExecutor;
+    private readonly GenshinTheaterCommandExecutor m_TheaterCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
 
     public GenshinCommandModule(ICharacterCommandExecutor<GenshinCommandModule> characterCommandExecutor,
         IRealTimeNotesCommandExecutor<GenshinCommandModule> notesCommandExecutor,
         ICodeRedeemExecutor<GenshinCommandModule> codesRedeemExecutor,
         GenshinAbyssCommandExecutor abyssCommandExecutor,
+        GenshinTheaterCommandExecutor theaterCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<GenshinCommandModule> logger)
     {
         m_Logger = logger;
         m_CharacterCommandExecutor = characterCommandExecutor;
         m_NotesCommandExecutor = notesCommandExecutor;
         m_AbyssCommandExecutor = abyssCommandExecutor;
+        m_TheaterCommandExecutor = theaterCommandExecutor;
         m_CodesRedeemExecutor = codesRedeemExecutor;
         m_CommandRateLimitService = commandRateLimitService;
     }
@@ -137,6 +141,23 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         m_AbyssCommandExecutor.Context = Context;
         await m_AbyssCommandExecutor.ExecuteAsync(floor, server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("theater", "Get Imaginarium Theater summary card")]
+    public async Task TheaterCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the theater command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_TheaterCommandExecutor.Context = Context;
+        await m_TheaterCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     private async Task<bool> ValidateRateLimitAsync()
