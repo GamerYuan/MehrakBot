@@ -9,7 +9,7 @@ using MongoDB.Driver;
 
 namespace MehrakCore.Repositories;
 
-public class CharacterRepository
+public class CharacterRepository : ICharacterRepository
 {
     private readonly ILogger<CharacterRepository> m_Logger;
     private readonly IMongoCollection<CharacterModel> m_Characters;
