@@ -52,19 +52,22 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 UpdateRankImageAsync(characterInformation.Ranks!),
                 UpdateRelicImageAsync(characterInformation.Relics!.Concat(characterInformation.Ornaments!), relicWiki)
             ];
-            if (characterInformation.Equip != null &&
-                equipWiki.TryGetValue(characterInformation.Equip.Id.ToString()!, out var equipWikiUrl))
-                tasks.Add(UpdateEquipImageAsync(characterInformation.Equip, equipWikiUrl));
+
+            if (characterInformation.Equip != null)
+            {
+                if (!equipWiki.TryGetValue(characterInformation.Equip.Id.ToString()!, out var equipWikiUrl))
+                    Logger.LogWarning("No wiki URL found for equip {EquipName} ID {EquipId}",
+                        characterInformation.Equip.Name, characterInformation.Equip.Id);
+                else
+                    tasks.Add(UpdateEquipImageAsync(characterInformation.Equip, equipWikiUrl));
+            }
 
             Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
             var result = await Task.WhenAll(tasks);
 
             if (!result.All(x => x))
             {
-                Logger.LogWarning("Some images failed to update for character {CharacterName}",
-                    characterInformation.Name);
-                throw new InvalidOperationException(
-                    "Failed to update some images for the character. Check logs for details.");
+                throw new CommandException("An error occurred while updating character image");
             }
 
             Logger.LogInformation("Successfully updated HSR character data for {CharacterName}",
@@ -72,6 +75,8 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
+            Logger.LogError(e, "An error occurred while updating character image {Character}",
+                characterInformation);
             throw new CommandException("An error occurred while updating character image", e);
         }
     }
