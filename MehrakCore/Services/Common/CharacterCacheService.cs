@@ -86,6 +86,7 @@ public class CharacterCacheService : ICharacterCacheService
             m_Logger.LogDebug("Updating character cache for {GameName}", gameName);
 
             var characters = await m_CharacterRepository.GetCharactersAsync(gameName);
+            characters.Sort();
 
             if (characters.Count > 0)
             {
