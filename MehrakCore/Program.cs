@@ -3,6 +3,7 @@
 using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Config;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -99,7 +100,13 @@ internal class Program
             builder.Services.AddSingleton<MongoDbService>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddSingleton<ImageRepository>();
+            builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
+
+            // Character Cache Services
+            builder.Services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
+            builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
+            builder.Services.AddHostedService<CharacterCacheBackgroundService>();
 
             // Api Services
             builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
@@ -119,6 +126,7 @@ internal class Program
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandExecutor<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+            builder.Services.AddSingleton<GenshinCharacterAutocompleteService>();
             builder.Services
                 .AddSingleton<IRealTimeNotesApiService<GenshinRealTimeNotesData>, GenshinRealTimeNotesApiService>();
             builder.Services
