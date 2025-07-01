@@ -1,13 +1,14 @@
 #region
 
 using MehrakCore.Models;
+using MehrakCore.Modules;
 using MehrakCore.Services.Common;
 
 #endregion
 
 namespace MehrakCore.Services.Commands.Genshin.Character;
 
-public class GenshinCharacterAutocompleteService
+public class GenshinCharacterAutocompleteService : ICharacterAutocompleteService<GenshinCommandModule>
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
     private const int Limit = 25;

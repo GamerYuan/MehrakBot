@@ -127,7 +127,9 @@ internal class Program
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandExecutor<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
-            builder.Services.AddSingleton<GenshinCharacterAutocompleteService>();
+            builder.Services
+                .AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>,
+                    GenshinCharacterAutocompleteService>();
             builder.Services
                 .AddSingleton<IRealTimeNotesApiService<GenshinRealTimeNotesData>, GenshinRealTimeNotesApiService>();
             builder.Services
@@ -152,7 +154,8 @@ internal class Program
             builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandExecutor<HsrCommandModule>, HsrCharacterCommandExecutor>();
-            builder.Services.AddSingleton<HsrCharacterAutocompleteService>();
+            builder.Services
+                .AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
             builder.Services.AddSingleton<IRealTimeNotesApiService<HsrRealTimeNotesData>, HsrRealTimeNotesApiService>();
             builder.Services
                 .AddTransient<IRealTimeNotesCommandExecutor<HsrCommandModule>, HsrRealTimeNotesCommandExecutor>();

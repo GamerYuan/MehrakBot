@@ -1,13 +1,14 @@
 ﻿#region
 
 using MehrakCore.Models;
+using MehrakCore.Modules;
 using MehrakCore.Services.Common;
 
 #endregion
 
 namespace MehrakCore.Services.Commands.Hsr.Character;
 
-public class HsrCharacterAutocompleteService
+public class HsrCharacterAutocompleteService : ICharacterAutocompleteService<HsrCommandModule>
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
     private const int Limit = 25;

@@ -1,6 +1,7 @@
 ﻿#region
 
-using MehrakCore.Services.Commands.Hsr.Character;
+using MehrakCore.Modules;
+using MehrakCore.Services.Commands;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -9,7 +10,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace MehrakCore.Provider.Commands.Hsr;
 
-public class HsrCharacterAutocompleteProvider(HsrCharacterAutocompleteService autocompleteService)
+public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService<HsrCommandModule> autocompleteService)
     : IAutocompleteProvider<AutocompleteInteractionContext>
 {
     public ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> GetChoicesAsync(
