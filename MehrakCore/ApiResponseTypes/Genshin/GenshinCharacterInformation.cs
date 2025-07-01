@@ -47,6 +47,11 @@ public class BaseCharacterDetail
     [JsonPropertyName("weapon_type")] public int? WeaponType { get; init; }
 
     [JsonPropertyName("weapon")] public required Weapon Weapon { get; init; }
+
+    public override string ToString()
+    {
+        return $"Id: {Id}, Name: {Name}";
+    }
 }
 
 public class Constellation
@@ -96,7 +101,7 @@ public class GenshinCharacterInformation : ICharacterInformation
     public override string ToString()
     {
         return
-            $"Id: {Base.Id}, Name: {Base.Name}, Weapon: {Weapon.Name}, Artifacts: {string.Join(", ", Relics.Select(x => x.Name))}";
+            $"{Base}, {Weapon}, Relics: {string.Join(", ", Relics.Select(x => x.ToString()))}";
     }
 }
 
@@ -140,6 +145,11 @@ public class Relic
 
     [JsonPropertyName("sub_property_list")]
     public required List<RelicStatProperty> SubPropertyList { get; init; }
+
+    public override string ToString()
+    {
+        return $"{Name}, (ID: {Id})";
+    }
 }
 
 public class RelicSet : IEquatable<RelicSet>
@@ -196,4 +206,9 @@ public class WeaponDetail
     [JsonPropertyName("main_property")] public required StatProperty MainProperty { get; init; }
 
     [JsonPropertyName("sub_property")] public StatProperty? SubProperty { get; init; }
+
+    public override string ToString()
+    {
+        return $"{Name} (ID: {Id})";
+    }
 }

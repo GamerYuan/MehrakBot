@@ -110,8 +110,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error updating images for character {CharacterName}, ID: {CharacterId}",
-                characterInformation.Base.Name, characterInformation.Base.Id);
+            Logger.LogError(e, "Error updating images for character {Character}", characterInformation);
             throw new CommandException("An error occurred while updating images for the character.", e);
         }
     }
