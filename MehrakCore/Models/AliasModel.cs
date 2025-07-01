@@ -11,7 +11,7 @@ public class AliasModel
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [BsonElement("game")] public GameName Game { get; set; }
 
