@@ -30,8 +30,8 @@ public class HsrCharacterInformation : ICharacterInformation, ICharacterDetail
     public override string ToString()
     {
         return
-            $"Id: {Id}, Name: {Name}, Equip: {Equip?.Name ?? "No Equip"}, Relics: {string.Join(", ", Relics?.Select(x => x.Name ?? string.Empty) ?? [])}, " +
-            $"Ornaments: {string.Join(", ", Ornaments?.Select(x => x.Name) ?? [])}";
+            $"Id: {Id}, Name: {Name}, Equip: {Equip?.ToString() ?? "No Equip"}, Relics: {string.Join(", ", Relics?.Select(x => x.ToString()) ?? [])}, " +
+            $"Ornaments: {string.Join(", ", Ornaments?.Select(x => x.ToString()) ?? [])}";
     }
 }
 
@@ -51,6 +51,11 @@ public class Equip
     [JsonPropertyName("desc")] public string? Desc { get; init; }
     [JsonPropertyName("icon")] public string? Icon { get; init; }
     [JsonPropertyName("rarity")] public int? Rarity { get; init; }
+
+    public override string ToString()
+    {
+        return $"{Name} (ID: {Id})";
+    }
 }
 
 public class ExclusiveSkill
@@ -97,6 +102,11 @@ public class Relic
     [JsonPropertyName("rarity")] public int? Rarity { get; init; }
     [JsonPropertyName("main_property")] public MainProperty? MainProperty { get; init; }
     [JsonPropertyName("properties")] public List<Property>? Properties { get; init; }
+
+    public override string ToString()
+    {
+        return $"{Name} (ID: {Id})";
+    }
 }
 
 public class CharacterListApiResponse
