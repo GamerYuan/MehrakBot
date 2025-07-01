@@ -104,6 +104,7 @@ internal class Program
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
 
             // Character Cache Services
+            builder.Services.AddHostedService<CharacterInitializationService>();
             builder.Services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
             builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
             builder.Services.AddHostedService<CharacterCacheBackgroundService>();
