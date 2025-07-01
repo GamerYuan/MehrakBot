@@ -40,10 +40,7 @@ public class CharacterInitializationServiceTests
     public void TearDown()
     {
         // Clean up test assets directory
-        if (Directory.Exists(m_TestAssetsPath))
-        {
-            Directory.Delete(m_TestAssetsPath, true);
-        }
+        if (Directory.Exists(m_TestAssetsPath)) Directory.Delete(m_TestAssetsPath, true);
     }
 
     [Test]
@@ -53,7 +50,7 @@ public class CharacterInitializationServiceTests
         var characterModel = new CharacterModel
         {
             Game = GameName.HonkaiStarRail,
-            Characters = new List<string> { "Kafka", "Blade", "Silver Wolf" }
+            Characters = ["Kafka", "Blade", "Silver Wolf"]
         };
 
         // Act
@@ -62,8 +59,11 @@ public class CharacterInitializationServiceTests
         // Assert
         var retrievedModel = await m_CharacterRepository.GetCharacterModelAsync(GameName.HonkaiStarRail);
         Assert.That(retrievedModel, Is.Not.Null);
-        Assert.That(retrievedModel!.Game, Is.EqualTo(GameName.HonkaiStarRail));
-        Assert.That(retrievedModel.Characters, Is.EqualTo(characterModel.Characters));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(retrievedModel!.Game, Is.EqualTo(GameName.HonkaiStarRail));
+            Assert.That(retrievedModel.Characters, Is.EqualTo(characterModel.Characters));
+        }
     }
 
     [Test]
@@ -73,7 +73,7 @@ public class CharacterInitializationServiceTests
         var initialModel = new CharacterModel
         {
             Game = GameName.HonkaiStarRail,
-            Characters = new List<string> { "Kafka", "Blade" }
+            Characters = ["Kafka", "Blade"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(initialModel);
 
@@ -81,7 +81,7 @@ public class CharacterInitializationServiceTests
         var updatedModel = new CharacterModel
         {
             Game = GameName.HonkaiStarRail,
-            Characters = new List<string> { "Kafka", "Blade", "Silver Wolf", "Seele" }
+            Characters = ["Kafka", "Blade", "Silver Wolf", "Seele"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(updatedModel);
 
@@ -120,8 +120,8 @@ public class CharacterInitializationServiceTests
         // Arrange
         var jsonModel = new CharacterJsonModel
         {
-            Game = "HonkaiStarRail",
-            Characters = new List<string> { "Kafka" }
+            Game = GameName.HonkaiStarRail,
+            Characters = ["Kafka"]
         };
 
         // Act
@@ -132,27 +132,13 @@ public class CharacterInitializationServiceTests
     }
 
     [Test]
-    public void CharacterJsonModel_GetGameName_InvalidGame_ThrowsArgumentException()
-    {
-        // Arrange
-        var jsonModel = new CharacterJsonModel
-        {
-            Game = "InvalidGame",
-            Characters = new List<string> { "Character" }
-        };
-
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => jsonModel.GetGameName());
-    }
-
-    [Test]
     public void CharacterJsonModel_ToCharacterModel_ConvertsCorrectly()
     {
         // Arrange
         var jsonModel = new CharacterJsonModel
         {
-            Game = "HonkaiStarRail",
-            Characters = new List<string> { "Kafka", "Blade" }
+            Game = GameName.HonkaiStarRail,
+            Characters = ["Kafka", "Blade"]
         };
 
         // Act
@@ -169,8 +155,8 @@ public class CharacterInitializationServiceTests
         // Arrange
         var testCharacters = new CharacterJsonModel
         {
-            Game = "Genshin", // Use different game to avoid conflicts
-            Characters = new List<string> { "Diluc", "Venti", "Zhongli" }
+            Game = GameName.Genshin, // Use different game to avoid conflicts
+            Characters = ["Diluc", "Venti", "Zhongli"]
         };
         CreateTestCharacterJsonFile("genshin_characters.json", testCharacters);
 
@@ -192,15 +178,15 @@ public class CharacterInitializationServiceTests
         var existingModel = new CharacterModel
         {
             Game = GameName.ZenlessZoneZero, // Use different game
-            Characters = new List<string> { "Belle", "ManuallyAdded" }
+            Characters = ["Belle", "ManuallyAdded"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(existingModel);
 
         // Create JSON file with additional characters
         var testCharacters = new CharacterJsonModel
         {
-            Game = "ZenlessZoneZero",
-            Characters = new List<string> { "Belle", "Wise", "Nicole" }
+            Game = GameName.ZenlessZoneZero,
+            Characters = ["Belle", "Wise", "Nicole"]
         };
         CreateTestCharacterJsonFile("zzz_characters.json", testCharacters);
 
@@ -223,15 +209,15 @@ public class CharacterInitializationServiceTests
         var existingModel = new CharacterModel
         {
             Game = GameName.HonkaiImpact3, // Use different game
-            Characters = new List<string> { "Kiana", "Mei" }
+            Characters = ["Kiana", "Mei"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(existingModel);
 
         // Create JSON file with same characters
         var testCharacters = new CharacterJsonModel
         {
-            Game = "HonkaiImpact3",
-            Characters = new List<string> { "Kiana", "Mei" }
+            Game = GameName.HonkaiImpact3,
+            Characters = ["Kiana", "Mei"]
         };
         CreateTestCharacterJsonFile("hi3_characters.json", testCharacters);
 

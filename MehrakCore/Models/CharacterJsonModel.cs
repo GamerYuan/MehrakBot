@@ -8,12 +8,12 @@ namespace MehrakCore.Models;
 
 public class CharacterJsonModel
 {
-    [JsonPropertyName("game")] public required string Game { get; init; }
+    [JsonPropertyName("game")] public required GameName Game { get; init; }
     [JsonPropertyName("characters")] public required List<string> Characters { get; init; }
 
     public GameName GetGameName()
     {
-        return Enum.Parse<GameName>(Game, true);
+        return Game;
     }
 
     public CharacterModel ToCharacterModel()
