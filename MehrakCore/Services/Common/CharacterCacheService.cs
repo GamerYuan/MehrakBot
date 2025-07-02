@@ -12,14 +12,19 @@ namespace MehrakCore.Services.Common;
 public class CharacterCacheService : ICharacterCacheService
 {
     private readonly ICharacterRepository m_CharacterRepository;
+    private readonly IAliasRepository m_AliasRepository;
     private readonly ILogger<CharacterCacheService> m_Logger;
     private readonly ConcurrentDictionary<GameName, List<string>> m_CharacterCache;
+    private readonly Dictionary<GameName, Dictionary<string, string>> m_AliasCache;
     private readonly SemaphoreSlim m_UpdateSemaphore;
 
-    public CharacterCacheService(ICharacterRepository characterRepository, ILogger<CharacterCacheService> logger)
+    public CharacterCacheService(ICharacterRepository characterRepository, IAliasRepository aliasRepository,
+        ILogger<CharacterCacheService> logger)
     {
         m_CharacterRepository = characterRepository;
+        m_AliasRepository = aliasRepository;
         m_Logger = logger;
+        m_AliasCache = [];
         m_CharacterCache = new ConcurrentDictionary<GameName, List<string>>();
         m_UpdateSemaphore = new SemaphoreSlim(1, 1);
     }
@@ -46,6 +51,11 @@ public class CharacterCacheService : ICharacterCacheService
         return [];
     }
 
+    public Dictionary<string, string> GetAliasesAsync(GameName gameName)
+    {
+        return m_AliasCache.TryGetValue(gameName, out var dict) ? dict : [];
+    }
+
     /// <summary>
     /// Updates the character cache for all supported games.
     /// </summary>
@@ -59,14 +69,16 @@ public class CharacterCacheService : ICharacterCacheService
 
             var games = Enum.GetValues<GameName>();
             var updateTasks = games.Select(UpdateCharactersAsync);
+            var aliasTasks = games.Select(UpdateAliasesAsync);
 
             await Task.WhenAll(updateTasks);
+            await Task.WhenAll(aliasTasks);
 
-            m_Logger.LogInformation("Completed character cache update for all games");
+            m_Logger.LogInformation("Completed character and alias cache update for all games");
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Error occurred while updating character cache for all games");
+            m_Logger.LogError(ex, "Error occurred while updating character and alias cache for all games");
         }
         finally
         {
@@ -102,6 +114,32 @@ public class CharacterCacheService : ICharacterCacheService
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error occurred while updating character cache for {GameName}", gameName);
+        }
+    }
+
+    private async Task UpdateAliasesAsync(GameName gameName)
+    {
+        try
+        {
+            m_Logger.LogDebug("Updating alias cache for {GameName}", gameName);
+
+            var aliases = await m_AliasRepository.GetAliasesAsync(gameName);
+
+            if (aliases.Count > 0)
+            {
+                if (!m_AliasCache.TryAdd(gameName, aliases))
+                    m_AliasCache[gameName] = aliases;
+                m_Logger.LogDebug("Updated character cache for {GameName} with {Count} aliases", gameName,
+                    aliases.Count);
+            }
+            else
+            {
+                m_Logger.LogWarning("No alises found for {GameName} in database", gameName);
+            }
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Error occurred while updating alias cache for {GameName}", gameName);
         }
     }
 

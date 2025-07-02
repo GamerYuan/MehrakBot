@@ -3,8 +3,6 @@
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
-using MehrakCore.Tests.TestHelpers;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -16,15 +14,18 @@ namespace MehrakCore.Tests.Services.Common;
 public class CharacterCacheServiceTests
 {
     private Mock<ICharacterRepository> m_CharacterRepositoryMock = null!;
+    private Mock<IAliasRepository> m_AliasRepositoryMock = null!;
     private CharacterCacheService m_CharacterCacheService = null!;
 
     [SetUp]
     public void Setup()
     {
         m_CharacterRepositoryMock = new Mock<ICharacterRepository>();
+        m_AliasRepositoryMock = new Mock<IAliasRepository>();
 
         m_CharacterCacheService = new CharacterCacheService(
             m_CharacterRepositoryMock.Object,
+            m_AliasRepositoryMock.Object,
             NullLogger<CharacterCacheService>.Instance);
     }
 
@@ -92,9 +93,7 @@ public class CharacterCacheServiceTests
 
         // Verify all games were updated
         foreach (var game in Enum.GetValues<GameName>())
-        {
             m_CharacterRepositoryMock.Verify(repo => repo.GetCharactersAsync(game), Times.Once);
-        }
     }
 
     [Test]
