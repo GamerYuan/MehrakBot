@@ -29,7 +29,7 @@ public class AliasRepository : IAliasRepository
             .FirstOrDefaultAsync() ?? new Dictionary<string, string>();
     }
 
-    public async Task UpserCharacterAliasesAsync(AliasModel aliasModel)
+    public async Task UpsertCharacterAliasesAsync(AliasModel aliasModel)
     {
         m_Logger.LogInformation("Upserting aliases for game {GameName} with {Count} aliases", aliasModel.Game,
             aliasModel.Alias.Count);

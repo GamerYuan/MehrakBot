@@ -9,5 +9,5 @@ namespace MehrakCore.Repositories;
 public interface IAliasRepository
 {
     Task<Dictionary<string, string>> GetAliasesAsync(GameName gameName);
-    Task UpserCharacterAliasesAsync(AliasModel aliasModel);
+    Task UpsertCharacterAliasesAsync(AliasModel aliasModel);
 }
