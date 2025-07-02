@@ -22,6 +22,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
     private readonly ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> m_CharacterApi;
     private readonly ImageUpdaterService<HsrCharacterInformation> m_HsrImageUpdaterService;
     private readonly ICharacterCardService<HsrCharacterInformation> m_HsrCharacterCardService;
+    private readonly ICharacterCacheService m_CharacterCacheService;
 
     private string m_PendingCharacterName = string.Empty;
     private Regions m_PendingServer = Regions.Asia;
@@ -31,12 +32,14 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
         IAuthenticationMiddlewareService authenticationMiddleware,
         ImageUpdaterService<HsrCharacterInformation> hsrImageUpdaterService,
         ICharacterCardService<HsrCharacterInformation> hsrCharacterCardService,
+        ICharacterCacheService characterCacheService,
         ILogger<HsrCharacterCommandExecutor> logger)
         : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApi, logger)
     {
         m_CharacterApi = characterApi;
         m_HsrImageUpdaterService = hsrImageUpdaterService;
         m_HsrCharacterCardService = hsrCharacterCardService;
+        m_CharacterCacheService = characterCacheService;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -118,12 +121,18 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
 
             if (characterInfo == null)
             {
-                Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
-                    characterName, Context.Interaction.User.Id, region);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Character not found. Please try again.")));
-                return;
+                m_CharacterCacheService.GetAliases(GameName.HonkaiStarRail).TryGetValue(characterName, out var alias);
+                if (alias == null ||
+                    (characterInfo = characterList.AvatarList?.FirstOrDefault(x =>
+                        x.Name!.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
+                {
+                    Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
+                        characterName, Context.Interaction.User.Id, region);
+                    await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                        .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Character not found. Please try again.")));
+                    return;
+                }
             }
 
             await m_HsrImageUpdaterService.UpdateDataAsync(characterInfo,

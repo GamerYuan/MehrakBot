@@ -22,6 +22,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
     private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_GenshinCharacterApiService;
     private readonly ICharacterCardService<GenshinCharacterInformation> m_GenshinCharacterCardService;
     private readonly GenshinImageUpdaterService m_GenshinImageUpdaterService;
+    private readonly ICharacterCacheService m_CharacterCacheService;
 
     private string? m_PendingCharacterName;
     private Regions? m_PendingServer;
@@ -32,13 +33,14 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
         ICharacterCardService<GenshinCharacterInformation> genshinCharacterCardService,
         GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
         ILogger<GenshinCharacterCommandExecutor> logger,
-        TokenCacheService tokenCacheService,
+        TokenCacheService tokenCacheService, ICharacterCacheService characterCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware)
         : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApiService, logger)
     {
         m_GenshinCharacterApiService = genshinCharacterApiService;
         m_GenshinCharacterCardService = genshinCharacterCardService;
         m_GenshinImageUpdaterService = genshinImageUpdaterService;
+        m_CharacterCacheService = characterCacheService;
     }
 
     /// <summary>
@@ -133,8 +135,16 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
                 characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
             if (character == null)
             {
-                await SendErrorMessageAsync("Character not found. Please try again.");
-                return;
+                m_CharacterCacheService.GetAliases(GameName.Genshin).TryGetValue(characterName, out var name);
+
+                if (name == null ||
+                    (character =
+                        characters.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) ==
+                    null)
+                {
+                    await SendErrorMessageAsync("Character not found. Please try again.");
+                    return;
+                }
             }
 
             var properties =

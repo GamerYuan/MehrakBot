@@ -36,6 +36,8 @@ public class MongoDbService
     }
 
     public IMongoCollection<UserModel> Users => m_Database.GetCollection<UserModel>("users");
+    public IMongoCollection<CharacterModel> Characters => m_Database.GetCollection<CharacterModel>("characters");
+    public IMongoCollection<AliasModel> Aliases => m_Database.GetCollection<AliasModel>("aliases");
 
     public GridFSBucket Bucket => new(m_Database);
 

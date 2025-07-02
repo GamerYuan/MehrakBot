@@ -1,5 +1,12 @@
-﻿namespace MehrakCore.Models;
+﻿#region
 
+using System.Text.Json.Serialization;
+
+#endregion
+
+namespace MehrakCore.Models;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum GameName
 {
     Genshin,

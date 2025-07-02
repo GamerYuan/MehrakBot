@@ -8,9 +8,10 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace MehrakCore.Provider.Commands.Hsr;
+namespace MehrakCore.Provider.Commands.Genshin;
 
-public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService<HsrCommandModule> autocompleteService)
+public class GenshinCharacterAutocompleteProvider(
+    ICharacterAutocompleteService<GenshinCommandModule> autocompleteService)
     : IAutocompleteProvider<AutocompleteInteractionContext>
 {
     public ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> GetChoicesAsync(

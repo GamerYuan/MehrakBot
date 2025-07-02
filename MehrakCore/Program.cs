@@ -3,6 +3,7 @@
 using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Config;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -99,7 +100,16 @@ internal class Program
             builder.Services.AddSingleton<MongoDbService>();
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddSingleton<ImageRepository>();
+            builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
+            builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
+
+            // Character Cache Services
+            builder.Services.AddHostedService<CharacterInitializationService>();
+            builder.Services.AddHostedService<AliasInitializationService>();
+            builder.Services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
+            builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
+            builder.Services.AddHostedService<CharacterCacheBackgroundService>();
 
             // Api Services
             builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
@@ -119,6 +129,9 @@ internal class Program
             builder.Services.AddSingleton<GenshinImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandExecutor<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+            builder.Services
+                .AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>,
+                    GenshinCharacterAutocompleteService>();
             builder.Services
                 .AddSingleton<IRealTimeNotesApiService<GenshinRealTimeNotesData>, GenshinRealTimeNotesApiService>();
             builder.Services
@@ -143,7 +156,8 @@ internal class Program
             builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
             builder.Services
                 .AddTransient<ICharacterCommandExecutor<HsrCommandModule>, HsrCharacterCommandExecutor>();
-            builder.Services.AddSingleton<HsrCharacterAutocompleteService>();
+            builder.Services
+                .AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
             builder.Services.AddSingleton<IRealTimeNotesApiService<HsrRealTimeNotesData>, HsrRealTimeNotesApiService>();
             builder.Services
                 .AddTransient<IRealTimeNotesCommandExecutor<HsrCommandModule>, HsrRealTimeNotesCommandExecutor>();

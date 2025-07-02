@@ -1,5 +1,6 @@
 #region
 
+using MehrakCore.Provider.Commands.Genshin;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin.Abyss;
 using MehrakCore.Services.Commands.Genshin.Theater;
@@ -47,7 +48,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
+            AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
         string characterName,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Regions? server = null,
