@@ -136,6 +136,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             if (character == null)
             {
                 m_CharacterCacheService.GetAliases(GameName.Genshin).TryGetValue(characterName, out var name);
+
                 if (name == null ||
                     (character =
                         characters.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) ==

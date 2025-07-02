@@ -123,7 +123,8 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating alias cache for {GameName}", gameName);
 
-            var aliases = await m_AliasRepository.GetAliasesAsync(gameName);
+            var aliases = new Dictionary<string, string>(await m_AliasRepository.GetAliasesAsync(gameName),
+                StringComparer.OrdinalIgnoreCase);
 
             if (aliases.Count > 0)
             {
