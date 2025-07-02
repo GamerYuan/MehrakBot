@@ -51,7 +51,7 @@ public class CharacterCacheService : ICharacterCacheService
         return [];
     }
 
-    public Dictionary<string, string> GetAliasesAsync(GameName gameName)
+    public Dictionary<string, string> GetAliases(GameName gameName)
     {
         return m_AliasCache.TryGetValue(gameName, out var dict) ? dict : [];
     }
