@@ -49,6 +49,7 @@ public class GenshinCharacterCommandExecutorTests
     private Mock<IDistributedCache> m_DistributedCacheMock = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
     private TokenCacheService m_TokenCacheService = null!;
+    private Mock<ICharacterCacheService> m_CharacterCacheServiceMock = null!;
 
     [SetUp]
     public void Setup()
@@ -95,6 +96,13 @@ public class GenshinCharacterCommandExecutorTests
         m_UserRepository =
             new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
 
+        m_CharacterCacheServiceMock = new Mock<ICharacterCacheService>();
+
+        // Set up default behavior for GetAliases to return empty dictionary
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(It.IsAny<GameName>()))
+            .Returns(new Dictionary<string, string>());
+
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
 
@@ -117,6 +125,7 @@ public class GenshinCharacterCommandExecutorTests
             m_UserRepository,
             m_LoggerMock.Object,
             m_TokenCacheService,
+            m_CharacterCacheServiceMock.Object,
             m_AuthenticationMiddlewareMock.Object
         )
         {
@@ -938,6 +947,489 @@ public class GenshinCharacterCommandExecutorTests
         // Verify response was sent with attachment
         var fileBytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(fileBytes, Is.Not.Null);
+    }
+
+    #endregion
+
+    #region Character Aliasing Tests
+
+    // This region contains comprehensive tests for the character aliasing feature.
+    // The feature allows users to use alternative names (aliases) to refer to characters.
+    // For example, "mc" can be used instead of "Traveler", "raiden" instead of "Raiden Shogun".
+    // 
+    // Key features tested:
+    // - Case-insensitive alias matching (e.g., "MC", "mc", "Mc" all work)
+    // - Exact character name matching takes precedence over aliases
+    // - Multiple aliases for the same character work correctly
+    // - Special characters in aliases are handled properly
+    // - Error handling for invalid/missing aliases
+    // - Various edge cases and combinations
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WhenExactCharacterNameExists_ShouldUseDirectMatch()
+    {
+        // Arrange
+        const ulong ltuid = 123456UL;
+        const string ltoken = "valid_token";
+        const string gameUid = "800800800";
+        const string characterName = "Traveler"; // Exact character name
+        const int travelerId = 10000007;
+        const int dilucId = 10000016;
+        const Regions server = Regions.Asia;
+
+        // Create and save user with profile and game UID
+        var user = new UserModel
+        {
+            Id = m_TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = ltuid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.Genshin, new Dictionary<string, string>
+                            {
+                                { server.ToString(), gameUid }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+
+        // Set up aliases where "Traveler" would resolve to "Diluc" 
+        // but the exact character "Traveler" should take precedence
+        var aliases = new Dictionary<string, string>
+        {
+            { "Traveler", "Diluc" },
+            { "mc", "Traveler" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Returns(aliases);
+
+        // Mock character API to return both characters
+        var characters = new List<GenshinBasicCharacterData>
+        {
+            new()
+            {
+                Id = travelerId,
+                Name = "Traveler",
+                Icon = "",
+                Weapon = new Weapon { Icon = "", Name = "Test Weapon" }
+            },
+            new()
+            {
+                Id = dilucId,
+                Name = "Diluc",
+                Icon = "",
+                Weapon = new Weapon { Icon = "", Name = "Wolf's Gravestone" }
+            }
+        };
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
+            .ReturnsAsync(characters);
+
+        // Mock character details API for Traveler (should be called, not Diluc)
+        var characterInfo = CreateTestCharacterInfo();
+        m_CharacterApiMock
+            .Setup(x => x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", travelerId))
+            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            {
+                RetCode = 0,
+                Data = new GenshinCharacterDetail
+                {
+                    List = [characterInfo],
+                    AvatarWiki = new Dictionary<string, string> { { "key", "value/123" } }
+                }
+            });
+
+        // Mock character card service
+        m_CharacterCardServiceMock.Setup(x =>
+                x.GenerateCharacterCardAsync(It.IsAny<GenshinCharacterInformation>(), It.IsAny<string>()))
+            .ReturnsAsync(new MemoryStream(new byte[100]));
+
+        // Act
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+
+        // Assert
+        // Should use exact match first (Traveler), not alias resolution (which would point to Diluc)
+        m_CharacterApiMock.Verify(
+            x => x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", travelerId), Times.Once);
+
+        // Should NOT call for Diluc
+        m_CharacterApiMock.Verify(x => x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", dilucId),
+            Times.Never);
+
+        // Verify character card was generated
+        m_CharacterCardServiceMock.Verify(x => x.GenerateCharacterCardAsync(characterInfo, gameUid), Times.Once);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WhenMultipleAliasesForSameCharacter_ShouldWork()
+    {
+        // Arrange
+        const ulong ltuid = 123456UL;
+        const string ltoken = "valid_token";
+        const string gameUid = "800800800";
+        const string characterAlias = "raiden"; // One of multiple aliases for Raiden Shogun
+        const int characterId = 10000052;
+        const Regions server = Regions.Asia;
+
+        // Create and save user with profile and game UID
+        var user = new UserModel
+        {
+            Id = m_TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = ltuid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.Genshin, new Dictionary<string, string>
+                            {
+                                { server.ToString(), gameUid }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+
+        // Set up multiple aliases for the same character
+        var aliases = new Dictionary<string, string>
+        {
+            { "raiden", "Raiden Shogun" },
+            { "ei", "Raiden Shogun" },
+            { "shogun", "Raiden Shogun" },
+            { "baal", "Raiden Shogun" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Returns(aliases);
+
+        // Mock character API
+        var characters = new List<GenshinBasicCharacterData>
+        {
+            new()
+            {
+                Id = characterId,
+                Name = "Raiden Shogun",
+                Icon = "",
+                Weapon = new Weapon { Icon = "", Name = "Engulfing Lightning" }
+            }
+        };
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
+            .ReturnsAsync(characters);
+
+        // Mock character details API
+        var characterInfo = CreateTestCharacterInfo();
+        m_CharacterApiMock.Setup(x =>
+                x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", characterId))
+            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            {
+                RetCode = 0,
+                Data = new GenshinCharacterDetail
+                {
+                    List = [characterInfo],
+                    AvatarWiki = new Dictionary<string, string> { { "key", "value/123" } }
+                }
+            });
+
+        // Mock character card service
+        m_CharacterCardServiceMock.Setup(x =>
+                x.GenerateCharacterCardAsync(It.IsAny<GenshinCharacterInformation>(), It.IsAny<string>()))
+            .ReturnsAsync(new MemoryStream(new byte[100]));
+
+        // Act
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterAlias, server);
+
+        // Assert
+        // Verify that GetAliases was called to resolve the alias
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+
+        // Verify APIs were called correctly (character should be found via alias)
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"), Times.Once);
+        m_CharacterApiMock.Verify(
+            x => x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", characterId), Times.Once);
+
+        // Verify character card was generated
+        m_CharacterCardServiceMock.Verify(x => x.GenerateCharacterCardAsync(characterInfo, gameUid), Times.Once);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WhenAliasWithSpecialCharacters_ShouldWork()
+    {
+        // Arrange
+        const ulong ltuid = 123456UL;
+        const string ltoken = "valid_token";
+        const string gameUid = "800800800";
+        const string characterAlias = "hu_tao"; // Alias with underscore
+        const int characterId = 10000046;
+        const Regions server = Regions.Asia;
+
+        // Create and save user with profile and game UID
+        var user = new UserModel
+        {
+            Id = m_TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = ltuid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.Genshin, new Dictionary<string, string>
+                            {
+                                { server.ToString(), gameUid }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+
+        // Set up aliases with special characters
+        var aliases = new Dictionary<string, string>
+        {
+            { "hu_tao", "Hu Tao" },
+            { "ht", "Hu Tao" },
+            { "walnut", "Hu Tao" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Returns(aliases);
+
+        // Mock character API
+        var characters = new List<GenshinBasicCharacterData>
+        {
+            new()
+            {
+                Id = characterId,
+                Name = "Hu Tao",
+                Icon = "",
+                Weapon = new Weapon { Icon = "", Name = "Staff of Homa" }
+            }
+        };
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
+            .ReturnsAsync(characters);
+
+        // Mock character details API
+        var characterInfo = CreateTestCharacterInfo();
+        m_CharacterApiMock.Setup(x =>
+                x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", characterId))
+            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            {
+                RetCode = 0,
+                Data = new GenshinCharacterDetail
+                {
+                    List = [characterInfo],
+                    AvatarWiki = new Dictionary<string, string> { { "key", "value/123" } }
+                }
+            });
+
+        // Mock character card service
+        m_CharacterCardServiceMock.Setup(x =>
+                x.GenerateCharacterCardAsync(It.IsAny<GenshinCharacterInformation>(), It.IsAny<string>()))
+            .ReturnsAsync(new MemoryStream(new byte[100]));
+
+        // Act
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterAlias, server);
+
+        // Assert
+        // Verify that GetAliases was called to resolve the alias
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+
+        // Verify APIs were called correctly (character should be found via alias)
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"), Times.Once);
+        m_CharacterApiMock.Verify(
+            x => x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", characterId), Times.Once);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WhenEmptyStringAlias_ShouldSendErrorMessage()
+    {
+        // Arrange
+        const ulong ltuid = 123456UL;
+        const string ltoken = "valid_token";
+        const string gameUid = "800800800";
+        const string characterName = ""; // Empty string
+        const Regions server = Regions.Asia;
+
+        // Create and save user with profile and game UID
+        var user = new UserModel
+        {
+            Id = m_TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = ltuid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.Genshin, new Dictionary<string, string>
+                            {
+                                { server.ToString(), gameUid }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+
+        // Set up aliases
+        var aliases = new Dictionary<string, string>
+        {
+            { "mc", "Traveler" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Returns(aliases);
+
+        // Mock character API to return some characters
+        var characters = new List<GenshinBasicCharacterData>
+        {
+            new()
+            {
+                Id = 10000007,
+                Name = "Traveler",
+                Icon = "",
+                Weapon = new Weapon { Icon = "", Name = "Test Weapon" }
+            }
+        };
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
+            .ReturnsAsync(characters);
+
+        // Act
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, characterName, server);
+
+        // Assert
+        // Verify that GetAliases was called
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+
+        // Verify error message was sent
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Contains.Substring("Character not found"));
+    }
+
+    [Test]
+    [TestCase("MC")]
+    [TestCase("mc")]
+    [TestCase("Mc")]
+    [TestCase("mC")]
+    [TestCase("AETHER")]
+    [TestCase("aether")]
+    [TestCase("AeThEr")]
+    [TestCase("LUMINE")]
+    [TestCase("lumine")]
+    [TestCase("LuMiNe")]
+    public async Task SendCharacterCardResponseAsync_WhenVariousCaseCombinations_ShouldWork(string testCase)
+    {
+        // Arrange
+        const ulong ltuid = 123456UL;
+        const string ltoken = "valid_token";
+        const string gameUid = "800800800";
+        const int characterId = 10000007;
+        const Regions server = Regions.Asia;
+
+        // Create and save user with profile and game UID
+        var user = new UserModel
+        {
+            Id = m_TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = ltuid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.Genshin, new Dictionary<string, string>
+                            {
+                                { server.ToString(), gameUid }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+
+        // Set up aliases with mixed cases - all should resolve to Traveler
+        var aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "mc", "Traveler" },
+            { "aether", "Traveler" },
+            { "lumine", "Traveler" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Returns(aliases);
+
+        // Mock character API
+        var characters = new List<GenshinBasicCharacterData>
+        {
+            new()
+            {
+                Id = characterId,
+                Name = "Traveler",
+                Icon = "",
+                Weapon = new Weapon { Icon = "", Name = "Test Weapon" }
+            }
+        };
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(ltuid, ltoken, gameUid, "os_asia"))
+            .ReturnsAsync(characters);
+
+        // Mock character details API
+        var characterInfo = CreateTestCharacterInfo();
+        m_CharacterApiMock.Setup(x =>
+                x.GetCharacterDataFromIdAsync(ltuid, ltoken, gameUid, "os_asia", characterId))
+            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            {
+                RetCode = 0,
+                Data = new GenshinCharacterDetail
+                {
+                    List = [characterInfo],
+                    AvatarWiki = new Dictionary<string, string> { { "key", "value/123" } }
+                }
+            });
+
+        // Mock character card service
+        m_CharacterCardServiceMock.Setup(x =>
+                x.GenerateCharacterCardAsync(It.IsAny<GenshinCharacterInformation>(), It.IsAny<string>()))
+            .ReturnsAsync(new MemoryStream(new byte[100]));
+
+        // Clear previous captures
+        m_DiscordTestHelper.ClearCapturedRequests();
+
+        // Act
+        await m_Executor.SendCharacterCardResponseAsync(ltuid, ltoken, testCase, server);
+
+        // Assert
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
+
+        // Verify that GetAliases was called for each test case
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+
+        // Verify character card was generated for each test case
+        m_CharacterCardServiceMock.Verify(
+            x => x.GenerateCharacterCardAsync(It.IsAny<GenshinCharacterInformation>(), It.IsAny<string>()),
+            Times.Once);
     }
 
     #endregion
