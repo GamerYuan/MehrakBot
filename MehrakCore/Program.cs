@@ -101,10 +101,12 @@ internal class Program
             builder.Services.AddScoped<UserRepository>();
             builder.Services.AddSingleton<ImageRepository>();
             builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
+            builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
 
             // Character Cache Services
             builder.Services.AddHostedService<CharacterInitializationService>();
+            builder.Services.AddHostedService<AliasInitializationService>();
             builder.Services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
             builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
             builder.Services.AddHostedService<CharacterCacheBackgroundService>();

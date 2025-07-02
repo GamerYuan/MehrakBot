@@ -134,7 +134,7 @@ public class CharacterCacheService : ICharacterCacheService
             }
             else
             {
-                m_Logger.LogWarning("No alises found for {GameName} in database", gameName);
+                m_Logger.LogWarning("No aliases found for {GameName} in database", gameName);
             }
         }
         catch (Exception e)
