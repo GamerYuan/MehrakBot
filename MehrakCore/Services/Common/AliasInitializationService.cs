@@ -26,7 +26,17 @@ public class AliasInitializationService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        m_Logger.LogInformation("Starting alias initialization from JSON files");
+
+        try
+        {
+            await InitializeAliasesFromJsonFiles();
+            m_Logger.LogInformation("Character initialization completed successfully");
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogError(ex, "Error occurred during character initialization");
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -99,7 +109,11 @@ public class AliasInitializationService : IHostedService
                     Alias = merged
                 };
 
-                await m_AliasRepository.UpserCharacterAliasesAsync(updatedModel);
+                await m_AliasRepository.UpsertCharacterAliasesAsync(updatedModel);
+            }
+            else
+            {
+                m_Logger.LogInformation("No missing aliases found for {GameName}, database is up to date", gameName);
             }
         }
         catch (Exception e)
