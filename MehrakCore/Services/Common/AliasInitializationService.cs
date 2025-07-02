@@ -31,17 +31,17 @@ public class AliasInitializationService : IHostedService
         try
         {
             await InitializeAliasesFromJsonFiles();
-            m_Logger.LogInformation("Character initialization completed successfully");
+            m_Logger.LogInformation("Alias initialization completed successfully");
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Error occurred during character initialization");
+            m_Logger.LogError(ex, "Error occurred during alias initialization");
         }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        m_Logger.LogInformation("Character initialization service stopping");
+        m_Logger.LogInformation("Alias initialization service stopping");
         return Task.CompletedTask;
     }
 
@@ -49,21 +49,21 @@ public class AliasInitializationService : IHostedService
     {
         if (!Directory.Exists(m_AssetsPath))
         {
-            m_Logger.LogWarning("Assets directory not found at {AssetsPath}, skipping character initialization",
+            m_Logger.LogWarning("Assets directory not found at {AssetsPath}, skipping alias initialization",
                 m_AssetsPath);
             return;
         }
 
-        // Find all character JSON files in the Assets directory and subdirectories
+        // Find all alias JSON files in the Assets directory and subdirectories
         var aliasJsonFiles = Directory.GetFiles(m_AssetsPath, "*aliases*.json", SearchOption.AllDirectories);
 
         if (aliasJsonFiles.Length == 0)
         {
-            m_Logger.LogInformation("No character JSON files found in Assets directory");
+            m_Logger.LogInformation("No alias JSON files found in Assets directory");
             return;
         }
 
-        m_Logger.LogInformation("Found {Count} character JSON files", aliasJsonFiles.Length);
+        m_Logger.LogInformation("Found {Count} alias JSON files", aliasJsonFiles.Length);
 
         foreach (var file in aliasJsonFiles) await ProcessAliasJsonFileAsync(file);
     }

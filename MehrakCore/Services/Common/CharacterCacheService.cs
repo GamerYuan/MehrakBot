@@ -130,7 +130,7 @@ public class CharacterCacheService : ICharacterCacheService
             {
                 if (!m_AliasCache.TryAdd(gameName, aliases))
                     m_AliasCache[gameName] = aliases;
-                m_Logger.LogDebug("Updated character cache for {GameName} with {Count} aliases", gameName,
+                m_Logger.LogDebug("Updated alias cache for {GameName} with {Count} aliases", gameName,
                     aliases.Count);
             }
             else

@@ -56,8 +56,8 @@ def generate_markdown_table(data: Dict[str, Any]) -> str:
 def main():
     """Main function to handle command line arguments and process the file."""
     if len(sys.argv) != 2:
-        print("Usage: python json_to_markdown.py <input_json_file>", file=sys.stderr)
-        print("Example: python json_to_markdown.py aliases.json", file=sys.stderr)
+        print("Usage: python alias_to_markdown.py <input_json_file>", file=sys.stderr)
+        print("Example: python alias_to_markdown.py aliases.json", file=sys.stderr)
         sys.exit(1)
     
     input_file = sys.argv[1]
