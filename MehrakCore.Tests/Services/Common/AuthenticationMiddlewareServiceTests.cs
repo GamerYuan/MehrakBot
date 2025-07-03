@@ -31,6 +31,12 @@ public class AuthenticationMiddlewareServiceTests
         m_ContextMock = new Mock<IInteractionContext>();
     }
 
+    [TearDown]
+    public void TearDown()
+    {
+        m_Service.Dispose();
+    }
+
     [Test]
     public void RegisterAuthenticationListener_ShouldReturnValidGuid()
     {
