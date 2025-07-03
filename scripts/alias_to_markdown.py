@@ -32,19 +32,25 @@ def generate_markdown_table(data: Dict[str, Any]) -> str:
     if not aliases:
         return f"# {game}\n\nNo aliases found."
     
+    # Sort aliases alphabetically by 'name'
+    aliases_sorted = sorted(aliases, key=lambda entry: entry.get('name', '').lower())
+
     # Start building the markdown table
     markdown = f"# {game}\n\n"
     markdown += "| Name | Aliases |\n"
     markdown += "|------|--------|\n"
     
     # Process each alias entry
-    for entry in aliases:
+    for entry in aliases_sorted:
         name = entry.get('name', '')
         alias_list = entry.get('alias', [])
         
+        # Sort alias_list alphabetically
+        alias_list_sorted = sorted(alias_list, key=lambda s: s.lower()) if alias_list else []
+
         # Join aliases with commas
-        aliases_str = ', '.join(alias_list) if alias_list else ''
-        
+        aliases_str = ', '.join(alias_list_sorted) if alias_list_sorted else ''
+
         # Escape any pipe characters in the content to avoid breaking the table
         name_escaped = name.replace('|', '\\|')
         aliases_escaped = aliases_str.replace('|', '\\|')

@@ -121,11 +121,12 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                            "### Usage\n" +
                            "```/hsr character <character> [server] [profile]```\n" +
                            "### Parameters\n" +
-                           "- `character`: Character Name (Case-insensitive)\n" +
+                           "- `character`: Character Name or Alias (Case-insensitive)\n" +
                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
-                           "```/hsr character Trailblazer\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```",
+                           "```/hsr character Trailblazer\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```" +
+                           "-# [List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/honkai-star-rail-commands/character/supported-alias)",
             "codes" => "## Redemption Codes\n" +
                        "Redeem Honkai: Star Rail codes\n" +
                        "### Usage\n" +
@@ -148,7 +149,9 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
-                 "- `character`: Get character card from Honkai: Star Rail\n"
+                 "- `character`: Get character card from Honkai: Star Rail\n" +
+                 "- `codes`: Redeem Honkai: Star Rail codes\n" +
+                 "- `notes`: Get real-time notes for Honkai: Star Rail\n"
         };
     }
 }
