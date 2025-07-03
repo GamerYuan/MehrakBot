@@ -122,11 +122,15 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     public async Task AuthModalCallback(string guid, uint profile)
     {
         if (!m_AuthenticationMiddleware.ContainsAuthenticationRequest(guid))
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties().WithFlags(
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
+                .WithFlags(
                     MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(
                     new TextDisplayProperties(
                         "This authentication request has expired or is invalid. Please try again"))));
+            return;
+        }
 
         var authResult = await AuthenticateUser(profile);
 
