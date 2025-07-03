@@ -226,7 +226,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 var textColor = Color.White;
 
-                ctx.DrawImage(characterPortrait, new Point(-50, 50 + (1080 - characterPortrait.Height) / 2), 1f);
+                ctx.DrawImage(characterPortrait,
+                    new Point((1280 - characterPortrait.Width) / 2, 100 + (1080 - characterPortrait.Height) / 2),
+                    1f);
 
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, Color.Black, new PointF(73, 58));
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(70, 55));
@@ -525,9 +527,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             "Hydro" => Color.ParseHex("#2059B9"),
             "Electro" => Color.ParseHex("#7D38B3"),
             "Dendro" => Color.ParseHex("#006D20"),
-            "Cryo" => Color.ParseHex("#008C8E"),
+            "Cryo" => Color.ParseHex("#40A8BB"),
             "Geo" => Color.ParseHex("#806A00"),
-            "Anemo" => Color.ParseHex("137B52"),
+            "Anemo" => Color.ParseHex("#1B9A89"),
             _ => Color.SlateGray
         };
 
