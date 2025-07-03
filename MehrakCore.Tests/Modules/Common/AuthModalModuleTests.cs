@@ -193,6 +193,8 @@ public class AuthModalModuleTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
 
+        m_AuthenticationMiddlewareMock.Setup(x => x.ContainsAuthenticationRequest(It.IsAny<string>())).Returns(true);
+
         var interaction = new ModalInteraction(jsonInteraction, null,
             async (interaction, callback, _, _, cancellationToken) =>
                 await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
@@ -242,6 +244,8 @@ public class AuthModalModuleTests
                 }
             ]
         };
+
+        m_AuthenticationMiddlewareMock.Setup(x => x.ContainsAuthenticationRequest(It.IsAny<string>())).Returns(true);
 
         // No user in database
 
@@ -310,6 +314,9 @@ public class AuthModalModuleTests
                 }
             }
         };
+
+        m_AuthenticationMiddlewareMock.Setup(x => x.ContainsAuthenticationRequest(It.IsAny<string>())).Returns(true);
+
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
 
         var interaction = new ModalInteraction(jsonInteraction, null,
@@ -330,6 +337,71 @@ public class AuthModalModuleTests
                     testGuid, It.Is<AuthenticationResult>(r => !r.IsSuccess && r.ErrorMessage == "Invalid passphrase")),
                 Times.Once);
         });
+    }
+
+    [Test]
+    public async Task AuthModal_RequestTimedOut_ReturnsError()
+    {
+        // Arrange
+        m_DiscordTestHelper.SetupRequestCapture();
+        var user = CreateTestUser(m_TestUserId);
+        var jsonInteraction = CreateBaseInteraction(user);
+        var testGuid = "test-guid-12345";
+        jsonInteraction.Data = new JsonInteractionData
+        {
+            CustomId = $"auth_modal:{testGuid}:1",
+            Components =
+            [
+                new JsonComponent
+                {
+                    Type = ComponentType.ActionRow,
+                    Components =
+                    [
+                        new JsonComponent
+                        {
+                            Type = ComponentType.TextInput,
+                            CustomId = "passphrase",
+                            Value = "wrong_passphrase" // Wrong passphrase
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var userModel = new UserModel
+        {
+            Id = m_TestUserId,
+            Timestamp = DateTime.UtcNow,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = 123456789UL,
+                    LToken = m_EncryptedToken
+                }
+            }
+        };
+
+        m_AuthenticationMiddlewareMock.Setup(x => x.ContainsAuthenticationRequest(It.IsAny<string>())).Returns(false);
+
+        await m_UserRepository.CreateOrUpdateUserAsync(userModel);
+
+        var interaction = new ModalInteraction(jsonInteraction, null,
+            async (interaction, callback, _, _, cancellationToken) =>
+                await m_DiscordTestHelper.DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id,
+                    interaction.Token, callback,
+                    false, null, cancellationToken),
+            m_DiscordTestHelper.DiscordClient.Rest);
+        var context = new ModalInteractionContext(interaction, m_DiscordTestHelper.DiscordClient);
+
+        // Act
+        var result = await m_Service.ExecuteAsync(context, m_ServiceProvider);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(await m_DiscordTestHelper.ExtractInteractionResponseDataAsync(),
+            Contains.Substring("This authentication request has expired or is invalid"));
     }
 
     [Test]
