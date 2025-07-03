@@ -195,7 +195,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                            "### Usage\n" +
                            "```/genshin character <character> [server] [profile]```\n" +
                            "### Parameters\n" +
-                           "- `character`: Character Name (Case-insensitive)\n" +
+                           "- `character`: Character Name or Alias (Case-insensitive)\n" +
                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
@@ -219,10 +219,23 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
                        "```/genshin notes\n/genshin notes Asia 2```",
+            "theater" => "## Imaginarium Theater\n" +
+                         "Get Imaginarium Theater summary card\n" +
+                         "### Usage\n" +
+                         "```/genshin theater [server] [profile]```\n" +
+                         "### Parameters\n" +
+                         "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                         "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                         "### Examples\n" +
+                         "```/genshin theater\n/genshin theater Asia\n/genshin theater America 2```",
             _ => "## Genshin Toolbox\n" +
                  "Genshin Impact related commands and utilities.\n" +
                  "### Subcommands\n" +
-                 "- `character`: Get character card from Genshin Impact\n"
+                 "- `abyss`: Get Spiral Abyss summary card" +
+                 "- `character`: Get character card from Genshin Impact\n" +
+                 "- `codes`: Redeem Genshin Impact codes\n" +
+                 "- `notes`: Get real-time notes for Genshin Impact\n" +
+                 "- `theater`: Get Imaginarium Theater summary card\n"
         };
     }
 }
