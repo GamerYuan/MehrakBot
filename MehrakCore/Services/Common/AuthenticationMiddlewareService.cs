@@ -46,12 +46,13 @@ public class AuthenticationResult
     }
 }
 
-public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
+public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService, IDisposable
 {
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
     private readonly ConcurrentDictionary<string, AuthenticationRequest> m_PendingRequests;
+    private readonly Timer m_Timer;
 
-    private const int TimeoutMinutes = 5;
+    private const int TimeoutMinutes = 1;
 
     public AuthenticationMiddlewareService(ILogger<AuthenticationMiddlewareService> logger)
     {
@@ -59,7 +60,12 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         m_PendingRequests = new ConcurrentDictionary<string, AuthenticationRequest>();
 
         // Cleanup expired requests every minute
-        _ = new Timer(CleanupExpiredRequests, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        m_Timer = new Timer(CleanupExpiredRequests, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+    }
+
+    public void Dispose()
+    {
+        m_Timer.Dispose();
     }
 
     public string RegisterAuthenticationListener(ulong userId, IAuthenticationListener listener)
@@ -103,8 +109,14 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         }
     }
 
+    public bool ContainsAuthenticationRequest(string guid)
+    {
+        return m_PendingRequests.ContainsKey(guid);
+    }
+
     private void CleanupExpiredRequests(object? state)
     {
+        m_Logger.LogDebug("Cleaning up expired authentication requests");
         var cutoff = DateTime.UtcNow.AddMinutes(-TimeoutMinutes);
         var expiredRequests = m_PendingRequests
             .Where(kvp => kvp.Value.RequestTime < cutoff)
@@ -112,24 +124,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         foreach (var (messageId, request) in expiredRequests)
             if (m_PendingRequests.TryRemove(messageId, out _))
-            {
                 m_Logger.LogDebug("Authentication request timed out for user {UserId} with message ID {MessageId}",
                     request.UserId, messageId);
-
-                var timeoutResult = AuthenticationResult.Timeout(request.UserId);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await request.Listener.OnAuthenticationCompletedAsync(timeoutResult);
-                    }
-                    catch (Exception ex)
-                    {
-                        m_Logger.LogError(ex, "Error notifying timeout to authentication listener for user {UserId}",
-                            request.UserId);
-                    }
-                });
-            }
     }
 
     private class AuthenticationRequest
