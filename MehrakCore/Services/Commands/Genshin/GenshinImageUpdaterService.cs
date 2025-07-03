@@ -177,7 +177,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
             image.Mutate(ctx =>
             {
-                ctx.Crop(new Rectangle(minX, minY, maxX - minX, maxY - minY));
+                ctx.Crop(new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1));
                 var size = ctx.GetCurrentSize();
                 if (size.Width >= size.Height)
                     ctx.Resize(0,
