@@ -180,13 +180,17 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 ctx.Crop(new Rectangle(minX, minY, maxX - minX, maxY - minY));
                 var size = ctx.GetCurrentSize();
                 if (size.Width >= size.Height)
-                    ctx.Resize(0, 1280, KnownResamplers.Lanczos3);
+                    ctx.Resize(0,
+                        (int)Math.Round(1280 * Math.Min(1.2 * size.Height / size.Width, 1f)),
+                        KnownResamplers.Lanczos3);
                 else
-                    ctx.Resize(1560, 0, KnownResamplers.Lanczos3);
+                    ctx.Resize(1400, 0, KnownResamplers.Lanczos3);
 
                 size = ctx.GetCurrentSize();
-                ctx.Crop(new Rectangle((size.Width - StandardImageSize) / 2,
-                    (size.Height - StandardImageSize) / 2, StandardImageSize, StandardImageSize));
+
+                if (size.Width > StandardImageSize)
+                    ctx.Crop(new Rectangle((size.Width - StandardImageSize) / 2, 0, StandardImageSize, size.Height));
+
                 ctx.ApplyGradientFade();
             });
 

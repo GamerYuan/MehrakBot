@@ -227,7 +227,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 var textColor = Color.White;
 
                 ctx.DrawImage(characterPortrait,
-                    new Point((1280 - characterPortrait.Width) / 2, 50 + (1080 - characterPortrait.Height) / 2),
+                    new Point((1280 - characterPortrait.Width) / 2, 100 + (1080 - characterPortrait.Height) / 2),
                     1f);
 
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, Color.Black, new PointF(73, 58));
