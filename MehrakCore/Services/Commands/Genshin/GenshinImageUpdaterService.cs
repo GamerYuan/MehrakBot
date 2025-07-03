@@ -153,9 +153,40 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             await using var imageStream = await response.Content.ReadAsStreamAsync();
             using var image = await Image.LoadAsync<Rgba32>(imageStream);
 
+            int minX = image.Width;
+            int minY = image.Height;
+            int maxX = -1;
+            int maxY = -1;
+
+            image.ProcessPixelRows(accessor =>
+            {
+                for (int y = 0; y < accessor.Height; y++)
+                {
+                    var pixelRow = accessor.GetRowSpan(y);
+
+                    for (int x = 0; x < pixelRow.Length; x++)
+                        if (pixelRow[x].A > 0)
+                        {
+                            minX = Math.Min(minX, x);
+                            minY = Math.Min(minY, y);
+                            maxX = Math.Max(maxX, x);
+                            maxY = Math.Max(maxY, y);
+                        }
+                }
+            });
+
             image.Mutate(ctx =>
             {
-                ctx.Resize(1280, 0, KnownResamplers.Lanczos3);
+                ctx.Crop(new Rectangle(minX, minY, maxX - minX, maxY - minY));
+                var size = ctx.GetCurrentSize();
+                if (size.Width >= size.Height)
+                    ctx.Resize(0, 1280, KnownResamplers.Lanczos3);
+                else
+                    ctx.Resize(1560, 0, KnownResamplers.Lanczos3);
+
+                size = ctx.GetCurrentSize();
+                ctx.Crop(new Rectangle((size.Width - StandardImageSize) / 2,
+                    (size.Height - StandardImageSize) / 2, StandardImageSize, StandardImageSize));
                 ctx.ApplyGradientFade();
             });
 
