@@ -125,7 +125,8 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
-                           "```/hsr character Trailblazer\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```",
+                           "```/hsr character Trailblazer\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```" +
+                           "-# [List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/honkai-star-rail-commands/character/supported-alias)",
             "codes" => "## Redemption Codes\n" +
                        "Redeem Honkai: Star Rail codes\n" +
                        "### Usage\n" +
