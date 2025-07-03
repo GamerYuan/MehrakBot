@@ -529,7 +529,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             "Dendro" => Color.ParseHex("#006D20"),
             "Cryo" => Color.ParseHex("#40A8BB"),
             "Geo" => Color.ParseHex("#806A00"),
-            "Anemo" => Color.ParseHex("1B9A89"),
+            "Anemo" => Color.ParseHex("#1B9A89"),
             _ => Color.SlateGray
         };
 
