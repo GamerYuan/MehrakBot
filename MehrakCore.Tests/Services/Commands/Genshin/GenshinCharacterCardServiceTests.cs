@@ -111,12 +111,12 @@ public class GenshinCharacterCardServiceTests
     //     var image = await service.GenerateCharacterCardAsync(characterDetail.List[0], "Test");
     //     using var file = new MemoryStream();
     //     await image.CopyToAsync(file);
-    //     await File.WriteAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage.jpg", file.ToArray());
+    //     await File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/GoldenImage.jpg", file.ToArray());
     //
     //     var image2 = await service.GenerateCharacterCardAsync(characterDetail2.List[0], "Test");
     //     using var file2 = new MemoryStream();
     //     await image2.CopyToAsync(file2);
-    //     await File.WriteAllBytesAsync($"{TestDataPath}/Genshin/Assets/GoldenImage_WithSet.jpg", file2.ToArray());
+    //     await File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/GoldenImage_WithSet.jpg", file2.ToArray());
     //
     //     // Assert
     //     Assert.Multiple(() =>
