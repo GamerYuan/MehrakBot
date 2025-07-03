@@ -527,9 +527,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             "Hydro" => Color.ParseHex("#2059B9"),
             "Electro" => Color.ParseHex("#7D38B3"),
             "Dendro" => Color.ParseHex("#006D20"),
-            "Cryo" => Color.ParseHex("#008C8E"),
+            "Cryo" => Color.ParseHex("#40A8BB"),
             "Geo" => Color.ParseHex("#806A00"),
-            "Anemo" => Color.ParseHex("137B52"),
+            "Anemo" => Color.ParseHex("1B9A89"),
             _ => Color.SlateGray
         };
 
