@@ -66,11 +66,12 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
 
             var portraitImages = await floorData.Levels!.SelectMany(y => y.Battles!)
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                    async x => await Task.FromResult(x),
+                    async x => await Task.FromResult(new GenshinAvatar(x.Id!.Value, x.Level!.Value,
+                        x.Rarity!.Value, constMap[x.Id!.Value], 0)),
                     async x => await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{x.Id!.Value}")));
-            var imageDict = portraitImages.ToDictionary(x => x.Key.Id!.Value,
-                x => x.Key.GetStyledAvatarImage(x.Value, constMap[x.Key.Id!.Value]));
+            var imageDict = portraitImages.ToDictionary(x => x.Key.AvatarId,
+                x => x.Key.GetStyledAvatarImage(x.Value));
             var sideAvatarImages = await abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
                 .Concat(abyssData.EnergySkillRank!)
                 .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
@@ -144,9 +145,8 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     .ToDictionary(x => x.AvatarId!.Value,
                         x =>
                         {
-                            var entry = portraitImages.FirstOrDefault(y => y.Key.Id == x.AvatarId);
-                            return entry.Key.GetStyledAvatarImage(entry.Value, constMap[x.AvatarId!.Value],
-                                x.Value.ToString()!);
+                            var entry = portraitImages.First(y => y.Key.AvatarId == x.AvatarId);
+                            return entry.Key.GetStyledAvatarImage(entry.Value, x.Value.ToString()!);
                         });
                 var revealRank = GetRosterImage(abyssData.RevealRank!.Select(x => x.AvatarId!.Value).ToList(),
                     revealRankImages);

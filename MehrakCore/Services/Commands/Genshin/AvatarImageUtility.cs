@@ -1,6 +1,6 @@
 ﻿#region
 
-using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
 using MehrakCore.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -32,54 +32,16 @@ internal static class AvatarImageUtility
         SmallFont = fontFamily.CreateFont(18, FontStyle.Regular);
     }
 
-    public static Image<Rgba32> GetStyledAvatarImage(this Avatar avatar, Image portrait, int constellation = 0,
-        string text = "")
+    public static Image<Rgba32> GetStyledAvatarImage(this GenshinAvatar avatar, Image portrait, string text = "")
     {
         if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
 
-        return GetStyledAvatarImageHelper(avatar.Rarity!.Value, avatar.Level!.Value, portrait, constellation, text);
-    }
-
-    public static Image<Rgba32> GetStyledAvatarImage(this ItAvatar avatar, Image portrait, int avatarType,
-        int constellation = 0,
-        string text = "")
-    {
-        if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
-
-        var image = GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, portrait, constellation, text);
-        switch (avatarType)
-        {
-            case 2:
-                image.Mutate(ctx =>
-                {
-                    var overlay = ImageExtensions.CreateRoundedRectanglePath(80, 35, 15);
-                    ctx.Fill(Color.FromRgb(225, 118, 128), overlay.Translate(90, -10));
-                    ctx.DrawText(new RichTextOptions(SmallFont)
-                    {
-                        Origin = new PointF(98, 3),
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, "Trial", Color.White);
-                });
-                break;
-            case 3:
-                image.Mutate(ctx =>
-                {
-                    var overlay = ImageExtensions.CreateRoundedRectanglePath(130, 35, 15);
-                    ctx.Fill(Color.FromRgb(73, 128, 185), overlay.Translate(50, -10));
-                    ctx.DrawText(new RichTextOptions(SmallFont)
-                    {
-                        Origin = new PointF(63, 3),
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, "Support", Color.White);
-                });
-                break;
-        }
-
-        return image;
+        return GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, portrait, avatar.Constellation,
+            avatar.AvatarType, text);
     }
 
     private static Image<Rgba32> GetStyledAvatarImageHelper(int rarity, int level, Image portrait, int constellation,
-        string text)
+        int avatarType, string text)
     {
         var avatarImage = new Image<Rgba32>(150, 180);
         var rectangle = new RectangleF(0, 150, 150, 30);
@@ -115,6 +77,28 @@ internal static class AvatarImageUtility
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     }, $"{constellation}", Color.White);
+            }
+
+            switch (avatarType)
+            {
+                case 2:
+                    var trialOverlay = ImageExtensions.CreateRoundedRectanglePath(80, 35, 15);
+                    ctx.Fill(Color.FromRgb(225, 118, 128), trialOverlay.Translate(90, -10));
+                    ctx.DrawText(new RichTextOptions(SmallFont)
+                    {
+                        Origin = new PointF(98, 3),
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, "Trial", Color.White);
+                    break;
+                case 3:
+                    var supportOverlay = ImageExtensions.CreateRoundedRectanglePath(130, 35, 15);
+                    ctx.Fill(Color.FromRgb(73, 128, 185), supportOverlay.Translate(50, -10));
+                    ctx.DrawText(new RichTextOptions(SmallFont)
+                    {
+                        Origin = new PointF(63, 3),
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, "Support", Color.White);
+                    break;
             }
 
             ctx.ApplyRoundedCorners(15);

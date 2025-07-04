@@ -67,14 +67,16 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         List<IDisposable> disposableResources = [];
         try
         {
-            var avatarDict = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
-                .ToDictionary(x => x.AvatarId, x => x);
-            var avatarImages = await avatarDict.ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                async x => await Task.FromResult(x.Key),
-                async x => x.Value.GetStyledAvatarImage(
-                    await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{x.Value.AvatarId}")),
-                    x.Value.AvatarType, x.Value.AvatarType != 1 ? 0 : constMap[x.Value.AvatarId]));
+            var avatarImages = await theaterData.Detail.RoundsData.SelectMany(x =>
+                    x.Avatars.Select(y =>
+                        new GenshinAvatar(y.AvatarId, y.Level, y.Rarity, y.AvatarType == 1 ? constMap[y.AvatarId] : 0,
+                            y.AvatarType)))
+                .DistinctBy(x => x.AvatarId).ToAsyncEnumerable().ToDictionaryAwaitAsync(
+                    async x => await Task.FromResult(x),
+                    async x => x.GetStyledAvatarImage(
+                        await Image.LoadAsync(
+                            await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{x.AvatarId}"))),
+                    GenshinAvatarIdComparer.Instance);
             var buffImages = await buffMap.ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Key),
                     async x =>
@@ -241,6 +243,8 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
                 var hasFastest = false;
 
+                var alternateLookup = avatarImages.GetAlternateLookup<int>();
+
                 for (int i = 0; i < theaterData.Detail.RoundsData.Count; i++)
                 {
                     int xOffset = i == maxRound - 1 &&
@@ -258,7 +262,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                             Origin = new Vector2(xOffset + 15, yOffset - 45)
                         }, $"Act {roundData.RoundId}", Color.White);
 
-                    ctx.DrawImage(GetRosterImage(roundData.Avatars.Select(x => x.AvatarId), avatarImages),
+                    ctx.DrawImage(GetRosterImage(roundData.Avatars.Select(x => x.AvatarId), alternateLookup),
                         new Point(xOffset, yOffset), 1f);
                     ctx.DrawImage(roundData.IsGetMedal ? m_TheaterStarLit : m_TheaterStarUnlit,
                         new Point(xOffset + 600, yOffset - 55), 1f);
@@ -349,7 +353,8 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         }
     }
 
-    private static Image<Rgba32> GetRosterImage(IEnumerable<int> ids, Dictionary<int, Image<Rgba32>> imageDict)
+    private static Image<Rgba32> GetRosterImage(IEnumerable<int> ids,
+        Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
     {
         const int avatarWidth = 150;
 
