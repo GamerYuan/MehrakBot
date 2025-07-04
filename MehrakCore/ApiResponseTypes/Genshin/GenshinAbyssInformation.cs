@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace MehrakCore.ApiResponseTypes.Genshin;
 
-public class Avatar
+public class AbyssAvatar
 {
     [JsonPropertyName("id")] public int? Id { get; init; }
 
@@ -23,7 +23,7 @@ public class Battle
 
     [JsonPropertyName("timestamp")] public string? Timestamp { get; init; }
 
-    [JsonPropertyName("avatars")] public List<Avatar>? Avatars { get; init; }
+    [JsonPropertyName("avatars")] public List<AbyssAvatar>? Avatars { get; init; }
 
     [JsonPropertyName("settle_date_time")] public SettleDateTime? SettleDateTime { get; init; }
 }
@@ -43,19 +43,19 @@ public class GenshinAbyssInformation
 
     [JsonPropertyName("max_floor")] public string? MaxFloor { get; init; }
 
-    [JsonPropertyName("reveal_rank")] public List<RankAvatar>? RevealRank { get; init; }
+    [JsonPropertyName("reveal_rank")] public List<AbyssRankAvatar>? RevealRank { get; init; }
 
-    [JsonPropertyName("defeat_rank")] public List<RankAvatar>? DefeatRank { get; init; }
+    [JsonPropertyName("defeat_rank")] public List<AbyssRankAvatar>? DefeatRank { get; init; }
 
-    [JsonPropertyName("damage_rank")] public List<RankAvatar>? DamageRank { get; init; }
+    [JsonPropertyName("damage_rank")] public List<AbyssRankAvatar>? DamageRank { get; init; }
 
-    [JsonPropertyName("take_damage_rank")] public List<RankAvatar>? TakeDamageRank { get; init; }
+    [JsonPropertyName("take_damage_rank")] public List<AbyssRankAvatar>? TakeDamageRank { get; init; }
 
     [JsonPropertyName("normal_skill_rank")]
-    public List<RankAvatar>? NormalSkillRank { get; init; }
+    public List<AbyssRankAvatar>? NormalSkillRank { get; init; }
 
     [JsonPropertyName("energy_skill_rank")]
-    public List<RankAvatar>? EnergySkillRank { get; init; }
+    public List<AbyssRankAvatar>? EnergySkillRank { get; init; }
 
     [JsonPropertyName("floors")] public List<Floor>? Floors { get; init; }
 
@@ -108,7 +108,7 @@ public class Level
     public List<MonsterList>? BottomHalfFloorMonster { get; init; }
 }
 
-public class RankAvatar
+public class AbyssRankAvatar
 {
     [JsonPropertyName("avatar_id")] public int? AvatarId { get; init; }
 

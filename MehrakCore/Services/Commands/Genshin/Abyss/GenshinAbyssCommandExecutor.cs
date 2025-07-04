@@ -135,7 +135,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             }
 
             var tasks = floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!))
-                .Concat(abyssData.RevealRank!.Select(x => new Avatar
+                .Concat(abyssData.RevealRank!.Select(x => new AbyssAvatar
                 {
                     Icon = x.AvatarIcon,
                     Id = x.AvatarId,
