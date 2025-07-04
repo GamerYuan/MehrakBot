@@ -1,20 +1,46 @@
-﻿namespace MehrakCore.Models;
+﻿#region
 
-public record GenshinAvatar
+using SixLabors.ImageSharp;
+
+#endregion
+
+namespace MehrakCore.Models;
+
+public sealed record GenshinAvatar : IDisposable
 {
     public int AvatarId { get; }
     public int Level { get; }
     public int AvatarType { get; }
     public int Rarity { get; }
     public int Constellation { get; }
+    public Image AvatarImage { get; }
 
-    public GenshinAvatar(int avatarId, int level, int rarity, int constellation, int avatarType = 1)
+    public GenshinAvatar(int avatarId, int level, int rarity, int constellation, Image avatarImage, int avatarType = 1)
     {
         AvatarId = avatarId;
         Level = level;
         Rarity = rarity;
         AvatarType = avatarType;
         Constellation = constellation;
+        AvatarImage = avatarImage;
+    }
+
+    public void Dispose()
+    {
+        AvatarImage.Dispose();
+    }
+
+    public bool Equals(GenshinAvatar? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return AvatarId == other.AvatarId && Level == other.Level && AvatarType == other.AvatarType &&
+               Rarity == other.Rarity && Constellation == other.Constellation;
+    }
+
+    public override int GetHashCode()
+    {
+        return AvatarId.GetHashCode();
     }
 }
 

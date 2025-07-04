@@ -68,15 +68,16 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         try
         {
             var avatarImages = await theaterData.Detail.RoundsData.SelectMany(x =>
-                    x.Avatars.Select(y =>
-                        new GenshinAvatar(y.AvatarId, y.Level, y.Rarity, y.AvatarType == 1 ? constMap[y.AvatarId] : 0,
-                            y.AvatarType)))
-                .DistinctBy(x => x.AvatarId).ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                    async x => await Task.FromResult(x),
-                    async x => x.GetStyledAvatarImage(
+                    x.Avatars)
+                .DistinctBy(x => x.AvatarId)
+                .ToAsyncEnumerable()
+                .SelectAwait(async y =>
+                    new GenshinAvatar(y.AvatarId, y.Level, y.Rarity, y.AvatarType == 1 ? constMap[y.AvatarId] : 0,
                         await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{x.AvatarId}"))),
-                    GenshinAvatarIdComparer.Instance);
+                            await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{y.AvatarId}")),
+                        y.AvatarType))
+                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
+                    async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
             var buffImages = await buffMap.ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Key),
                     async x =>
@@ -101,6 +102,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         return image;
                     });
 
+            disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
             disposableResources.AddRange(buffImages.Values);
             disposableResources.AddRange(sideAvatarImages.Values);

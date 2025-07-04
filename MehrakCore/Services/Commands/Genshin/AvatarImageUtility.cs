@@ -32,11 +32,9 @@ internal static class AvatarImageUtility
         SmallFont = fontFamily.CreateFont(18, FontStyle.Regular);
     }
 
-    public static Image<Rgba32> GetStyledAvatarImage(this GenshinAvatar avatar, Image portrait, string text = "")
+    public static Image<Rgba32> GetStyledAvatarImage(this GenshinAvatar avatar, string text = "")
     {
-        if (portrait == null) throw new ArgumentNullException(nameof(portrait), "Portrait image cannot be null");
-
-        return GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, portrait, avatar.Constellation,
+        return GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, avatar.AvatarImage, avatar.Constellation,
             avatar.AvatarType, text);
     }
 
