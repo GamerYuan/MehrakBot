@@ -83,12 +83,18 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     async x => await Task.FromResult(x.AvatarId!.Value),
                     async x => await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync($"genshin_side_avatar_{x.AvatarId!.Value}")));
-            var revealRankImages = abyssData.RevealRank!
-                .Select(x => (x, portraitImages.First(y => y.Key.AvatarId == x.AvatarId!.Value).Key))
-                .ToDictionary(x => x.Item2, x => x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!),
+            var revealRankImages = await abyssData.RevealRank!
+                .ToAsyncEnumerable()
+                .SelectAwait(async x => (x, new GenshinAvatar(x.AvatarId!.Value, 0, x.Rarity!.Value,
+                    constMap[x.AvatarId!.Value],
+                    await Image.LoadAsync(
+                        await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{x.AvatarId!.Value}")))))
+                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Item2),
+                    async x => await Task.FromResult(x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!)),
                     GenshinAvatarIdComparer.Instance);
             disposableResources.AddRange(portraitImages.Keys);
             disposableResources.AddRange(portraitImages.Values);
+            disposableResources.AddRange(revealRankImages.Keys);
             disposableResources.AddRange(revealRankImages.Values);
             disposableResources.AddRange(sideAvatarImages.Values);
             var background =
