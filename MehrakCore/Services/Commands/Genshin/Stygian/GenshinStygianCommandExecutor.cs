@@ -19,23 +19,23 @@ namespace MehrakCore.Services.Commands.Genshin.Stygian;
 
 public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandModule>
 {
-    private readonly ImageUpdaterService<GenshinCharacterInformation> m_ImageUpdaterService;
-    private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_CharacterApi;
+    private readonly GenshinImageUpdaterService m_ImageUpdaterService;
     private readonly GenshinStygianApiService m_ApiService;
+    private readonly GenshinStygianCardService m_CommandService;
 
     private Regions m_PendingServer;
 
-    public GenshinStygianCommandExecutor(ImageUpdaterService<GenshinCharacterInformation> imageUpdaterService,
+    public GenshinStygianCommandExecutor(GenshinImageUpdaterService imageUpdaterService,
+        ICommandService<GenshinStygianCommandExecutor> commandService,
         IApiService<GenshinStygianCommandExecutor> apiService,
-        ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> characterApi,
         UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<GenshinCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)
     {
         m_ImageUpdaterService = imageUpdaterService;
-        m_CharacterApi = characterApi;
         m_ApiService = (GenshinStygianApiService)apiService;
+        m_CommandService = (GenshinStygianCardService)commandService;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -140,19 +140,10 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.MonsterId),
                     async x => await m_ApiService.GetMonsterImageAsync(x.Icon));
 
-            var charList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToList();
-            if (charList.Count == 0)
-            {
-                await SendErrorMessageAsync("An error occurred while fetching character data");
-                return;
-            }
-
-            var constMap = charList.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
-
             await Task.WhenAll(avatarTasks);
             await Task.WhenAll(sideAvatarTasks);
 
-            var stygianCard = await GetStygianCardAsync(userData, region, ltuid, ltoken, constMap, monsterImages);
+            var stygianCard = await GetStygianCardAsync(stygianInfo.Data.Data[0], server, userData, monsterImages);
 
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -176,12 +167,42 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
         }
     }
 
-    private async ValueTask<InteractionMessageProperties> GetStygianCardAsync(UserGameData gameData, string region,
-        ulong ltuid, string ltoken, Dictionary<int, int> constMap, Dictionary<int, Stream> monsterImages)
+    private async ValueTask<InteractionMessageProperties> GetStygianCardAsync(StygianData stygianData,
+        Regions region, UserGameData gameData, Dictionary<int, Stream> monsterImages)
     {
-        var message = new InteractionMessageProperties()
-            .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2);
+        try
+        {
+            var message = new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2);
+            ComponentContainerProperties container =
+            [
+                new TextDisplayProperties($"### <@{Context.Interaction.User.Id}>'s Stygian Onslaught Summary"),
+                new TextDisplayProperties(
+                    $"Cycle start: <t:{stygianData.Schedule!.StartTime}:f>\nCycle end: <t:{stygianData.Schedule!.EndTime}:f>"),
+                new MediaGalleryProperties().AddItems(
+                    new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://stygian_card.jpg"))),
+                new TextDisplayProperties(
+                    "-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
+            ];
 
-        return message;
+            message.AddAttachments(new AttachmentProperties("stygian_card.jpg",
+                await m_CommandService.GetStygianCardImageAsync(stygianData, gameData, region, monsterImages)));
+
+            message.AddComponents([container]);
+            message.AddComponents(
+                new ActionRowProperties().AddButtons(new ButtonProperties("remove_card",
+                    "Remove", ButtonStyle.Danger)));
+            return message;
+        }
+        catch (CommandException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to generate Imaginarium Theater card for user {UserId}",
+                Context.Interaction.User.Id);
+            throw new CommandException("An error occurred while generating Imaginarium Theater card", e);
+        }
     }
 }
