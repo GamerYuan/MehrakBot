@@ -62,7 +62,8 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
         try
         {
             var stygianData = stygianInfo.Single;
-            var avatarImages = await stygianData.Challenge!.SelectMany(x => x.Teams).ToAsyncEnumerable()
+            var avatarImages = await stygianData.Challenge!.SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId)
+                .ToAsyncEnumerable()
                 .SelectAwait(async x =>
                     new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank,
                         await Image.LoadAsync(
