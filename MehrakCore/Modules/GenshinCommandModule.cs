@@ -3,6 +3,7 @@
 using MehrakCore.Provider.Commands.Genshin;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin.Abyss;
+using MehrakCore.Services.Commands.Genshin.Stygian;
 using MehrakCore.Services.Commands.Genshin.Theater;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
@@ -28,6 +29,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     private readonly ICodeRedeemExecutor<GenshinCommandModule> m_CodesRedeemExecutor;
     private readonly GenshinAbyssCommandExecutor m_AbyssCommandExecutor;
     private readonly GenshinTheaterCommandExecutor m_TheaterCommandExecutor;
+    private readonly GenshinStygianCommandExecutor m_StygianCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
 
     public GenshinCommandModule(ICharacterCommandExecutor<GenshinCommandModule> characterCommandExecutor,
@@ -35,6 +37,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         ICodeRedeemExecutor<GenshinCommandModule> codesRedeemExecutor,
         GenshinAbyssCommandExecutor abyssCommandExecutor,
         GenshinTheaterCommandExecutor theaterCommandExecutor,
+        GenshinStygianCommandExecutor stygianCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<GenshinCommandModule> logger)
     {
         m_Logger = logger;
@@ -42,6 +45,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         m_NotesCommandExecutor = notesCommandExecutor;
         m_AbyssCommandExecutor = abyssCommandExecutor;
         m_TheaterCommandExecutor = theaterCommandExecutor;
+        m_StygianCommandExecutor = stygianCommandExecutor;
         m_CodesRedeemExecutor = codesRedeemExecutor;
         m_CommandRateLimitService = commandRateLimitService;
     }
@@ -160,6 +164,23 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         m_TheaterCommandExecutor.Context = Context;
         await m_TheaterCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("stygian", "Get Stygian Onslaught summary card")]
+    public async Task StygianCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the stygian command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_StygianCommandExecutor.Context = Context;
+        await m_StygianCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     private async Task<bool> ValidateRateLimitAsync()

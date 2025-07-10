@@ -1,0 +1,274 @@
+﻿{
+  "schedule": {
+    "schedule_id": "5269001",
+    "start_time": "1750816800",
+    "end_time": "1753732799",
+    "start_date_time": {
+      "year": 2025,
+      "month": 6,
+      "day": 25,
+      "hour": 10,
+      "minute": 0,
+      "second": 0
+    },
+    "end_date_time": {
+      "year": 2025,
+      "month": 7,
+      "day": 29,
+      "hour": 3,
+      "minute": 59,
+      "second": 59
+    },
+    "is_valid": true,
+    "name": "Incursion Repeller"
+  },
+  "single": {
+    "best": {
+      "difficulty": 5,
+      "second": 284,
+      "icon": "UI_LeyLineChallenge_Medal_5"
+    },
+    "challenge": [
+      {
+        "name": "Hydro Tulpa: Turbulent Vortex",
+        "second": 111,
+        "teams": [
+          {
+            "avatar_id": 10000089,
+            "name": "Mavuika",
+            "element": "Pyro",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 0
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Xilonen",
+            "element": "Geo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/7c047dce3a1be70baa30f28111222e38.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 2
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Citlali",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/abe2da348abe64c67d9c2763d2d8c4e7.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 0
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Bennett",
+            "element": "Pyro",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/41a97aae8bf579ce350a90bbddc59fdf.png",
+            "level": 80,
+            "rarity": 4,
+            "rank": 6
+          }
+        ],
+        "best_avatar": [
+          {
+            "avatar_id": 10000089,
+            "side_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/decc41d08a4dd4053f3503924b40bbca.png",
+            "dps": "778793",
+            "type": 1
+          },
+          {
+            "avatar_id": 10000089,
+            "side_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/decc41d08a4dd4053f3503924b40bbca.png",
+            "dps": "8804942",
+            "type": 2
+          }
+        ],
+        "monster": {
+          "name": "Hydro Tulpa: Turbulent Vortex",
+          "level": 105,
+          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6851f427/ee71463c321c847d625e596965003e0a.png",
+          "desc": [
+            "<color=#FFD780FF>Affected by the Ley Line disturbance</color>, this being will absorb the <color=#FFD780FF>2 Half-Tulpas</color> that emerge during the challenge at intervals to <color=#FFD780FF>enhance and heal itself</color>. Use attacks or Elemental Reactions to destroy Half-Tulpas in time or <color=#FFD780FF>Freeze</color> them to interrupt this absorption.",
+            "<color=#FFD780FF>Affected by the Ley Line disturbance</color>, the Hydro Tulpa <color=#FFD780FF>will deploy a Ward</color> at intervals. Deal as much DMG to the Ward as possible and destroy it. If not, the Hydro Tulpa will unleash Torrential Flurry after a short time, <color=#FFD780FF>which will immediately defeat your current active character</color>.",
+            "",
+            "",
+            ""
+          ],
+          "tags": [
+            {
+              "type": 1,
+              "desc": "{SPRITE_PRESET#11003} has an advantage"
+            },
+            {
+              "type": 0,
+              "desc": "{SPRITE_PRESET#11002} has a disadvantage"
+            }
+          ],
+          "monster_id": 1001061
+        }
+      },
+      {
+        "name": "Lava Dragon Statue: Blazing Flame",
+        "second": 112,
+        "teams": [
+          {
+            "avatar_id": 10000089,
+            "name": "Arlecchino",
+            "element": "Pyro",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/1b277d9a90936da66f13918e3c9b828c.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 1
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Nahida",
+            "element": "Dendro",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/823e31bf43f378bd66c394985a323da8.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 6
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Fischl",
+            "element": "Electro",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/207a0e35e0637a2bcb0a28fdfa61f7a4.png",
+            "level": 90,
+            "rarity": 4,
+            "rank": 6
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Xiangling",
+            "element": "Pyro",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c836c2dc7d71fe8065ae2798d360167b.png",
+            "level": 80,
+            "rarity": 4,
+            "rank": 6
+          }
+        ],
+        "best_avatar": [
+          {
+            "avatar_id": 10000089,
+            "side_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/bb1e8ffb5eb021cc4c1b77a41a8340a9.png",
+            "dps": "74619",
+            "type": 1
+          },
+          {
+            "avatar_id": 10000089,
+            "side_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/4cbb3a9f099fb8e31117047189192471.png",
+            "dps": "1798906",
+            "type": 2
+          }
+        ],
+        "monster": {
+          "name": "Lava Dragon Statue: Blazing Flame",
+          "level": 105,
+          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6851f427/90c73c32b988aba431d6085e6908cbc5.png",
+          "desc": [
+            "Has two forms. Its initial form possesses <color=#FFD780FF>higher All RES</color>. After it takes a certain number of <color=#FF9999FF>Pyro DMG</color> instances, it will enter its second form, in which <color=#FFD780FF>all RES apart from Pyro RES is greatly decreased</color>. After it goes on to take a certain number of additional <color=#FF9999FF>Pyro DMG</color> instances, it will take immense DMG and be immobilized. This will also cause its <color=#FFD780FF>All RES to be further decreased</color>.",
+            "<color=#FFD780FF>Affected by the Ley Line disturbance</color>, this great foe has its All RES further increased, and the number of Pyro DMG instances it must take to change form is increased.",
+            "After taking <color=#80C0FFFF>Hydro DMG</color> or <color=#99FFFFFF>Cryo DMG</color>, it will gradually return to the higher-RES initial form.",
+            "",
+            ""
+          ],
+          "tags": [
+            {
+              "type": 1,
+              "desc": "{SPRITE_PRESET#11007} and {SPRITE_PRESET#11003} have an advantage"
+            },
+            {
+              "type": 0,
+              "desc": "{SPRITE_PRESET#11001} and {SPRITE_PRESET#11002} have a disadvantage"
+            }
+          ],
+          "monster_id": 1001062
+        }
+      },
+      {
+        "name": "Secret Source Automaton: Overseer Device - Obliterator Panoply",
+        "second": 61,
+        "teams": [
+          {
+            "avatar_id": 10000089,
+            "name": "Skirk",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6851f37b/b3007bcbb99dd9b47af558ecc1bb65ff.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 2
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Shenhe",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/d7f5dc584b2a9b02b8266084d96ad3cf.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 2
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Escoffier",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 0
+          },
+          {
+            "avatar_id": 10000089,
+            "name": "Furina",
+            "element": "Hydro",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/0a024f0f2e06e99d67f112cd12eef4af.png",
+            "level": 90,
+            "rarity": 5,
+            "rank": 6
+          }
+        ],
+        "best_avatar": [
+          {
+            "avatar_id": 10000089,
+            "side_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6851f3c2/0fa95a8f72a1bae43275808caaf298c0.png",
+            "dps": "284195",
+            "type": 1
+          },
+          {
+            "avatar_id": 10000089,
+            "side_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6851f3c2/0fa95a8f72a1bae43275808caaf298c0.png",
+            "dps": "5392612",
+            "type": 2
+          }
+        ],
+        "monster": {
+          "name": "Secret Source Automaton: Overseer Device - Obliterator Panoply",
+          "level": 105,
+          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6851f427/79730aad9e298a2d28da12ad0d643e0b.png",
+          "desc": [
+            "Will immediately enter Sweeper Mode when combat starts: <color=#FFD780FF>All RES is greatly increased</color>, and it will perform rotating attacks while generating Flow Momentum. It will lose Flow Momentum after taking <color=#99FFFFFF>Cryo DMG</color>. Below a certain Flow Momentum value, it will temporarily stop rotating and attacking, and its <color=#FFD780FF>All RES will be greatly decreased</color>.",
+            "If an active character enters and maintains the <color=#FFD780FF>Nightsoul's Blessing</color> state for a time, this opponent will enter Forced Counterstrike Mode and switch to attacking with powerful tracking rays. At this time, its <color=#FFD780FF>All RES will be greatly decreased</color>.",
+            "<color=#FFD780FF>Affected by the Ley Line disturbance</color>, this great foe has its All RES further increased, and it loses less Flow Momentum when struck by <color=#99FFFFFF>Cryo DMG</color>. When in Counterstrike Mode, it will launch even more powerful tracking ray attacks, and it will lose less RES.",
+            "",
+            ""
+          ],
+          "tags": [
+            {
+              "type": 1,
+              "desc": "{SPRITE_PRESET#11001} has an advantage"
+            }
+          ],
+          "monster_id": 1001063
+        }
+      }
+    ],
+    "has_data": true
+  },
+  "mp": {
+    "best": null,
+    "challenge": [],
+    "has_data": false
+  },
+  "blings": []
+}

@@ -2,7 +2,7 @@
 
 public static class RegionUtility
 {
-    private static TimeZoneInfo GetTimeZoneInfo(this Regions region)
+    public static TimeZoneInfo GetTimeZoneInfo(this Regions region)
     {
         return region switch
         {
