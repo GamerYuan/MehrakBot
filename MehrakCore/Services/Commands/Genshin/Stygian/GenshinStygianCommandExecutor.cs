@@ -200,9 +200,9 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to generate Imaginarium Theater card for user {UserId}",
+            Logger.LogError(e, "Failed to generate Stygian Onslaught card for user {UserId}",
                 Context.Interaction.User.Id);
-            throw new CommandException("An error occurred while generating Imaginarium Theater card", e);
+            throw new CommandException("An error occurred while generating Stygian Onslaught card", e);
         }
     }
 }
