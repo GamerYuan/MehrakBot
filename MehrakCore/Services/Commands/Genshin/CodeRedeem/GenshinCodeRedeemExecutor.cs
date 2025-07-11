@@ -17,7 +17,7 @@ using NetCord.Rest;
 
 namespace MehrakCore.Services.Commands.Genshin.CodeRedeem;
 
-public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModule>,
+public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModule>,
     ICodeRedeemExecutor<GenshinCommandModule>
 {
     private readonly ICodeRedeemRepository m_CodeRedeemRepository;
@@ -47,7 +47,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
 
         try
         {
-            var codes = Regex.Split(input, @",\s*").ToList();
+            var codes = RedeemCodeSplitRegex().Split(input).ToList();
             if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.Genshin);
 
             Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
@@ -117,7 +117,8 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             StringBuilder sb = new();
             foreach (var code in codes)
             {
-                var response = await m_ApiService.RedeemCodeAsync(code, region, gameUid, ltuid, ltoken);
+                var response =
+                    await m_ApiService.RedeemCodeAsync(code.ToUpperInvariant().Trim(), region, gameUid, ltuid, ltoken);
                 if (response.IsSuccess)
                 {
                     Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", code,
@@ -154,4 +155,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
         }
     }
+
+    [GeneratedRegex(@",\s*")]
+    private static partial Regex RedeemCodeSplitRegex();
 }
