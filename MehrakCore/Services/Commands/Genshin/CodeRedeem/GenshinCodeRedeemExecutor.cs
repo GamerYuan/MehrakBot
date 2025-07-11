@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text;
+using System.Text.RegularExpressions;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -40,13 +41,14 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
     {
         if (parameters.Length != 3) throw new ArgumentException("Invalid number of parameters provided.");
 
-        var codes = (List<string>?)parameters[0];
+        var input = (string)parameters[0]!;
         var server = (Regions?)parameters[1];
         var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
 
         try
         {
-            if (codes == null || codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.Genshin);
+            var codes = Regex.Split(input, @",\s*").ToList();
+            if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.Genshin);
 
             Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
 

@@ -97,8 +97,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
     [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
     public async Task CodesCommand(
-        [SlashCommandParameter(Name = "code", Description = "Redemption Code (Case-insensitive)")]
-        string code,
+        [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
+        string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Regions? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
@@ -109,14 +109,6 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, code, server, profile);
 
         if (!await ValidateRateLimitAsync()) return;
-
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Redemption code cannot be empty")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return;
-        }
 
         m_CodesRedeemExecutor.Context = Context;
         await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
