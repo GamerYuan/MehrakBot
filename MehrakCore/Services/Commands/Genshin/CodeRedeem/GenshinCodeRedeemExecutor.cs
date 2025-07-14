@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Text;
-using System.Text.RegularExpressions;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -17,7 +16,7 @@ using NetCord.Rest;
 
 namespace MehrakCore.Services.Commands.Genshin.CodeRedeem;
 
-public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModule>,
+public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModule>,
     ICodeRedeemExecutor<GenshinCommandModule>
 {
     private readonly ICodeRedeemRepository m_CodeRedeemRepository;
@@ -47,7 +46,9 @@ public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinComm
 
         try
         {
-            var codes = RedeemCodeSplitRegex().Split(input).Where(x => !string.IsNullOrEmpty(x)).ToList();
+            Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
+            var codes = RegexExpressions.RedeemCodeSplitRegex().Split(input).Where(x => !string.IsNullOrEmpty(x))
+                .ToList();
             if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.Genshin);
 
             if (codes.Count == 0)
@@ -58,8 +59,6 @@ public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinComm
                 await SendErrorMessageAsync("No known codes found in database. Please provide a valid code");
                 return;
             }
-
-            Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
 
             var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null)
@@ -170,7 +169,4 @@ public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinComm
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
         }
     }
-
-    [GeneratedRegex(@",\s*")]
-    private static partial Regex RedeemCodeSplitRegex();
 }
