@@ -258,8 +258,8 @@ public class CodeRedeemRepositoryTests
 
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "EXPIREDCODE123", CodeStatus.Expired },
-            { "EXPIREDCODE789", CodeStatus.Expired },
+            { "EXPIREDCODE123", CodeStatus.Invalid },
+            { "EXPIREDCODE789", CodeStatus.Invalid },
             { "NEWVALIDCODE999", CodeStatus.Valid }
         };
 
@@ -293,7 +293,7 @@ public class CodeRedeemRepositoryTests
 
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "EXPIREDCODE123", CodeStatus.Expired } // Different case
+            { "EXPIREDCODE123", CodeStatus.Invalid } // Different case
         };
 
         // Act
@@ -325,9 +325,9 @@ public class CodeRedeemRepositoryTests
 
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "REMOVETHIS456", CodeStatus.Expired },
+            { "REMOVETHIS456", CodeStatus.Invalid },
             { "NEWVALID999", CodeStatus.Valid },
-            { "NEWEXPIRED111", CodeStatus.Expired }, // This shouldn't be added since it's expired
+            { "NEWEXPIRED111", CodeStatus.Invalid }, // This shouldn't be added since it's expired
             { "ANOTHERNEW222", CodeStatus.Valid }
         };
 
@@ -390,7 +390,7 @@ public class CodeRedeemRepositoryTests
 
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "NONEXISTENTEXPIRED456", CodeStatus.Expired } // Code doesn't exist, so nothing to remove
+            { "NONEXISTENTEXPIRED456", CodeStatus.Invalid } // Code doesn't exist, so nothing to remove
         };
 
         // Act
@@ -458,13 +458,13 @@ public class CodeRedeemRepositoryTests
 
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "REMOVE456", CodeStatus.Expired },        // Remove this
-            { "remove999", CodeStatus.Expired },        // Remove this (case insensitive)
+            { "REMOVE456", CodeStatus.Invalid },        // Remove this
+            { "remove999", CodeStatus.Invalid },        // Remove this (case insensitive)
             { "KEEP123", CodeStatus.Valid },            // Already exists, no change
             { "KEEP789", CodeStatus.Valid },            // Already exists (case insensitive), no change
             { "NEWNEW111", CodeStatus.Valid },          // Add this new one
             { "NEWNEW222", CodeStatus.Valid },          // Add this new one
-            { "EXPIREDNEW333", CodeStatus.Expired }     // Don't add this expired one
+            { "EXPIREDNEW333", CodeStatus.Invalid }     // Don't add this expired one
         };
 
         // Act
@@ -566,7 +566,7 @@ public class CodeRedeemRepositoryTests
 
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "TOREMOVE456", CodeStatus.Expired },
+            { "TOREMOVE456", CodeStatus.Invalid },
             { "NEWCODE789", CodeStatus.Valid }
         };
 
@@ -595,8 +595,8 @@ public class CodeRedeemRepositoryTests
         var gameName = GameName.HonkaiImpact3;
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "NONEXISTENT1", CodeStatus.Expired },
-            { "NONEXISTENT2", CodeStatus.Expired }
+            { "NONEXISTENT1", CodeStatus.Invalid },
+            { "NONEXISTENT2", CodeStatus.Invalid }
         };
 
         // Act

@@ -134,7 +134,7 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
                     Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
                         Context.Interaction.User.Id);
                     sb.Append($"{trimmedCode}: {response.Data}\n");
-                    successfulCodes.Add(trimmedCode, response.RetCode == -2001 ? CodeStatus.Expired : CodeStatus.Valid);
+                    successfulCodes.Add(trimmedCode, response.RetCode == 0 ? CodeStatus.Valid : CodeStatus.Invalid);
                 }
                 else
                 {

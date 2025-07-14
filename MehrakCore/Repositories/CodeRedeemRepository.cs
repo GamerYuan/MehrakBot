@@ -47,7 +47,7 @@ public class CodeRedeemRepository : ICodeRedeemRepository
 
         // Remove codes marked as Expired (case-insensitive)
         var expiredCodes = codes
-            .Where(kvp => kvp.Value == CodeStatus.Expired)
+            .Where(kvp => kvp.Value == CodeStatus.Invalid)
             .Select(kvp => kvp.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -78,5 +78,5 @@ public class CodeRedeemRepository : ICodeRedeemRepository
 public enum CodeStatus
 {
     Valid,
-    Expired
+    Invalid
 }
