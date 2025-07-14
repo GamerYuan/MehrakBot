@@ -124,7 +124,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "### Usage\n" +
                        "```/hsr codes [code] [server] [profile]```\n" +
                        "### Parameters\n" +
-                       "- `code`: Redemption Code (Comma-seperated, Case-insensitive) [Optional, Leaving blank will redeem known codes]\n" +
+                       "- `code`: Redemption Code (Comma-separated, Case-insensitive) [Optional, Leaving blank will redeem known codes]\n" +
                        "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
