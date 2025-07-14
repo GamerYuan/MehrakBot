@@ -34,6 +34,7 @@ public class HsrCodeRedeemExecutorTests
 
     private HsrCodeRedeemExecutor m_Executor = null!;
     private Mock<ICodeRedeemApiService<HsrCommandModule>> m_CodeRedeemApiServiceMock = null!;
+    private Mock<ICodeRedeemRepository> m_CodeRedeemRepositoryMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private UserRepository m_UserRepository = null!;
     private Mock<ILogger<HsrCommandModule>> m_LoggerMock = null!;
@@ -72,6 +73,8 @@ public class HsrCodeRedeemExecutorTests
             new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
         m_GameRecordApiService =
             new GameRecordApiService(m_HttpClientFactoryMock.Object, NullLogger<GameRecordApiService>.Instance);
+        m_CodeRedeemRepositoryMock
+            = new Mock<ICodeRedeemRepository>();
 
         // Setup token cache to return cached tokens
         SetupTokenCache();
@@ -83,6 +86,7 @@ public class HsrCodeRedeemExecutorTests
             m_AuthenticationMiddlewareMock.Object,
             m_GameRecordApiService,
             m_CodeRedeemApiServiceMock.Object,
+            m_CodeRedeemRepositoryMock.Object,
             m_LoggerMock.Object);
 
         m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
@@ -137,30 +141,6 @@ public class HsrCodeRedeemExecutorTests
         // Act & Assert
         Assert.ThrowsAsync<ArgumentException>(async () =>
             await m_Executor.ExecuteAsync("invalid", "parameters"));
-    }
-
-    [Test]
-    public void ExecuteAsync_EmptyCode_ShouldThrowArgumentException()
-    {
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () =>
-            await m_Executor.ExecuteAsync("", Regions.America, 1u));
-    }
-
-    [Test]
-    public void ExecuteAsync_NullCode_ShouldThrowArgumentException()
-    {
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () =>
-            await m_Executor.ExecuteAsync(null, Regions.America, 1u));
-    }
-
-    [Test]
-    public void ExecuteAsync_WhitespaceCode_ShouldThrowArgumentException()
-    {
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () =>
-            await m_Executor.ExecuteAsync("   ", Regions.America, 1u));
     }
 
     [Test]
@@ -729,6 +709,221 @@ public class HsrCodeRedeemExecutorTests
             TestLToken), Times.Once);
     }
 
+    [Test]
+    public async Task ExecuteAsync_NoCodeProvided_ShouldRedeemCachedCodes()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        var gameRecord = CreateTestGameRecord();
+        var cachedCodes = new List<string> { "CACHED1", "CACHED2" };
+
+        SetupHttpResponseForGameRecord(gameRecord);
+
+        // Reset any previous mock setups that might interfere
+        m_CodeRedeemApiServiceMock.Reset();
+
+        // Setup the API to handle BOTH cached codes specifically
+        m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
+                "CACHED1",
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ulong>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"))
+            .Verifiable();
+
+        m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
+                "CACHED2",
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ulong>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"))
+            .Verifiable();
+
+        // Setup repository to return cached codes
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.HonkaiStarRail))
+            .ReturnsAsync(cachedCodes)
+            .Verifiable();
+
+        // Act
+        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+
+        // Assert
+        // Verify all setup calls were made
+        m_CodeRedeemApiServiceMock.Verify();
+        m_CodeRedeemRepositoryMock.Verify();
+
+        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain("Code redeemed successfully"));
+
+        // Verify that codes were added to the repository
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+                It.Is<List<string>>(list => list.Count == cachedCodes.Count &&
+                                            list.All(cachedCodes.Contains))),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCodesProvided_ShouldRedeemAllCodes()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        var gameRecord = CreateTestGameRecord();
+        var multipleCodes = "CODE1, CODE2,CODE3";
+        var expectedCodes = new[] { "CODE1", "CODE2", "CODE3" };
+
+        SetupHttpResponseForGameRecord(gameRecord);
+        SetupCodeRedeemApiSuccess();
+
+        // Act
+        await m_Executor.ExecuteAsync(multipleCodes, Regions.America, 1u);
+
+        // Assert
+        foreach (var code in expectedCodes)
+            m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
+                code.ToUpperInvariant(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                TestLtUid,
+                TestLToken), Times.Once);
+
+        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain("Code redeemed successfully"));
+
+        // Verify that codes were added to the repository
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+                It.Is<List<string>>(list => list.Count == expectedCodes.Length &&
+                                            expectedCodes.All(c => list.Contains(c.ToUpperInvariant())))),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_SuccessfulCodeRedemption_ShouldAddToRepository()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        var gameRecord = CreateTestGameRecord();
+
+        SetupHttpResponseForGameRecord(gameRecord);
+        SetupCodeRedeemApiSuccess();
+
+        // Act
+        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+
+        // Assert
+        // Verify the code was redeemed
+        m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
+            TestCode.ToUpperInvariant(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            TestLtUid,
+            TestLToken), Times.Once);
+
+        // Verify the code was added to the repository
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+                It.Is<List<string>>(list => list.Contains(TestCode.ToUpperInvariant()))),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_CodeRedemptionFailure_ShouldStopAndSendErrorMessage()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        var gameRecord = CreateTestGameRecord();
+        var codes = "VALID1, INVALID1, VALID2";
+
+        SetupHttpResponseForGameRecord(gameRecord);
+
+        // Setup first code to succeed and second to fail
+        m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
+                "VALID1",
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ulong>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+
+        m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
+                "INVALID1",
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ulong>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
+
+        // Act
+        await m_Executor.ExecuteAsync(codes, Regions.America, 1u);
+
+        // Assert
+        // Verify only the first two codes were attempted
+        m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
+            "VALID1",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            TestLtUid,
+            TestLToken), Times.Once);
+
+        m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
+            "INVALID1",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            TestLtUid,
+            TestLToken), Times.Once);
+
+        // Third code should not be attempted since second failed
+        m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
+            "VALID2",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            TestLtUid,
+            TestLToken), Times.Never);
+
+        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+
+        // Response should contain the error message
+        Assert.That(response, Does.Contain("Code redemption failed"));
+
+        // No codes should be added to the repository since the process failed
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+            It.IsAny<List<string>>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_EmptyInputAndNoCachedCodes_ShouldSendErrorMessage()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        var gameRecord = CreateTestGameRecord();
+        SetupHttpResponseForGameRecord(gameRecord);
+
+        // Explicitly configure empty result for GetCodesAsync
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.HonkaiStarRail))
+            .ReturnsAsync([]);
+
+        // Act
+        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+
+        // Assert
+        // Should attempt to get codes from repository
+        m_CodeRedeemRepositoryMock.Verify(x =>
+            x.GetCodesAsync(It.Is<GameName>(input =>
+                input.Equals(GameName.HonkaiStarRail))), Times.Once); // Verify all verifiable expectations
+
+        // No codes should be redeemed
+        m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<ulong>(),
+            It.IsAny<string>()), Times.Never);
+
+        // Should send error response
+        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain("No known codes found in database"));
+    }
+
     private async Task CreateTestUserAsync()
     {
         var user = new UserModel
@@ -743,7 +938,6 @@ public class HsrCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.Genshin, Regions.America },
                         { GameName.HonkaiStarRail, Regions.America }
                     },
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
@@ -776,7 +970,6 @@ public class HsrCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.Genshin, Regions.America },
                         { GameName.HonkaiStarRail, Regions.America }
                     }
                     // No GameUids - this will trigger the API call
