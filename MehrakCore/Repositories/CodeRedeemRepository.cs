@@ -23,8 +23,9 @@ public class CodeRedeemRepository : ICodeRedeemRepository
     public async Task<List<string>> GetCodesAsync(GameName gameName)
     {
         m_Logger.LogDebug("Fetching codes for game: {GameName}", gameName);
-        return (await m_Collection
-            .Find(x => x.Game == gameName).FirstOrDefaultAsync()).Codes;
+        var entry = await m_Collection
+            .Find(x => x.Game == gameName).FirstOrDefaultAsync();
+        return entry?.Codes ?? new List<string>();
     }
 
     public async Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes)
@@ -40,6 +41,9 @@ public class CodeRedeemRepository : ICodeRedeemRepository
             };
             await m_Collection.InsertOneAsync(entry);
         }
+
+        // Ensure Codes list is not null
+        entry.Codes ??= new List<string>();
 
         // Remove codes marked as Expired (case-insensitive)
         var expiredCodes = codes
