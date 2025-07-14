@@ -217,9 +217,9 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "codes" => "## Redemption Codes\n" +
                        "Redeem Genshin Impact codes\n" +
                        "### Usage\n" +
-                       "```/genshin codes <code> [server] [profile]```\n" +
+                       "```/genshin codes [code] [server] [profile]```\n" +
                        "### Parameters\n" +
-                       "- `code`: Redemption Code (Case-insensitive)\n" +
+                       "- `code`: Redemption Code (Comma-seperated, Case-insensitive) [Optional, Leaving blank will redeem known codes]\n" +
                        "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
