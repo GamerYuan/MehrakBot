@@ -103,6 +103,7 @@ internal class Program
             builder.Services.AddSingleton<ImageRepository>();
             builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
             builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
+            builder.Services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
 
             // Character Cache Services

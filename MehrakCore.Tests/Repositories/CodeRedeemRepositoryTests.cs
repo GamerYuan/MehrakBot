@@ -4,7 +4,6 @@ using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Driver;
 using Moq;
 
