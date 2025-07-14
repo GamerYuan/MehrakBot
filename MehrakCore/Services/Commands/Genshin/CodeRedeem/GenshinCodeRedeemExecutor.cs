@@ -47,8 +47,17 @@ public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinComm
 
         try
         {
-            var codes = RedeemCodeSplitRegex().Split(input).ToList();
+            var codes = RedeemCodeSplitRegex().Split(input).Where(x => !string.IsNullOrEmpty(x)).ToList();
             if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.Genshin);
+
+            if (codes.Count == 0)
+            {
+                Logger.LogWarning(
+                    "User {UserId} used the code command but no codes were provided or found in the cache",
+                    Context.Interaction.User.Id);
+                await SendErrorMessageAsync("No known codes found in database. Please provide a valid code");
+                return;
+            }
 
             Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
 
@@ -115,19 +124,23 @@ public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinComm
 
             var gameUid = result.Data;
             StringBuilder sb = new();
+            List<string> successfulCodes = [];
+
             foreach (var code in codes)
             {
+                var trimmedCode = code.ToUpperInvariant().Trim();
                 var response =
-                    await m_ApiService.RedeemCodeAsync(code.ToUpperInvariant().Trim(), region, gameUid, ltuid, ltoken);
+                    await m_ApiService.RedeemCodeAsync(trimmedCode, region, gameUid, ltuid, ltoken);
                 if (response.IsSuccess)
                 {
-                    Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", code,
+                    Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
                         Context.Interaction.User.Id);
-                    sb.Append($"{code}: {response.Data}\n");
+                    sb.Append($"{trimmedCode}: {response.Data}\n");
+                    if (response.RetCode != -2001) successfulCodes.Add(trimmedCode);
                 }
                 else
                 {
-                    Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", code,
+                    Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", trimmedCode,
                         Context.Interaction.User.Id, response.ErrorMessage);
                     throw new CommandException(response.ErrorMessage);
                 }
@@ -135,7 +148,9 @@ public partial class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinComm
                 await Task.Delay(3000);
             }
 
-            await m_CodeRedeemRepository.AddCodesAsync(GameName.Genshin, codes).ConfigureAwait(false);
+            if (successfulCodes.Count > 0)
+                await m_CodeRedeemRepository.AddCodesAsync(GameName.Genshin, successfulCodes).ConfigureAwait(false);
+
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                 .AddComponents(new TextDisplayProperties(sb.ToString().TrimEnd())));
