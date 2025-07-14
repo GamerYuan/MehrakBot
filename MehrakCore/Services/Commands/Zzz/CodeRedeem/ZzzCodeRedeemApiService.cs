@@ -8,17 +8,17 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr.CodeRedeem;
+namespace MehrakCore.Services.Commands.Zzz.CodeRedeem;
 
-public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
+public class ZzzCodeRedeemApiService : ICodeRedeemApiService<ZzzCommandModule>
 {
-    private const string ApiUrl = "https://public-operation-hkrpg.hoyolab.com/common/apicdkey/api/webExchangeCdkeyHyl";
+    private const string ApiUrl = "https://public-operation-nap.hoyolab.com/common/apicdkey/api/webExchangeCdkeyHyl";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
-    private readonly ILogger<HsrCodeRedeemApiService> m_Logger;
+    private readonly ILogger<ZzzCodeRedeemApiService> m_Logger;
 
-    public HsrCodeRedeemApiService(IHttpClientFactory httpClientFactory,
-        ILogger<HsrCodeRedeemApiService> logger)
+    public ZzzCodeRedeemApiService(IHttpClientFactory httpClientFactory,
+        ILogger<ZzzCodeRedeemApiService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
@@ -35,7 +35,7 @@ public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
             {
                 Method = HttpMethod.Get,
                 RequestUri =
-                    new Uri($"{ApiUrl}?cdkey={code}&game_biz=hkrpg_global&region={region}&uid={gameUid}&lang=en-us"),
+                    new Uri($"{ApiUrl}?cdkey={code}&game_biz=nap_global&region={region}&uid={gameUid}&lang=en-us"),
                 Headers =
                 {
                     { "Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}" }

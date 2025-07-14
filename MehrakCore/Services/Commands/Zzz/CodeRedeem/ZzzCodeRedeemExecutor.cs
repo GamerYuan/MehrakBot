@@ -14,26 +14,24 @@ using NetCord.Rest;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Genshin.CodeRedeem;
+namespace MehrakCore.Services.Commands.Zzz.CodeRedeem;
 
-public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModule>,
-    ICodeRedeemExecutor<GenshinCommandModule>
+public class ZzzCodeRedeemExecutor : BaseCommandExecutor<ZzzCommandModule>, ICodeRedeemExecutor<ZzzCommandModule>
 {
+    private readonly ICodeRedeemApiService<ZzzCommandModule> m_ApiService;
     private readonly ICodeRedeemRepository m_CodeRedeemRepository;
-    private readonly ICodeRedeemApiService<GenshinCommandModule> m_ApiService;
     private List<string> m_PendingCodes = [];
     private Regions? m_PendingServer;
 
-    public GenshinCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
+    public ZzzCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
-        ICodeRedeemRepository codeRedeemRepository,
-        ICodeRedeemApiService<GenshinCommandModule> apiService, ILogger<GenshinCommandModule> logger) : base(
-        userRepository,
-        tokenCacheService, authenticationMiddleware,
+        ICodeRedeemApiService<ZzzCommandModule> apiService, ICodeRedeemRepository codeRedeemRepository,
+        ILogger<ZzzCommandModule> logger) : base(
+        userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)
     {
-        m_CodeRedeemRepository = codeRedeemRepository;
         m_ApiService = apiService;
+        m_CodeRedeemRepository = codeRedeemRepository;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -49,14 +47,14 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
             var codes = RegexExpressions.RedeemCodeSplitRegex().Split(input).Where(x => !string.IsNullOrEmpty(x))
                 .ToList();
-            if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.Genshin);
+            if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.ZenlessZoneZero);
 
             if (codes.Count == 0)
             {
                 Logger.LogWarning(
                     "User {UserId} used the code command but no codes were provided or found in the cache",
                     Context.Interaction.User.Id);
-                await SendErrorMessageAsync("No known codes found in database. Please provide a valid code");
+                await SendErrorMessageAsync("No known codes found in database. Please provide a valid code", false);
                 return;
             }
 
@@ -64,7 +62,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             if (user == null || selectedProfile == null)
                 return;
 
-            var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.Genshin);
+            var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.ZenlessZoneZero);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
@@ -84,12 +82,12 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
         catch (CommandException e)
         {
             Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
-            await SendErrorMessageAsync(e.Message);
+            await SendErrorMessageAsync(e.Message, false);
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
-            await SendErrorMessageAsync();
+            await SendErrorMessageAsync(followup: false);
         }
     }
 
@@ -103,7 +101,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             return;
         }
 
-        if (result.Context != null) Context = result.Context;
+        Context = result.Context;
 
         Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
 
@@ -118,7 +116,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameUidAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            var result = await GetAndUpdateGameUidAsync(user, GameName.ZenlessZoneZero, ltuid, ltoken, server, region);
             if (!result.IsSuccess) return;
 
             var gameUid = result.Data;
@@ -148,25 +146,26 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
             }
 
             if (successfulCodes.Count > 0)
-                await m_CodeRedeemRepository.AddCodesAsync(GameName.Genshin, successfulCodes).ConfigureAwait(false);
+                await m_CodeRedeemRepository.AddCodesAsync(GameName.ZenlessZoneZero, successfulCodes)
+                    .ConfigureAwait(false);
 
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                 .AddComponents(new TextDisplayProperties(sb.ToString().TrimEnd())));
 
-            BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", true);
+            BotMetrics.TrackCommand(Context.Interaction.User, "zzz codes", true);
         }
         catch (CommandException e)
         {
             Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", codes, Context.Interaction.User.Id);
             await SendErrorMessageAsync(e.Message);
-            BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
+            BotMetrics.TrackCommand(Context.Interaction.User, "zzz codes", false);
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", codes, Context.Interaction.User.Id);
-            await SendErrorMessageAsync("An error occurred while redeeming the code");
-            BotMetrics.TrackCommand(Context.Interaction.User, "genshin codes", false);
+            await SendErrorMessageAsync();
+            BotMetrics.TrackCommand(Context.Interaction.User, "zzz codes", false);
         }
     }
 }

@@ -7,7 +7,7 @@ using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Hsr.CodeRedeem;
+using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;
@@ -21,10 +21,10 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Commands.Hsr;
+namespace MehrakCore.Tests.Services.Commands.Zzz;
 
 [Parallelizable(ParallelScope.Fixtures)]
-public class HsrCodeRedeemExecutorTests
+public class ZzzCodeRedeemExecutorTests
 {
     private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
@@ -32,12 +32,12 @@ public class HsrCodeRedeemExecutorTests
     private const string TestCode = "TESTCODE123";
     private const string TestGameUid = "123456789";
 
-    private HsrCodeRedeemExecutor m_Executor = null!;
-    private Mock<ICodeRedeemApiService<HsrCommandModule>> m_CodeRedeemApiServiceMock = null!;
+    private ZzzCodeRedeemExecutor m_Executor = null!;
+    private Mock<ICodeRedeemApiService<ZzzCommandModule>> m_CodeRedeemApiServiceMock = null!;
     private Mock<ICodeRedeemRepository> m_CodeRedeemRepositoryMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private UserRepository m_UserRepository = null!;
-    private Mock<ILogger<HsrCommandModule>> m_LoggerMock = null!;
+    private Mock<ILogger<ZzzCommandModule>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
@@ -51,8 +51,8 @@ public class HsrCodeRedeemExecutorTests
     public void Setup()
     {
         // Initialize mocks
-        m_CodeRedeemApiServiceMock = new Mock<ICodeRedeemApiService<HsrCommandModule>>();
-        m_LoggerMock = new Mock<ILogger<HsrCommandModule>>();
+        m_CodeRedeemApiServiceMock = new Mock<ICodeRedeemApiService<ZzzCommandModule>>();
+        m_LoggerMock = new Mock<ILogger<ZzzCommandModule>>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
@@ -80,7 +80,7 @@ public class HsrCodeRedeemExecutorTests
         SetupTokenCache();
 
         // Initialize executor
-        m_Executor = new HsrCodeRedeemExecutor(
+        m_Executor = new ZzzCodeRedeemExecutor(
             m_UserRepository,
             m_TokenCacheService,
             m_AuthenticationMiddlewareMock.Object,
@@ -258,7 +258,7 @@ public class HsrCodeRedeemExecutorTests
 
         var guidString = Guid.NewGuid().ToString();
         m_AuthenticationMiddlewareMock.Setup(x =>
-                x.RegisterAuthenticationListener(It.IsAny<ulong>(), It.IsAny<HsrCodeRedeemExecutor>()))
+                x.RegisterAuthenticationListener(It.IsAny<ulong>(), It.IsAny<ZzzCodeRedeemExecutor>()))
             .Returns(guidString);
 
         // Act
@@ -433,10 +433,10 @@ public class HsrCodeRedeemExecutorTests
     }
 
     [Test]
-    [TestCase(Regions.America, "prod_official_usa")]
-    [TestCase(Regions.Europe, "prod_official_eur")]
-    [TestCase(Regions.Asia, "prod_official_asia")]
-    [TestCase(Regions.Sar, "prod_official_cht")]
+    [TestCase(Regions.America, "prod_gf_us")]
+    [TestCase(Regions.Europe, "prod_gf_eu")]
+    [TestCase(Regions.Asia, "prod_gf_jp")]
+    [TestCase(Regions.Sar, "prod_gf_sg")]
     public async Task ExecuteAsync_AllAvailableRegions_ShouldUseCorrectRegions(Regions region, string regionString)
     {
         // Arrange
@@ -589,7 +589,7 @@ public class HsrCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.America }
+                        { GameName.ZenlessZoneZero, Regions.America }
                     }
                 }
             }
@@ -742,7 +742,7 @@ public class HsrCodeRedeemExecutorTests
             .Verifiable();
 
         // Setup repository to return cached codes
-        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.HonkaiStarRail))
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.ZenlessZoneZero))
             .ReturnsAsync(cachedCodes)
             .Verifiable();
 
@@ -758,7 +758,7 @@ public class HsrCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.Count == cachedCodes.Count &&
                                                               list.All(kvp => cachedCodes.Contains(kvp.Key)))),
             Times.Once);
@@ -792,7 +792,7 @@ public class HsrCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.Count == expectedCodes.Length &&
                                                               expectedCodes.All(c =>
                                                                   list.ContainsKey(c.ToUpperInvariant())))),
@@ -822,7 +822,7 @@ public class HsrCodeRedeemExecutorTests
             TestLToken), Times.Once);
 
         // Verify the code was added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.ContainsKey(TestCode.ToUpperInvariant()))),
             Times.Once);
     }
@@ -887,7 +887,7 @@ public class HsrCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redemption failed"));
 
         // No codes should be added to the repository since the process failed
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.HonkaiStarRail,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
             It.IsAny<Dictionary<string, CodeStatus>>()), Times.Never);
     }
 
@@ -900,7 +900,7 @@ public class HsrCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(gameRecord);
 
         // Explicitly configure empty result for GetCodesAsync
-        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.HonkaiStarRail))
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.ZenlessZoneZero))
             .ReturnsAsync([]);
 
         // Act
@@ -910,7 +910,7 @@ public class HsrCodeRedeemExecutorTests
         // Should attempt to get codes from repository
         m_CodeRedeemRepositoryMock.Verify(x =>
             x.GetCodesAsync(It.Is<GameName>(input =>
-                input.Equals(GameName.HonkaiStarRail))), Times.Once); // Verify all verifiable expectations
+                input.Equals(GameName.ZenlessZoneZero))), Times.Once);
 
         // No codes should be redeemed
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -935,7 +935,7 @@ public class HsrCodeRedeemExecutorTests
 
         CodeRedeemRepository codeRedeemRepo =
             new(MongoTestHelper.Instance.MongoDbService, NullLogger<CodeRedeemRepository>.Instance);
-        HsrCodeRedeemExecutor executor = new(
+        ZzzCodeRedeemExecutor executor = new(
             m_UserRepository,
             m_TokenCacheService,
             m_AuthenticationMiddlewareMock.Object,
@@ -945,7 +945,7 @@ public class HsrCodeRedeemExecutorTests
             m_LoggerMock.Object);
 
         List<string> codes = ["EXPIREDCODE", "VALIDCODE"];
-        await codeRedeemRepo.AddCodesAsync(GameName.HonkaiStarRail,
+        await codeRedeemRepo.AddCodesAsync(GameName.ZenlessZoneZero,
             codes.ToDictionary(code => code, _ => CodeStatus.Valid));
         executor.Context = m_ContextMock.Object;
 
@@ -955,6 +955,7 @@ public class HsrCodeRedeemExecutorTests
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
             .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+        // ZZZ uses -2001 for expired codes and marks them as Invalid (which removes them from DB)
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync("EXPIREDCODE",
                 It.IsAny<string>(),
                 It.IsAny<string>(),
@@ -969,10 +970,37 @@ public class HsrCodeRedeemExecutorTests
         m_CodeRedeemApiServiceMock.Verify(x =>
             x.RedeemCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(),
                 It.IsAny<string>()), Times.Exactly(2));
-        var codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.HonkaiStarRail);
-
+        
+        // Expired codes should be removed from DB (repository removes all Invalid codes)
+        var codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.ZenlessZoneZero);
         Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
         Assert.That(codesInDb, Does.Contain("VALIDCODE"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_SendErrorMessageWithFollowup_ShouldNotCallFollowupTwice()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        var gameRecord = CreateTestGameRecord();
+        SetupHttpResponseForGameRecord(gameRecord);
+
+        // Setup code redeem API to fail, but note that ZZZ has different error handling parameters
+        // The first error message call in ExecuteAsync uses followup: false
+        m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ulong>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Test error message"));
+
+        // Act
+        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+
+        // Assert
+        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain("Test error message"));
     }
 
     private async Task CreateTestUserAsync()
@@ -989,12 +1017,12 @@ public class HsrCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.America }
+                        { GameName.ZenlessZoneZero, Regions.America }
                     },
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            GameName.ZenlessZoneZero, new Dictionary<string, string>
                             {
                                 { nameof(Regions.America), TestGameUid }
                             }
@@ -1021,7 +1049,7 @@ public class HsrCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.America }
+                        { GameName.ZenlessZoneZero, Regions.America }
                     }
                     // No GameUids - this will trigger the API call
                 }
@@ -1082,11 +1110,11 @@ public class HsrCodeRedeemExecutorTests
     {
         return region switch
         {
-            Regions.America => "prod_official_usa",
-            Regions.Europe => "prod_official_eur",
-            Regions.Asia => "prod_official_asia",
-            Regions.Sar => "prod_official_cht",
-            _ => "prod_official_usa"
+            Regions.America => "prod_gf_us",
+            Regions.Europe => "prod_gf_eu",
+            Regions.Asia => "prod_gf_jp",
+            Regions.Sar => "prod_gf_sg",
+            _ => "prod_gf_us"
         };
     }
 

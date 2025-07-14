@@ -97,8 +97,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
     [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
     public async Task CodesCommand(
-        [SlashCommandParameter(Name = "code", Description = "Redemption Code (Case-insensitive)")]
-        string code,
+        [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
+        string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Regions? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
@@ -109,14 +109,6 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, code, server, profile);
 
         if (!await ValidateRateLimitAsync()) return;
-
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Redemption code cannot be empty")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return;
-        }
 
         m_CodesRedeemExecutor.Context = Context;
         await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
@@ -225,9 +217,9 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "codes" => "## Redemption Codes\n" +
                        "Redeem Genshin Impact codes\n" +
                        "### Usage\n" +
-                       "```/genshin codes <code> [server] [profile]```\n" +
+                       "```/genshin codes [code] [server] [profile]```\n" +
                        "### Parameters\n" +
-                       "- `code`: Redemption Code (Case-insensitive)\n" +
+                       "- `code`: Redemption Code (Comma-separated, Case-insensitive) [Optional, Leaving blank will redeem known codes]\n" +
                        "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +

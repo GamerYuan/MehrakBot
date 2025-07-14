@@ -22,6 +22,7 @@ using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Services.Commands.Hsr.CodeRedeem;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
+using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Configuration;
@@ -103,6 +104,7 @@ internal class Program
             builder.Services.AddSingleton<ImageRepository>();
             builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
             builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
+            builder.Services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
 
             // Character Cache Services
@@ -168,6 +170,11 @@ internal class Program
             builder.Services.AddSingleton<ICodeRedeemApiService<HsrCommandModule>, HsrCodeRedeemApiService>();
             builder.Services
                 .AddTransient<ICodeRedeemExecutor<HsrCommandModule>, HsrCodeRedeemExecutor>();
+
+            // Zzz Services
+            builder.Services
+                .AddTransient<ICodeRedeemExecutor<ZzzCommandModule>, ZzzCodeRedeemExecutor>();
+            builder.Services.AddSingleton<ICodeRedeemApiService<ZzzCommandModule>, ZzzCodeRedeemApiService>();
 
             // Daily Check-In Services
             builder.Services
