@@ -24,10 +24,10 @@ public class CodeRedeemRepository : ICodeRedeemRepository
     {
         m_Logger.LogDebug("Fetching codes for game: {GameName}", gameName);
         return (await m_Collection
-            .Find(x => x.Game == gameName).FirstOrDefaultAsync()).Codes ?? [];
+            .Find(x => x.Game == gameName).FirstOrDefaultAsync()).Codes;
     }
 
-    public async Task AddCodesAsync(GameName gameName, List<string> codes)
+    public async Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes)
     {
         var entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
@@ -41,18 +41,38 @@ public class CodeRedeemRepository : ICodeRedeemRepository
             await m_Collection.InsertOneAsync(entry);
         }
 
-        var newCodes = codes
-            .Where(c => !entry.Codes.Contains(c, StringComparer.OrdinalIgnoreCase))
+        // Remove codes marked as Expired (case-insensitive)
+        var expiredCodes = codes
+            .Where(kvp => kvp.Value == CodeStatus.Expired)
+            .Select(kvp => kvp.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var removed = entry.Codes.RemoveAll(code => expiredCodes.Contains(code));
+
+        var existingCodes = new HashSet<string>(entry.Codes, StringComparer.OrdinalIgnoreCase);
+        var newValidCodes = codes
+            .Where(kvp => kvp.Value == CodeStatus.Valid && !existingCodes.Contains(kvp.Key))
+            .Select(kvp => kvp.Key)
             .ToList();
-        if (newCodes.Count == 0)
+
+        entry.Codes.AddRange(newValidCodes);
+
+        if (removed == 0 && newValidCodes.Count == 0)
         {
-            m_Logger.LogDebug("No new codes to add for game: {GameName}", gameName);
+            m_Logger.LogDebug("No changes to codes for game: {GameName}", gameName);
             return;
         }
 
-        entry.Codes.AddRange(newCodes);
-        m_Logger.LogInformation("Adding {Count} new codes for game: {GameName}", newCodes.Count, gameName);
+        m_Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {GameName}.",
+            newValidCodes.Count, removed, gameName);
+
         await m_Collection.ReplaceOneAsync(
             x => x.Game == gameName, entry, new ReplaceOptions { IsUpsert = true });
     }
+}
+
+public enum CodeStatus
+{
+    Valid,
+    Expired
 }

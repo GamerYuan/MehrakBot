@@ -10,5 +10,5 @@ public interface ICodeRedeemRepository
 {
     public Task<List<string>> GetCodesAsync(GameName gameName);
 
-    public Task AddCodesAsync(GameName gameName, List<string> codes);
+    public Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes);
 }

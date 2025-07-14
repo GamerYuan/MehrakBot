@@ -123,7 +123,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
 
             var gameUid = result.Data;
             StringBuilder sb = new();
-            List<string> successfulCodes = [];
+            Dictionary<string, CodeStatus> successfulCodes = [];
 
             foreach (var code in codes)
             {
@@ -135,7 +135,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
                     Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
                         Context.Interaction.User.Id);
                     sb.Append($"{trimmedCode}: {response.Data}\n");
-                    if (response.RetCode != -2001) successfulCodes.Add(trimmedCode);
+                    successfulCodes.Add(trimmedCode, response.RetCode == -2001 ? CodeStatus.Expired : CodeStatus.Valid);
                 }
                 else
                 {
