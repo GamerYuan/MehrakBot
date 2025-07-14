@@ -1,5 +1,6 @@
 #region
 
+using System.Text;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -19,34 +20,44 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
     ICodeRedeemExecutor<HsrCommandModule>
 {
     private readonly ICodeRedeemApiService<HsrCommandModule> m_ApiService;
-    private string m_PendingCode = string.Empty;
+    private readonly ICodeRedeemRepository m_CodeRedeemRepository;
+    private List<string> m_PendingCodes = [];
     private Regions? m_PendingServer;
 
     public HsrCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
-        ICodeRedeemApiService<HsrCommandModule> apiService, ILogger<HsrCommandModule> logger) : base(
+        ICodeRedeemApiService<HsrCommandModule> apiService, ICodeRedeemRepository codeRedeemRepository,
+        ILogger<HsrCommandModule> logger) : base(
         userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)
     {
         m_ApiService = apiService;
+        m_CodeRedeemRepository = codeRedeemRepository;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
         if (parameters.Length != 3) throw new ArgumentException("Invalid number of parameters provided.");
 
-        var code = (string)parameters[0]!;
+        var input = (string)parameters[0]!;
         var server = (Regions?)parameters[1];
         var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
-
-        if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Code cannot be null or empty.");
-
-        code = code.ToUpperInvariant().Trim();
 
         try
         {
             Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
+            var codes = RegexExpressions.RedeemCodeSplitRegex().Split(input).Where(x => !string.IsNullOrEmpty(x))
+                .ToList();
+            if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName.HonkaiStarRail);
+
+            if (codes.Count == 0)
+            {
+                Logger.LogWarning(
+                    "User {UserId} used the code command but no codes were provided or found in the cache",
+                    Context.Interaction.User.Id);
+                await SendErrorMessageAsync("No known codes found in database. Please provide a valid code");
+                return;
+            }
 
             var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null)
@@ -56,7 +67,7 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
-            m_PendingCode = code;
+            m_PendingCodes = codes;
             m_PendingServer = cachedServer!.Value;
 
             var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
@@ -66,8 +77,13 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
                 Logger.LogInformation("User {UserId} is already authenticated", Context.Interaction.User.Id);
                 await Context.Interaction.SendResponseAsync(
                     InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-                await RedeemCodeAsync(code, selectedProfile.LtUid, ltoken, cachedServer.Value);
+                await RedeemCodeAsync(codes, selectedProfile.LtUid, ltoken, cachedServer.Value);
             }
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
         }
         catch (Exception e)
         {
@@ -90,11 +106,11 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
 
         Logger.LogInformation("Authentication completed successfully for user {UserId}", result.UserId);
 
-        await RedeemCodeAsync(m_PendingCode, result.LtUid, result.LToken,
+        await RedeemCodeAsync(m_PendingCodes, result.LtUid, result.LToken,
             m_PendingServer!.Value);
     }
 
-    private async ValueTask RedeemCodeAsync(string code, ulong ltuid, string ltoken, Regions server)
+    private async ValueTask RedeemCodeAsync(List<string> codes, ulong ltuid, string ltoken, Regions server)
     {
         try
         {
@@ -105,33 +121,50 @@ public class HsrCodeRedeemExecutor : BaseCommandExecutor<HsrCommandModule>,
             if (!result.IsSuccess) return;
 
             var gameUid = result.Data;
-            var response = await m_ApiService.RedeemCodeAsync(code, region, gameUid, ltuid, ltoken);
-            if (response.IsSuccess)
+            StringBuilder sb = new();
+            List<string> successfulCodes = [];
+
+            foreach (var code in codes)
             {
-                Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", code,
-                    Context.Interaction.User.Id);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
-                    .AddComponents(new TextDisplayProperties($"Code redeemed successfully: {code}")));
-                BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", true);
+                var trimmedCode = code.ToUpperInvariant().Trim();
+                var response =
+                    await m_ApiService.RedeemCodeAsync(trimmedCode, region, gameUid, ltuid, ltoken);
+                if (response.IsSuccess)
+                {
+                    Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
+                        Context.Interaction.User.Id);
+                    sb.Append($"{trimmedCode}: {response.Data}\n");
+                    if (response.RetCode != -2001) successfulCodes.Add(trimmedCode);
+                }
+                else
+                {
+                    Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", trimmedCode,
+                        Context.Interaction.User.Id, response.ErrorMessage);
+                    throw new CommandException(response.ErrorMessage);
+                }
+
+                await Task.Delay(3000);
             }
-            else
-            {
-                Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", code,
-                    Context.Interaction.User.Id, response.ErrorMessage);
-                await SendErrorMessageAsync(response.ErrorMessage);
-                BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", false);
-            }
+
+            if (successfulCodes.Count > 0)
+                await m_CodeRedeemRepository.AddCodesAsync(GameName.HonkaiStarRail, successfulCodes)
+                    .ConfigureAwait(false);
+
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
+                .AddComponents(new TextDisplayProperties(sb.ToString().TrimEnd())));
+
+            BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", true);
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", code, Context.Interaction.User.Id);
+            Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", codes, Context.Interaction.User.Id);
             await SendErrorMessageAsync(e.Message);
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", false);
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", code, Context.Interaction.User.Id);
+            Logger.LogError(e, "Error redeeming code {Code} for user {UserId}", codes, Context.Interaction.User.Id);
             await SendErrorMessageAsync();
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr codes", false);
         }
