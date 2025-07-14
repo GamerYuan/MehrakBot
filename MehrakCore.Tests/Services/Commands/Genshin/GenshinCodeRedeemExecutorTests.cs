@@ -383,8 +383,9 @@ public class GenshinCodeRedeemExecutorTests
 
         // Verify that codes were added to the repository
         m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
-                It.Is<List<string>>(list => list.Count == cachedCodes.Count &&
-                                            list.All(cachedCodes.Contains))),
+                It.Is<Dictionary<string, CodeStatus>>(list => list.Count == cachedCodes.Count &&
+                                                              list.All(kvp =>
+                                                                  cachedCodes.Contains(kvp.Key.ToUpperInvariant())))),
             Times.Once);
     }
 
@@ -417,8 +418,9 @@ public class GenshinCodeRedeemExecutorTests
 
         // Verify that codes were added to the repository
         m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
-                It.Is<List<string>>(list => list.Count == expectedCodes.Length &&
-                                            expectedCodes.All(c => list.Contains(c.ToUpperInvariant())))),
+                It.Is<Dictionary<string, CodeStatus>>(list => list.Count == expectedCodes.Length &&
+                                                              expectedCodes.All(c =>
+                                                                  list.ContainsKey(c.ToUpperInvariant())))),
             Times.Once);
     }
 
@@ -446,7 +448,7 @@ public class GenshinCodeRedeemExecutorTests
 
         // Verify the code was added to the repository
         m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
-                It.Is<List<string>>(list => list.Contains(TestCode.ToUpperInvariant()))),
+                It.Is<Dictionary<string, CodeStatus>>(list => list.ContainsKey(TestCode.ToUpperInvariant()))),
             Times.Once);
     }
 
@@ -511,7 +513,7 @@ public class GenshinCodeRedeemExecutorTests
 
         // No codes should be added to the repository since the process failed
         m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
-            It.IsAny<List<string>>()), Times.Never);
+            It.IsAny<Dictionary<string, CodeStatus>>()), Times.Never);
     }
 
     [Test]
@@ -546,6 +548,56 @@ public class GenshinCodeRedeemExecutorTests
         // Should send error response
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No known codes found in database"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ExpiredCode_ShouldRemoveFromCache()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        var gameRecord = CreateTestGameRecord();
+        SetupHttpResponseForGameRecord(gameRecord);
+
+        CodeRedeemRepository codeRedeemRepo =
+            new(MongoTestHelper.Instance.MongoDbService, NullLogger<CodeRedeemRepository>.Instance);
+        GenshinCodeRedeemExecutor executor = new(
+            m_UserRepository,
+            m_TokenCacheService,
+            m_AuthenticationMiddlewareMock.Object,
+            m_GameRecordApiService,
+            codeRedeemRepo,
+            m_CodeRedeemApiServiceMock.Object,
+            m_LoggerMock.Object);
+
+        List<string> codes = ["EXPIREDCODE", "VALIDCODE"];
+        await codeRedeemRepo.AddCodesAsync(GameName.Genshin,
+            codes.ToDictionary(code => code, _ => CodeStatus.Valid));
+        executor.Context = m_ContextMock.Object;
+
+        m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ulong>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+        m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync("EXPIREDCODE",
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ulong>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ApiResult<string>.Success("Expired code", -2001));
+
+        // Act
+        await executor.ExecuteAsync("", Regions.America, 1u);
+
+        // Assert
+        m_CodeRedeemApiServiceMock.Verify(x =>
+            x.RedeemCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(),
+                It.IsAny<string>()), Times.Exactly(2));
+        var codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.Genshin);
+
+        Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
+        Assert.That(codesInDb, Does.Contain("VALIDCODE"));
     }
 
     private async Task CreateTestUserAsync()
