@@ -133,7 +133,7 @@ public class ZzzCodeRedeemExecutor : BaseCommandExecutor<ZzzCommandModule>, ICod
                     Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
                         Context.Interaction.User.Id);
                     sb.Append($"{trimmedCode}: {response.Data}\n");
-                    successfulCodes.Add(trimmedCode, response.RetCode == -2001 ? CodeStatus.Invalid : CodeStatus.Valid);
+                    successfulCodes.Add(trimmedCode, response.RetCode == 0 ? CodeStatus.Valid : CodeStatus.Invalid);
                 }
                 else
                 {

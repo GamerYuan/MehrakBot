@@ -63,10 +63,10 @@ public class ZzzCodeRedeemApiService : ICodeRedeemApiService<ZzzCommandModule>
             return retCode switch
             {
                 0 => ApiResult<string>.Success("Redeemed Successfully!"),
-                -2001 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Expired"),
-                -2003 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Invalid Code"),
-                -2016 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption in Cooldown"),
-                -2017 => ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Already Used"),
+                -2001 => ApiResult<string>.Success("Redemption Code Expired", retCode),
+                -2003 => ApiResult<string>.Success("Invalid Code", retCode),
+                -2016 => ApiResult<string>.Success("Redemption in Cooldown", retCode),
+                -2017 => ApiResult<string>.Success("Redemption Code Already Used", retCode),
                 _ => ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while redeeming the code")
             };
