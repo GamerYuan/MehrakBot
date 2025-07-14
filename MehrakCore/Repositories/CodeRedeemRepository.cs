@@ -25,7 +25,7 @@ public class CodeRedeemRepository : ICodeRedeemRepository
         m_Logger.LogDebug("Fetching codes for game: {GameName}", gameName);
         var entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
-        return entry?.Codes ?? new List<string>();
+        return entry?.Codes ?? [];
     }
 
     public async Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes)

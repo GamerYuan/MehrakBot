@@ -54,7 +54,7 @@ public class ZzzCodeRedeemExecutor : BaseCommandExecutor<ZzzCommandModule>, ICod
                 Logger.LogWarning(
                     "User {UserId} used the code command but no codes were provided or found in the cache",
                     Context.Interaction.User.Id);
-                await SendErrorMessageAsync("No known codes found in database. Please provide a valid code");
+                await SendErrorMessageAsync("No known codes found in database. Please provide a valid code", false);
                 return;
             }
 
@@ -82,12 +82,12 @@ public class ZzzCodeRedeemExecutor : BaseCommandExecutor<ZzzCommandModule>, ICod
         catch (CommandException e)
         {
             Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
-            await SendErrorMessageAsync(e.Message);
+            await SendErrorMessageAsync(e.Message, false);
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Error processing character command for user {UserId}", Context.Interaction.User.Id);
-            await SendErrorMessageAsync();
+            await SendErrorMessageAsync(followup: false);
         }
     }
 

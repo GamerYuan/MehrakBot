@@ -296,11 +296,16 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// Sends an error response for general errors.
     /// </summary>
     protected async Task SendErrorMessageAsync(
-        string message = "An unknown error occurred while processing your request")
+        string message = "An unknown error occurred while processing your request", bool followup = true)
     {
-        await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-            .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-            .AddComponents(new TextDisplayProperties(message)));
+        if (followup)
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties(message)));
+        else
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties(message))));
     }
 
     public abstract ValueTask ExecuteAsync(params object?[] parameters);
