@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -32,6 +33,10 @@ public class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
             var request = new HttpRequestMessage(HttpMethod.Get,
                 $"{ApiUrl}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
+            request.Headers.Add("Ds", DSGenerator.GenerateDS());
+            request.Headers.Add("X-Rpc-App_version", "1.5.0");
+            request.Headers.Add("X-Rpc-Language", "en-us");
+            request.Headers.Add("X-Rpc-Client_type", "5");
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
