@@ -2,6 +2,7 @@
 
 using MehrakCore.Provider.Commands.Hsr;
 using MehrakCore.Services.Commands.Executor;
+using MehrakCore.Services.Commands.Hsr.Memory;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -18,17 +19,20 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 {
     private readonly ICharacterCommandExecutor<HsrCommandModule> m_CharacterCommandExecutor;
     private readonly IRealTimeNotesCommandExecutor<HsrCommandModule> m_RealTimeNotesCommandExecutor;
+    private readonly HsrMemoryCommandExecutor m_MemoryCommandExecutor;
     private readonly ICodeRedeemExecutor<HsrCommandModule> m_CodesRedeemExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<HsrCommandModule> m_Logger;
 
     public HsrCommandModule(ICharacterCommandExecutor<HsrCommandModule> characterCommandExecutor,
         IRealTimeNotesCommandExecutor<HsrCommandModule> realTimeNotesCommandExecutor,
+        HsrMemoryCommandExecutor memoryCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger,
         ICodeRedeemExecutor<HsrCommandModule> codesRedeemExecutor)
     {
         m_CharacterCommandExecutor = characterCommandExecutor;
         m_RealTimeNotesCommandExecutor = realTimeNotesCommandExecutor;
+        m_MemoryCommandExecutor = memoryCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
         m_CodesRedeemExecutor = codesRedeemExecutor;
@@ -102,6 +106,23 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         m_CodesRedeemExecutor.Context = Context;
         await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("moc", "Get Memory of Chaos card")]
+    public async Task MemoryCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the Memory command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_MemoryCommandExecutor.Context = Context;
+        await m_MemoryCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")
