@@ -52,13 +52,18 @@ public class ScheduleTime
     [JsonPropertyName("hour")] public int Hour { get; set; }
 
     [JsonPropertyName("minute")] public int Minute { get; set; }
+
+    public DateTime ToDateTime()
+    {
+        return new DateTime(Year, Month, Day, Hour, Minute, 0);
+    }
 }
 
 public class HsrMemoryInformation
 {
     [JsonPropertyName("schedule_id")] public int ScheduleId { get; set; }
 
-    [JsonPropertyName("begin_time")] public required ScheduleTime ScheduleTime { get; set; }
+    [JsonPropertyName("begin_time")] public required ScheduleTime StartTime { get; set; }
 
     [JsonPropertyName("end_time")] public required ScheduleTime EndTime { get; set; }
 
