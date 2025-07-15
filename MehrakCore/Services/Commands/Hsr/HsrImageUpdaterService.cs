@@ -23,6 +23,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private readonly ConcurrentDictionary<int, string> m_SetMapping = new();
 
     protected override string AvatarString => "hsr_avatar_{0}";
+    protected override string SideAvatarString => "hsr_side_avatar_{0}";
 
     public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<HsrCharacterInformation>> logger) : base(imageRepository, httpClientFactory, logger)
@@ -65,10 +66,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
             var result = await Task.WhenAll(tasks);
 
-            if (!result.All(x => x))
-            {
-                throw new CommandException("An error occurred while updating character image");
-            }
+            if (!result.All(x => x)) throw new CommandException("An error occurred while updating character image");
 
             Logger.LogInformation("Successfully updated HSR character data for {CharacterName}",
                 characterInformation.Name);
