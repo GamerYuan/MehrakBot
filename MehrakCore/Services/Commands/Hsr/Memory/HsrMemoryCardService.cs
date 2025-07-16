@@ -77,7 +77,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                 .Select(x => (FloorNumber: GetFloorNumber(x.Name) - 1, Data: x))
                 .OrderBy(x => x.FloorNumber).ToList();
             var height = 180 + floorDetails.Chunk(2)
-                .Select(x => x.All(y => y.Data.IsFast || y.Data.Node1.Avatars.Count == 0) ? 200 : 500).Sum();
+                .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 500).Sum();
 
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
@@ -135,21 +135,40 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
                     if (floorData.IsFast || floorData.Node1.Avatars.Count == 0)
                     {
-                        overlay = ImageExtensions.CreateRoundedRectanglePath(700, 180, 15).Translate(xOffset, yOffset);
-                        ctx.Fill(OverlayColor, overlay);
+                        if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
+                             !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
+                            (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
+                             !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
+                        {
+                            overlay = ImageExtensions.CreateRoundedRectanglePath(700, 480, 15)
+                                .Translate(xOffset, yOffset);
+                            ctx.Fill(OverlayColor, overlay);
+                            ctx.DrawText(new RichTextOptions(m_NormalFont)
+                            {
+                                Origin = new Vector2(xOffset + 350, yOffset + 260),
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                        }
+                        else
+                        {
+                            overlay = ImageExtensions.CreateRoundedRectanglePath(700, 180, 15)
+                                .Translate(xOffset, yOffset);
+                            ctx.Fill(OverlayColor, overlay);
+                            ctx.DrawText(new RichTextOptions(m_NormalFont)
+                            {
+                                Origin = new Vector2(xOffset + 350, yOffset + 110),
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                        }
+
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
                             Origin = new Vector2(xOffset + 20, yOffset + 20),
                             HorizontalAlignment = HorizontalAlignment.Left,
                             VerticalAlignment = VerticalAlignment.Top
                         }, floorData.Name, Color.White);
-
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 350, yOffset + 110),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
 
                         for (int i = 0; i < 3; i++)
                             ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
@@ -268,5 +287,10 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
         }
 
         return total;
+    }
+
+    private static bool IsSmallBlob(FloorDetail floor)
+    {
+        return floor.IsFast || floor.Node1.Avatars.Count == 0;
     }
 }
