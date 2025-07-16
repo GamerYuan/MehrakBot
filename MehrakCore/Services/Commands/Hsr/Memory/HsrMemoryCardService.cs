@@ -76,7 +76,8 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
             var floorDetails = memoryData.AllFloorDetail!
                 .Select(x => (FloorNumber: GetFloorNumber(x.Name) - 1, Data: x))
                 .OrderBy(x => x.FloorNumber).ToList();
-            var height = 180 + floorDetails.Chunk(2).Select(x => x.Any(y => y.Data.IsFast) ? 200 : 500).Sum();
+            var height = 180 + floorDetails.Chunk(2)
+                .Select(x => x.All(y => y.Data.IsFast || y.Data.Node1.Avatars.Count == 0) ? 200 : 500).Sum();
 
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
@@ -132,7 +133,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
                     IPath overlay;
 
-                    if (floorData.IsFast)
+                    if (floorData.IsFast || floorData.Node1.Avatars.Count == 0)
                     {
                         overlay = ImageExtensions.CreateRoundedRectanglePath(700, 180, 15).Translate(xOffset, yOffset);
                         ctx.Fill(OverlayColor, overlay);
@@ -148,7 +149,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                             Origin = new Vector2(xOffset + 350, yOffset + 110),
                             HorizontalAlignment = HorizontalAlignment.Center,
                             VerticalAlignment = VerticalAlignment.Center
-                        }, "Quick Clear", Color.White);
+                        }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
 
                         for (int i = 0; i < 3; i++)
                             ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
