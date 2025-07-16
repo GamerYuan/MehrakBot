@@ -19,8 +19,8 @@ internal static class AvatarImageUtility
     private static readonly Font NormalFont;
     private static readonly Font SmallFont;
 
-    private static readonly Color GoldBackgroundColor = new Rgb24(183, 125, 76);
-    private static readonly Color PurpleBackgroundColor = new Rgb24(132, 104, 173);
+    private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
+    private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
     private static readonly Color NormalConstColor = new Rgba32(69, 69, 69, 200);
     private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
 
@@ -42,26 +42,26 @@ internal static class AvatarImageUtility
         string text)
     {
         var avatarImage = new Image<Rgba32>(150, 180);
-        var rectangle = new RectangleF(0, 150, 150, 30);
+        var rectangle = new RectangleF(0, 146, 150, 30);
 
         avatarImage.Mutate(ctx =>
         {
             ctx.Fill(rarity == 4 ? PurpleBackgroundColor : GoldBackgroundColor);
             ctx.DrawImage(portrait, new Point(0, 0), 1f);
-            ctx.Fill(Color.PeachPuff, rectangle);
+            ctx.Fill(Color.Black, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
             {
-                Origin = new PointF(75, 178),
+                Origin = new PointF(75, 174),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
-            }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.Black);
-            var constIcon = ImageExtensions.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
+            }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.White);
+            var constIcon = ImageExtensions.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
             if (rank == 6)
             {
                 ctx.Fill(Color.Gold, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
                 {
-                    Origin = new PointF(130, 130),
+                    Origin = new PointF(130, 126),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 }, "6", GoldConstTextColor);
@@ -71,7 +71,7 @@ internal static class AvatarImageUtility
                 ctx.Fill(NormalConstColor, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
                     {
-                        Origin = new PointF(130, 130),
+                        Origin = new PointF(130, 126),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     }, $"{rank}", Color.White);
