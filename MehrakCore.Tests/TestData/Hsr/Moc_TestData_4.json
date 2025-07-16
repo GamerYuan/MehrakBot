@@ -14,7 +14,7 @@
     "hour": 4,
     "minute": 0
   },
-  "star_num": 6,
+  "star_num": 30,
   "max_floor": "Lupine Moon-Devourer (XII)",
   "battle_num": 9,
   "has_data": true,
@@ -81,7 +81,7 @@
     {
       "name": "Lupine Moon-Devourer (X)",
       "round_num": 5,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -91,6 +91,38 @@
           "minute": 21
         },
         "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          }
         ]
       },
       "node_2": {
@@ -102,6 +134,38 @@
           "minute": 21
         },
         "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
         ]
       },
       "is_chaos": true,
@@ -111,7 +175,7 @@
     {
       "name": "Lupine Moon-Devourer (IX)",
       "round_num": 1,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -121,6 +185,38 @@
           "minute": 5
         },
         "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
         ]
       },
       "node_2": {
@@ -132,6 +228,38 @@
           "minute": 5
         },
         "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          }
         ]
       },
       "is_chaos": true,
@@ -141,7 +269,7 @@
     {
       "name": "Lupine Moon-Devourer (VIII)",
       "round_num": 0,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -151,6 +279,38 @@
           "minute": 5
         },
         "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          }
         ]
       },
       "node_2": {
@@ -162,6 +322,38 @@
           "minute": 5
         },
         "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
         ]
       },
       "is_chaos": true,
@@ -171,7 +363,7 @@
     {
       "name": "Lupine Moon-Devourer (VII)",
       "round_num": 0,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -194,12 +386,12 @@
       },
       "is_chaos": true,
       "maze_id": 4307,
-      "is_fast": false
+      "is_fast": true
     },
     {
       "name": "Lupine Moon-Devourer (VI)",
       "round_num": 0,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -222,12 +414,12 @@
       },
       "is_chaos": true,
       "maze_id": 4306,
-      "is_fast": false
+      "is_fast": true
     },
     {
       "name": "Lupine Moon-Devourer (V)",
       "round_num": 0,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -250,12 +442,12 @@
       },
       "is_chaos": true,
       "maze_id": 4305,
-      "is_fast": false
+      "is_fast": true
     },
     {
       "name": "Lupine Moon-Devourer (IV)",
       "round_num": 0,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -278,12 +470,12 @@
       },
       "is_chaos": true,
       "maze_id": 4304,
-      "is_fast": false
+      "is_fast": true
     },
     {
       "name": "Lupine Moon-Devourer (III)",
       "round_num": 0,
-      "star_num": 0,
+      "star_num": 3,
       "node_1": {
         "challenge_time": {
           "year": 2025,
@@ -306,7 +498,7 @@
       },
       "is_chaos": true,
       "maze_id": 4303,
-      "is_fast": false
+      "is_fast": true
     },
     {
       "name": "Lupine Moon-Devourer (II)",
@@ -320,40 +512,7 @@
           "hour": 9,
           "minute": 5
         },
-        "avatars": [
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1301,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
-            "rarity": 4,
-            "element": "fire",
-            "rank": 6
-          }
-        ]
+        "avatars": []
       },
       "node_2": {
         "challenge_time": {
@@ -363,44 +522,11 @@
           "hour": 9,
           "minute": 5
         },
-        "avatars": [
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1301,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
-            "rarity": 4,
-            "element": "fire",
-            "rank": 6
-          }
-        ]
+        "avatars": []
       },
       "is_chaos": true,
       "maze_id": 4302,
-      "is_fast": false
+      "is_fast": true
     },
     {
       "name": "Lupine Moon-Devourer (I)",
@@ -414,40 +540,7 @@
           "hour": 9,
           "minute": 5
         },
-        "avatars": [
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1301,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
-            "rarity": 4,
-            "element": "fire",
-            "rank": 6
-          }
-        ]
+        "avatars": []
       },
       "node_2": {
         "challenge_time": {
@@ -457,44 +550,11 @@
           "hour": 9,
           "minute": 5
         },
-        "avatars": [
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1308,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
-            "rarity": 5,
-            "element": "lightning",
-            "rank": 6
-          },
-          {
-            "id": 1301,
-            "level": 80,
-            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
-            "rarity": 4,
-            "element": "fire",
-            "rank": 6
-          }
-        ]
+        "avatars": []
       },
       "is_chaos": true,
       "maze_id": 4301,
-      "is_fast": false
+      "is_fast": true
     }
   ],
   "max_floor_id": 4312,
