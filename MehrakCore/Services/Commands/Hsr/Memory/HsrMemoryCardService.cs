@@ -37,6 +37,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
     private readonly Image m_StarLit;
     private readonly Image m_StarUnlit;
     private readonly Image m_CycleIcon;
+    private readonly Image m_Background;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -56,6 +57,13 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
         m_StarUnlit.Mutate(ctx => ctx.Grayscale());
         m_CycleIcon = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass").Result);
+
+        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_bg").Result);
+        m_Background.Mutate(ctx =>
+        {
+            ctx.Brightness(0.5f);
+            ctx.GaussianBlur(5);
+        });
     }
 
     public async ValueTask<Stream> GetMemoryCardImageAsync(UserGameData gameData, HsrMemoryInformation memoryData)
@@ -82,12 +90,13 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
 
-            Image<Rgba32> background = new(1550, height);
+            var background = m_Background.CloneAs<Rgba32>();
             disposableResources.Add(background);
 
             background.Mutate(ctx =>
             {
-                ctx.Clear(Color.RebeccaPurple);
+                ctx.Resize(0, height, KnownResamplers.Bicubic);
+                ctx.Crop(new Rectangle((ctx.GetCurrentSize().Width - 1550) / 2, 0, 1550, height));
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
