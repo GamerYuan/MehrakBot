@@ -55,7 +55,11 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
         m_StarLit = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star").Result);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
-        m_StarUnlit.Mutate(ctx => ctx.Grayscale());
+        m_StarUnlit.Mutate(ctx =>
+        {
+            ctx.Grayscale();
+            ctx.Brightness(0.7f);
+        });
         m_CycleIcon = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass").Result);
 
         m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_bg").Result);
@@ -85,7 +89,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                 .Select(x => (FloorNumber: GetFloorNumber(x.Name) - 1, Data: x))
                 .OrderBy(x => x.FloorNumber).ToList();
             var height = 180 + floorDetails.Chunk(2)
-                .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 500).Sum();
+                .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 520).Sum();
 
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
@@ -149,12 +153,12 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                             (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
                              !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
                         {
-                            overlay = ImageExtensions.CreateRoundedRectanglePath(700, 480, 15)
+                            overlay = ImageExtensions.CreateRoundedRectanglePath(700, 500, 15)
                                 .Translate(xOffset, yOffset);
                             ctx.Fill(OverlayColor, overlay);
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
-                                Origin = new Vector2(xOffset + 350, yOffset + 260),
+                                Origin = new Vector2(xOffset + 350, yOffset + 280),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
                             }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
@@ -187,7 +191,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                         continue;
                     }
 
-                    overlay = ImageExtensions.CreateRoundedRectanglePath(700, 480, 15).Translate(xOffset, yOffset);
+                    overlay = ImageExtensions.CreateRoundedRectanglePath(700, 500, 15).Translate(xOffset, yOffset);
                     ctx.Fill(OverlayColor, overlay);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
@@ -200,9 +204,9 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                     using var node2 = GetRosterImage(floorData.Node2.Avatars.Select(x => x.Id).ToList(), lookup);
                     disposableResources.AddRange(node1, node2);
                     ctx.DrawImage(node1, new Point(xOffset + 25, yOffset + 65), 1f);
-                    ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 260),
-                        new PointF(xOffset + 680, yOffset + 260));
-                    ctx.DrawImage(node2, new Point(xOffset + 25, yOffset + 275), 1f);
+                    ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 270),
+                        new PointF(xOffset + 680, yOffset + 270));
+                    ctx.DrawImage(node2, new Point(xOffset + 25, yOffset + 295), 1f);
                     for (int i = 0; i < 3; i++)
                         ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
                             new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
@@ -215,7 +219,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.RoundNum.ToString(), Color.White);
                     ctx.DrawImage(m_CycleIcon, new Point(xOffset + 470, yOffset + 10), 1f);
-                    if (floorNumber % 2 == 1) yOffset += 500;
+                    if (floorNumber % 2 == 1) yOffset += 520;
                 }
             });
 
