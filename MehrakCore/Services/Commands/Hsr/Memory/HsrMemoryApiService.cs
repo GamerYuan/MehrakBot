@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Commands.Hsr.Memory;
 
-public class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
+internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrMemoryApiService> m_Logger;
