@@ -51,7 +51,7 @@ internal static class AvatarImageUtility
             ctx.Fill(Color.PeachPuff, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
             {
-                Origin = new PointF(75, 180),
+                Origin = new PointF(75, 178),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
             }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.Black);
