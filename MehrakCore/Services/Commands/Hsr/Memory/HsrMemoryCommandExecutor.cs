@@ -21,7 +21,7 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
 {
     private readonly HsrMemoryApiService m_ApiService;
     private readonly ImageUpdaterService<HsrCharacterInformation> m_ImageUpdaterService;
-    private readonly ICommandService<HsrMemoryCommandExecutor> m_CommandService;
+    private readonly HsrMemoryCardService m_CommandService;
 
     private Regions m_PendingServer;
 
@@ -35,7 +35,7 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
     {
         m_ApiService = (HsrMemoryApiService)apiService;
         m_ImageUpdaterService = imageUpdaterService;
-        m_CommandService = commandService;
+        m_CommandService = (HsrMemoryCardService)commandService;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -177,14 +177,16 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
                     $"### <@{Context.Interaction.User.Id}>'s Memory of Chaos Summary"),
                 new TextDisplayProperties(
                     $"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                // new MediaGalleryProperties().AddItems(
-                //     new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://moc_card.jpg"))),
+                new MediaGalleryProperties().AddItems(
+                    new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://moc_card.jpg"))),
                 new TextDisplayProperties(
                     $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
             ];
 
             message.WithComponents([container]);
             message.WithFlags(MessageFlags.IsComponentsV2);
+            message.AddAttachments(new AttachmentProperties("moc_card.jpg",
+                await m_CommandService.GetMemoryCardImageAsync(gameData, memoryData)));
 
             return message;
         }
