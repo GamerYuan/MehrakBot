@@ -39,6 +39,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
     private readonly Font m_NormalFont;
 
     private readonly Image[] m_DifficultyLogo;
+    private readonly Image m_Background;
 
     public GenshinStygianCardService(ImageRepository imageRepository, ILogger<GenshinStygianCardService> logger)
     {
@@ -53,6 +54,8 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
         m_DifficultyLogo = Enumerable.Range(0, 7).Select(x =>
             Image.Load(m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}").GetAwaiter()
                 .GetResult())).ToArray();
+        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg").GetAwaiter()
+            .GetResult());
     }
 
     public async ValueTask<Stream> GetStygianCardImageAsync(StygianData stygianInfo, UserGameData gameData,
@@ -78,8 +81,6 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
             var monsterImages = await monsterImage.ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Key),
                     async x => await Image.LoadAsync(x.Value));
-            var backgroundTask =
-                Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg"));
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
             disposableResources.AddRange(bestAvatarImages.Values);
@@ -88,8 +89,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
 
             var lookup = avatarImages.GetAlternateLookup<int>();
 
-            var background = await backgroundTask;
-            disposableResources.Add(background);
+            var background = m_Background.CloneAs<Rgba32>();
 
             background.Mutate(ctx =>
             {
@@ -103,9 +103,10 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
                         Origin = new Vector2(50, 130),
                         VerticalAlignment = VerticalAlignment.Bottom
                     },
-                    DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
-                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset)
-                        .ToString("yyyy/MM"),
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
+                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy} - " +
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.EndTime))
+                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy}",
                     Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
@@ -145,9 +146,10 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
                     var yOffset = 170 + i * 320;
                     ctx.DrawImage(challengeImage, new Point(50, yOffset), 1f);
 
-                    var overlay = ImageExtensions.CreateRoundedRectanglePath(580, 145, 15).Translate(1070, yOffset);
                     for (int j = 0; j < challenge.BestAvatar.Count; j++)
                     {
+                        var overlay = ImageExtensions.CreateRoundedRectanglePath(580, 145, 15)
+                            .Translate(1070, yOffset + j * 155);
                         ctx.Fill(OverlayColor, overlay);
                         var bestAvatar = challenge.BestAvatar[j];
                         var avatarImage = bestAvatarImages[bestAvatar.AvatarId];
@@ -165,7 +167,6 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
                             VerticalAlignment = VerticalAlignment.Center,
                             HorizontalAlignment = HorizontalAlignment.Right
                         }, bestAvatar.Dps, Color.White);
-                        overlay = overlay.Translate(0, 155);
                     }
                 }
             });
