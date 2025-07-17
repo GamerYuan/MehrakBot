@@ -114,9 +114,12 @@ public class GenshinAbyssCardServiceTests
     //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
     //             "Abyss_TestData_3.json")));
     //
-    //     var image1 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData1!, GetTestConstDictionary());
-    //     var image2 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData2!, GetTestConstDictionary());
-    //     var image3 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData3!, GetTestConstDictionary());
+    //     var image1 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), Regions.Asia, testData1!,
+    //         GetTestConstDictionary());
+    //     var image2 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), Regions.Asia, testData2!,
+    //         GetTestConstDictionary());
+    //     var image3 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), Regions.Asia, testData3!,
+    //         GetTestConstDictionary());
     //
     //     Assert.That(image1, Is.Not.Null);
     //     Assert.That(image2, Is.Not.Null);
