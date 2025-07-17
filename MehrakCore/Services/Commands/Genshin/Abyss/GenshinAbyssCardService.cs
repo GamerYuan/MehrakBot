@@ -251,15 +251,34 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     }, $"{floorData.Star}/{floorData.MaxStar}", Color.White);
 
                 ctx.DrawImage(m_AbyssStarIconLit, new Point(1395, 47), 1f);
-                for (int i = 0; i < floorData.Levels!.Count; i++)
+                for (int i = 0; i < 3; i++)
                 {
-                    var level = floorData.Levels![i];
                     var offset = i * 490 + 160;
                     var rosterBackground = ImageExtensions.CreateRoundedRectanglePath(670, 470, 15)
                         .Translate(785, offset - 60);
                     ctx.Fill(OverlayColor, rosterBackground);
-                    ctx.DrawText($"Chamber {level.Index}", m_NormalFont, Color.White,
+                    ctx.DrawText($"Chamber {i + 1}", m_NormalFont, Color.White,
                         new PointF(810, offset - 40));
+
+                    if (i >= floorData.Levels!.Count)
+                    {
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            Origin = new Vector2(1120, offset + 175),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, "No Clear Records", Color.White);
+
+                        for (int j = 0; j < 3; j++)
+                        {
+                            int xOffset = 1310 + j * 40;
+                            ctx.DrawImage(m_AbyssStarIconUnlit, new Point(xOffset, offset - 45), 1f);
+                        }
+
+                        continue;
+                    }
+
+                    var level = floorData.Levels![i];
                     for (int j = 0; j < 3; j++)
                     {
                         int xOffset = 1310 + j * 40;
