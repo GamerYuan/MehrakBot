@@ -33,10 +33,22 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         { "HoYoLAB Genshin API", "sg-hk4e-api.hoyolab.com" },
         { "HoYoLAB Genshin Operations API", "public-operation-hk4e.hoyolab.com" },
         { "HoYoLAB HSR Operations API", "public-operation-hkrpg.hoyolab.com" },
+        { "HoYoLAB ZZZ Operations API", "public-operation-nap.hoyolab.com" },
         { "HoYoLAB Posts API", "bbs-api-os.hoyolab.com" },
         { "HoYoLAB Account API", "api-account-os.hoyolab.com" },
         { "HoYoWiki API", "sg-wiki-api-static.hoyolab.com" }
     };
+
+    private static int _maxCharCount;
+
+    private static int MaxCharCount
+    {
+        get
+        {
+            if (_maxCharCount == 0) _maxCharCount = HealthCheckComponents.Keys.Select(x => x.Length).Max() + 11;
+            return _maxCharCount;
+        }
+    }
 
     public HealthCommandModule(MongoDbService mongoDbService, IConnectionMultiplexer redisConnection,
         IDailyCheckInService dailyCheckInService, GatewayClient gatewayClient,
@@ -75,7 +87,8 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         {
             Ping ping = new();
             var pingResult = await ping.SendPingAsync(x.Value);
-            return $"**{x.Key}**: {(pingResult.Status == IPStatus.Success ? "Online" : "Offline")}";
+            return GetFormattedStatus(x.Key, pingResult.Status == IPStatus.Success ? "Online" : "Offline",
+                pingResult.Status == IPStatus.Success);
         }).ToList();
 
         var apiStatus = string.Join('\n', await Task.WhenAll(pingTasks));
@@ -85,28 +98,58 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         container.AddComponents(new TextDisplayProperties("## Health Report"));
         container.AddComponents(new ComponentSeparatorProperties());
         if (systemUsage.CpuUsage < 0)
+        {
             container.AddComponents(new TextDisplayProperties(
                 $"### __System Resources__\n" +
                 $"System monitor is offline"));
+        }
         else
+        {
+            var memoryPercentage = (double)systemUsage.MemoryUsed / systemUsage.MemoryTotal;
             container.AddComponents(new TextDisplayProperties(
                 $"### __System Resources__\n" +
-                $"CPU: {systemUsage.CpuUsage:N2}%\n" +
-                $"Memory: {systemUsage.MemoryUsed / convert:N2}/{systemUsage.MemoryTotal / convert:N2} GB " +
-                $"{(double)systemUsage.MemoryUsed / systemUsage.MemoryTotal * 100:N2}%"));
+                "```ansi\n" +
+                GetFormattedStatus("CPU", $"{systemUsage.CpuUsage:N2}%", systemUsage.CpuUsage <= 80) +
+                GetFormattedStatus("Memory",
+                    $"{systemUsage.MemoryUsed / convert:N2}/{systemUsage.MemoryTotal / convert:N2} GB " +
+                    $"{memoryPercentage * 100:N2}%",
+                    memoryPercentage <= 0.8) +
+                "```"));
+        }
 
         container.AddComponents(new ComponentSeparatorProperties());
         container.AddComponents(new TextDisplayProperties($"### __System Status__\n" +
-                                                          $"**MongoDB**: {(mongoDbStatus ? "Online" : "Offline")}\n" +
-                                                          $"**Redis**: {(cacheStatus ? "Online" : "Offline")}\n" +
-                                                          $"**Prometheus**: {(systemUsage.CpuUsage > 0 ? "Online" : "Offline")}\n" +
-                                                          $"**Discord Latency**: {m_GatewayClient.Latency.TotalMilliseconds} ms"));
+                                                          "```ansi\n" +
+                                                          GetFormattedStatus("MongoDB",
+                                                              mongoDbStatus
+                                                                  ? "Online"
+                                                                  : "Offline", mongoDbStatus) + "\n" +
+                                                          GetFormattedStatus("Redis",
+                                                              cacheStatus
+                                                                  ? "Online"
+                                                                  : "Offline", cacheStatus) + "\n" +
+                                                          GetFormattedStatus("Prometheus",
+                                                              systemUsage.CpuUsage > 0
+                                                                  ? "Online"
+                                                                  : "Offline", systemUsage.CpuUsage > 0) +
+                                                          "\n" +
+                                                          GetFormattedStatus("Discord Latency",
+                                                              $"{m_GatewayClient.Latency.TotalMilliseconds:N0} ms",
+                                                              m_GatewayClient.Latency.TotalMilliseconds <= 200) + "\n" +
+                                                          "```"));
 
         container.AddComponents(new ComponentSeparatorProperties());
         container.AddComponents(new TextDisplayProperties($"### __API Status__\n" +
-                                                          $"{apiStatus}"));
+                                                          $"```ansi\n{apiStatus}```"));
 
         await Context.Interaction.SendFollowupMessageAsync(response);
+    }
+
+    private static string GetFormattedStatus(string serviceName, string value, bool threshold)
+    {
+        return
+            $"\e[1m{serviceName}\e[0m{new string(' ', MaxCharCount - serviceName.Length - value.Length)}" +
+            $"{(threshold ? $"\e[0;32m{value}\e[0m" : $"\e[0;31m{value}\e[0m")}";
     }
 
     public static string GetHelpString()
