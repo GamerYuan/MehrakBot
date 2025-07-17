@@ -164,7 +164,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             await Task.WhenAll(tasks);
             await Task.WhenAll(sideAvatarTasks);
 
-            var message = await GenerateAbyssCardAsync(floor, response.Data, abyssData, constMap);
+            var message = await GenerateAbyssCardAsync(floor, response.Data, server, abyssData, constMap);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
@@ -188,6 +188,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
     }
 
     private async ValueTask<InteractionMessageProperties> GenerateAbyssCardAsync(uint floor, UserGameData gameData,
+        Regions region,
         GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
     {
         try
@@ -208,7 +209,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
                     $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
             );
             abyssCard.AddAttachments(new AttachmentProperties("abyss_card.jpg",
-                await m_CommandService.GetAbyssCardAsync(floor, gameData, abyssData, constMap)));
+                await m_CommandService.GetAbyssCardAsync(floor, gameData, region, abyssData, constMap)));
             abyssCard.AddComponents(
                 new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
                     "Remove", ButtonStyle.Danger)));

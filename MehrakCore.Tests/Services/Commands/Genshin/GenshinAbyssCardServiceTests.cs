@@ -6,6 +6,7 @@ using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Genshin.Abyss;
 using MehrakCore.Tests.TestHelpers;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging.Abstractions;
 
 #endregion
@@ -50,7 +51,7 @@ public class GenshinAbyssCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var stream =
-            await m_Service.GetAbyssCardAsync(12, userGameData, testData!, GetTestConstDictionary());
+            await m_Service.GetAbyssCardAsync(12, userGameData, Regions.Asia, testData!, GetTestConstDictionary());
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
@@ -113,9 +114,12 @@ public class GenshinAbyssCardServiceTests
     //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
     //             "Abyss_TestData_3.json")));
     //
-    //     var image1 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData1!, GetTestConstDictionary());
-    //     var image2 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData2!, GetTestConstDictionary());
-    //     var image3 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData3!, GetTestConstDictionary());
+    //     var image1 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), Regions.Asia, testData1!,
+    //         GetTestConstDictionary());
+    //     var image2 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), Regions.Asia, testData2!,
+    //         GetTestConstDictionary());
+    //     var image3 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), Regions.Asia, testData3!,
+    //         GetTestConstDictionary());
     //
     //     Assert.That(image1, Is.Not.Null);
     //     Assert.That(image2, Is.Not.Null);
