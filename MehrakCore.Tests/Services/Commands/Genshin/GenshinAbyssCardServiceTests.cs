@@ -33,20 +33,24 @@ public class GenshinAbyssCardServiceTests
     }
 
     [Test]
-    public async Task GetAbyssCardAsync_Data1_MatchesGoldenImage()
+    [TestCase("Abyss_TestData_1.json")]
+    [TestCase("Abyss_TestData_2.json")]
+    [TestCase("Abyss_TestData_3.json")]
+    public async Task GetAbyssCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
             await JsonSerializer.DeserializeAsync<GenshinAbyssInformation>(
-                File.OpenRead(Path.Combine(TestDataPath, "Genshin", "Abyss_TestData_1.json")));
+                File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
         var goldenImage =
             await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-                "TestAssets", "Abyss_GoldenImage_1.jpg"));
+                "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
         var userGameData = GetTestUserGameData();
 
-        var stream = await m_Service.GetAbyssCardAsync(12, userGameData, testData!, GetTestConstDictionary());
+        var stream =
+            await m_Service.GetAbyssCardAsync(12, userGameData, testData!, GetTestConstDictionary());
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
@@ -56,46 +60,13 @@ public class GenshinAbyssCardServiceTests
         // Save generated image to output folder for comparison
         var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data1_Generated.jpg");
+        var outputImagePath = Path.Combine(outputDirectory,
+            $"GenshinAbyss_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
-        var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data1_Golden.jpg");
-        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
-
-        Assert.That(bytes, Is.Not.Empty);
-        Assert.That(bytes, Is.EqualTo(goldenImage));
-    }
-
-    [Test]
-    public async Task GetAbyssCardAsync_Data2_MatchesGoldenImage()
-    {
-        var testData =
-            await JsonSerializer.DeserializeAsync<GenshinAbyssInformation>(
-                File.OpenRead(Path.Combine(TestDataPath, "Genshin", "Abyss_TestData_2.json")));
-        Assert.That(testData, Is.Not.Null, "Test data should not be null");
-
-        var goldenImage =
-            await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-                "TestAssets", "Abyss_GoldenImage_2.jpg"));
-
-        var userGameData = GetTestUserGameData();
-
-        var stream = await m_Service.GetAbyssCardAsync(12, userGameData, testData!, GetTestConstDictionary());
-        var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream);
-        memoryStream.Position = 0;
-
-        var bytes = memoryStream.ToArray();
-
-        // Save generated image to output folder for comparison
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
-        Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data2_Generated.jpg");
-        await File.WriteAllBytesAsync(outputImagePath, bytes);
-
-        // Save golden image to output folder for comparison
-        var outputGoldenImagePath = Path.Combine(outputDirectory, "GenshinAbyss_Data2_Golden.jpg");
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
+            $"GenshinAbyss_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
@@ -138,19 +109,27 @@ public class GenshinAbyssCardServiceTests
     //     var testData2 = await JsonSerializer.DeserializeAsync<GenshinAbyssInformation>(
     //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
     //             "Abyss_TestData_2.json")));
+    //     var testData3 = await JsonSerializer.DeserializeAsync<GenshinAbyssInformation>(
+    //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
+    //             "Abyss_TestData_3.json")));
     //
     //     var image1 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData1!, GetTestConstDictionary());
     //     var image2 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData2!, GetTestConstDictionary());
+    //     var image3 = await m_Service.GetAbyssCardAsync(12, GetTestUserGameData(), testData3!, GetTestConstDictionary());
     //
     //     Assert.That(image1, Is.Not.Null);
     //     Assert.That(image2, Is.Not.Null);
+    //     Assert.That(image3, Is.Not.Null);
     //
-    //     await using var fileStream1 = File.Create(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
-    //         "Assets", "Abyss_GoldenImage_1.jpg"));
-    //     await using var fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
-    //         "Assets", "Abyss_GoldenImage_2.jpg"));
+    //     await using var fileStream1 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+    //         "TestAssets", "Abyss_GoldenImage_1.jpg"));
+    //     await using var fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+    //         "TestAssets", "Abyss_GoldenImage_2.jpg"));
+    //     await using var fileStream3 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+    //         "TestAssets", "Abyss_GoldenImage_3.jpg"));
     //
     //     await image1.CopyToAsync(fileStream1);
     //     await image2.CopyToAsync(fileStream2);
+    //     await image3.CopyToAsync(fileStream3);
     // }
 }
