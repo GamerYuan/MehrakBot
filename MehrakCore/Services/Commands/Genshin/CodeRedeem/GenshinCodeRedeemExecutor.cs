@@ -135,7 +135,15 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
                     Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
                         Context.Interaction.User.Id);
                     sb.Append($"{trimmedCode}: {response.Data}\n");
-                    successfulCodes.Add(trimmedCode, response.RetCode == 0 ? CodeStatus.Valid : CodeStatus.Invalid);
+                    successfulCodes.Add(trimmedCode, response.RetCode switch
+                    {
+                        0 => CodeStatus.Valid,
+                        -2001 => CodeStatus.Invalid,
+                        -2003 => CodeStatus.Invalid,
+                        -2016 => CodeStatus.Valid,
+                        -2017 => CodeStatus.Valid,
+                        _ => CodeStatus.Invalid
+                    });
                 }
                 else
                 {
@@ -144,7 +152,7 @@ public class GenshinCodeRedeemExecutor : BaseCommandExecutor<GenshinCommandModul
                     throw new CommandException(response.ErrorMessage);
                 }
 
-                await Task.Delay(3000);
+                await Task.Delay(3500);
             }
 
             if (successfulCodes.Count > 0)
