@@ -40,7 +40,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Failed to fetch Memory of Chaos information for gameUid: {GameUid}", gameUid);
                 return ApiResult<HsrMemoryInformation>.Failure(response.StatusCode,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -48,7 +48,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
             var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             if (json == null)
             {
-                m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Failed to fetch Memory of Chaos information for gameUid: {GameUid}", gameUid);
                 return ApiResult<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -62,7 +62,8 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
 
             if (json["retcode"]?.GetValue<int>() != 0)
             {
-                m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}, retcode: {Retcode}",
+                m_Logger.LogError(
+                    "Failed to fetch Memory of Chaos information for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]);
                 return ApiResult<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
@@ -74,7 +75,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to get Abyss information for gameUid: {GameUid}, region: {Region}",
+            m_Logger.LogError(e, "Failed to get Memory of Chaos information for gameUid: {GameUid}, region: {Region}",
                 gameUid, region);
             return ApiResult<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while fetching Memory of Chaos information");
