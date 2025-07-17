@@ -21,6 +21,7 @@ using MehrakCore.Services.Commands.Genshin.Theater;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Services.Commands.Hsr.CodeRedeem;
+using MehrakCore.Services.Commands.Hsr.Memory;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Common;
@@ -170,6 +171,9 @@ internal class Program
             builder.Services.AddSingleton<ICodeRedeemApiService<HsrCommandModule>, HsrCodeRedeemApiService>();
             builder.Services
                 .AddTransient<ICodeRedeemExecutor<HsrCommandModule>, HsrCodeRedeemExecutor>();
+            builder.Services.AddSingleton<IApiService<HsrMemoryCommandExecutor>, HsrMemoryApiService>();
+            builder.Services.AddSingleton<ICommandService<HsrMemoryCommandExecutor>, HsrMemoryCardService>();
+            builder.Services.AddTransient<HsrMemoryCommandExecutor>();
 
             // Zzz Services
             builder.Services
