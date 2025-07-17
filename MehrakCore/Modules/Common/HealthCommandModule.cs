@@ -1,10 +1,6 @@
 ﻿#region
 
 using System.Net.NetworkInformation;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands;
 using MehrakCore.Services.Common;
 using NetCord;
 using NetCord.Gateway;
@@ -20,12 +16,8 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
 {
     private readonly MongoDbService m_MongoDbService;
     private readonly IConnectionMultiplexer m_RedisConnection;
-    private readonly IDailyCheckInService m_DailyCheckInService;
-    private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_GenshinCharacterApi;
-    private readonly ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> m_HsrCharacterApi;
     private readonly GatewayClient m_GatewayClient;
     private readonly PrometheusClientService m_PrometheusClientService;
-    private readonly GameRecordApiService m_GameRecordApiService;
 
     private static readonly Dictionary<string, string> HealthCheckComponents = new()
     {
@@ -51,19 +43,12 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     }
 
     public HealthCommandModule(MongoDbService mongoDbService, IConnectionMultiplexer redisConnection,
-        IDailyCheckInService dailyCheckInService, GatewayClient gatewayClient,
-        PrometheusClientService prometheusClientService, GameRecordApiService gameRecordApiService,
-        ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> genshinCharacterApi,
-        ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> hsrCharacterApi)
+        GatewayClient gatewayClient, PrometheusClientService prometheusClientService)
     {
         m_MongoDbService = mongoDbService;
         m_RedisConnection = redisConnection;
-        m_DailyCheckInService = dailyCheckInService;
         m_GatewayClient = gatewayClient;
         m_PrometheusClientService = prometheusClientService;
-        m_GameRecordApiService = gameRecordApiService;
-        m_GenshinCharacterApi = genshinCharacterApi;
-        m_HsrCharacterApi = hsrCharacterApi;
     }
 
     [SlashCommand("health", "Check the health of the bot and its services.",
