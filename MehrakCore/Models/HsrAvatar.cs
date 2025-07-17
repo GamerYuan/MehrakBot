@@ -38,7 +38,7 @@ public sealed record HsrAvatar : IDisposable
 
     public override int GetHashCode()
     {
-        return AvatarId.GetHashCode();
+        return HashCode.Combine(AvatarId, Level, Rarity, Rank);
     }
 }
 
