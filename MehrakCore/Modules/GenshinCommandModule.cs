@@ -212,18 +212,18 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
-                           "```/genshin character Fischl\n/genshin character Traveler America\n/genshin character Nahida Asia 3```" +
+                           "```/genshin character Fischl\n/genshin character Traveler America\n/genshin character Nahida Asia 3```\n" +
                            "-# [List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/genshin-impact-commands/character/supported-alias)",
             "codes" => "## Redemption Codes\n" +
                        "Redeem Genshin Impact codes\n" +
                        "### Usage\n" +
-                       "```/genshin codes [code] [server] [profile]```\n" +
+                       "```/genshin codes [codes] [server] [profile]```\n" +
                        "### Parameters\n" +
-                       "- `code`: Redemption Code (Comma-separated, Case-insensitive) [Optional, Leaving blank will redeem known codes]\n" +
+                       "- `codes`: The code(s) that you want to redeem. Defaults to known codes (Comma-separated, Case-insensitive) [Optional]\n" +
                        "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
-                       "```/genshin codes GENSHINGIFT\n/genshin codes GENSHINGIFT Asia 2```",
+                       "```/genshin codes\n/genshin codes GENSHINGIFT\n/genshin codes GENSHINGIFT, GENSHINCODE\n/genshin codes GENSHINGIFT Asia 2```",
             "notes" => "## Real-time Notes\n" +
                        "Get real-time notes for Genshin Impact\n" +
                        "### Usage\n" +
@@ -233,6 +233,15 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
                        "```/genshin notes\n/genshin notes Asia 2```",
+            "stygian" => "## Stygian Onslaught\n" +
+                         "Get Stygian Onslaught summary card\n" +
+                         "### Usage\n" +
+                         "```/genshin stygian [server] [profile]```\n" +
+                         "### Parameters\n" +
+                         "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                         "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                         "### Examples\n" +
+                         "```/genshin stygian\n/genshin stygian Asia 2```",
             "theater" => "## Imaginarium Theater\n" +
                          "Get Imaginarium Theater summary card\n" +
                          "### Usage\n" +
@@ -249,6 +258,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                  "- `character`: Get character card from Genshin Impact\n" +
                  "- `codes`: Redeem Genshin Impact codes\n" +
                  "- `notes`: Get real-time notes for Genshin Impact\n" +
+                 "- `stygian`: Get Stygian Onslaught summary card\n" +
                  "- `theater`: Get Imaginarium Theater summary card\n"
         };
     }

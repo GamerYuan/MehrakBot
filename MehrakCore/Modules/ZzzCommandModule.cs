@@ -59,4 +59,25 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
         return true;
     }
+
+    public static string GetHelpString(string subcommand = "")
+    {
+        return subcommand switch
+        {
+            "codes" => "## Redemption Codes\n" +
+                       "Redeem Zenless Zone Zero codes\n" +
+                       "### Usage\n" +
+                       "```/zzz codes [codes] [server] [profile]```\n" +
+                       "### Parameters\n" +
+                       "- `codes`: The code(s) that you want to redeem. Defaults to known codes (Comma-separated, Case-insensitive) [Optional]\n" +
+                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                       "### Examples\n" +
+                       "```/zzz codes\n/zzz codes ZENLESS\n/zzz codes ZENLESS, ZENLESSCODE\n/zzz codes ZENLESS Asia 2```",
+            _ => "## Zenless Zone Zero Toolbox\n" +
+                 "Zenless Zone Zero related commands and utilities.\n" +
+                 "### Subcommands\n" +
+                 "- `codes`: Redeem Zenless Zone Zero codes\n"
+        };
+    }
 }

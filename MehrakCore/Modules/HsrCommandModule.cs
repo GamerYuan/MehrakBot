@@ -143,13 +143,22 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "codes" => "## Redemption Codes\n" +
                        "Redeem Honkai: Star Rail codes\n" +
                        "### Usage\n" +
-                       "```/hsr codes [code] [server] [profile]```\n" +
+                       "```/hsr codes [codes] [server] [profile]```\n" +
                        "### Parameters\n" +
-                       "- `code`: Redemption Code (Comma-separated, Case-insensitive) [Optional, Leaving blank will redeem known codes]\n" +
+                       "- `codes`: The code(s) that you want to redeem. Defaults to known codes (Comma-separated, Case-insensitive) [Optional]\n" +
                        "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
-                       "```/hsr codes HONKAISTARRAIL\n/hsr codes HONKAISTARRAIL Asia 2```",
+                       "```/hsr codes\n/hsr codes HONKAISTARRAIL\n/hsr codes HONKAISTARRAIL, AMPHOREUS\n/hsr codes HONKAISTARRAIL Asia 2```",
+            "moc" => "## Memory of Chaos\n" +
+                     "Get Memory of Chaos card summary card\n" +
+                     "### Usage\n" +
+                     "```/hsr moc [server] [profile]```\n" +
+                     "### Parameters\n" +
+                     "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                     "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                     "### Examples\n" +
+                     "```/hsr moc\n/hsr moc Asia 2```",
             "notes" => "## Real-time Notes\n" +
                        "Get real-time notes for Honkai: Star Rail\n" +
                        "### Usage\n" +
@@ -164,6 +173,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                  "### Subcommands\n" +
                  "- `character`: Get character card from Honkai: Star Rail\n" +
                  "- `codes`: Redeem Honkai: Star Rail codes\n" +
+                 "- `moc`: Get Memory of Chaos card summary card\n" +
                  "- `notes`: Get real-time notes for Honkai: Star Rail\n"
         };
     }
