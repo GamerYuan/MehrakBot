@@ -6,6 +6,7 @@ using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Genshin.Abyss;
 using MehrakCore.Tests.TestHelpers;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging.Abstractions;
 
 #endregion
@@ -50,7 +51,7 @@ public class GenshinAbyssCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var stream =
-            await m_Service.GetAbyssCardAsync(12, userGameData, testData!, GetTestConstDictionary());
+            await m_Service.GetAbyssCardAsync(12, userGameData, Regions.Asia, testData!, GetTestConstDictionary());
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

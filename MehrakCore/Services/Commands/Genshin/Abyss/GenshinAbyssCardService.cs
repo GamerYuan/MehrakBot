@@ -5,6 +5,7 @@ using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -56,7 +57,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         m_AbyssStarIconUnlit.Mutate(ctx => ctx.Brightness(0.35f));
     }
 
-    public async ValueTask<Stream> GetAbyssCardAsync(uint floor, UserGameData gameData,
+    public async ValueTask<Stream> GetAbyssCardAsync(uint floor, UserGameData gameData, Regions region,
         GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
     {
         List<IDisposable> disposableResources = [];
@@ -115,8 +116,10 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Bottom
                     },
-                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!)):dd/MM/yyyy} - " +
-                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!)):dd/MM/yyyy}",
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!))
+                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy} - " +
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!))
+                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy}",
                     Color.White);
 
                 ctx.DrawText($"{gameData.Nickname}·AR {gameData.Level}", m_NormalFont, Color.White,
