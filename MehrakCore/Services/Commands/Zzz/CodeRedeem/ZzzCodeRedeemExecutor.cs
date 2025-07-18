@@ -150,7 +150,7 @@ public class ZzzCodeRedeemExecutor : BaseCommandExecutor<ZzzCommandModule>, ICod
                     throw new CommandException(response.ErrorMessage);
                 }
 
-                await Task.Delay(3500);
+                await Task.Delay(5500);
             }
 
             if (successfulCodes.Count > 0)
