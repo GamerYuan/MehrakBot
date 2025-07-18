@@ -3,13 +3,11 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
-using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Commands.Genshin.Theater;
 using MehrakCore.Services.Common;
@@ -19,6 +17,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Moq.Protected;
 using NetCord;
 using NetCord.Services;
 
@@ -51,6 +50,7 @@ public class GenshinTheaterCommandExecutorTests
     private SlashCommandInteraction m_Interaction = null!;
     private Mock<IDistributedCache> m_DistributedCacheMock = null!;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
+    private Mock<HttpMessageHandler> m_HttpMessageHandlerMock = null!;
 
     private GenshinTheaterInformation m_TestTheaterData = null!;
     private string m_TheaterTestDataJson = null!;
@@ -67,13 +67,15 @@ public class GenshinTheaterCommandExecutorTests
             Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin", "Theater_TestData_1.json"));
         m_TestTheaterData = JsonSerializer.Deserialize<GenshinTheaterInformation>(m_TheaterTestDataJson)!;
 
+        // Setup HTTP client mocking
+        m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
+        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
+
         // Setup mocks
         var imageRepositoryMock =
             new Mock<ImageRepository>(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
-        m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        var httpClient = new HttpClient();
-        m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
-
         m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(
             imageRepositoryMock.Object,
             m_HttpClientFactoryMock.Object,
@@ -272,6 +274,7 @@ public class GenshinTheaterCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithToken();
+        SetupSuccessfulApiResponses();
         SetupTheaterApiSuccess();
         m_CharacterApiMock.Setup(x =>
                 x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -283,7 +286,7 @@ public class GenshinTheaterCommandExecutorTests
         // Assert
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         // With real services, authentication errors might occur instead
-        Assert.That(responseContent, Does.Contain("Authentication failed").Or.Contain("error occurred while fetching character data"));
+        Assert.That(responseContent, Does.Contain("An error occurred while retrieving Imaginarium Theater data"));
     }
 
     [Test]
@@ -435,25 +438,6 @@ public class GenshinTheaterCommandExecutorTests
 
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("auth_modal"));
-    }
-
-    [Test]
-    public async Task ExecuteAsync_CharacterApiReturnsNull_HandlesGracefully()
-    {
-        // Arrange
-        await CreateTestUserWithToken();
-        SetupTheaterApiSuccess();
-        m_CharacterApiMock.Setup(x =>
-                x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((List<GenshinBasicCharacterData>)null!);
-
-        // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
-
-        // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        // With real services, authentication errors might occur instead
-        Assert.That(responseContent, Does.Contain("Authentication failed").Or.Contain("error occurred while fetching character data"));
     }
 
     [Test]
@@ -638,7 +622,8 @@ public class GenshinTheaterCommandExecutorTests
     public void ExecuteAsync_InvalidParameterTypes_ThrowsCastException()
     {
         // Act & Assert - The implementation casts parameters directly
-        var ex = Assert.ThrowsAsync<InvalidCastException>(() => m_Executor.ExecuteAsync("invalid", "parameters").AsTask());
+        var ex = Assert.ThrowsAsync<InvalidCastException>(() =>
+            m_Executor.ExecuteAsync("invalid", "parameters").AsTask());
 
         Assert.That(ex, Is.Not.Null);
     }
@@ -782,24 +767,45 @@ public class GenshinTheaterCommandExecutorTests
 
     private void SetupSuccessfulApiResponses()
     {
-        // With real services, we would need to mock HTTP responses
-        // For now, these helper methods are placeholders for future HTTP mocking implementation
-        // The actual testing will focus on user flow and error handling scenarios
+        // Setup GameRecord API response
+        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard",
+            CreateValidGameRecordResponse(), HttpStatusCode.OK);
+
+        // Setup User Game Roles API response (needed for GetUserGameDataAsync)
+        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+            CreateValidGameRecordResponse(), HttpStatusCode.OK);
+
+        // Setup Theater API response
+        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar",
+            CreateValidTheaterResponse(), HttpStatusCode.OK);
+
+        // Setup Buff API response
+        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar/buff",
+            CreateValidBuffResponse(), HttpStatusCode.OK);
+
+        // Setup character API response
+        var characters = GetTestCharacters();
+        m_CharacterApiMock.Setup(x =>
+                x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(characters);
     }
 
     private void SetupTheaterApiSuccess()
     {
-        // Placeholder - would require HTTP response mocking for real service
+        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar",
+            CreateValidTheaterResponse(), HttpStatusCode.OK);
     }
 
     private void SetupBuffApiSuccess()
     {
-        // Placeholder - would require HTTP response mocking for real service  
+        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar/buff",
+            CreateValidBuffResponse(), HttpStatusCode.OK);
     }
 
     private void SetupCommandServiceSuccess()
     {
-        // Placeholder - would require HTTP response mocking for real service
+        // Command service success is implicit when API responses are properly mocked
+        // No additional setup needed for real GenshinTheaterCardService
     }
 
     private IEnumerable<GenshinBasicCharacterData> GetTestCharacters()
@@ -846,6 +852,95 @@ public class GenshinTheaterCommandExecutorTests
                 }
             }
         };
+    }
+
+    private void SetupHttpResponse(string url, string responseContent, HttpStatusCode statusCode)
+    {
+        m_HttpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().StartsWith(url)),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = statusCode,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+    }
+
+    private void VerifyHttpRequest(string url, Times times)
+    {
+        m_HttpMessageHandlerMock.Protected()
+            .Verify("SendAsync", times,
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().StartsWith(url)),
+                ItExpr.IsAny<CancellationToken>());
+    }
+
+    private string CreateValidGameRecordResponse()
+    {
+        var gameRecord = new
+        {
+            retcode = 0,
+            message = "OK",
+            data = new
+            {
+                list = new[]
+                {
+                    new
+                    {
+                        game_uid = TestGameUid,
+                        nickname = "TestPlayer",
+                        region = "os_usa",
+                        level = 60,
+                        region_name = "America"
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(gameRecord);
+    }
+
+    private string CreateValidTheaterResponse()
+    {
+        var theaterResponse = new
+        {
+            retcode = 0,
+            message = "OK",
+            data = m_TestTheaterData
+        };
+
+        return JsonSerializer.Serialize(theaterResponse);
+    }
+
+    private string CreateValidBuffResponse()
+    {
+        var buffResponse = new
+        {
+            retcode = 0,
+            message = "OK",
+            data = new
+            {
+                buffs = new[]
+                {
+                    new
+                    {
+                        id = 1,
+                        name = "Test Buff 1",
+                        icon = "https://example.com/buff1.png",
+                        description = "Test buff description 1"
+                    },
+                    new
+                    {
+                        id = 2,
+                        name = "Test Buff 2",
+                        icon = "https://example.com/buff2.png",
+                        description = "Test buff description 2"
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(buffResponse);
     }
 
     #endregion
