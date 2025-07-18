@@ -40,6 +40,7 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
+using Serilog.Sinks.Grafana.Loki;
 using StackExchange.Redis;
 
 #endregion
@@ -64,6 +65,12 @@ internal class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
+        if (builder.Environment.IsDevelopment())
+        {
+            Console.WriteLine("Development environment detected");
+            builder.Configuration.AddJsonFile("appsettings.development.json");
+        }
+
         // Configure Serilog
         var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Information()
@@ -80,14 +87,16 @@ internal class Program
                 outputTemplate:
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture
-            );
+            )
+            .WriteTo.GrafanaLoki(
+                builder.Configuration["Loki:ConnectionString"] ?? "http://localhost:3100",
+                [
+                    new LokiLabel { Key = "app", Value = "MehrakBot" },
+                    new LokiLabel { Key = "environment", Value = builder.Environment.EnvironmentName }
+                ]);
 
         if (builder.Environment.IsDevelopment())
-        {
-            Console.WriteLine("Development environment detected");
-            builder.Configuration.AddJsonFile("appsettings.development.json");
             loggerConfig.MinimumLevel.Debug();
-        }
 
         Log.Logger = loggerConfig.CreateLogger();
 
