@@ -531,9 +531,6 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUserWithToken();
         SetupTheaterApiSuccess();
 
-        // With real services, empty buff data would come from actual HTTP responses
-        SetupCommandServiceSuccess();
-
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
@@ -549,7 +546,6 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUserWithToken();
         SetupTheaterApiSuccess();
         SetupBuffApiSuccess();
-        SetupCommandServiceSuccess();
 
         // Setup character API to return data with null values
         var charactersWithNulls = new List<GenshinBasicCharacterData>
@@ -800,12 +796,6 @@ public class GenshinTheaterCommandExecutorTests
     {
         SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar/buff",
             CreateValidBuffResponse(), HttpStatusCode.OK);
-    }
-
-    private void SetupCommandServiceSuccess()
-    {
-        // Command service success is implicit when API responses are properly mocked
-        // No additional setup needed for real GenshinTheaterCardService
     }
 
     private IEnumerable<GenshinBasicCharacterData> GetTestCharacters()
