@@ -166,9 +166,9 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
         try
         {
             var tz = region.GetTimeZoneInfo();
-            var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime()).ToOffset(tz.BaseUtcOffset)
+            var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
-            var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime()).ToOffset(tz.BaseUtcOffset)
+            var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
             InteractionMessageProperties message = new();
             ComponentContainerProperties container =
