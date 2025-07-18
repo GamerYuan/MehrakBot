@@ -211,8 +211,6 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(null, TestProfileId);
 
         // Assert
-        // For real services, we would verify through HTTP mocking or response content
-        // For now, ensure no exception is thrown and user data is properly set up
         var user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[GameName.Genshin], Is.EqualTo(Regions.America));
@@ -243,8 +241,6 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        // With real services, we validate the execution path through user state and response content
-        // The fact that no exception was thrown indicates successful processing path
         var user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LtUid, Is.EqualTo(TestLtUid));
@@ -255,16 +251,11 @@ public class GenshinTheaterCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithToken();
-        // With real services, API errors would come from actual HTTP failures
-        // This test validates the error handling path through response content
 
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        // Since we can't easily mock HTTP failures with real services,
-        // we validate that the execution completed without throwing exceptions
-        // In a full implementation, this would require HTTP response mocking
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
@@ -295,8 +286,6 @@ public class GenshinTheaterCommandExecutorTests
         // Arrange
         await CreateTestUserWithToken();
         SetupTheaterApiSuccess();
-        // With real services, this would require HTTP response mocking
-        // This test validates error handling paths
 
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
@@ -450,13 +439,9 @@ public class GenshinTheaterCommandExecutorTests
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
-        // Assert - With real services, image updater calls may not occur if API calls fail
-        // This test verifies the execution completes rather than specific method calls
+        // Assert
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
-
-        // If the execution reaches the image updating phase, these would be called
-        // But with real HTTP calls, authentication failures may prevent this
     }
 
     [Test]
@@ -495,13 +480,10 @@ public class GenshinTheaterCommandExecutorTests
         SetupTheaterApiSuccess();
         SetupBuffApiSuccess();
 
-        // With real services, we can't easily mock exceptions from internal methods
-        // This test validates the error handling through try-catch blocks
-
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
-        // Assert - Validates that execution completes even with potential service errors
+        // Assert
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
@@ -514,12 +496,10 @@ public class GenshinTheaterCommandExecutorTests
         SetupTheaterApiSuccess();
         SetupBuffApiSuccess();
 
-        // With real services, we validate error handling through execution flow
-
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
-        // Assert - Validates error handling without throwing exceptions
+        // Assert
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
@@ -534,7 +514,7 @@ public class GenshinTheaterCommandExecutorTests
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
-        // Assert - Should complete successfully even with empty buff data
+        // Assert
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
@@ -583,11 +563,10 @@ public class GenshinTheaterCommandExecutorTests
                 x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(charactersWithNulls);
 
-        // Act & Assert - Should handle null values gracefully
+        // Act & Assert
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        // With real services, authentication errors might occur instead  
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -610,7 +589,7 @@ public class GenshinTheaterCommandExecutorTests
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
 
-        // Assert - Context should be updated to the new context
+        // Assert
         Assert.That(m_Executor.Context, Is.EqualTo(newContextMock.Object));
     }
 
@@ -627,7 +606,7 @@ public class GenshinTheaterCommandExecutorTests
     [Test]
     public void ExecuteAsync_NullParameters_ThrowsCastException()
     {
-        // Act & Assert - The implementation casts parameters directly
+        // Act & Assert
         var ex = Assert.ThrowsAsync<InvalidCastException>(() => m_Executor.ExecuteAsync(null, null).AsTask());
 
         Assert.That(ex, Is.Not.Null);
@@ -651,7 +630,6 @@ public class GenshinTheaterCommandExecutorTests
         var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
 
-        // Verify that user data is properly set up and no exceptions were thrown
         var user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LtUid, Is.EqualTo(TestLtUid));
