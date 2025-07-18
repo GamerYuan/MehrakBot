@@ -14,6 +14,8 @@ services:
       - redis
     networks:
       - mehrak-network
+    volumes:
+      - app-logs:/app/logs
     environment:
       - DOTNET_ENVIRONMENT=Development
 
@@ -107,3 +109,9 @@ volumes:
   redis_data:
   prometheus-data:
   grafana-data:
+  app-logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./MehrakCore/logs
+      o: bind

@@ -10,6 +10,8 @@ services:
     depends_on:
       - mongodb
       - redis
+    volumes:
+      - app-logs:/app/logs
     networks:
       - mehrak-network
 
@@ -107,3 +109,9 @@ volumes:
   redis_data:
   prometheus-data:
   grafana-data:
+  app-logs:
+      driver: local
+      driver_opts:
+        type: none
+        device: ./MehrakCore/logs
+        o: bind
