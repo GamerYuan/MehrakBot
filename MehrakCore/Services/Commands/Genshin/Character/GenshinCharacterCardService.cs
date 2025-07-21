@@ -13,7 +13,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -269,7 +268,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 }
 
                 ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
-                ctx.DrawImage(ImageExtensions.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
+                ctx.DrawImage(ImageUtility.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
                     new Point(1220, 240), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -440,7 +439,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         HorizontalAlignment = HorizontalAlignment.Right,
                         Origin = new Vector2(320, 130)
                     }, $"+{relic.Level!.Value}", Color.White);
-                var stars = ImageExtensions.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
+                var stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
                 stars.Mutate(x => x.Resize(0, 25));
                 ctx.DrawImage(stars, new Point(120, 130), 1f);
 

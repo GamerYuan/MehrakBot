@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace MehrakCore.Utility;
 
-public static class ImageExtensions
+public static class ImageUtility
 {
     private static readonly Color StarColor = Color.ParseHex("#FFCC33");
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 100)); // Semi-transparent black for shadow

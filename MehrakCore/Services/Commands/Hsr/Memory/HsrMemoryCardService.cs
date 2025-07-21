@@ -6,6 +6,7 @@ using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -14,7 +15,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -153,7 +153,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                             (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
                              !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
                         {
-                            overlay = ImageExtensions.CreateRoundedRectanglePath(700, 500, 15)
+                            overlay = ImageUtility.CreateRoundedRectanglePath(700, 500, 15)
                                 .Translate(xOffset, yOffset);
                             ctx.Fill(OverlayColor, overlay);
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -165,7 +165,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                         }
                         else
                         {
-                            overlay = ImageExtensions.CreateRoundedRectanglePath(700, 180, 15)
+                            overlay = ImageUtility.CreateRoundedRectanglePath(700, 180, 15)
                                 .Translate(xOffset, yOffset);
                             ctx.Fill(OverlayColor, overlay);
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -191,7 +191,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                         continue;
                     }
 
-                    overlay = ImageExtensions.CreateRoundedRectanglePath(700, 500, 15).Translate(xOffset, yOffset);
+                    overlay = ImageUtility.CreateRoundedRectanglePath(700, 500, 15).Translate(xOffset, yOffset);
                     ctx.Fill(OverlayColor, overlay);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {

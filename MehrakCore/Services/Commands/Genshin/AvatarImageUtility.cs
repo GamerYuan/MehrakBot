@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -55,7 +54,7 @@ internal static class AvatarImageUtility
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
             }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.Black);
-            var constIcon = ImageExtensions.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
+            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
             if (constellation == 6)
             {
                 ctx.Fill(Color.Gold, constIcon);
@@ -80,7 +79,7 @@ internal static class AvatarImageUtility
             switch (avatarType)
             {
                 case 2:
-                    var trialOverlay = ImageExtensions.CreateRoundedRectanglePath(80, 35, 15);
+                    var trialOverlay = ImageUtility.CreateRoundedRectanglePath(80, 35, 15);
                     ctx.Fill(Color.FromRgb(225, 118, 128), trialOverlay.Translate(90, -10));
                     ctx.DrawText(new RichTextOptions(SmallFont)
                     {
@@ -89,7 +88,7 @@ internal static class AvatarImageUtility
                     }, "Trial", Color.White);
                     break;
                 case 3:
-                    var supportOverlay = ImageExtensions.CreateRoundedRectanglePath(130, 35, 15);
+                    var supportOverlay = ImageUtility.CreateRoundedRectanglePath(130, 35, 15);
                     ctx.Fill(Color.FromRgb(73, 128, 185), supportOverlay.Translate(50, -10));
                     ctx.DrawText(new RichTextOptions(SmallFont)
                     {

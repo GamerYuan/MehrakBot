@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -55,7 +54,7 @@ internal static class AvatarImageUtility
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
             }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.White);
-            var constIcon = ImageExtensions.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
+            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
             if (rank == 6)
             {
                 ctx.Fill(Color.Gold, constIcon);

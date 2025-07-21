@@ -5,14 +5,13 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
 namespace MehrakCore.Tests.Utility;
 
 [Parallelizable(ParallelScope.Fixtures | ParallelScope.Children)]
-public class ImageExtensionsTest
+public class ImageUtilityTest
 {
     [Test]
     public void ApplyGradientFade_ShouldMakeRightSideTransparent()
@@ -43,7 +42,7 @@ public class ImageExtensionsTest
     public void GenerateStarRating_ShouldCreateCorrectNumberOfStars(int starCount)
     {
         // Act
-        var result = ImageExtensions.GenerateStarRating(starCount);
+        var result = ImageUtility.GenerateStarRating(starCount);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -89,12 +88,12 @@ public class ImageExtensionsTest
     public void GenerateStarRating_ShouldClampStarCount()
     {
         // Test with values outside the valid range
-        var tooLow = ImageExtensions.GenerateStarRating(0);
-        var tooHigh = ImageExtensions.GenerateStarRating(6);
+        var tooLow = ImageUtility.GenerateStarRating(0);
+        var tooHigh = ImageUtility.GenerateStarRating(6);
 
         // Check if both are clamped properly by checking image properties
-        var oneStar = ImageExtensions.GenerateStarRating(1);
-        var fiveStars = ImageExtensions.GenerateStarRating(5);
+        var oneStar = ImageUtility.GenerateStarRating(1);
+        var fiveStars = ImageUtility.GenerateStarRating(5);
 
         Assert.Multiple(() =>
         {

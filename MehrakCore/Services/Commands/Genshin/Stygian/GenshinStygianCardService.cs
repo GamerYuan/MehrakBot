@@ -15,7 +15,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -148,7 +147,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
 
                     for (int j = 0; j < challenge.BestAvatar.Count; j++)
                     {
-                        var overlay = ImageExtensions.CreateRoundedRectanglePath(580, 145, 15)
+                        var overlay = ImageUtility.CreateRoundedRectanglePath(580, 145, 15)
                             .Translate(1070, yOffset + j * 155);
                         ctx.Fill(OverlayColor, overlay);
                         var bestAvatar = challenge.BestAvatar[j];
