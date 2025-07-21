@@ -14,6 +14,7 @@ using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin;
 using MehrakCore.Services.Commands.Genshin.Abyss;
 using MehrakCore.Services.Commands.Genshin.Character;
+using MehrakCore.Services.Commands.Genshin.CharList;
 using MehrakCore.Services.Commands.Genshin.CodeRedeem;
 using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Commands.Genshin.Stygian;
@@ -162,6 +163,9 @@ internal class Program
             builder.Services.AddTransient<GenshinStygianCommandExecutor>();
             builder.Services.AddSingleton<IApiService<GenshinStygianCommandExecutor>, GenshinStygianApiService>();
             builder.Services.AddSingleton<ICommandService<GenshinStygianCommandExecutor>, GenshinStygianCardService>();
+            builder.Services.AddTransient<GenshinCharListCommandExecutor>();
+            builder.Services
+                .AddSingleton<ICommandService<GenshinCharListCommandExecutor>, GenshinCharListCardService>();
 
             // Hsr Services
             builder.Services
