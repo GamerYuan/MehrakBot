@@ -225,6 +225,43 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         }
     }
 
+    public async Task UpdateWeaponImageTask(Weapon weapon)
+    {
+        var filename = string.Format(BaseString, weapon.Id!.Value);
+        Logger.LogDebug("Updating weapon icon for weapon {WeaponName}, ID: {WeaponId} URL: {IconUrl}",
+            weapon.Name, weapon.Id.Value, weapon.Icon);
+        try
+        {
+            var response = await HttpClientFactory.CreateClient("Default").GetAsync(weapon.Icon);
+            response.EnsureSuccessStatusCode();
+            using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+            image.Mutate(x => x.Resize(200, 0, KnownResamplers.Bicubic));
+            using var processedImageStream = new MemoryStream();
+            await image.SaveAsPngAsync(processedImageStream, new PngEncoder
+            {
+                BitDepth = PngBitDepth.Bit8,
+                ColorType = PngColorType.RgbWithAlpha
+            });
+            processedImageStream.Position = 0;
+            Logger.LogDebug(
+                "Uploading weapon icon for weapon {WeaponName}, ID: {WeaponId}", weapon.Name,
+                weapon.Id.Value);
+            await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Error downloading weapon icon for weapon {WeaponName}, ID: {WeaponId} URL: {IconUrl}",
+                weapon.Name, weapon.Id.Value, weapon.Icon);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing weapon icon for weapon {WeaponName}, ID: {WeaponId}",
+                weapon.Name, weapon.Id.Value);
+            throw;
+        }
+    }
+
     private async Task UpdateWeaponImageTask(WeaponDetail weaponDetail)
     {
         var filename = string.Format(BaseString, weaponDetail.Id!.Value);
