@@ -228,6 +228,12 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     public async Task UpdateWeaponImageTask(Weapon weapon)
     {
         var filename = string.Format(BaseString, weapon.Id!.Value);
+        if (await ImageRepository.FileExistsAsync(filename))
+        {
+            Logger.LogDebug("Weapon image {Filename} already exists. Skipping update.", filename);
+            return;
+        }
+
         Logger.LogDebug("Updating weapon icon for weapon {WeaponName}, ID: {WeaponId} URL: {IconUrl}",
             weapon.Name, weapon.Id.Value, weapon.Icon);
         try
