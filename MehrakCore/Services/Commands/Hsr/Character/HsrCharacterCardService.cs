@@ -13,7 +13,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -376,7 +375,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     ctx.Draw(Color.Gold, 2f, equipEllipse.AsClosedPath());
                     ctx.DrawText($"Lv. {characterInformation.Equip.Level!.Value}", m_NormalFont, Color.White,
                         new PointF(1080, 670));
-                    var stars = ImageExtensions.GenerateFourSidedStarRating(characterInformation.Equip.Rarity!.Value,
+                    var stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity!.Value,
                         false);
                     ctx.DrawImage(stars, new Point(990, 730), 1f);
                 }
@@ -485,7 +484,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         relicSlotImage.Mutate(ctx =>
         {
             ctx.DrawImage(relicImage, new Point(10, 0), 1f);
-            ctx.DrawImage(ImageExtensions.GenerateFourSidedStarRating(relic.Rarity!.Value), new Point(20, 115), 1f);
+            ctx.DrawImage(ImageUtility.GenerateFourSidedStarRating(relic.Rarity!.Value), new Point(20, 115), 1f);
             ctx.DrawImage(m_StatImages[relic.MainProperty!.PropertyType!.Value], new Point(125, 10), 1f);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {

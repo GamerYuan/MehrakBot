@@ -14,7 +14,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -130,7 +129,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, gameData.GameUid!, Color.White);
 
-                var statsBackground = ImageExtensions.CreateRoundedRectanglePath(700, 250, 15).Translate(50, 170);
+                var statsBackground = ImageUtility.CreateRoundedRectanglePath(700, 250, 15).Translate(50, 170);
                 ctx.Fill(OverlayColor, statsBackground);
 
                 ctx.DrawText("Deepest Descent: ", m_NormalFont, Color.White, new PointF(80, 200));
@@ -156,7 +155,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, $"{abyssData.TotalStar}", Color.White);
 
-                var mostUsedBackground = ImageExtensions.CreateRoundedRectanglePath(700, 260, 15).Translate(50, 440);
+                var mostUsedBackground = ImageUtility.CreateRoundedRectanglePath(700, 260, 15).Translate(50, 440);
                 ctx.Fill(OverlayColor, mostUsedBackground);
                 ctx.DrawText("Most Used Characters", m_NormalFont, Color.White, new PointF(80, 460));
 
@@ -166,7 +165,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                 disposableResources.Add(revealRank);
                 ctx.DrawImage(revealRank, new Point(75, 500), 1f);
 
-                var overlay = ImageExtensions.CreateRoundedRectanglePath(700, 150, 15).Translate(50, 720);
+                var overlay = ImageUtility.CreateRoundedRectanglePath(700, 150, 15).Translate(50, 720);
 
                 for (int i = 0; i < 5; i++)
                 {
@@ -257,7 +256,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                 for (int i = 0; i < 3; i++)
                 {
                     var offset = i * 490 + 160;
-                    var rosterBackground = ImageExtensions.CreateRoundedRectanglePath(670, 470, 15)
+                    var rosterBackground = ImageUtility.CreateRoundedRectanglePath(670, 470, 15)
                         .Translate(785, offset - 60);
                     ctx.Fill(OverlayColor, rosterBackground);
                     ctx.DrawText($"Chamber {i + 1}", m_NormalFont, Color.White,

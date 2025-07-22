@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace MehrakCore.Utility;
 
-public static class ImageExtensions
+public static class ImageUtility
 {
     private static readonly Color StarColor = Color.ParseHex("#FFCC33");
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 100)); // Semi-transparent black for shadow
@@ -239,5 +239,148 @@ public static class ImageExtensions
         IPath cornerBottomRight = cornerTopLeft.RotateDegree(180).Translate(rightPos, bottomPos);
 
         return new PathCollection(cornerTopLeft, cornerBottomLeft, cornerTopRight, cornerBottomRight);
+    }
+
+    public readonly struct ImagePosition(int x, int y, int imageIndex)
+    {
+        public int X { get; } = x;
+        public int Y { get; } = y;
+        public int ImageIndex { get; } = imageIndex;
+    }
+
+    public class GridLayout
+    {
+        public int OutputWidth { get; set; }
+        public int OutputHeight { get; set; }
+        public int Columns { get; set; }
+        public int Rows { get; set; }
+        public int ImageWidth { get; set; }
+        public int ImageHeight { get; set; }
+        public int[] Padding { get; }
+        public int ImageSpacing { get; set; }
+        public List<ImagePosition> ImagePositions { get; set; }
+
+        public GridLayout(int[] padding)
+        {
+            Padding = padding;
+            ImagePositions = new List<ImagePosition>();
+        }
+
+        // Helper properties for easier access to padding values
+        public int PaddingTop => Padding[0];
+        public int PaddingRight => Padding[1];
+        public int PaddingBottom => Padding[2];
+        public int PaddingLeft => Padding[3];
+    }
+
+    public static GridLayout CalculateGridLayout(int imageCount,
+        int imageWidth,
+        int imageHeight,
+        int[] padding,
+        int imageSpacing = 20)
+    {
+        if (imageCount <= 0)
+            throw new ArgumentException("Image count must be greater than 0");
+
+        if (imageWidth <= 0 || imageHeight <= 0)
+            throw new ArgumentException("Image dimensions must be greater than 0");
+
+        if (padding == null || padding.Length != 4)
+            throw new ArgumentException("Padding array must contain exactly 4 values: top, right, bottom, left");
+
+        if (padding.Any(p => p < 0))
+            throw new ArgumentException("Padding values cannot be negative");
+
+        if (imageSpacing < 0)
+            throw new ArgumentException("Image spacing cannot be negative");
+
+        var layout = new GridLayout((int[])padding.Clone())
+        {
+            ImageWidth = imageWidth,
+            ImageHeight = imageHeight,
+            ImageSpacing = imageSpacing
+        };
+
+        // Find the best grid dimensions (columns x rows) that gives us closest to 16:9 ratio
+        var bestLayout = FindOptimalGridDimensions(imageCount, imageWidth, imageHeight, padding, imageSpacing);
+        layout.Columns = bestLayout.columns;
+        layout.Rows = bestLayout.rows;
+
+        // Calculate output image dimensions
+        layout.OutputWidth = layout.PaddingLeft + layout.PaddingRight +
+                             layout.Columns * imageWidth +
+                             (layout.Columns - 1) * imageSpacing;
+
+        layout.OutputHeight = layout.PaddingTop + layout.PaddingBottom +
+                              layout.Rows * imageHeight +
+                              (layout.Rows - 1) * imageSpacing;
+
+        // Calculate positions for each image
+        layout.ImagePositions = CalculateImagePositions(layout.Columns, layout.Rows, imageCount,
+            imageWidth, imageHeight, padding, imageSpacing);
+
+        return layout;
+    }
+
+    private static (int columns, int rows) FindOptimalGridDimensions(int imageCount,
+        int imageWidth,
+        int imageHeight,
+        int[] padding,
+        int imageSpacing)
+    {
+        int bestColumns = 1;
+        int bestRows = imageCount;
+        double bestRatioDifference = double.MaxValue;
+
+        // Try different column configurations
+        for (int columns = 1; columns <= imageCount; columns++)
+        {
+            int rows = (int)Math.Ceiling((double)imageCount / columns);
+
+            // Calculate what the aspect ratio would be with this grid
+            int gridWidth = padding[3] + padding[1] + // left + right padding
+                            columns * imageWidth +
+                            (columns - 1) * imageSpacing;
+
+            int gridHeight = padding[0] + padding[2] + // top + bottom padding
+                             rows * imageHeight +
+                             (rows - 1) * imageSpacing;
+
+            double currentRatio = (double)gridWidth / gridHeight;
+            double ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
+
+            if (ratioDifference < bestRatioDifference)
+            {
+                bestRatioDifference = ratioDifference;
+                bestColumns = columns;
+                bestRows = rows;
+            }
+        }
+
+        return (bestColumns, bestRows);
+    }
+
+    private static List<ImagePosition> CalculateImagePositions(int columns,
+        int rows,
+        int imageCount,
+        int imageWidth,
+        int imageHeight,
+        int[] padding,
+        int imageSpacing)
+    {
+        var positions = new List<ImagePosition>();
+
+        for (int i = 0; i < imageCount; i++)
+        {
+            int column = i % columns;
+            int row = i / columns;
+
+            int x = padding[3] + column * (imageWidth + imageSpacing); // left padding + column offset
+            int y = padding[0] + row * (imageHeight + imageSpacing); // top padding + row offset
+
+            positions.Add(new ImagePosition(x, y, i));
+        }
+
+        return positions;
     }
 }

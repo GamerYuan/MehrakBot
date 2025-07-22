@@ -5,6 +5,7 @@ using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -13,7 +14,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ImageExtensions = MehrakCore.Utility.ImageExtensions;
 
 #endregion
 
@@ -151,7 +151,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, userGameData.GameUid!, Color.White);
 
-                var statsBackground = ImageExtensions.CreateRoundedRectanglePath(875, 330, 15).Translate(40, 210);
+                var statsBackground = ImageUtility.CreateRoundedRectanglePath(875, 330, 15).Translate(40, 210);
                 ctx.Fill(OverlayColor, statsBackground);
 
                 ctx.DrawText("Fantasia Flowers Used", m_NormalFont, Color.White, new PointF(70, 240));
@@ -186,7 +186,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     }, TimeSpan.FromSeconds(theaterData.Detail.FightStatistic.TotalUseTime).ToString(@"mm\:ss"),
                     Color.White);
 
-                var statBackground = ImageExtensions.CreateRoundedRectanglePath(875, 360, 15).Translate(985, 50);
+                var statBackground = ImageUtility.CreateRoundedRectanglePath(875, 360, 15).Translate(985, 50);
                 ctx.Fill(OverlayColor, statBackground);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -233,7 +233,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDefeatAvatar.AvatarId],
                     new Point(1005, 280), 1f);
 
-                var starBackground = ImageExtensions.CreateRoundedRectanglePath(875, 110, 15).Translate(985, 430);
+                var starBackground = ImageUtility.CreateRoundedRectanglePath(875, 110, 15).Translate(985, 430);
                 ctx.Fill(OverlayColor, starBackground);
                 ctx.DrawText("Star Challenge Stellas", m_NormalFont, Color.White, new PointF(1005, 470));
 
@@ -256,7 +256,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     int yOffset = 660 + i / 2 * 300;
                     var roundData = theaterData.Detail.RoundsData[i];
 
-                    var avatarBackground = ImageExtensions.CreateRoundedRectanglePath(670, 270, 15);
+                    var avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
                     ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
 
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -269,7 +269,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     ctx.DrawImage(roundData.IsGetMedal ? m_TheaterStarLit : m_TheaterStarUnlit,
                         new Point(xOffset + 600, yOffset - 55), 1f);
 
-                    var buffBackground = ImageExtensions.CreateRoundedRectanglePath(195, 270, 15);
+                    var buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
                     ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
 
                     ctx.DrawImage(m_TheaterBuff, new Point(xOffset + 690, yOffset - 60), 1f);
@@ -299,7 +299,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                             )))
                     {
                         hasFastest = true;
-                        var fastestBackground = ImageExtensions.CreateRoundedRectanglePath(190, 50, 15);
+                        var fastestBackground = ImageUtility.CreateRoundedRectanglePath(190, 50, 15);
                         ctx.Fill(Color.FromRgba(128, 128, 128, 128),
                             fastestBackground.Translate(xOffset + 400, yOffset - 60));
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -316,7 +316,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         : 50 + (i % 2 == 0 ? 0 : 945);
                     int yOffset = 660 + i / 2 * 300;
 
-                    var avatarBackground = ImageExtensions.CreateRoundedRectanglePath(670, 270, 15);
+                    var avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
                     ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
 
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -331,7 +331,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         VerticalAlignment = VerticalAlignment.Center
                     }, "No Clear Records", Color.White);
 
-                    var buffBackground = ImageExtensions.CreateRoundedRectanglePath(195, 270, 15);
+                    var buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
                     ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
                     ctx.DrawLine(new SolidPen(new PenOptions(Color.White, 5f) { EndCapStyle = EndCapStyle.Round }),
                         new PointF(xOffset + 690, yOffset + 180),
