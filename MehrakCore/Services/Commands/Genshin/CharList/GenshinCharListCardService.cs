@@ -50,11 +50,40 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
         GoldBackgroundColor
     ];
 
+    private static readonly Color PurpleForegroundColor = Color.FromRgb(204, 173, 255);
+
     private static readonly Color NormalConstColor = Color.FromRgba(69, 69, 69, 200);
     private static readonly Color GoldConstTextColor = Color.FromRgb(138, 101, 0);
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
     private static readonly Color DarkOverlayColor = Color.FromRgba(0, 0, 0, 200);
+
+    private static readonly string[] Elements =
+    [
+        "Pyro", "Hydro", "Cryo", "Electro", "Anemo", "Geo", "Dendro"
+    ];
+
+    private static readonly Dictionary<string, Color> ElementForeground = new()
+    {
+        { "Pyro", Color.FromRgb(244, 163, 111) },
+        { "Hydro", Color.FromRgb(7, 229, 252) },
+        { "Cryo", Color.FromRgb(203, 253, 253) },
+        { "Electro", Color.FromRgb(222, 186, 255) },
+        { "Anemo", Color.FromRgb(163, 238, 202) },
+        { "Geo", Color.FromRgb(242, 213, 95) },
+        { "Dendro", Color.FromRgb(172, 230, 40) }
+    };
+
+    private static readonly Dictionary<string, Color> ElementBackground = new()
+    {
+        { "Pyro", Color.FromRgba(198, 90, 21, 128) },
+        { "Hydro", Color.FromRgba(25, 156, 198, 128) },
+        { "Cryo", Color.FromRgba(108, 192, 192, 128) },
+        { "Electro", Color.FromRgba(177, 117, 217, 128) },
+        { "Anemo", Color.FromRgba(56, 185, 145, 128) },
+        { "Geo", Color.FromRgba(179, 132, 36, 128) },
+        { "Dendro", Color.FromRgba(128, 175, 18, 128) }
+    };
 
     public GenshinCharListCardService(ImageRepository imageRepository, ILogger<GenshinCharListCardService> logger)
     {
@@ -89,7 +118,7 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                     });
             disposables.AddRange(weaponImages.Values);
 
-            var avatarImages = await charData.OrderByDescending(x => x.Level)
+            var avatarImageTask = charData.OrderByDescending(x => x.Level)
                 .ThenByDescending(x => x.Rarity)
                 .ThenBy(x => x.Name)
                 .ToAsyncEnumerable()
@@ -101,15 +130,24 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                 })
                 .ToListAsync();
 
+            var charCountByElem = charData.GroupBy(x => x.Element!)
+                .OrderBy(x => Array.IndexOf(Elements, x.Key))
+                .Select(x => new { Element = x.Key, Count = x.Count() }).ToList();
+            var charCountByRarity = charData.GroupBy(x => x.Rarity!.Value)
+                .OrderBy(x => x.Key)
+                .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
+
+            var avatarImages = await avatarImageTask;
+
             disposables.AddRange(avatarImages);
 
             var layout = ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
-            var background = new Image<Rgba32>(layout.OutputWidth, layout.OutputHeight);
+            var background = new Image<Rgba32>(layout.OutputWidth, layout.OutputHeight + 50);
 
             background.Mutate(ctx =>
             {
-                ctx.Fill(Color.RebeccaPurple);
+                ctx.Clear(Color.FromRgb(69, 69, 69));
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                     {
                         Origin = new Vector2(50, 80),
@@ -126,6 +164,64 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                 {
                     var image = avatarImages[position.ImageIndex];
                     ctx.DrawImage(image, new Point(position.X, position.Y), 1f);
+                }
+
+                var yOffset = layout.OutputHeight - 30;
+                var xOffset = 50;
+                foreach (var entry in charCountByElem)
+                {
+                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                        new TextOptions(m_NormalFont));
+                    var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
+                    var size = new FontRectangle(0, 0, countSize.Width + elemSize.Width + 20,
+                        countSize.Height + elemSize.Height);
+                    var overlay =
+                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
+                            .Translate(xOffset, yOffset);
+                    var foreground = new EllipsePolygon(new PointF(xOffset + 20, yOffset + 25), 10);
+                    ctx.Fill(ElementBackground[entry.Element], overlay);
+                    ctx.Fill(ElementForeground[entry.Element], foreground);
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    {
+                        Origin = new Vector2(xOffset + 40, yOffset + 26),
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, entry.Element, Color.White);
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    {
+                        Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, entry.Count.ToString(), Color.White);
+                    xOffset += (int)size.Width + 70;
+                }
+
+                foreach (var entry in charCountByRarity)
+                {
+                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                        new TextOptions(m_NormalFont));
+                    var elemSize = TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
+                    var size = new FontRectangle(0, 0, countSize.Width + elemSize.Width + 20,
+                        countSize.Height + elemSize.Height);
+                    var overlay =
+                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
+                            .Translate(xOffset, yOffset);
+                    var foreground = new EllipsePolygon(new PointF(xOffset + 20, yOffset + 25), 10);
+                    ctx.Fill(RarityColors[entry.Rarity - 1].WithAlpha(128), overlay);
+                    ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            Origin = new Vector2(xOffset + 40, yOffset + 26),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, $"{entry.Rarity} Star", Color.White);
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    {
+                        Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, entry.Count.ToString(), Color.White);
+                    xOffset += (int)size.Width + 70;
                 }
             });
 

@@ -347,7 +347,7 @@ public static class ImageUtility
                              (rows - 1) * imageSpacing;
 
             double currentRatio = (double)gridWidth / gridHeight;
-            double ratioDifference = Math.Abs(currentRatio - 16.0 / 9.0);
+            double ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
 
             if (ratioDifference < bestRatioDifference)
             {
