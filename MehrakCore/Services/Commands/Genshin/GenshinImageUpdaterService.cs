@@ -225,7 +225,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
         }
     }
 
-    public async Task UpdateWeaponImageTask(Weapon weapon)
+    public virtual async Task UpdateWeaponImageTask(Weapon weapon)
     {
         var filename = string.Format(BaseString, weapon.Id!.Value);
         if (await ImageRepository.FileExistsAsync(filename))
