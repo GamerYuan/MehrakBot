@@ -152,6 +152,9 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
     {
         InteractionMessageProperties message = new();
         message.WithFlags(MessageFlags.IsComponentsV2);
+        message.WithAllowedMentions(
+            new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
+        message.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
         message.AddComponents(new MediaGalleryProperties([
             new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://charlist.jpg"))
         ]));
