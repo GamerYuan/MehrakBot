@@ -38,7 +38,7 @@ public class FictionAvatar
     [JsonPropertyName("rank")] public int Rank { get; set; }
 }
 
-public class Buff
+public class FictionBuff
 {
     [JsonPropertyName("id")] public int Id { get; set; }
 
@@ -68,7 +68,7 @@ public class FictionNodeInformation
 
     [JsonPropertyName("avatars")] public required List<FictionAvatar> Avatars { get; set; }
 
-    [JsonPropertyName("buff")] public required Buff Buff { get; set; }
+    [JsonPropertyName("buff")] public required FictionBuff Buff { get; set; }
 
     [JsonPropertyName("score")] public required string Score { get; set; }
 }
