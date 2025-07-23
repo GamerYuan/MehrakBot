@@ -3,6 +3,7 @@
 using MehrakCore.Provider.Commands.Hsr;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Hsr.Memory;
+using MehrakCore.Services.Commands.Hsr.PureFiction;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -20,19 +21,21 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     private readonly ICharacterCommandExecutor<HsrCommandModule> m_CharacterCommandExecutor;
     private readonly IRealTimeNotesCommandExecutor<HsrCommandModule> m_RealTimeNotesCommandExecutor;
     private readonly HsrMemoryCommandExecutor m_MemoryCommandExecutor;
+    private readonly HsrPureFictionCommandExecutor m_FictionCommandExecutor;
     private readonly ICodeRedeemExecutor<HsrCommandModule> m_CodesRedeemExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<HsrCommandModule> m_Logger;
 
     public HsrCommandModule(ICharacterCommandExecutor<HsrCommandModule> characterCommandExecutor,
         IRealTimeNotesCommandExecutor<HsrCommandModule> realTimeNotesCommandExecutor,
-        HsrMemoryCommandExecutor memoryCommandExecutor,
+        HsrMemoryCommandExecutor memoryCommandExecutor, HsrPureFictionCommandExecutor fictionCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger,
         ICodeRedeemExecutor<HsrCommandModule> codesRedeemExecutor)
     {
         m_CharacterCommandExecutor = characterCommandExecutor;
         m_RealTimeNotesCommandExecutor = realTimeNotesCommandExecutor;
         m_MemoryCommandExecutor = memoryCommandExecutor;
+        m_FictionCommandExecutor = fictionCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
         m_CodesRedeemExecutor = codesRedeemExecutor;
@@ -123,6 +126,23 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         m_MemoryCommandExecutor.Context = Context;
         await m_MemoryCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("pf", "Get Pure Fiction card")]
+    public async Task FictionCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_FictionCommandExecutor.Context = Context;
+        await m_FictionCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")
