@@ -129,7 +129,17 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
                 return;
             }
 
-            var tasks = pureFictionData.AllFloorDetail!.SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
+            var nonNull = pureFictionData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null }).ToList();
+            if (nonNull.Count == 0)
+            {
+                Logger.LogInformation("No Pure Fiction clear records found for user {UserId}",
+                    Context.Interaction.User.Id);
+                await SendErrorMessageAsync("No Pure Fiction clear records found for user {UserId}");
+                return;
+            }
+
+            var tasks = nonNull
+                .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id)
                 .Select(async x =>
                     await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString(), x.Icon));
@@ -161,7 +171,7 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
     }
 
     private async ValueTask<InteractionMessageProperties> GetFictionCardAsync(UserGameData gameData,
-        HsrPureFictionInformation fictionData, Regions region, Dictionary<string, Stream> buffMap)
+        HsrPureFictionInformation fictionData, Regions region, Dictionary<int, Stream> buffMap)
     {
         try
         {

@@ -30,6 +30,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
     private readonly Image m_StarLit;
     private readonly Image m_StarUnlit;
     private readonly Image m_CycleIcon;
+    private readonly Image m_Background;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -58,16 +59,20 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
             ctx.Brightness(0.7f);
         });
 
+        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg").Result);
+        m_Background.Mutate(ctx => ctx.Brightness(0.5f));
+
         m_CycleIcon = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass").Result);
     }
 
     public async ValueTask<Stream> GetFictionCardImageAsync(UserGameData gameData,
-        HsrPureFictionInformation fictionData, Dictionary<string, Stream> buffMap)
+        HsrPureFictionInformation fictionData, Dictionary<int, Stream> buffMap)
     {
         List<IDisposable> disposables = [];
         try
         {
-            var avatarImageTask = fictionData.AllFloorDetail.SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
+            var avatarImageTask = fictionData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
+                .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id).ToAsyncEnumerable().SelectAwait(async x =>
                     await Task.FromResult(new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
                         await Image.LoadAsync(
@@ -92,13 +97,21 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
             var height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
-            var background = new Image<Rgba32>(1950, height);
+            var background = m_Background.CloneAs<Rgba32>();
             disposables.Add(background);
 
             background.Mutate(ctx =>
             {
+                ctx.Resize(new ResizeOptions
+                {
+                    CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
+                    Size = new Size(1950, height),
+                    Mode = ResizeMode.Crop,
+                    Sampler = KnownResamplers.Bicubic
+                    // TargetRectangle = new Rectangle(0, 0, 1950, height)
+                });
+
                 var group = fictionData.Groups.First();
-                ctx.Clear(Color.RebeccaPurple);
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
@@ -143,7 +156,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
 
                     IPath overlay;
 
-                    if (floorData.IsFast || floorData.Node1!.Avatars.Count == 0)
+                    if (floorData.IsFast || floorData.Node1 == null)
                     {
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
                              !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
@@ -197,36 +210,36 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Color.White);
 
-                    using var node1 = GetRosterImage(floorData.Node1!.Avatars.Select(x => x.Id).ToList(), lookup);
+                    using var node1 = GetRosterImage(floorData.Node1.Avatars.Select(x => x.Id).ToList(), lookup);
                     using var node2 = GetRosterImage(floorData.Node2!.Avatars.Select(x => x.Id).ToList(), lookup);
                     disposables.AddRange(node1, node2);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 65),
                         new PointF(xOffset + 880, yOffset + 65));
                     ctx.DrawText("Node 1", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 85));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 855, yOffset + 85),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, floorData.Node1.Score, Color.White);
+                        {
+                            Origin = new Vector2(xOffset + 855, yOffset + 85),
+                            HorizontalAlignment = HorizontalAlignment.Right
+                        }, $"Score: {floorData.Node1.Score}", Color.White);
                     ctx.DrawImage(node1, new Point(xOffset + 55, yOffset + 130), 1f);
                     IPath ellipse = new EllipsePolygon(new PointF(xOffset + 780, yOffset + 220), 55);
                     ctx.Fill(Color.Black, ellipse);
                     ctx.Draw(Color.White, 1f, ellipse);
-                    ctx.DrawImage(buffImages[floorData.Node1.Buff.NameMi18N], new Point(xOffset + 715, yOffset + 160),
+                    ctx.DrawImage(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 715, yOffset + 160),
                         1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 40, yOffset + 335),
                         new PointF(xOffset + 860, yOffset + 335));
                     ctx.DrawText("Node 2", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 350));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 855, yOffset + 350),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, floorData.Node2.Score, Color.White);
+                        {
+                            Origin = new Vector2(xOffset + 855, yOffset + 350),
+                            HorizontalAlignment = HorizontalAlignment.Right
+                        }, $"Score: {floorData.Node2.Score}", Color.White);
                     ctx.DrawImage(node2, new Point(xOffset + 55, yOffset + 395), 1f);
                     ellipse = ellipse.Translate(0, 265);
                     ctx.Fill(Color.Black, ellipse);
                     ctx.Draw(Color.White, 1f, ellipse);
-                    ctx.DrawImage(buffImages[floorData.Node2.Buff.NameMi18N], new Point(xOffset + 715, yOffset + 425),
+                    ctx.DrawImage(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 715, yOffset + 425),
                         1f);
 
                     for (int i = 0; i < 3; i++)
@@ -276,7 +289,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
 
     private bool IsSmallBlob(FictionFloorDetail data)
     {
-        return data.IsFast || data.Node1!.Avatars.Count == 0;
+        return data.IsFast || data.Node1 == null;
     }
 
     private static Image<Rgba32> GetRosterImage(List<int> avatarIds,

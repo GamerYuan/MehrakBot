@@ -83,13 +83,13 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
         }
     }
 
-    public async ValueTask<Dictionary<string, Stream>> GetBuffMapAsync(
+    public async ValueTask<Dictionary<int, Stream>> GetBuffMapAsync(
         HsrPureFictionInformation fictionData)
     {
         return await fictionData.AllFloorDetail.Where(x => !x.IsFast)
             .SelectMany(x => new List<FictionBuff> { x.Node1!.Buff, x.Node2!.Buff })
             .DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                async x => await Task.FromResult(x.NameMi18N),
+                async x => await Task.FromResult(x.Id),
                 async x =>
                 {
                     var client = m_HttpClientFactory.CreateClient("Default");
