@@ -1,0 +1,333 @@
+﻿{
+  "groups": [
+    {
+      "schedule_id": 2016,
+      "begin_time": {
+        "year": 2025,
+        "month": 7,
+        "day": 21,
+        "hour": 4,
+        "minute": 0
+      },
+      "end_time": {
+        "year": 2025,
+        "month": 9,
+        "day": 1,
+        "hour": 4,
+        "minute": 0
+      },
+      "status": "New",
+      "name_mi18n": "Three Act Structure",
+      "upper_boss": null,
+      "lower_boss": null
+    },
+    {
+      "schedule_id": 2015,
+      "begin_time": {
+        "year": 2025,
+        "month": 6,
+        "day": 9,
+        "hour": 4,
+        "minute": 0
+      },
+      "end_time": {
+        "year": 2025,
+        "month": 7,
+        "day": 21,
+        "hour": 4,
+        "minute": 0
+      },
+      "status": "End",
+      "name_mi18n": "Narrative Analysis",
+      "upper_boss": null,
+      "lower_boss": null
+    }
+  ],
+  "star_num": 11,
+  "max_floor": "Three Act Structure (IV)",
+  "battle_num": 9,
+  "has_data": true,
+  "all_floor_detail": [
+    {
+      "name": "Three Act Structure (IV)",
+      "round_num": 8,
+      "star_num": 2,
+      "node_1": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 22,
+          "minute": 27
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Intertextuality",
+          "desc_mi18n": "During Surging Grit, Skill DMG dealt by ally targets increases by 50%. When attacking targets with the special Wind Shear \"Echo Enigma,\" each stack of \"Echo Enigma\" additionally increases Skill DMG by 10%.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/063aa8a893ae68c5bd0be78f86d17f77.png",
+          "simple_desc_mi18m": "Every enemy target hit with ally targets' Skills additionally accumulates 3 Grit Value for allies."
+        },
+        "score": "25360"
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 22,
+          "minute": 27
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Intertextuality",
+          "desc_mi18n": "During Surging Grit, Skill DMG dealt by ally targets increases by 50%. When attacking targets with the special Wind Shear \"Echo Enigma,\" each stack of \"Echo Enigma\" additionally increases Skill DMG by 10%.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/063aa8a893ae68c5bd0be78f86d17f77.png",
+          "simple_desc_mi18m": "Every enemy target hit with ally targets' Skills additionally accumulates 3 Grit Value for allies."
+        },
+        "score": "27000"
+      },
+      "maze_id": 20164,
+      "is_fast": false
+    },
+    {
+      "name": "Three Act Structure (III)",
+      "round_num": 5,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 8,
+          "minute": 53
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Intertextuality",
+          "desc_mi18n": "During Surging Grit, Skill DMG dealt by ally targets increases by 50%. When attacking targets with the special Wind Shear \"Echo Enigma,\" each stack of \"Echo Enigma\" additionally increases Skill DMG by 10%.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/063aa8a893ae68c5bd0be78f86d17f77.png",
+          "simple_desc_mi18m": "Every enemy target hit with ally targets' Skills additionally accumulates 3 Grit Value for allies."
+        },
+        "score": "40000"
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 8,
+          "minute": 53
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Intertextuality",
+          "desc_mi18n": "During Surging Grit, Skill DMG dealt by ally targets increases by 50%. When attacking targets with the special Wind Shear \"Echo Enigma,\" each stack of \"Echo Enigma\" additionally increases Skill DMG by 10%.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/063aa8a893ae68c5bd0be78f86d17f77.png",
+          "simple_desc_mi18m": "Every enemy target hit with ally targets' Skills additionally accumulates 3 Grit Value for allies."
+        },
+        "score": "26800"
+      },
+      "maze_id": 20163,
+      "is_fast": false
+    },
+    {
+      "name": "Three Act Structure (II)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 8,
+          "minute": 53
+        },
+        "avatars": [],
+        "buff": null,
+        "score": "0"
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 8,
+          "minute": 53
+        },
+        "avatars": [],
+        "buff": null,
+        "score": "0"
+      },
+      "maze_id": 20162,
+      "is_fast": true
+    },
+    {
+      "name": "Three Act Structure (I)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 8,
+          "minute": 53
+        },
+        "avatars": [],
+        "buff": null,
+        "score": "0"
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2025,
+          "month": 7,
+          "day": 21,
+          "hour": 8,
+          "minute": 53
+        },
+        "avatars": [],
+        "buff": null,
+        "score": "0"
+      },
+      "maze_id": 20161,
+      "is_fast": true
+    }
+  ],
+  "max_floor_id": 20164
+}
