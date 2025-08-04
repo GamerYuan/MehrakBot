@@ -9,13 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.6"/>
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.6"/>
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.6"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.6"/>
-        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.6"/>
-        <PackageReference Include="MongoDB.Bson" Version="3.4.0"/>
-        <PackageReference Include="MongoDB.Driver" Version="3.4.0"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.7"/>
+        <PackageReference Include="MongoDB.Bson" Version="3.4.2"/>
+        <PackageReference Include="MongoDB.Driver" Version="3.4.2"/>
         <PackageReference Include="NetCord" Version="1.0.0-alpha.384"/>
         <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.384"/>
         <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.384"/>
@@ -30,10 +30,10 @@
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0"/>
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.1"/>
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8"/>
-        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.6"/>
-        <PackageReference Include="StackExchange.Redis" Version="2.8.37"/>
-        <PackageReference Include="System.Linq.Async" Version="6.0.1"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11"/>
+        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.8.58"/>
+        <PackageReference Include="System.Linq.Async" Version="6.0.3"/>
     </ItemGroup>
 
     <ItemGroup>

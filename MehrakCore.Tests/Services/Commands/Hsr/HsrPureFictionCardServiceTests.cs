@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MehrakCore.Tests.Services.Commands.Hsr;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class HsrPureFictionCardServiceTests
 {
     private ImageRepository m_ImageRepository;
