@@ -25,7 +25,7 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<HsrPureFictionInformation>> GetPureFictionDataAsync(string gameUid, string region,
+    public async ValueTask<ApiResult<HsrEndInformation>> GetPureFictionDataAsync(string gameUid, string region,
         ulong ltuid, string ltoken)
     {
         try
@@ -42,7 +42,7 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch Pure Fiction information for gameUid: {GameUid}", gameUid);
-                return ApiResult<HsrPureFictionInformation>.Failure(response.StatusCode,
+                return ApiResult<HsrEndInformation>.Failure(response.StatusCode,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
@@ -50,14 +50,14 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             if (json == null)
             {
                 m_Logger.LogError("Failed to fetch Pure Fiction information for gameUid: {GameUid}", gameUid);
-                return ApiResult<HsrPureFictionInformation>.Failure(HttpStatusCode.InternalServerError,
+                return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-                return ApiResult<HsrPureFictionInformation>.Failure(HttpStatusCode.Unauthorized,
+                return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
@@ -66,28 +66,28 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
                 m_Logger.LogError(
                     "Failed to fetch Pure Fiction information for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]);
-                return ApiResult<HsrPureFictionInformation>.Failure(HttpStatusCode.InternalServerError,
+                return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var pureFictionInfo = json["data"]?.Deserialize<HsrPureFictionInformation>()!;
+            var pureFictionInfo = json["data"]?.Deserialize<HsrEndInformation>()!;
 
-            return ApiResult<HsrPureFictionInformation>.Success(pureFictionInfo);
+            return ApiResult<HsrEndInformation>.Success(pureFictionInfo);
         }
         catch
         {
             m_Logger.LogError("Failed to get Pure Fiction data for gameUid: {GameUid}, region: {Region}", gameUid,
                 region);
-            return ApiResult<HsrPureFictionInformation>.Failure(HttpStatusCode.InternalServerError,
+            return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An unknown error occurred while fetching Pure Fiction information");
         }
     }
 
     public async ValueTask<Dictionary<int, Stream>> GetBuffMapAsync(
-        HsrPureFictionInformation fictionData)
+        HsrEndInformation fictionData)
     {
         return await fictionData.AllFloorDetail.Where(x => !x.IsFast)
-            .SelectMany(x => new List<FictionBuff> { x.Node1!.Buff, x.Node2!.Buff })
+            .SelectMany(x => new List<HsrEndBuff> { x.Node1!.Buff, x.Node2!.Buff })
             .DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAwaitAsync(
                 async x => await Task.FromResult(x.Id),
                 async x =>

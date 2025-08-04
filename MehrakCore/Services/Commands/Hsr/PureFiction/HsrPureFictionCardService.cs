@@ -66,7 +66,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
     }
 
     public async ValueTask<Stream> GetFictionCardImageAsync(UserGameData gameData,
-        HsrPureFictionInformation fictionData, Dictionary<int, Stream> buffMap)
+        HsrEndInformation fictionData, Dictionary<int, Stream> buffMap)
     {
         List<IDisposable> disposables = [];
         try
@@ -287,7 +287,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
         }
     }
 
-    private bool IsSmallBlob(FictionFloorDetail data)
+    private bool IsSmallBlob(HsrEndFloorDetail data)
     {
         return data.IsFast || data.Node1 == null;
     }

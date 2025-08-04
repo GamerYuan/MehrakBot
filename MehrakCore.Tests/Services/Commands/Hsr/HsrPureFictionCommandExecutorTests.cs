@@ -47,7 +47,7 @@ public class HsrPureFictionCommandExecutorTests
     private HttpClient m_HttpClient = null!;
     private ImageRepository m_ImageRepository = null!;
 
-    private HsrPureFictionInformation m_TestPureFictionData = null!;
+    private HsrEndInformation m_TestPureFictionData = null!;
     private string m_PureFictionTestDataJson = null!;
 
     [SetUp]
@@ -131,7 +131,7 @@ public class HsrPureFictionCommandExecutorTests
         // Load test data from file
         var testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "Pf_TestData_1.json");
         m_PureFictionTestDataJson = File.ReadAllText(testDataPath);
-        m_TestPureFictionData = JsonSerializer.Deserialize<HsrPureFictionInformation>(m_PureFictionTestDataJson)!;
+        m_TestPureFictionData = JsonSerializer.Deserialize<HsrEndInformation>(m_PureFictionTestDataJson)!;
     }
 
     private void SetupDistributedCacheMock()
@@ -169,7 +169,7 @@ public class HsrPureFictionCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
     }
 
-    private void SetupPureFictionApiSuccess(HsrPureFictionInformation? customData = null)
+    private void SetupPureFictionApiSuccess(HsrEndInformation? customData = null)
     {
         var fictionData = customData ?? m_TestPureFictionData;
         var fictionResponse = new
@@ -221,14 +221,14 @@ public class HsrPureFictionCommandExecutorTests
 
     private void SetupPureFictionNoData()
     {
-        var noDataFiction = new HsrPureFictionInformation
+        var noDataFiction = new HsrEndInformation
         {
-            Groups = new List<FictionGroup>(),
+            Groups = new List<HsrEndGroup>(),
             StarNum = 0,
             MaxFloor = "0",
             BattleNum = 0,
             HasData = false,
-            AllFloorDetail = new List<FictionFloorDetail>(),
+            AllFloorDetail = new List<HsrEndFloorDetail>(),
             MaxFloorId = 0
         };
 
@@ -559,11 +559,11 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheWithData();
         SetupGameRecordApiSuccess();
 
-        var emptyFloorData = new HsrPureFictionInformation
+        var emptyFloorData = new HsrEndInformation
         {
             Groups =
             [
-                new FictionGroup
+                new HsrEndGroup
                 {
                     ScheduleId = 1,
                     BeginTime = new ScheduleTime { Year = 2024, Month = 1, Day = 1, Hour = 0, Minute = 0 },
@@ -576,7 +576,7 @@ public class HsrPureFictionCommandExecutorTests
             MaxFloor = "0",
             BattleNum = 0,
             HasData = true,
-            AllFloorDetail = new List<FictionFloorDetail>(), // Empty floor details
+            AllFloorDetail = new List<HsrEndFloorDetail>(), // Empty floor details
             MaxFloorId = 0
         };
 
@@ -598,11 +598,11 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheWithData();
         SetupGameRecordApiSuccess();
 
-        var nullNodeData = new HsrPureFictionInformation
+        var nullNodeData = new HsrEndInformation
         {
             Groups =
             [
-                new FictionGroup
+                new HsrEndGroup
                 {
                     ScheduleId = 1,
                     BeginTime = new ScheduleTime { Year = 2024, Month = 1, Day = 1, Hour = 0, Minute = 0 },
@@ -617,7 +617,7 @@ public class HsrPureFictionCommandExecutorTests
             HasData = true,
             AllFloorDetail =
             [
-                new FictionFloorDetail
+                new HsrEndFloorDetail
                 {
                     Name = "Floor 1",
                     RoundNum = 1,

@@ -39,7 +39,7 @@ public class HsrPureFictionCardServiceTests
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
-            await JsonSerializer.DeserializeAsync<HsrPureFictionInformation>(
+            await JsonSerializer.DeserializeAsync<HsrEndInformation>(
                 File.OpenRead(Path.Combine(TestDataPath, "Hsr", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 

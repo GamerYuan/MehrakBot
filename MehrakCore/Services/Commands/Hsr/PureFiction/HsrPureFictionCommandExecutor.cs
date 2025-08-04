@@ -171,7 +171,7 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
     }
 
     private async ValueTask<InteractionMessageProperties> GetFictionCardAsync(UserGameData gameData,
-        HsrPureFictionInformation fictionData, Regions region, Dictionary<int, Stream> buffMap)
+        HsrEndInformation fictionData, Regions region, Dictionary<int, Stream> buffMap)
     {
         try
         {
