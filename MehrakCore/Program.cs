@@ -23,6 +23,7 @@ using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Services.Commands.Hsr.CodeRedeem;
 using MehrakCore.Services.Commands.Hsr.Memory;
+using MehrakCore.Services.Commands.Hsr.PureFiction;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Common;
@@ -187,6 +188,9 @@ internal class Program
             builder.Services.AddSingleton<IApiService<HsrMemoryCommandExecutor>, HsrMemoryApiService>();
             builder.Services.AddSingleton<ICommandService<HsrMemoryCommandExecutor>, HsrMemoryCardService>();
             builder.Services.AddTransient<HsrMemoryCommandExecutor>();
+            builder.Services.AddSingleton<IApiService<HsrPureFictionCommandExecutor>, HsrPureFictionApiService>();
+            builder.Services.AddSingleton<ICommandService<HsrPureFictionCommandExecutor>, HsrPureFictionCardService>();
+            builder.Services.AddTransient<HsrPureFictionCommandExecutor>();
 
             // Zzz Services
             builder.Services

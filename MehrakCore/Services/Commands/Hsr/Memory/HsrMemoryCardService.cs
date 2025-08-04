@@ -86,7 +86,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
             var lookup = avatarImages.GetAlternateLookup<int>();
             var floorDetails = memoryData.AllFloorDetail!
-                .Select(x => (FloorNumber: GetFloorNumber(x.Name) - 1, Data: x))
+                .Select(x => (FloorNumber: HsrCommandUtility.GetFloorNumber(x.Name) - 1, Data: x))
                 .OrderBy(x => x.FloorNumber).ToList();
             var height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 520).Sum();
@@ -261,45 +261,6 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
         });
 
         return rosterImage;
-    }
-
-    private static int GetFloorNumber(string text)
-    {
-        var startIndex = text.LastIndexOf('(');
-        var endIndex = text.LastIndexOf(')');
-
-        if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) return 0; // Or handle as an error
-
-        string roman = text.Substring(startIndex + 1, endIndex - startIndex - 1).ToUpper();
-
-        if (string.IsNullOrEmpty(roman)) return 0;
-
-        var romanMap = new Dictionary<char, int>
-        {
-            { 'I', 1 },
-            { 'V', 5 },
-            { 'X', 10 },
-            { 'L', 50 },
-            { 'C', 100 },
-            { 'D', 500 },
-            { 'M', 1000 }
-        };
-
-        int total = 0;
-        int prevValue = 0;
-
-        for (int i = roman.Length - 1; i >= 0; i--)
-        {
-            if (!romanMap.TryGetValue(roman[i], out var currentValue)) return 0; // Invalid character
-
-            if (currentValue < prevValue)
-                total -= currentValue;
-            else
-                total += currentValue;
-            prevValue = currentValue;
-        }
-
-        return total;
     }
 
     private static bool IsSmallBlob(FloorDetail floor)
