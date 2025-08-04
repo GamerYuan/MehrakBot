@@ -18,19 +18,19 @@ using SixLabors.ImageSharp.Processing;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr.PureFiction;
+namespace MehrakCore.Services.Commands.Hsr.EndGame;
 
-internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommandExecutor>
+internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExecutor>
 {
     private readonly ImageRepository m_ImageRepository;
-    private readonly ILogger<HsrPureFictionCardService> m_Logger;
+    private readonly ILogger<HsrEndGameCardService> m_Logger;
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
     private readonly Image m_StarLit;
     private readonly Image m_StarUnlit;
     private readonly Image m_CycleIcon;
-    private readonly Image m_Background;
+    private readonly Image m_PfBackground;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -40,7 +40,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    public HsrPureFictionCardService(ImageRepository imageRepository, ILogger<HsrPureFictionCardService> logger)
+    public HsrEndGameCardService(ImageRepository imageRepository, ILogger<HsrEndGameCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -59,19 +59,19 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
             ctx.Brightness(0.7f);
         });
 
-        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg").Result);
-        m_Background.Mutate(ctx => ctx.Brightness(0.5f));
+        m_PfBackground = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg").Result);
+        m_PfBackground.Mutate(ctx => ctx.Brightness(0.5f));
 
         m_CycleIcon = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass").Result);
     }
 
-    public async ValueTask<Stream> GetFictionCardImageAsync(UserGameData gameData,
-        HsrEndInformation fictionData, Dictionary<int, Stream> buffMap)
+    public async ValueTask<Stream> GetEndGameCardImageAsync(EndGameMode gameMode, UserGameData gameData,
+        HsrEndInformation gameModeData, Dictionary<int, Stream> buffMap)
     {
         List<IDisposable> disposables = [];
         try
         {
-            var avatarImageTask = fictionData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
+            var avatarImageTask = gameModeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id).ToAsyncEnumerable().SelectAwait(async x =>
                     await Task.FromResult(new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
@@ -91,13 +91,19 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
             disposables.AddRange(buffImages.Values);
 
             var lookup = avatarImages.GetAlternateLookup<int>();
-            var floorDetails = fictionData.AllFloorDetail
+            var floorDetails = gameModeData.AllFloorDetail
                 .Select(x => (FloorNumber: HsrCommandUtility.GetFloorNumber(x.Name) - 1, Data: x))
                 .OrderBy(x => x.FloorNumber).ToList();
             var height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
-            var background = m_Background.CloneAs<Rgba32>();
+            var background = gameMode switch
+            {
+                EndGameMode.PureFiction => m_PfBackground.CloneAs<Rgba32>(),
+                EndGameMode.ApocalypticShadow => new Image<Rgba32>(1950, height),
+                _ => throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null)
+            };
+
             disposables.Add(background);
 
             background.Mutate(ctx =>
@@ -111,7 +117,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                     // TargetRectangle = new Rectangle(0, 0, 1950, height)
                 });
 
-                var group = fictionData.Groups.First();
+                var group = gameModeData.Groups.First();
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
@@ -131,8 +137,8 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                     Origin = new Vector2(325, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
                 };
-                var bounds = TextMeasurer.MeasureBounds(fictionData.StarNum.ToString(), textOptions);
-                ctx.DrawText(textOptions, fictionData.StarNum.ToString(), Color.White);
+                var bounds = TextMeasurer.MeasureBounds(gameModeData.StarNum.ToString(), textOptions);
+                ctx.DrawText(textOptions, gameModeData.StarNum.ToString(), Color.White);
                 ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -248,7 +254,6 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 720, yOffset + 10),
                         new PointF(xOffset + 720, yOffset + 55));
                     var scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
-                    var size = TextMeasurer.MeasureSize(scoreText, new TextOptions(m_NormalFont));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
                             Origin = new Vector2(xOffset + 710, yOffset + 20),
@@ -256,17 +261,23 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                             VerticalAlignment = VerticalAlignment.Top
                         }, scoreText,
                         Color.White);
-                    ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 695 - (int)size.Width, yOffset + 10),
-                        new PointF(xOffset + 695 - (int)size.Width, yOffset + 55));
 
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    // Draw cycle number
+                    if (gameMode == EndGameMode.PureFiction)
                     {
-                        Origin = new Vector2(xOffset + 650 - (int)size.Width, yOffset + 20),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, floorData.RoundNum.ToString(), Color.White);
-                    ctx.DrawImage(m_CycleIcon, new Point(xOffset + 650 - (int)size.Width, yOffset + 10), 1f);
-                    if (floorNumber % 2 == 1) yOffset += 620;
+                        var size = TextMeasurer.MeasureSize(scoreText, new TextOptions(m_NormalFont));
+                        ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 695 - (int)size.Width, yOffset + 10),
+                            new PointF(xOffset + 695 - (int)size.Width, yOffset + 55));
+
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            Origin = new Vector2(xOffset + 650 - (int)size.Width, yOffset + 20),
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            VerticalAlignment = VerticalAlignment.Top
+                        }, floorData.RoundNum.ToString(), Color.White);
+                        ctx.DrawImage(m_CycleIcon, new Point(xOffset + 650 - (int)size.Width, yOffset + 10), 1f);
+                        if (floorNumber % 2 == 1) yOffset += 620;
+                    }
                 }
             });
 
@@ -278,7 +289,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to generate Pure Fiction card image for uid {UserId}\n{JsonString}",
-                gameData, JsonSerializer.Serialize(fictionData));
+                gameData, JsonSerializer.Serialize(gameModeData));
             throw new CommandException("An error occurred while generating Pure Fiction card image", e);
         }
         finally

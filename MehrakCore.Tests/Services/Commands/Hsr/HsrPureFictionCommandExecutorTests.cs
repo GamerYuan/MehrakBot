@@ -8,7 +8,8 @@ using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Hsr.PureFiction;
+using MehrakCore.Services.Commands.Hsr.EndGame;
+using MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;
@@ -33,7 +34,7 @@ public class HsrPureFictionCommandExecutorTests
     private TokenCacheService m_TokenCacheService = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthMiddlewareMock = null!;
     private HsrPureFictionCommandExecutor m_Executor = null!;
-    private Mock<HsrPureFictionCardService> m_CommandServiceMock = null!;
+    private Mock<HsrEndGameCardService> m_CommandServiceMock = null!;
     private Mock<HsrPureFictionApiService> m_ApiServiceMock = null!;
     private Mock<ImageUpdaterService<HsrCharacterInformation>> m_ImageUpdaterServiceMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
@@ -82,7 +83,7 @@ public class HsrPureFictionCommandExecutorTests
 
         // Setup service mocks
         m_CommandServiceMock =
-            new Mock<HsrPureFictionCardService>(m_ImageRepository, NullLogger<HsrPureFictionCardService>.Instance);
+            new Mock<HsrEndGameCardService>(m_ImageRepository, NullLogger<HsrEndGameCardService>.Instance);
         m_ApiServiceMock = new Mock<HsrPureFictionApiService>(m_HttpClientFactoryMock.Object,
             NullLogger<HsrPureFictionApiService>.Instance);
         m_ImageUpdaterServiceMock = new Mock<ImageUpdaterService<HsrCharacterInformation>>(
@@ -95,14 +96,14 @@ public class HsrPureFictionCommandExecutorTests
 
         // Setup executor
         m_Executor = new HsrPureFictionCommandExecutor(
-            m_CommandServiceMock.Object,
-            m_ApiServiceMock.Object,
-            m_ImageUpdaterServiceMock.Object,
             m_UserRepository,
             m_TokenCacheService,
             m_AuthMiddlewareMock.Object,
             m_GameRecordApiService,
-            m_LoggerMock.Object
+            m_LoggerMock.Object,
+            m_CommandServiceMock.Object,
+            m_ImageUpdaterServiceMock.Object,
+            m_ApiServiceMock.Object
         )
         {
             // Setup context

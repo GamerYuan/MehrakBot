@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr.PureFiction;
+namespace MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 
 internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecutor>
 {

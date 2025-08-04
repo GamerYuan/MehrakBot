@@ -71,6 +71,12 @@ public class HsrEndNodeInformation
     [JsonPropertyName("buff")] public required HsrEndBuff Buff { get; set; }
 
     [JsonPropertyName("score")] public required string Score { get; set; }
+
+    /// <summary>
+    /// Only used for Apocalyptic Shadow
+    /// </summary>
+    [JsonPropertyName("boss_defeated")]
+    public bool BossDefeated { get; set; }
 }
 
 public class HsrEndInformation

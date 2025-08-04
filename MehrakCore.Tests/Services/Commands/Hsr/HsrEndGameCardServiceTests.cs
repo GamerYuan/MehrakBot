@@ -4,7 +4,7 @@ using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Repositories;
-using MehrakCore.Services.Commands.Hsr.PureFiction;
+using MehrakCore.Services.Commands.Hsr.EndGame;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -13,10 +13,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace MehrakCore.Tests.Services.Commands.Hsr;
 
 [Parallelizable(ParallelScope.Fixtures)]
-public class HsrPureFictionCardServiceTests
+public class HsrEndGameCardServiceTests
 {
     private ImageRepository m_ImageRepository;
-    private HsrPureFictionCardService m_Service;
+    private HsrEndGameCardService m_Service;
 
     private const string TestNickName = "Test";
     private const string TestUid = "800000000";
@@ -29,7 +29,7 @@ public class HsrPureFictionCardServiceTests
         m_ImageRepository =
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
 
-        m_Service = new HsrPureFictionCardService(m_ImageRepository, NullLogger<HsrPureFictionCardService>.Instance);
+        m_Service = new HsrEndGameCardService(m_ImageRepository, NullLogger<HsrEndGameCardService>.Instance);
     }
 
     [Test]
@@ -50,7 +50,8 @@ public class HsrPureFictionCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var stream =
-            await m_Service.GetFictionCardImageAsync(userGameData, testData!, await GetBuffMapAsync());
+            await m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction, userGameData, testData!,
+                await GetBuffMapAsync());
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
