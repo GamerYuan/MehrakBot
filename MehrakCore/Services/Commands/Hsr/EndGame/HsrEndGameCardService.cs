@@ -91,11 +91,16 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
             disposables.AddRange(buffImages.Values);
 
             var lookup = avatarImages.GetAlternateLookup<int>();
-            var floorDetails = gameModeData.AllFloorDetail
-                .Select(x => (FloorNumber: HsrCommandUtility.GetFloorNumber(x.Name) - 1, Data: x))
-                .OrderBy(x => x.FloorNumber).ToList();
+            var floorDetails = Enumerable.Range(0, 4)
+                .Select(floorIndex =>
+                {
+                    var floorData = gameModeData.AllFloorDetail
+                        .FirstOrDefault(x => HsrCommandUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
+                    return (FloorNumber: floorIndex, Data: floorData);
+                })
+                .ToList();
             var height = 180 + floorDetails.Chunk(2)
-                .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 620).Sum();
+                .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
             var background = gameMode switch
             {
@@ -162,7 +167,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
 
                     IPath overlay;
 
-                    if (floorData.IsFast || floorData.Node1 == null)
+                    if (floorData == null || floorData.IsFast)
                     {
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
                              !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
@@ -177,7 +182,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                                 Origin = new Vector2(xOffset + 450, yOffset + 280),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
-                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
                         else
                         {
@@ -189,18 +194,21 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                                 Origin = new Vector2(xOffset + 450, yOffset + 110),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
-                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 20, yOffset + 20),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Top
-                        }, floorData.Name, Color.White);
+                            {
+                                Origin = new Vector2(xOffset + 20, yOffset + 20),
+                                HorizontalAlignment = HorizontalAlignment.Left,
+                                VerticalAlignment = VerticalAlignment.Top
+                            },
+                            floorData?.Name ??
+                            $"{gameModeData.Groups.First().Name} ({HsrCommandUtility.GetRomanNumeral(floorNumber)})",
+                            Color.White);
 
                         for (int i = 0; i < 3; i++)
-                            ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
+                            ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
                                 new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
 
                         if (floorNumber % 2 == 1) yOffset += 200;
@@ -216,7 +224,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Color.White);
 
-                    using var node1 = GetRosterImage(floorData.Node1.Avatars.Select(x => x.Id).ToList(), lookup);
+                    using var node1 = GetRosterImage(floorData.Node1!.Avatars.Select(x => x.Id).ToList(), lookup);
                     using var node2 = GetRosterImage(floorData.Node2!.Avatars.Select(x => x.Id).ToList(), lookup);
                     disposables.AddRange(node1, node2);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 65),
@@ -298,9 +306,9 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
         }
     }
 
-    private bool IsSmallBlob(HsrEndFloorDetail data)
+    private static bool IsSmallBlob(HsrEndFloorDetail? data)
     {
-        return data.IsFast || data.Node1 == null;
+        return data == null || data.IsFast;
     }
 
     private static Image<Rgba32> GetRosterImage(List<int> avatarIds,

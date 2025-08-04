@@ -1,4 +1,10 @@
-﻿namespace MehrakCore.Services.Commands.Hsr;
+﻿#region
+
+using System.Text;
+
+#endregion
+
+namespace MehrakCore.Services.Commands.Hsr;
 
 internal static class HsrCommandUtility
 {
@@ -39,5 +45,36 @@ internal static class HsrCommandUtility
         }
 
         return total;
+    }
+
+    public static string GetRomanNumeral(int number)
+    {
+        var romanNumerals = new Dictionary<int, string>
+        {
+            { 1000, "M" },
+            { 900, "CM" },
+            { 500, "D" },
+            { 400, "CD" },
+            { 100, "C" },
+            { 90, "XC" },
+            { 50, "L" },
+            { 40, "XL" },
+            { 10, "X" },
+            { 9, "IX" },
+            { 5, "V" },
+            { 4, "IV" },
+            { 1, "I" }
+        };
+
+        var result = new StringBuilder();
+
+        foreach (var kvp in romanNumerals)
+            while (number >= kvp.Key)
+            {
+                result.Append(kvp.Value);
+                number -= kvp.Key;
+            }
+
+        return result.ToString();
     }
 }
