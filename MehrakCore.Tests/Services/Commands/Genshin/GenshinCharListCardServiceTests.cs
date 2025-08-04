@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MehrakCore.Tests.Services.Commands.Genshin;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class GenshinCharListCardServiceTests
 {
     private ImageRepository m_ImageRepository;

@@ -57,7 +57,7 @@ public class DailyCheckInCommandModuleTests
         // Set up command service
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
         m_CommandService.AddModule<DailyCheckInCommandModule>();
-        await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
+        await m_CommandService.RegisterCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
         // Set up real repository
         m_UserRepository =

@@ -53,7 +53,7 @@ public class DailyCheckInCommandExecutorTests
         m_DiscordTestHelper = new DiscordTestHelper(commandJson);
 
         m_CommandService = new ApplicationCommandService<ApplicationCommandContext>();
-        await m_CommandService.CreateCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
+        await m_CommandService.RegisterCommandsAsync(m_DiscordTestHelper.DiscordClient.Rest, 123456789UL);
 
         // Setup mocks and real services
         m_DailyCheckInServiceMock = new Mock<IDailyCheckInService>();

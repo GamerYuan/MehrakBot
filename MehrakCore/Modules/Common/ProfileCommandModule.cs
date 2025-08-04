@@ -39,7 +39,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        await RespondAsync(InteractionCallback.Modal(AuthModalModule.AddAuthModal));
+        await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AddAuthModal));
     }
 
     [SubSlashCommand("delete", "Delete a profile")]

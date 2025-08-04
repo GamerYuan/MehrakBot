@@ -249,7 +249,7 @@ internal class Program
 
             host.AddModules(typeof(Program).Assembly);
 
-            host.UseGatewayEventHandlers();
+            host.UseGatewayHandlers();
             logger.LogInformation("Discord gateway initialized");
 
             await host.RunAsync();
