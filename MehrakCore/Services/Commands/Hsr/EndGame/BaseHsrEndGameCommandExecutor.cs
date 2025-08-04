@@ -81,3 +81,16 @@ internal enum EndGameMode
     PureFiction,
     ApocalypticShadow
 }
+
+internal static class EndGameModeExtensions
+{
+    public static string GetString(this EndGameMode mode)
+    {
+        return mode switch
+        {
+            EndGameMode.PureFiction => "Pure Fiction",
+            EndGameMode.ApocalypticShadow => "Apocalyptic Shadow",
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+        };
+    }
+}

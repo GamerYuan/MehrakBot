@@ -35,7 +35,7 @@ public class HsrPureFictionCommandExecutorTests
     private Mock<IAuthenticationMiddlewareService> m_AuthMiddlewareMock = null!;
     private HsrPureFictionCommandExecutor m_Executor = null!;
     private Mock<HsrEndGameCardService> m_CommandServiceMock = null!;
-    private Mock<HsrPureFictionApiService> m_ApiServiceMock = null!;
+    private Mock<HsrEndGameApiService> m_ApiServiceMock = null!;
     private Mock<ImageUpdaterService<HsrCharacterInformation>> m_ImageUpdaterServiceMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<HsrCommandModule>> m_LoggerMock = null!;
@@ -84,8 +84,8 @@ public class HsrPureFictionCommandExecutorTests
         // Setup service mocks
         m_CommandServiceMock =
             new Mock<HsrEndGameCardService>(m_ImageRepository, NullLogger<HsrEndGameCardService>.Instance);
-        m_ApiServiceMock = new Mock<HsrPureFictionApiService>(m_HttpClientFactoryMock.Object,
-            NullLogger<HsrPureFictionApiService>.Instance);
+        m_ApiServiceMock = new Mock<HsrEndGameApiService>(m_HttpClientFactoryMock.Object,
+            NullLogger<HsrEndGameApiService>.Instance);
         m_ImageUpdaterServiceMock = new Mock<ImageUpdaterService<HsrCharacterInformation>>(
             m_ImageRepository, m_HttpClientFactoryMock.Object,
             NullLogger<ImageUpdaterService<HsrCharacterInformation>>.Instance);

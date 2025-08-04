@@ -3,6 +3,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Utility;
@@ -12,27 +13,38 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 
-internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecutor>
+internal class HsrEndGameApiService : IApiService<BaseHsrEndGameCommandExecutor>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
-    private readonly ILogger<HsrPureFictionApiService> m_Logger;
+    private readonly ILogger<HsrEndGameApiService> m_Logger;
 
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge_story";
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
 
-    public HsrPureFictionApiService(IHttpClientFactory httpClientFactory, ILogger<HsrPureFictionApiService> logger)
+    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/";
+
+    public HsrEndGameApiService(IHttpClientFactory httpClientFactory, ILogger<HsrEndGameApiService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<HsrEndInformation>> GetPureFictionDataAsync(string gameUid, string region,
-        ulong ltuid, string ltoken)
+    public async ValueTask<ApiResult<HsrEndInformation>> GetEndGameDataAsync(string gameUid, string region,
+        ulong ltuid, string ltoken, EndGameMode gameMode)
     {
         try
         {
+            var endpoint = gameMode switch
+            {
+                EndGameMode.PureFiction => "challenge_story",
+                EndGameMode.ApocalypticShadow => "challenge_boss",
+                _ => throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null)
+            };
             var client = m_HttpClientFactory.CreateClient("Default");
             var request = new HttpRequestMessage(HttpMethod.Get,
-                $"{ApiUrl}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
+                $"{ApiUrl}{endpoint}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             request.Headers.Add("Ds", DSGenerator.GenerateDS());
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
@@ -41,7 +53,8 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError("Failed to fetch Pure Fiction information for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", gameMode.GetString(),
+                    gameUid);
                 return ApiResult<HsrEndInformation>.Failure(response.StatusCode,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -49,7 +62,8 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             if (json == null)
             {
-                m_Logger.LogError("Failed to fetch Pure Fiction information for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", gameMode.GetString(),
+                    gameUid);
                 return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -64,22 +78,24 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             if (json["retcode"]?.GetValue<int>() != 0)
             {
                 m_Logger.LogError(
-                    "Failed to fetch Pure Fiction information for gameUid: {GameUid}, retcode: {Retcode}",
+                    "Failed to fetch {GameMode} information for gameUid: {GameUid}, retcode: {Retcode}",
+                    gameMode.GetString(),
                     gameUid, json["retcode"]);
                 return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var pureFictionInfo = json["data"]?.Deserialize<HsrEndInformation>()!;
+            var pureFictionInfo = json["data"]?.Deserialize<HsrEndInformation>(JsonOptions)!;
 
             return ApiResult<HsrEndInformation>.Success(pureFictionInfo);
         }
         catch
         {
-            m_Logger.LogError("Failed to get Pure Fiction data for gameUid: {GameUid}, region: {Region}", gameUid,
-                region);
+            m_Logger.LogError("Failed to get {GameMode} data for gameUid: {GameUid}, region: {Region}",
+                gameMode.GetString(),
+                gameUid, region);
             return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
-                "An unknown error occurred while fetching Pure Fiction information");
+                $"An unknown error occurred while fetching {gameMode.GetString()} information");
         }
     }
 
