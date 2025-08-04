@@ -36,7 +36,7 @@ public class HsrEndGameCardServiceTests
     [TestCase("Pf_TestData_1.json")]
     [TestCase("Pf_TestData_2.json")]
     [TestCase("Pf_TestData_3.json")]
-    public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
+    public async Task GetEndGameCardAsync_PureFictionTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
             await JsonSerializer.DeserializeAsync<HsrEndInformation>(
@@ -95,24 +95,27 @@ public class HsrEndGameCardServiceTests
     }
 
     // [Test]
-    // public async Task GenerateGoldenImage()
+    // public async Task GeneratePureFictionGoldenImage()
     // {
-    //     var testData1 = await JsonSerializer.DeserializeAsync<HsrPureFictionInformation>(
+    //     var testData1 = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
     //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr",
     //             "Pf_TestData_1.json")));
-    //     var testData2 = await JsonSerializer.DeserializeAsync<HsrPureFictionInformation>(
+    //     var testData2 = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
     //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr",
     //             "Pf_TestData_2.json")));
-    //     var testData3 = await JsonSerializer.DeserializeAsync<HsrPureFictionInformation>(
+    //     var testData3 = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
     //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr",
     //             "Pf_TestData_3.json")));
     //
     //     var image1 =
-    //         await m_Service.GetFictionCardImageAsync(GetTestUserGameData(), testData1!, await GetBuffMapAsync());
+    //         await m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction, GetTestUserGameData(), testData1!,
+    //             await GetBuffMapAsync());
     //     var image2 =
-    //         await m_Service.GetFictionCardImageAsync(GetTestUserGameData(), testData2!, await GetBuffMapAsync());
+    //         await m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction, GetTestUserGameData(), testData2!,
+    //             await GetBuffMapAsync());
     //     var image3 =
-    //         await m_Service.GetFictionCardImageAsync(GetTestUserGameData(), testData3!, await GetBuffMapAsync());
+    //         await m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction, GetTestUserGameData(), testData3!,
+    //             await GetBuffMapAsync());
     //
     //     using (Assert.EnterMultipleScope())
     //     {
