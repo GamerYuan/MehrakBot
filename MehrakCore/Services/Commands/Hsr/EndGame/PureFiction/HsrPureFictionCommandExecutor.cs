@@ -18,7 +18,7 @@ namespace MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
 {
     private readonly ImageUpdaterService<HsrCharacterInformation> m_ImageUpdaterService;
-    private readonly HsrPureFictionApiService m_ApiService;
+    private readonly HsrEndGameApiService m_ApiService;
 
     private Regions m_PendingServer;
 
@@ -29,12 +29,12 @@ public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrCommandModule> logger, ICommandService<BaseHsrEndGameCommandExecutor> commandService,
         ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
-        IApiService<HsrPureFictionCommandExecutor> apiService) : base(userRepository,
+        IApiService<BaseHsrEndGameCommandExecutor> apiService) : base(userRepository,
         tokenCacheService,
         authenticationMiddleware, gameRecordApi, logger, commandService)
     {
         m_ImageUpdaterService = imageUpdaterService;
-        m_ApiService = (HsrPureFictionApiService)apiService;
+        m_ApiService = (HsrEndGameApiService)apiService;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -110,7 +110,8 @@ public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
 
             var gameData = response.Data;
             var pureFictionResponse =
-                await m_ApiService.GetPureFictionDataAsync(gameData.GameUid!, region, ltuid, ltoken);
+                await m_ApiService.GetEndGameDataAsync(gameData.GameUid!, region, ltuid, ltoken,
+                    EndGameMode.PureFiction);
             if (!pureFictionResponse.IsSuccess)
             {
                 Logger.LogError("Failed to fetch Pure Fiction data for user {UserId}: {ErrorMessage}",

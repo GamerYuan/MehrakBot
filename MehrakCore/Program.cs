@@ -23,6 +23,7 @@ using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Services.Commands.Hsr.CodeRedeem;
 using MehrakCore.Services.Commands.Hsr.EndGame;
+using MehrakCore.Services.Commands.Hsr.EndGame.BossChallenge;
 using MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 using MehrakCore.Services.Commands.Hsr.Memory;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
@@ -189,9 +190,10 @@ internal class Program
             builder.Services.AddSingleton<IApiService<HsrMemoryCommandExecutor>, HsrMemoryApiService>();
             builder.Services.AddSingleton<ICommandService<HsrMemoryCommandExecutor>, HsrMemoryCardService>();
             builder.Services.AddTransient<HsrMemoryCommandExecutor>();
-            builder.Services.AddSingleton<IApiService<HsrPureFictionCommandExecutor>, HsrPureFictionApiService>();
+            builder.Services.AddSingleton<IApiService<BaseHsrEndGameCommandExecutor>, HsrEndGameApiService>();
             builder.Services.AddSingleton<ICommandService<BaseHsrEndGameCommandExecutor>, HsrEndGameCardService>();
             builder.Services.AddTransient<HsrPureFictionCommandExecutor>();
+            builder.Services.AddTransient<HsrBossChallengeCommandExecutor>();
 
             // Zzz Services
             builder.Services
