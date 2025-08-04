@@ -223,7 +223,7 @@ public class HsrPureFictionCommandExecutorTests
     {
         var noDataFiction = new HsrPureFictionInformation
         {
-            Groups = new List<Group>(),
+            Groups = new List<FictionGroup>(),
             StarNum = 0,
             MaxFloor = "0",
             BattleNum = 0,
@@ -563,7 +563,7 @@ public class HsrPureFictionCommandExecutorTests
         {
             Groups =
             [
-                new Group
+                new FictionGroup
                 {
                     ScheduleId = 1,
                     BeginTime = new ScheduleTime { Year = 2024, Month = 1, Day = 1, Hour = 0, Minute = 0 },
@@ -602,7 +602,7 @@ public class HsrPureFictionCommandExecutorTests
         {
             Groups =
             [
-                new Group
+                new FictionGroup
                 {
                     ScheduleId = 1,
                     BeginTime = new ScheduleTime { Year = 2024, Month = 1, Day = 1, Hour = 0, Minute = 0 },

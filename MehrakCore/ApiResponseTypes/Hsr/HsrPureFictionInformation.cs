@@ -49,7 +49,7 @@ public class FictionBuff
     [JsonPropertyName("icon")] public required string Icon { get; set; }
 }
 
-public class Group
+public class FictionGroup
 {
     [JsonPropertyName("schedule_id")] public int ScheduleId { get; set; }
 
@@ -75,7 +75,7 @@ public class FictionNodeInformation
 
 public class HsrPureFictionInformation
 {
-    [JsonPropertyName("groups")] public required List<Group> Groups { get; set; }
+    [JsonPropertyName("groups")] public required List<FictionGroup> Groups { get; set; }
 
     [JsonPropertyName("star_num")] public int StarNum { get; set; }
 
