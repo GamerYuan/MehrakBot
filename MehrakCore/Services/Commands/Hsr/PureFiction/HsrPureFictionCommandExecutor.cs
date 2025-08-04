@@ -70,13 +70,13 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error processing Memory command for user {UserId} profile {Profile}",
+            Logger.LogError(e, "Error processing Pure Fiction command for user {UserId} profile {Profile}",
                 Context.Interaction.User.Id, profile);
             await SendErrorMessageAsync(e.Message, false);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing Memory command for user {UserId} profile {Profile}",
+            Logger.LogError(ex, "Error processing Pure Fiction command for user {UserId} profile {Profile}",
                 Context.Interaction.User.Id, profile);
             await SendErrorMessageAsync(followup: false);
         }
@@ -134,7 +134,7 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
             {
                 Logger.LogInformation("No Pure Fiction clear records found for user {UserId}",
                     Context.Interaction.User.Id);
-                await SendErrorMessageAsync("No Pure Fiction clear records found for user {UserId}");
+                await SendErrorMessageAsync("No Pure Fiction clear records found");
                 return;
             }
 

@@ -41,7 +41,7 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError("Failed to fetch Memory of Chaos information for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Failed to fetch Pure Fiction information for gameUid: {GameUid}", gameUid);
                 return ApiResult<HsrPureFictionInformation>.Failure(response.StatusCode,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -49,7 +49,7 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             if (json == null)
             {
-                m_Logger.LogError("Failed to fetch Memory of Chaos information for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Failed to fetch Pure Fiction information for gameUid: {GameUid}", gameUid);
                 return ApiResult<HsrPureFictionInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -64,7 +64,7 @@ internal class HsrPureFictionApiService : IApiService<HsrPureFictionCommandExecu
             if (json["retcode"]?.GetValue<int>() != 0)
             {
                 m_Logger.LogError(
-                    "Failed to fetch Memory of Chaos information for gameUid: {GameUid}, retcode: {Retcode}",
+                    "Failed to fetch Pure Fiction information for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]);
                 return ApiResult<HsrPureFictionInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
