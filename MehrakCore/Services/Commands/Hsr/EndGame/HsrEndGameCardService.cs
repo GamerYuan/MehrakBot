@@ -326,8 +326,9 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                             VerticalAlignment = VerticalAlignment.Top
                         }, floorData.RoundNum.ToString(), Color.White);
                         ctx.DrawImage(m_CycleIcon, new Point(xOffset + 650 - (int)size.Width, yOffset + 10), 1f);
-                        if (floorNumber % 2 == 1) yOffset += 620;
                     }
+
+                    if (floorNumber % 2 == 1) yOffset += 620;
                 }
             });
 
@@ -338,9 +339,9 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate Pure Fiction card image for uid {UserId}\n{JsonString}",
-                gameData, JsonSerializer.Serialize(gameModeData));
-            throw new CommandException("An error occurred while generating Pure Fiction card image", e);
+            m_Logger.LogError(e, "Failed to generate {GameMode} card image for uid {UserId}\n{JsonString}",
+                gameMode.GetString(), gameData, JsonSerializer.Serialize(gameModeData));
+            throw new CommandException($"An error occurred while generating {gameMode.GetString()} card image", e);
         }
         finally
         {
