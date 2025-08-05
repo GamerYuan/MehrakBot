@@ -18,19 +18,21 @@ using SixLabors.ImageSharp.Processing;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr.PureFiction;
+namespace MehrakCore.Services.Commands.Hsr.EndGame;
 
-internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommandExecutor>
+internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExecutor>
 {
     private readonly ImageRepository m_ImageRepository;
-    private readonly ILogger<HsrPureFictionCardService> m_Logger;
+    private readonly ILogger<HsrEndGameCardService> m_Logger;
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
     private readonly Image m_StarLit;
     private readonly Image m_StarUnlit;
     private readonly Image m_CycleIcon;
-    private readonly Image m_Background;
+    private readonly Image m_PfBackground;
+    private readonly Image m_AsBackground;
+    private readonly Image m_BossCheckmark;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -40,7 +42,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    public HsrPureFictionCardService(ImageRepository imageRepository, ILogger<HsrPureFictionCardService> logger)
+    public HsrEndGameCardService(ImageRepository imageRepository, ILogger<HsrEndGameCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -59,19 +61,22 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
             ctx.Brightness(0.7f);
         });
 
-        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg").Result);
-        m_Background.Mutate(ctx => ctx.Brightness(0.5f));
+        m_PfBackground = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg").Result);
+
+        m_AsBackground = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_as_bg").Result);
 
         m_CycleIcon = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass").Result);
+
+        m_BossCheckmark = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_boss_check").Result);
     }
 
-    public async ValueTask<Stream> GetFictionCardImageAsync(UserGameData gameData,
-        HsrPureFictionInformation fictionData, Dictionary<int, Stream> buffMap)
+    public async ValueTask<Stream> GetEndGameCardImageAsync(EndGameMode gameMode, UserGameData gameData,
+        HsrEndInformation gameModeData, Dictionary<int, Stream> buffMap)
     {
         List<IDisposable> disposables = [];
         try
         {
-            var avatarImageTask = fictionData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
+            var avatarImageTask = gameModeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id).ToAsyncEnumerable().SelectAwait(async x =>
                     await Task.FromResult(new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
@@ -91,13 +96,42 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
             disposables.AddRange(buffImages.Values);
 
             var lookup = avatarImages.GetAlternateLookup<int>();
-            var floorDetails = fictionData.AllFloorDetail
-                .Select(x => (FloorNumber: HsrCommandUtility.GetFloorNumber(x.Name) - 1, Data: x))
-                .OrderBy(x => x.FloorNumber).ToList();
-            var height = 180 + floorDetails.Chunk(2)
-                .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 620).Sum();
+            List<(int FloorNumber, HsrEndFloorDetail? Data)> floorDetails;
+            switch (gameMode)
+            {
+                case EndGameMode.PureFiction:
+                    floorDetails = Enumerable.Range(0, 4)
+                        .Select(floorIndex =>
+                        {
+                            var floorData = gameModeData.AllFloorDetail
+                                .FirstOrDefault(x => HsrCommandUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
+                            return (FloorNumber: floorIndex, Data: floorData);
+                        })
+                        .ToList();
+                    break;
+                case EndGameMode.ApocalypticShadow:
+                    floorDetails = Enumerable.Range(0, 4)
+                        .Select(floorIndex =>
+                        {
+                            var floorData = gameModeData.AllFloorDetail
+                                .FirstOrDefault(x => x.Name.EndsWith((floorIndex + 1).ToString()));
+                            return (FloorNumber: floorIndex, Data: floorData);
+                        }).ToList();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null);
+            }
 
-            var background = m_Background.CloneAs<Rgba32>();
+            var height = 180 + floorDetails.Chunk(2)
+                .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
+
+            var background = gameMode switch
+            {
+                EndGameMode.PureFiction => m_PfBackground.CloneAs<Rgba32>(),
+                EndGameMode.ApocalypticShadow => m_AsBackground.CloneAs<Rgba32>(),
+                _ => throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null)
+            };
+
             disposables.Add(background);
 
             background.Mutate(ctx =>
@@ -108,15 +142,17 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                     Size = new Size(1950, height),
                     Mode = ResizeMode.Crop,
                     Sampler = KnownResamplers.Bicubic
-                    // TargetRectangle = new Rectangle(0, 0, 1950, height)
                 });
 
-                var group = fictionData.Groups.First();
+                var group = gameModeData.Groups.First();
+                var modeString = gameMode.GetString();
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, "Pure Fiction", Color.White);
+                }, modeString, Color.White);
+                var modeTextBounds = TextMeasurer.MeasureBounds(modeString,
+                    new TextOptions(m_TitleFont) { Origin = new Vector2(50, 80) });
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(50, 120),
@@ -125,14 +161,15 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                     $"{group.BeginTime.Day}/{group.BeginTime.Month}/{group.BeginTime.Year} - " +
                     $"{group.EndTime.Day}/{group.EndTime.Month}/{group.EndTime.Year}",
                     Color.White);
-                ctx.DrawLine(Color.White, 3f, new PointF(305, 40), new PointF(305, 80));
+                ctx.DrawLine(Color.White, 3f, new PointF(modeTextBounds.Right + 15, 40),
+                    new PointF(modeTextBounds.Right + 15, 80));
                 var textOptions = new RichTextOptions(m_TitleFont)
                 {
-                    Origin = new Vector2(325, 80),
+                    Origin = new Vector2(modeTextBounds.Right + 30, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
                 };
-                var bounds = TextMeasurer.MeasureBounds(fictionData.StarNum.ToString(), textOptions);
-                ctx.DrawText(textOptions, fictionData.StarNum.ToString(), Color.White);
+                var bounds = TextMeasurer.MeasureBounds(gameModeData.StarNum.ToString(), textOptions);
+                ctx.DrawText(textOptions, gameModeData.StarNum.ToString(), Color.White);
                 ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -156,7 +193,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
 
                     IPath overlay;
 
-                    if (floorData.IsFast || floorData.Node1 == null)
+                    if (floorData == null || floorData.IsFast)
                     {
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
                              !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
@@ -171,7 +208,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                                 Origin = new Vector2(xOffset + 450, yOffset + 280),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
-                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
                         else
                         {
@@ -183,18 +220,29 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                                 Origin = new Vector2(xOffset + 450, yOffset + 110),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
-                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        var stageText = gameMode switch
                         {
-                            Origin = new Vector2(xOffset + 20, yOffset + 20),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Top
-                        }, floorData.Name, Color.White);
+                            EndGameMode.PureFiction =>
+                                $"{gameModeData.Groups.First().Name} ({HsrCommandUtility.GetRomanNumeral(floorNumber + 1)})",
+                            EndGameMode.ApocalypticShadow =>
+                                $"{gameModeData.Groups.First().Name}: Difficulty {floorNumber + 1}",
+                            _ => throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null)
+                        };
+
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                            {
+                                Origin = new Vector2(xOffset + 20, yOffset + 20),
+                                HorizontalAlignment = HorizontalAlignment.Left,
+                                VerticalAlignment = VerticalAlignment.Top
+                            },
+                            floorData?.Name ?? stageText,
+                            Color.White);
 
                         for (int i = 0; i < 3; i++)
-                            ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
+                            ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
                                 new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
 
                         if (floorNumber % 2 == 1) yOffset += 200;
@@ -210,7 +258,7 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Color.White);
 
-                    using var node1 = GetRosterImage(floorData.Node1.Avatars.Select(x => x.Id).ToList(), lookup);
+                    using var node1 = GetRosterImage(floorData.Node1!.Avatars.Select(x => x.Id).ToList(), lookup);
                     using var node2 = GetRosterImage(floorData.Node2!.Avatars.Select(x => x.Id).ToList(), lookup);
                     disposables.AddRange(node1, node2);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 65),
@@ -221,6 +269,10 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                             Origin = new Vector2(xOffset + 855, yOffset + 85),
                             HorizontalAlignment = HorizontalAlignment.Right
                         }, $"Score: {floorData.Node1.Score}", Color.White);
+                    if (gameMode == EndGameMode.ApocalypticShadow && floorData.Node1.BossDefeated)
+                        ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 83),
+                            1f);
+
                     ctx.DrawImage(node1, new Point(xOffset + 55, yOffset + 130), 1f);
                     IPath ellipse = new EllipsePolygon(new PointF(xOffset + 780, yOffset + 220), 55);
                     ctx.Fill(Color.Black, ellipse);
@@ -235,6 +287,10 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                             Origin = new Vector2(xOffset + 855, yOffset + 350),
                             HorizontalAlignment = HorizontalAlignment.Right
                         }, $"Score: {floorData.Node2.Score}", Color.White);
+                    if (gameMode == EndGameMode.ApocalypticShadow && floorData.Node2.BossDefeated)
+                        ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 348),
+                            1f);
+
                     ctx.DrawImage(node2, new Point(xOffset + 55, yOffset + 395), 1f);
                     ellipse = ellipse.Translate(0, 265);
                     ctx.Fill(Color.Black, ellipse);
@@ -248,7 +304,6 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 720, yOffset + 10),
                         new PointF(xOffset + 720, yOffset + 55));
                     var scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
-                    var size = TextMeasurer.MeasureSize(scoreText, new TextOptions(m_NormalFont));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
                             Origin = new Vector2(xOffset + 710, yOffset + 20),
@@ -256,16 +311,23 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
                             VerticalAlignment = VerticalAlignment.Top
                         }, scoreText,
                         Color.White);
-                    ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 695 - (int)size.Width, yOffset + 10),
-                        new PointF(xOffset + 695 - (int)size.Width, yOffset + 55));
 
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    // Draw cycle number
+                    if (gameMode == EndGameMode.PureFiction)
                     {
-                        Origin = new Vector2(xOffset + 650 - (int)size.Width, yOffset + 20),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, floorData.RoundNum.ToString(), Color.White);
-                    ctx.DrawImage(m_CycleIcon, new Point(xOffset + 650 - (int)size.Width, yOffset + 10), 1f);
+                        var size = TextMeasurer.MeasureSize(scoreText, new TextOptions(m_NormalFont));
+                        ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 695 - (int)size.Width, yOffset + 10),
+                            new PointF(xOffset + 695 - (int)size.Width, yOffset + 55));
+
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            Origin = new Vector2(xOffset + 650 - (int)size.Width, yOffset + 20),
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            VerticalAlignment = VerticalAlignment.Top
+                        }, floorData.RoundNum.ToString(), Color.White);
+                        ctx.DrawImage(m_CycleIcon, new Point(xOffset + 650 - (int)size.Width, yOffset + 10), 1f);
+                    }
+
                     if (floorNumber % 2 == 1) yOffset += 620;
                 }
             });
@@ -277,9 +339,9 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate Pure Fiction card image for uid {UserId}\n{JsonString}",
-                gameData, JsonSerializer.Serialize(fictionData));
-            throw new CommandException("An error occurred while generating Pure Fiction card image", e);
+            m_Logger.LogError(e, "Failed to generate {GameMode} card image for uid {UserId}\n{JsonString}",
+                gameMode.GetString(), gameData, JsonSerializer.Serialize(gameModeData));
+            throw new CommandException($"An error occurred while generating {gameMode.GetString()} card image", e);
         }
         finally
         {
@@ -287,9 +349,9 @@ internal class HsrPureFictionCardService : ICommandService<HsrPureFictionCommand
         }
     }
 
-    private bool IsSmallBlob(FictionFloorDetail data)
+    private static bool IsSmallBlob(HsrEndFloorDetail? data)
     {
-        return data.IsFast || data.Node1 == null;
+        return data == null || data.IsFast;
     }
 
     private static Image<Rgba32> GetRosterImage(List<int> avatarIds,

@@ -736,7 +736,7 @@ public class HsrMemoryCommandExecutorTests
                     Node1 = new NodeInformation
                     {
                         ChallengeTime = new ScheduleTime { Year = 2025, Month = 1, Day = 5, Hour = 12, Minute = 30 },
-                        Avatars = new List<MemoryAvatar>
+                        Avatars = new List<HsrEndAvatar>
                         {
                             new()
                             {
@@ -753,7 +753,7 @@ public class HsrMemoryCommandExecutorTests
                     Node2 = new NodeInformation
                     {
                         ChallengeTime = new ScheduleTime { Year = 2025, Month = 1, Day = 5, Hour = 12, Minute = 45 },
-                        Avatars = new List<MemoryAvatar>
+                        Avatars = new List<HsrEndAvatar>
                         {
                             new()
                             {

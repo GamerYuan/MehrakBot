@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace MehrakCore.ApiResponseTypes.Hsr;
 
-public class FictionFloorDetail
+public class HsrEndFloorDetail
 {
     [JsonPropertyName("name")] public required string Name { get; set; }
 
@@ -14,16 +14,16 @@ public class FictionFloorDetail
 
     [JsonPropertyName("star_num")] public int StarNum { get; set; }
 
-    [JsonPropertyName("node_1")] public FictionNodeInformation? Node1 { get; set; }
+    [JsonPropertyName("node_1")] public HsrEndNodeInformation? Node1 { get; set; }
 
-    [JsonPropertyName("node_2")] public FictionNodeInformation? Node2 { get; set; }
+    [JsonPropertyName("node_2")] public HsrEndNodeInformation? Node2 { get; set; }
 
     [JsonPropertyName("maze_id")] public int MazeId { get; set; }
 
     [JsonPropertyName("is_fast")] public bool IsFast { get; set; }
 }
 
-public class FictionAvatar
+public class HsrEndAvatar
 {
     [JsonPropertyName("id")] public int Id { get; set; }
 
@@ -38,7 +38,7 @@ public class FictionAvatar
     [JsonPropertyName("rank")] public int Rank { get; set; }
 }
 
-public class FictionBuff
+public class HsrEndBuff
 {
     [JsonPropertyName("id")] public int Id { get; set; }
 
@@ -49,7 +49,7 @@ public class FictionBuff
     [JsonPropertyName("icon")] public required string Icon { get; set; }
 }
 
-public class Group
+public class HsrEndGroup
 {
     [JsonPropertyName("schedule_id")] public int ScheduleId { get; set; }
 
@@ -62,20 +62,26 @@ public class Group
     [JsonPropertyName("name_mi18n")] public required string Name { get; set; }
 }
 
-public class FictionNodeInformation
+public class HsrEndNodeInformation
 {
     [JsonPropertyName("challenge_time")] public required ScheduleTime ChallengeTime { get; set; }
 
-    [JsonPropertyName("avatars")] public required List<FictionAvatar> Avatars { get; set; }
+    [JsonPropertyName("avatars")] public required List<HsrEndAvatar> Avatars { get; set; }
 
-    [JsonPropertyName("buff")] public required FictionBuff Buff { get; set; }
+    [JsonPropertyName("buff")] public required HsrEndBuff Buff { get; set; }
 
     [JsonPropertyName("score")] public required string Score { get; set; }
+
+    /// <summary>
+    /// Only used for Apocalyptic Shadow
+    /// </summary>
+    [JsonPropertyName("boss_defeated")]
+    public bool BossDefeated { get; set; }
 }
 
-public class HsrPureFictionInformation
+public class HsrEndInformation
 {
-    [JsonPropertyName("groups")] public required List<Group> Groups { get; set; }
+    [JsonPropertyName("groups")] public required List<HsrEndGroup> Groups { get; set; }
 
     [JsonPropertyName("star_num")] public int StarNum { get; set; }
 
@@ -85,7 +91,7 @@ public class HsrPureFictionInformation
 
     [JsonPropertyName("has_data")] public bool HasData { get; set; }
 
-    [JsonPropertyName("all_floor_detail")] public required List<FictionFloorDetail> AllFloorDetail { get; set; }
+    [JsonPropertyName("all_floor_detail")] public required List<HsrEndFloorDetail> AllFloorDetail { get; set; }
 
     [JsonPropertyName("max_floor_id")] public int MaxFloorId { get; set; }
 }

@@ -1,11 +1,9 @@
 ﻿#region
 
-using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
-using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
@@ -15,27 +13,28 @@ using NetCord.Rest;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr.PureFiction;
+namespace MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 
-public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModule>
+public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
 {
     private readonly ImageUpdaterService<HsrCharacterInformation> m_ImageUpdaterService;
-    private readonly HsrPureFictionCardService m_CommandService;
-    private readonly HsrPureFictionApiService m_ApiService;
+    private readonly HsrEndGameApiService m_ApiService;
 
     private Regions m_PendingServer;
 
-    public HsrPureFictionCommandExecutor(ICommandService<HsrPureFictionCommandExecutor> commandService,
-        IApiService<HsrPureFictionCommandExecutor> apiService,
-        ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
-        UserRepository userRepository, TokenCacheService tokenCacheService,
+    protected override string GameModeName { get; } = "Pure Fiction";
+    protected override string AttachmentName { get; } = "pf_card";
+
+    public HsrPureFictionCommandExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
-        ILogger<HsrCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
-        gameRecordApi, logger)
+        ILogger<HsrCommandModule> logger, ICommandService<BaseHsrEndGameCommandExecutor> commandService,
+        ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
+        IApiService<BaseHsrEndGameCommandExecutor> apiService) : base(userRepository,
+        tokenCacheService,
+        authenticationMiddleware, gameRecordApi, logger, commandService)
     {
         m_ImageUpdaterService = imageUpdaterService;
-        m_CommandService = (HsrPureFictionCardService)commandService;
-        m_ApiService = (HsrPureFictionApiService)apiService;
+        m_ApiService = (HsrEndGameApiService)apiService;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -111,7 +110,8 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
 
             var gameData = response.Data;
             var pureFictionResponse =
-                await m_ApiService.GetPureFictionDataAsync(gameData.GameUid!, region, ltuid, ltoken);
+                await m_ApiService.GetEndGameDataAsync(gameData.GameUid!, region, ltuid, ltoken,
+                    EndGameMode.PureFiction);
             if (!pureFictionResponse.IsSuccess)
             {
                 Logger.LogError("Failed to fetch Pure Fiction data for user {UserId}: {ErrorMessage}",
@@ -147,7 +147,8 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
 
             var buffMap = await m_ApiService.GetBuffMapAsync(pureFictionData);
 
-            var message = await GetFictionCardAsync(response.Data, pureFictionData, server, buffMap);
+            var message = await GetEndGameCardAsync(EndGameMode.PureFiction, response.Data, pureFictionData, server,
+                buffMap);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
@@ -167,49 +168,6 @@ public class HsrPureFictionCommandExecutor : BaseCommandExecutor<HsrCommandModul
                 Context.Interaction.User.Id);
             await SendErrorMessageAsync("An error occurred while generating Pure Fiction card");
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr pf", true);
-        }
-    }
-
-    private async ValueTask<InteractionMessageProperties> GetFictionCardAsync(UserGameData gameData,
-        HsrPureFictionInformation fictionData, Regions region, Dictionary<int, Stream> buffMap)
-    {
-        try
-        {
-            var tz = region.GetTimeZoneInfo();
-            var group = fictionData.Groups.First();
-            var startTime = new DateTimeOffset(group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-            var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-            InteractionMessageProperties message = new();
-            ComponentContainerProperties container =
-            [
-                new TextDisplayProperties(
-                    $"### <@{Context.Interaction.User.Id}>'s Pure Fiction Summary"),
-                new TextDisplayProperties(
-                    $"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                new MediaGalleryProperties().AddItems(
-                    new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://pf_card.jpg"))),
-                new TextDisplayProperties(
-                    $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
-            ];
-
-            message.WithComponents([container]);
-            message.WithFlags(MessageFlags.IsComponentsV2);
-            message.AddAttachments(new AttachmentProperties("pf_card.jpg",
-                await m_CommandService.GetFictionCardImageAsync(gameData, fictionData, buffMap)));
-
-            return message;
-        }
-        catch (CommandException)
-        {
-            throw;
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, "Error generating Pure Fiction card for user {UserId}",
-                Context.Interaction.User.Id);
-            throw new CommandException("An error occurred while generating Pure Fiction card", e);
         }
     }
 }

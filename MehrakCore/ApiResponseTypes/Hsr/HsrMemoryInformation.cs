@@ -26,21 +26,6 @@ public class FloorDetail
     [JsonPropertyName("is_fast")] public bool IsFast { get; set; }
 }
 
-public class MemoryAvatar
-{
-    [JsonPropertyName("id")] public int Id { get; set; }
-
-    [JsonPropertyName("level")] public int Level { get; set; }
-
-    [JsonPropertyName("icon")] public required string Icon { get; set; }
-
-    [JsonPropertyName("rarity")] public int Rarity { get; set; }
-
-    [JsonPropertyName("element")] public required string Element { get; set; }
-
-    [JsonPropertyName("rank")] public int Rank { get; set; }
-}
-
 public class ScheduleTime
 {
     [JsonPropertyName("year")] public int Year { get; set; }
@@ -86,5 +71,5 @@ public class NodeInformation
 {
     [JsonPropertyName("challenge_time")] public required ScheduleTime ChallengeTime { get; set; }
 
-    [JsonPropertyName("avatars")] public required List<MemoryAvatar> Avatars { get; set; }
+    [JsonPropertyName("avatars")] public required List<HsrEndAvatar> Avatars { get; set; }
 }

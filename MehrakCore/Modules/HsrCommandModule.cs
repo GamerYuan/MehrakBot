@@ -2,8 +2,9 @@
 
 using MehrakCore.Provider.Commands.Hsr;
 using MehrakCore.Services.Commands.Executor;
+using MehrakCore.Services.Commands.Hsr.EndGame.BossChallenge;
+using MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 using MehrakCore.Services.Commands.Hsr.Memory;
-using MehrakCore.Services.Commands.Hsr.PureFiction;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     private readonly IRealTimeNotesCommandExecutor<HsrCommandModule> m_RealTimeNotesCommandExecutor;
     private readonly HsrMemoryCommandExecutor m_MemoryCommandExecutor;
     private readonly HsrPureFictionCommandExecutor m_FictionCommandExecutor;
+    private readonly HsrBossChallengeCommandExecutor m_ChallengeCommandExecutor;
     private readonly ICodeRedeemExecutor<HsrCommandModule> m_CodesRedeemExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<HsrCommandModule> m_Logger;
@@ -29,13 +31,15 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     public HsrCommandModule(ICharacterCommandExecutor<HsrCommandModule> characterCommandExecutor,
         IRealTimeNotesCommandExecutor<HsrCommandModule> realTimeNotesCommandExecutor,
         HsrMemoryCommandExecutor memoryCommandExecutor, HsrPureFictionCommandExecutor fictionCommandExecutor,
-        CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger,
-        ICodeRedeemExecutor<HsrCommandModule> codesRedeemExecutor)
+        HsrBossChallengeCommandExecutor challengeCommandExecutor,
+        ICodeRedeemExecutor<HsrCommandModule> codesRedeemExecutor,
+        CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger)
     {
         m_CharacterCommandExecutor = characterCommandExecutor;
         m_RealTimeNotesCommandExecutor = realTimeNotesCommandExecutor;
         m_MemoryCommandExecutor = memoryCommandExecutor;
         m_FictionCommandExecutor = fictionCommandExecutor;
+        m_ChallengeCommandExecutor = challengeCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
         m_CodesRedeemExecutor = codesRedeemExecutor;
@@ -145,6 +149,23 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await m_FictionCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
+    [SubSlashCommand("as", "Get Apocalyptic Shadow card")]
+    public async Task ChallengeCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_ChallengeCommandExecutor.Context = Context;
+        await m_ChallengeCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+    }
+
     public static string GetHelpString(string subcommand = "")
     {
         return subcommand switch
@@ -188,6 +209,24 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
                        "```/hsr notes\n/hsr notes Asia 2```",
+            "pf" => "## Pure Fiction\n" +
+                    "Get Pure Fiction card summary card\n" +
+                    "### Usage\n" +
+                    "```/hsr pf [server] [profile]```\n" +
+                    "### Parameters\n" +
+                    "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                    "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                    "### Examples\n" +
+                    "```/hsr pf\n/hsr pf Asia 2```",
+            "as" => "## Apocalyptic Shadow\n" +
+                    "Get Apocalyptic Shadow card summary card\n" +
+                    "### Usage\n" +
+                    "```/hsr as [server] [profile]```\n" +
+                    "### Parameters\n" +
+                    "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                    "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                    "### Examples\n" +
+                    "```/hsr as\n/hsr as Asia 2```",
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
