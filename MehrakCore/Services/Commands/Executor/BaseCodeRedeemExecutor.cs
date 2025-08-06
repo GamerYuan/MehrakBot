@@ -141,7 +141,6 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
         {
             Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 result.UserId, result.ErrorMessage);
-            await SendAuthenticationErrorAsync(result.ErrorMessage);
             return;
         }
 

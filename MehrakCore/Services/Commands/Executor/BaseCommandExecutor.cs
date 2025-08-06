@@ -245,7 +245,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
             {
                 if (result.StatusCode == HttpStatusCode.Unauthorized)
                 {
-                    await SendAuthenticationErrorAsync(
+                    await SendErrorMessageAsync(
                         "Invalid HoYoLAB UID or Cookies. Please authenticate again");
                     return result;
                 }
@@ -280,16 +280,6 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
         {
             throw new CommandException("An error occurred while updating user data", e);
         }
-    }
-
-    /// <summary>
-    /// Sends an error response for authentication failures.
-    /// </summary>
-    protected async Task SendAuthenticationErrorAsync(string errorMessage)
-    {
-        await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-            .AddComponents(new TextDisplayProperties($"Authentication failed: {errorMessage}"))
-            .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
     }
 
     /// <summary>
