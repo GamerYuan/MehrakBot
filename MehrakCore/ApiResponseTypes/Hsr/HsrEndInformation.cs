@@ -95,3 +95,21 @@ public class HsrEndInformation
 
     [JsonPropertyName("max_floor_id")] public int MaxFloorId { get; set; }
 }
+
+public class ScheduleTime
+{
+    [JsonPropertyName("year")] public int Year { get; set; }
+
+    [JsonPropertyName("month")] public int Month { get; set; }
+
+    [JsonPropertyName("day")] public int Day { get; set; }
+
+    [JsonPropertyName("hour")] public int Hour { get; set; }
+
+    [JsonPropertyName("minute")] public int Minute { get; set; }
+
+    public DateTime ToDateTime()
+    {
+        return new DateTime(Year, Month, Day, Hour, Minute, 0);
+    }
+}

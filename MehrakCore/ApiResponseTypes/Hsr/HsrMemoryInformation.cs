@@ -26,24 +26,6 @@ public class FloorDetail
     [JsonPropertyName("is_fast")] public bool IsFast { get; set; }
 }
 
-public class ScheduleTime
-{
-    [JsonPropertyName("year")] public int Year { get; set; }
-
-    [JsonPropertyName("month")] public int Month { get; set; }
-
-    [JsonPropertyName("day")] public int Day { get; set; }
-
-    [JsonPropertyName("hour")] public int Hour { get; set; }
-
-    [JsonPropertyName("minute")] public int Minute { get; set; }
-
-    public DateTime ToDateTime()
-    {
-        return new DateTime(Year, Month, Day, Hour, Minute, 0);
-    }
-}
-
 public class HsrMemoryInformation
 {
     [JsonPropertyName("schedule_id")] public int ScheduleId { get; set; }
@@ -65,6 +47,8 @@ public class HsrMemoryInformation
     public List<FloorDetail>? AllFloorDetail { get; set; }
 
     [JsonPropertyName("max_floor_id")] public int MaxFloorId { get; set; }
+
+    [JsonPropertyName("groups")] public required List<HsrEndGroup> Groups { get; set; }
 }
 
 public class NodeInformation

@@ -85,11 +85,16 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                     HsrAvatarIdComparer.Instance);
 
             var lookup = avatarImages.GetAlternateLookup<int>();
-            var floorDetails = memoryData.AllFloorDetail!
-                .Select(x => (FloorNumber: HsrCommandUtility.GetFloorNumber(x.Name) - 1, Data: x))
-                .OrderBy(x => x.FloorNumber).ToList();
+            var floorDetails = Enumerable.Range(0, 12)
+                .Select(floorIndex =>
+                {
+                    var floorData = memoryData.AllFloorDetail!
+                        .FirstOrDefault(x => HsrCommandUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
+                    return (FloorNumber: floorIndex, Data: floorData);
+                })
+                .ToList();
             var height = 180 + floorDetails.Chunk(2)
-                .Select(x => x.All(y => IsSmallBlob(y.Data)) ? 200 : 520).Sum();
+                .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520).Sum();
 
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
@@ -146,7 +151,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
                     IPath overlay;
 
-                    if (floorData.IsFast || floorData.Node1.Avatars.Count == 0)
+                    if (floorData == null || floorData.IsFast)
                     {
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
                              !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
@@ -161,7 +166,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                                 Origin = new Vector2(xOffset + 350, yOffset + 280),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
-                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
                         else
                         {
@@ -173,18 +178,20 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                                 Origin = new Vector2(xOffset + 350, yOffset + 110),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
-                            }, floorData.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
+                        var stageText =
+                            $"{memoryData.Groups.First().Name} ({HsrCommandUtility.GetRomanNumeral(floorNumber + 1)})";
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
                             Origin = new Vector2(xOffset + 20, yOffset + 20),
                             HorizontalAlignment = HorizontalAlignment.Left,
                             VerticalAlignment = VerticalAlignment.Top
-                        }, floorData.Name, Color.White);
+                        }, floorData?.Name ?? stageText, Color.White);
 
                         for (int i = 0; i < 3; i++)
-                            ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
+                            ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
                                 new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
 
                         if (floorNumber % 2 == 1) yOffset += 200;
@@ -263,8 +270,8 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
         return rosterImage;
     }
 
-    private static bool IsSmallBlob(FloorDetail floor)
+    private static bool IsSmallBlob(FloorDetail? floor)
     {
-        return floor.IsFast || floor.Node1.Avatars.Count == 0;
+        return floor == null || floor.IsFast;
     }
 }
