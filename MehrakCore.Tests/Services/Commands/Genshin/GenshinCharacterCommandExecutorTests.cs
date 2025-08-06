@@ -465,17 +465,23 @@ public class GenshinCharacterCommandExecutorTests
     #region OnAuthenticationCompletedAsync Tests
 
     [Test]
-    public async Task OnAuthenticationCompletedAsync_WhenAuthenticationFails_SendsErrorMessage()
+    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var authResult = AuthenticationResult.Failure(m_TestUserId, "Invalid passphrase");
+        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
+        await m_Executor.OnAuthenticationCompletedAsync(result);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Authentication failed: Invalid passphrase"));
+        m_LoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Test]

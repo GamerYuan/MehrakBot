@@ -379,6 +379,26 @@ public class HsrRealTimeNotesCommandExecutorTests
     #region OnAuthenticationCompletedAsync Tests
 
     [Test]
+    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
+    {
+        // Arrange
+        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+
+        // Act
+        await m_Executor.OnAuthenticationCompletedAsync(result);
+
+        // Assert
+        m_LoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationSuccessful_SendsRealTimeNotes()
     {
         // Arrange
@@ -407,20 +427,6 @@ public class HsrRealTimeNotesCommandExecutorTests
         // Assert
         m_ApiServiceMock.Verify(x => x.GetRealTimeNotesAsync(
             It.IsAny<string>(), It.IsAny<string>(), TestLtUid, TestLToken), Times.AtLeastOnce);
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_WhenAuthenticationFailed_SendsErrorResponse()
-    {
-        // Arrange
-        var authResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Authentication failed: Authentication failed"));
     }
 
     #endregion

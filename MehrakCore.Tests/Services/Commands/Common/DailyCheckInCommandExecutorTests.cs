@@ -433,6 +433,26 @@ public class DailyCheckInCommandExecutorTests
     }
 
     [Test]
+    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
+    {
+        // Arrange
+        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+
+        // Act
+        await m_Executor.OnAuthenticationCompletedAsync(result);
+
+        // Assert
+        m_LoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulResult_ShouldCallCheckInService()
     {
         // Arrange
@@ -473,25 +493,6 @@ public class DailyCheckInCommandExecutorTests
             x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid,
                 TestLToken),
             Times.Once);
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_WithFailedResult_ShouldSendErrorMessage()
-    {
-        // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
-
-        // Create interaction context for the error message
-        var interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var context = new ApplicationCommandContext(interaction, m_DiscordTestHelper.DiscordClient);
-        m_Executor.Context = context;
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(result);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Authentication failed") | Contains.Substring("error"));
     }
 
     [Test]

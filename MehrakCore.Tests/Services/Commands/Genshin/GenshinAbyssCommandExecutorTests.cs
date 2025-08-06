@@ -273,7 +273,7 @@ public class GenshinAbyssCommandExecutorTests
         // Assert
         m_LoggerMock.Verify(
             x => x.Log(
-                LogLevel.Error,
+                LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
                 It.IsAny<Exception>(),

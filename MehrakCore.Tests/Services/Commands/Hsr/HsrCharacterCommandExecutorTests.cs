@@ -448,20 +448,6 @@ public class HsrCharacterCommandExecutorTests
     #region OnAuthenticationCompletedAsync Tests
 
     [Test]
-    public async Task OnAuthenticationCompletedAsync_WhenAuthenticationFails_SendsErrorMessage()
-    {
-        // Arrange
-        var authResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Authentication failed"));
-    }
-
-    [Test]
     public async Task
         OnAuthenticationCompletedAsync_WhenAuthenticationSucceedsWithValidParameters_CallsSendCharacterCard()
     {

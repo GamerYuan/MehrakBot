@@ -356,7 +356,7 @@ public class GenshinTheaterCommandExecutorTests
     #region OnAuthenticationCompletedAsync Tests
 
     [Test]
-    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsErrorAndSendsMessage()
+    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
         var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
@@ -373,9 +373,6 @@ public class GenshinTheaterCommandExecutorTests
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
-
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(responseContent, Does.Contain("Authentication failed"));
     }
 
     [Test]

@@ -493,10 +493,53 @@ public class GenshinCharListCommandExecutorTests
     #region OnAuthenticationCompletedAsync Tests
 
     [Test]
+    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
+    {
+        // Arrange
+        var result = AuthenticationResult.Failure(800800800, "Authentication failed");
+
+        // Act
+        await m_CommandExecutor.OnAuthenticationCompletedAsync(result);
+
+        // Assert
+        m_LoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulAuth_ShouldExecuteCharListCard()
     {
         // Arrange
         var testGameData = CreateTestUserGameData();
+
+        var testUser = new UserModel
+        {
+            Id = TestUserId,
+            Profiles = new List<UserProfile>
+            {
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.Genshin, new Dictionary<string, string>
+                            {
+                                { "os_usa", TestGameUid }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         var authResult = AuthenticationResult.Success(
             TestUserId,
@@ -538,31 +581,6 @@ public class GenshinCharListCommandExecutorTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_WithFailedAuth_ShouldSendErrorMessage()
-    {
-        // Arrange
-        var authResult = AuthenticationResult.Failure(TestUserId, "Authentication failed");
-
-        // Act
-        await m_CommandExecutor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(
-            response, Does.Contain("Authentication failed"));
-
-        // Verify error logging
-        m_LoggerMock.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed for user")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
     }
 
     #endregion
