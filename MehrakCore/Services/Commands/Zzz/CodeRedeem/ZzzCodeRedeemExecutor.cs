@@ -12,12 +12,12 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Commands.Zzz.CodeRedeem;
 
-public class ZzzCodeRedeemExecutor : BaseCodeRedeemExecutor<ZzzCommandModule, ZzzCommandModule>
+public class ZzzCodeRedeemExecutor : BaseCodeRedeemExecutor<ZzzCommandModule, ZzzCodeRedeemExecutor>
 {
     public ZzzCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ICodeRedeemApiService<ZzzCommandModule> apiService, ICodeRedeemRepository codeRedeemRepository,
-        ILogger<ZzzCommandModule> logger) : base(
+        ILogger<ZzzCodeRedeemExecutor> logger) : base(
         userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, apiService, codeRedeemRepository, logger)
     {

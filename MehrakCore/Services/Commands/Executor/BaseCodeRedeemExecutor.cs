@@ -20,11 +20,10 @@ namespace MehrakCore.Services.Commands.Executor;
 /// code validation, authentication, and redemption flow while preserving interface-based dependency injection.
 /// </summary>
 /// <typeparam name="TModule">The command module type</typeparam>
-/// <typeparam name="TLogger">The logger type for the concrete executor</typeparam>
+/// <typeparam name="TLogger">The concrete executor type</typeparam>
 public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExecutor<TLogger>,
     ICodeRedeemExecutor<TModule>
     where TModule : ICommandModule
-    where TLogger : class
 {
     private readonly int m_RedeemDelay = 5500;
 

@@ -12,12 +12,12 @@ using Microsoft.Extensions.Logging;
 
 namespace MehrakCore.Services.Commands.Hsr.CodeRedeem;
 
-public class HsrCodeRedeemExecutor : BaseCodeRedeemExecutor<HsrCommandModule, HsrCommandModule>
+public class HsrCodeRedeemExecutor : BaseCodeRedeemExecutor<HsrCommandModule, HsrCodeRedeemExecutor>
 {
     public HsrCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ICodeRedeemApiService<HsrCommandModule> apiService, ICodeRedeemRepository codeRedeemRepository,
-        ILogger<HsrCommandModule> logger) : base(
+        ILogger<HsrCodeRedeemExecutor> logger) : base(
         userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, apiService, codeRedeemRepository, logger)
     {
