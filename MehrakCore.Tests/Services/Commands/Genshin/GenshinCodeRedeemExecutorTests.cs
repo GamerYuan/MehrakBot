@@ -1,12 +1,14 @@
 #region
 
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Genshin.CodeRedeem;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
@@ -37,7 +39,7 @@ public class GenshinCodeRedeemExecutorTests
     private Mock<ICodeRedeemRepository> m_CodeRedeemRepositoryMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private UserRepository m_UserRepository = null!;
-    private Mock<ILogger<GenshinCommandModule>> m_LoggerMock = null!;
+    private Mock<ILogger<GenshinCodeRedeemExecutor>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
@@ -53,7 +55,7 @@ public class GenshinCodeRedeemExecutorTests
         // Initialize mocks
         m_CodeRedeemApiServiceMock = new Mock<ICodeRedeemApiService<GenshinCommandModule>>();
         m_CodeRedeemRepositoryMock = new Mock<ICodeRedeemRepository>();
-        m_LoggerMock = new Mock<ILogger<GenshinCommandModule>>();
+        m_LoggerMock = new Mock<ILogger<GenshinCodeRedeemExecutor>>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
@@ -98,6 +100,10 @@ public class GenshinCodeRedeemExecutorTests
         m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
 
         m_Executor.Context = m_ContextMock.Object;
+
+        typeof(BaseCodeRedeemExecutor<GenshinCommandModule, GenshinCodeRedeemExecutor>).GetField("m_RedeemDelay",
+                BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(m_Executor, 100);
     }
 
     [TearDown]
@@ -330,7 +336,7 @@ public class GenshinCodeRedeemExecutorTests
         // Act
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u); // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("An error occurred while redeeming the code"));
+        Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
     [Test]

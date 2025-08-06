@@ -1,12 +1,14 @@
 #region
 
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Hsr.CodeRedeem;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
@@ -37,7 +39,7 @@ public class HsrCodeRedeemExecutorTests
     private Mock<ICodeRedeemRepository> m_CodeRedeemRepositoryMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private UserRepository m_UserRepository = null!;
-    private Mock<ILogger<HsrCommandModule>> m_LoggerMock = null!;
+    private Mock<ILogger<HsrCodeRedeemExecutor>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
@@ -52,7 +54,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Initialize mocks
         m_CodeRedeemApiServiceMock = new Mock<ICodeRedeemApiService<HsrCommandModule>>();
-        m_LoggerMock = new Mock<ILogger<HsrCommandModule>>();
+        m_LoggerMock = new Mock<ILogger<HsrCodeRedeemExecutor>>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
@@ -79,16 +81,6 @@ public class HsrCodeRedeemExecutorTests
         // Setup token cache to return cached tokens
         SetupTokenCache();
 
-        // Initialize executor
-        m_Executor = new HsrCodeRedeemExecutor(
-            m_UserRepository,
-            m_TokenCacheService,
-            m_AuthenticationMiddlewareMock.Object,
-            m_GameRecordApiService,
-            m_CodeRedeemApiServiceMock.Object,
-            m_CodeRedeemRepositoryMock.Object,
-            m_LoggerMock.Object);
-
         m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
         // Setup Discord interaction
@@ -100,7 +92,22 @@ public class HsrCodeRedeemExecutorTests
         m_ContextMock = new Mock<IInteractionContext>();
         m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
 
-        m_Executor.Context = m_ContextMock.Object;
+        // Initialize executor
+        m_Executor = new HsrCodeRedeemExecutor(
+            m_UserRepository,
+            m_TokenCacheService,
+            m_AuthenticationMiddlewareMock.Object,
+            m_GameRecordApiService,
+            m_CodeRedeemApiServiceMock.Object,
+            m_CodeRedeemRepositoryMock.Object,
+            m_LoggerMock.Object)
+        {
+            Context = m_ContextMock.Object
+        };
+
+        typeof(BaseCodeRedeemExecutor<HsrCommandModule, HsrCodeRedeemExecutor>).GetField("m_RedeemDelay",
+                BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(m_Executor, 100);
     }
 
     [TearDown]

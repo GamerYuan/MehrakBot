@@ -1,12 +1,14 @@
 #region
 
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
+using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
@@ -37,7 +39,7 @@ public class ZzzCodeRedeemExecutorTests
     private Mock<ICodeRedeemRepository> m_CodeRedeemRepositoryMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private UserRepository m_UserRepository = null!;
-    private Mock<ILogger<ZzzCommandModule>> m_LoggerMock = null!;
+    private Mock<ILogger<ZzzCodeRedeemExecutor>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
@@ -52,7 +54,7 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Initialize mocks
         m_CodeRedeemApiServiceMock = new Mock<ICodeRedeemApiService<ZzzCommandModule>>();
-        m_LoggerMock = new Mock<ILogger<ZzzCommandModule>>();
+        m_LoggerMock = new Mock<ILogger<ZzzCodeRedeemExecutor>>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
@@ -101,6 +103,10 @@ public class ZzzCodeRedeemExecutorTests
         m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
 
         m_Executor.Context = m_ContextMock.Object;
+
+        typeof(BaseCodeRedeemExecutor<ZzzCommandModule, ZzzCodeRedeemExecutor>).GetField("m_RedeemDelay",
+                BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(m_Executor, 100);
     }
 
     [TearDown]
@@ -970,7 +976,7 @@ public class ZzzCodeRedeemExecutorTests
         m_CodeRedeemApiServiceMock.Verify(x =>
             x.RedeemCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(),
                 It.IsAny<string>()), Times.Exactly(2));
-        
+
         // Expired codes should be removed from DB (repository removes all Invalid codes)
         var codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.ZenlessZoneZero);
         Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
