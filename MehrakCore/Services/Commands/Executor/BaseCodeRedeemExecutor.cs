@@ -167,8 +167,9 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
             StringBuilder sb = new();
             Dictionary<string, CodeStatus> successfulCodes = [];
 
-            foreach (var code in codes)
+            for (var i = 0; i < codes.Count; i++)
             {
+                var code = codes[i];
                 var trimmedCode = code.ToUpperInvariant().Trim();
                 var response = await m_ApiService.RedeemCodeAsync(trimmedCode, region, gameUid, ltuid, ltoken);
                 if (response.IsSuccess)
@@ -185,7 +186,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
                     throw new CommandException(response.ErrorMessage);
                 }
 
-                await Task.Delay(m_RedeemDelay);
+                if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay);
             }
 
             if (successfulCodes.Count > 0)
