@@ -22,7 +22,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Commands.Hsr.Memory;
+namespace MehrakCore.Tests.Services.Commands.Hsr;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class HsrMemoryCommandExecutorTests
@@ -107,9 +107,10 @@ public class HsrMemoryCommandExecutorTests
             m_TokenCacheService,
             m_AuthenticationMiddlewareMock.Object,
             m_GameRecordApiService,
-            m_LoggerMock.Object);
-
-        m_Executor.Context = m_ContextMock.Object;
+            m_LoggerMock.Object)
+        {
+            Context = m_ContextMock.Object
+        };
 
         // Setup authentication middleware
         m_AuthenticationMiddlewareMock.Setup(x => x.RegisterAuthenticationListener(
@@ -134,7 +135,7 @@ public class HsrMemoryCommandExecutorTests
     {
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
         m_DiscordTestHelper.Dispose();
-        m_HttpClient?.Dispose();
+        m_HttpClient.Dispose();
     }
 
     #region ExecuteAsync Tests
@@ -282,7 +283,16 @@ public class HsrMemoryCommandExecutorTests
             BattleNum = 0,
             HasData = false,
             AllFloorDetail = null,
-            MaxFloorId = 0
+            MaxFloorId = 0,
+            Groups =
+            [
+                new HsrEndGroup
+                {
+                    BeginTime = new ScheduleTime { Year = 2025, Month = 1, Day = 1, Hour = 0, Minute = 0 },
+                    EndTime = new ScheduleTime { Year = 2025, Month = 1, Day = 15, Hour = 0, Minute = 0 },
+                    Name = "Test Group"
+                }
+            ]
         };
 
         SetupMemoryApiSuccess(emptyMemoryData);
@@ -714,63 +724,8 @@ public class HsrMemoryCommandExecutorTests
 
     private void LoadTestData()
     {
-        // Create test memory data
-        m_MemoryTestDataJson = JsonSerializer.Serialize(new HsrMemoryInformation
-        {
-            ScheduleId = 1,
-            StartTime = new ScheduleTime { Year = 2025, Month = 1, Day = 1, Hour = 0, Minute = 0 },
-            EndTime = new ScheduleTime { Year = 2025, Month = 1, Day = 15, Hour = 0, Minute = 0 },
-            StarNum = 36,
-            MaxFloor = "Memory of Chaos 12",
-            BattleNum = 12,
-            HasData = true,
-            MaxFloorId = 12,
-            AllFloorDetail = new List<FloorDetail>
-            {
-                new()
-                {
-                    Name = "Memory of Chaos 12",
-                    RoundNum = 1,
-                    StarNum = 3,
-                    IsFast = false,
-                    Node1 = new NodeInformation
-                    {
-                        ChallengeTime = new ScheduleTime { Year = 2025, Month = 1, Day = 5, Hour = 12, Minute = 30 },
-                        Avatars = new List<HsrEndAvatar>
-                        {
-                            new()
-                            {
-                                Id = 1001, Level = 80, Icon = "https://example.com/avatar1.png", Rarity = 5,
-                                Element = "Fire", Rank = 6
-                            },
-                            new()
-                            {
-                                Id = 1002, Level = 80, Icon = "https://example.com/avatar2.png", Rarity = 5,
-                                Element = "Ice", Rank = 1
-                            }
-                        }
-                    },
-                    Node2 = new NodeInformation
-                    {
-                        ChallengeTime = new ScheduleTime { Year = 2025, Month = 1, Day = 5, Hour = 12, Minute = 45 },
-                        Avatars = new List<HsrEndAvatar>
-                        {
-                            new()
-                            {
-                                Id = 1003, Level = 80, Icon = "https://example.com/avatar3.png", Rarity = 4,
-                                Element = "Lightning", Rank = 3
-                            },
-                            new()
-                            {
-                                Id = 1004, Level = 80, Icon = "https://example.com/avatar4.png", Rarity = 5,
-                                Element = "Wind", Rank = 2
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
+        m_MemoryTestDataJson =
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "Moc_TestData_1.json"));
         m_TestMemoryData = JsonSerializer.Deserialize<HsrMemoryInformation>(m_MemoryTestDataJson)!;
     }
 

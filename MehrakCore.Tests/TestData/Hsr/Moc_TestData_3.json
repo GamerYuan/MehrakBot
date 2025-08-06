@@ -15,39 +15,11 @@
     "minute": 0
   },
   "star_num": 33,
-  "max_floor": "Lupine Moon-Devourer (XII)",
+  "max_floor": "Lupine Moon-Devourer (XI)",
   "battle_num": 9,
   "has_data": true,
   "max_floor_detail": null,
   "all_floor_detail": [
-    {
-      "name": "Lupine Moon-Devourer (XII)",
-      "round_num": 12,
-      "star_num": 0,
-      "node_1": {
-        "challenge_time": {
-          "year": 2025,
-          "month": 7,
-          "day": 12,
-          "hour": 16,
-          "minute": 25
-        },
-        "avatars": []
-      },
-      "node_2": {
-        "challenge_time": {
-          "year": 2025,
-          "month": 7,
-          "day": 12,
-          "hour": 16,
-          "minute": 25
-        },
-        "avatars": []
-      },
-      "is_chaos": true,
-      "maze_id": 4312,
-      "is_fast": false
-    },
     {
       "name": "Lupine Moon-Devourer (XI)",
       "round_num": 9,
