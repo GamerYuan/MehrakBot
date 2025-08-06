@@ -330,7 +330,7 @@ public class GenshinCodeRedeemExecutorTests
         // Act
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u); // Assert
         var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("An error occurred while redeeming the code"));
+        Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
     [Test]
