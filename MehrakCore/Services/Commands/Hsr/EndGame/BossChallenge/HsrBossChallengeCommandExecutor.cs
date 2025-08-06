@@ -84,9 +84,8 @@ public class HsrBossChallengeCommandExecutor : BaseHsrEndGameCommandExecutor
     {
         if (!result.IsSuccess)
         {
-            Logger.LogError("Authentication failed for user {UserId}: {ErrorMessage}", Context.Interaction.User.Id,
+            Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}", Context.Interaction.User.Id,
                 result.ErrorMessage);
-            await SendAuthenticationErrorAsync(result.ErrorMessage);
             return;
         }
 

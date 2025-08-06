@@ -94,7 +94,6 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         {
             Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 Context.Interaction.User.Id, result.ErrorMessage);
-            await SendAuthenticationErrorAsync(result.ErrorMessage);
         }
     }
 

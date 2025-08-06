@@ -151,7 +151,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogWarning("User {UserId} not found in database", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                     .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .WithComponents([new TextDisplayProperties("No profile found! Please add a profile first.")]));
+                    .WithComponents([new TextDisplayProperties("No profile found! Please add a profile first")]));
                 return AuthenticationResult.Failure(Context.User.Id, "No profile found");
             }
 
@@ -174,7 +174,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                         .OriginalResponseMessageId!.Value);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([new TextDisplayProperties("Invalid passphrase. Please try again.")]));
+                .WithComponents([new TextDisplayProperties("Invalid passphrase. Please try again")]));
             return AuthenticationResult.Failure(Context.User.Id, "Invalid passphrase");
         }
         catch (Exception e)
@@ -184,7 +184,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(
-                    new TextDisplayProperties("An error occurred during authentication. Please try again later."))));
+                    new TextDisplayProperties("An error occurred during authentication. Please try again later"))));
             return AuthenticationResult.Failure(Context.User.Id, "An error occurred during authentication");
         }
     }

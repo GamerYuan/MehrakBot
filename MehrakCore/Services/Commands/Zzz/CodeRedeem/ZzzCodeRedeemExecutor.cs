@@ -97,7 +97,6 @@ public class ZzzCodeRedeemExecutor : BaseCommandExecutor<ZzzCommandModule>, ICod
         {
             Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}",
                 result.UserId, result.ErrorMessage);
-            await SendAuthenticationErrorAsync(result.ErrorMessage);
             return;
         }
 
