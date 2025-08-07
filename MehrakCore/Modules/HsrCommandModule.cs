@@ -170,6 +170,15 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     {
         return subcommand switch
         {
+            "as" => "## Apocalyptic Shadow\n" +
+                    "Get Apocalyptic Shadow card summary card\n" +
+                    "### Usage\n" +
+                    "```/hsr as [server] [profile]```\n" +
+                    "### Parameters\n" +
+                    "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                    "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                    "### Examples\n" +
+                    "```/hsr as\n/hsr as Asia 2```",
             "character" => "## HSR Character\n" +
                            "Get character card from Honkai: Star Rail\n" +
                            "### Usage\n" +
@@ -218,15 +227,6 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                     "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                     "### Examples\n" +
                     "```/hsr pf\n/hsr pf Asia 2```",
-            "as" => "## Apocalyptic Shadow\n" +
-                    "Get Apocalyptic Shadow card summary card\n" +
-                    "### Usage\n" +
-                    "```/hsr as [server] [profile]```\n" +
-                    "### Parameters\n" +
-                    "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                    "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                    "### Examples\n" +
-                    "```/hsr as\n/hsr as Asia 2```",
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
