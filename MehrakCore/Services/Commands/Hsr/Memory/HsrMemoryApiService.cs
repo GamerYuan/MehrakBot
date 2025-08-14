@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrMemoryApiService> m_Logger;
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge";
+    private static readonly string ApiEndpoint = "/event/game_record/hkrpg/api/challenge";
 
     public HsrMemoryApiService(IHttpClientFactory httpClientFactory, ILogger<HsrMemoryApiService> logger)
     {
@@ -31,7 +32,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
         {
             var client = m_HttpClientFactory.CreateClient("Default");
             var request = new HttpRequestMessage(HttpMethod.Get,
-                $"{ApiUrl}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             request.Headers.Add("Ds", DSGenerator.GenerateDS());
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
