@@ -2,6 +2,7 @@
 
 using System.Net;
 using System.Text.Json.Nodes;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,7 @@ namespace MehrakCore.Services.Commands.Genshin.CodeRedeem;
 
 public class GenshinCodeRedeemApiService : ICodeRedeemApiService<GenshinCommandModule>
 {
-    private const string ApiUrl = "https://public-operation-hk4e.hoyolab.com/common/apicdkey/api/webExchangeCdkeyHyl";
+    private static readonly string ApiEndpoint = "/common/apicdkey/api/webExchangeCdkeyHyl";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinCodeRedeemApiService> m_Logger;
@@ -35,7 +36,7 @@ public class GenshinCodeRedeemApiService : ICodeRedeemApiService<GenshinCommandM
             {
                 Method = HttpMethod.Get,
                 RequestUri =
-                    new Uri($"{ApiUrl}?cdkey={code}&game_biz=hk4e_global&region={region}&uid={gameUid}&lang=en-us"),
+                    new Uri($"{HoYoLabDomains.GenshinOpsApi}{ApiEndpoint}?cdkey={code}&game_biz=hk4e_global&region={region}&uid={gameUid}&lang=en-us"),
                 Headers =
                 {
                     { "Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}" }

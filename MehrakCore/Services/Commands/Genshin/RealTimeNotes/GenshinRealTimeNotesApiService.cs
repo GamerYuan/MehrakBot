@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +14,7 @@ namespace MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 
 public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRealTimeNotesData>
 {
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/app/genshin/api/dailyNote";
+    private static readonly string ApiEndpoint = "/event/game_record/app/genshin/api/dailyNote";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinRealTimeNotesApiService> m_Logger;
@@ -31,7 +32,7 @@ public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRe
         try
         {
             var client = m_HttpClientFactory.CreateClient("Default");
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{ApiUrl}?role_id={roleId}&server={server}");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={roleId}&server={server}");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)

@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,7 @@ namespace MehrakCore.Services.Commands.Genshin.Character;
 
 public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>
 {
-    private const string BaseUrl = "https://sg-public-api.hoyolab.com/event/game_record/genshin/api";
+    private static readonly string BasePath = "/event/game_record/genshin/api";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinCharacterApiService> m_Logger;
@@ -60,7 +61,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             request.Method = HttpMethod.Post;
             request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{BaseUrl}/character/list");
+            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}/character/list");
             request.Content =
                 new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
@@ -121,7 +122,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             request.Method = HttpMethod.Post;
             request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{BaseUrl}/character/detail");
+            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}/character/detail");
             request.Content =
                 new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             m_Logger.LogDebug("Sending character detail request to {Endpoint}", request.RequestUri);

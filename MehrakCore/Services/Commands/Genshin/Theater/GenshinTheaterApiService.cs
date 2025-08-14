@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using Microsoft.Extensions.Logging;
 
@@ -16,7 +17,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinTheaterApiService> m_Logger;
 
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/genshin/api/role_combat";
+    private static readonly string ApiEndpoint = "/event/game_record/genshin/api/role_combat";
 
     public GenshinTheaterApiService(IHttpClientFactory httpClientFactory, ILogger<GenshinTheaterApiService> logger)
     {
@@ -31,7 +32,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
         {
             var client = m_HttpClientFactory.CreateClient("Default");
             var request = new HttpRequestMessage(HttpMethod.Get,
-                $"{ApiUrl}?role_id={gameUid}&server={region}&need_detail=true");
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={gameUid}&server={region}&need_detail=true");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
