@@ -4,6 +4,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -33,6 +34,11 @@ public class HsrCodeRedeemExecutorTests
     private const string TestLToken = "test_ltoken_value";
     private const string TestCode = "TESTCODE123";
     private const string TestGameUid = "123456789";
+
+    private static readonly string GameRecordCardUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+    private static readonly string AccountRolesUrl =
+        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
 
     private HsrCodeRedeemExecutor m_Executor = null!;
     private Mock<ICodeRedeemApiService<HsrCommandModule>> m_CodeRedeemApiServiceMock = null!;

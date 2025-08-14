@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -34,6 +35,15 @@ public class GenshinTheaterCommandExecutorTests
     private const string TestGameUid = "800000000";
     private const uint TestProfileId = 1;
     private const string TestGuid = "test-guid-12345";
+
+    private static readonly string GameRecordCardUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+    private static readonly string AccountRolesUrl =
+        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+    private static readonly string TheaterUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/roleCalendar";
+    private static readonly string BuffUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/roleCalendar/buff";
 
     private GenshinTheaterCommandExecutor m_Executor = null!;
     private GenshinTheaterCardService m_CommandService = null!;
@@ -739,19 +749,19 @@ public class GenshinTheaterCommandExecutorTests
     private void SetupSuccessfulApiResponses()
     {
         // Setup GameRecord API response
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard",
+        SetupHttpResponse(GameRecordCardUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
 
         // Setup User Game Roles API response (needed for GetUserGameDataAsync)
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        SetupHttpResponse(AccountRolesUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
 
         // Setup Theater API response
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar",
+        SetupHttpResponse(TheaterUrl,
             CreateValidTheaterResponse(), HttpStatusCode.OK);
 
         // Setup Buff API response
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar/buff",
+        SetupHttpResponse(BuffUrl,
             CreateValidBuffResponse(), HttpStatusCode.OK);
 
         // Setup character API response
@@ -763,13 +773,13 @@ public class GenshinTheaterCommandExecutorTests
 
     private void SetupTheaterApiSuccess()
     {
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar",
+        SetupHttpResponse(TheaterUrl,
             CreateValidTheaterResponse(), HttpStatusCode.OK);
     }
 
     private void SetupBuffApiSuccess()
     {
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/roleCalendar/buff",
+        SetupHttpResponse(BuffUrl,
             CreateValidBuffResponse(), HttpStatusCode.OK);
     }
 

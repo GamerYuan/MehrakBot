@@ -1,11 +1,8 @@
 #region
 
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -20,6 +17,10 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -34,6 +35,13 @@ public class GenshinStygianCommandExecutorTests
     private const string TestGameUid = "800000000";
     private const uint TestProfileId = 1;
     private const string TestGuid = "test-guid-12345";
+
+    private static readonly string AccountRolesUrl =
+        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+    private static readonly string HardChallengeUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/hard_challenge";
+    private static readonly string GameRecordCardUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
 
     private GenshinStygianCommandExecutor m_Executor = null!;
     private GenshinStygianApiService m_ApiService = null!;
@@ -216,9 +224,9 @@ public class GenshinStygianCommandExecutorTests
         Assert.That(responseMessage, Is.Not.Empty);
 
         // Verify API calls were made correctly
-        VerifyHttpRequestWithQuery("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        VerifyHttpRequestWithQuery(AccountRolesUrl,
             "game_biz=hk4e_global&region=os_usa", Times.Once());
-        VerifyHttpRequestWithQuery("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
+        VerifyHttpRequestWithQuery(HardChallengeUrl,
             "role_id=800000000&server=os_usa", Times.Once());
     }
 
@@ -247,11 +255,11 @@ public class GenshinStygianCommandExecutorTests
         // Arrange
         await CreateTestUserWithProfile();
         await SetupCachedToken();
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard",
+        SetupHttpResponse(GameRecordCardUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        SetupHttpResponse(AccountRolesUrl,
             CreateValidGameUserRoleResponse(), HttpStatusCode.OK);
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
+        SetupHttpResponse(HardChallengeUrl,
             "", HttpStatusCode.InternalServerError);
 
         var parameters = new object[] { Regions.America, TestProfileId };
@@ -270,11 +278,11 @@ public class GenshinStygianCommandExecutorTests
         // Arrange
         await CreateTestUserWithProfile();
         await SetupCachedToken();
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard",
+        SetupHttpResponse(GameRecordCardUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        SetupHttpResponse(AccountRolesUrl,
             CreateValidGameUserRoleResponse(), HttpStatusCode.OK);
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
+        SetupHttpResponse(HardChallengeUrl,
             CreateStygianNotUnlockedResponse(), HttpStatusCode.OK);
 
         var parameters = new object[] { Regions.America, TestProfileId };
@@ -293,11 +301,11 @@ public class GenshinStygianCommandExecutorTests
         // Arrange
         await CreateTestUserWithProfile();
         await SetupCachedToken();
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard",
+        SetupHttpResponse(GameRecordCardUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        SetupHttpResponse(AccountRolesUrl,
             CreateValidGameUserRoleResponse(), HttpStatusCode.OK);
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
+        SetupHttpResponse(HardChallengeUrl,
             CreateStygianNoDataResponse(), HttpStatusCode.OK);
 
         var parameters = new object[] { Regions.America, TestProfileId };
@@ -381,10 +389,9 @@ public class GenshinStygianCommandExecutorTests
         Assert.That(responseMessage, Is.Not.Empty);
 
         // Verify all expected API calls were made
-        VerifyHttpRequestWithQuery("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        VerifyHttpRequestWithQuery(AccountRolesUrl,
             "game_biz=hk4e_global&region=os_usa", Times.Once());
-        VerifyHttpRequest("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-            Times.Once());
+        VerifyHttpRequest(HardChallengeUrl, Times.Once());
 
         // For now, we'll just verify that the workflow completed without errors
         // In a more comprehensive test, we could check for specific attachment names or content
@@ -430,10 +437,8 @@ public class GenshinStygianCommandExecutorTests
             data = emptyStygianData
         };
 
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            CreateGameRoleResponse());
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-            JsonSerializer.Serialize(emptyResponse));
+        SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
+        SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(emptyResponse));
 
         var parameters = new object[] { Regions.America, TestProfileId };
 
@@ -460,10 +465,8 @@ public class GenshinStygianCommandExecutorTests
             data = (object?)null
         };
 
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            CreateGameRoleResponse());
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-            JsonSerializer.Serialize(errorResponse));
+        SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
+        SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(errorResponse));
 
         var parameters = new object[] { Regions.America, TestProfileId };
 
@@ -523,10 +526,9 @@ public class GenshinStygianCommandExecutorTests
 
             // Verify correct region-specific API calls
             var expectedRegion = GetRegionString(region);
-            VerifyHttpRequestWithQuery("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+            VerifyHttpRequestWithQuery(AccountRolesUrl,
                 $"game_biz=hk4e_global&region={expectedRegion}", Times.Once());
-            VerifyHttpRequest("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-                Times.Once());
+            VerifyHttpRequest(HardChallengeUrl, Times.Once());
         }
     }
 
@@ -559,10 +561,8 @@ public class GenshinStygianCommandExecutorTests
             data = complexStygianData
         };
 
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            CreateGameRoleResponse());
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-            JsonSerializer.Serialize(complexResponse));
+        SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
+        SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(complexResponse));
 
         var parameters = new object[] { Regions.America, TestProfileId };
 
@@ -636,8 +636,7 @@ public class GenshinStygianCommandExecutorTests
             data = (object?)null
         };
 
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            JsonSerializer.Serialize(expiredTokenResponse));
+        SetupHttpResponse(AccountRolesUrl, JsonSerializer.Serialize(expiredTokenResponse));
 
         var parameters = new object[] { Regions.America, TestProfileId };
 
@@ -684,11 +683,16 @@ public class GenshinStygianCommandExecutorTests
         await CreateTestUserWithProfile();
         await SetupCachedToken();
 
-        // Setup malformed JSON response
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            CreateGameRoleResponse());
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-            "{ invalid json }");
+        // Setup malformed HTTP response
+        m_HttpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("{ invalid json }", Encoding.UTF8, "application/json")
+            });
 
         var parameters = new object[] { Regions.America, TestProfileId };
 
@@ -728,10 +732,9 @@ public class GenshinStygianCommandExecutorTests
         Assert.That(responseMessage, Is.Not.Empty);
 
         // Verify API calls were made
-        VerifyHttpRequestWithQuery("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        VerifyHttpRequestWithQuery(AccountRolesUrl,
             "game_biz=hk4e_global&region=os_usa", Times.Once());
-        VerifyHttpRequest("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-            Times.Once());
+        VerifyHttpRequest(HardChallengeUrl, Times.Once());
     }
 
     [Test]
@@ -843,10 +846,8 @@ public class GenshinStygianCommandExecutorTests
 
     private void SetupSuccessfulApiResponses(string region = "os_usa")
     {
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            CreateGameRoleResponse(region));
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/hard_challenge",
-            CreateValidStygianResponse());
+        SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse(region));
+        SetupHttpResponse(HardChallengeUrl, CreateValidStygianResponse());
     }
 
     private void SetupHttpResponse(string url, string responseContent, HttpStatusCode statusCode = HttpStatusCode.OK)

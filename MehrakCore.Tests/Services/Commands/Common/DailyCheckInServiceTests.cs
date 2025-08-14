@@ -2,6 +2,7 @@
 
 using System.Net;
 using System.Text.Json.Nodes;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Common;
@@ -33,13 +34,13 @@ public class DailyCheckInServiceTests
     private Mock<HttpMessageHandler> m_MockHttpMessageHandler = null!;
 
     // Constants for testing
-    private const string GenshinCheckInApiUrl = "https://sg-hk4e-api.hoyolab.com/event/sol/sign";
-    private const string HsrCheckInApiUrl = "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign";
-    private const string ZzzCheckInApiUrl = "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign";
-    private const string Hi3CheckInApiUrl = "https://sg-public-api.hoyolab.com/event/mani/sign";
+    private static readonly string GenshinCheckInApiUrl = $"{HoYoLabDomains.GenshinApi}/event/sol/sign";
+    private static readonly string HsrCheckInApiUrl = $"{HoYoLabDomains.PublicApi}/event/luna/hkrpg/os/sign";
+    private static readonly string ZzzCheckInApiUrl = $"{HoYoLabDomains.PublicApi}/event/luna/zzz/os/sign";
+    private static readonly string Hi3CheckInApiUrl = $"{HoYoLabDomains.PublicApi}/event/mani/sign";
 
-    private const string GameRecordApiUrl =
-        "https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard";
+    private static readonly string GameRecordApiUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
 
     [SetUp]
     public void Setup()
@@ -335,6 +336,16 @@ public class DailyCheckInServiceTests
                 ItExpr.IsAny<CancellationToken>());
     }
 
+    private void SetupGameRecordApiResponse(ulong ltuid, bool isValid)
+    {
+        var gameRecordUrl = $"{GameRecordApiUrl}?uid={ltuid}";
+
+        // Setup successful GameRecord API response
+        SetupHttpResponseForUrl(gameRecordUrl, HttpStatusCode.OK,
+            // Setup failed GameRecord API response (invalid cookies)
+            isValid ? CreateValidGameRecordResponse() : CreateInvalidGameRecordResponse());
+    }
+
     private static string CreateSuccessResponse()
     {
         var jsonResponse = new JsonObject
@@ -366,16 +377,6 @@ public class DailyCheckInServiceTests
             ["data"] = new JsonObject()
         };
         return jsonResponse.ToJsonString();
-    }
-
-    private void SetupGameRecordApiResponse(ulong ltuid, bool isValid)
-    {
-        var gameRecordUrl = $"{GameRecordApiUrl}?uid={ltuid}";
-
-        // Setup successful GameRecord API response
-        SetupHttpResponseForUrl(gameRecordUrl, HttpStatusCode.OK,
-            // Setup failed GameRecord API response (invalid cookies)
-            isValid ? CreateValidGameRecordResponse() : CreateInvalidGameRecordResponse());
     }
 
     private static string CreateValidGameRecordResponse()
