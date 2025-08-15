@@ -22,7 +22,7 @@ public class DailyCheckInServiceTests
 {
     private ulong m_TestUserId;
     private const ulong TestLtuid = 987654321UL;
-    private const string TestLtoken = "test_ltoken";
+    private const string TestLtoken = "test_ltoken_value";
     private const uint TestProfile = 1u;
 
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;

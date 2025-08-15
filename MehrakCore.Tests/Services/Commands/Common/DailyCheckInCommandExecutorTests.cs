@@ -36,7 +36,7 @@ public class DailyCheckInCommandExecutorTests
 
     private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
-    private const string TestLToken = "test_ltoken";
+    private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
 
     [SetUp]
