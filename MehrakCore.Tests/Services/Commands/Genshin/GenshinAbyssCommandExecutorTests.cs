@@ -1,9 +1,7 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -20,6 +18,9 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -34,6 +35,14 @@ public class GenshinAbyssCommandExecutorTests
     private const string TestGameUid = "800000000";
     private const uint TestFloor = 12;
     private const uint TestProfileId = 1;
+
+    private static readonly string AccountRolesUrl =
+        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+    private static readonly string GameRecordCardUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+    private static readonly string SpiralAbyssUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/spiralAbyss";
+
     private GenshinAbyssCommandExecutor m_Executor = null!;
     private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiMock = null!;
     private GenshinAbyssApiService m_ApiService = null!;
@@ -67,7 +76,7 @@ public class GenshinAbyssCommandExecutorTests
         // Setup HTTP client mocking
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
 
         // Setup distributed cache
@@ -86,8 +95,7 @@ public class GenshinAbyssCommandExecutorTests
 
         // Setup GameRecord API service
         m_GameRecordApiService = new GameRecordApiService(m_HttpClientFactoryMock.Object,
-            new Mock<ILogger<GameRecordApiService>>()
-                .Object); // Create real API and card services with mocked dependencies
+            new Mock<ILogger<GameRecordApiService>>().Object);
         m_ApiService = new GenshinAbyssApiService(m_HttpClientFactoryMock.Object,
             NullLogger<GenshinAbyssApiService>.Instance);
         m_CardService = new GenshinAbyssCardService(m_ImageRepository,
@@ -117,7 +125,8 @@ public class GenshinAbyssCommandExecutorTests
             ("profile", TestProfileId, ApplicationCommandOptionType.Integer));
 
         m_ContextMock = new Mock<IInteractionContext>();
-        m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction); // Create executor
+        m_ContextMock.Setup(x => x.Interaction).Returns(m_Interaction);
+
         m_Executor = new GenshinAbyssCommandExecutor(
             m_CardService,
             m_ApiService,
@@ -146,13 +155,13 @@ public class GenshinAbyssCommandExecutorTests
     private async Task SetupImageAssets()
     {
         // Load images from main Assets directory
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"), "*.png",
+        foreach (string image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"), "*.png",
                      SearchOption.AllDirectories))
         {
-            var fileName = Path.GetFileName(image).Split('.')[0];
+            string fileName = Path.GetFileName(image).Split('.')[0];
             if (await m_ImageRepository.FileExistsAsync(fileName)) continue;
 
-            await using var stream = File.OpenRead(image);
+            await using FileStream stream = File.OpenRead(image);
             await m_ImageRepository.UploadFileAsync(fileName, stream);
         }
     }
@@ -163,10 +172,10 @@ public class GenshinAbyssCommandExecutorTests
     public void ExecuteAsync_WithInvalidParameterCount_ThrowsArgumentException()
     {
         // Arrange
-        var parameters = new object[] { TestFloor, Regions.America }; // Missing profile parameter
+        object[] parameters = [TestFloor, Regions.America]; // Missing profile parameter
 
         // Act & Assert
-        var exception = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync(parameters).AsTask());
+        ArgumentException? exception = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync(parameters).AsTask());
 
         Assert.That(exception.Message, Does.Contain("Invalid number of parameters"));
     }
@@ -175,11 +184,11 @@ public class GenshinAbyssCommandExecutorTests
     public async Task ExecuteAsync_WithNonExistentUser_ReturnsEarly()
     {
         // Arrange
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = [TestFloor, Regions.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters); // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -188,13 +197,13 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithProfile();
-        var parameters = new object[] { TestFloor, Regions.America, 999u }; // Invalid profile ID
+        object[] parameters = [TestFloor, Regions.America, 999u]; // Invalid profile ID
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -203,13 +212,13 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithProfileNoServer();
-        var parameters = new object?[] { TestFloor, null, TestProfileId }; // No server specified
+        object?[] parameters = [TestFloor, null, TestProfileId]; // No server specified
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("No cached server found! Please select a server first."));
     }
 
@@ -221,19 +230,18 @@ public class GenshinAbyssCommandExecutorTests
         await SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = [TestFloor, Regions.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("Abyss Summary"));
 
         // Verify API calls were made
-        VerifyHttpRequest("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            Times.Once());
-        VerifyHttpRequest("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/spiralAbyss", Times.Once());
+        VerifyHttpRequest(AccountRolesUrl, Times.Once());
+        VerifyHttpRequest(SpiralAbyssUrl, Times.Once());
     }
 
     [Test]
@@ -241,7 +249,7 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithProfile();
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = [TestFloor, Regions.America, TestProfileId];
 
         // Setup token cache to return null (no cached token)
         m_DistributedCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -265,7 +273,7 @@ public class GenshinAbyssCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithFailedAuthentication_LogsError()
     {
         // Arrange
-        var failureResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult failureResult = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(failureResult);
@@ -288,13 +296,13 @@ public class GenshinAbyssCommandExecutorTests
         await CreateTestUserWithProfile();
         await SetupSuccessfulApiResponses();
 
-        var successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(successResult);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("Abyss Summary"));
     }
 
@@ -308,18 +316,18 @@ public class GenshinAbyssCommandExecutorTests
         // Arrange
         await CreateTestUserWithProfile();
         await SetupCachedToken();
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard",
+        SetupHttpResponse(GameRecordCardUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/spiralAbyss",
+        SetupHttpResponse(SpiralAbyssUrl,
             "", HttpStatusCode.InternalServerError);
 
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = [TestFloor, Regions.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("error"));
     }
 
@@ -332,17 +340,17 @@ public class GenshinAbyssCommandExecutorTests
         await SetupSuccessfulApiResponses();
 
         // Setup abyss response with no floor 12 data
-        var abyssDataWithoutFloor12 = CreateAbyssDataWithoutTargetFloor();
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/spiralAbyss",
+        string abyssDataWithoutFloor12 = CreateAbyssDataWithoutTargetFloor();
+        SetupHttpResponse(SpiralAbyssUrl,
             abyssDataWithoutFloor12, HttpStatusCode.OK);
 
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = [TestFloor, Regions.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("No clear record found for floor 12."));
     }
 
@@ -357,15 +365,15 @@ public class GenshinAbyssCommandExecutorTests
         // Setup character API to return empty list
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(new List<GenshinBasicCharacterData>());
+            .ReturnsAsync([]);
 
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = new object[] { TestFloor, Regions.America, TestProfileId };
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("Failed to fetch character list. Please try again later."));
     }
 
@@ -375,11 +383,11 @@ public class GenshinAbyssCommandExecutorTests
 
     private async Task CreateTestUserWithProfile()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -389,7 +397,7 @@ public class GenshinAbyssCommandExecutorTests
                         { GameName.Genshin, Regions.America }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -397,18 +405,18 @@ public class GenshinAbyssCommandExecutorTests
 
     private async Task CreateTestUserWithProfileNoServer()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid
                     // No LastUsedRegions to simulate no cached server
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -416,7 +424,7 @@ public class GenshinAbyssCommandExecutorTests
 
     private Task SetupCachedToken()
     {
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
         return Task.CompletedTask;
@@ -425,18 +433,20 @@ public class GenshinAbyssCommandExecutorTests
     private Task SetupSuccessfulApiResponses()
     {
         // Setup GameRecord API response
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard",
+        SetupHttpResponse(GameRecordCardUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
 
         // Setup User Game Roles API response (needed for GetUserGameDataAsync)
-        SetupHttpResponse("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
+        SetupHttpResponse(AccountRolesUrl,
             CreateValidGameRecordResponse(), HttpStatusCode.OK);
 
         // Setup Abyss API response
-        SetupHttpResponse("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/spiralAbyss",
-            CreateValidAbyssResponse(), HttpStatusCode.OK); // Setup character API response
-        var characters = new List<GenshinBasicCharacterData>
-        {
+        SetupHttpResponse(SpiralAbyssUrl,
+            CreateValidAbyssResponse(), HttpStatusCode.OK);
+
+        // Setup character API response
+        List<GenshinBasicCharacterData> characters =
+        [
             new()
             {
                 Id = 10000032,
@@ -541,7 +551,7 @@ public class GenshinAbyssCommandExecutorTests
                     Name = "Test Weapon 8"
                 }
             }
-        };
+        ];
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(characters);
@@ -553,7 +563,7 @@ public class GenshinAbyssCommandExecutorTests
     {
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().StartsWith(url)),
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.GetLeftPart(UriPartial.Path) == url),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -566,11 +576,11 @@ public class GenshinAbyssCommandExecutorTests
     {
         m_HttpMessageHandlerMock.Protected()
             .Verify("SendAsync", times,
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().StartsWith(url)),
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.GetLeftPart(UriPartial.Path) == url),
                 ItExpr.IsAny<CancellationToken>());
     }
 
-    private string CreateValidGameRecordResponse()
+    private static string CreateValidGameRecordResponse()
     {
         var gameRecord = new
         {
@@ -609,7 +619,7 @@ public class GenshinAbyssCommandExecutorTests
 
     private string CreateAbyssDataWithoutTargetFloor()
     {
-        var modifiedData = JsonSerializer.Deserialize<Dictionary<string, object>>(m_AbyssTestDataJson)!;
+        Dictionary<string, object> modifiedData = JsonSerializer.Deserialize<Dictionary<string, object>>(m_AbyssTestDataJson)!;
 
         // Remove the target floor from floors array
         if (modifiedData.ContainsKey("floors")) modifiedData["floors"] = Array.Empty<object>(); // Empty floors array
@@ -642,7 +652,7 @@ public class GenshinAbyssCommandExecutorTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = new object[] { TestFloor, Regions.America, TestProfileId };
 
         // Act
         await m_Executor.ExecuteAsync(parameters); // Assert
@@ -651,11 +661,12 @@ public class GenshinAbyssCommandExecutorTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error generating Abyss card for floor")),
+
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
 
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseMessage, Does.Contain("error occurred"));
     }
 
@@ -664,11 +675,11 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Arrange
         // Create user with matching ltuid so the flow continues past profile validation
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -678,11 +689,11 @@ public class GenshinAbyssCommandExecutorTests
                         { GameName.Genshin, Regions.America }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        var successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup to throw exception during HTTP processing
         m_HttpMessageHandlerMock.Protected()
@@ -699,6 +710,7 @@ public class GenshinAbyssCommandExecutorTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) =>
                     v.ToString()!.Contains("Error generating Abyss card for floor")),
+
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -716,13 +728,13 @@ public class GenshinAbyssCommandExecutorTests
         await SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        var parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = [TestFloor, Regions.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
         // Assert
-        var responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseMessage = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
 
         // Verify the response contains expected elements
         Assert.That(responseMessage, Contains.Substring("Abyss Summary").IgnoreCase);
@@ -731,16 +743,10 @@ public class GenshinAbyssCommandExecutorTests
         Assert.That(responseMessage, Contains.Substring("Cycle end").IgnoreCase);
 
         // Verify all expected API calls were made
-        VerifyHttpRequest("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken",
-            Times.Once());
-        VerifyHttpRequest("https://sg-public-api.hoyolab.com/event/game_record/genshin/api/spiralAbyss",
-            Times.Once()); // Verify character API was called
+        VerifyHttpRequest(AccountRolesUrl, Times.Once());
+        VerifyHttpRequest(SpiralAbyssUrl, Times.Once()); // Verify character API was called
         m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(
             TestLtUid, TestLToken, TestGameUid, "os_usa"), Times.Once);
-
-        // Note: Since we're using a real GenshinImageUpdaterService instance,
-        // we can't verify method calls via mocks. In a real implementation,
-        // these would be validated by checking the image repository for uploaded files.
     }
 
     #endregion
