@@ -142,7 +142,7 @@ public class GenshinStygianCommandExecutorTests
     public async Task ExecuteAsync_WithNonExistentUser_ReturnsEarly()
     {
         // Arrange
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -157,7 +157,7 @@ public class GenshinStygianCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithProfile();
-        object[] parameters = [Regions.America, 999u]; // Invalid profile ID
+        object[] parameters = [Regions.Asia, 999u]; // Invalid profile ID
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -199,7 +199,7 @@ public class GenshinStygianCommandExecutorTests
         // Verify the user's cached server was used
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
-        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[GameName.Genshin], Is.EqualTo(Regions.America));
+        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[GameName.Genshin], Is.EqualTo(Regions.Asia));
     }
 
     [Test]
@@ -210,7 +210,7 @@ public class GenshinStygianCommandExecutorTests
         SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -224,9 +224,9 @@ public class GenshinStygianCommandExecutorTests
 
         // Verify API calls were made correctly
         VerifyHttpRequestWithQuery(AccountRolesUrl,
-            "game_biz=hk4e_global&region=os_usa", Times.Once());
+            "game_biz=hk4e_global&region=os_asia", Times.Once());
         VerifyHttpRequestWithQuery(HardChallengeUrl,
-            "role_id=800000000&server=os_usa&need_detail=true", Times.Once());
+            "role_id=800000000&server=os_asia&need_detail=true", Times.Once());
     }
 
     [Test]
@@ -238,7 +238,7 @@ public class GenshinStygianCommandExecutorTests
                 x.RegisterAuthenticationListener(It.IsAny<ulong>(), It.IsAny<IAuthenticationListener>()))
             .Returns(TestGuid);
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -261,7 +261,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(HardChallengeUrl,
             "", HttpStatusCode.InternalServerError);
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -284,7 +284,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(HardChallengeUrl,
             CreateStygianNotUnlockedResponse(), HttpStatusCode.OK);
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -307,7 +307,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(HardChallengeUrl,
             CreateStygianNoDataResponse(), HttpStatusCode.OK);
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -348,7 +348,7 @@ public class GenshinStygianCommandExecutorTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -375,7 +375,7 @@ public class GenshinStygianCommandExecutorTests
         SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -389,7 +389,7 @@ public class GenshinStygianCommandExecutorTests
 
         // Verify all expected API calls were made
         VerifyHttpRequestWithQuery(AccountRolesUrl,
-            "game_biz=hk4e_global&region=os_usa", Times.Once());
+            "game_biz=hk4e_global&region=os_asia", Times.Once());
         VerifyHttpRequest(HardChallengeUrl, Times.Once());
 
         // For now, we'll just verify that the workflow completed without errors
@@ -439,7 +439,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
         SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(emptyResponse));
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () => await m_Executor.ExecuteAsync(parameters));
@@ -467,7 +467,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
         SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(errorResponse));
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -518,7 +518,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
         SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(complexResponse));
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -544,7 +544,7 @@ public class GenshinStygianCommandExecutorTests
         SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act - Run multiple concurrent requests
         IEnumerable<Task<bool>> tasks = Enumerable.Range(0, 5).Select(async _ =>
@@ -592,7 +592,7 @@ public class GenshinStygianCommandExecutorTests
 
         SetupHttpResponse(AccountRolesUrl, JsonSerializer.Serialize(expiredTokenResponse));
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -619,7 +619,7 @@ public class GenshinStygianCommandExecutorTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new TaskCanceledException("Request timed out"));
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -648,7 +648,7 @@ public class GenshinStygianCommandExecutorTests
                 Content = new StringContent("{ invalid json }", Encoding.UTF8, "application/json")
             });
 
-        object[] parameters = [Regions.America, TestProfileId];
+        object[] parameters = [Regions.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -675,7 +675,7 @@ public class GenshinStygianCommandExecutorTests
         // Set the pending server using reflection
         FieldInfo? pendingServerField = typeof(GenshinStygianCommandExecutor).GetField("m_PendingServer",
             BindingFlags.NonPublic | BindingFlags.Instance);
-        pendingServerField?.SetValue(m_Executor, Regions.America);
+        pendingServerField?.SetValue(m_Executor, Regions.Asia);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -687,7 +687,7 @@ public class GenshinStygianCommandExecutorTests
 
         // Verify API calls were made
         VerifyHttpRequestWithQuery(AccountRolesUrl,
-            "game_biz=hk4e_global&region=os_usa", Times.Once());
+            "game_biz=hk4e_global&region=os_asia", Times.Once());
         VerifyHttpRequest(HardChallengeUrl, Times.Once());
     }
 
@@ -753,14 +753,14 @@ public class GenshinStygianCommandExecutorTests
                     LtUid = TestLtUid,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.Genshin, Regions.America }
+                        { GameName.Genshin, Regions.Asia }
                     },
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
                     {
                         {
                             GameName.Genshin, new Dictionary<string, string>
                             {
-                                { Regions.America.ToString(), TestGameUid }
+                                { Regions.Asia.ToString(), TestGameUid }
                             }
                         }
                     }
@@ -798,9 +798,9 @@ public class GenshinStygianCommandExecutorTests
         return Task.CompletedTask;
     }
 
-    private void SetupSuccessfulApiResponses(string region = "os_usa")
+    private void SetupSuccessfulApiResponses()
     {
-        SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse(region));
+        SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
         SetupHttpResponse(HardChallengeUrl, CreateValidStygianResponse());
     }
 
@@ -838,19 +838,19 @@ public class GenshinStygianCommandExecutorTests
                 ItExpr.IsAny<CancellationToken>());
     }
 
-    private static string CreateGameRoleResponse(string region = "os_usa")
+    private static string CreateGameRoleResponse()
     {
         List<UserGameData> gameRoleData =
         [
             new()
             {
                 GameBiz = "hk4e_global",
-                Region = region,
+                Region = "os_asia",
                 GameUid = TestGameUid,
                 Nickname = "TestPlayer",
                 Level = 60,
                 IsChosen = true,
-                RegionName = GetRegionName(region),
+                RegionName = "Asia",
                 IsOfficial = true
             }
         ];
@@ -866,18 +866,6 @@ public class GenshinStygianCommandExecutorTests
         };
 
         return JsonSerializer.Serialize(response);
-    }
-
-    private static string GetRegionName(string region)
-    {
-        return region switch
-        {
-            "os_usa" => "America",
-            "os_euro" => "Europe",
-            "os_asia" => "Asia",
-            "os_cht" => "TW/HK/MO",
-            _ => "America"
-        };
     }
 
     private static string CreateValidStygianResponse()
@@ -904,7 +892,7 @@ public class GenshinStygianCommandExecutorTests
                     game_id = 2,
                     game_role_id = TestGameUid,
                     nickname = "TestPlayer",
-                    region = "os_usa",
+                    region = "os_asia",
                     level = 60,
                     background_image = "",
                     is_public = true,
