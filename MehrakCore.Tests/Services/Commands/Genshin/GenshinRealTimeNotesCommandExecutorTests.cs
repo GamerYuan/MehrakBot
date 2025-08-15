@@ -1,8 +1,5 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
@@ -18,6 +15,9 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -30,7 +30,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
-    private const string TestGameUid = "test_game_uid_12345";
+    private const string TestGameUid = "800000000";
 
     private GenshinRealTimeNotesCommandExecutor m_Executor = null!;
     private Mock<IRealTimeNotesApiService<GenshinRealTimeNotesData>> m_ApiServiceMock = null!;
@@ -67,7 +67,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         // Set up mocked HTTP handler and client factory
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
 
         // Create real services with mocked dependencies
@@ -128,7 +128,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     {
         // Setup token cache to return a valid token (user is authenticated)
         // GetStringAsync is an extension method, so we need to mock the underlying GetAsync method
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
@@ -149,10 +149,10 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public void ExecuteAsync_WhenParametersAreInvalid_ThrowsArgumentException()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 0;
         int invalid = 1;
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+        ArgumentException? ex = Assert.ThrowsAsync<ArgumentException>(async () =>
             await m_Executor.ExecuteAsync(server, profile, invalid));
 
         Assert.That(ex.Message, Contains.Substring("Invalid parameters count").IgnoreCase);
@@ -162,14 +162,14 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserHasNoProfiles_SendsErrorResponse()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 1;
 
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
-            Profiles = new List<UserProfile>()
+            Profiles = []
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
@@ -177,7 +177,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         await m_Executor.ExecuteAsync(server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
 
@@ -185,17 +185,17 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserHasNoMatchingProfile_SendsErrorResponse()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 2; // Non-existent profile
 
-        var user = CreateTestUser();
+        UserModel user = CreateTestUser();
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
         await m_Executor.ExecuteAsync(server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
 
@@ -206,14 +206,14 @@ public class GenshinRealTimeNotesCommandExecutorTests
         Regions? server = null;
         uint profile = 1;
 
-        var user = CreateTestUser();
+        UserModel user = CreateTestUser();
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
         await m_Executor.ExecuteAsync(server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("No cached server found. Please select a server"));
     }
 
@@ -221,10 +221,10 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserNotAuthenticated_SendsAuthenticationModal()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 1;
 
-        var user = CreateTestUserWithCachedServer(server);
+        UserModel user = CreateTestUserWithCachedServer(server);
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act
@@ -239,10 +239,10 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenApiReturnsError_SendsErrorResponse()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 1;
 
-        var user = CreateTestUserWithCachedServer(server);
+        UserModel user = CreateTestUserWithCachedServer(server);
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Set up authenticated user
@@ -258,7 +258,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         await m_Executor.ExecuteAsync(server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("rate limit").IgnoreCase | Contains.Substring("error").IgnoreCase);
     }
 
@@ -266,17 +266,17 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserAuthenticated_DefersResponseAndFetchesNotes()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 1;
 
-        var user = CreateTestUserWithCachedServer(server);
+        UserModel user = CreateTestUserWithCachedServer(server);
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Set up authenticated user
         SetupAuthenticatedUser();
 
         // Setup API service to return success
-        var notesData = CreateTestNotesData();
+        GenshinRealTimeNotesData notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
             .ReturnsAsync(ApiResult<GenshinRealTimeNotesData>.Success(notesData));
@@ -293,7 +293,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         m_ApiServiceMock.Verify(x => x.GetRealTimeNotesAsync(
             It.IsAny<string>(), It.IsAny<string>(), TestLtUid, TestLToken), Times.Once);
 
-        var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(bytes, Is.Not.Empty);
     }
 
@@ -301,17 +301,17 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenImageGenerationSucceeds_SendsImageResponse()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 1;
 
-        var user = CreateTestUserWithCachedServer(server);
+        UserModel user = CreateTestUserWithCachedServer(server);
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Set up authenticated user
         SetupAuthenticatedUser();
 
         // Setup API service to return success
-        var notesData = CreateTestNotesData();
+        GenshinRealTimeNotesData notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
             .ReturnsAsync(ApiResult<GenshinRealTimeNotesData>.Success(notesData));
@@ -325,7 +325,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         await m_Executor.ExecuteAsync(server, profile);
 
         // Assert
-        var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(bytes, Is.Not.Null);
         Assert.That(bytes, Is.Not.Empty);
     }
@@ -334,7 +334,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -354,19 +354,19 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulResult_FetchesNotesAndSendsCard()
     {
         // Arrange
-        var server = Regions.America;
+        Regions server = Regions.Asia;
         uint profile = 1;
 
-        var user = CreateTestUserWithCachedServer(server);
+        UserModel user = CreateTestUserWithCachedServer(server);
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Execute first to set up pending state
         await m_Executor.ExecuteAsync(server, profile);
 
-        var result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup API service to return success
-        var notesData = CreateTestNotesData();
+        GenshinRealTimeNotesData notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
             .ReturnsAsync(ApiResult<GenshinRealTimeNotesData>.Success(notesData));
@@ -380,7 +380,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         await m_Executor.OnAuthenticationCompletedAsync(result);
 
         // Assert
-        var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(bytes, Is.Not.Empty);
 
         m_ApiServiceMock.Verify(x => x.GetRealTimeNotesAsync(
@@ -397,15 +397,15 @@ public class GenshinRealTimeNotesCommandExecutorTests
         {
             Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken
                 }
-            }
+            ]
         };
     }
 
@@ -415,8 +415,8 @@ public class GenshinRealTimeNotesCommandExecutorTests
         {
             Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -434,7 +434,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
                         { GameName.Genshin, server }
                     }
                 }
-            }
+            ]
         };
     }
 
@@ -464,7 +464,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
             }
         };
 
-        var responseContent = new StringContent(
+        StringContent responseContent = new(
             JsonSerializer.Serialize(gameRecordResponse),
             Encoding.UTF8,
             "application/json");
@@ -497,11 +497,11 @@ public class GenshinRealTimeNotesCommandExecutorTests
             ResinDiscountNumLimit = 3,
             CurrentExpeditionNum = 4,
             MaxExpeditionNum = 5,
-            Expeditions = new List<Expedition>
-            {
+            Expeditions =
+            [
                 new() { AvatarSideIcon = "icon1", Status = "Ongoing", RemainedTime = "10000" },
                 new() { AvatarSideIcon = "icon2", Status = "Finished", RemainedTime = "10000" }
-            },
+            ],
             CurrentHomeCoin = 1200,
             MaxHomeCoin = 2400,
             HomeCoinRecoveryTime = "10000",
