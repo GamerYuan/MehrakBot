@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,7 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrRealTimeNotesApiService> m_Logger;
 
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/note";
+    private static readonly string ApiEndpoint = "/event/game_record/hkrpg/api/note";
 
     public HsrRealTimeNotesApiService(IHttpClientFactory httpClientFactory, ILogger<HsrRealTimeNotesApiService> logger)
     {
@@ -31,7 +32,7 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
         try
         {
             var client = m_HttpClientFactory.CreateClient("Default");
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{ApiUrl}?role_id={roleId}&server={server}");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={roleId}&server={server}");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             request.Headers.Add("X-Rpc-Client_type", "5");
             request.Headers.Add("X-Rpc-App_version", "1.5.0");

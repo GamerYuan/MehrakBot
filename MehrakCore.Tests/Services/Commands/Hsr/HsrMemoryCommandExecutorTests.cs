@@ -1,9 +1,7 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -19,6 +17,9 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -59,7 +60,7 @@ public class HsrMemoryCommandExecutorTests
     public Task Setup()
     {
         // Generate random test user ID
-        m_TestUserId = (ulong)Random.Shared.NextInt64(100000000000000000, 999999999999999999);
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
         // Setup mocks
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
@@ -67,7 +68,7 @@ public class HsrMemoryCommandExecutorTests
         m_DistributedCacheMock = new Mock<IDistributedCache>();
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
         m_ImageRepository =
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
@@ -144,7 +145,7 @@ public class HsrMemoryCommandExecutorTests
     public void ExecuteAsync_InvalidParameters_ThrowsException()
     {
         // Act & Assert - The implementation expects exactly 2 parameters
-        var ex = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync().AsTask());
+        ArgumentException? ex = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync().AsTask());
 
         Assert.That(ex.Message, Does.Contain("Invalid number of parameters provided"));
     }
@@ -153,10 +154,10 @@ public class HsrMemoryCommandExecutorTests
     public async Task ExecuteAsync_UserNotFound_ReturnsEarly()
     {
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -167,10 +168,10 @@ public class HsrMemoryCommandExecutorTests
         await CreateTestUser();
 
         // Act - Use profile ID that doesn't exist
-        await m_Executor.ExecuteAsync(Regions.America, 999u);
+        await m_Executor.ExecuteAsync(Regions.Asia, 999u);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -184,7 +185,7 @@ public class HsrMemoryCommandExecutorTests
         await m_Executor.ExecuteAsync(null, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("No cached server found"));
     }
 
@@ -199,7 +200,7 @@ public class HsrMemoryCommandExecutorTests
         await m_Executor.ExecuteAsync(null, TestProfileId);
 
         // Assert
-        var user = await m_UserRepository.GetUserAsync(m_TestUserId);
+        UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LtUid, Is.EqualTo(TestLtUid));
     }
@@ -213,7 +214,7 @@ public class HsrMemoryCommandExecutorTests
             .ReturnsAsync((byte[]?)null);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
@@ -228,10 +229,10 @@ public class HsrMemoryCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var user = await m_UserRepository.GetUserAsync(m_TestUserId);
+        UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LtUid, Is.EqualTo(TestLtUid));
 
@@ -252,10 +253,10 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("An unknown error occurred"));
 
         m_LoggerMock.Verify(x => x.Log(
@@ -273,7 +274,7 @@ public class HsrMemoryCommandExecutorTests
         // Arrange
         await CreateTestUserWithToken();
         SetupGameDataApiSuccess();
-        var emptyMemoryData = new HsrMemoryInformation
+        HsrMemoryInformation emptyMemoryData = new()
         {
             ScheduleId = 1,
             StartTime = new ScheduleTime { Year = 2025, Month = 1, Day = 1, Hour = 0, Minute = 0 },
@@ -298,10 +299,10 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiSuccess(emptyMemoryData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("No clear record found"));
     }
 
@@ -311,16 +312,16 @@ public class HsrMemoryCommandExecutorTests
         // Arrange
         await CreateTestUserWithToken();
         SetupGameDataApiSuccess();
-        var noBattleMemoryData = JsonSerializer.Deserialize<HsrMemoryInformation>(m_MemoryTestDataJson)!;
+        HsrMemoryInformation noBattleMemoryData = JsonSerializer.Deserialize<HsrMemoryInformation>(m_MemoryTestDataJson)!;
         noBattleMemoryData.BattleNum = 0;
 
         SetupMemoryApiSuccess(noBattleMemoryData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("No clear record found"));
     }
 
@@ -333,10 +334,10 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiFailure(new InvalidOperationException("Unexpected error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("An error occurred"));
 
         // Verify error was logged
@@ -358,16 +359,15 @@ public class HsrMemoryCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         // Verify image updater was called for each distinct avatar
-        var distinctAvatars = m_TestMemoryData.AllFloorDetail!
+        List<HsrEndAvatar> distinctAvatars = [.. m_TestMemoryData.AllFloorDetail!
             .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
-            .DistinctBy(x => x.Id)
-            .ToList();
+            .DistinctBy(x => x.Id)];
 
-        foreach (var avatar in distinctAvatars)
+        foreach (HsrEndAvatar? avatar in distinctAvatars)
             m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(
                 avatar.Id.ToString(), avatar.Icon), Times.Once);
     }
@@ -380,10 +380,10 @@ public class HsrMemoryCommandExecutorTests
         SetupGameDataApiSuccess();
 
         // Create test data with duplicate avatar IDs
-        var memoryDataWithDuplicates = JsonSerializer.Deserialize<HsrMemoryInformation>(m_MemoryTestDataJson)!;
+        HsrMemoryInformation memoryDataWithDuplicates = JsonSerializer.Deserialize<HsrMemoryInformation>(m_MemoryTestDataJson)!;
         if (memoryDataWithDuplicates.AllFloorDetail!.Count > 0)
         {
-            var firstFloor = memoryDataWithDuplicates.AllFloorDetail[0];
+            FloorDetail firstFloor = memoryDataWithDuplicates.AllFloorDetail[0];
             if (firstFloor.Node1.Avatars.Count > 0)
                 // Add duplicate avatar to Node2
                 firstFloor.Node2.Avatars.Add(firstFloor.Node1.Avatars[0]);
@@ -392,16 +392,15 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiSuccess(memoryDataWithDuplicates);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         // Verify that each unique avatar ID was only updated once
-        var distinctAvatars = memoryDataWithDuplicates.AllFloorDetail!
+        List<HsrEndAvatar> distinctAvatars = [.. memoryDataWithDuplicates.AllFloorDetail!
             .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
-            .DistinctBy(x => x.Id)
-            .ToList();
+            .DistinctBy(x => x.Id)];
 
-        foreach (var avatar in distinctAvatars)
+        foreach (HsrEndAvatar? avatar in distinctAvatars)
             m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(
                 avatar.Id.ToString(), avatar.Icon), Times.Once);
     }
@@ -414,7 +413,7 @@ public class HsrMemoryCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -437,7 +436,7 @@ public class HsrMemoryCommandExecutorTests
         await CreateTestUserWithToken();
         SetupSuccessfulApiResponses();
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -474,11 +473,11 @@ public class HsrMemoryCommandExecutorTests
             .ReturnsAsync((byte[]?)null);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         // Verify deferred response was sent
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
 
         // Verify authentication listener was registered
@@ -493,11 +492,11 @@ public class HsrMemoryCommandExecutorTests
         await CreateTestUserWithToken();
         SetupSuccessfulApiResponses();
 
-        var newContextMock = new Mock<IInteractionContext>();
-        var newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
+        Mock<IInteractionContext> newContextMock = new();
+        SlashCommandInteraction newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
         newContextMock.Setup(x => x.Interaction).Returns(newInteraction);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -510,7 +509,7 @@ public class HsrMemoryCommandExecutorTests
     public void ExecuteAsync_InvalidParameterTypes_ThrowsCastException()
     {
         // Act & Assert
-        var ex = Assert.ThrowsAsync<InvalidCastException>(() =>
+        InvalidCastException? ex = Assert.ThrowsAsync<InvalidCastException>(() =>
             m_Executor.ExecuteAsync("invalid", "parameters").AsTask());
 
         Assert.That(ex, Is.Not.Null);
@@ -528,7 +527,7 @@ public class HsrMemoryCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         // Verify all expected HTTP calls were made
@@ -539,12 +538,11 @@ public class HsrMemoryCommandExecutorTests
             ItExpr.IsAny<CancellationToken>());
 
         // Verify image updates for all distinct avatars
-        var distinctAvatars = m_TestMemoryData.AllFloorDetail!
+        List<HsrEndAvatar> distinctAvatars = [.. m_TestMemoryData.AllFloorDetail!
             .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
-            .DistinctBy(x => x.Id)
-            .ToList();
+            .DistinctBy(x => x.Id)];
 
-        foreach (var avatar in distinctAvatars)
+        foreach (HsrEndAvatar? avatar in distinctAvatars)
             m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(
                 avatar.Id.ToString(), avatar.Icon), Times.Once);
     }
@@ -555,42 +553,42 @@ public class HsrMemoryCommandExecutorTests
 
     private async Task CreateTestUser()
     {
-        var userModel = new UserModel
+        UserModel userModel = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new() { ProfileId = TestProfileId }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
     }
 
     private async Task CreateTestUserWithToken()
     {
-        var userModel = new UserModel
+        UserModel userModel = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
     }
 
     private async Task CreateTestUserWithCachedServer()
     {
-        var userModel = new UserModel
+        UserModel userModel = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -598,10 +596,10 @@ public class HsrMemoryCommandExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.America }
+                        { GameName.HonkaiStarRail, Regions.Asia }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(userModel);
     }
@@ -637,8 +635,8 @@ public class HsrMemoryCommandExecutorTests
             }
         };
 
-        var gameDataJson = JsonSerializer.Serialize(gameDataResponse);
-        var gameDataHttpResponse = new HttpResponseMessage
+        string gameDataJson = JsonSerializer.Serialize(gameDataResponse);
+        HttpResponseMessage gameDataHttpResponse = new()
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(gameDataJson, Encoding.UTF8, "application/json")
@@ -648,31 +646,31 @@ public class HsrMemoryCommandExecutorTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard")),
+                    req.RequestUri!.GetLeftPart(UriPartial.Path).ToString() ==
+                        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard"),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(gameDataHttpResponse);
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken")),
+                    req.RequestUri!.GetLeftPart(UriPartial.Path).ToString()
+                        == $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken"),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(gameDataHttpResponse);
     }
 
     private void SetupMemoryApiSuccess(HsrMemoryInformation? customData = null)
     {
-        var memoryData = customData ?? m_TestMemoryData;
+        HsrMemoryInformation memoryData = customData ?? m_TestMemoryData;
         var memoryResponse = new
         {
             retcode = 0,
             data = memoryData
         };
 
-        var memoryJson = JsonSerializer.Serialize(memoryResponse);
-        var memoryHttpResponse = new HttpResponseMessage
+        string memoryJson = JsonSerializer.Serialize(memoryResponse);
+        HttpResponseMessage memoryHttpResponse = new()
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(memoryJson, Encoding.UTF8, "application/json")
@@ -682,8 +680,8 @@ public class HsrMemoryCommandExecutorTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge")),
+                    req.RequestUri!.GetLeftPart(UriPartial.Path).ToString() ==
+                    $"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge"),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(memoryHttpResponse);
     }
@@ -696,8 +694,8 @@ public class HsrMemoryCommandExecutorTests
             message = "API Error"
         };
 
-        var errorJson = JsonSerializer.Serialize(errorResponse);
-        var errorHttpResponse = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        string errorJson = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage errorHttpResponse = new(HttpStatusCode.BadRequest)
         {
             Content = new StringContent(errorJson, Encoding.UTF8, "application/json")
         };
@@ -706,14 +704,16 @@ public class HsrMemoryCommandExecutorTests
             m_HttpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>(
                     "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().Contains("challenge")),
+                    ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.GetLeftPart(UriPartial.Path).ToString() ==
+                        $"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge"),
                     ItExpr.IsAny<CancellationToken>())
                 .ThrowsAsync(exception);
         else
             m_HttpMessageHandlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>(
                     "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().Contains("challenge")),
+                    ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.GetLeftPart(UriPartial.Path).ToString() ==
+                        $"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge"),
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(errorHttpResponse);
     }

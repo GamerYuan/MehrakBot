@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
@@ -23,10 +24,10 @@ public class DailyCheckInService : IDailyCheckInService
 
     private static readonly Dictionary<GameName, string> CheckInUrls = new()
     {
-        { GameName.Genshin, "https://sg-hk4e-api.hoyolab.com/event/sol/sign" },
-        { GameName.HonkaiStarRail, "https://sg-public-api.hoyolab.com/event/luna/hkrpg/os/sign" },
-        { GameName.ZenlessZoneZero, "https://sg-public-api.hoyolab.com/event/luna/zzz/os/sign" },
-        { GameName.HonkaiImpact3, "https://sg-public-api.hoyolab.com/event/mani/sign" }
+        { GameName.Genshin, $"{HoYoLabDomains.GenshinApi}/event/sol/sign" },
+        { GameName.HonkaiStarRail, $"{HoYoLabDomains.PublicApi}/event/luna/hkrpg/os/sign" },
+        { GameName.ZenlessZoneZero, $"{HoYoLabDomains.PublicApi}/event/luna/zzz/os/sign" },
+        { GameName.HonkaiImpact3, $"{HoYoLabDomains.PublicApi}/event/mani/sign" }
     };
 
     private static readonly Dictionary<GameName, string> CheckInActIds = new()

@@ -1,9 +1,7 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -20,6 +18,9 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -50,6 +51,13 @@ public class HsrPureFictionCommandExecutorTests
 
     private HsrEndInformation m_TestPureFictionData = null!;
     private string m_PureFictionTestDataJson = null!;
+
+    private static readonly string GameRecordCardUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+    private static readonly string AccountRolesUrl =
+        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+    private static readonly string PureFictionUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge_story";
 
     [SetUp]
     public void Setup()
@@ -120,186 +128,6 @@ public class HsrPureFictionCommandExecutorTests
         m_HttpClient.Dispose();
     }
 
-    #region Helper Methods
-
-    private const uint TestProfileId = 1;
-    private const string TestLToken = "test_ltoken";
-    private const ulong TestLtUid = 123456789UL;
-    private const string TestGameUid = "800000001";
-
-    private void LoadTestData()
-    {
-        // Load test data from file
-        var testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "Pf_TestData_1.json");
-        m_PureFictionTestDataJson = File.ReadAllText(testDataPath);
-        m_TestPureFictionData = JsonSerializer.Deserialize<HsrEndInformation>(m_PureFictionTestDataJson)!;
-    }
-
-    private void SetupDistributedCacheMock()
-    {
-        m_DistributedCacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(),
-                It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-    }
-
-    private async Task CreateTestUserAsync()
-    {
-        var user = new UserModel
-        {
-            Id = m_TestUserId,
-            Timestamp = DateTime.UtcNow,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = TestProfileId,
-                    LtUid = TestLtUid,
-                    LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        { GameName.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
-                    },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
-                    {
-                        { GameName.HonkaiStarRail, Regions.America }
-                    }
-                }
-            }
-        };
-
-        await m_UserRepository.CreateOrUpdateUserAsync(user);
-    }
-
-    private void SetupPureFictionApiSuccess(HsrEndInformation? customData = null)
-    {
-        var fictionData = customData ?? m_TestPureFictionData;
-        var fictionResponse = new
-        {
-            retcode = 0,
-            data = fictionData
-        };
-
-        var fictionJson = JsonSerializer.Serialize(fictionResponse);
-        var fictionHttpResponse = new HttpResponseMessage
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = new StringContent(fictionJson, Encoding.UTF8, "application/json")
-        };
-
-        m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge_story")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(fictionHttpResponse);
-    }
-
-    private void SetupPureFictionApiError(int retcode = 100, string message = "Error")
-    {
-        var errorResponse = new
-        {
-            retcode, message
-        };
-
-        var errorJson = JsonSerializer.Serialize(errorResponse);
-        var errorHttpResponse = new HttpResponseMessage
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = new StringContent(errorJson, Encoding.UTF8, "application/json")
-        };
-
-        m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge_story")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(errorHttpResponse);
-    }
-
-    private void SetupPureFictionNoData()
-    {
-        var noDataFiction = new HsrEndInformation
-        {
-            Groups = new List<HsrEndGroup>(),
-            StarNum = 0,
-            MaxFloor = "0",
-            BattleNum = 0,
-            HasData = false,
-            AllFloorDetail = new List<HsrEndFloorDetail>(),
-            MaxFloorId = 0
-        };
-
-        SetupPureFictionApiSuccess(noDataFiction);
-    }
-
-    private void SetupGameRecordApiSuccess()
-    {
-        var gameDataResponse = new
-        {
-            retcode = 0,
-            data = new
-            {
-                list = new[]
-                {
-                    new
-                    {
-                        game_uid = TestGameUid,
-                        region = "prod_official_usa",
-                        game_biz = "hkrpg_global",
-                        nickname = "TestPlayer",
-                        level = 70,
-                        is_chosen = false,
-                        region_name = "America",
-                        is_official = true
-                    }
-                }
-            }
-        };
-
-        var gameDataJson = JsonSerializer.Serialize(gameDataResponse);
-        var gameDataHttpResponse = new HttpResponseMessage
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = new StringContent(gameDataJson, Encoding.UTF8, "application/json")
-        };
-
-        m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(gameDataHttpResponse);
-        m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken")),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(gameDataHttpResponse);
-    }
-
-    private void SetupTokenCacheEmpty()
-    {
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((byte[]?)null);
-    }
-
-    private void SetupTokenCacheWithData()
-    {
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-    }
-
-    #endregion
-
     #region ExecuteAsync Tests
 
     [Test]
@@ -312,13 +140,13 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.AtLeastOnce);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
     }
 
@@ -332,10 +160,10 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiError();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -346,10 +174,10 @@ public class HsrPureFictionCommandExecutorTests
         // Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("authentication") | Does.Contain("profile"));
     }
 
@@ -360,10 +188,10 @@ public class HsrPureFictionCommandExecutorTests
         await CreateTestUserAsync();
 
         // Act - Use a different profile ID
-        await m_Executor.ExecuteAsync(Regions.America, 999U);
+        await m_Executor.ExecuteAsync(Regions.Asia, 999U);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("profile"));
     }
 
@@ -375,7 +203,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheEmpty();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -391,10 +219,10 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionNoData();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No Pure Fiction clear records"));
     }
 
@@ -408,10 +236,10 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -425,10 +253,10 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiError(10001, "Invalid credentials");
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Invalid") | Does.Contain("Cookies"));
     }
 
@@ -446,15 +274,15 @@ public class HsrPureFictionCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
     }
 
@@ -466,18 +294,18 @@ public class HsrPureFictionCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No profile found. Please select the correct profile"));
     }
 
@@ -485,7 +313,7 @@ public class HsrPureFictionCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -511,15 +339,15 @@ public class HsrPureFictionCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -538,17 +366,15 @@ public class HsrPureFictionCommandExecutorTests
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge_story")),
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.GetLeftPart(UriPartial.Path) == PureFictionUrl),
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -560,7 +386,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheWithData();
         SetupGameRecordApiSuccess();
 
-        var emptyFloorData = new HsrEndInformation
+        HsrEndInformation emptyFloorData = new()
         {
             Groups =
             [
@@ -577,17 +403,17 @@ public class HsrPureFictionCommandExecutorTests
             MaxFloor = "0",
             BattleNum = 0,
             HasData = true,
-            AllFloorDetail = new List<HsrEndFloorDetail>(), // Empty floor details
+            AllFloorDetail = [], // Empty floor details
             MaxFloorId = 0
         };
 
         SetupPureFictionApiSuccess(emptyFloorData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No Pure Fiction clear records"));
     }
 
@@ -599,7 +425,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheWithData();
         SetupGameRecordApiSuccess();
 
-        var nullNodeData = new HsrEndInformation
+        HsrEndInformation nullNodeData = new()
         {
             Groups =
             [
@@ -635,36 +461,16 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess(nullNodeData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No Pure Fiction clear records"));
     }
 
     #endregion
 
     #region Integration Tests
-
-    [Test]
-    public async Task Integration_FullWorkflow_WithRealTestData_GeneratesCard()
-    {
-        // Arrange
-        await CreateTestUserAsync();
-        SetupTokenCacheWithData();
-        SetupGameRecordApiSuccess();
-        SetupPureFictionApiSuccess(); // Uses real test data from file
-
-        // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
-
-        // Assert - Verify the complete workflow
-        m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()),
-            Times.AtLeastOnce);
-
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Is.Not.Null);
-    }
 
     [Test]
     public async Task Integration_AuthenticationFlow_WorksEndToEnd()
@@ -676,18 +482,195 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess();
 
         // Act - Start execution (should trigger auth)
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Verify auth was requested
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
 
         // Complete authentication
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private const uint TestProfileId = 1;
+    private const string TestLToken = "test_ltoken";
+    private const ulong TestLtUid = 123456789UL;
+    private const string TestGameUid = "800000001";
+
+    private void LoadTestData()
+    {
+        // Load test data from file
+        string testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "Pf_TestData_1.json");
+        m_PureFictionTestDataJson = File.ReadAllText(testDataPath);
+        m_TestPureFictionData = JsonSerializer.Deserialize<HsrEndInformation>(m_PureFictionTestDataJson)!;
+    }
+
+    private void SetupDistributedCacheMock()
+    {
+        m_DistributedCacheMock.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+    }
+
+    private async Task CreateTestUserAsync()
+    {
+        UserModel user = new()
+        {
+            Id = m_TestUserId,
+            Timestamp = DateTime.UtcNow,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = TestProfileId,
+                    LtUid = TestLtUid,
+                    LToken = TestLToken,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        { GameName.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
+                    },
+                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    {
+                        { GameName.HonkaiStarRail, Regions.Asia }
+                    }
+                }
+            ]
+        };
+
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
+    }
+
+    private void SetupPureFictionApiSuccess(HsrEndInformation? customData = null)
+    {
+        HsrEndInformation fictionData = customData ?? m_TestPureFictionData;
+        var fictionResponse = new
+        {
+            retcode = 0,
+            data = fictionData
+        };
+
+        string fictionJson = JsonSerializer.Serialize(fictionResponse);
+        HttpResponseMessage fictionHttpResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent(fictionJson, Encoding.UTF8, "application/json")
+        };
+
+        m_HttpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.GetLeftPart(UriPartial.Path) == PureFictionUrl),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(fictionHttpResponse);
+    }
+
+    private void SetupPureFictionApiError(int retcode = 100, string message = "Error")
+    {
+        var errorResponse = new
+        {
+            retcode,
+            message
+        };
+
+        string errorJson = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage errorHttpResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent(errorJson, Encoding.UTF8, "application/json")
+        };
+
+        m_HttpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.GetLeftPart(UriPartial.Path) == PureFictionUrl),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(errorHttpResponse);
+    }
+
+    private void SetupGameRecordApiSuccess()
+    {
+        var gameDataResponse = new
+        {
+            retcode = 0,
+            data = new
+            {
+                list = new[]
+                {
+                    new
+                    {
+                        game_uid = TestGameUid,
+                        region = "prod_official_usa",
+                        game_biz = "hkrpg_global",
+                        nickname = "TestPlayer",
+                        level = 70,
+                        is_chosen = false,
+                        region_name = "America",
+                        is_official = true
+                    }
+                }
+            }
+        };
+
+        string gameDataJson = JsonSerializer.Serialize(gameDataResponse);
+        HttpResponseMessage gameDataHttpResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent(gameDataJson, Encoding.UTF8, "application/json")
+        };
+
+        m_HttpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.GetLeftPart(UriPartial.Path) == GameRecordCardUrl),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(gameDataHttpResponse);
+        m_HttpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.GetLeftPart(UriPartial.Path) == AccountRolesUrl),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(gameDataHttpResponse);
+    }
+
+    private void SetupTokenCacheEmpty()
+    {
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+    }
+
+    private void SetupTokenCacheWithData()
+    {
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+    }
+
+    private void SetupPureFictionNoData()
+    {
+        HsrEndInformation noDataFiction = new()
+        {
+            Groups = [],
+            StarNum = 0,
+            MaxFloor = "0",
+            BattleNum = 0,
+            HasData = false,
+            AllFloorDetail = [],
+            MaxFloorId = 0
+        };
+
+        SetupPureFictionApiSuccess(noDataFiction);
     }
 
     #endregion

@@ -1,9 +1,5 @@
 #region
 
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -20,6 +16,10 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -32,7 +32,7 @@ public class ZzzCodeRedeemExecutorTests
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestCode = "TESTCODE123";
-    private const string TestGameUid = "123456789";
+    private const string TestGameUid = "800000000";
 
     private ZzzCodeRedeemExecutor m_Executor = null!;
     private Mock<ICodeRedeemApiService<ZzzCommandModule>> m_CodeRedeemApiServiceMock = null!;
@@ -64,7 +64,7 @@ public class ZzzCodeRedeemExecutorTests
         m_DiscordTestHelper = new DiscordTestHelper();
 
         // Setup HTTP client
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(httpClient);
 
@@ -96,7 +96,7 @@ public class ZzzCodeRedeemExecutorTests
         // Setup Discord interaction
         m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code",
             ("code", TestCode, ApplicationCommandOptionType.String),
-            ("server", "America", ApplicationCommandOptionType.String),
+            ("server", "Asia", ApplicationCommandOptionType.String),
             ("profile", 1, ApplicationCommandOptionType.Integer));
 
         m_ContextMock = new Mock<IInteractionContext>();
@@ -121,13 +121,13 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -137,7 +137,7 @@ public class ZzzCodeRedeemExecutorTests
             TestLtUid,
             TestLToken), Times.Once);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
     }
 
@@ -155,10 +155,10 @@ public class ZzzCodeRedeemExecutorTests
         // Arrange - Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -170,10 +170,10 @@ public class ZzzCodeRedeemExecutorTests
         // Don't add profile to user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 2u); // Non-existent profile
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 2u); // Non-existent profile
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -187,7 +187,7 @@ public class ZzzCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, null, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No cached server found. Please select a server"));
     }
 
@@ -196,16 +196,16 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redemption failed"));
     }
 
@@ -214,14 +214,14 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string lowercaseCode = "testcode123";
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(lowercaseCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(lowercaseCode, Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -237,14 +237,14 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string codeWithWhitespace = "  TESTCODE123  ";
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(codeWithWhitespace, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(codeWithWhitespace, Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -262,20 +262,20 @@ public class ZzzCodeRedeemExecutorTests
         await CreateTestUserAsync();
         SetupTokenCacheEmpty(); // No cached token
 
-        var guidString = Guid.NewGuid().ToString();
+        string guidString = Guid.NewGuid().ToString();
         m_AuthenticationMiddlewareMock.Setup(x =>
                 x.RegisterAuthenticationListener(It.IsAny<ulong>(), It.IsAny<ZzzCodeRedeemExecutor>()))
             .Returns(guidString);
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
             Times.Once);
 
         // Verify that modal was sent (this would be captured by the DiscordTestHelper)
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         // The response should contain the authentication modal, but exact content depends on implementation
         Assert.That(response, Is.Not.Null);
     }
@@ -285,16 +285,16 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Set pending parameters by calling ExecuteAsync first (with no cached token)
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -317,10 +317,10 @@ public class ZzzCodeRedeemExecutorTests
         SetupHttpResponseForGameRecordFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
     }
 
@@ -329,7 +329,7 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -351,13 +351,13 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, null);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, null);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -386,10 +386,10 @@ public class ZzzCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
@@ -401,7 +401,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Setup to throw an exception
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
@@ -414,13 +414,13 @@ public class ZzzCodeRedeemExecutorTests
 
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
@@ -433,7 +433,7 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecordForRegion(GetGameRecordRegion(region));
+        object gameRecord = CreateTestGameRecordForRegion(GetGameRecordRegion(region));
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -455,20 +455,20 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Set pending parameters by calling ExecuteAsync first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
-        var newContextMock = new Mock<IInteractionContext>();
-        var newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
+        Mock<IInteractionContext> newContextMock = new();
+        SlashCommandInteraction newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
         newContextMock.Setup(x => x.Interaction).Returns(newInteraction);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -500,8 +500,8 @@ public class ZzzCodeRedeemExecutorTests
             }
         };
 
-        var json = JsonSerializer.Serialize(errorResponse);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -512,10 +512,10 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(httpResponse);
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
     }
 
@@ -527,18 +527,18 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Setup HTTP response for game record failure
         SetupHttpResponseForGameRecordFailure();
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
     }
 
@@ -547,14 +547,14 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string mixedCaseCode = "TeSt123CoDe";
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(mixedCaseCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(mixedCaseCode, Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -569,11 +569,11 @@ public class ZzzCodeRedeemExecutorTests
     public async Task ExecuteAsync_ProfileNotInUser_ShouldSendErrorResponse()
     {
         // Arrange
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 2, // Different profile ID
@@ -581,19 +581,19 @@ public class ZzzCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.ZenlessZoneZero, Regions.America }
+                        { GameName.ZenlessZoneZero, Regions.Asia }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act - Request profile ID 1 which doesn't exist
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -605,18 +605,18 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No profile found. Please select the correct profile"));
     }
 
@@ -625,7 +625,7 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -639,10 +639,10 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Expired"));
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Redemption Code Expired"));
     }
 
@@ -650,7 +650,7 @@ public class ZzzCodeRedeemExecutorTests
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -674,7 +674,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Setup game record API to work
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
@@ -688,13 +688,13 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("Service unavailable"));
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
@@ -703,14 +703,14 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string codeWithSpecialChars = "  test-code_123  ";
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(codeWithSpecialChars, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(codeWithSpecialChars, Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -726,8 +726,8 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var cachedCodes = new List<string> { "CACHED1", "CACHED2" };
+        object gameRecord = CreateTestGameRecord();
+        List<string> cachedCodes = ["CACHED1", "CACHED2"];
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -759,14 +759,14 @@ public class ZzzCodeRedeemExecutorTests
             .Verifiable();
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
 
         // Assert
         // Verify all setup calls were made
         m_CodeRedeemApiServiceMock.Verify();
         m_CodeRedeemRepositoryMock.Verify();
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
@@ -781,18 +781,18 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var multipleCodes = "CODE1, CODE2,CODE3";
-        var expectedCodes = new[] { "CODE1", "CODE2", "CODE3" };
+        object gameRecord = CreateTestGameRecord();
+        string multipleCodes = "CODE1, CODE2,CODE3";
+        string[] expectedCodes = ["CODE1", "CODE2", "CODE3"];
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(multipleCodes, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(multipleCodes, Regions.Asia, 1u);
 
         // Assert
-        foreach (var code in expectedCodes)
+        foreach (string? code in expectedCodes)
             m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
                 code.ToUpperInvariant(),
                 It.IsAny<string>(),
@@ -800,7 +800,7 @@ public class ZzzCodeRedeemExecutorTests
                 TestLtUid,
                 TestLToken), Times.Once);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
@@ -816,13 +816,13 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
         // Verify the code was redeemed
@@ -844,8 +844,8 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var codes = "VALID1, INVALID1, VALID2";
+        object gameRecord = CreateTestGameRecord();
+        string codes = "VALID1, INVALID1, VALID2";
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -867,7 +867,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
 
         // Act
-        await m_Executor.ExecuteAsync(codes, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(codes, Regions.Asia, 1u);
 
         // Assert
         // Verify only the first two codes were attempted
@@ -893,7 +893,7 @@ public class ZzzCodeRedeemExecutorTests
             TestLtUid,
             TestLToken), Times.Never);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
 
         // Response should contain the error message
         Assert.That(response, Does.Contain("Code redemption failed"));
@@ -908,7 +908,7 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         SetupHttpResponseForGameRecord(gameRecord);
 
         // Explicitly configure empty result for GetCodesAsync
@@ -916,7 +916,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync([]);
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
 
         // Assert
         // Should attempt to get codes from repository
@@ -933,7 +933,7 @@ public class ZzzCodeRedeemExecutorTests
             It.IsAny<string>()), Times.Never);
 
         // Should send error response
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No known codes found in database"));
     }
 
@@ -942,7 +942,7 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         SetupHttpResponseForGameRecord(gameRecord);
 
         CodeRedeemRepository codeRedeemRepo =
@@ -976,7 +976,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(ApiResult<string>.Success("Expired code", -2001));
 
         // Act
-        await executor.ExecuteAsync("", Regions.America, 1u);
+        await executor.ExecuteAsync("", Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x =>
@@ -984,7 +984,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>()), Times.Exactly(2));
 
         // Expired codes should be removed from DB (repository removes all Invalid codes)
-        var codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.ZenlessZoneZero);
+        List<string> codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.ZenlessZoneZero);
         Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
         Assert.That(codesInDb, Does.Contain("VALIDCODE"));
     }
@@ -994,7 +994,7 @@ public class ZzzCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         SetupHttpResponseForGameRecord(gameRecord);
 
         // Setup code redeem API to fail, but note that ZZZ has different error handling parameters
@@ -1008,20 +1008,20 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Test error message"));
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Test error message"));
     }
 
     private async Task CreateTestUserAsync()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -1029,19 +1029,19 @@ public class ZzzCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.ZenlessZoneZero, Regions.America }
+                        { GameName.ZenlessZoneZero, Regions.Asia }
                     },
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
                     {
                         {
                             GameName.ZenlessZoneZero, new Dictionary<string, string>
                             {
-                                { nameof(Regions.America), TestGameUid }
+                                { nameof(Regions.Asia), TestGameUid }
                             }
                         }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -1049,11 +1049,11 @@ public class ZzzCodeRedeemExecutorTests
 
     private async Task CreateTestUserWithoutGameUid()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -1061,11 +1061,11 @@ public class ZzzCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.ZenlessZoneZero, Regions.America }
+                        { GameName.ZenlessZoneZero, Regions.Asia }
                     }
                     // No GameUids - this will trigger the API call
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -1073,11 +1073,11 @@ public class ZzzCodeRedeemExecutorTests
 
     private async Task CreateTestUserWithoutCachedServer()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -1085,7 +1085,7 @@ public class ZzzCodeRedeemExecutorTests
                     LToken = TestLToken
                     // No LastUsedRegions - this will cause server validation to fail
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -1093,7 +1093,7 @@ public class ZzzCodeRedeemExecutorTests
 
     private static object CreateTestGameRecord()
     {
-        return CreateTestGameRecordForRegion("prod_official_usa");
+        return CreateTestGameRecordForRegion("prod_gf_jp");
     }
 
     private static object CreateTestGameRecordForRegion(string region)
@@ -1134,18 +1134,18 @@ public class ZzzCodeRedeemExecutorTests
     {
         return region switch
         {
-            "os_usa" => "America",
-            "os_euro" => "Europe",
-            "os_asia" => "Asia",
-            "os_cht" => "TW/HK/MO",
-            _ => "America"
+            "prod_gf_us" => "America",
+            "prod_gf_eu" => "Europe",
+            "prod_gf_jp" => "Asia",
+            "prod_gf_sg" => "TW/HK/MO",
+            _ => "Asia"
         };
     }
 
     private void SetupHttpResponseForGameRecord(object gameRecord)
     {
-        var json = JsonSerializer.Serialize(gameRecord);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(gameRecord);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -1168,8 +1168,8 @@ public class ZzzCodeRedeemExecutorTests
             }
         };
 
-        var json = JsonSerializer.Serialize(errorResponse);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };

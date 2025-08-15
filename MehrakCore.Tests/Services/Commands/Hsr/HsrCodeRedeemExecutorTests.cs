@@ -1,9 +1,6 @@
 #region
 
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -20,6 +17,10 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -32,7 +33,12 @@ public class HsrCodeRedeemExecutorTests
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestCode = "TESTCODE123";
-    private const string TestGameUid = "123456789";
+    private const string TestGameUid = "800000000";
+
+    private static readonly string GameRecordCardUrl =
+        $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+    private static readonly string AccountRolesUrl =
+        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
 
     private HsrCodeRedeemExecutor m_Executor = null!;
     private Mock<ICodeRedeemApiService<HsrCommandModule>> m_CodeRedeemApiServiceMock = null!;
@@ -64,7 +70,7 @@ public class HsrCodeRedeemExecutorTests
         m_DiscordTestHelper = new DiscordTestHelper();
 
         // Setup HTTP client
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(httpClient);
 
@@ -122,7 +128,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -138,7 +144,7 @@ public class HsrCodeRedeemExecutorTests
             TestLtUid,
             TestLToken), Times.Once);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
     }
 
@@ -159,7 +165,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -174,7 +180,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 2u); // Non-existent profile
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -188,7 +194,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, null, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No cached server found. Please select a server"));
     }
 
@@ -197,7 +203,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiFailure();
@@ -206,7 +212,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redemption failed"));
     }
 
@@ -215,7 +221,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string lowercaseCode = "testcode123";
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -238,7 +244,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string codeWithWhitespace = "  TESTCODE123  ";
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -263,7 +269,7 @@ public class HsrCodeRedeemExecutorTests
         await CreateTestUserAsync();
         SetupTokenCacheEmpty(); // No cached token
 
-        var guidString = Guid.NewGuid().ToString();
+        string guidString = Guid.NewGuid().ToString();
         m_AuthenticationMiddlewareMock.Setup(x =>
                 x.RegisterAuthenticationListener(It.IsAny<ulong>(), It.IsAny<HsrCodeRedeemExecutor>()))
             .Returns(guidString);
@@ -276,17 +282,16 @@ public class HsrCodeRedeemExecutorTests
             Times.Once);
 
         // Verify that modal was sent (this would be captured by the DiscordTestHelper)
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         // The response should contain the authentication modal, but exact content depends on implementation
         Assert.That(response, Is.Not.Null);
     }
-
 
     [Test]
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -307,7 +312,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -316,7 +321,7 @@ public class HsrCodeRedeemExecutorTests
         SetupTokenCacheEmpty();
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -342,7 +347,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
     }
 
@@ -351,7 +356,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -373,7 +378,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -411,7 +416,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
@@ -436,13 +441,13 @@ public class HsrCodeRedeemExecutorTests
 
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
@@ -455,7 +460,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecordForRegion(GetGameRecordRegion(region));
+        object gameRecord = CreateTestGameRecordForRegion(GetGameRecordRegion(region));
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -477,7 +482,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -486,11 +491,11 @@ public class HsrCodeRedeemExecutorTests
         SetupTokenCacheEmpty();
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
-        var newContextMock = new Mock<IInteractionContext>();
-        var newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
+        Mock<IInteractionContext> newContextMock = new();
+        SlashCommandInteraction newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
         newContextMock.Setup(x => x.Interaction).Returns(newInteraction);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -522,8 +527,8 @@ public class HsrCodeRedeemExecutorTests
             }
         };
 
-        var json = JsonSerializer.Serialize(errorResponse);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -537,7 +542,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
     }
 
@@ -554,13 +559,13 @@ public class HsrCodeRedeemExecutorTests
         // Setup HTTP response for game record failure
         SetupHttpResponseForGameRecordFailure();
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
     }
 
@@ -569,7 +574,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string mixedCaseCode = "TeSt123CoDe";
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -591,11 +596,11 @@ public class HsrCodeRedeemExecutorTests
     public async Task ExecuteAsync_ProfileNotInUser_ShouldSendErrorResponse()
     {
         // Arrange
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 2, // Different profile ID
@@ -606,7 +611,7 @@ public class HsrCodeRedeemExecutorTests
                         { GameName.HonkaiStarRail, Regions.America }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -615,7 +620,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -632,13 +637,13 @@ public class HsrCodeRedeemExecutorTests
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No profile found. Please select the correct profile"));
     }
 
@@ -647,7 +652,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -664,7 +669,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Redemption Code Expired"));
     }
 
@@ -690,13 +695,13 @@ public class HsrCodeRedeemExecutorTests
                 It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("Service unavailable"));
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
@@ -705,7 +710,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string codeWithSpecialChars = "  test-code_123  ";
 
         SetupHttpResponseForGameRecord(gameRecord);
@@ -728,8 +733,8 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var cachedCodes = new List<string> { "CACHED1", "CACHED2" };
+        object gameRecord = CreateTestGameRecord();
+        List<string> cachedCodes = ["CACHED1", "CACHED2"];
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -768,7 +773,7 @@ public class HsrCodeRedeemExecutorTests
         m_CodeRedeemApiServiceMock.Verify();
         m_CodeRedeemRepositoryMock.Verify();
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
@@ -783,9 +788,9 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var multipleCodes = "CODE1, CODE2,CODE3";
-        var expectedCodes = new[] { "CODE1", "CODE2", "CODE3" };
+        object gameRecord = CreateTestGameRecord();
+        string multipleCodes = "CODE1, CODE2,CODE3";
+        string[] expectedCodes = ["CODE1", "CODE2", "CODE3"];
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -794,7 +799,7 @@ public class HsrCodeRedeemExecutorTests
         await m_Executor.ExecuteAsync(multipleCodes, Regions.America, 1u);
 
         // Assert
-        foreach (var code in expectedCodes)
+        foreach (string? code in expectedCodes)
             m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
                 code.ToUpperInvariant(),
                 It.IsAny<string>(),
@@ -802,7 +807,7 @@ public class HsrCodeRedeemExecutorTests
                 TestLtUid,
                 TestLToken), Times.Once);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
@@ -818,7 +823,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -846,8 +851,8 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var codes = "VALID1, INVALID1, VALID2";
+        object gameRecord = CreateTestGameRecord();
+        string codes = "VALID1, INVALID1, VALID2";
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -895,7 +900,7 @@ public class HsrCodeRedeemExecutorTests
             TestLtUid,
             TestLToken), Times.Never);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
 
         // Response should contain the error message
         Assert.That(response, Does.Contain("Code redemption failed"));
@@ -910,7 +915,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         SetupHttpResponseForGameRecord(gameRecord);
 
         // Explicitly configure empty result for GetCodesAsync
@@ -935,7 +940,7 @@ public class HsrCodeRedeemExecutorTests
             It.IsAny<string>()), Times.Never);
 
         // Should send error response
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No known codes found in database"));
     }
 
@@ -944,7 +949,7 @@ public class HsrCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         SetupHttpResponseForGameRecord(gameRecord);
 
         CodeRedeemRepository codeRedeemRepo =
@@ -983,7 +988,7 @@ public class HsrCodeRedeemExecutorTests
         m_CodeRedeemApiServiceMock.Verify(x =>
             x.RedeemCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(),
                 It.IsAny<string>()), Times.Exactly(2));
-        var codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.HonkaiStarRail);
+        List<string> codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.HonkaiStarRail);
 
         Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
         Assert.That(codesInDb, Does.Contain("VALIDCODE"));
@@ -991,11 +996,11 @@ public class HsrCodeRedeemExecutorTests
 
     private async Task CreateTestUserAsync()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -1015,7 +1020,7 @@ public class HsrCodeRedeemExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -1023,11 +1028,11 @@ public class HsrCodeRedeemExecutorTests
 
     private async Task CreateTestUserWithoutGameUid()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -1039,7 +1044,7 @@ public class HsrCodeRedeemExecutorTests
                     }
                     // No GameUids - this will trigger the API call
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -1047,11 +1052,11 @@ public class HsrCodeRedeemExecutorTests
 
     private async Task CreateTestUserWithoutCachedServer()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -1059,7 +1064,7 @@ public class HsrCodeRedeemExecutorTests
                     LToken = TestLToken
                     // No LastUsedRegions - this will cause server validation to fail
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -1118,14 +1123,17 @@ public class HsrCodeRedeemExecutorTests
 
     private void SetupHttpResponseForGameRecord(object gameRecord)
     {
-        var json = JsonSerializer.Serialize(gameRecord);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(gameRecord);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
         m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(),
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri != null &&
+                    (req.RequestUri!.GetLeftPart(UriPartial.Path) == GameRecordCardUrl ||
+                     req.RequestUri!.GetLeftPart(UriPartial.Path) == AccountRolesUrl)),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(httpResponse);
     }
@@ -1142,14 +1150,17 @@ public class HsrCodeRedeemExecutorTests
             }
         };
 
-        var json = JsonSerializer.Serialize(errorResponse);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
         m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(),
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri != null &&
+                    (req.RequestUri!.GetLeftPart(UriPartial.Path) == GameRecordCardUrl ||
+                     req.RequestUri!.GetLeftPart(UriPartial.Path) == AccountRolesUrl)),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(httpResponse);
     }

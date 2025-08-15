@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinAbyssApiService> m_Logger;
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/genshin/api/spiralAbyss";
+    private static readonly string ApiEndpoint = "/event/game_record/genshin/api/spiralAbyss";
 
     public GenshinAbyssApiService(IHttpClientFactory httpClientFactory, ILogger<GenshinAbyssApiService> logger)
     {
@@ -30,7 +31,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
         {
             var client = m_HttpClientFactory.CreateClient("Default");
             var request = new HttpRequestMessage(HttpMethod.Get,
-                $"{ApiUrl}?role_id={gameUid}&server={region}&schedule_type=1");
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={gameUid}&server={region}&schedule_type=1");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)

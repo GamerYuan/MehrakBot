@@ -1,9 +1,5 @@
 #region
 
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -20,6 +16,10 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -32,7 +32,7 @@ public class GenshinCodeRedeemExecutorTests
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestCode = "TESTCODE123";
-    private const string TestGameUid = "123456789";
+    private const string TestGameUid = "800000000";
 
     private GenshinCodeRedeemExecutor m_Executor = null!;
     private Mock<ICodeRedeemApiService<GenshinCommandModule>> m_CodeRedeemApiServiceMock = null!;
@@ -65,7 +65,7 @@ public class GenshinCodeRedeemExecutorTests
         m_DiscordTestHelper = new DiscordTestHelper();
 
         // Setup HTTP client
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(httpClient); // Initialize services
         m_UserRepository =
@@ -93,7 +93,7 @@ public class GenshinCodeRedeemExecutorTests
         // Setup Discord interaction
         m_Interaction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code",
             ("code", TestCode, ApplicationCommandOptionType.String),
-            ("server", "America", ApplicationCommandOptionType.String),
+            ("server", "Asia", ApplicationCommandOptionType.String),
             ("profile", 1, ApplicationCommandOptionType.Integer));
 
         m_ContextMock = new Mock<IInteractionContext>();
@@ -113,18 +113,20 @@ public class GenshinCodeRedeemExecutorTests
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
     }
 
+    #region ExecuteAsync Tests
+
     [Test]
     public async Task ExecuteAsync_ValidCodeAndUser_ShouldRedeemCodeSuccessfully()
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -134,7 +136,7 @@ public class GenshinCodeRedeemExecutorTests
             TestLtUid,
             TestLToken), Times.Once);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
     }
 
@@ -152,10 +154,10 @@ public class GenshinCodeRedeemExecutorTests
         // Arrange - Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -167,10 +169,10 @@ public class GenshinCodeRedeemExecutorTests
         // Don't add profile to user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 2u); // Non-existent profile
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 2u); // Non-existent profile
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -179,16 +181,16 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redemption failed"));
     }
 
@@ -197,14 +199,14 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         const string lowercaseCode = "testcode123";
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(lowercaseCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(lowercaseCode, Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -216,53 +218,6 @@ public class GenshinCodeRedeemExecutorTests
     }
 
     [Test]
-    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
-    {
-        // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(result);
-
-        // Assert
-        m_LoggerMock.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Test]
-    public async Task OnAuthenticationCompletedAsync_SuccessfulAuth_ShouldRedeemCode()
-    {
-        // Arrange
-        await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-
-        SetupHttpResponseForGameRecord(gameRecord);
-        SetupCodeRedeemApiSuccess();
-
-        // Set pending parameters by calling ExecuteAsync first
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
-
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
-
-        // Act
-        await m_Executor.OnAuthenticationCompletedAsync(authResult);
-
-        // Assert
-        m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
-            TestCode.ToUpperInvariant(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            TestLtUid,
-            TestLToken), Times.AtLeastOnce);
-    }
-
-    [Test]
     public async Task ExecuteAsync_GameRecordApiFails_ShouldSendErrorResponse()
     {
         // Arrange
@@ -271,10 +226,10 @@ public class GenshinCodeRedeemExecutorTests
         SetupHttpResponseForGameRecordFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No game information found. Please select the correct region"));
     }
 
@@ -283,7 +238,7 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -305,13 +260,13 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, null);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, null);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -340,8 +295,8 @@ public class GenshinCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u); // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u); // Assert
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
 
@@ -350,8 +305,8 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var cachedCodes = new List<string> { "CACHED1", "CACHED2" };
+        object gameRecord = CreateTestGameRecord();
+        List<string> cachedCodes = ["CACHED1", "CACHED2"];
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -383,14 +338,14 @@ public class GenshinCodeRedeemExecutorTests
             .Verifiable();
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
 
         // Assert
         // Verify all setup calls were made
         m_CodeRedeemApiServiceMock.Verify();
         m_CodeRedeemRepositoryMock.Verify();
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
@@ -406,18 +361,18 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var multipleCodes = "CODE1, CODE2,CODE3";
-        var expectedCodes = new[] { "CODE1", "CODE2", "CODE3" };
+        object gameRecord = CreateTestGameRecord();
+        string multipleCodes = "CODE1, CODE2,CODE3";
+        string[] expectedCodes = ["CODE1", "CODE2", "CODE3"];
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(multipleCodes, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(multipleCodes, Regions.Asia, 1u);
 
         // Assert
-        foreach (var code in expectedCodes)
+        foreach (string? code in expectedCodes)
             m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
                 code.ToUpperInvariant(),
                 It.IsAny<string>(),
@@ -425,7 +380,7 @@ public class GenshinCodeRedeemExecutorTests
                 TestLtUid,
                 TestLToken), Times.Once);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
@@ -441,13 +396,13 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
 
         // Assert
         // Verify the code was redeemed
@@ -469,8 +424,8 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
-        var codes = "VALID1, INVALID1, VALID2";
+        object gameRecord = CreateTestGameRecord();
+        string codes = "VALID1, INVALID1, VALID2";
 
         SetupHttpResponseForGameRecord(gameRecord);
 
@@ -492,7 +447,7 @@ public class GenshinCodeRedeemExecutorTests
             .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
 
         // Act
-        await m_Executor.ExecuteAsync(codes, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(codes, Regions.Asia, 1u);
 
         // Assert
         // Verify only the first two codes were attempted
@@ -518,7 +473,7 @@ public class GenshinCodeRedeemExecutorTests
             TestLtUid,
             TestLToken), Times.Never);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
 
         // Response should contain the error message
         Assert.That(response, Does.Contain("Code redemption failed"));
@@ -533,7 +488,7 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         SetupHttpResponseForGameRecord(gameRecord);
 
         // Explicitly configure empty result for GetCodesAsync
@@ -541,7 +496,7 @@ public class GenshinCodeRedeemExecutorTests
             .ReturnsAsync([]);
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
 
         // Assert
         // Should attempt to get codes from repository
@@ -558,7 +513,7 @@ public class GenshinCodeRedeemExecutorTests
             It.IsAny<string>()), Times.Never);
 
         // Should send error response
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No known codes found in database"));
     }
 
@@ -567,7 +522,7 @@ public class GenshinCodeRedeemExecutorTests
     {
         // Arrange
         await CreateTestUserAsync();
-        var gameRecord = CreateTestGameRecord();
+        object gameRecord = CreateTestGameRecord();
         SetupHttpResponseForGameRecord(gameRecord);
 
         CodeRedeemRepository codeRedeemRepo =
@@ -600,25 +555,80 @@ public class GenshinCodeRedeemExecutorTests
             .ReturnsAsync(ApiResult<string>.Success("Expired code", -2001));
 
         // Act
-        await executor.ExecuteAsync("", Regions.America, 1u);
+        await executor.ExecuteAsync("", Regions.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x =>
             x.RedeemCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(),
                 It.IsAny<string>()), Times.Exactly(2));
-        var codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.Genshin);
+        List<string> codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.Genshin);
 
         Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
         Assert.That(codesInDb, Does.Contain("VALIDCODE"));
     }
 
+    #endregion
+
+    #region OnAuthenticationCompletedAsync Tests
+
+    [Test]
+    public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
+    {
+        // Arrange
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+
+        // Act
+        await m_Executor.OnAuthenticationCompletedAsync(result);
+
+        // Assert
+        m_LoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task OnAuthenticationCompletedAsync_SuccessfulAuth_ShouldRedeemCode()
+    {
+        // Arrange
+        await CreateTestUserAsync();
+        object gameRecord = CreateTestGameRecord();
+
+        SetupHttpResponseForGameRecord(gameRecord);
+        SetupCodeRedeemApiSuccess();
+
+        // Set pending parameters by calling ExecuteAsync first
+        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+
+        // Act
+        await m_Executor.OnAuthenticationCompletedAsync(authResult);
+
+        // Assert
+        m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
+            TestCode.ToUpperInvariant(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            TestLtUid,
+            TestLToken), Times.AtLeastOnce);
+    }
+
+    #endregion
+
+    #region Helper Methods
+
     private async Task CreateTestUserAsync()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -626,20 +636,20 @@ public class GenshinCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.Genshin, Regions.America },
-                        { GameName.HonkaiStarRail, Regions.America }
+                        { GameName.Genshin, Regions.Asia },
+                        { GameName.HonkaiStarRail, Regions.Asia }
                     },
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
                     {
                         {
                             GameName.Genshin, new Dictionary<string, string>
                             {
-                                { nameof(Regions.America), TestGameUid }
+                                { nameof(Regions.Asia), TestGameUid }
                             }
                         }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -647,11 +657,11 @@ public class GenshinCodeRedeemExecutorTests
 
     private async Task CreateTestUserWithoutGameUid()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -659,12 +669,12 @@ public class GenshinCodeRedeemExecutorTests
                     LToken = TestLToken,
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.Genshin, Regions.America },
-                        { GameName.HonkaiStarRail, Regions.America }
+                        { GameName.Genshin, Regions.Asia },
+                        { GameName.HonkaiStarRail, Regions.Asia }
                     }
                     // No GameUids - this will trigger the API call
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -696,8 +706,8 @@ public class GenshinCodeRedeemExecutorTests
 
     private void SetupHttpResponseForGameRecord(object gameRecord)
     {
-        var json = JsonSerializer.Serialize(gameRecord);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(gameRecord);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -720,8 +730,8 @@ public class GenshinCodeRedeemExecutorTests
             }
         };
 
-        var json = JsonSerializer.Serialize(errorResponse);
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        string json = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage httpResponse = new(HttpStatusCode.OK)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -760,4 +770,6 @@ public class GenshinCodeRedeemExecutorTests
         m_DistributedCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
     }
+
+    #endregion
 }

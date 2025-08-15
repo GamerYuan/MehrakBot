@@ -3,6 +3,7 @@
 using System.Net;
 using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Memory;
@@ -18,7 +19,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
     private readonly ILogger<HsrCharacterApiService> m_Logger;
     private readonly IMemoryCache m_MemoryCache;
 
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/avatar/info";
+    private static readonly string ApiEndpoint = "/event/game_record/hkrpg/api/avatar/info";
     private const int CacheExpirationMinutes = 10;
 
     public HsrCharacterApiService(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache,
@@ -49,7 +50,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
             HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri($"{ApiUrl}?server={region}&role_id={gameUid}&need_wiki=true"),
+                RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={region}&role_id={gameUid}&need_wiki=true"),
                 Headers =
                 {
                     { "Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}" },

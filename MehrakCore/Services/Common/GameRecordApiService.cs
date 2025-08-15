@@ -1,12 +1,13 @@
 ﻿#region
 
+using MehrakCore.ApiResponseTypes;
+using MehrakCore.Constants;
+using MehrakCore.Models;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.Models;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
@@ -14,11 +15,10 @@ namespace MehrakCore.Services.Common;
 
 public class GameRecordApiService : IApiService<object>
 {
-    private const string GameRecordApiUrl =
-        "https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard";
+    private static readonly string GameRecordApiPath = "/event/game_record/card/wapi/getGameRecordCard";
 
-    private const string GameUserRoleApiUrl =
-        "https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken";
+    private static readonly string GameUserRoleApiPath =
+        "/binding/api/getUserGameRolesByLtoken";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GameRecordApiService> m_Logger;
@@ -41,7 +41,7 @@ public class GameRecordApiService : IApiService<object>
             request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={uid}");
             request.Headers.Add("User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
-            request.RequestUri = new Uri($"{GameRecordApiUrl}?uid={uid}");
+            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{GameRecordApiPath}?uid={uid}");
 
             m_Logger.LogDebug("Sending request to game record API: {Url}", request.RequestUri);
             var response = await httpClient.SendAsync(request);
@@ -92,7 +92,7 @@ public class GameRecordApiService : IApiService<object>
             request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={uid}");
             request.Headers.Add("User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
-            request.RequestUri = new Uri($"{GameUserRoleApiUrl}?game_biz={gameIdentifier}&region={region}");
+            request.RequestUri = new Uri($"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}?game_biz={gameIdentifier}&region={region}");
 
             m_Logger.LogDebug("Sending request to game roles API: {Url}", request.RequestUri);
             var response = await httpClient.SendAsync(request);

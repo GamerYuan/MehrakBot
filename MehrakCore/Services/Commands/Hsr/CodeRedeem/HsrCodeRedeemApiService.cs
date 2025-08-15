@@ -2,6 +2,7 @@
 
 using System.Net;
 using System.Text.Json.Nodes;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,7 @@ namespace MehrakCore.Services.Commands.Hsr.CodeRedeem;
 
 public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
 {
-    private const string ApiUrl = "https://public-operation-hkrpg.hoyolab.com/common/apicdkey/api/webExchangeCdkeyHyl";
+    private static readonly string ApiEndpoint = "/common/apicdkey/api/webExchangeCdkeyHyl";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrCodeRedeemApiService> m_Logger;
@@ -35,7 +36,7 @@ public class HsrCodeRedeemApiService : ICodeRedeemApiService<HsrCommandModule>
             {
                 Method = HttpMethod.Get,
                 RequestUri =
-                    new Uri($"{ApiUrl}?cdkey={code}&game_biz=hkrpg_global&region={region}&uid={gameUid}&lang=en-us"),
+                    new Uri($"{HoYoLabDomains.HsrOpsApi}{ApiEndpoint}?cdkey={code}&game_biz=hkrpg_global&region={region}&uid={gameUid}&lang=en-us"),
                 Headers =
                 {
                     { "Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}" }

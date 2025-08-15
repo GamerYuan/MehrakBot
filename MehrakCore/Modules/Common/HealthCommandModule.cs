@@ -1,12 +1,13 @@
 ﻿#region
 
-using System.Net.NetworkInformation;
+using MehrakCore.Constants;
 using MehrakCore.Services.Common;
 using NetCord;
 using NetCord.Gateway;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using StackExchange.Redis;
+using System.Net.NetworkInformation;
 
 #endregion
 
@@ -21,14 +22,14 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
 
     private static readonly Dictionary<string, string> HealthCheckComponents = new()
     {
-        { "HoYoLAB API", "sg-public-api.hoyolab.com" },
-        { "HoYoLAB Genshin API", "sg-hk4e-api.hoyolab.com" },
-        { "HoYoLAB Genshin Operations API", "public-operation-hk4e.hoyolab.com" },
-        { "HoYoLAB HSR Operations API", "public-operation-hkrpg.hoyolab.com" },
-        { "HoYoLAB ZZZ Operations API", "public-operation-nap.hoyolab.com" },
-        { "HoYoLAB Posts API", "bbs-api-os.hoyolab.com" },
-        { "HoYoLAB Account API", "api-account-os.hoyolab.com" },
-        { "HoYoWiki API", "sg-wiki-api-static.hoyolab.com" }
+        { "HoYoLAB API", new Uri(HoYoLabDomains.PublicApi).Host },
+        { "HoYoLAB Genshin API", new Uri(HoYoLabDomains.GenshinApi).Host },
+        { "HoYoLAB Genshin Operations API", new Uri(HoYoLabDomains.GenshinOpsApi).Host },
+        { "HoYoLAB HSR Operations API", new Uri(HoYoLabDomains.HsrOpsApi).Host },
+        { "HoYoLAB ZZZ Operations API", new Uri(HoYoLabDomains.ZzzOpsApi).Host },
+        { "HoYoLAB Posts API", new Uri(HoYoLabDomains.PostsApi).Host },
+        { "HoYoLAB Account API", new Uri(HoYoLabDomains.AccountApi).Host },
+        { "HoYoWiki API", new Uri(HoYoLabDomains.WikiApi).Host }
     };
 
     private static int _maxCharCount;

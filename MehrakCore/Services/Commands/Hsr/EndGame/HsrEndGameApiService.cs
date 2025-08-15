@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -23,7 +24,7 @@ internal class HsrEndGameApiService : IApiService<BaseHsrEndGameCommandExecutor>
         NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
-    private const string ApiUrl = "https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/";
+    private static readonly string BasePath = "/event/game_record/hkrpg/api/";
 
     public HsrEndGameApiService(IHttpClientFactory httpClientFactory, ILogger<HsrEndGameApiService> logger)
     {
@@ -44,7 +45,7 @@ internal class HsrEndGameApiService : IApiService<BaseHsrEndGameCommandExecutor>
             };
             var client = m_HttpClientFactory.CreateClient("Default");
             var request = new HttpRequestMessage(HttpMethod.Get,
-                $"{ApiUrl}{endpoint}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
+                $"{HoYoLabDomains.PublicApi}{BasePath}{endpoint}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             request.Headers.Add("Ds", DSGenerator.GenerateDS());
             request.Headers.Add("X-Rpc-App_version", "1.5.0");

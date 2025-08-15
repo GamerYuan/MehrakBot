@@ -1,9 +1,7 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services;
@@ -19,6 +17,9 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -31,7 +32,7 @@ public class HsrCharacterCommandExecutorTests
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test_ltoken_value";
     private const string TestGuid = "test-guid-12345";
-    private const string TestGameUid = "test_game_uid_12345";
+    private const string TestGameUid = "800000000";
 
     private HsrCharacterCommandExecutor m_Executor = null!;
     private Mock<ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>> m_CharacterApiMock = null!;
@@ -68,8 +69,8 @@ public class HsrCharacterCommandExecutorTests
                 It.IsAny<ulong>(), It.IsAny<IAuthenticationListener>()))
             .Returns(TestGuid);
 
-        var imageRepository =
-            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
+        ImageRepository imageRepository =
+            new(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
 
         m_ImageUpdaterServiceMock = new Mock<ImageUpdaterService<HsrCharacterInformation>>(
             imageRepository,
@@ -79,7 +80,7 @@ public class HsrCharacterCommandExecutorTests
         // Set up mocked HTTP handler and client factory
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
 
         // Create real services with mocked dependencies
@@ -100,7 +101,7 @@ public class HsrCharacterCommandExecutorTests
         // Set up default behavior for GetAliases to return empty dictionary
         m_CharacterCacheServiceMock
             .Setup(x => x.GetAliases(It.IsAny<GameName>()))
-            .Returns(new Dictionary<string, string>());
+            .Returns([]);
 
         // Set up default distributed cache behavior
         SetupDistributedCacheMock();
@@ -153,7 +154,7 @@ public class HsrCharacterCommandExecutorTests
     public void ExecuteAsync_WhenParametersCountInvalid_ThrowsArgumentException()
     {
         // Arrange & Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync("param1", "param2").AsTask());
+        ArgumentException? ex = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync("param1", "param2").AsTask());
         Assert.That(ex.Message, Contains.Substring("Invalid parameters count"));
     }
 
@@ -169,7 +170,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
 
@@ -181,18 +182,18 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 2; // Non-existent profile
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    GameUids = []
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -200,7 +201,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
 
@@ -212,18 +213,18 @@ public class HsrCharacterCommandExecutorTests
         Regions? server = null;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    GameUids = []
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -231,7 +232,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("No cached server found. Please select a server"));
     }
 
@@ -243,11 +244,11 @@ public class HsrCharacterCommandExecutorTests
         Regions? server = null;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -256,14 +257,14 @@ public class HsrCharacterCommandExecutorTests
                     {
                         { GameName.HonkaiStarRail, Regions.Asia }
                     },
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    GameUids = []
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
@@ -278,7 +279,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Not.Contain("No cached server found"));
     }
 
@@ -290,18 +291,18 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    GameUids = []
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
         m_DiscordTestHelper.ClearCapturedRequests();
@@ -312,7 +313,7 @@ public class HsrCharacterCommandExecutorTests
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
             Times.Once);
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("auth_modal"));
     }
 
@@ -324,11 +325,11 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -343,10 +344,10 @@ public class HsrCharacterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
@@ -372,11 +373,11 @@ public class HsrCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenCharacterApiThrowsException_SendsErrorMessage()
     {
         // Arrange
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -389,12 +390,12 @@ public class HsrCharacterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return a token (user is authenticated)
-        var cachedToken = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] cachedToken = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedToken);
 
@@ -408,7 +409,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync("Stelle", Regions.Asia, 1u);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("An error occurred while retrieving character data"));
     }
 
@@ -420,18 +421,18 @@ public class HsrCharacterCommandExecutorTests
         Regions? server = Regions.Asia;
         uint? profile = null;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    GameUids = []
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -439,7 +440,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert - Should handle null parameters gracefully by using defaults
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Not.Contain("exception"));
     }
 
@@ -452,11 +453,11 @@ public class HsrCharacterCommandExecutorTests
         OnAuthenticationCompletedAsync_WhenAuthenticationSucceedsWithValidParameters_CallsSendCharacterCard()
     {
         // Arrange
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -471,11 +472,11 @@ public class HsrCharacterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Set pending parameters
         await m_Executor.ExecuteAsync("Trailblazer", Regions.Asia, 1u);
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup game record API
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
@@ -505,11 +506,11 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -524,10 +525,10 @@ public class HsrCharacterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
@@ -536,22 +537,22 @@ public class HsrCharacterCommandExecutorTests
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
         // Setup character API to return data without the requested character
-        var testCharacterData = CreateTestCharacterInfo();
-        var characterList = new HsrBasicCharacterData
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfo();
+        HsrBasicCharacterData characterList = new()
         {
             AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
+            EquipWiki = [],
+            RelicWiki = []
         };
 
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
+            .ReturnsAsync([characterList]);
 
         // Act
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("Character not found"));
     }
 
@@ -563,11 +564,11 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -582,10 +583,10 @@ public class HsrCharacterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
@@ -595,13 +596,13 @@ public class HsrCharacterCommandExecutorTests
 
         // Setup character API to return empty data
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData>());
+            .ReturnsAsync([]);
 
         // Act
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("No character data found"));
     }
 
@@ -613,11 +614,11 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -632,10 +633,10 @@ public class HsrCharacterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
@@ -652,7 +653,7 @@ public class HsrCharacterCommandExecutorTests
             .Returns(Task.CompletedTask);
 
         // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
             .ReturnsAsync(mockStream);
@@ -667,7 +668,7 @@ public class HsrCharacterCommandExecutorTests
         m_ImageUpdaterServiceMock.Verify(
             x => x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
                 It.IsAny<IEnumerable<Dictionary<string, string>>>()), Times.Once);
-        var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(bytes, Is.Not.Empty);
     }
 
@@ -679,23 +680,23 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>() // No HonkaiStarRail key initially
+                    GameUids = [] // No HonkaiStarRail key initially
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes); // Setup HTTP handler to return game UID
@@ -710,7 +711,7 @@ public class HsrCharacterCommandExecutorTests
             .Returns(Task.CompletedTask);
 
         // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
             .ReturnsAsync(mockStream);
@@ -720,16 +721,16 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
-        var updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
-        var bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
+        UserProfile? updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
+        byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(updatedProfile?.GameUids, Is.Not.Null);
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(updatedProfile?.GameUids?.ContainsKey(GameName.HonkaiStarRail), Is.True);
             Assert.That(updatedProfile?.GameUids?[GameName.HonkaiStarRail][server.ToString()], Is.EqualTo(TestGameUid));
             Assert.That(bytes, Is.Not.Empty);
-        });
+        }
         m_CharacterCardServiceMock.Verify(
             x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
     }
@@ -742,23 +743,23 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>() // No game UIDs initially
+                    GameUids = [] // No game UIDs initially
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes); // Setup HTTP handler to return invalid auth error
@@ -766,7 +767,7 @@ public class HsrCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("Invalid HoYoLAB UID or Cookies. Please authenticate again"));
     }
 
@@ -778,11 +779,11 @@ public class HsrCharacterCommandExecutorTests
         const Regions server = Regions.Asia;
         const uint profile = 1;
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -797,10 +798,10 @@ public class HsrCharacterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
@@ -810,23 +811,807 @@ public class HsrCharacterCommandExecutorTests
 
         // Setup character API to return empty list (simulates no character data)
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData>());
+            .ReturnsAsync([]);
 
         // Act
         await m_Executor.ExecuteAsync(characterName, server, profile);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("No character data found. Please try again."));
     }
 
     #endregion
 
+    #region Region Mapping Tests
+
+    [Test]
+    [TestCase(Regions.Asia, "prod_official_asia")]
+    [TestCase(Regions.Europe, "prod_official_eur")]
+    [TestCase(Regions.America, "prod_official_usa")]
+    [TestCase(Regions.Sar, "prod_official_cht")]
+    public async Task ExecuteAsync_ReturnsCorrectRegionMapping(Regions inputRegion, string expectedRegion)
+    {
+        // Arrange
+        const string characterName = "Trailblazer";
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { inputRegion.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache to return a token
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(inputRegion));
+
+        SetupCharacterApiForSuccessfulResponse();
+
+        // Act
+        await m_Executor.ExecuteAsync(characterName, inputRegion, profile);
+
+        // Assert
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, expectedRegion),
+            Times.Once);
+    }
+
+    #endregion
+
+    #region UpdateLastUsedRegions Tests
+
+    [Test]
+    public async Task ExecuteAsync_UpdatesLastUsedRegionsCorrectly()
+    {
+        // Arrange
+        const string characterName = "Trailblazer";
+        const Regions server = Regions.Europe;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    },
+                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    {
+                        { GameName.HonkaiStarRail, Regions.Asia } // Different from what we'll use
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache to return a token
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        SetupCharacterApiForSuccessfulResponse();
+
+        // Setup image updater service
+        m_ImageUpdaterServiceMock.Setup(x =>
+                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
+                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup character card service
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
+        m_CharacterCardServiceMock
+            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
+            .ReturnsAsync(mockStream);
+
+        // Act
+        await m_Executor.ExecuteAsync(characterName, server, profile);
+
+        // Assert
+        UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
+        UserProfile? updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
+        Assert.That(updatedProfile?.LastUsedRegions?[GameName.HonkaiStarRail], Is.EqualTo(server));
+    }
+
+    #endregion
+
+    #region Alias Tests
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WithValidAlias_ShouldFindCharacterAndSendCard()
+    {
+        // Arrange
+        const string aliasName = "TB"; // Alias for Trailblazer
+        const string actualCharacterName = "Trailblazer";
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup alias in character cache service
+        Dictionary<string, string> aliases = new()
+        {
+            { "TB", actualCharacterName },
+            { "trailblazer", actualCharacterName }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API with a character named "Trailblazer"
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [testCharacterData],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Setup image updater service
+        m_ImageUpdaterServiceMock.Setup(x =>
+                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
+                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup character card service
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
+        m_CharacterCardServiceMock
+            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
+            .ReturnsAsync(mockStream);
+
+        // Act
+        await m_Executor.ExecuteAsync(aliasName, server, profile);
+
+        // Assert
+        m_CharacterCardServiceMock.Verify(
+            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
+
+        // Verify that GetAliases was called to resolve the alias
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WithCaseInsensitiveAlias_ShouldFindCharacterAndSendCard()
+    {
+        // Arrange
+        const string aliasName = "tb"; // Lowercase alias for Trailblazer
+        const string actualCharacterName = "Trailblazer";
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup alias in character cache service (note: alias is stored as "TB" but we're searching for "tb")
+        Dictionary<string, string> aliases = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "TB", actualCharacterName },
+            { "Stelle", actualCharacterName }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API with a character named "Trailblazer"
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [testCharacterData],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Setup image updater service
+        m_ImageUpdaterServiceMock.Setup(x =>
+                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
+                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup character card service
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
+        m_CharacterCardServiceMock
+            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
+            .ReturnsAsync(mockStream);
+
+        // Act
+        await m_Executor.ExecuteAsync(aliasName, server, profile);
+
+        // Assert
+        m_CharacterCardServiceMock.Verify(
+            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
+
+        // Verify that GetAliases was called to resolve the alias
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+    }
+
+    [Test]
+    public async Task
+        SendCharacterCardResponseAsync_WithMultipleAliasesForSameCharacter_ShouldFindCharacterAndSendCard()
+    {
+        // Arrange
+        const string aliasName = "Stelle"; // Alternative alias for Trailblazer
+        const string actualCharacterName = "Trailblazer";
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup multiple aliases for the same character
+        Dictionary<string, string> aliases = new()
+        {
+            { "TB", actualCharacterName },
+            { "Stelle", actualCharacterName },
+            { "Caelus", actualCharacterName }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API with a character named "Trailblazer"
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [testCharacterData],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Setup image updater service
+        m_ImageUpdaterServiceMock.Setup(x =>
+                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
+                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup character card service
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
+        m_CharacterCardServiceMock
+            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
+            .ReturnsAsync(mockStream);
+
+        // Act
+        await m_Executor.ExecuteAsync(aliasName, server, profile);
+
+        // Assert
+        m_CharacterCardServiceMock.Verify(
+            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
+
+        // Verify that GetAliases was called
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WithSpecialCharactersInAlias_ShouldFindCharacterAndSendCard()
+    {
+        // Arrange
+        const string aliasName = "Dr.Ratio"; // Alias with special characters
+        const string actualCharacterName = "Dr. Ratio";
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup alias with special characters
+        Dictionary<string, string> aliases = new()
+        {
+            { "Dr.Ratio", actualCharacterName },
+            { "Ratio", actualCharacterName }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API with a character named "Dr. Ratio"
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [testCharacterData],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Setup image updater service
+        m_ImageUpdaterServiceMock.Setup(x =>
+                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
+                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup character card service
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
+        m_CharacterCardServiceMock
+            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
+            .ReturnsAsync(mockStream);
+
+        // Act
+        await m_Executor.ExecuteAsync(aliasName, server, profile);
+
+        // Assert
+        m_CharacterCardServiceMock.Verify(
+            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
+
+        // Verify that GetAliases was called for each test case
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WithExactNameAndAlias_ShouldPreferExactMatch()
+    {
+        // Arrange
+        const string characterName = "March"; // This exists as both exact character name and alias
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup alias where "March" also maps to another character
+        Dictionary<string, string> aliases = new()
+        {
+            { "March", "March 7th" }, // "March" is an alias for "March 7th"
+            { "March7", "March 7th" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API with both "March" and "March 7th" characters
+        HsrCharacterInformation exactMatchCharacter = CreateTestCharacterInfoWithName("March");
+        HsrCharacterInformation aliasTargetCharacter = CreateTestCharacterInfoWithName("March 7th");
+
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [exactMatchCharacter, aliasTargetCharacter],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Setup image updater service
+        m_ImageUpdaterServiceMock.Setup(x =>
+                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
+                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup character card service
+        MemoryStream mockStream = new(Encoding.UTF8.GetBytes("mock image data"));
+        m_CharacterCardServiceMock
+            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
+            .ReturnsAsync(mockStream);
+
+        // Act
+        await m_Executor.ExecuteAsync(characterName, server, profile);
+
+        // Assert
+        m_CharacterCardServiceMock.Verify(
+            x => x.GenerateCharacterCardAsync(
+                It.Is<HsrCharacterInformation>(c => c.Name == "March"), // Should prefer exact match
+                TestGameUid),
+            Times.Once);
+
+        // GetAliases should not be called if exact match is found first
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Never);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WithInvalidAlias_ShouldSendErrorMessage()
+    {
+        // Arrange
+        const string invalidAlias = "InvalidAlias";
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup alias that doesn't include our invalid alias
+        Dictionary<string, string> aliases = new()
+        {
+            { "TB", "Trailblazer" },
+            { "Stelle", "Trailblazer" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API that doesn't include the searched character
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // Different from our search
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [testCharacterData],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Act
+        await m_Executor.ExecuteAsync(invalidAlias, server, profile);
+
+        // Assert
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Contains.Substring("Character not found"));
+
+        // Verify that GetAliases was called to try resolving the alias
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+    }
+
+    [Test]
+    public async Task SendCharacterCardResponseAsync_WithAliasPointingToNonOwnedCharacter_ShouldSendErrorMessage()
+    {
+        // Arrange
+        const string aliasName = "FF"; // Alias for Firefly
+        const string actualCharacterName = "Firefly";
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup alias that points to Firefly
+        Dictionary<string, string> aliases = new()
+        {
+            { "FF", actualCharacterName },
+            { "TB", "Trailblazer" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API that only has Trailblazer (not Firefly)
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // User doesn't own Firefly
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [testCharacterData],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Act
+        await m_Executor.ExecuteAsync(aliasName, server, profile);
+
+        // Assert
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Contains.Substring("Character not found"));
+
+        // Verify that GetAliases was called to resolve the alias
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+    }
+
+    [Test]
+    [TestCase("")]
+    [TestCase(" ")]
+    [TestCase(null)]
+    public async Task SendCharacterCardResponseAsync_WithEmptyOrNullAlias_ShouldHandleGracefully(string? aliasName)
+    {
+        // Arrange
+        const Regions server = Regions.Asia;
+        const uint profile = 1;
+
+        UserModel testUser = new()
+        {
+            Id = m_TestUserId,
+            Profiles =
+            [
+                new()
+                {
+                    ProfileId = 1,
+                    LtUid = TestLtUid,
+                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    {
+                        {
+                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            {
+                                { server.ToString(), TestGameUid }
+                            }
+                        }
+                    }
+                }
+            ]
+        };
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
+        // Setup token cache
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tokenBytes);
+
+        // Setup game record API
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
+
+        // Setup aliases
+        Dictionary<string, string> aliases = new()
+        {
+            { "TB", "Trailblazer" }
+        };
+        m_CharacterCacheServiceMock
+            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Returns(aliases);
+
+        // Setup character API
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName("Trailblazer");
+        HsrBasicCharacterData characterList = new()
+        {
+            AvatarList = [testCharacterData],
+            EquipWiki = [],
+            RelicWiki = []
+        };
+
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
+            .ReturnsAsync([characterList]);
+
+        // Act & Assert - Should not throw an exception
+        Assert.DoesNotThrowAsync(async () => await m_Executor.ExecuteAsync(aliasName, server, profile));
+
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Contains.Substring("Character not found"));
+    }
+
+    #endregion
     #region Helper Methods
 
-    private string CreateValidGameRecordResponse(Regions region = Regions.Asia)
+    private static string CreateValidGameRecordResponse(Regions region = Regions.Asia)
     {
-        var regionMapping = region switch
+        string regionMapping = region switch
         {
             Regions.Asia => "prod_official_asia",
             Regions.Europe => "prod_official_eur",
@@ -858,7 +1643,7 @@ public class HsrCharacterCommandExecutorTests
         return JsonSerializer.Serialize(gameRecord);
     }
 
-    private string CreateInvalidAuthGameRecordResponse()
+    private static string CreateInvalidAuthGameRecordResponse()
     {
         var gameRecord = new
         {
@@ -877,7 +1662,7 @@ public class HsrCharacterCommandExecutorTests
 
     private static HsrCharacterInformation CreateTestCharacterInfoWithName(string characterName)
     {
-        var baseCharacter = CreateTestCharacterInfo();
+        HsrCharacterInformation baseCharacter = CreateTestCharacterInfo();
         return new HsrCharacterInformation
         {
             Id = baseCharacter.Id,
@@ -903,21 +1688,21 @@ public class HsrCharacterCommandExecutorTests
 
     private void SetupCharacterApiForSuccessfulResponse()
     {
-        var testCharacterData = CreateTestCharacterInfo();
-        var characterList = new HsrBasicCharacterData
+        HsrCharacterInformation testCharacterData = CreateTestCharacterInfo();
+        HsrBasicCharacterData characterList = new()
         {
             AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
+            EquipWiki = [],
+            RelicWiki = []
         };
 
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
+            .ReturnsAsync([characterList]);
     }
 
     private void SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode statusCode, string content)
     {
-        var response = new HttpResponseMessage
+        HttpResponseMessage response = new()
         {
             StatusCode = statusCode,
             Content = new StringContent(content, Encoding.UTF8, "application/json")
@@ -926,794 +1711,11 @@ public class HsrCharacterCommandExecutorTests
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.RequestUri != null && req.RequestUri.ToString().Contains("getUserGameRolesByLtoken")),
+                    req.RequestUri != null &&
+                        req.RequestUri.GetLeftPart(UriPartial.Path).ToString() ==
+                        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken"),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(response);
-    }
-
-    #endregion
-
-    #region Region Mapping Tests
-
-    [Test]
-    [TestCase(Regions.Asia, "prod_official_asia")]
-    [TestCase(Regions.Europe, "prod_official_eur")]
-    [TestCase(Regions.America, "prod_official_usa")]
-    [TestCase(Regions.Sar, "prod_official_cht")]
-    public async Task ExecuteAsync_ReturnsCorrectRegionMapping(Regions inputRegion, string expectedRegion)
-    {
-        // Arrange
-        const string characterName = "Trailblazer";
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { inputRegion.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(inputRegion));
-
-        SetupCharacterApiForSuccessfulResponse();
-
-        // Act
-        await m_Executor.ExecuteAsync(characterName, inputRegion, profile);
-
-        // Assert
-        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, expectedRegion),
-            Times.Once);
-    }
-
-    #endregion
-
-    #region UpdateLastUsedRegions Tests
-
-    [Test]
-    public async Task ExecuteAsync_UpdatesLastUsedRegionsCorrectly()
-    {
-        // Arrange
-        const string characterName = "Trailblazer";
-        const Regions server = Regions.Europe;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
-                    {
-                        { GameName.HonkaiStarRail, Regions.Asia } // Different from what we'll use
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache to return a token
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        SetupCharacterApiForSuccessfulResponse();
-
-        // Setup image updater service
-        m_ImageUpdaterServiceMock.Setup(x =>
-                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
-                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
-            .Returns(Task.CompletedTask);
-
-        // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
-        m_CharacterCardServiceMock
-            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
-            .ReturnsAsync(mockStream);
-
-        // Act
-        await m_Executor.ExecuteAsync(characterName, server, profile);
-
-        // Assert
-        var updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
-        var updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
-        Assert.That(updatedProfile?.LastUsedRegions?[GameName.HonkaiStarRail], Is.EqualTo(server));
-    }
-
-    #endregion
-
-    #region Alias Tests
-
-    [Test]
-    public async Task SendCharacterCardResponseAsync_WithValidAlias_ShouldFindCharacterAndSendCard()
-    {
-        // Arrange
-        const string aliasName = "TB"; // Alias for Trailblazer
-        const string actualCharacterName = "Trailblazer";
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup alias in character cache service
-        var aliases = new Dictionary<string, string>
-        {
-            { "TB", actualCharacterName },
-            { "trailblazer", actualCharacterName }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API with a character named "Trailblazer"
-        var testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Setup image updater service
-        m_ImageUpdaterServiceMock.Setup(x =>
-                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
-                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
-            .Returns(Task.CompletedTask);
-
-        // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
-        m_CharacterCardServiceMock
-            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
-            .ReturnsAsync(mockStream);
-
-        // Act
-        await m_Executor.ExecuteAsync(aliasName, server, profile);
-
-        // Assert
-        m_CharacterCardServiceMock.Verify(
-            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
-
-        // Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
-    }
-
-    [Test]
-    public async Task SendCharacterCardResponseAsync_WithCaseInsensitiveAlias_ShouldFindCharacterAndSendCard()
-    {
-        // Arrange
-        const string aliasName = "tb"; // Lowercase alias for Trailblazer
-        const string actualCharacterName = "Trailblazer";
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup alias in character cache service (note: alias is stored as "TB" but we're searching for "tb")
-        var aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "TB", actualCharacterName },
-            { "Stelle", actualCharacterName }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API with a character named "Trailblazer"
-        var testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Setup image updater service
-        m_ImageUpdaterServiceMock.Setup(x =>
-                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
-                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
-            .Returns(Task.CompletedTask);
-
-        // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
-        m_CharacterCardServiceMock
-            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
-            .ReturnsAsync(mockStream);
-
-        // Act
-        await m_Executor.ExecuteAsync(aliasName, server, profile);
-
-        // Assert
-        m_CharacterCardServiceMock.Verify(
-            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
-
-        // Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
-    }
-
-    [Test]
-    public async Task
-        SendCharacterCardResponseAsync_WithMultipleAliasesForSameCharacter_ShouldFindCharacterAndSendCard()
-    {
-        // Arrange
-        const string aliasName = "Stelle"; // Alternative alias for Trailblazer
-        const string actualCharacterName = "Trailblazer";
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup multiple aliases for the same character
-        var aliases = new Dictionary<string, string>
-        {
-            { "TB", actualCharacterName },
-            { "Stelle", actualCharacterName },
-            { "Caelus", actualCharacterName }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API with a character named "Trailblazer"
-        var testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Setup image updater service
-        m_ImageUpdaterServiceMock.Setup(x =>
-                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
-                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
-            .Returns(Task.CompletedTask);
-
-        // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
-        m_CharacterCardServiceMock
-            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
-            .ReturnsAsync(mockStream);
-
-        // Act
-        await m_Executor.ExecuteAsync(aliasName, server, profile);
-
-        // Assert
-        m_CharacterCardServiceMock.Verify(
-            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
-
-        // Verify that GetAliases was called
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
-    }
-
-    [Test]
-    public async Task SendCharacterCardResponseAsync_WithSpecialCharactersInAlias_ShouldFindCharacterAndSendCard()
-    {
-        // Arrange
-        const string aliasName = "Dr.Ratio"; // Alias with special characters
-        const string actualCharacterName = "Dr. Ratio";
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup alias with special characters
-        var aliases = new Dictionary<string, string>
-        {
-            { "Dr.Ratio", actualCharacterName },
-            { "Ratio", actualCharacterName }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API with a character named "Dr. Ratio"
-        var testCharacterData = CreateTestCharacterInfoWithName(actualCharacterName);
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Setup image updater service
-        m_ImageUpdaterServiceMock.Setup(x =>
-                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
-                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
-            .Returns(Task.CompletedTask);
-
-        // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
-        m_CharacterCardServiceMock
-            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
-            .ReturnsAsync(mockStream);
-
-        // Act
-        await m_Executor.ExecuteAsync(aliasName, server, profile);
-
-        // Assert
-        m_CharacterCardServiceMock.Verify(
-            x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
-
-        // Verify that GetAliases was called for each test case
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
-    }
-
-    [Test]
-    public async Task SendCharacterCardResponseAsync_WithExactNameAndAlias_ShouldPreferExactMatch()
-    {
-        // Arrange
-        const string characterName = "March"; // This exists as both exact character name and alias
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup alias where "March" also maps to another character
-        var aliases = new Dictionary<string, string>
-        {
-            { "March", "March 7th" }, // "March" is an alias for "March 7th"
-            { "March7", "March 7th" }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API with both "March" and "March 7th" characters
-        var exactMatchCharacter = CreateTestCharacterInfoWithName("March");
-        var aliasTargetCharacter = CreateTestCharacterInfoWithName("March 7th");
-
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [exactMatchCharacter, aliasTargetCharacter],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Setup image updater service
-        m_ImageUpdaterServiceMock.Setup(x =>
-                x.UpdateDataAsync(It.IsAny<HsrCharacterInformation>(),
-                    It.IsAny<IEnumerable<Dictionary<string, string>>>()))
-            .Returns(Task.CompletedTask);
-
-        // Setup character card service
-        var mockStream = new MemoryStream(Encoding.UTF8.GetBytes("mock image data"));
-        m_CharacterCardServiceMock
-            .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid))
-            .ReturnsAsync(mockStream);
-
-        // Act
-        await m_Executor.ExecuteAsync(characterName, server, profile);
-
-        // Assert
-        m_CharacterCardServiceMock.Verify(
-            x => x.GenerateCharacterCardAsync(
-                It.Is<HsrCharacterInformation>(c => c.Name == "March"), // Should prefer exact match
-                TestGameUid),
-            Times.Once);
-
-        // GetAliases should not be called if exact match is found first
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Never);
-    }
-
-    [Test]
-    public async Task SendCharacterCardResponseAsync_WithInvalidAlias_ShouldSendErrorMessage()
-    {
-        // Arrange
-        const string invalidAlias = "InvalidAlias";
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup alias that doesn't include our invalid alias
-        var aliases = new Dictionary<string, string>
-        {
-            { "TB", "Trailblazer" },
-            { "Stelle", "Trailblazer" }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API that doesn't include the searched character
-        var testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // Different from our search
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Act
-        await m_Executor.ExecuteAsync(invalidAlias, server, profile);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Character not found"));
-
-        // Verify that GetAliases was called to try resolving the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
-    }
-
-    [Test]
-    public async Task SendCharacterCardResponseAsync_WithAliasPointingToNonOwnedCharacter_ShouldSendErrorMessage()
-    {
-        // Arrange
-        const string aliasName = "FF"; // Alias for Firefly
-        const string actualCharacterName = "Firefly";
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup alias that points to Firefly
-        var aliases = new Dictionary<string, string>
-        {
-            { "FF", actualCharacterName },
-            { "TB", "Trailblazer" }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API that only has Trailblazer (not Firefly)
-        var testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // User doesn't own Firefly
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Act
-        await m_Executor.ExecuteAsync(aliasName, server, profile);
-
-        // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Character not found"));
-
-        // Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
-    }
-
-    [Test]
-    [TestCase("")]
-    [TestCase(" ")]
-    [TestCase(null)]
-    public async Task SendCharacterCardResponseAsync_WithEmptyOrNullAlias_ShouldHandleGracefully(string? aliasName)
-    {
-        // Arrange
-        const Regions server = Regions.Asia;
-        const uint profile = 1;
-
-        var testUser = new UserModel
-        {
-            Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
-                new()
-                {
-                    ProfileId = 1,
-                    LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
-                    {
-                        {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
-                            {
-                                { server.ToString(), TestGameUid }
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
-
-        // Setup token cache
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x =>
-                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tokenBytes);
-
-        // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
-
-        // Setup aliases
-        var aliases = new Dictionary<string, string>
-        {
-            { "TB", "Trailblazer" }
-        };
-        m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
-            .Returns(aliases);
-
-        // Setup character API
-        var testCharacterData = CreateTestCharacterInfoWithName("Trailblazer");
-        var characterList = new HsrBasicCharacterData
-        {
-            AvatarList = [testCharacterData],
-            EquipWiki = new Dictionary<string, string>(),
-            RelicWiki = new Dictionary<string, string>()
-        };
-
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "prod_official_asia"))
-            .ReturnsAsync(new List<HsrBasicCharacterData> { characterList });
-
-        // Act & Assert - Should not throw an exception
-        Assert.DoesNotThrowAsync(async () => await m_Executor.ExecuteAsync(aliasName, server, profile));
-
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Contains.Substring("Character not found"));
     }
 
     #endregion
