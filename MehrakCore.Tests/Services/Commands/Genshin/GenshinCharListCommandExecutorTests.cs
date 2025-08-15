@@ -44,7 +44,7 @@ public class GenshinCharListCommandExecutorTests
     private HttpClient m_HttpClient;
     private DiscordTestHelper m_DiscordTestHelper;
 
-    private const ulong TestUserId = 123456789UL;
+    private ulong m_TestUserId = 123456789UL;
     private const ulong TestLtUid = 987654321UL;
     private const string TestGameUid = "800000000";
     private const string TestLToken = "test_ltoken_value";
@@ -94,8 +94,10 @@ public class GenshinCharListCommandExecutorTests
         // Load test character data
         LoadTestCharacterData();
 
+        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+
         m_ContextMock = new Mock<IInteractionContext>();
-        m_ContextMock.Setup(x => x.Interaction).Returns(m_DiscordTestHelper.CreateCommandInteraction(TestUserId));
+        m_ContextMock.Setup(x => x.Interaction).Returns(m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId));
 
         // Create the command executor
         m_CommandExecutor = new GenshinCharListCommandExecutor(
@@ -204,7 +206,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithValidParametersAndCachedServer_ShouldExecuteSuccessfully()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
         UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
@@ -246,7 +248,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithNullServer_ShouldUseCachedServer()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
         UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
@@ -278,7 +280,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithNullServerAndNoCachedServer_ShouldSendError()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
         testUser.Profiles!.First().LastUsedRegions = null; // No cached server
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
@@ -311,7 +313,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithInvalidProfileId_ShouldSendError()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId); // Profile ID 1
+        UserModel testUser = CreateTestUser(m_TestUserId); // Profile ID 1
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -327,7 +329,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithNoAuthenticationToken_ShouldInitiateAuthFlow()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -343,7 +345,7 @@ public class GenshinCharListCommandExecutorTests
         await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(TestUserId, m_CommandExecutor),
+        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_CommandExecutor),
             Times.Once);
     }
 
@@ -351,7 +353,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithEmptyCharacterList_ShouldSendNoCharactersMessage()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
         UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
@@ -373,7 +375,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithGameRecordApiFailure_ShouldHandleGracefully()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -399,7 +401,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithUnauthorizedGameRecordApi_ShouldSendAuthError()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -425,7 +427,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithCommandException_ShouldLogAndSendError()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -516,7 +518,7 @@ public class GenshinCharListCommandExecutorTests
 
         UserModel testUser = new()
         {
-            Id = TestUserId,
+            Id = m_TestUserId,
             Profiles =
             [
                 new()
@@ -538,7 +540,7 @@ public class GenshinCharListCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         AuthenticationResult authResult = AuthenticationResult.Success(
-            TestUserId,
+            m_TestUserId,
             TestLtUid,
             TestLToken,
             m_CommandExecutor.Context);
@@ -588,7 +590,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task FullWorkflow_WithValidData_ShouldCompleteSuccessfully()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
         UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
@@ -642,7 +644,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithImageUpdateFailure_ShouldSendErrorMessage()
     {
         // Arrange
-        UserModel testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(m_TestUserId);
         UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
