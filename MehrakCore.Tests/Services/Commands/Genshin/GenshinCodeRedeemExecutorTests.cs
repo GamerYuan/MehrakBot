@@ -363,7 +363,7 @@ public class GenshinCodeRedeemExecutorTests
         await CreateTestUserAsync();
         object gameRecord = CreateTestGameRecord();
         string multipleCodes = "CODE1, CODE2,CODE3";
-        string[] expectedCodes = new[] { "CODE1", "CODE2", "CODE3" };
+        string[] expectedCodes = ["CODE1", "CODE2", "CODE3"];
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
