@@ -462,6 +462,9 @@ public class GenshinCharListCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WithUnexpectedException_ShouldLogAndSendGenericError()
     {
+        UserModel testUser = CreateTestUser(m_TestUserId);
+        await m_UserRepository.CreateOrUpdateUserAsync(testUser);
+
         m_DistributedCacheMock.Setup(x =>
                 x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
