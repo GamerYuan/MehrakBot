@@ -1,10 +1,7 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -22,6 +19,10 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 #endregion
 
@@ -57,6 +58,11 @@ public class HsrBossChallengeCommandExecutorTests
 
     private HsrEndInformation m_TestBossChallengeData = null!;
     private string m_BossChallengeTestDataJson = null!;
+
+    private const uint TestProfileId = 1;
+    private const string TestLToken = "test_ltoken_value";
+    private const ulong TestLtUid = 123456789UL;
+    private const string TestGameUid = "800000001";
 
     [SetUp]
     public void Setup()
@@ -129,15 +135,10 @@ public class HsrBossChallengeCommandExecutorTests
 
     #region Helper Methods
 
-    private const uint TestProfileId = 1;
-    private const string TestLToken = "test_ltoken";
-    private const ulong TestLtUid = 123456789UL;
-    private const string TestGameUid = "800000001";
-
     private void LoadTestData()
     {
         // Load test data from file
-        var testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "As_TestData_1.json");
+        string testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "As_TestData_1.json");
         m_BossChallengeTestDataJson = File.ReadAllText(testDataPath);
         m_TestBossChallengeData =
             JsonSerializer.Deserialize<HsrEndInformation>(m_BossChallengeTestDataJson, JsonOptions)!;
@@ -152,12 +153,12 @@ public class HsrBossChallengeCommandExecutorTests
 
     private async Task CreateTestUserAsync()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -169,10 +170,10 @@ public class HsrBossChallengeCommandExecutorTests
                     },
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.America }
+                        { GameName.HonkaiStarRail, Regions.Asia }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -180,15 +181,15 @@ public class HsrBossChallengeCommandExecutorTests
 
     private void SetupBossChallengeApiSuccess(HsrEndInformation? customData = null)
     {
-        var challengeData = customData ?? m_TestBossChallengeData;
+        HsrEndInformation challengeData = customData ?? m_TestBossChallengeData;
         var challengeResponse = new
         {
             retcode = 0,
             data = challengeData
         };
 
-        var challengeJson = JsonSerializer.Serialize(challengeResponse);
-        var challengeHttpResponse = new HttpResponseMessage
+        string challengeJson = JsonSerializer.Serialize(challengeResponse);
+        HttpResponseMessage challengeHttpResponse = new()
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(challengeJson, Encoding.UTF8, "application/json")
@@ -199,7 +200,7 @@ public class HsrBossChallengeCommandExecutorTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge_boss")),
+                        .StartsWith($"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge_boss")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(challengeHttpResponse);
     }
@@ -212,8 +213,8 @@ public class HsrBossChallengeCommandExecutorTests
             message
         };
 
-        var errorJson = JsonSerializer.Serialize(errorResponse);
-        var errorHttpResponse = new HttpResponseMessage
+        string errorJson = JsonSerializer.Serialize(errorResponse);
+        HttpResponseMessage errorHttpResponse = new()
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(errorJson, Encoding.UTF8, "application/json")
@@ -224,21 +225,21 @@ public class HsrBossChallengeCommandExecutorTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge_boss")),
+                        .StartsWith($"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge_boss")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(errorHttpResponse);
     }
 
     private void SetupBossChallengeNoData()
     {
-        var noDataChallenge = new HsrEndInformation
+        HsrEndInformation noDataChallenge = new()
         {
-            Groups = new List<HsrEndGroup>(),
+            Groups = [],
             StarNum = 0,
             MaxFloor = "0",
             BattleNum = 0,
             HasData = false,
-            AllFloorDetail = new List<HsrEndFloorDetail>(),
+            AllFloorDetail = [],
             MaxFloorId = 0
         };
 
@@ -257,7 +258,7 @@ public class HsrBossChallengeCommandExecutorTests
                     new
                     {
                         game_uid = TestGameUid,
-                        region = "prod_official_usa",
+                        region = "prod_official_asia",
                         game_biz = "hkrpg_global",
                         nickname = "TestPlayer",
                         level = 70,
@@ -269,8 +270,8 @@ public class HsrBossChallengeCommandExecutorTests
             }
         };
 
-        var gameDataJson = JsonSerializer.Serialize(gameDataResponse);
-        var gameDataHttpResponse = new HttpResponseMessage
+        string gameDataJson = JsonSerializer.Serialize(gameDataResponse);
+        HttpResponseMessage gameDataHttpResponse = new()
         {
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent(gameDataJson, Encoding.UTF8, "application/json")
@@ -281,7 +282,7 @@ public class HsrBossChallengeCommandExecutorTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/card/wapi/getGameRecordCard")),
+                        .StartsWith($"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(gameDataHttpResponse);
         m_HttpMessageHandlerMock.Protected()
@@ -289,7 +290,7 @@ public class HsrBossChallengeCommandExecutorTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.ToString()
-                        .StartsWith("https://api-account-os.hoyolab.com/binding/api/getUserGameRolesByLtoken")),
+                        .StartsWith($"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(gameDataHttpResponse);
     }
@@ -302,7 +303,7 @@ public class HsrBossChallengeCommandExecutorTests
 
     private void SetupTokenCacheWithData()
     {
-        var tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
+        byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
     }
@@ -321,13 +322,13 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.AtLeastOnce);
 
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
     }
 
@@ -341,10 +342,10 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiError();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -355,10 +356,10 @@ public class HsrBossChallengeCommandExecutorTests
         // Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("authentication") | Does.Contain("profile"));
     }
 
@@ -369,10 +370,10 @@ public class HsrBossChallengeCommandExecutorTests
         await CreateTestUserAsync();
 
         // Act - Use a different profile ID
-        await m_Executor.ExecuteAsync(Regions.America, 999U);
+        await m_Executor.ExecuteAsync(Regions.Asia, 999U);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("profile"));
     }
 
@@ -384,7 +385,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupTokenCacheEmpty();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -400,10 +401,10 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeNoData();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No Apocalyptic Shadow clear records"));
     }
 
@@ -417,10 +418,10 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -434,10 +435,10 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiError(10001, "Invalid credentials");
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Invalid") | Does.Contain("Cookies"));
     }
 
@@ -448,19 +449,19 @@ public class HsrBossChallengeCommandExecutorTests
         await CreateTestUserAsync();
 
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync(Regions.America));
+        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync(Regions.Asia));
     }
 
     [Test]
     public async Task ExecuteAsync_NullServerWithNoCachedServer_SendsErrorMessage()
     {
         // Arrange
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -468,12 +469,12 @@ public class HsrBossChallengeCommandExecutorTests
                     LToken = TestLToken,
                     GameUids = new Dictionary<GameName, Dictionary<string, string>>
                     {
-                        { GameName.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
+                        { GameName.HonkaiStarRail, new Dictionary<string, string> { { "Asia", TestGameUid } } }
                     },
                     // No LastUsedRegions - this should trigger the error
-                    LastUsedRegions = new Dictionary<GameName, Regions>()
+                    LastUsedRegions = []
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -483,7 +484,7 @@ public class HsrBossChallengeCommandExecutorTests
         await m_Executor.ExecuteAsync(null, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No cached server found"));
     }
 
@@ -495,7 +496,7 @@ public class HsrBossChallengeCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -521,15 +522,15 @@ public class HsrBossChallengeCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
     }
 
@@ -541,18 +542,18 @@ public class HsrBossChallengeCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No profile found. Please select the correct profile"));
     }
 
@@ -566,15 +567,15 @@ public class HsrBossChallengeCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -595,15 +596,15 @@ public class HsrBossChallengeCommandExecutorTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.ToString()
-                        .StartsWith("https://sg-public-api.hoyolab.com/event/game_record/hkrpg/api/challenge_boss")),
+                        .StartsWith($"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge_boss")),
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("error"));
     }
 
@@ -615,7 +616,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupTokenCacheWithData();
         SetupGameRecordApiSuccess();
 
-        var emptyFloorData = new HsrEndInformation
+        HsrEndInformation emptyFloorData = new()
         {
             Groups =
             [
@@ -632,17 +633,17 @@ public class HsrBossChallengeCommandExecutorTests
             MaxFloor = "0",
             BattleNum = 0,
             HasData = true,
-            AllFloorDetail = new List<HsrEndFloorDetail>(), // Empty floor details
+            AllFloorDetail = [], // Empty floor details
             MaxFloorId = 0
         };
 
         SetupBossChallengeApiSuccess(emptyFloorData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No Apocalyptic Shadow clear records"));
     }
 
@@ -654,7 +655,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupTokenCacheWithData();
         SetupGameRecordApiSuccess();
 
-        var nullNodeData = new HsrEndInformation
+        HsrEndInformation nullNodeData = new()
         {
             Groups =
             [
@@ -690,36 +691,16 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess(nullNodeData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No Apocalyptic Shadow clear records"));
     }
 
     #endregion
 
     #region Integration Tests
-
-    [Test]
-    public async Task Integration_FullWorkflow_WithRealTestData_GeneratesCard()
-    {
-        // Arrange
-        await CreateTestUserAsync();
-        SetupTokenCacheWithData();
-        SetupGameRecordApiSuccess();
-        SetupBossChallengeApiSuccess(); // Uses real test data from file
-
-        // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
-
-        // Assert - Verify the complete workflow
-        m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()),
-            Times.AtLeastOnce);
-
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Is.Not.Null);
-    }
 
     [Test]
     public async Task Integration_AuthenticationFlow_WorksEndToEnd()
@@ -731,17 +712,17 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess();
 
         // Act - Start execution (should trigger auth)
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Verify auth was requested
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
 
         // Complete authentication
-        var authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
     }
 
@@ -749,12 +730,12 @@ public class HsrBossChallengeCommandExecutorTests
     public async Task Integration_MultipleRegions_HandlesCorrectly()
     {
         // Arrange
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
             Timestamp = DateTime.UtcNow,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -777,7 +758,7 @@ public class HsrBossChallengeCommandExecutorTests
                         { GameName.HonkaiStarRail, Regions.Europe }
                     }
                 }
-            }
+            ]
         };
 
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -789,7 +770,7 @@ public class HsrBossChallengeCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
     }
 
