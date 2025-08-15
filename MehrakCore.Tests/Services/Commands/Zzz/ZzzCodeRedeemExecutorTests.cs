@@ -783,7 +783,7 @@ public class ZzzCodeRedeemExecutorTests
         await CreateTestUserAsync();
         object gameRecord = CreateTestGameRecord();
         string multipleCodes = "CODE1, CODE2,CODE3";
-        string[] expectedCodes = new[] { "CODE1", "CODE2", "CODE3" };
+        string[] expectedCodes = ["CODE1", "CODE2", "CODE3"];
 
         SetupHttpResponseForGameRecord(gameRecord);
         SetupCodeRedeemApiSuccess();
@@ -1122,9 +1122,9 @@ public class ZzzCodeRedeemExecutorTests
     {
         return region switch
         {
-            Regions.Asia => "prod_gf_us",
+            Regions.America => "prod_gf_us",
             Regions.Europe => "prod_gf_eu",
-            Regions.America => "prod_gf_jp",
+            Regions.Asia => "prod_gf_jp",
             Regions.Sar => "prod_gf_sg",
             _ => "prod_gf_us"
         };
