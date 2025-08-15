@@ -1,8 +1,5 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Constants;
 using MehrakCore.Models;
@@ -21,10 +18,13 @@ using Moq;
 using Moq.Protected;
 using NetCord;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Commands.Genshin.Theater;
+namespace MehrakCore.Tests.Services.Commands.Genshin;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class GenshinTheaterCommandExecutorTests
@@ -80,12 +80,12 @@ public class GenshinTheaterCommandExecutorTests
         // Setup HTTP client mocking
         m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        var httpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        HttpClient httpClient = new(m_HttpMessageHandlerMock.Object);
         m_HttpClientFactoryMock.Setup(f => f.CreateClient("Default")).Returns(httpClient);
 
         // Setup mocks
-        var imageRepositoryMock =
-            new Mock<ImageRepository>(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
+        Mock<ImageRepository> imageRepositoryMock =
+            new(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
         m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(
             imageRepositoryMock.Object,
             m_HttpClientFactoryMock.Object,
@@ -103,7 +103,7 @@ public class GenshinTheaterCommandExecutorTests
         m_GameRecordApiService =
             new GameRecordApiService(m_HttpClientFactoryMock.Object, NullLogger<GameRecordApiService>.Instance);
 
-        // Create real command and API services with mocked dependencies 
+        // Create real command and API services with mocked dependencies
         m_CommandService = new GenshinTheaterCardService(
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, Mock.Of<ILogger<ImageRepository>>()),
             Mock.Of<ILogger<GenshinTheaterCardService>>());
@@ -164,7 +164,7 @@ public class GenshinTheaterCommandExecutorTests
     public void ExecuteAsync_InvalidParameters_ThrowsException()
     {
         // Act & Assert - The implementation casts parameters directly without validation
-        var ex = Assert.ThrowsAsync<IndexOutOfRangeException>(() => m_Executor.ExecuteAsync().AsTask());
+        IndexOutOfRangeException? ex = Assert.ThrowsAsync<IndexOutOfRangeException>(() => m_Executor.ExecuteAsync().AsTask());
 
         Assert.That(ex, Is.Not.Null);
     }
@@ -178,7 +178,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -192,7 +192,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, 999u); // Non-existent profile
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("You do not have a profile with this ID"));
     }
 
@@ -206,7 +206,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(null, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("No cached server found"));
     }
 
@@ -221,7 +221,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(null, TestProfileId);
 
         // Assert
-        var user = await m_UserRepository.GetUserAsync(m_TestUserId);
+        UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[GameName.Genshin], Is.EqualTo(Regions.America));
     }
@@ -251,7 +251,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var user = await m_UserRepository.GetUserAsync(m_TestUserId);
+        UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LtUid, Is.EqualTo(TestLtUid));
     }
@@ -266,7 +266,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -279,13 +279,13 @@ public class GenshinTheaterCommandExecutorTests
         SetupTheaterApiSuccess();
         m_CharacterApiMock.Setup(x =>
                 x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(new List<GenshinBasicCharacterData>());
+            .ReturnsAsync([]);
 
         // Act
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         // With real services, authentication errors might occur instead
         Assert.That(responseContent, Does.Contain("An error occurred while retrieving Imaginarium Theater data"));
     }
@@ -301,7 +301,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -329,7 +329,7 @@ public class GenshinTheaterCommandExecutorTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
 
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("Command error"));
     }
 
@@ -357,7 +357,7 @@ public class GenshinTheaterCommandExecutorTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
 
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("An unknown error occurred"));
     }
 
@@ -369,7 +369,7 @@ public class GenshinTheaterCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(m_TestUserId, "Authentication failed");
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -392,7 +392,7 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUser();
         SetupSuccessfulApiResponses();
 
-        var result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Set pending server (this would be set by ExecuteAsync)
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
@@ -411,7 +411,7 @@ public class GenshinTheaterCommandExecutorTests
             Times.Once);
 
         // With real services, we validate successful execution through response content
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -432,7 +432,7 @@ public class GenshinTheaterCommandExecutorTests
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
             m_TestUserId, m_Executor), Times.Once);
 
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Does.Contain("auth_modal"));
     }
 
@@ -447,7 +447,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -458,14 +458,14 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUserWithToken();
 
         // Create theater data with duplicate avatar IDs
-        var theaterDataWithDuplicates = JsonSerializer.Deserialize<GenshinTheaterInformation>(m_TheaterTestDataJson)!;
+        GenshinTheaterInformation theaterDataWithDuplicates = JsonSerializer.Deserialize<GenshinTheaterInformation>(m_TheaterTestDataJson)!;
         if (theaterDataWithDuplicates.Detail.RoundsData.Count > 0)
         {
-            var firstRound = theaterDataWithDuplicates.Detail.RoundsData[0];
+            RoundsData firstRound = theaterDataWithDuplicates.Detail.RoundsData[0];
             if (firstRound.Avatars.Count > 0)
             {
                 // Add duplicate avatar
-                var duplicateAvatar =
+                ItAvatar duplicateAvatar =
                     JsonSerializer.Deserialize<ItAvatar>(JsonSerializer.Serialize(firstRound.Avatars[0]))!;
                 firstRound.Avatars.Add(duplicateAvatar);
             }
@@ -475,7 +475,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert - Should handle duplicates without errors
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -491,38 +491,7 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(responseContent, Is.Not.Null);
-    }
-
-    [Test]
-    public async Task ExecuteAsync_CommandServiceThrowsGenericException_HandlesAndLogsError()
-    {
-        // Arrange
-        await CreateTestUserWithToken();
-        SetupTheaterApiSuccess();
-        SetupBuffApiSuccess();
-
-        // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
-
-        // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(responseContent, Is.Not.Null);
-    }
-
-    [Test]
-    public async Task ExecuteAsync_EmptyBuffData_HandlesGracefully()
-    {
-        // Arrange
-        await CreateTestUserWithToken();
-        SetupTheaterApiSuccess();
-
-        // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
-
-        // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -535,8 +504,8 @@ public class GenshinTheaterCommandExecutorTests
         SetupBuffApiSuccess();
 
         // Setup character API to return data with null values
-        var charactersWithNulls = new List<GenshinBasicCharacterData>
-        {
+        List<GenshinBasicCharacterData> charactersWithNulls =
+        [
             new()
             {
                 Id = 10000089,
@@ -564,7 +533,7 @@ public class GenshinTheaterCommandExecutorTests
                 Weapon = new Weapon
                     { Id = 3, Name = "Test3", Icon = "test3", Type = 1, Level = 1, Rarity = 5, AffixLevel = 1 }
             }
-        };
+        ];
 
         m_CharacterApiMock.Setup(x =>
                 x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -573,7 +542,7 @@ public class GenshinTheaterCommandExecutorTests
         // Act & Assert
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
     }
 
@@ -582,13 +551,13 @@ public class GenshinTheaterCommandExecutorTests
     {
         // Arrange
         await CreateTestUser();
-        var newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
-        var newContextMock = new Mock<IInteractionContext>();
+        SlashCommandInteraction newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId);
+        Mock<IInteractionContext> newContextMock = new();
         newContextMock.Setup(x => x.Interaction).Returns(newInteraction);
 
         SetupSuccessfulApiResponses();
 
-        var result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
+        AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Set pending server
         await m_Executor.ExecuteAsync(Regions.Europe, TestProfileId);
@@ -604,7 +573,7 @@ public class GenshinTheaterCommandExecutorTests
     public void ExecuteAsync_InvalidParameterTypes_ThrowsCastException()
     {
         // Act & Assert - The implementation casts parameters directly
-        var ex = Assert.ThrowsAsync<InvalidCastException>(() =>
+        InvalidCastException? ex = Assert.ThrowsAsync<InvalidCastException>(() =>
             m_Executor.ExecuteAsync("invalid", "parameters").AsTask());
 
         Assert.That(ex, Is.Not.Null);
@@ -614,7 +583,7 @@ public class GenshinTheaterCommandExecutorTests
     public void ExecuteAsync_NullParameters_ThrowsCastException()
     {
         // Act & Assert
-        var ex = Assert.ThrowsAsync<InvalidCastException>(() => m_Executor.ExecuteAsync(null, null).AsTask());
+        InvalidCastException? ex = Assert.ThrowsAsync<InvalidCastException>(() => m_Executor.ExecuteAsync(null, null).AsTask());
 
         Assert.That(ex, Is.Not.Null);
     }
@@ -634,10 +603,10 @@ public class GenshinTheaterCommandExecutorTests
         await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
 
         // Assert
-        var responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
 
-        var user = await m_UserRepository.GetUserAsync(m_TestUserId);
+        UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LtUid, Is.EqualTo(TestLtUid));
     }
@@ -648,34 +617,34 @@ public class GenshinTheaterCommandExecutorTests
 
     private async Task CreateTestUser()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
                     LtUid = 0 // Not authenticated
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
     }
 
     private async Task CreateTestUserUnauthenticated()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
                     LtUid = 0 // Not authenticated
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
@@ -686,11 +655,11 @@ public class GenshinTheaterCommandExecutorTests
 
     private async Task CreateTestUserWithToken()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -704,7 +673,7 @@ public class GenshinTheaterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
@@ -715,11 +684,11 @@ public class GenshinTheaterCommandExecutorTests
 
     private async Task CreateTestUserWithCachedServer()
     {
-        var user = new UserModel
+        UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = TestProfileId,
@@ -737,7 +706,7 @@ public class GenshinTheaterCommandExecutorTests
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
@@ -765,7 +734,7 @@ public class GenshinTheaterCommandExecutorTests
             CreateValidBuffResponse(), HttpStatusCode.OK);
 
         // Setup character API response
-        var characters = GetTestCharacters();
+        IEnumerable<GenshinBasicCharacterData> characters = GetTestCharacters();
         m_CharacterApiMock.Setup(x =>
                 x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(characters);
@@ -783,10 +752,91 @@ public class GenshinTheaterCommandExecutorTests
             CreateValidBuffResponse(), HttpStatusCode.OK);
     }
 
-    private IEnumerable<GenshinBasicCharacterData> GetTestCharacters()
+    private void SetupHttpResponse(string url, string responseContent, HttpStatusCode statusCode)
     {
-        return new List<GenshinBasicCharacterData>
+        m_HttpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.GetLeftPart(UriPartial.Path) == url),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = statusCode,
+                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
+            });
+    }
+
+    private static string CreateValidGameRecordResponse()
+    {
+        var gameRecord = new
         {
+            retcode = 0,
+            message = "OK",
+            data = new
+            {
+                list = new[]
+                {
+                    new
+                    {
+                        game_uid = TestGameUid,
+                        nickname = "TestPlayer",
+                        region = "os_usa",
+                        level = 60,
+                        region_name = "America"
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(gameRecord);
+    }
+
+    private string CreateValidTheaterResponse()
+    {
+        var theaterResponse = new
+        {
+            retcode = 0,
+            message = "OK",
+            data = m_TestTheaterData
+        };
+
+        return JsonSerializer.Serialize(theaterResponse);
+    }
+
+    private static string CreateValidBuffResponse()
+    {
+        var buffResponse = new
+        {
+            retcode = 0,
+            message = "OK",
+            data = new
+            {
+                buffs = new[]
+                {
+                    new
+                    {
+                        id = 1,
+                        name = "Test Buff 1",
+                        icon = "https://example.com/buff1.png",
+                        description = "Test buff description 1"
+                    },
+                    new
+                    {
+                        id = 2,
+                        name = "Test Buff 2",
+                        icon = "https://example.com/buff2.png",
+                        description = "Test buff description 2"
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(buffResponse);
+    }
+
+    private static IEnumerable<GenshinBasicCharacterData> GetTestCharacters()
+    {
+        return
+        [
             new()
             {
                 Id = 10000089,
@@ -826,96 +876,7 @@ public class GenshinTheaterCommandExecutorTests
                     Name = "Test Weapon 3"
                 }
             }
-        };
-    }
-
-    private void SetupHttpResponse(string url, string responseContent, HttpStatusCode statusCode)
-    {
-        m_HttpMessageHandlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().StartsWith(url)),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new StringContent(responseContent, Encoding.UTF8, "application/json")
-            });
-    }
-
-    private void VerifyHttpRequest(string url, Times times)
-    {
-        m_HttpMessageHandlerMock.Protected()
-            .Verify("SendAsync", times,
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().StartsWith(url)),
-                ItExpr.IsAny<CancellationToken>());
-    }
-
-    private string CreateValidGameRecordResponse()
-    {
-        var gameRecord = new
-        {
-            retcode = 0,
-            message = "OK",
-            data = new
-            {
-                list = new[]
-                {
-                    new
-                    {
-                        game_uid = TestGameUid,
-                        nickname = "TestPlayer",
-                        region = "os_usa",
-                        level = 60,
-                        region_name = "America"
-                    }
-                }
-            }
-        };
-
-        return JsonSerializer.Serialize(gameRecord);
-    }
-
-    private string CreateValidTheaterResponse()
-    {
-        var theaterResponse = new
-        {
-            retcode = 0,
-            message = "OK",
-            data = m_TestTheaterData
-        };
-
-        return JsonSerializer.Serialize(theaterResponse);
-    }
-
-    private string CreateValidBuffResponse()
-    {
-        var buffResponse = new
-        {
-            retcode = 0,
-            message = "OK",
-            data = new
-            {
-                buffs = new[]
-                {
-                    new
-                    {
-                        id = 1,
-                        name = "Test Buff 1",
-                        icon = "https://example.com/buff1.png",
-                        description = "Test buff description 1"
-                    },
-                    new
-                    {
-                        id = 2,
-                        name = "Test Buff 2",
-                        icon = "https://example.com/buff2.png",
-                        description = "Test buff description 2"
-                    }
-                }
-            }
-        };
-
-        return JsonSerializer.Serialize(buffResponse);
+        ];
     }
 
     #endregion
