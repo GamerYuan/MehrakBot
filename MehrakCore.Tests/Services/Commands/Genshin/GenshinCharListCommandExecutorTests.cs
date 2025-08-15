@@ -1,10 +1,8 @@
 #region
 
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Repositories;
@@ -20,6 +18,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
 using NetCord.Services;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 #endregion
 
@@ -42,8 +43,6 @@ public class GenshinCharListCommandExecutorTests
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private HttpClient m_HttpClient;
     private DiscordTestHelper m_DiscordTestHelper;
-    private readonly List<ulong> m_TestUserIds = new();
-    private readonly Random m_Random = new();
 
     private const ulong TestUserId = 123456789UL;
     private const ulong TestLtUid = 987654321UL;
@@ -54,6 +53,9 @@ public class GenshinCharListCommandExecutorTests
     private List<GenshinBasicCharacterData> m_TestCharacterList;
     private Mock<IInteractionContext> m_ContextMock;
 
+    private static readonly string AccountRolesUrl =
+        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+
     [SetUp]
     public void Setup()
     {
@@ -62,14 +64,15 @@ public class GenshinCharListCommandExecutorTests
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(m_HttpClient);
 
-        var imageRepository =
-            new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
+        ImageRepository imageRepository =
+            new(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
         // Initialize mocks
         m_CommandServiceMock = new Mock<GenshinCharListCardService>(
             imageRepository,
             NullLogger<GenshinCharListCardService>.Instance);
 
         m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(
+
             imageRepository,
             m_HttpClientFactoryMock.Object,
             NullLogger<GenshinImageUpdaterService>.Instance);
@@ -119,31 +122,19 @@ public class GenshinCharListCommandExecutorTests
 
     private void LoadTestCharacterData()
     {
-        var testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin", "CharList_TestData_1.json");
-        var jsonContent = File.ReadAllText(testDataPath);
-        var testData = JsonSerializer.Deserialize<CharacterListData>(jsonContent);
-        m_TestCharacterList = testData?.List ?? new List<GenshinBasicCharacterData>();
+        string testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin", "CharList_TestData_1.json");
+        string jsonContent = File.ReadAllText(testDataPath);
+        CharacterListData? testData = JsonSerializer.Deserialize<CharacterListData>(jsonContent);
+        m_TestCharacterList = testData?.List ?? [];
     }
 
-    private ulong GetUniqueUserId()
-    {
-        ulong userId;
-        do
-        {
-            userId = (ulong)m_Random.Next(100000000, int.MaxValue);
-        } while (m_TestUserIds.Contains(userId));
-
-        m_TestUserIds.Add(userId);
-        return userId;
-    }
-
-    private UserModel CreateTestUser(ulong userId, ulong ltUid = TestLtUid, uint profileId = TestProfileId)
+    private static UserModel CreateTestUser(ulong userId, ulong ltUid = TestLtUid, uint profileId = TestProfileId)
     {
         return new UserModel
         {
             Id = userId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = profileId,
@@ -153,20 +144,20 @@ public class GenshinCharListCommandExecutorTests
                         {
                             GameName.Genshin, new Dictionary<string, string>
                             {
-                                { nameof(Regions.America), TestGameUid }
+                                { nameof(Regions.Asia), TestGameUid }
                             }
                         }
                     },
                     LastUsedRegions = new Dictionary<GameName, Regions>
                     {
-                        { GameName.Genshin, Regions.America }
+                        { GameName.Genshin, Regions.Asia }
                     }
                 }
-            }
+            ]
         };
     }
 
-    private UserGameData CreateTestUserGameData()
+    private static UserGameData CreateTestUserGameData()
     {
         return new UserGameData
         {
@@ -197,7 +188,8 @@ public class GenshinCharListCommandExecutorTests
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.ToString().Contains("getUserGameRolesByLtoken")),
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri != null &&
+                                                     req.RequestUri!.GetLeftPart(UriPartial.Path) == AccountRolesUrl),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -212,14 +204,14 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithValidParametersAndCachedServer_ShouldExecuteSuccessfully()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
-        var testGameData = CreateTestUserGameData();
+        UserModel testUser = CreateTestUser(TestUserId);
+        UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         SetupSuccessfulGameRoleApiResponse(testGameData);
 
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"))
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
             .ReturnsAsync(m_TestCharacterList);
 
         m_ImageUpdaterServiceMock.Setup(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -233,19 +225,20 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         m_DistributedCacheMock.Verify(
             x => x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()),
             Times.Once);
         m_HttpMessageHandlerMock.Protected().Verify<Task<HttpResponseMessage>>("SendAsync", Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(x => x.RequestUri!.ToString().Contains("getUserGameRolesByLtoken")),
+            ItExpr.Is<HttpRequestMessage>(x => x.RequestUri != null &&
+                                               x.RequestUri!.GetLeftPart(UriPartial.Path) == AccountRolesUrl),
             ItExpr.IsAny<CancellationToken>());
-        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"),
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"),
             Times.Once);
 
-        var response = m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        Task<byte[]?> response = m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(response, Is.Not.Null);
     }
 
@@ -253,14 +246,14 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithNullServer_ShouldUseCachedServer()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
-        var testGameData = CreateTestUserGameData();
+        UserModel testUser = CreateTestUser(TestUserId);
+        UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         SetupSuccessfulGameRoleApiResponse(testGameData);
 
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"))
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
             .ReturnsAsync(m_TestCharacterList);
 
         m_ImageUpdaterServiceMock.Setup(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -277,7 +270,7 @@ public class GenshinCharListCommandExecutorTests
         await m_CommandExecutor.ExecuteAsync(null, TestProfileId);
 
         // Assert - Should use cached server (America)
-        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"),
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"),
             Times.Once);
     }
 
@@ -285,7 +278,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithNullServerAndNoCachedServer_ShouldSendError()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(TestUserId);
         testUser.Profiles!.First().LastUsedRegions = null; // No cached server
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
@@ -294,23 +287,23 @@ public class GenshinCharListCommandExecutorTests
         await m_CommandExecutor.ExecuteAsync(null, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("No cached server found"));
     }
 
     [Test]
     public async Task ExecuteAsync_WithNonExistentUser_ShouldSendError()
     {
-        var mockContext = new Mock<IInteractionContext>();
+        Mock<IInteractionContext> mockContext = new();
         mockContext.Setup(x => x.Interaction).Returns(m_DiscordTestHelper.CreateCommandInteraction(1u));
 
         m_CommandExecutor.Context = mockContext.Object;
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
 
@@ -318,15 +311,15 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithInvalidProfileId_ShouldSendError()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId); // Profile ID 1
+        UserModel testUser = CreateTestUser(TestUserId); // Profile ID 1
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, 999u); // Invalid profile ID
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, 999u); // Invalid profile ID
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
 
@@ -334,7 +327,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithNoAuthenticationToken_ShouldInitiateAuthFlow()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -347,7 +340,7 @@ public class GenshinCharListCommandExecutorTests
             .Returns(Guid.NewGuid().ToString());
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(TestUserId, m_CommandExecutor),
@@ -358,21 +351,21 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithEmptyCharacterList_ShouldSendNoCharactersMessage()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
-        var testGameData = CreateTestUserGameData();
+        UserModel testUser = CreateTestUser(TestUserId);
+        UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         SetupSuccessfulGameRoleApiResponse(testGameData);
 
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"))
-            .ReturnsAsync(new List<GenshinBasicCharacterData>()); // Empty list
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
+            .ReturnsAsync([]); // Empty list
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("No characters found"));
     }
 
@@ -380,7 +373,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithGameRecordApiFailure_ShouldHandleGracefully()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -395,10 +388,10 @@ public class GenshinCharListCommandExecutorTests
         }));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Failed to retrieve game profile"));
     }
 
@@ -406,7 +399,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithUnauthorizedGameRecordApi_ShouldSendAuthError()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -421,10 +414,10 @@ public class GenshinCharListCommandExecutorTests
         }));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Invalid HoYoLAB UID or Cookies"));
     }
 
@@ -432,7 +425,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithCommandException_ShouldLogAndSendError()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
+        UserModel testUser = CreateTestUser(TestUserId);
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
@@ -442,14 +435,14 @@ public class GenshinCharListCommandExecutorTests
 
         SetupSuccessfulGameRoleApiResponse(CreateTestUserGameData());
 
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"))
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
             .ThrowsAsync(new CommandException("An error occurred while generating Character List card"));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An error occurred while generating Character List card"));
 
         // Verify logging
@@ -458,6 +451,7 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Failed to get Character List card")),
+
                 It.IsAny<CommandException>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -471,10 +465,10 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An error occurred while updating user data"));
 
         // Verify logging
@@ -483,6 +477,7 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Failed to get Character List card")),
+
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -496,7 +491,7 @@ public class GenshinCharListCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_AuthenticationFailed_LogsError()
     {
         // Arrange
-        var result = AuthenticationResult.Failure(800800800, "Authentication failed");
+        AuthenticationResult result = AuthenticationResult.Failure(800800800, "Authentication failed");
 
         // Act
         await m_CommandExecutor.OnAuthenticationCompletedAsync(result);
@@ -507,6 +502,7 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
+
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -516,13 +512,13 @@ public class GenshinCharListCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulAuth_ShouldExecuteCharListCard()
     {
         // Arrange
-        var testGameData = CreateTestUserGameData();
+        UserGameData testGameData = CreateTestUserGameData();
 
-        var testUser = new UserModel
+        UserModel testUser = new()
         {
             Id = TestUserId,
-            Profiles = new List<UserProfile>
-            {
+            Profiles =
+            [
                 new()
                 {
                     ProfileId = 1,
@@ -532,16 +528,16 @@ public class GenshinCharListCommandExecutorTests
                         {
                             GameName.Genshin, new Dictionary<string, string>
                             {
-                                { "os_usa", TestGameUid }
+                                { "os_asia", TestGameUid }
                             }
                         }
                     }
                 }
-            }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
-        var authResult = AuthenticationResult.Success(
+        AuthenticationResult authResult = AuthenticationResult.Success(
             TestUserId,
             TestLtUid,
             TestLToken,
@@ -549,7 +545,7 @@ public class GenshinCharListCommandExecutorTests
 
         SetupSuccessfulGameRoleApiResponse(testGameData);
 
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"))
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
             .ReturnsAsync(m_TestCharacterList);
 
         m_ImageUpdaterServiceMock.Setup(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -563,13 +559,13 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set pending server (simulating it was set during ExecuteAsync)
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Act
         await m_CommandExecutor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
-        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"),
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"),
             Times.AtLeastOnce);
 
         // Verify success logging
@@ -578,6 +574,7 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication completed successfully")),
+
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
@@ -591,14 +588,14 @@ public class GenshinCharListCommandExecutorTests
     public async Task FullWorkflow_WithValidData_ShouldCompleteSuccessfully()
     {
         // Arrange
-        var testUser = CreateTestUser(GetUniqueUserId());
-        var testGameData = CreateTestUserGameData();
+        UserModel testUser = CreateTestUser(TestUserId);
+        UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         SetupSuccessfulGameRoleApiResponse(testGameData);
 
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"))
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
             .ReturnsAsync(m_TestCharacterList);
 
         m_ImageUpdaterServiceMock.Setup(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -612,7 +609,7 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert
         // Verify all services were called
@@ -620,9 +617,10 @@ public class GenshinCharListCommandExecutorTests
             x => x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()),
             Times.Once);
         m_HttpMessageHandlerMock.Protected().Verify<Task<HttpResponseMessage>>("SendAsync", Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(x => x.RequestUri!.ToString().Contains("getUserGameRolesByLtoken")),
+            ItExpr.Is<HttpRequestMessage>(x => x.RequestUri != null &&
+                                               x.RequestUri!.GetLeftPart(UriPartial.Path) == AccountRolesUrl),
             ItExpr.IsAny<CancellationToken>());
-        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"),
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"),
             Times.Once);
 
         // Verify image updates were called for all characters
@@ -632,7 +630,7 @@ public class GenshinCharListCommandExecutorTests
             Times.AtLeast(m_TestCharacterList.DistinctBy(c => c.Weapon.Id).Count()));
 
         // Verify Discord messages were sent
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
+        byte[]? response = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(response, Is.Not.Null);
     }
 
@@ -644,14 +642,14 @@ public class GenshinCharListCommandExecutorTests
     public async Task ExecuteAsync_WithImageUpdateFailure_ShouldSendErrorMessage()
     {
         // Arrange
-        var testUser = CreateTestUser(TestUserId);
-        var testGameData = CreateTestUserGameData();
+        UserModel testUser = CreateTestUser(TestUserId);
+        UserGameData testGameData = CreateTestUserGameData();
 
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         SetupSuccessfulGameRoleApiResponse(testGameData);
 
-        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_usa"))
+        m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
             .ReturnsAsync(m_TestCharacterList);
 
         // Setup some image updates to fail
@@ -668,10 +666,10 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
 
         // Assert - Should still complete and generate card
-        var response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
+        string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An error occurred while generating Character List card"));
     }
 
