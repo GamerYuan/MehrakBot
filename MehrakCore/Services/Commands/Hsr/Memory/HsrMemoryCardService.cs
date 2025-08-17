@@ -1,9 +1,8 @@
 ﻿#region
 
-using System.Numerics;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
@@ -15,6 +14,8 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Numerics;
+using System.Text.Json;
 
 #endregion
 
@@ -47,8 +48,8 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
         m_ImageRepository = imageRepository;
         m_Logger = logger;
 
-        var collection = new FontCollection();
-        var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
+        FontCollection collection = new();
+        FontFamily fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
@@ -75,31 +76,30 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
         List<IDisposable> disposableResources = [];
         try
         {
-            var avatarImages = await memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            Dictionary<HsrAvatar, Image<Rgba32>> avatarImages = await memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
                 .SelectAwait(async x => new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"hsr_avatar_{x.Id}"))))
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.HsrAvatarName, x.Id)))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()),
                     HsrAvatarIdComparer.Instance);
 
-            var lookup = avatarImages.GetAlternateLookup<int>();
-            var floorDetails = Enumerable.Range(0, 12)
+            Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
+            List<(int FloorNumber, FloorDetail? Data)> floorDetails = [.. Enumerable.Range(0, 12)
                 .Select(floorIndex =>
                 {
-                    var floorData = memoryData.AllFloorDetail!
+                    FloorDetail? floorData = memoryData.AllFloorDetail!
                         .FirstOrDefault(x => HsrCommandUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
                     return (FloorNumber: floorIndex, Data: floorData);
-                })
-                .ToList();
-            var height = 180 + floorDetails.Chunk(2)
+                })];
+            int height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520).Sum();
 
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
 
-            var background = m_Background.CloneAs<Rgba32>();
+            Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
             disposableResources.Add(background);
 
             background.Mutate(ctx =>
@@ -113,29 +113,29 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Memory of Chaos", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(50, 110),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(50, 110),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{memoryData.StartTime.Day}/{memoryData.StartTime.Month}/{memoryData.StartTime.Year} - " +
                     $"{memoryData.EndTime.Day}/{memoryData.EndTime.Month}/{memoryData.EndTime.Year}",
                     Color.White);
                 ctx.DrawLine(Color.White, 3f, new PointF(415, 40), new PointF(415, 80));
-                var textOptions = new RichTextOptions(m_TitleFont)
+                RichTextOptions textOptions = new(m_TitleFont)
                 {
                     Origin = new Vector2(435, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
                 };
-                var bounds = TextMeasurer.MeasureBounds(memoryData.StarNum.ToString(), textOptions);
+                FontRectangle bounds = TextMeasurer.MeasureBounds(memoryData.StarNum.ToString(), textOptions);
                 ctx.DrawText(textOptions, memoryData.StarNum.ToString(), Color.White);
                 ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1500, 80),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(1500, 80),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{gameData.Nickname} • TB {gameData.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -144,10 +144,10 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, gameData.GameUid!, Color.White);
 
-                var yOffset = 150;
-                foreach (var (floorNumber, floorData) in floorDetails)
+                int yOffset = 150;
+                foreach ((int floorNumber, FloorDetail? floorData) in floorDetails)
                 {
-                    var xOffset = floorNumber % 2 * 750 + 50;
+                    int xOffset = floorNumber % 2 * 750 + 50;
 
                     IPath overlay;
 
@@ -181,8 +181,8 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                             }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
-                        var stageText =
-                            $"{memoryData.Groups.First().Name} ({HsrCommandUtility.GetRomanNumeral(floorNumber + 1)})";
+                        string stageText =
+                            $"{memoryData.Groups[0].Name} ({HsrCommandUtility.GetRomanNumeral(floorNumber + 1)})";
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
                             Origin = new Vector2(xOffset + 20, yOffset + 20),
@@ -207,8 +207,8 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Color.White);
 
-                    using var node1 = GetRosterImage(floorData.Node1.Avatars.Select(x => x.Id).ToList(), lookup);
-                    using var node2 = GetRosterImage(floorData.Node2.Avatars.Select(x => x.Id).ToList(), lookup);
+                    using Image<Rgba32> node1 = GetRosterImage([.. floorData.Node1.Avatars.Select(x => x.Id)], lookup);
+                    using Image<Rgba32> node2 = GetRosterImage([.. floorData.Node2.Avatars.Select(x => x.Id)], lookup);
                     disposableResources.AddRange(node1, node2);
                     ctx.DrawImage(node1, new Point(xOffset + 25, yOffset + 65), 1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 270),
@@ -254,7 +254,7 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
         int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
-        var rosterImage = new Image<Rgba32>(650, 200);
+        Image<Rgba32> rosterImage = new(650, 200);
 
         rosterImage.Mutate(ctx =>
         {

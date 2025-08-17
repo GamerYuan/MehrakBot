@@ -44,4 +44,9 @@ public static class FileNameFormat
     /// HSR side avatar file name format, where {0} is the avatar ID
     /// </summary>
     public const string HsrSideAvatarName = "hsr_side_avatar_{0}";
+
+    /// <summary>
+    /// HSR stats file name format, where {0} is the stat ID
+    /// </summary>
+    public const string HsrStatsName = "Hsr_stats_{0}";
 }
