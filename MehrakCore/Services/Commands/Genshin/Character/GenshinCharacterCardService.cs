@@ -129,7 +129,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 .Select(async x =>
                 {
                     Image image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.SkillId)));
+                        await m_ImageRepository.DownloadFileToStreamAsync(
+                            string.Format(FileNameFormat.GenshinSkillName, charInfo.Base.Id, x.SkillId)));
                     return (Data: x, Image: image);
                 }).Reverse()];
 
