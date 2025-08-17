@@ -252,7 +252,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
         {
             1 => "Strongest Single Strike",
             2 => "Highest Total Damage Dealt",
-            _ => throw new ArgumentOutOfRangeException(nameof(type))
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
 }
