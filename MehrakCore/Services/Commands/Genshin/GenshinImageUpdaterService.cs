@@ -199,8 +199,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 StandardImageSize, StandardImageSize);
 
             // Save processed image to memory stream for upload
-            using MemoryStream processedImageStream = new
-();
+            using MemoryStream processedImageStream = new();
             await image.SaveAsPngAsync(processedImageStream, new PngEncoder
             {
                 BitDepth = PngBitDepth.Bit8,
