@@ -37,7 +37,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     private ImageRepository m_ImageRepository = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private UserRepository m_UserRepository = null!;
-    private Mock<ILogger<GenshinRealTimeNotesData>> m_LoggerMock = null!;
+    private Mock<ILogger<GenshinRealTimeNotesCommandExecutor>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private Mock<IInteractionContext> m_ContextMock = null!;
     private SlashCommandInteraction m_Interaction = null!;
@@ -55,7 +55,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
 
         // Create mocks for dependencies
         m_ApiServiceMock = new Mock<IRealTimeNotesApiService<GenshinRealTimeNotesData>>();
-        m_LoggerMock = new Mock<ILogger<GenshinRealTimeNotesData>>();
+        m_LoggerMock = new Mock<ILogger<GenshinRealTimeNotesCommandExecutor>>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
 

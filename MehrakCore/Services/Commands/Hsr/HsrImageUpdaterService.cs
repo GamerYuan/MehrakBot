@@ -1,15 +1,16 @@
 ﻿#region
 
-using System.Collections.Concurrent;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.Collections.Concurrent;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -17,16 +18,16 @@ namespace MehrakCore.Services.Commands.Hsr;
 
 public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformation>
 {
-    private const string BaseString = "hsr_{0}";
+    private const string BaseString = FileNameFormat.HsrFileName;
     private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/hsr/wapi/entry_page";
 
     private readonly ConcurrentDictionary<int, string> m_SetMapping = new();
 
-    protected override string AvatarString => "hsr_avatar_{0}";
-    protected override string SideAvatarString => "hsr_side_avatar_{0}";
+    protected override string AvatarString => FileNameFormat.HsrAvatarName;
+    protected override string SideAvatarString => FileNameFormat.HsrSideAvatarName;
 
     public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
-        ILogger<ImageUpdaterService<HsrCharacterInformation>> logger) : base(imageRepository, httpClientFactory, logger)
+        ILogger<HsrImageUpdaterService> logger) : base(imageRepository, httpClientFactory, logger)
     {
     }
 
@@ -41,9 +42,9 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     {
         try
         {
-            var wikiArr = wiki.ToArray();
-            var equipWiki = wikiArr[0];
-            var relicWiki = wikiArr[1];
+            Dictionary<string, string>[] wikiArr = [.. wiki];
+            Dictionary<string, string> equipWiki = wikiArr[0];
+            Dictionary<string, string> relicWiki = wikiArr[1];
 
             List<Task<bool>> tasks =
             [
@@ -56,7 +57,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             if (characterInformation.Equip != null)
             {
-                if (!equipWiki.TryGetValue(characterInformation.Equip.Id.ToString()!, out var equipWikiUrl))
+                if (!equipWiki.TryGetValue(characterInformation.Equip.Id.ToString()!, out string? equipWikiUrl))
                     Logger.LogWarning("No wiki URL found for equip {EquipName} ID {EquipId}",
                         characterInformation.Equip.Name, characterInformation.Equip.Id);
                 else
@@ -64,7 +65,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             }
 
             Logger.LogInformation("Updating HSR character data for {CharacterName}", characterInformation.Name);
-            var result = await Task.WhenAll(tasks);
+            bool[] result = await Task.WhenAll(tasks);
 
             if (!result.All(x => x)) throw new CommandException("An error occurred while updating character image");
 
@@ -73,7 +74,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "An error occurred while updating character image {Character}",
+            Logger.LogError(e, "An error occurred while updating character data {Character}",
                 characterInformation);
             throw new CommandException("An error occurred while updating character image", e);
         }
@@ -81,12 +82,12 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
     public string GetRelicSetName(int relicId)
     {
-        return m_SetMapping.TryGetValue(relicId, out var setName) ? setName : string.Empty;
+        return m_SetMapping.TryGetValue(relicId, out string? setName) ? setName : string.Empty;
     }
 
     private async Task<bool> UpdateCharacterImageAsync(HsrCharacterInformation characterInformation)
     {
-        var filename = string.Format(BaseString, characterInformation.Id);
+        string filename = string.Format(BaseString, characterInformation.Id);
         try
         {
             if (await ImageRepository.FileExistsAsync(filename))
@@ -99,8 +100,8 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             Logger.LogInformation("Downloading character image for {CharacterName} with {Filename}",
                 characterInformation.Name, filename);
-            var client = HttpClientFactory.CreateClient("Default");
-            var imageResponse = await client.GetAsync(characterInformation.Image);
+            HttpClient client = HttpClientFactory.CreateClient("Default");
+            HttpResponseMessage imageResponse = await client.GetAsync(characterInformation.Image);
 
             if (!imageResponse.IsSuccessStatusCode)
             {
@@ -110,10 +111,10 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return false;
             }
 
-            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-            using var image = await Image.LoadAsync(imageStream);
+            await using Stream imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            using Image image = await Image.LoadAsync(imageStream);
             image.Mutate(x => x.Resize(1000, 0));
-            using var processedStream = new MemoryStream();
+            using MemoryStream processedStream = new();
             await image.SaveAsPngAsync(processedStream);
             processedStream.Position = 0;
 
@@ -122,15 +123,15 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError("Error updating character image for {CharacterName} with {Filename}: {Message}",
-                characterInformation.Name, filename, e.Message);
+            Logger.LogError(e, "Error updating character image for {CharacterName} with {Filename}",
+                characterInformation.Name, filename);
             throw;
         }
     }
 
     private async Task<bool> UpdateEquipImageAsync(Equip equip, string equipWiki)
     {
-        var filename = string.Format(BaseString, equip.Id);
+        string filename = string.Format(BaseString, equip.Id);
         try
         {
             if (await ImageRepository.FileExistsAsync(filename))
@@ -142,20 +143,20 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             }
 
             Logger.LogInformation("Downloading equip image for {EquipName} with {Filename}", equip.Name, filename);
-            var client = HttpClientFactory.CreateClient("Default");
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{WikiApi}?entry_page_id={equipWiki.Split('/')[^1]}");
+            HttpClient client = HttpClientFactory.CreateClient("Default");
+            HttpRequestMessage request = new(HttpMethod.Get, $"{WikiApi}?entry_page_id={equipWiki.Split('/')[^1]}");
             request.Headers.Add("X-Rpc-Wiki_app", "hsr");
-            var wikiResponse = await client.SendAsync(request);
-            var wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
+            HttpResponseMessage wikiResponse = await client.SendAsync(request);
+            JsonNode? wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
 
-            var iconUrl = wikiJson?["data"]?["page"]?["icon_url"]?.GetValue<string>();
+            string? iconUrl = wikiJson?["data"]?["page"]?["icon_url"]?.GetValue<string>();
             if (string.IsNullOrEmpty(iconUrl))
             {
                 Logger.LogWarning("No icon URL found for equip {EquipName} with {Filename}", equip.Name, filename);
                 return false;
             }
 
-            var imageResponse = await client.GetAsync(iconUrl);
+            HttpResponseMessage imageResponse = await client.GetAsync(iconUrl);
             if (!imageResponse.IsSuccessStatusCode)
             {
                 Logger.LogWarning("Failed to download image for equip {EquipName} with {Filename}: {StatusCode}",
@@ -163,10 +164,10 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return false;
             }
 
-            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-            using var image = await Image.LoadAsync(imageStream);
+            await using Stream imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            using Image image = await Image.LoadAsync(imageStream);
             image.Mutate(x => x.Resize(300, 0));
-            using var processedStream = new MemoryStream();
+            using MemoryStream processedStream = new();
             await image.SaveAsPngAsync(processedStream);
             processedStream.Position = 0;
 
@@ -175,8 +176,8 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError("Error updating equip data for {EquipName} with {Filename}: {Message}", equip.Name,
-                filename, e.Message);
+            Logger.LogError(e, "Error updating equip data for {EquipName} with {Filename}", equip.Name,
+                filename);
             throw;
         }
     }
@@ -185,11 +186,11 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     {
         try
         {
-            var client = HttpClientFactory.CreateClient("Default");
+            HttpClient client = HttpClientFactory.CreateClient("Default");
 
             return await skills.ToAsyncEnumerable().SelectAwait(async skill =>
             {
-                var filename = string.Format(BaseString,
+                string filename = string.Format(BaseString,
                     skill.PointType == 1 ? StatBonusRegex().Replace(skill.SkillStages![0].Name!, "") : skill.PointId);
                 if (await ImageRepository.FileExistsAsync(filename))
                 {
@@ -202,7 +203,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 Logger.LogInformation("Downloading skill image for {SkillName} with {Filename}",
                     skill.SkillStages![0].Name, filename);
 
-                var iconUrl = skill.ItemUrl;
+                string? iconUrl = skill.ItemUrl;
                 if (string.IsNullOrEmpty(iconUrl))
                 {
                     Logger.LogWarning("No icon URL found for skill {SkillName} with {Filename}",
@@ -210,7 +211,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                     return false;
                 }
 
-                var imageResponse = await client.GetAsync(iconUrl);
+                HttpResponseMessage imageResponse = await client.GetAsync(iconUrl);
                 if (!imageResponse.IsSuccessStatusCode)
                 {
                     Logger.LogWarning("Failed to download image for skill {SkillName} with {Filename}: {StatusCode}",
@@ -218,10 +219,10 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                     return false;
                 }
 
-                await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-                using var image = await Image.LoadAsync(imageStream);
+                await using Stream imageStream = await imageResponse.Content.ReadAsStreamAsync();
+                using Image image = await Image.LoadAsync(imageStream);
                 image.Mutate(x => x.Resize(skill.PointType == 1 ? 50 : 80, 0));
-                using var processedStream = new MemoryStream();
+                using MemoryStream processedStream = new();
                 await image.SaveAsPngAsync(processedStream);
                 processedStream.Position = 0;
 
@@ -233,19 +234,19 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError("Error updating skill data: {Message}", e.Message);
+            Logger.LogError(e, "Error updating skill data");
             throw;
         }
     }
 
     private async Task<bool> UpdateRankImageAsync(IEnumerable<Rank> ranks)
     {
-        var client = HttpClientFactory.CreateClient("Default");
+        HttpClient client = HttpClientFactory.CreateClient("Default");
         try
         {
             return await ranks.ToAsyncEnumerable().SelectAwait(async rank =>
             {
-                var filename = string.Format(BaseString, rank.Id);
+                string filename = string.Format(BaseString, rank.Id);
                 if (await ImageRepository.FileExistsAsync(filename))
                 {
                     Logger.LogInformation(
@@ -256,14 +257,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
                 Logger.LogInformation("Downloading rank image for {RankName} with {Filename}", rank.Name, filename);
 
-                var iconUrl = rank.Icon;
+                string? iconUrl = rank.Icon;
                 if (string.IsNullOrEmpty(iconUrl))
                 {
                     Logger.LogWarning("No icon URL found for rank {RankName} with {Filename}", rank.Name, filename);
                     return false;
                 }
 
-                var imageResponse = await client.GetAsync(iconUrl);
+                HttpResponseMessage imageResponse = await client.GetAsync(iconUrl);
                 if (!imageResponse.IsSuccessStatusCode)
                 {
                     Logger.LogWarning("Failed to download image for rank {RankName} with {Filename}: {StatusCode}",
@@ -271,10 +272,10 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                     return false;
                 }
 
-                await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-                using var image = await Image.LoadAsync(imageStream);
+                await using Stream imageStream = await imageResponse.Content.ReadAsStreamAsync();
+                using Image image = await Image.LoadAsync(imageStream);
                 image.Mutate(x => x.Resize(80, 0));
-                using var processedStream = new MemoryStream();
+                using MemoryStream processedStream = new();
                 await image.SaveAsPngAsync(processedStream);
                 processedStream.Position = 0;
 
@@ -286,7 +287,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError("Error updating rank data: {Message}", e.Message);
+            Logger.LogError(e, "Error updating rank data");
             throw new InvalidOperationException("Failed to update rank data", e);
         }
     }
@@ -295,16 +296,16 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     {
         try
         {
-            var allRelics = relics.ToList();
-            var (relicsInWiki, relicsNotInWiki) = SeparateRelicsByWikiAvailability(allRelics, relicWikiPages);
+            List<Relic> allRelics = [.. relics];
+            (List<Relic> relicsInWiki, List<Relic> relicsNotInWiki) = SeparateRelicsByWikiAvailability(allRelics, relicWikiPages);
 
-            var client = HttpClientFactory.CreateClient("Default");
-            var overallSuccess = true;
+            HttpClient client = HttpClientFactory.CreateClient("Default");
+            bool overallSuccess = true;
 
             // Process relics that have wiki entries
             if (relicsInWiki.Count != 0)
             {
-                var success = await ProcessRelicsWithWikiData(relicsInWiki, relicWikiPages);
+                bool success = await ProcessRelicsWithWikiData(relicsInWiki, relicWikiPages);
                 overallSuccess = overallSuccess && success;
             } // Process relics without wiki entries using direct icon URLs
 
@@ -312,7 +313,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             {
                 Logger.LogInformation("Processing {Count} relics not found in wiki pages", relicsNotInWiki.Count);
 
-                var success = await ProcessRelicsWithDirectIcons(relicsNotInWiki, client);
+                bool success = await ProcessRelicsWithDirectIcons(relicsNotInWiki, client);
                 overallSuccess = overallSuccess && success;
             }
 
@@ -320,7 +321,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError("Error updating relic data: {Message}", e.Message);
+            Logger.LogError(e, "Error updating relic data");
             throw;
         }
     }
@@ -328,52 +329,48 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private static (List<Relic> RelicsInWiki, List<Relic> RelicsNotInWiki) SeparateRelicsByWikiAvailability(
         List<Relic> allRelics, Dictionary<string, string> relicWikiPages)
     {
-        var relicsInWiki = allRelics
-            .Where(r => relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty))
-            .ToList();
+        List<Relic> relicsInWiki = [.. allRelics.Where(r => relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty))];
 
-        var relicsNotInWiki = allRelics
-            .Where(r => !relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty))
-            .ToList();
+        List<Relic> relicsNotInWiki = [.. allRelics.Where(r => !relicWikiPages.ContainsKey(r.Id.ToString() ?? string.Empty))];
 
         return (relicsInWiki, relicsNotInWiki);
     }
 
     private async Task<bool> ProcessRelicsWithWikiData(List<Relic> relics, Dictionary<string, string> relicWikiPages)
     {
-        var relicsByWikiPage = relics.GroupBy(r => relicWikiPages[r.Id.ToString() ?? string.Empty]);
-        var relicNameToIdMap = relics.ToDictionary(r => r.Name!.ToLowerInvariant(), r => r.Id.ToString());
-        var overallSuccess = true;
+        IEnumerable<IGrouping<string, Relic>> relicsByWikiPage = relics.GroupBy(r => relicWikiPages[r.Id.ToString() ?? string.Empty]);
+        Dictionary<string, string?> relicNameToIdMap = relics.ToDictionary(r => r.Name!.ToLowerInvariant(), r => r.Id.ToString());
+        bool overallSuccess = true;
 
-        foreach (var wikiGroup in relicsByWikiPage)
+        foreach (IGrouping<string, Relic> wikiGroup in relicsByWikiPage)
         {
-            var client = HttpClientFactory.CreateClient("Default");
-            var wikiPageUrl = wikiGroup.Key;
-            var wikiPageId = wikiPageUrl.Split('/')[^1];
+            HttpClient client = HttpClientFactory.CreateClient("Default");
+            string wikiPageUrl = wikiGroup.Key;
+            string wikiPageId = wikiPageUrl.Split('/')[^1];
             Logger.LogInformation("Fetching wiki data for page ID {WikiPageId}", wikiPageId);
 
-            var wikiData = await FetchWikiDataAsync(client, wikiPageId);
+            (string SetName, JsonArray? RelicList)? wikiData = await FetchWikiDataAsync(client, wikiPageId);
             if (wikiData == null)
             {
                 // Fallback to direct icons for this group
-                var success = await ProcessRelicsWithDirectIcons(wikiGroup.ToList(), client);
+                bool success = await ProcessRelicsWithDirectIcons([.. wikiGroup], client);
                 overallSuccess = overallSuccess && success;
                 continue;
             }
 
-            var (setName, relicList) = wikiData.Value;
+            (string? setName, JsonArray? relicList) = wikiData.Value;
             if (relicList == null || relicList.Count == 0)
             {
                 Logger.LogWarning("No relic list found for wiki page ID {WikiPageId}, falling back to direct icons",
                     wikiPageId);
-                var success = await ProcessRelicsWithDirectIcons(wikiGroup.ToList(), client, setName);
+                bool success = await ProcessRelicsWithDirectIcons([.. wikiGroup], client, setName);
                 overallSuccess = overallSuccess && success;
                 continue;
             }
 
             Logger.LogInformation("Found {Count} relics in set with page ID {WikiPageId}", relicList.Count, wikiPageId);
 
-            var success2 = await ProcessWikiRelicList(relicList, setName, relicNameToIdMap, client);
+            bool success2 = await ProcessWikiRelicList(relicList, setName, relicNameToIdMap, client);
             overallSuccess = overallSuccess && success2;
         }
 
@@ -384,10 +381,10 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     {
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{WikiApi}?entry_page_id={wikiPageId}");
+            HttpRequestMessage request = new(HttpMethod.Get, $"{WikiApi}?entry_page_id={wikiPageId}");
             request.Headers.Add("X-Rpc-Wiki_app", "hsr");
-            var wikiResponse = await client.SendAsync(request);
-            var wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
+            HttpResponseMessage wikiResponse = await client.SendAsync(request);
+            JsonNode? wikiJson = await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync());
 
             if (wikiJson == null)
             {
@@ -395,9 +392,9 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return null;
             }
 
-            var setName = wikiJson["data"]?["page"]?["name"]?.GetValue<string>();
-            var wikiModules = wikiJson["data"]?["page"]?["modules"]?.AsArray();
-            var setEntry = wikiModules?.FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set");
+            string? setName = wikiJson["data"]?["page"]?["name"]?.GetValue<string>();
+            JsonArray? wikiModules = wikiJson["data"]?["page"]?["modules"]?.AsArray();
+            JsonNode? setEntry = wikiModules?.FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set");
 
             if (setEntry == null)
             {
@@ -405,21 +402,21 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return (setName ?? string.Empty, null);
             }
 
-            var wikiEntry = setEntry["components"]?.AsArray().First()?["data"]?.GetValue<string>();
+            string? wikiEntry = setEntry["components"]?.AsArray()[0]?["data"]?.GetValue<string>();
             if (string.IsNullOrEmpty(wikiEntry))
             {
                 Logger.LogWarning("No wiki entry found for wiki page ID {WikiPageId}", wikiPageId);
                 return (setName ?? string.Empty, null);
             }
 
-            var jsonObject = JsonNode.Parse(wikiEntry);
-            var relicList = jsonObject?["list"]?.AsArray();
+            JsonNode? jsonObject = JsonNode.Parse(wikiEntry);
+            JsonArray? relicList = jsonObject?["list"]?.AsArray();
 
             return (setName ?? string.Empty, relicList);
         }
         catch (Exception e)
         {
-            Logger.LogError("Error fetching wiki data for page ID {WikiPageId}: {Message}", wikiPageId, e.Message);
+            Logger.LogError(e, "Error fetching wiki data for page ID {WikiPageId}", wikiPageId);
             return null;
         }
     }
@@ -427,13 +424,13 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private async Task<bool> ProcessWikiRelicList(JsonArray relicList, string setName,
         Dictionary<string, string?> relicNameToIdMap, HttpClient client)
     {
-        var overallSuccess = true;
+        bool overallSuccess = true;
 
-        foreach (var relicNode in relicList)
+        foreach (JsonNode? relicNode in relicList)
         {
-            var relicName = relicNode?["title"]?.GetValue<string>();
-            var wikiRelicId = relicNode?["id"]?.GetValue<string>();
-            var iconUrl = relicNode?["icon_url"]?.GetValue<string>();
+            string? relicName = relicNode?["title"]?.GetValue<string>();
+            string? wikiRelicId = relicNode?["id"]?.GetValue<string>();
+            string? iconUrl = relicNode?["icon_url"]?.GetValue<string>();
 
             if (string.IsNullOrEmpty(relicName) || string.IsNullOrEmpty(wikiRelicId) || string.IsNullOrEmpty(iconUrl))
             {
@@ -444,7 +441,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             relicName = QuotationMarkRegex().Replace(relicName, "'"); // Normalize quotes
 
-            if (!relicNameToIdMap.TryGetValue(relicName.ToLowerInvariant(), out var actualRelicId) ||
+            if (!relicNameToIdMap.TryGetValue(relicName.ToLowerInvariant(), out string? actualRelicId) ||
                 actualRelicId == null)
             {
                 Logger.LogInformation("No mapping found for relic {RelicName} in set {SetName}", relicName, setName);
@@ -454,12 +451,12 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             Logger.LogInformation("Matched wiki relic {RelicName} to relic ID {RelicId}", relicName, actualRelicId);
 
             // Add to set mapping regardless of download status
-            var relicIdInt = int.Parse(actualRelicId);
+            int relicIdInt = int.Parse(actualRelicId);
             if (m_SetMapping.TryAdd(relicIdInt, setName))
                 Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}", relicIdInt,
                     setName);
 
-            var success = await DownloadAndSaveRelicImage(actualRelicId, iconUrl, relicName, client);
+            bool success = await DownloadAndSaveRelicImage(actualRelicId, iconUrl, relicName, client);
             overallSuccess = overallSuccess && success;
         }
 
@@ -468,9 +465,9 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
     private async Task<bool> ProcessRelicsWithDirectIcons(List<Relic> relics, HttpClient client, string? setName = null)
     {
-        var overallSuccess = true;
+        bool overallSuccess = true;
 
-        foreach (var relic in relics)
+        foreach (Relic relic in relics)
         {
             if (string.IsNullOrEmpty(relic.Icon))
             {
@@ -483,7 +480,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}",
                     relic.Id.Value, setName);
 
-            var success = await DownloadAndSaveRelicImage(relic.Id.ToString()!, relic.Icon, relic.Name!, client,
+            bool success = await DownloadAndSaveRelicImage(relic.Id.ToString()!, relic.Icon, relic.Name!, client,
                 "from Icon URL");
             overallSuccess = overallSuccess && success;
         }
@@ -494,7 +491,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private async Task<bool> DownloadAndSaveRelicImage(string relicId, string iconUrl, string relicName,
         HttpClient client, string source = "")
     {
-        var filename = string.Format(BaseString, relicId);
+        string filename = string.Format(BaseString, relicId);
 
         // Skip if already exists
         if (await ImageRepository.FileExistsAsync(filename))
@@ -512,7 +509,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 Logger.LogInformation("Downloading relic image {Source} for {RelicName} with ID {RelicId}", source,
                     relicName, relicId);
 
-            var imageResponse = await client.GetAsync(iconUrl);
+            HttpResponseMessage imageResponse = await client.GetAsync(iconUrl);
 
             if (!imageResponse.IsSuccessStatusCode)
             {
@@ -521,14 +518,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 return false;
             }
 
-            await using var imageStream = await imageResponse.Content.ReadAsStreamAsync();
-            using var image = await Image.LoadAsync(imageStream);
+            await using Stream imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            using Image image = await Image.LoadAsync(imageStream);
             image.Mutate(x =>
             {
                 x.Resize(150, 0);
                 x.ApplyGradientFade(0.5f);
             });
-            using var processedStream = new MemoryStream();
+            using MemoryStream processedStream = new();
             await image.SaveAsPngAsync(processedStream);
             processedStream.Position = 0;
 
@@ -543,8 +540,8 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
         catch (Exception e)
         {
-            Logger.LogError("Error downloading relic image for {RelicName} with {Filename}: {Message}", relicName,
-                filename, e.Message);
+            Logger.LogError(e, "Error downloading relic image for {RelicName} with {Filename}", relicName,
+                filename);
             return false;
         }
     }

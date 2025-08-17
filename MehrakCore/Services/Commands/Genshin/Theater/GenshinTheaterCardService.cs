@@ -1,8 +1,8 @@
 ﻿#region
 
-using System.Numerics;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Numerics;
 
 #endregion
 
@@ -46,8 +47,8 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         m_ImageRepository = imageRepository;
         m_Logger = logger;
 
-        var collection = new FontCollection();
-        var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
+        FontCollection collection = new();
+        FontFamily fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
@@ -67,22 +68,22 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         List<IDisposable> disposableResources = [];
         try
         {
-            var avatarImages = await theaterData.Detail.RoundsData.SelectMany(x =>
+            Dictionary<GenshinAvatar, Image<Rgba32>> avatarImages = await theaterData.Detail.RoundsData.SelectMany(x =>
                     x.Avatars)
                 .DistinctBy(x => x.AvatarId)
                 .ToAsyncEnumerable()
                 .SelectAwait(async y =>
                     new GenshinAvatar(y.AvatarId, y.Level, y.Rarity, y.AvatarType == 1 ? constMap[y.AvatarId] : 0,
                         await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{y.AvatarId}")),
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, y.AvatarId))),
                         y.AvatarType))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
-            var buffImages = await buffMap.ToAsyncEnumerable()
+            Dictionary<string, Image> buffImages = await buffMap.ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Key),
                     async x =>
                     {
-                        var image = await Image.LoadAsync(x.Value);
+                        Image image = await Image.LoadAsync(x.Value);
                         image.Mutate(ctx => ctx.Resize(50, 0));
                         return image;
                     });
@@ -92,12 +93,12 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                 theaterData.Detail.FightStatistic.MaxTakeDamageAvatar, theaterData.Detail.FightStatistic.MaxDefeatAvatar
             ];
 
-            var sideAvatarImages = await fightStats.DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
+            Dictionary<int, Image> sideAvatarImages = await fightStats.DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.AvatarId),
                     async x =>
                     {
-                        var image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync($"genshin_side_avatar_{x.AvatarId}"));
+                        Image image = await Image.LoadAsync(
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinSideAvatarName, x.AvatarId)));
                         image.Mutate(ctx => ctx.Resize(100, 0));
                         return image;
                     });
@@ -107,19 +108,19 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
             disposableResources.AddRange(buffImages.Values);
             disposableResources.AddRange(sideAvatarImages.Values);
 
-            var maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
+            int maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
 
-            var height = 590 +
+            int height = 590 +
                          (maxRound + 1) / 2 * 300;
             // 1900 x height
-            var background = m_Background.CloneAs<Rgba32>();
+            Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
             disposableResources.Add(background);
 
             background.Mutate(ctx =>
             {
                 if (height > background.Height)
                     ctx.Resize(0, height);
-                var rectangle = new Rectangle(ctx.GetCurrentSize().Width / 2 - 1900 / 2,
+                Rectangle rectangle = new(ctx.GetCurrentSize().Width / 2 - 1900 / 2,
                     ctx.GetCurrentSize().Height / 2 - height / 2, 1900, height);
                 ctx.Crop(rectangle);
                 ctx.GaussianBlur(10);
@@ -130,11 +131,11 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Imaginarium Theater", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(905, 120),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(905, 120),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     DateTimeOffset.FromUnixTimeSeconds(long.Parse(theaterData.Schedule.StartTime)).ToString("yyyy/MM"),
                     Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -151,7 +152,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, userGameData.GameUid!, Color.White);
 
-                var statsBackground = ImageUtility.CreateRoundedRectanglePath(875, 330, 15).Translate(40, 210);
+                IPath statsBackground = ImageUtility.CreateRoundedRectanglePath(875, 330, 15).Translate(40, 210);
                 ctx.Fill(OverlayColor, statsBackground);
 
                 ctx.DrawText("Fantasia Flowers Used", m_NormalFont, Color.White, new PointF(70, 240));
@@ -180,13 +181,13 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
                 ctx.DrawText("Total Cast Time", m_NormalFont, Color.White, new PointF(70, 480));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(885, 480),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, TimeSpan.FromSeconds(theaterData.Detail.FightStatistic.TotalUseTime).ToString(@"mm\:ss"),
+                {
+                    Origin = new Vector2(885, 480),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, TimeSpan.FromSeconds(theaterData.Detail.FightStatistic.TotalUseTime).ToString(@"mm\:ss"),
                     Color.White);
 
-                var statBackground = ImageUtility.CreateRoundedRectanglePath(875, 360, 15).Translate(985, 50);
+                IPath statBackground = ImageUtility.CreateRoundedRectanglePath(875, 360, 15).Translate(985, 50);
                 ctx.Fill(OverlayColor, statBackground);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -195,11 +196,11 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Highest Damage Dealt", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1820, 105),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{theaterData.Detail.FightStatistic.MaxDamageAvatar.Value}", Color.White);
+                {
+                    Origin = new Vector2(1820, 105),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{theaterData.Detail.FightStatistic.MaxDamageAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDamageAvatar.AvatarId],
                     new Point(1005, 40), 1f);
                 ctx.DrawLine(Color.White, 2f, new PointF(1020, 165), new PointF(1820, 165));
@@ -210,11 +211,11 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Damage Taken", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1820, 225),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.Value}", Color.White);
+                {
+                    Origin = new Vector2(1820, 225),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.AvatarId],
                     new Point(1005, 160), 1f);
                 ctx.DrawLine(Color.White, 2f, new PointF(1020, 285), new PointF(1820, 285));
@@ -225,15 +226,15 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Opponents Defeated", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1820, 345),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{theaterData.Detail.FightStatistic.MaxDefeatAvatar.Value}", Color.White);
+                {
+                    Origin = new Vector2(1820, 345),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{theaterData.Detail.FightStatistic.MaxDefeatAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDefeatAvatar.AvatarId],
                     new Point(1005, 280), 1f);
 
-                var starBackground = ImageUtility.CreateRoundedRectanglePath(875, 110, 15).Translate(985, 430);
+                IPath starBackground = ImageUtility.CreateRoundedRectanglePath(875, 110, 15).Translate(985, 430);
                 ctx.Fill(OverlayColor, starBackground);
                 ctx.DrawText("Star Challenge Stellas", m_NormalFont, Color.White, new PointF(1005, 470));
 
@@ -243,9 +244,9 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                             : m_TheaterStarUnlit,
                         new Point(1800 - (theaterData.Stat.GetMedalRoundList.Count - 1 - i) * 45, 465), 1f);
 
-                var hasFastest = false;
+                bool hasFastest = false;
 
-                var alternateLookup = avatarImages.GetAlternateLookup<int>();
+                Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> alternateLookup = avatarImages.GetAlternateLookup<int>();
 
                 for (int i = 0; i < theaterData.Detail.RoundsData.Count; i++)
                 {
@@ -254,44 +255,44 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         ? 512
                         : 50 + (i % 2 == 0 ? 0 : 945);
                     int yOffset = 660 + i / 2 * 300;
-                    var roundData = theaterData.Detail.RoundsData[i];
+                    RoundsData roundData = theaterData.Detail.RoundsData[i];
 
-                    var avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
+                    IPath avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
                     ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
 
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 15, yOffset - 45)
-                        }, $"Act {roundData.RoundId}", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 15, yOffset - 45)
+                    }, $"Act {roundData.RoundId}", Color.White);
 
                     ctx.DrawImage(GetRosterImage(roundData.Avatars.Select(x => x.AvatarId), alternateLookup),
                         new Point(xOffset, yOffset), 1f);
                     ctx.DrawImage(roundData.IsGetMedal ? m_TheaterStarLit : m_TheaterStarUnlit,
                         new Point(xOffset + 600, yOffset - 55), 1f);
 
-                    var buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
+                    IPath buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
                     ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
 
                     ctx.DrawImage(m_TheaterBuff, new Point(xOffset + 690, yOffset - 60), 1f);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 765, yOffset - 45)
-                        }, $"Lv. {roundData.SplendourBuff!.Summary.TotalLevel}", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 765, yOffset - 45)
+                    }, $"Lv. {roundData.SplendourBuff!.Summary.TotalLevel}", Color.White);
 
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 680, yOffset),
                         new PointF(xOffset + 850, yOffset));
 
                     for (int j = 0; j < roundData.SplendourBuff!.Buffs.Count; j++)
                     {
-                        var buff = roundData.SplendourBuff.Buffs[j];
-                        var buffImage = buffImages[buff.Name];
-                        var y = yOffset + 20 + j * 55;
+                        Buff buff = roundData.SplendourBuff.Buffs[j];
+                        Image buffImage = buffImages[buff.Name];
+                        int y = yOffset + 20 + j * 55;
                         ctx.DrawImage(buffImage, new Point(xOffset + 690, y), 1f);
 
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 765, y + 10)
-                            }, $"Lv. {buff.Level}", buff.Level > 0 ? Color.White : Color.Gray);
+                        {
+                            Origin = new Vector2(xOffset + 765, y + 10)
+                        }, $"Lv. {buff.Level}", buff.Level > 0 ? Color.White : Color.Gray);
                     }
 
                     if (!hasFastest && roundData.Avatars.Select(x => x.AvatarId).SequenceEqual(
@@ -299,7 +300,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                             )))
                     {
                         hasFastest = true;
-                        var fastestBackground = ImageUtility.CreateRoundedRectanglePath(190, 50, 15);
+                        IPath fastestBackground = ImageUtility.CreateRoundedRectanglePath(190, 50, 15);
                         ctx.Fill(Color.FromRgba(128, 128, 128, 128),
                             fastestBackground.Translate(xOffset + 400, yOffset - 60));
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -316,13 +317,13 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         : 50 + (i % 2 == 0 ? 0 : 945);
                     int yOffset = 660 + i / 2 * 300;
 
-                    var avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
+                    IPath avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
                     ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
 
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 15, yOffset - 45)
-                        }, $"Act {i + 1}", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 15, yOffset - 45)
+                    }, $"Act {i + 1}", Color.White);
 
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
@@ -331,7 +332,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                         VerticalAlignment = VerticalAlignment.Center
                     }, "No Clear Records", Color.White);
 
-                    var buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
+                    IPath buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
                     ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
                     ctx.DrawLine(new SolidPen(new PenOptions(Color.White, 5f) { EndCapStyle = EndCapStyle.Round }),
                         new PointF(xOffset + 690, yOffset + 180),
@@ -339,7 +340,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                 }
             });
 
-            var stream = new MemoryStream();
+            MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
             return stream;
@@ -360,10 +361,10 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
     {
         const int avatarWidth = 150;
 
-        var avatarIds = ids.ToList();
+        List<int> avatarIds = [.. ids];
         int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
-        var rosterImage = new Image<Rgba32>(650, 200);
+        Image<Rgba32> rosterImage = new(650, 200);
 
         rosterImage.Mutate(ctx =>
         {

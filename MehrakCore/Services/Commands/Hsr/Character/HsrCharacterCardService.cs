@@ -2,6 +2,7 @@
 
 using System.Numerics;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
@@ -26,8 +27,8 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
     private readonly Dictionary<int, Image> m_StatImages;
 
-    private const string BasePath = "hsr_{0}";
-    private const string StatsPath = "hsr_stats_{0}";
+    private const string BasePath = FileNameFormat.HsrFileName;
+    private const string StatsPath = FileNameFormat.HsrStatsName;
 
     private readonly Font m_SmallFont;
     private readonly Font m_NormalFont;
@@ -112,7 +113,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
             var baseSkill = characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")
                 .ToArray();
-            var skillChains = BuildSkillTree(characterInformation.Skills!.Where(x => x.PointType != 2).ToList());
+            var skillChains = BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2)]);
 
             var baseSkillTasks = baseSkill.Select(async x =>
             {
@@ -163,7 +164,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 }
             }).ToArray();
 
-            Dictionary<string, int> activeRelicSet = new();
+            Dictionary<string, int> activeRelicSet = [];
             foreach (var relic in characterInformation.Relics!)
             {
                 var setName = m_ImageUpdater.GetRelicSetName(relic.Id!.Value);
@@ -175,7 +176,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 .Where(x => x.Value >= 2)
                 .ToDictionary(x => x.Key, x => x.Value);
 
-            Dictionary<string, int> activeOrnamentSet = new();
+            Dictionary<string, int> activeOrnamentSet = [];
             foreach (var ornament in characterInformation.Ornaments!)
             {
                 var setName = m_ImageUpdater.GetRelicSetName(ornament.Id!.Value);
@@ -210,8 +211,8 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 float.Parse(x.Final!.TrimEnd('%')) >
                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.HonkaiStarRail)).ToList();
             if (stats.Count < 7)
-                stats = stats.Concat(characterInformation.Properties!).DistinctBy(x => x.PropertyType!.Value).Take(7)
-                    .OrderBy(x => x.PropertyType!.Value).ToList();
+                stats = [.. stats.Concat(characterInformation.Properties!)
+                    .DistinctBy(x => x.PropertyType!.Value).Take(7).OrderBy(x => x.PropertyType!.Value)];
             var relicImages = relicImageTasks.Select(x => x.Result).ToArray();
             var ornamentImages = ornamentImageTasks.Select(x => x.Result).ToArray();
             var servantImages = servantTask.Select(x => x.Result).ToArray();
@@ -274,9 +275,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     VerticalAlignment = VerticalAlignment.Top
                 });
 
-                ctx.DrawText($"Lv. {characterInformation.Level.ToString()!}", m_NormalFont, Color.Black,
+                ctx.DrawText($"Lv. {characterInformation.Level}", m_NormalFont, Color.Black,
                     new PointF(73, bounds.Bottom + 23));
-                ctx.DrawText($"Lv. {characterInformation.Level.ToString()!}", m_NormalFont, Color.White,
+                ctx.DrawText($"Lv. {characterInformation.Level}", m_NormalFont, Color.White,
                     new PointF(70, bounds.Bottom + 20));
                 ctx.DrawImage(overlay, new Point(800, 0), 1f);
                 ctx.DrawText(gameUid, m_SmallFont, Color.White, new PointF(70, 1150));
@@ -287,7 +288,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     var ellipse = new EllipsePolygon(new PointF(900, 1115 - offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     if (!ranks[i].Active) ranks[i].Image.Mutate(x => x.Brightness(0.5f));
-                    // ranks[i].Image.Mutate(x => x.Resize(80, 0));
                     ctx.DrawImage(ranks[i].Image, new Point(860, 1075 - offset), 1f);
                     ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
                 }
@@ -297,18 +297,17 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     var offset = i * 100;
                     var ellipse = new EllipsePolygon(new PointF(900, 80 + offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                    // baseSkillImages[i].Image.Mutate(x => x.Resize(80, 0));
                     ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
                     ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
 
                     var levelEllipse = new EllipsePolygon(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
-                        {
-                            Origin = new PointF(864, 116 + offset),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, baseSkillImages[i].Data.Level!.ToString()!,
+                    {
+                        Origin = new PointF(864, 116 + offset),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, baseSkillImages[i].Data.Level!.ToString()!,
                         baseSkillImages[i].Data.IsRankWork!.Value ? Color.Aqua : Color.White);
                 }
 
@@ -351,11 +350,11 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     var levelEllipse = new EllipsePolygon(new PointF(865 + offset, 515), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
-                        {
-                            Origin = new PointF(864 + offset, 516),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, servantImages[i].Data.Level!.ToString()!,
+                    {
+                        Origin = new PointF(864 + offset, 516),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, servantImages[i].Data.Level!.ToString()!,
                         servantImages[i].Data.IsRankWork ?? false ? Color.Aqua : Color.White);
                 }
 

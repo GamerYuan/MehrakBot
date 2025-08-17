@@ -1,7 +1,7 @@
 ﻿#region
 
-using System.Numerics;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Numerics;
 
 #endregion
 
@@ -25,8 +26,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
     private readonly Dictionary<int, Image> m_StatImages;
 
-    private const string BasePath = "genshin_{0}";
-    private const string StatsPath = "genshin_stats_{0}";
+    private const string BasePath = FileNameFormat.GenshinFileName;
+    private const string StatsPath = FileNameFormat.GenshinStatsName;
 
     private readonly Font m_SmallFont;
     private readonly Font m_MediumFont;
@@ -41,8 +42,8 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_ImageRepository = imageRepository;
         m_Logger = logger;
 
-        var collection = new FontCollection();
-        var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
+        FontCollection collection = new();
+        FontFamily fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
@@ -59,13 +60,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 30, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
 
         m_Logger.LogDebug("Loading {Count} stat icons", statIds.Length);
-        var statImageTasks = statIds.Select(async x =>
+        List<Task<KeyValuePair<int, Image>>> statImageTasks = [.. statIds.Select(async x =>
         {
             try
             {
-                var path = string.Format(StatsPath, x);
+                string path = string.Format(StatsPath, x);
                 m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
-                var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
+                Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
                 image.Mutate(ctx => ctx.Resize(new Size(48, 0), KnownResamplers.Bicubic, true));
                 return new KeyValuePair<int, Image>(x, image);
             }
@@ -74,9 +75,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 m_Logger.LogError(ex, "Failed to load stat icon {StatId}", x);
                 throw;
             }
-        }).ToList();
+        })];
 
-        var results = Task.WhenAll(statImageTasks).Result;
+        KeyValuePair<int, Image>[] results = Task.WhenAll(statImageTasks).Result;
         m_StatImages = results.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         m_RelicSlotTemplate = new Image<Rgba32>(970, 170);
@@ -98,55 +99,56 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogInformation("Generating character card for {CharacterName} (ID: {CharacterId})",
             charInfo.Base.Name, charInfo.Base.Id);
 
-        var disposableResources = new List<IDisposable>();
+        List<IDisposable> disposableResources = [];
 
         try
         {
             // Prepare all image loading tasks
-            var overlayTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_bg"));
-            var background = new Image<Rgba32>(3240, 1080);
+            Task<Image> overlayTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_bg"));
+            Image<Rgba32> background = new(3240, 1080);
             disposableResources.Add(background);
 
-            var characterPortraitTask =
+            Task<Image<Rgba32>> characterPortraitTask =
                 Image.LoadAsync<Rgba32>(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, charInfo.Base.Id)));
 
-            var weaponImageTask =
+            Task<Image<Rgba32>> weaponImageTask =
                 Image.LoadAsync<Rgba32>(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath,
                         charInfo.Base.Weapon.Id)));
 
-            var constellationTasks = charInfo.Constellations.Select(async x =>
+            Task<(bool Active, Image Image)>[] constellationTasks = [.. charInfo.Constellations.Select(async x =>
             {
-                var image = await Image.LoadAsync(
+                Image image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.Id)));
                 return (Active: x.IsActived.GetValueOrDefault(false), Image: image);
-            }).Reverse().ToArray();
+            }).Reverse()];
 
-            var skillTasks = charInfo.Skills
+            Task<(Skill Data, Image Image)>[] skillTasks = [.. charInfo.Skills
                 .Where(x => x.SkillType!.Value == 1 && !x.Desc.Contains("Alternate Sprint"))
                 .Select(async x =>
                 {
-                    var image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.SkillId)));
+                    Image image = await Image.LoadAsync(
+                        await m_ImageRepository.DownloadFileToStreamAsync(
+                            string.Format(FileNameFormat.GenshinSkillName, charInfo.Base.Id, x.SkillId)));
                     return (Data: x, Image: image);
-                }).Reverse().ToArray();
+                }).Reverse()];
 
             // Relic image tasks
-            var relicImageTasks = Enumerable.Range(0, 5).Select(async i =>
+            Task<Image<Rgba32>>[] relicImageTasks = [.. Enumerable.Range(0, 5).Select(async i =>
             {
-                var relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
+                Relic? relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic != null)
                 {
-                    var relicImage = await CreateRelicSlotImageAsync(relic);
+                    Image<Rgba32> relicImage = await CreateRelicSlotImageAsync(relic);
                     return relicImage;
                 }
                 else
                 {
-                    var templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
+                    Image<Rgba32> templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
                     return templateRelicImage;
                 }
-            }).ToArray();
+            })];
 
             // Await all image loading tasks concurrently
             await Task.WhenAll(
@@ -159,38 +161,40 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             );
 
             // Add loaded images to disposable resources
-            var overlay = overlayTask.Result;
+            Image overlay = overlayTask.Result;
             disposableResources.Add(overlay);
 
-            var characterPortrait = characterPortraitTask.Result;
+            Image<Rgba32> characterPortrait = characterPortraitTask.Result;
             disposableResources.Add(characterPortrait);
 
-            var weaponImage = weaponImageTask.Result;
+            Image<Rgba32> weaponImage = weaponImageTask.Result;
             disposableResources.Add(weaponImage);
 
-            var constellationIcons = (await Task.WhenAll(constellationTasks)).ToArray();
+            (bool Active, Image Image)[] constellationIcons = [.. (await Task.WhenAll(constellationTasks))];
             disposableResources.AddRange(constellationIcons.Select(c => c.Image));
 
-            var skillIcons = (await Task.WhenAll(skillTasks)).ToArray();
+            (Skill Data, Image Image)[] skillIcons = [.. (await Task.WhenAll(skillTasks))];
             disposableResources.AddRange(skillIcons.Select(s => s.Image));
 
-            var relics = (await Task.WhenAll(relicImageTasks)).ToArray();
+            Image<Rgba32>[] relics = [.. (await Task.WhenAll(relicImageTasks))];
             disposableResources.AddRange(relics);
 
             m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
-            Dictionary<RelicSet, int> relicActivation = new();
+            Dictionary<RelicSet, int> relicActivation = [];
             for (int i = 0; i < 5; i++)
             {
-                var relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
+                Relic? relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic == null) continue;
                 if (!relicActivation.TryAdd(relic.RelicSet, 1))
                     relicActivation[relic.RelicSet]++;
             }
 
-            Dictionary<string, int> activeSet = new();
-            foreach (var relicSet in relicActivation)
-                if (relicSet.Key.Affixes.Any(x => relicSet.Value >= x.ActivationNumber.GetValueOrDefault(0)))
-                    activeSet.Add(relicSet.Key.Name, relicSet.Value);
+            Dictionary<string, int> activeSet = [];
+            foreach (KeyValuePair<RelicSet, int> relicSet in
+                relicActivation.Where(relicSet => relicSet.Key.Affixes.Any(x => relicSet.Value >= x.ActivationNumber.GetValueOrDefault(0))))
+            {
+                activeSet.Add(relicSet.Key.Name, relicSet.Value);
+            }
 
             m_Logger.LogDebug("Found {Count} active relic sets", activeSet.Count);
 
@@ -198,32 +202,31 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             // 1. Base stats
             // 2. EM
             // 3. Other stats
-            var bonusStats = charInfo.SelectedProperties.OrderBy(x => x.PropertyType)
-                .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin)).ToArray();
+            StatProperty[] bonusStats = [.. charInfo.SelectedProperties.Where(x => float.Parse(x.Final.TrimEnd('%')) >
+                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin))
+                .OrderBy(x => x.PropertyType)];
 
             StatProperty[] stats;
             if (bonusStats.Length >= 6)
-                stats = charInfo.BaseProperties.Take(4)
+                stats = [.. charInfo.BaseProperties.Take(4)
                     .Where(x => float.Parse(x.Final.TrimEnd('%')) >
                                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin))
                     .Concat(bonusStats)
-                    .DistinctBy(x => x.PropertyType)
-                    .ToArray();
+                    .DistinctBy(x => x.PropertyType)];
             else
-                stats = charInfo.BaseProperties.Take(4)
+                stats = [.. charInfo.BaseProperties.Take(4)
                     .Concat(charInfo.SelectedProperties.OrderBy(x => x.PropertyType))
-                    .Take(7).ToArray();
+                    .Take(7)];
 
             m_Logger.LogTrace("Compositing character card image");
 
             background.Mutate(ctx =>
             {
-                var backgroundColor = GetBackgroundColor(charInfo.Base.Element ?? "None");
+                Color backgroundColor = GetBackgroundColor(charInfo.Base.Element ?? "None");
                 ctx.Fill(backgroundColor);
                 ctx.DrawImage(overlay, PixelColorBlendingMode.Overlay, 1f);
 
-                var textColor = Color.White;
+                Color textColor = Color.White;
 
                 ctx.DrawImage(characterPortrait,
                     new Point((1280 - characterPortrait.Width) / 2, 100 + (1080 - characterPortrait.Height) / 2),
@@ -236,13 +239,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 for (int i = 0; i < skillIcons.Length; i++)
                 {
-                    var skill = skillIcons[i];
-                    var offset = i * 150;
-                    var skillEllipse = new EllipsePolygon(120, 920 - offset, 60);
+                    (Skill Data, Image Image) skill = skillIcons[i];
+                    int offset = i * 150;
+                    EllipsePolygon skillEllipse = new(120, 920 - offset, 60);
                     ctx.Fill(Color.DarkSlateGray, skillEllipse);
                     ctx.DrawImage(skill.Image, new Point(70, 870 - offset), 1f);
                     ctx.Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
-                    var talentEllipse = new EllipsePolygon(120, 980 - offset, 25);
+                    EllipsePolygon talentEllipse = new(120, 980 - offset, 25);
                     ctx.Fill(Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
@@ -257,11 +260,11 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
-                    var constellation = constellationIcons[i];
+                    (bool Active, Image Image) constellation = constellationIcons[i];
                     if (!constellation.Active)
                         constellation.Image.Mutate(x => x.Brightness(0.5f));
-                    var offset = i * 140;
-                    var constEllipse = new EllipsePolygon(1050, 1000 - offset, 50);
+                    int offset = i * 140;
+                    EllipsePolygon constEllipse = new(1050, 1000 - offset, 50);
                     ctx.Fill(Color.DarkSlateGray, constEllipse);
                     ctx.DrawImage(constellation.Image, new Point(1005, 955 - offset), 1f);
                     ctx.Draw(backgroundColor, 5f, constEllipse.AsClosedPath());
@@ -279,9 +282,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), m_NormalFont, textColor,
                     new PointF(1450, 160));
                 ctx.DrawText($"Lv. {charInfo.Weapon.Level}", m_NormalFont, textColor, new PointF(1550, 160));
-                var statSize =
+                FontRectangle statSize =
                     TextMeasurer.MeasureSize(charInfo.Weapon.MainProperty.Final, new TextOptions(m_NormalFont));
-                var statBackground = new Image<Rgba32>(80 + (int)statSize.Width, 60);
+                Image<Rgba32> statBackground = new(80 + (int)statSize.Width, 60);
                 statBackground.Mutate(x =>
                 {
                     x.Fill(new Rgba32(0, 0, 0, 0.45f));
@@ -293,9 +296,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 ctx.DrawText(charInfo.Weapon.MainProperty.Final, m_NormalFont, textColor, new PointF(1514, 240));
                 if (charInfo.Weapon.SubProperty != null)
                 {
-                    var substatSize =
+                    FontRectangle substatSize =
                         TextMeasurer.MeasureSize(charInfo.Weapon.SubProperty.Final, new TextOptions(m_NormalFont));
-                    var substatBackground = new Image<Rgba32>(80 + (int)substatSize.Width, 60);
+                    Image<Rgba32> substatBackground = new(80 + (int)substatSize.Width, 60);
                     substatBackground.Mutate(x =>
                     {
                         x.Fill(new Rgba32(0, 0, 0, 0.45f));
@@ -307,12 +310,12 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     ctx.DrawText(charInfo.Weapon.SubProperty.Final, m_NormalFont, textColor, new PointF(1694, 240));
                 }
 
-                var spacing = 700 / stats.Length;
+                int spacing = 700 / stats.Length;
 
                 for (int i = 0; i < stats.Length; i++)
                 {
-                    var stat = stats[i];
-                    var y = 360 + spacing * i;
+                    StatProperty stat = stats[i];
+                    int y = 360 + spacing * i;
                     ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
                     ctx.DrawText(StatMappingUtility.GenshinMapping[stat.PropertyType!.Value], m_NormalFont, textColor,
                         new PointF(1264, y));
@@ -326,7 +329,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         int xPos = 2100;
                         if (int.Parse(stat.Final.TrimEnd('%')) > int.Parse(stat.Base.TrimEnd('%')))
                         {
-                            var bonusText = $"\u00A0+{stat.Add}";
+                            string bonusText = $"\u00A0+{stat.Add}";
                             xPos -= (int)TextMeasurer.MeasureSize(bonusText, new TextOptions(m_SmallFont)).Width;
                             ctx.DrawText(new RichTextOptions(m_SmallFont)
                             {
@@ -336,10 +339,10 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                         }
 
                         ctx.DrawText(new RichTextOptions(m_SmallFont)
-                            {
-                                HorizontalAlignment = HorizontalAlignment.Right,
-                                Origin = new Vector2(xPos, y + 25)
-                            }, $"{stat.Base}", Color.LightGray);
+                        {
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            Origin = new Vector2(xPos, y + 25)
+                        }, $"{stat.Base}", Color.LightGray);
                     }
                     else
                     {
@@ -353,14 +356,14 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                 for (int i = 0; i < relics.Length; i++)
                 {
-                    var relic = relics[i];
+                    Image<Rgba32> relic = relics[i];
                     ctx.DrawImage(relic, new Point(2200, 40 + i * 185), 1f);
                 }
 
                 if (activeSet.Count > 0)
                 {
-                    var relicSetText = string.Join('\n', activeSet.Keys);
-                    var relicSetValueText = string.Join('\n', activeSet.Values);
+                    string relicSetText = string.Join('\n', activeSet.Keys);
+                    string relicSetValueText = string.Join('\n', activeSet.Values);
 
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
@@ -392,7 +395,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             });
 
             m_Logger.LogDebug("Saving character card to stream");
-            var stream = new MemoryStream();
+            MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, m_JpegEncoder);
             stream.Position = 0;
 
@@ -407,7 +410,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         }
         finally
         {
-            foreach (var resource in disposableResources) resource.Dispose();
+            foreach (IDisposable resource in disposableResources) resource.Dispose();
         }
     }
 
@@ -416,13 +419,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogTrace("Creating relic slot image for {RelicId}", relic.Id);
         try
         {
-            var path = string.Format(BasePath, relic.Id);
+            string path = string.Format(BasePath, relic.Id);
             m_Logger.LogTrace("Loading relic image from {Path}", path);
 
-            var relicImage = await Image.LoadAsync<Rgba32>(
+            Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
                 await m_ImageRepository.DownloadFileToStreamAsync(path));
 
-            var template = CreateRelicSlot();
+            Image<Rgba32> template = CreateRelicSlot();
             template.Mutate(ctx =>
             {
                 ctx.DrawImage(relicImage, new Point(-40, -40), 1f);
@@ -434,25 +437,25 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     Origin = new Vector2(320, 70)
                 }, relic.MainProperty.Value, Color.White);
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
-                    {
-                        TextAlignment = TextAlignment.End,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Origin = new Vector2(320, 130)
-                    }, $"+{relic.Level!.Value}", Color.White);
-                var stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
+                {
+                    TextAlignment = TextAlignment.End,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Origin = new Vector2(320, 130)
+                }, $"+{relic.Level!.Value}", Color.White);
+                Image<Rgba32> stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
                 stars.Mutate(x => x.Resize(0, 25));
                 ctx.DrawImage(stars, new Point(120, 130), 1f);
 
-                for (var i = 0; i < relic.SubPropertyList.Count; i++)
+                for (int i = 0; i < relic.SubPropertyList.Count; i++)
                 {
-                    var subStat = relic.SubPropertyList[i];
-                    var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                    var xOffset = i % 2 * 290;
-                    var yOffset = i / 2 * 80;
-                    var color = Color.White;
+                    RelicStatProperty subStat = relic.SubPropertyList[i];
+                    Image subStatImage = m_StatImages[subStat.PropertyType!.Value];
+                    int xOffset = i % 2 * 290;
+                    int yOffset = i / 2 * 80;
+                    Color color = Color.White;
                     if (subStat.PropertyType is 2 or 5 or 8)
                     {
-                        var dim = subStatImage.CloneAs<Rgba32>();
+                        Image<Rgba32> dim = subStatImage.CloneAs<Rgba32>();
                         dim.Mutate(x => x.Brightness(0.5f));
                         ctx.DrawImage(dim, new Point(375 + xOffset, 26 + yOffset), 1f);
                         color = Color.FromRgb(128, 128, 128);
@@ -464,7 +467,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
 
                     ctx.DrawText(subStat.Value, m_NormalFont, color, new PointF(439 + xOffset, 30 + yOffset));
 
-                    var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
+                    string rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
                     ctx.DrawText(rolls, m_NormalFont, color, new PointF(575 + xOffset, 15 + yOffset));
                 }
 
@@ -485,13 +488,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogTrace("Creating template relic slot image for position {Position}", position);
         try
         {
-            var path = $"genshin_relic_template_{position}";
+            string path = $"genshin_relic_template_{position}";
             m_Logger.LogDebug("Loading template relic image from {Path}", path);
 
-            var relicImage = await Image.LoadAsync<Rgba32>(
+            Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
                 await m_ImageRepository.DownloadFileToStreamAsync(path));
             relicImage.Mutate(x => x.Resize(new Size(0, 150), KnownResamplers.Bicubic, true));
-            var template = CreateRelicSlot();
+            Image<Rgba32> template = CreateRelicSlot();
             template.Mutate(ctx =>
             {
                 ctx.DrawImage(relicImage, new Point(25, 5), 1f);
@@ -520,7 +523,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private Color GetBackgroundColor(string element)
     {
         m_Logger.LogTrace("Getting background color for element: {Element}", element);
-        var color = element switch
+        Color color = element switch
         {
             "Pyro" => Color.ParseHex("#8F321A"),
             "Hydro" => Color.ParseHex("#2059B9"),

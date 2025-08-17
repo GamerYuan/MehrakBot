@@ -1,7 +1,7 @@
 ﻿#region
 
-using System.Text.Json.Nodes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
@@ -11,6 +11,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Text.Json.Nodes;
 
 #endregion
 
@@ -18,12 +19,11 @@ namespace MehrakCore.Services.Commands.Genshin;
 
 public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterInformation>
 {
-    private const string BaseString = "genshin_{0}";
     private const int StandardImageSize = 1280;
     private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/genshin/wapi/entry_page";
 
-    protected override string AvatarString => "genshin_avatar_{0}";
-    protected override string SideAvatarString => "genshin_side_avatar_{0}";
+    protected override string AvatarString => FileNameFormat.GenshinAvatarName;
+    protected override string SideAvatarString => FileNameFormat.GenshinSideAvatarName;
 
     public GenshinImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<GenshinImageUpdaterService> logger) : base(
@@ -42,12 +42,12 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 characterInformation.Base.Name, characterInformation.Base.Id);
             List<Task> tasks = [];
 
-            var id = characterInformation.Base.Id;
-            var avatarWiki = wiki.First();
+            int? id = characterInformation.Base.Id;
+            Dictionary<string, string> avatarWiki = wiki.First();
 
             if (id != null)
             {
-                var characterImageFilename = string.Format(BaseString, id.Value);
+                string characterImageFilename = string.Format(FileNameFormat.GenshinFileName, id.Value);
                 if (!await ImageRepository.FileExistsAsync(characterImageFilename))
                 {
                     Logger.LogInformation(
@@ -67,13 +67,12 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 Logger.LogWarning("Character information provided without a base ID.");
             }
 
-
-            var weaponId = characterInformation.Base.Weapon.Id;
+            int? weaponId = characterInformation.Base.Weapon.Id;
 
             if (weaponId != null)
             {
                 Logger.LogDebug("Weapon ID {WeaponId} not in cache. Checking image existence.", weaponId.Value);
-                var weaponImageFilename = string.Format(BaseString, weaponId.Value);
+                string weaponImageFilename = string.Format(FileNameFormat.GenshinFileName, weaponId.Value);
                 if (!await ImageRepository.FileExistsAsync(weaponImageFilename))
                 {
                     Logger.LogInformation("Weapon image for ID {WeaponId} not found. Scheduling download.",
@@ -91,7 +90,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             }
 
             tasks.AddRange(UpdateConstellationIconTasks(characterInformation.Constellations));
-            tasks.AddRange(UpdateSkillIconTasks(characterInformation.Skills));
+            tasks.AddRange(UpdateSkillIconTasks(characterInformation.Base.Id!.Value, characterInformation.Skills));
 
             tasks.AddRange(UpdateRelicIconTasks(characterInformation.Relics));
 
@@ -122,13 +121,15 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
         try
         {
-            var client = HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new();
-            request.Method = HttpMethod.Get;
+            HttpClient client = HttpClientFactory.CreateClient("Default");
+            HttpRequestMessage request = new()
+            {
+                Method = HttpMethod.Get
+            };
             request.Headers.Add("X-Rpc-Language", "zh-cn");
             request.RequestUri = new Uri($"{WikiApi}?entry_page_id={avatarId}");
-            var wikiResponse = await client.SendAsync(request);
-            var avatarUrl =
+            HttpResponseMessage wikiResponse = await client.SendAsync(request);
+            string? avatarUrl =
                 (await JsonNode.ParseAsync(await wikiResponse.Content.ReadAsStreamAsync()))?["data"]?["page"]?
                 ["header_img_url"]?.ToString();
 
@@ -140,18 +141,18 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 return;
             }
 
-            var filename = string.Format(BaseString, characterDetail.Id!.Value);
+            string filename = string.Format(FileNameFormat.GenshinFileName, characterDetail.Id!.Value);
             Logger.LogDebug("Updating character image for ID {CharacterId} from URL: {ImageUrl}", characterDetail.Id,
                 avatarUrl);
 
-            var response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
+            HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
             response.EnsureSuccessStatusCode();
-            var contentType =
+            string contentType =
                 response.Content.Headers.ContentType?.MediaType?.Split('/')[1] ?? "png"; // Default to png if null
 
             // Process the image
-            await using var imageStream = await response.Content.ReadAsStreamAsync();
-            using var image = await Image.LoadAsync<Rgba32>(imageStream);
+            await using Stream imageStream = await response.Content.ReadAsStreamAsync();
+            using Image<Rgba32> image = await Image.LoadAsync<Rgba32>(imageStream);
 
             int minX = image.Width;
             int minY = image.Height;
@@ -162,7 +163,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             {
                 for (int y = 0; y < accessor.Height; y++)
                 {
-                    var pixelRow = accessor.GetRowSpan(y);
+                    Span<Rgba32> pixelRow = accessor.GetRowSpan(y);
 
                     for (int x = 0; x < pixelRow.Length; x++)
                         if (pixelRow[x].A > 0)
@@ -178,7 +179,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             image.Mutate(ctx =>
             {
                 ctx.Crop(new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1));
-                var size = ctx.GetCurrentSize();
+                Size size = ctx.GetCurrentSize();
                 if (size.Width >= size.Height)
                     ctx.Resize(0,
                         (int)Math.Round(1280 * Math.Min(1.2 * size.Height / size.Width, 1f)),
@@ -194,12 +195,11 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                 ctx.ApplyGradientFade();
             });
 
-            Logger.LogDebug("Image processed to standard size {Size}x{Size} with gradient fade applied",
+            Logger.LogDebug("Image processed to standard size {Width}x{Height} with gradient fade applied",
                 StandardImageSize, StandardImageSize);
 
             // Save processed image to memory stream for upload
-            using var processedImageStream = new
-                MemoryStream();
+            using MemoryStream processedImageStream = new();
             await image.SaveAsPngAsync(processedImageStream, new PngEncoder
             {
                 BitDepth = PngBitDepth.Bit8,
@@ -227,7 +227,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
     public virtual async Task UpdateWeaponImageTask(Weapon weapon)
     {
-        var filename = string.Format(BaseString, weapon.Id!.Value);
+        string filename = string.Format(FileNameFormat.GenshinFileName, weapon.Id!.Value);
         if (await ImageRepository.FileExistsAsync(filename))
         {
             Logger.LogDebug("Weapon image {Filename} already exists. Skipping update.", filename);
@@ -238,11 +238,11 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             weapon.Name, weapon.Id.Value, weapon.Icon);
         try
         {
-            var response = await HttpClientFactory.CreateClient("Default").GetAsync(weapon.Icon);
+            HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(weapon.Icon);
             response.EnsureSuccessStatusCode();
-            using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+            using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
             image.Mutate(x => x.Resize(200, 0, KnownResamplers.Bicubic));
-            using var processedImageStream = new MemoryStream();
+            using MemoryStream processedImageStream = new();
             await image.SaveAsPngAsync(processedImageStream, new PngEncoder
             {
                 BitDepth = PngBitDepth.Bit8,
@@ -270,16 +270,16 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
     private async Task UpdateWeaponImageTask(WeaponDetail weaponDetail)
     {
-        var filename = string.Format(BaseString, weaponDetail.Id!.Value);
+        string filename = string.Format(FileNameFormat.GenshinFileName, weaponDetail.Id!.Value);
         Logger.LogDebug("Updating weapon icon for weapon {WeaponName}, ID: {WeaponId} URL: {IconUrl}",
             weaponDetail.Name, weaponDetail.Id.Value, weaponDetail.Icon);
         try
         {
-            var response = await HttpClientFactory.CreateClient("Default").GetAsync(weaponDetail.Icon);
+            HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(weaponDetail.Icon);
             response.EnsureSuccessStatusCode();
-            using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+            using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
             image.Mutate(x => x.Resize(200, 0, KnownResamplers.Bicubic));
-            using var processedImageStream = new MemoryStream();
+            using MemoryStream processedImageStream = new();
             await image.SaveAsPngAsync(processedImageStream, new PngEncoder
             {
                 BitDepth = PngBitDepth.Bit8,
@@ -309,20 +309,20 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     {
         return Task.WhenAll(constellations.AsParallel().ToAsyncEnumerable()
             .WhereAwait(async constellation =>
-                !await ImageRepository.FileExistsAsync(string.Format(BaseString, constellation.Id!.Value)))
+                !await ImageRepository.FileExistsAsync(string.Format(FileNameFormat.GenshinFileName, constellation.Id!.Value)))
             .Select(async constellation =>
             {
-                var filename = string.Format(BaseString, constellation.Id!.Value);
+                string filename = string.Format(FileNameFormat.GenshinFileName, constellation.Id!.Value);
                 Logger.LogDebug(
                     "Updating constellation icon for constellation {ConstellationName}, ID: {ConstellationId} URL: {IconUrl}",
                     constellation.Name, constellation.Id, constellation.Icon);
                 try
                 {
-                    var response = await HttpClientFactory.CreateClient("Default").GetAsync(constellation.Icon);
+                    HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(constellation.Icon);
                     response.EnsureSuccessStatusCode();
-                    using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+                    using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
                     image.Mutate(x => x.Resize(90, 0, KnownResamplers.Bicubic));
-                    using var processedImageStream = new MemoryStream();
+                    using MemoryStream processedImageStream = new();
                     await image.SaveAsPngAsync(processedImageStream, new PngEncoder
                     {
                         BitDepth = PngBitDepth.Bit8,
@@ -351,24 +351,23 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
             }).ToEnumerable());
     }
 
-
-    private Task UpdateSkillIconTasks(IEnumerable<Skill> skills)
+    private Task UpdateSkillIconTasks(int avatarId, IEnumerable<Skill> skills)
     {
         return Task.WhenAll(skills.AsParallel().ToAsyncEnumerable()
             .WhereAwait(async skill =>
-                !await ImageRepository.FileExistsAsync(string.Format(BaseString, skill.SkillId!.Value)))
+                !await ImageRepository.FileExistsAsync(string.Format(FileNameFormat.GenshinSkillName, avatarId, skill.SkillId!.Value)))
             .Select(async skill =>
             {
-                var filename = string.Format(BaseString, skill.SkillId!.Value);
+                string filename = string.Format(FileNameFormat.GenshinSkillName, avatarId, skill.SkillId!.Value);
                 Logger.LogDebug("Updating skill icon for {SkillName}, ID {SkillId} URL: {IconUrl}", skill.Name,
                     skill.SkillId, skill.Icon);
                 try
                 {
-                    var response = await HttpClientFactory.CreateClient("Default").GetAsync(skill.Icon);
+                    HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(skill.Icon);
                     response.EnsureSuccessStatusCode();
-                    using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+                    using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
                     image.Mutate(x => x.Resize(100, 0, KnownResamplers.Bicubic));
-                    using var processedImageStream = new MemoryStream();
+                    using MemoryStream processedImageStream = new();
                     await image.SaveAsPngAsync(processedImageStream, new PngEncoder
                     {
                         BitDepth = PngBitDepth.Bit8,
@@ -396,8 +395,8 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
     private Task UpdateRelicIconTasks(IEnumerable<Relic> relics)
     {
-        var tasks = new List<Task>();
-        foreach (var relic in relics)
+        List<Task> tasks = [];
+        foreach (Relic relic in relics)
         {
             if (relic.Id == null)
             {
@@ -407,7 +406,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
 
             tasks.Add(Task.Run(async () =>
             {
-                var filename = string.Format(BaseString, relic.Id!.Value);
+                string filename = string.Format(FileNameFormat.GenshinFileName, relic.Id!.Value);
                 if (await ImageRepository.FileExistsAsync(filename))
                 {
                     Logger.LogDebug("Relic {RelicName}, ID: {RelicId} already exists in database. Skipping.",
@@ -419,16 +418,16 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     relic.Id.Value, relic.Icon);
                 try
                 {
-                    var response = await HttpClientFactory.CreateClient("Default").GetAsync(relic.Icon);
+                    HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(relic.Icon);
                     response.EnsureSuccessStatusCode();
-                    using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+                    using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
                     image.Mutate(ctx =>
                     {
                         ctx.Resize(300, 0, KnownResamplers.Lanczos3);
                         ctx.Pad(300, 300);
                         ctx.ApplyGradientFade(0.5f);
                     });
-                    using var processedImageStream = new MemoryStream();
+                    using MemoryStream processedImageStream = new();
                     await image.SaveAsPngAsync(processedImageStream, new PngEncoder
                     {
                         BitDepth = PngBitDepth.Bit8,
