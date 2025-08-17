@@ -29,4 +29,19 @@ public static class FileNameFormat
     /// Genshin stats file name format, where {0} is the stat ID
     /// </summary>
     public const string GenshinStatsName = "genshin_stats_{0}";
+
+    /// <summary>
+    /// HSR file name format, where {0} is the character ID or other identifier
+    /// </summary>
+    public const string HsrFileName = "hsr_{0}";
+
+    /// <summary>
+    /// HSR avatar file name format, where {0} is the avatar ID
+    /// </summary>
+    public const string HsrAvatarName = "hsr_avatar_{0}";
+
+    /// <summary>
+    /// HSR side avatar file name format, where {0} is the avatar ID
+    /// </summary>
+    public const string HsrSideAvatarName = "hsr_side_avatar_{0}";
 }
