@@ -1,9 +1,8 @@
 ﻿#region
 
-using System.Numerics;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Constants;
 using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
@@ -14,6 +13,8 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Numerics;
+using System.Text.Json;
 
 #endregion
 
@@ -90,8 +91,8 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
         m_ImageRepository = imageRepository;
         m_Logger = logger;
 
-        var collection = new FontCollection();
-        var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
+        FontCollection collection = new();
+        FontFamily fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
@@ -107,25 +108,25 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
                 gameData.GameUid, charData.Count);
 
-            var weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id).ToAsyncEnumerable()
+            Dictionary<int, Image> weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id).ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Id!.Value),
                     async x =>
                     {
-                        var image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync($"genshin_{x.Id}"));
+                        Image image = await Image.LoadAsync(
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinFileName, x.Id)));
                         image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
                         return image;
                     });
             disposables.AddRange(weaponImages.Values);
 
-            var avatarImageTask = charData.OrderByDescending(x => x.Level)
+            ValueTask<List<Image<Rgba32>>> avatarImageTask = charData.OrderByDescending(x => x.Level)
                 .ThenByDescending(x => x.Rarity)
                 .ThenBy(x => x.Name)
                 .ToAsyncEnumerable()
                 .SelectAwait(async x =>
                 {
-                    using var avatarImage = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync($"genshin_avatar_{x.Id}"));
+                    using Image avatarImage = await Image.LoadAsync(
+                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.Id)));
                     return GetStyledCharacterImage(x, avatarImage, weaponImages[x.Weapon.Id!.Value]);
                 })
                 .ToListAsync();
@@ -137,22 +138,22 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                 .OrderBy(x => x.Key)
                 .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
-            var avatarImages = await avatarImageTask;
+            List<Image<Rgba32>> avatarImages = await avatarImageTask;
 
             disposables.AddRange(avatarImages);
 
-            var layout = ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
+            ImageUtility.GridLayout layout = ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
-            var background = new Image<Rgba32>(layout.OutputWidth, layout.OutputHeight + 50);
+            Image<Rgba32> background = new(layout.OutputWidth, layout.OutputHeight + 50);
 
             background.Mutate(ctx =>
             {
                 ctx.Clear(Color.FromRgb(69, 69, 69));
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
-                    {
-                        Origin = new Vector2(50, 80),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    }, $"{gameData.Nickname}·AR {gameData.Level}", Color.White);
+                {
+                    Origin = new Vector2(50, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, $"{gameData.Nickname}·AR {gameData.Level}", Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -160,25 +161,25 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, gameData.GameUid!, Color.White);
 
-                foreach (var position in layout.ImagePositions)
+                foreach (ImageUtility.ImagePosition position in layout.ImagePositions)
                 {
-                    var image = avatarImages[position.ImageIndex];
+                    Image<Rgba32> image = avatarImages[position.ImageIndex];
                     ctx.DrawImage(image, new Point(position.X, position.Y), 1f);
                 }
 
-                var yOffset = layout.OutputHeight - 30;
-                var xOffset = 50;
+                int yOffset = layout.OutputHeight - 30;
+                int xOffset = 50;
                 foreach (var entry in charCountByElem)
                 {
-                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                    FontRectangle countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
                         new TextOptions(m_NormalFont));
-                    var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
-                    var size = new FontRectangle(0, 0, countSize.Width + elemSize.Width + 20,
+                    FontRectangle elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
+                    FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    var overlay =
+                    IPath overlay =
                         ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
                             .Translate(xOffset, yOffset);
-                    var foreground = new EllipsePolygon(new PointF(xOffset + 20, yOffset + 25), 10);
+                    EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
                     ctx.Fill(ElementBackground[entry.Element], overlay);
                     ctx.Fill(ElementForeground[entry.Element], foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -198,23 +199,23 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
 
                 foreach (var entry in charCountByRarity)
                 {
-                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                    FontRectangle countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
                         new TextOptions(m_NormalFont));
-                    var elemSize = TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
-                    var size = new FontRectangle(0, 0, countSize.Width + elemSize.Width + 20,
+                    FontRectangle elemSize = TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
+                    FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    var overlay =
+                    IPath overlay =
                         ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
                             .Translate(xOffset, yOffset);
-                    var foreground = new EllipsePolygon(new PointF(xOffset + 20, yOffset + 25), 10);
+                    EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
                     ctx.Fill(RarityColors[entry.Rarity - 1].WithAlpha(128), overlay);
                     ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 40, yOffset + 26),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, $"{entry.Rarity} Star", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 40, yOffset + 26),
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{entry.Rarity} Star", Color.White);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
@@ -227,7 +228,7 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
 
             m_Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
                 gameData.GameUid, charData.Count);
-            var stream = new MemoryStream();
+            MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
             return stream;
@@ -240,14 +241,14 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
         }
         finally
         {
-            foreach (var disposable in disposables) disposable.Dispose();
+            foreach (IDisposable disposable in disposables) disposable.Dispose();
         }
     }
 
     private Image<Rgba32> GetStyledCharacterImage(GenshinBasicCharacterData charData, Image avatarImage,
         Image weaponImage)
     {
-        var background = new Image<Rgba32>(300, 180);
+        Image<Rgba32> background = new(300, 180);
         background.Mutate(ctx =>
         {
             ctx.Fill(RarityColors[charData.Rarity!.Value - 1], new RectangleF(0, 0, 150, 180));
@@ -256,19 +257,19 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
             ctx.DrawImage(avatarImage, new Point(0, 0), 1f);
             ctx.DrawImage(weaponImage, new Point(150, 0), 1f);
 
-            var charLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
-            var charLevel =
+            FontRectangle charLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
+            IPath charLevel =
                 ImageUtility.CreateRoundedRectanglePath((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
                     10);
             ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 110));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-                {
-                    Origin = new Vector2(5, 120 + charLevelRect.Height / 2),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"Lv. {charData.Level}", Color.White);
+            {
+                Origin = new Vector2(5, 120 + charLevelRect.Height / 2),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center
+            }, $"Lv. {charData.Level}", Color.White);
 
-            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
+            IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
             switch (charData.ActivedConstellationNum)
             {
                 case 6:
@@ -280,30 +281,31 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                         VerticalAlignment = VerticalAlignment.Center
                     }, "6", GoldConstTextColor);
                     break;
+
                 case > 0:
                     ctx.Fill(NormalConstColor, constIcon);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(130, 130),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, $"{charData.ActivedConstellationNum}", Color.White);
+                    {
+                        Origin = new Vector2(130, 130),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{charData.ActivedConstellationNum}", Color.White);
                     break;
             }
 
-            var weapLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Weapon.Level}", new TextOptions(m_SmallFont));
-            var weapLevel =
+            FontRectangle weapLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Weapon.Level}", new TextOptions(m_SmallFont));
+            IPath weapLevel =
                 ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40, (int)weapLevelRect.Height + 20,
                     10);
             ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 110));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-                {
-                    Origin = new PointF(295 - weapLevelRect.Width / 2, 120 + weapLevelRect.Height / 2),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"Lv. {charData.Weapon.Level}", Color.White);
+            {
+                Origin = new PointF(295 - weapLevelRect.Width / 2, 120 + weapLevelRect.Height / 2),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }, $"Lv. {charData.Weapon.Level}", Color.White);
 
-            var refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 115);
+            IPath refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 115);
             switch (charData.Weapon.AffixLevel)
             {
                 case 5:
@@ -315,14 +317,15 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                         VerticalAlignment = VerticalAlignment.Center
                     }, "5", GoldConstTextColor);
                     break;
+
                 case > 0:
                     ctx.Fill(NormalConstColor, refineIcon);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(170, 130),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, $"{charData.Weapon.AffixLevel}", Color.White);
+                    {
+                        Origin = new Vector2(170, 130),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{charData.Weapon.AffixLevel}", Color.White);
                     break;
             }
 
@@ -331,11 +334,11 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
 
             ctx.Fill(Color.PeachPuff, new RectangleF(0, 150, 300, 30));
             ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(150, 165),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{charData.Name}", Color.Black);
+            {
+                Origin = new Vector2(150, 165),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }, $"{charData.Name}", Color.Black);
 
             ctx.ApplyRoundedCorners(15);
         });

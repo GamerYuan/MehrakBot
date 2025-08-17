@@ -16,7 +16,7 @@ using NetCord.Rest;
 
 namespace MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 
-public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRealTimeNotesData>,
+public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRealTimeNotesCommandExecutor>,
     IRealTimeNotesCommandExecutor<GenshinCommandModule>
 {
     private readonly IRealTimeNotesApiService<GenshinRealTimeNotesData> m_ApiService;
@@ -27,7 +27,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
     public GenshinRealTimeNotesCommandExecutor(IRealTimeNotesApiService<GenshinRealTimeNotesData> apiService,
         ImageRepository imageRepository, GameRecordApiService gameRecordApi,
         UserRepository userRepository, TokenCacheService tokenCacheService,
-        IAuthenticationMiddlewareService authenticationMiddleware, ILogger<GenshinRealTimeNotesData> logger) : base(
+        IAuthenticationMiddlewareService authenticationMiddleware, ILogger<GenshinRealTimeNotesCommandExecutor> logger) : base(
         userRepository, tokenCacheService, authenticationMiddleware, gameRecordApi, logger)
     {
         m_ApiService = apiService;
@@ -39,26 +39,26 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
         if (parameters.Length != 2)
             throw new ArgumentException("Invalid parameters count for real-time notes command");
 
-        var server = (Regions?)parameters[0];
-        var profile = parameters[1] == null ? 1 : (uint)parameters[1]!;
+        Regions? server = (Regions?)parameters[0];
+        uint profile = parameters[1] == null ? 1 : (uint)parameters[1]!;
 
         try
         {
-            var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
+            (UserModel? user, UserProfile? selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null)
                 return;
 
             // Auto-select server from cache if not provided
             if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out var tmp))
+                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out Regions tmp))
                 server = tmp;
 
-            var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.Genshin);
+            Regions? cachedServer = server ?? GetCachedServer(selectedProfile, GameName.Genshin);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
             m_PendingServer = cachedServer!.Value;
-            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
+            string? ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
 
             if (ltoken != null)
             {
@@ -96,16 +96,16 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
     {
         try
         {
-            var region = server.GetRegion();
-            var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            string region = server.GetRegion();
+            UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server,
+            ApiResult<ApiResponseTypes.UserGameData> result = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server,
                 server.GetRegion());
 
             if (!result.IsSuccess) return;
 
-            var gameUid = result.Data.GameUid!;
-            var notesResult = await m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
+            string gameUid = result.Data.GameUid!;
+            ApiResult<GenshinRealTimeNotesData> notesResult = await m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
 
             if (!notesResult.IsSuccess)
             {
@@ -114,7 +114,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
                 return;
             }
 
-            var notesData = notesResult.Data;
+            GenshinRealTimeNotesData notesData = notesResult.Data;
             if (notesData == null)
             {
                 Logger.LogError("No data found in real-time notes response");
@@ -148,14 +148,14 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
     {
         try
         {
-            var resinImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_resin");
-            var expeditionImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_expedition");
-            var teapotImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_teapot");
-            var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
-            var transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
+            Task<Stream> resinImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_resin");
+            Task<Stream> expeditionImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_expedition");
+            Task<Stream> teapotImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_teapot");
+            Task<Stream> weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
+            Task<Stream> transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
 
-            var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var weeklyReset = region.GetNextWeeklyResetUnix();
+            long currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            long weeklyReset = region.GetNextWeeklyResetUnix();
 
             InteractionMessageProperties response = new();
             response.WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral);
