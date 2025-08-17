@@ -48,5 +48,5 @@ public static class FileNameFormat
     /// <summary>
     /// HSR stats file name format, where {0} is the stat ID
     /// </summary>
-    public const string HsrStatsName = "Hsr_stats_{0}";
+    public const string HsrStatsName = "hsr_stats_{0}";
 }
