@@ -2,7 +2,7 @@
 
 namespace MehrakCore.ApiResponseTypes.Zzz;
 
-public class ZzzBasicAvatarData
+public class ZzzBasicAvatarData : IBasicCharacterData
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }

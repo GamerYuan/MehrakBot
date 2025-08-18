@@ -2,7 +2,7 @@
 
 namespace MehrakCore.ApiResponseTypes.Zzz;
 
-public class ZzzAvatarData
+public class ZzzAvatarData : ICharacterInformation
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
@@ -41,7 +41,7 @@ public class ZzzAvatarData
     public Weapon? Weapon { get; set; }
 
     [JsonPropertyName("properties")]
-    public required List<Property> Properties { get; set; }
+    public required List<CharacterProperty> Properties { get; set; }
 
     [JsonPropertyName("skills")]
     public required List<Skill> Skills { get; set; }
@@ -71,7 +71,7 @@ public class ZzzAvatarData
     public required string AwakenState { get; set; }
 }
 
-public class ZzzFullAvatarData
+public class ZzzFullAvatarData : ICharacterDetail
 {
     [JsonPropertyName("avatar_list")]
     public required List<ZzzAvatarData> AvatarList { get; set; }
@@ -107,10 +107,10 @@ public class Equip
     public required string Rarity { get; set; }
 
     [JsonPropertyName("properties")]
-    public required List<Property> Properties { get; set; }
+    public required List<EquipProperty> Properties { get; set; }
 
     [JsonPropertyName("main_properties")]
-    public required List<MainProperty> MainProperties { get; set; }
+    public required List<EquipProperty> MainProperties { get; set; }
 
     [JsonPropertyName("equip_suit")]
     public required EquipSuit EquipSuit { get; set; }
@@ -158,7 +158,7 @@ public class SkillDetails
     public bool Awaken { get; set; }
 }
 
-public class MainProperty
+public class EquipProperty
 {
     [JsonPropertyName("property_name")]
     public required string PropertyName { get; set; }
@@ -182,7 +182,7 @@ public class MainProperty
     public int Add { get; set; }
 }
 
-public class Property
+public class CharacterProperty
 {
     [JsonPropertyName("property_name")]
     public required string PropertyName { get; set; }
@@ -193,17 +193,8 @@ public class Property
     [JsonPropertyName("base")]
     public required string Base { get; set; }
 
-    [JsonPropertyName("level")]
-    public int Level { get; set; }
-
-    [JsonPropertyName("valid")]
-    public bool Valid { get; set; }
-
-    [JsonPropertyName("system_id")]
-    public int SystemId { get; set; }
-
     [JsonPropertyName("add")]
-    public int Add { get; set; }
+    public required string Add { get; set; }
 
     [JsonPropertyName("final")]
     public required string Final { get; set; }
@@ -263,10 +254,10 @@ public class Weapon
     public required string Rarity { get; set; }
 
     [JsonPropertyName("properties")]
-    public required List<Property> Properties { get; set; }
+    public required List<EquipProperty> Properties { get; set; }
 
     [JsonPropertyName("main_properties")]
-    public required List<MainProperty> MainProperties { get; set; }
+    public required List<EquipProperty> MainProperties { get; set; }
 
     [JsonPropertyName("talent_title")]
     public required string TalentTitle { get; set; }
