@@ -2,7 +2,7 @@
 
 namespace MehrakCore.ApiResponseTypes.Zzz;
 
-public class ZzzAvatarData : ICharacterInformation
+public class ZzzAvatarData
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
@@ -35,7 +35,7 @@ public class ZzzAvatarData : ICharacterInformation
     public required string HollowIconPath { get; set; }
 
     [JsonPropertyName("equip")]
-    public required List<Equip> Equip { get; set; }
+    public required List<DiskDrive> Equip { get; set; }
 
     [JsonPropertyName("weapon")]
     public Weapon? Weapon { get; set; }
@@ -71,7 +71,7 @@ public class ZzzAvatarData : ICharacterInformation
     public required string AwakenState { get; set; }
 }
 
-public class ZzzFullAvatarData : ICharacterDetail
+public class ZzzFullAvatarData : ICharacterDetail, ICharacterInformation
 {
     [JsonPropertyName("avatar_list")]
     public required List<ZzzAvatarData> AvatarList { get; set; }
@@ -83,13 +83,13 @@ public class ZzzFullAvatarData : ICharacterDetail
     public Dictionary<string, string>? WeaponWiki { get; set; }
 
     [JsonPropertyName("avatar_wiki")]
-    public Dictionary<string, string>? AvatarWiki { get; set; }
+    public required Dictionary<string, string> AvatarWiki { get; set; }
 
     [JsonPropertyName("strategy_wiki")]
     public Dictionary<string, string>? StrategyWiki { get; set; }
 }
 
-public class Equip
+public class DiskDrive
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
@@ -128,7 +128,7 @@ public class Equip
 /// <summary>
 /// Disk Drive set details
 /// </summary>
-public class EquipSuit
+public class EquipSuit : IEquatable<EquipSuit>
 {
     [JsonPropertyName("suit_id")]
     public int SuitId { get; set; }
@@ -144,6 +144,20 @@ public class EquipSuit
 
     [JsonPropertyName("desc2")]
     public required string Desc2 { get; set; }
+
+    public bool Equals(EquipSuit? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return SuitId == other.SuitId;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as EquipSuit);
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(SuitId, Name);
+    }
 }
 
 public class SkillDetails
