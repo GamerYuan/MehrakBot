@@ -23,7 +23,7 @@ public class ImageRepository
 
     public async Task<ObjectId> UploadFileAsync(string fileNameInDb, Stream sourceStream, string? contentType = null)
     {
-        var options = new GridFSUploadOptions
+        GridFSUploadOptions options = new()
         {
             Metadata = contentType != null ? new BsonDocument("contentType", contentType) : null
         };
@@ -43,8 +43,8 @@ public class ImageRepository
     public async Task DeleteFileAsync(string fileNameInDb)
     {
         m_Logger.LogInformation("Deleting file from GridFS {FileNameInDb}", fileNameInDb);
-        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
-        var fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
+        FilterDefinition<GridFSFileInfo> filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
+        GridFSFileInfo fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
 
         if (fileInfo != null) await m_Bucket.DeleteAsync(fileInfo.Id);
     }
@@ -52,8 +52,17 @@ public class ImageRepository
     public async Task<bool> FileExistsAsync(string fileNameInDb)
     {
         m_Logger.LogInformation("Checking if file {FileNameInDb} exists in GridFS", fileNameInDb);
-        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
-        var fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
+        FilterDefinition<GridFSFileInfo> filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
+        GridFSFileInfo fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
         return fileInfo != null;
+    }
+
+    public async Task<List<string>> ListFilesAsync(string prefix = "")
+    {
+        m_Logger.LogInformation("Listing files in GridFS with prefix {Prefix}", prefix);
+        FilterDefinition<GridFSFileInfo> filter = Builders<GridFSFileInfo>
+            .Filter.Regex(x => x.Filename, new BsonRegularExpression($"^{prefix}"));
+        List<GridFSFileInfo> fileInfos = await (await m_Bucket.FindAsync(filter)).ToListAsync();
+        return [.. fileInfos.Select(x => x.Filename)];
     }
 }
