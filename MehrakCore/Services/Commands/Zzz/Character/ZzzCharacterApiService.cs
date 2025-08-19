@@ -113,7 +113,7 @@ internal class ZzzCharacterApiService : ICharacterApi<ZzzBasicAvatarData, ZzzFul
             request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}" +
-                $"/info?id_list[]={characterId}&server={region}&role_id={gameUid}");
+                $"/info?id_list[]={characterId}&server={region}&role_id={gameUid}&need_wiki=true");
             m_Logger.LogDebug("Sending character detail request to {Endpoint}", request.RequestUri);
             HttpResponseMessage response = await httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
@@ -195,5 +195,4 @@ internal class ZzzCharacterApiService : ICharacterApi<ZzzBasicAvatarData, ZzzFul
                 "An error occurred while retrieving character data");
         }
     }
-}
 }
