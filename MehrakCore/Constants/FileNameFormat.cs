@@ -59,5 +59,10 @@ public static class FileNameFormat
     /// <summary>
     /// ZZZ skill file name format, where {0} is the skill type
     /// </summary>
-    public const string ZzzSkillName = "zzz_{0}";
+    public const string ZzzSkillName = "zzz_skill_{0}";
+
+    /// <summary>
+    /// ZZZ profession file name format, where {0} is the profession ID
+    /// </summary>
+    public const string ZzzProfessionName = "zzz_profession_{0}";
 }
