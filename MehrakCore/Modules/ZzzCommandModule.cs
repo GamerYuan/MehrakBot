@@ -16,13 +16,16 @@ namespace MehrakCore.Modules;
 public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
 {
     private readonly ICodeRedeemExecutor<ZzzCommandModule> m_CodeRedeemExecutor;
+    private readonly ICharacterCommandExecutor<ZzzCommandModule> m_CharacterCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<ZzzCommandModule> m_Logger;
 
     public ZzzCommandModule(ICodeRedeemExecutor<ZzzCommandModule> codeRedeemExecutor,
+        ICharacterCommandExecutor<ZzzCommandModule> characterCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<ZzzCommandModule> logger)
     {
         m_CodeRedeemExecutor = codeRedeemExecutor;
+        m_CharacterCommandExecutor = characterCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
     }
@@ -44,6 +47,33 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         m_CodeRedeemExecutor.Context = Context;
         await m_CodeRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("character", "Get character card")]
+    public async Task CharacterCommand(
+     [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        string characterName,
+     [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+     [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the character command with character {CharacterName}, server {Server}, profile {ProfileId}",
+            Context.User.Id, characterName, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        if (string.IsNullOrWhiteSpace(characterName))
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithContent("Character name cannot be empty")
+                    .WithFlags(MessageFlags.Ephemeral)));
+            return;
+        }
+
+        m_CharacterCommandExecutor.Context = Context;
+        await m_CharacterCommandExecutor.ExecuteAsync(characterName, server, profile).ConfigureAwait(false);
     }
 
     private async Task<bool> ValidateRateLimitAsync()
