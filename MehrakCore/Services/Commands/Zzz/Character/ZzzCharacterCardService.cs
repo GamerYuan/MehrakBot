@@ -6,6 +6,7 @@ using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
@@ -31,22 +32,26 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
     private readonly Font m_NormalFont;
     private readonly Font m_MediumFont;
     private readonly Font m_TitleFont;
+    private readonly Font m_ExtraLargeFont;
 
     private readonly JpegEncoder m_JpegEncoder;
 
     private static readonly string BasePath = FileNameFormat.ZzzFileName;
 
-    private readonly Image m_Background = null!;
     private readonly Image m_WeaponTemplate = null!;
     private readonly Image<Rgba32> m_DiskTemplate = null!;
+
+    private static readonly Color BackgroundColor = Color.FromRgb(69, 69, 69);
+    private static readonly Color OverlayColor = Color.FromRgb(36, 36, 36);
 
     public ZzzCharacterCardService(ImageRepository imageRepository, ILogger<ZzzCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
 
-        FontFamily fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
+        FontFamily fontFamily = new FontCollection().Add("Assets/Fonts/zzz.ttf");
 
+        m_ExtraLargeFont = new FontCollection().AddSystemFonts().Get("Impact").CreateFont(400, FontStyle.Italic);
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
         m_MediumFont = fontFamily.CreateFont(36);
@@ -76,13 +81,8 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format(FileNameFormat.ZzzProfessionName, i)))))];
 
-        char[] agentRanks = ['s', 'a'];
-        List<Task<(char x, Image)>> agentRankTasks = [.. agentRanks.Select(async i =>
-            (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format("zzz_agent_{0}", i)))))];
-
-        char[] diskRarity = ['s', 'a', 'b'];
-        List<Task<(char x, Image)>> rarityTasks = [.. diskRarity.Select(async i =>
+        char[] itemRarity = ['s', 'a', 'b'];
+        List<Task<(char x, Image)>> rarityTasks = [.. itemRarity.Select(async i =>
             (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format("zzz_rarity_{0}", i)))))];
 
@@ -90,7 +90,6 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         m_SkillImages = Task.WhenAll(skillTasks).Result.ToDictionary();
         m_SpecialAttributeImages = Task.WhenAll(specialAttributeTasks).Result.ToDictionary();
         m_ProfessionImages = Task.WhenAll(professionTasks).Result.ToDictionary();
-        m_AgentRankImages = Task.WhenAll(agentRankTasks).Result.ToDictionary(CaseInsensitiveCharComparer.Instance);
         m_RarityImages = Task.WhenAll(rarityTasks).Result.ToDictionary(CaseInsensitiveCharComparer.Instance);
 
         m_WeaponTemplate = new Image<Rgba32>(100, 100);
@@ -114,7 +113,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
             ZzzAvatarData character = characterInformation.AvatarList[0];
 
-            Image<Rgba32> background = new(3000, 1080);
+            Image<Rgba32> background = new(3000, 1200);
 
             Task<Image> portraitTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format(BasePath, character.Id)));
@@ -135,6 +134,8 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                 }
             }).ToListAsync();
 
+            Color accentColor = Color.ParseHex(character.VerticalPaintingColor);
+
             Image portraitImage = await portraitTask;
             Image weaponImage = await weaponTask;
             disposables.Add(portraitImage);
@@ -145,10 +146,20 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
             background.Mutate(ctx =>
             {
-                ctx.Clear(Color.RebeccaPurple);
+                ctx.Clear(accentColor);
+
+                ctx.DrawText(new RichTextOptions(m_ExtraLargeFont)
+                {
+                    Origin = new Vector2(-500, 0),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    WrappingLength = 1800,
+                    WordBreaking = WordBreaking.BreakAll
+                }, string.Join($"{character.FullName.ToUpperInvariant()} ", Enumerable.Range(0, 5).Select(_ => "")),
+                    Color.White.WithAlpha(0.25f));
 
                 ctx.DrawImage(portraitImage,
-                    new Point(350 - portraitImage.Width / 2, 600 - portraitImage.Height / 4), 1f);
+                    new Point(350 - portraitImage.Width / 2, 650 - portraitImage.Height / 4), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
@@ -178,6 +189,15 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                 ctx.DrawText($"Lv. {character.Level}", m_NormalFont, Color.White,
                     new PointF(70, bounds.Bottom + 20));
                 ctx.DrawText(gameUid, m_SmallFont, Color.White, new PointF(70, 1150));
+
+                ctx.FillPolygon(BackgroundColor, new PointF(900, 0), new PointF(688, 1200), new PointF(3000, 1200), new PointF(3000, 0));
+
+                foreach (Rank rank in character.Ranks)
+                {
+                    using Image<Rgba32> rankImage = CreateRankTemplateImage(rank.Id, rank.IsUnlocked, accentColor);
+                    int yOffset = 130 * (rank.Id - 1);
+                    ctx.DrawImage(rankImage, new Point(890 - (int)MathF.Round(yOffset * 0.1763f), yOffset), 1f);
+                }
 
                 for (int i = 0; i < diskImage.Count; i++)
                 {
@@ -261,5 +281,28 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             }
         });
         return diskTemplate;
+    }
+
+    private Image<Rgba32> CreateRankTemplateImage(int rank, bool activated, Color accentColor)
+    {
+        Image<Rgba32> image = new(120, 150);
+
+        image.Mutate(ctx =>
+        {
+            ctx.Clear(Color.Transparent);
+            IPath path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
+            ctx.Fill(OverlayColor, path);
+            ctx.Draw(accentColor, 4f, path);
+            ctx.DrawText(new RichTextOptions(m_TitleFont)
+            {
+                Origin = new Vector2(60, 75),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }, rank.ToString("D2"), Color.White);
+            if (!activated) ctx.Brightness(0.5f);
+
+            ctx.Rotate(10, KnownResamplers.Bicubic);
+        });
+        return image;
     }
 }
