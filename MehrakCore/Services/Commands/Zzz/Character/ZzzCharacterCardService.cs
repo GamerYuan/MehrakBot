@@ -26,12 +26,14 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
     private readonly Dictionary<string, Image> m_AttributeImages;
     private readonly Dictionary<int, Image> m_ProfessionImages;
     private readonly Dictionary<char, Image> m_RarityImages;
+    private readonly Dictionary<int, Image> m_WeaponStarImages;
 
     private readonly Font m_SmallFont;
     private readonly Font m_NormalFont;
     private readonly Font m_MediumFont;
     private readonly Font m_TitleFont;
     private readonly Font m_ExtraLargeFont;
+    private readonly Font m_VerySmallFont;
 
     private readonly JpegEncoder m_JpegEncoder;
 
@@ -55,6 +57,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         m_NormalFont = fontFamily.CreateFont(40);
         m_MediumFont = fontFamily.CreateFont(36);
         m_SmallFont = fontFamily.CreateFont(28);
+        m_VerySmallFont = fontFamily.CreateFont(20);
 
         m_JpegEncoder = new JpegEncoder
         {
@@ -85,11 +88,16 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format("zzz_rarity_{0}", i)))))];
 
+        List<Task<(int x, Image)>> weaponStarTasks = [.. Enumerable.Range(1, 5)
+            .Select(async i => (i, await Image.LoadAsync(
+                await m_ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}"))))];
+
         m_StatImages = Task.WhenAll(tasks).Result.ToDictionary(StringComparer.OrdinalIgnoreCase);
         m_SkillImages = Task.WhenAll(skillTasks).Result.ToDictionary();
         m_AttributeImages = Task.WhenAll(attributeTasks).Result.ToDictionary();
         m_ProfessionImages = Task.WhenAll(professionTasks).Result.ToDictionary();
         m_RarityImages = Task.WhenAll(rarityTasks).Result.ToDictionary(CaseInsensitiveCharComparer.Instance);
+        m_WeaponStarImages = Task.WhenAll(weaponStarTasks).Result.ToDictionary();
 
         m_WeaponTemplate = new Image<Rgba32>(100, 100);
 
@@ -147,6 +155,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             {
                 ctx.Clear(accentColor);
 
+                // Character Overview
                 ctx.DrawFauxItalicText(new RichTextOptions(m_ExtraLargeFont)
                 {
                     Origin = new Vector2(-500, 0),
@@ -207,6 +216,55 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                         accentColor);
                 ctx.DrawImage(elementImage, new Point(890 - (int)MathF.Round(900 * 0.1763f), 900), 1f);
 
+                // Skill
+                foreach (Skill skill in character.Skills)
+                {
+                    int skillIndex = skill.SkillType == 6 ? 4 : skill.SkillType;
+                    m_SkillImages[skill.SkillType].Mutate(x => x.Resize(100, 0));
+                    int yOffset = skillIndex >= 3 ? 130 : 0;
+                    int xOffset = skillIndex % 3 * 120;
+                    ctx.DrawImage(m_SkillImages[skill.SkillType],
+                        new Point(1030 + xOffset, 70 + yOffset), 1f);
+                    EllipsePolygon skillEllipse = new(new PointF(1110 + xOffset, 150 + yOffset), 25);
+                    ctx.Fill(OverlayColor, skillEllipse.AsClosedPath());
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    {
+                        Origin = new Vector2(1110 + xOffset, 157 + yOffset),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, skill.Level.ToString(), Color.White);
+                    ctx.Draw(accentColor, 4f, skillEllipse.AsClosedPath());
+                }
+
+                IPath weaponModule = ImageUtility.CreateRoundedRectanglePath(450, 330, 30).Translate(950, 690);
+                ctx.Fill(OverlayColor, weaponModule);
+                ctx.Draw(accentColor, 4f, weaponModule);
+
+                // Weapon
+                if (character.Weapon != null)
+                {
+                    weaponImage.Mutate(x => x.Resize(150, 0));
+                    ctx.DrawImage(weaponImage, new Point(970, 710), 1f);
+                    ctx.DrawImage(m_RarityImages[character.Weapon.Rarity[0]], new Point(970, 720), 1f);
+                    ctx.DrawImage(m_WeaponStarImages[character.Weapon.Star], new Point(970, 820), 1f);
+
+                    ctx.DrawText($"Lv.{character.Weapon.Level}", m_MediumFont, Color.White, new PointF(980, 890));
+
+                    ctx.DrawText(new RichTextOptions(character.Weapon.Name.Length > 40 ? m_SmallFont : m_MediumFont)
+                    {
+                        Origin = new Vector2(1120, 740),
+                        WrappingLength = 280,
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, character.Weapon.Name, Color.White);
+                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(character.Weapon.MainProperties[0].PropertyName)],
+                        new Point(980, 940), 1f);
+                    ctx.DrawText(character.Weapon.MainProperties[0].Base, m_MediumFont, Color.White, new PointF(1030, 955));
+
+                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(character.Weapon.Properties[0].PropertyName)], new Point(1175, 940), 1f);
+                    ctx.DrawText(character.Weapon.Properties[0].Base, m_MediumFont, Color.White, new PointF(1225, 955));
+                }
+
+                // Stats
                 IPath statsModule = ImageUtility.CreateRoundedRectanglePath(700, 970, 30).Translate(1420, 50);
                 ctx.Fill(OverlayColor, statsModule);
                 ctx.Draw(accentColor, 4f, statsModule);
@@ -223,6 +281,24 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                         Origin = new Vector2(2100, 90 + yOffset),
                         HorizontalAlignment = HorizontalAlignment.Right,
                     }, stat.Final!, Color.White);
+
+                    if (!string.IsNullOrEmpty(stat.Base))
+                    {
+                        RichTextOptions option = new(m_VerySmallFont)
+                        {
+                            Origin = new Vector2(2100, 125 + yOffset),
+                            HorizontalAlignment = HorizontalAlignment.Right
+                        };
+                        string addText = $"+{stat.Add}";
+                        FontRectangle addBound = TextMeasurer.MeasureBounds(addText, option);
+                        ctx.DrawText(option, addText, Color.LightGreen);
+
+                        ctx.DrawText(new RichTextOptions(m_VerySmallFont)
+                        {
+                            Origin = new Vector2(addBound.Left - 5, 125 + yOffset),
+                            HorizontalAlignment = HorizontalAlignment.Right
+                        }, stat.Base, Color.LightSlateGrey);
+                    }
                 }
 
                 // Active Set

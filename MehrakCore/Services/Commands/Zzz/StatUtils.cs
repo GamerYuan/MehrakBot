@@ -8,7 +8,7 @@ internal static partial class StatUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static string GetStatAssetName(string statName)
     {
-        return DamageBonusRegex().Replace(statName, "").Replace(' ', '_').TrimEnd().ToLowerInvariant();
+        return DamageBonusRegex().Replace(statName, "").Replace("Base ", "").Replace(' ', '_').TrimEnd().ToLowerInvariant();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
