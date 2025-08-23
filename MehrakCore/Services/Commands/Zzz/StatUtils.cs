@@ -12,29 +12,30 @@ internal static partial class StatUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static string GetSpecialAttributeName(int subElementId)
+    internal static string GetElementNameFromId(int elementId, int subElementId)
     {
-        return subElementId switch
+        if (subElementId == 0)
         {
-            1 => "frost",
-            2 => "auricink",
-            _ => throw new ArgumentOutOfRangeException(nameof(subElementId),
-                subElementId, null)
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static string GetElementNameFromId(int elementId)
-    {
-        return elementId switch
+            return elementId switch
+            {
+                200 => "physical",
+                201 => "fire",
+                202 => "ice",
+                203 => "electric",
+                205 => "ether",
+                _ => throw new ArgumentOutOfRangeException(nameof(elementId), elementId, null)
+            };
+        }
+        else
         {
-            200 => "physical",
-            201 => "fire",
-            202 => "ice",
-            203 => "electric",
-            205 => "ether",
-            _ => throw new ArgumentOutOfRangeException(nameof(elementId), elementId, null)
-        };
+            return subElementId switch
+            {
+                1 => "frost",
+                2 => "auricink",
+                _ => throw new ArgumentOutOfRangeException(nameof(subElementId),
+                    subElementId, null)
+            };
+        }
     }
 
     [GeneratedRegex(@"\sDMG\sBonus")]

@@ -23,9 +23,8 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
     private readonly Dictionary<string, Image> m_StatImages;
     private readonly Dictionary<int, Image> m_SkillImages;
-    private readonly Dictionary<int, Image> m_SpecialAttributeImages;
+    private readonly Dictionary<string, Image> m_AttributeImages;
     private readonly Dictionary<int, Image> m_ProfessionImages;
-    private readonly Dictionary<char, Image> m_AgentRankImages;
     private readonly Dictionary<char, Image> m_RarityImages;
 
     private readonly Font m_SmallFont;
@@ -73,9 +72,9 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             (id, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format(FileNameFormat.ZzzSkillName, id)))))];
 
-        List<Task<(int x, Image)>> specialAttributeTasks = [.. Enumerable.Range(1, 2).Select(async i =>
-            (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format("zzz_attribute_{0}", StatUtils.GetSpecialAttributeName(i))))))];
+        List<Task<(string x, Image)>> attributeTasks = [.. imageRepository.ListFilesAsync("zzz_attribute").Result.Select(async file =>
+            (file.Replace("zzz_attribute_", "").TrimStart(),
+                await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(file))))];
 
         List<Task<(int x, Image)>> professionTasks = [.. Enumerable.Range(1, 6).Select(async i =>
             (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
@@ -88,16 +87,16 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
         m_StatImages = Task.WhenAll(tasks).Result.ToDictionary(StringComparer.OrdinalIgnoreCase);
         m_SkillImages = Task.WhenAll(skillTasks).Result.ToDictionary();
-        m_SpecialAttributeImages = Task.WhenAll(specialAttributeTasks).Result.ToDictionary();
+        m_AttributeImages = Task.WhenAll(attributeTasks).Result.ToDictionary();
         m_ProfessionImages = Task.WhenAll(professionTasks).Result.ToDictionary();
         m_RarityImages = Task.WhenAll(rarityTasks).Result.ToDictionary(CaseInsensitiveCharComparer.Instance);
 
         m_WeaponTemplate = new Image<Rgba32>(100, 100);
 
-        m_DiskTemplate = new Image<Rgba32>(750, 150);
+        m_DiskTemplate = new Image<Rgba32>(800, 170);
         m_DiskTemplate.Mutate(x =>
         {
-            x.Fill(new Rgba32(255, 255, 255, 0.1f));
+            x.Fill(OverlayColor);
             x.ApplyRoundedCorners(30);
         });
     }
@@ -148,7 +147,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             {
                 ctx.Clear(accentColor);
 
-                ctx.DrawText(new RichTextOptions(m_ExtraLargeFont)
+                ctx.DrawFauxItalicText(new RichTextOptions(m_ExtraLargeFont)
                 {
                     Origin = new Vector2(-500, 0),
                     HorizontalAlignment = HorizontalAlignment.Left,
@@ -199,10 +198,52 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                     ctx.DrawImage(rankImage, new Point(890 - (int)MathF.Round(yOffset * 0.1763f), yOffset), 1f);
                 }
 
+                using Image<Rgba32> professionImage = CreateRotatedIconImage(m_ProfessionImages[character.AvatarProfession], accentColor);
+                ctx.DrawImage(professionImage, new Point(890 - (int)MathF.Round(1030 * 0.1763f), 1030), 1f);
+
+                using Image<Rgba32> elementImage =
+                    CreateRotatedIconImage(
+                        m_AttributeImages[StatUtils.GetElementNameFromId(character.ElementType, character.SubElementType)],
+                        accentColor);
+                ctx.DrawImage(elementImage, new Point(890 - (int)MathF.Round(900 * 0.1763f), 900), 1f);
+
+                IPath statsModule = ImageUtility.CreateRoundedRectanglePath(700, 970, 30).Translate(1420, 50);
+                ctx.Fill(OverlayColor, statsModule);
+                ctx.Draw(accentColor, 4f, statsModule);
+
+                for (int i = 0; i < character.Properties.Count; i++)
+                {
+                    CharacterProperty stat = character.Properties[i];
+                    int yOffset = i * 80;
+
+                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(stat.PropertyName)], new Point(1440, 75 + yOffset), 1f);
+                    ctx.DrawText(stat.PropertyName, m_MediumFont, Color.White, new PointF(1495, 90 + yOffset));
+                    ctx.DrawText(new RichTextOptions(m_MediumFont)
+                    {
+                        Origin = new Vector2(2100, 90 + yOffset),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                    }, stat.Final!, Color.White);
+                }
+
+                // Active Set
+                EquipSuit[] activeSets = [.. character.Equip.Select(x => x.EquipSuit).DistinctBy(x => x.SuitId).Where(x => x.Own >= 2)];
+                for (int i = 0; i < activeSets.Length; i++)
+                {
+                    int yOffset = i * 50;
+                    EquipSuit set = activeSets[i];
+                    RichTextOptions textOption = new(m_SmallFont)
+                    {
+                        Origin = new Vector2(2100, 1060 + yOffset),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    };
+                    string text = $"{set.Name}\tx{set.Own}";
+                    ctx.DrawText(textOption, text, Color.White);
+                }
+
                 for (int i = 0; i < diskImage.Count; i++)
                 {
-                    int offset = i * 170;
-                    ctx.DrawImage(diskImage[i], new Point(2200, 50 + offset), 1f);
+                    int offset = i * 186;
+                    ctx.DrawImage(diskImage[i], new Point(2150, 50 + offset), 1f);
                 }
             });
 
@@ -223,14 +264,14 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         }
     }
 
-    private Image CreateDiskTemplateImageAsync()
+    private Image<Rgba32> CreateDiskTemplateImageAsync()
     {
         Image<Rgba32> diskTemplate = m_DiskTemplate.Clone();
         diskTemplate.Mutate(ctx =>
         {
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
-                Origin = new Vector2(425, 75),
+                Origin = new Vector2(425, 80),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             }, "Not Equipped", Color.White);
@@ -246,38 +287,43 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         Image<Rgba32> diskTemplate = m_DiskTemplate.Clone();
         diskTemplate.Mutate(ctx =>
         {
-            ctx.DrawImage(diskImage, new Point(10, 0), 1f);
+            diskImage.Mutate(x => x.Resize(140, 0));
+            ctx.DrawImage(diskImage, new Point(10, 15), 1f);
             ctx.DrawImage(m_RarityImages[disk.Rarity[0]], new Point(20, 115), 1f);
-            ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)], new Point(125, 10), 1f);
+            ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)], new Point(215, 20), 1f);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
-                Origin = new PointF(230, 60),
+                Origin = new PointF(265, 80),
                 HorizontalAlignment = HorizontalAlignment.Right
             }, disk.MainProperties[0]!.Base!, Color.White);
-            ctx.DrawText($"+{disk.Level}", m_SmallFont, Color.White, new PointF(180, 20));
+            ctx.DrawText(new RichTextOptions(m_SmallFont)
+            {
+                Origin = new PointF(265, 130),
+                HorizontalAlignment = HorizontalAlignment.Right
+            }, $"Lv.{disk.Level}", Color.White);
             // Draw properties
             for (int i = 0; i < disk.Properties!.Count; i++)
             {
                 EquipProperty subStat = disk.Properties[i];
                 Image subStatImage = m_StatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
-                int xOffset = i % 2 * 245;
-                int yOffset = i / 2 * 70;
+                int xOffset = i % 2 * 260;
+                int yOffset = i / 2 * 85;
                 Color color = Color.White;
                 if (subStat is { PropertyName: "ATK" or "DEF" or "HP" } && !subStat.Base.EndsWith('%'))
                 {
                     Image<Rgba32> dim = subStatImage.CloneAs<Rgba32>();
                     dim.Mutate(x => x.Brightness(0.5f));
-                    ctx.DrawImage(dim, new Point(260 + xOffset, 15 + yOffset), 1f);
+                    ctx.DrawImage(dim, new Point(280 + xOffset, 20 + yOffset), 1f);
                     color = Color.FromRgb(128, 128, 128);
                 }
                 else
                 {
-                    ctx.DrawImage(subStatImage, new Point(260 + xOffset, 15 + yOffset), 1f);
+                    ctx.DrawImage(subStatImage, new Point(280 + xOffset, 20 + yOffset), 1f);
                 }
 
-                ctx.DrawText(subStat.Base!, m_NormalFont, color, new PointF(310 + xOffset, 20 + yOffset));
+                ctx.DrawText(subStat.Base!, m_NormalFont, color, new PointF(335 + xOffset, 33 + yOffset));
                 string rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
-                ctx.DrawText(rolls, m_NormalFont, color, new PointF(435 + xOffset, 10 + yOffset));
+                ctx.DrawText(rolls, m_NormalFont, color, new PointF(460 + xOffset, 18 + yOffset));
             }
         });
         return diskTemplate;
@@ -290,12 +336,15 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         image.Mutate(ctx =>
         {
             ctx.Clear(Color.Transparent);
+
+            if (!activated) ctx.Brightness(2f);
+
             IPath path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
             ctx.Fill(OverlayColor, path);
             ctx.Draw(accentColor, 4f, path);
             ctx.DrawText(new RichTextOptions(m_TitleFont)
             {
-                Origin = new Vector2(60, 75),
+                Origin = new Vector2(60, 90),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, rank.ToString("D2"), Color.White);
@@ -303,6 +352,23 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
             ctx.Rotate(10, KnownResamplers.Bicubic);
         });
+        return image;
+    }
+
+    private static Image<Rgba32> CreateRotatedIconImage(Image icon, Color accentColor)
+    {
+        Image<Rgba32> image = new(120, 150);
+
+        image.Mutate(ctx =>
+        {
+            ctx.Clear(Color.Transparent);
+            IPath path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
+            ctx.Fill(OverlayColor, path);
+            ctx.Draw(accentColor, 4f, path);
+            ctx.DrawImage(icon, new Point(60 - icon.Width / 2, 75 - icon.Height / 2), 1f);
+            ctx.Rotate(10, KnownResamplers.Bicubic);
+        });
+
         return image;
     }
 }
