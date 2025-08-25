@@ -52,7 +52,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
         FontFamily fontFamily = new FontCollection().Add("Assets/Fonts/zzz.ttf");
 
-        m_ExtraLargeFont = new FontCollection().AddSystemFonts().Get("Impact").CreateFont(400, FontStyle.Italic);
+        m_ExtraLargeFont = new FontCollection().Add("Assets/Fonts/anton.ttf").CreateFont(400);
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
         m_MediumFont = fontFamily.CreateFont(36);
@@ -133,7 +133,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                 DiskDrive? disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
                 if (disk == null)
                 {
-                    return CreateDiskTemplateImageAsync();
+                    return CreateDiskTemplateImage();
                 }
                 else
                 {
@@ -263,6 +263,17 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                     ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(character.Weapon.Properties[0].PropertyName)], new Point(1175, 940), 1f);
                     ctx.DrawText(character.Weapon.Properties[0].Base, m_MediumFont, Color.White, new PointF(1225, 955));
                 }
+                else
+                {
+                    ctx.DrawText(new RichTextOptions(m_MediumFont)
+                    {
+                        Origin = new Vector2(1175, 858),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        TextAlignment = TextAlignment.Center,
+                        WrappingLength = 350
+                    }, "No W-Engine Equipped", Color.White);
+                }
 
                 // Stats
                 IPath statsModule = ImageUtility.CreateRoundedRectanglePath(700, 970, 30).Translate(1420, 50);
@@ -307,13 +318,20 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                 {
                     int yOffset = i * 50;
                     EquipSuit set = activeSets[i];
-                    RichTextOptions textOption = new(m_SmallFont)
+                    ctx.DrawText(new(m_SmallFont)
                     {
                         Origin = new Vector2(2100, 1060 + yOffset),
                         HorizontalAlignment = HorizontalAlignment.Right
-                    };
-                    string text = $"{set.Name}\tx{set.Own}";
-                    ctx.DrawText(textOption, text, Color.White);
+                    }, $"{set.Name}\tx{set.Own}", Color.White);
+                }
+
+                if (activeSets.Length == 0)
+                {
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    {
+                        Origin = new Vector2(2100, 1060),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, "No Active Set", Color.White);
                 }
 
                 for (int i = 0; i < diskImage.Count; i++)
@@ -340,14 +358,14 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         }
     }
 
-    private Image<Rgba32> CreateDiskTemplateImageAsync()
+    private Image<Rgba32> CreateDiskTemplateImage()
     {
         Image<Rgba32> diskTemplate = m_DiskTemplate.Clone();
         diskTemplate.Mutate(ctx =>
         {
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
-                Origin = new Vector2(425, 80),
+                Origin = new Vector2(425, 88),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             }, "Not Equipped", Color.White);
