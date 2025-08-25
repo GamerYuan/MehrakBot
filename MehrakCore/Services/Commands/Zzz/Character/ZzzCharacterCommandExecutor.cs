@@ -127,7 +127,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
 
             if (character == null)
             {
-                m_CharacterCacheService.GetAliases(GameName.Genshin).TryGetValue(characterName, out string? name);
+                m_CharacterCacheService.GetAliases(GameName.ZenlessZoneZero).TryGetValue(characterName, out string? name);
 
                 if (name == null ||
                     (character =
