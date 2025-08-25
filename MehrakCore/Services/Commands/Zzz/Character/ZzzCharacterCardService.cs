@@ -39,8 +39,8 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
     private static readonly string BasePath = FileNameFormat.ZzzFileName;
 
-    private readonly Image m_WeaponTemplate = null!;
-    private readonly Image<Rgba32> m_DiskTemplate = null!;
+    private readonly Image m_WeaponTemplate;
+    private readonly Image<Rgba32> m_DiskTemplate;
 
     private static readonly Color BackgroundColor = Color.FromRgb(69, 69, 69);
     private static readonly Color OverlayColor = Color.FromRgb(36, 36, 36);
@@ -149,8 +149,6 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             disposables.Add(weaponImage);
             disposables.AddRange(diskImage);
 
-            portraitImage.Mutate(ctx => ctx.Resize(2000, 0));
-
             background.Mutate(ctx =>
             {
                 ctx.Clear(accentColor);
@@ -220,7 +218,6 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                 foreach (Skill skill in character.Skills)
                 {
                     int skillIndex = skill.SkillType == 6 ? 4 : skill.SkillType;
-                    m_SkillImages[skill.SkillType].Mutate(x => x.Resize(100, 0));
                     int yOffset = skillIndex >= 3 ? 130 : 0;
                     int xOffset = skillIndex % 3 * 120;
                     ctx.DrawImage(m_SkillImages[skill.SkillType],
@@ -243,7 +240,6 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                 // Weapon
                 if (character.Weapon != null)
                 {
-                    weaponImage.Mutate(x => x.Resize(150, 0));
                     ctx.DrawImage(weaponImage, new Point(970, 710), 1f);
                     ctx.DrawImage(m_RarityImages[character.Weapon.Rarity[0]], new Point(970, 720), 1f);
                     ctx.DrawImage(m_WeaponStarImages[character.Weapon.Star], new Point(970, 820), 1f);
@@ -381,7 +377,6 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         Image<Rgba32> diskTemplate = m_DiskTemplate.Clone();
         diskTemplate.Mutate(ctx =>
         {
-            diskImage.Mutate(x => x.Resize(140, 0));
             ctx.DrawImage(diskImage, new Point(10, 15), 1f);
             ctx.DrawImage(m_RarityImages[disk.Rarity[0]], new Point(20, 115), 1f);
             ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)], new Point(215, 20), 1f);

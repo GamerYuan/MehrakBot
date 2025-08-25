@@ -4,6 +4,7 @@ using MehrakCore.Models;
 using MehrakCore.Repositories;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using System.Text.Json.Nodes;
 
 namespace MehrakCore.Services.Commands.Zzz;
@@ -96,7 +97,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
 
             HttpResponseMessage imageResponse = await client.GetAsync(imageUrl);
             using Image image = await Image.LoadAsync(await imageResponse.Content.ReadAsStreamAsync());
-            // image.Mutate(x => x.Resize(1000, 0));
+            image.Mutate(x => x.Resize(2000, 0));
             using MemoryStream processedStream = new();
             await image.SaveAsPngAsync(processedStream);
             processedStream.Position = 0;
@@ -123,7 +124,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
             HttpClient client = HttpClientFactory.CreateClient("Default");
             HttpResponseMessage result = await client.GetAsync(weapon.Icon);
             using Image image = await Image.LoadAsync(await result.Content.ReadAsStreamAsync());
-            // image.Mutate(x => x.Resize(1000, 0));
+            image.Mutate(x => x.Resize(150, 0));
             using MemoryStream processedStream = new();
             await image.SaveAsPngAsync(processedStream);
             processedStream.Position = 0;
@@ -152,7 +153,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
                 HttpClient client = HttpClientFactory.CreateClient("Default");
                 HttpResponseMessage result = await client.GetAsync(x.Icon);
                 using Image image = await Image.LoadAsync(await result.Content.ReadAsStreamAsync());
-                // image.Mutate(x => x.Resize(1000, 0));
+                image.Mutate(x => x.Resize(140, 0));
                 using MemoryStream processedStream = new();
                 await image.SaveAsPngAsync(processedStream);
                 processedStream.Position = 0;
