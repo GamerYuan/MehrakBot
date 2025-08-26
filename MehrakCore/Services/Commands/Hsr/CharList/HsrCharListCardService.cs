@@ -243,7 +243,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
         background.Mutate(ctx =>
         {
             ctx.Fill(RarityColors[charData.Rarity!.Value - 2], new RectangleF(0, 0, 150, 180));
-            ctx.Fill(RarityColors[charData.Equip?.Rarity!.Value - 2 ?? 0], new RectangleF(150, 0, 150, 180));
+            ctx.Fill(RarityColors[charData.Equip?.Rarity - 2 ?? 0], new RectangleF(150, 0, 150, 180));
 
             ctx.DrawImage(avatarImage, new Point(0, 0), 1f);
             if (weaponImage is not null)
