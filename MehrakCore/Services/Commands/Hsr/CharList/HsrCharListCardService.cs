@@ -33,16 +33,14 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
     private readonly Font m_NormalFont;
     private readonly Font m_SmallFont;
 
-    private static readonly Color GoldBackgroundColor = Color.FromRgb(183, 125, 76);
-    private static readonly Color PurpleBackgroundColor = Color.FromRgb(132, 104, 173);
-    private static readonly Color BlueBackgroundColor = Color.FromRgb(86, 130, 166);
-    private static readonly Color GreenBackgroundColor = Color.FromRgb(79, 135, 111);
+    private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
+    private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
+    private static readonly Color BlueBackgroundColor = Color.FromRgb(90, 131, 187);
     private static readonly Color WhiteBackgroundColor = Color.FromRgb(128, 128, 130);
 
     private static readonly Color[] RarityColors =
     [
         WhiteBackgroundColor,
-        GreenBackgroundColor,
         BlueBackgroundColor,
         PurpleBackgroundColor,
         GoldBackgroundColor
@@ -51,7 +49,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
     private static readonly Color PurpleForegroundColor = Color.FromRgb(204, 173, 255);
 
     private static readonly Color NormalConstColor = Color.FromRgba(69, 69, 69, 200);
-    private static readonly Color GoldConstTextColor = Color.FromRgb(138, 101, 0);
+    private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
     private static readonly Color DarkOverlayColor = Color.FromRgba(0, 0, 0, 200);
@@ -146,7 +144,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                 {
                     Origin = new Vector2(50, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, $"{gameData.Nickname}·AR {gameData.Level}", Color.White);
+                }, $"{gameData.Nickname} · AR {gameData.Level}", Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -201,7 +199,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                         ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
                             .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(RarityColors[entry.Rarity - 1].WithAlpha(128), overlay);
+                    ctx.Fill(RarityColors[entry.Rarity - 2].WithAlpha(128), overlay);
                     ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
@@ -244,8 +242,8 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
         Image<Rgba32> background = new(300, 180);
         background.Mutate(ctx =>
         {
-            ctx.Fill(RarityColors[charData.Rarity!.Value - 1], new RectangleF(0, 0, 150, 180));
-            ctx.Fill(RarityColors[charData.Equip?.Rarity!.Value - 1 ?? 0], new RectangleF(150, 0, 150, 180));
+            ctx.Fill(RarityColors[charData.Rarity!.Value - 2], new RectangleF(0, 0, 150, 180));
+            ctx.Fill(RarityColors[charData.Equip?.Rarity!.Value - 2 ?? 0], new RectangleF(150, 0, 150, 180));
 
             ctx.DrawImage(avatarImage, new Point(0, 0), 1f);
             if (weaponImage is not null)
@@ -255,22 +253,22 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
             IPath charLevel =
                 ImageUtility.CreateRoundedRectanglePath((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
                     10);
-            ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 110));
+            ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 105));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
             {
-                Origin = new Vector2(5, 120 + charLevelRect.Height / 2),
+                Origin = new Vector2(5, 115 + charLevelRect.Height / 2),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {charData.Level}", Color.White);
 
-            IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
+            IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
             switch (charData.Rank)
             {
                 case 6:
                     ctx.Fill(Color.Gold, constIcon);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
-                        Origin = new Vector2(130, 130),
+                        Origin = new Vector2(130, 125),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     }, "6", GoldConstTextColor);
@@ -280,7 +278,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                     ctx.Fill(NormalConstColor, constIcon);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
-                        Origin = new Vector2(130, 130),
+                        Origin = new Vector2(130, 125),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     }, $"{charData.Rank}", Color.White);
@@ -293,22 +291,22 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                 IPath weapLevel =
                     ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40, (int)weapLevelRect.Height + 20,
                         10);
-                ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 110));
+                ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 105));
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
                 {
-                    Origin = new PointF(295 - weapLevelRect.Width / 2, 120 + weapLevelRect.Height / 2),
+                    Origin = new PointF(295 - weapLevelRect.Width / 2, 115 + weapLevelRect.Height / 2),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"Lv. {charData.Equip.Level}", Color.White);
 
-                IPath refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 115);
+                IPath refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 110);
                 switch (charData.Equip.Rank)
                 {
                     case 5:
                         ctx.Fill(Color.Gold, refineIcon);
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
-                            Origin = new Vector2(170, 130),
+                            Origin = new Vector2(170, 125),
                             HorizontalAlignment = HorizontalAlignment.Center,
                             VerticalAlignment = VerticalAlignment.Center
                         }, "5", GoldConstTextColor);
@@ -318,7 +316,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                         ctx.Fill(NormalConstColor, refineIcon);
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
-                            Origin = new Vector2(170, 130),
+                            Origin = new Vector2(170, 125),
                             HorizontalAlignment = HorizontalAlignment.Center,
                             VerticalAlignment = VerticalAlignment.Center
                         }, $"{charData.Equip.Rank}", Color.White);
@@ -329,10 +327,10 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
             ctx.DrawLine(OverlayColor, 2f, new PointF(150, -5), new PointF(150, 185));
             ctx.BoxBlur(2, new Rectangle(147, 0, 5, 180));
 
-            ctx.Fill(Color.Black, new RectangleF(0, 150, 300, 30));
+            ctx.Fill(Color.Black, new RectangleF(0, 146, 300, 30));
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
-                Origin = new Vector2(150, 165),
+                Origin = new Vector2(150, 161),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"{charData.Name}", Color.White);
