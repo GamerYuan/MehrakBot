@@ -21,19 +21,19 @@ using System.Text.Json;
 
 namespace MehrakCore.Services.Commands.Hsr.EndGame;
 
-internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExecutor>
+internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExecutor>, IAsyncInitializable
 {
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<HsrEndGameCardService> m_Logger;
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
-    private readonly Image m_StarLit;
-    private readonly Image m_StarUnlit;
-    private readonly Image m_CycleIcon;
-    private readonly Image m_PfBackground;
-    private readonly Image m_AsBackground;
-    private readonly Image m_BossCheckmark;
+    private Image m_StarLit = null!;
+    private Image m_StarUnlit = null!;
+    private Image m_CycleIcon = null!;
+    private Image m_PfBackground = null!;
+    private Image m_AsBackground = null!;
+    private Image m_BossCheckmark = null!;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -53,8 +53,11 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
+    }
 
-        m_StarLit = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star").Result);
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        m_StarLit = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star"), cancellationToken);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
         m_StarUnlit.Mutate(ctx =>
         {
@@ -62,13 +65,13 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
             ctx.Brightness(0.7f);
         });
 
-        m_PfBackground = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg").Result);
+        m_PfBackground = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg"), cancellationToken);
 
-        m_AsBackground = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_as_bg").Result);
+        m_AsBackground = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_as_bg"), cancellationToken);
 
-        m_CycleIcon = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass").Result);
+        m_CycleIcon = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass"), cancellationToken);
 
-        m_BossCheckmark = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_boss_check").Result);
+        m_BossCheckmark = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_boss_check"), cancellationToken);
     }
 
     public async ValueTask<Stream> GetEndGameCardImageAsync(EndGameMode gameMode, UserGameData gameData,
