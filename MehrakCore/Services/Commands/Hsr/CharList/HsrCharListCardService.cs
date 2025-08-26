@@ -137,7 +137,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
 
             ImageUtility.GridLayout layout = ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
-            Image<Rgba32> background = new(layout.OutputWidth, layout.OutputHeight + 50);
+            using Image<Rgba32> background = new(layout.OutputWidth, layout.OutputHeight + 50);
 
             background.Mutate(ctx =>
             {
@@ -329,13 +329,13 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
             ctx.DrawLine(OverlayColor, 2f, new PointF(150, -5), new PointF(150, 185));
             ctx.BoxBlur(2, new Rectangle(147, 0, 5, 180));
 
-            ctx.Fill(Color.PeachPuff, new RectangleF(0, 150, 300, 30));
+            ctx.Fill(Color.Black, new RectangleF(0, 150, 300, 30));
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
                 Origin = new Vector2(150, 165),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
-            }, $"{charData.Name}", Color.Black);
+            }, $"{charData.Name}", Color.White);
 
             ctx.ApplyRoundedCorners(15);
         });
