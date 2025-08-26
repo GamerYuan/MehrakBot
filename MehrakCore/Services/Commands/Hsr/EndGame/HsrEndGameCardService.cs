@@ -87,7 +87,12 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), HsrAvatarIdComparer.Instance);
             ValueTask<Dictionary<int, Image>> buffImageTask = buffMap.ToAsyncEnumerable().ToDictionaryAwaitAsync(
                 async x => await Task.FromResult(x.Key),
-                async x => await Image.LoadAsync(x.Value));
+                async x =>
+                {
+                    Image image = await Image.LoadAsync(x.Value);
+                    image.Mutate(ctx => ctx.Resize(110, 0));
+                    return image;
+                });
 
             Dictionary<HsrAvatar, Image<Rgba32>> avatarImages = await avatarImageTask;
             Dictionary<int, Image> buffImages = await buffImageTask;
@@ -270,7 +275,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                     IPath ellipse = new EllipsePolygon(new PointF(xOffset + 780, yOffset + 220), 55);
                     ctx.Fill(Color.Black, ellipse);
                     ctx.Draw(Color.White, 1f, ellipse);
-                    ctx.DrawImage(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 715, yOffset + 160),
+                    ctx.DrawImage(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 725, yOffset + 170),
                         1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 40, yOffset + 335),
                         new PointF(xOffset + 860, yOffset + 335));
@@ -288,7 +293,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                     ellipse = ellipse.Translate(0, 265);
                     ctx.Fill(Color.Black, ellipse);
                     ctx.Draw(Color.White, 1f, ellipse);
-                    ctx.DrawImage(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 715, yOffset + 425),
+                    ctx.DrawImage(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 725, yOffset + 425),
                         1f);
 
                     for (int i = 0; i < 3; i++)
