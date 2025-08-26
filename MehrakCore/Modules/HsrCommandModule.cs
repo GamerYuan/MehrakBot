@@ -2,6 +2,7 @@
 
 using MehrakCore.Provider.Commands.Hsr;
 using MehrakCore.Services.Commands.Executor;
+using MehrakCore.Services.Commands.Hsr.CharList;
 using MehrakCore.Services.Commands.Hsr.EndGame.BossChallenge;
 using MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 using MehrakCore.Services.Commands.Hsr.Memory;
@@ -24,6 +25,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     private readonly HsrMemoryCommandExecutor m_MemoryCommandExecutor;
     private readonly HsrPureFictionCommandExecutor m_FictionCommandExecutor;
     private readonly HsrBossChallengeCommandExecutor m_ChallengeCommandExecutor;
+    private readonly HsrCharListCommandExecutor m_CharListCommandExecutor;
     private readonly ICodeRedeemExecutor<HsrCommandModule> m_CodesRedeemExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<HsrCommandModule> m_Logger;
@@ -32,6 +34,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         IRealTimeNotesCommandExecutor<HsrCommandModule> realTimeNotesCommandExecutor,
         HsrMemoryCommandExecutor memoryCommandExecutor, HsrPureFictionCommandExecutor fictionCommandExecutor,
         HsrBossChallengeCommandExecutor challengeCommandExecutor,
+        HsrCharListCommandExecutor charListCommandExecutor,
         ICodeRedeemExecutor<HsrCommandModule> codesRedeemExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger)
     {
@@ -40,6 +43,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         m_MemoryCommandExecutor = memoryCommandExecutor;
         m_FictionCommandExecutor = fictionCommandExecutor;
         m_ChallengeCommandExecutor = challengeCommandExecutor;
+        m_CharListCommandExecutor = charListCommandExecutor;
         m_CommandRateLimitService = commandRateLimitService;
         m_Logger = logger;
         m_CodesRedeemExecutor = codesRedeemExecutor;
@@ -164,6 +168,21 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         m_ChallengeCommandExecutor.Context = Context;
         await m_ChallengeCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("charlist", "Get character list card")]
+    public async Task CharListCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the Character List command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+        if (!await ValidateRateLimitAsync()) return;
+        m_CharListCommandExecutor.Context = Context;
+        await m_CharListCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")
