@@ -303,8 +303,13 @@ internal class Program
     private static void RegisterAsyncInitializableServices(HostApplicationBuilder builder)
     {
         builder.Services.RegisterAsyncInitializable<ICharacterCardService<GenshinCharacterInformation>>();
+        builder.Services.RegisterAsyncInitializableFor<ICommandService<GenshinAbyssCommandExecutor>, GenshinAbyssCardService>();
+        builder.Services.RegisterAsyncInitializableFor<ICommandService<GenshinTheaterCommandExecutor>, GenshinTheaterCardService>();
+        builder.Services.RegisterAsyncInitializableFor<ICommandService<GenshinStygianCommandExecutor>, GenshinStygianCardService>();
 
         builder.Services.RegisterAsyncInitializable<ICharacterCardService<HsrCharacterInformation>>();
+        builder.Services.RegisterAsyncInitializableFor<ICommandService<HsrMemoryCommandExecutor>, HsrMemoryCardService>();
+        builder.Services.RegisterAsyncInitializableFor<ICommandService<BaseHsrEndGameCommandExecutor>, HsrEndGameCardService>();
 
         builder.Services.RegisterAsyncInitializable<ICharacterCardService<ZzzFullAvatarData>>();
     }
