@@ -1,6 +1,5 @@
 ﻿#region
 
-using System.Numerics;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
 using MehrakCore.Models;
@@ -14,6 +13,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Numerics;
 
 #endregion
 
@@ -25,7 +25,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
     private readonly HsrImageUpdaterService m_ImageUpdater;
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
-    private readonly Dictionary<int, Image> m_StatImages;
+    private Dictionary<int, Image> m_StatImages = null!;
 
     private const string BasePath = FileNameFormat.HsrFileName;
     private const string StatsPath = FileNameFormat.HsrStatsName;
@@ -46,7 +46,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         m_ImageUpdater = (HsrImageUpdaterService)imageUpdater;
         m_Logger = logger;
 
-        var fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
+        FontFamily fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
 
         m_TitleFont = fontFamily.CreateFont(64);
         m_NormalFont = fontFamily.CreateFont(40);
@@ -59,26 +59,29 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             Interleaved = false
         };
 
-        int[] statIds =
-        [
-            1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-            31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60
-        ];
-
-        m_StatImages = statIds.ToAsyncEnumerable().Where(x => x != 8).SelectAwait(async x =>
-        {
-            var path = string.Format(StatsPath, x);
-            m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
-            var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
-            return new KeyValuePair<int, Image>(x, image);
-        }).ToBlockingEnumerable().ToDictionary(x => x.Key, x => x.Value);
-
         m_RelicSlotTemplate = new Image<Rgba32>(750, 150);
         m_RelicSlotTemplate.Mutate(x =>
         {
             x.Fill(new Rgba32(255, 255, 255, 0.1f));
             x.ApplyRoundedCorners(30);
         });
+    }
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        int[] statIds =
+        [
+            1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+                    31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60
+        ];
+
+        m_StatImages = await statIds.ToAsyncEnumerable().Where(x => x != 8).SelectAwait(async x =>
+        {
+            string path = string.Format(StatsPath, x);
+            m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
+            Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
+            return new KeyValuePair<int, Image>(x, image);
+        }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
 
         m_Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);
 
@@ -96,36 +99,36 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
         try
         {
-            var backgroundTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_bg"));
+            Task<Image> backgroundTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_bg"));
 
-            var characterPortraitTask = Image.LoadAsync<Rgba32>(await m_ImageRepository.DownloadFileToStreamAsync(
+            Task<Image<Rgba32>> characterPortraitTask = Image.LoadAsync<Rgba32>(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format(BasePath, characterInformation.Id)));
-            var equipImageTask = characterInformation.Equip == null
+            Task<Image> equipImageTask = characterInformation.Equip == null
                 ? Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template"))
                 : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                     string.Format(BasePath, characterInformation.Equip.Id)));
-            var rankTasks = characterInformation.Ranks!.Select(async x =>
+            Task<(bool Active, Image Image)>[] rankTasks = characterInformation.Ranks!.Select(async x =>
             {
-                var image = await Image.LoadAsync(
+                Image image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.Id)));
                 return (Active: x.IsUnlocked!.Value, Image: image);
             }).ToArray();
 
-            var baseSkill = characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")
+            Skill[] baseSkill = characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")
                 .ToArray();
-            var skillChains = BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2)]);
+            List<List<Skill>> skillChains = BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2)]);
 
-            var baseSkillTasks = baseSkill.Select(async x =>
+            Task<(Skill Data, Image Image)>[] baseSkillTasks = baseSkill.Select(async x =>
             {
-                var image = await Image.LoadAsync(
+                Image image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
                 return (Data: x, Image: image);
             }).ToArray();
-            var skillTasks = skillChains.Select(async chain =>
+            Task<(Skill Data, Image Image)[]>[] skillTasks = skillChains.Select(async chain =>
             {
-                var chainImages = await Task.WhenAll(chain.Select(async x =>
+                (Skill Data, Image Image)[] chainImages = await Task.WhenAll(chain.Select(async x =>
                 {
-                    var image = await Image.LoadAsync(
+                    Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(x.PointType == 1
                             ? string.Format(BasePath,
                                 HsrImageUpdaterService.StatBonusRegex().Replace(x.SkillStages![0].Name!, ""))
@@ -135,39 +138,39 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 return chainImages;
             }).ToArray();
 
-            var relicImageTasks = Enumerable.Range(0, 4).Select(async i =>
+            Task<Image>[] relicImageTasks = Enumerable.Range(0, 4).Select(async i =>
             {
-                var relic = characterInformation.Relics!.FirstOrDefault(x => x.Pos == i + 1);
+                Relic? relic = characterInformation.Relics!.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic != null)
                 {
-                    var relicImage = await CreateRelicSlotImageAsync(relic);
+                    Image<Rgba32> relicImage = await CreateRelicSlotImageAsync(relic);
                     return relicImage;
                 }
                 else
                 {
-                    var templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
+                    Image templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
                     return templateRelicImage;
                 }
             }).ToArray();
-            var ornamentImageTasks = Enumerable.Range(0, 2).Select(async i =>
+            Task<Image>[] ornamentImageTasks = Enumerable.Range(0, 2).Select(async i =>
             {
-                var ornament = characterInformation.Ornaments!.FirstOrDefault(x => x.Pos == i + 5);
+                Relic? ornament = characterInformation.Ornaments!.FirstOrDefault(x => x.Pos == i + 5);
                 if (ornament != null)
                 {
-                    var ornamentImage = await CreateRelicSlotImageAsync(ornament);
+                    Image<Rgba32> ornamentImage = await CreateRelicSlotImageAsync(ornament);
                     return ornamentImage;
                 }
                 else
                 {
-                    var templateOrnamentImage = await CreateTemplateRelicSlotImageAsync(i + 5);
+                    Image templateOrnamentImage = await CreateTemplateRelicSlotImageAsync(i + 5);
                     return templateOrnamentImage;
                 }
             }).ToArray();
 
             Dictionary<string, int> activeRelicSet = [];
-            foreach (var relic in characterInformation.Relics!)
+            foreach (Relic relic in characterInformation.Relics!)
             {
-                var setName = m_ImageUpdater.GetRelicSetName(relic.Id!.Value);
+                string setName = m_ImageUpdater.GetRelicSetName(relic.Id!.Value);
                 if (!activeRelicSet.TryAdd(setName, 1))
                     activeRelicSet[setName]++;
             }
@@ -177,9 +180,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 .ToDictionary(x => x.Key, x => x.Value);
 
             Dictionary<string, int> activeOrnamentSet = [];
-            foreach (var ornament in characterInformation.Ornaments!)
+            foreach (Relic ornament in characterInformation.Ornaments!)
             {
-                var setName = m_ImageUpdater.GetRelicSetName(ornament.Id!.Value);
+                string setName = m_ImageUpdater.GetRelicSetName(ornament.Id!.Value);
                 if (!activeOrnamentSet.TryAdd(setName, 1))
                     activeOrnamentSet[setName]++;
             }
@@ -188,34 +191,34 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 .Where(x => x.Value >= 2)
                 .ToDictionary(x => x.Key, x => x.Value);
 
-            var servantTask = characterInformation.ServantDetail!.ServantSkills!.Select(async x =>
+            Task<(Skill Data, Image Image)>[] servantTask = characterInformation.ServantDetail!.ServantSkills!.Select(async x =>
             {
-                var image = await Image.LoadAsync(
+                Image image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
                 return (Data: x, Image: image);
             }).ToArray();
 
-            var accentColor = GetAccentColor(characterInformation.Element!);
+            Color accentColor = GetAccentColor(characterInformation.Element!);
 
             await Task.WhenAll(backgroundTask, characterPortraitTask, equipImageTask, Task.WhenAll(rankTasks),
                 Task.WhenAll(baseSkillTasks), Task.WhenAll(skillTasks), Task.WhenAll(relicImageTasks),
                 Task.WhenAll(ornamentImageTasks), Task.WhenAll(servantTask));
 
-            var backgroundImage = backgroundTask.Result;
-            var characterPortrait = characterPortraitTask.Result;
-            var equipImage = equipImageTask.Result;
-            var ranks = rankTasks.Select(x => x.Result).Reverse().ToArray();
-            var baseSkillImages = baseSkillTasks.Select(x => x.Result).ToArray();
-            var skillImages = skillTasks.Select(x => x.Result).ToArray();
-            var stats = characterInformation.Properties!.Where(x =>
+            Image backgroundImage = backgroundTask.Result;
+            Image<Rgba32> characterPortrait = characterPortraitTask.Result;
+            Image equipImage = equipImageTask.Result;
+            (bool Active, Image Image)[] ranks = rankTasks.Select(x => x.Result).Reverse().ToArray();
+            (Skill Data, Image Image)[] baseSkillImages = baseSkillTasks.Select(x => x.Result).ToArray();
+            (Skill Data, Image Image)[][] skillImages = skillTasks.Select(x => x.Result).ToArray();
+            List<Property> stats = characterInformation.Properties!.Where(x =>
                 float.Parse(x.Final!.TrimEnd('%')) >
                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.HonkaiStarRail)).ToList();
             if (stats.Count < 7)
                 stats = [.. stats.Concat(characterInformation.Properties!)
                     .DistinctBy(x => x.PropertyType!.Value).Take(7).OrderBy(x => x.PropertyType!.Value)];
-            var relicImages = relicImageTasks.Select(x => x.Result).ToArray();
-            var ornamentImages = ornamentImageTasks.Select(x => x.Result).ToArray();
-            var servantImages = servantTask.Select(x => x.Result).ToArray();
+            Image[] relicImages = relicImageTasks.Select(x => x.Result).ToArray();
+            Image[] ornamentImages = ornamentImageTasks.Select(x => x.Result).ToArray();
+            (Skill Data, Image Image)[] servantImages = servantTask.Select(x => x.Result).ToArray();
             m_Logger.LogInformation("All resources loaded successfully for character card generation");
 
             disposableResources.AddRange(backgroundImage, characterPortrait, equipImage);
@@ -233,7 +236,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             });
 
             // draw blur
-            var clone = backgroundImage.CloneAs<Rgba32>();
+            Image<Rgba32> clone = backgroundImage.CloneAs<Rgba32>();
             disposableResources.Add(clone);
             clone.Mutate(ctx =>
             {
@@ -241,7 +244,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 ctx.GaussianBlur(30);
             });
 
-            var overlay = new Image<Rgba32>(2500, 1200);
+            Image<Rgba32> overlay = new(2500, 1200);
             disposableResources.Add(overlay);
             overlay.Mutate(ctx =>
             {
@@ -267,7 +270,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     VerticalAlignment = VerticalAlignment.Top
                 }, characterInformation.Name!, Color.White);
 
-                var bounds = TextMeasurer.MeasureBounds(characterInformation.Name!, new RichTextOptions(m_TitleFont)
+                FontRectangle bounds = TextMeasurer.MeasureBounds(characterInformation.Name!, new RichTextOptions(m_TitleFont)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 700,
@@ -284,8 +287,8 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < ranks.Length; i++)
                 {
-                    var offset = i * 100;
-                    var ellipse = new EllipsePolygon(new PointF(900, 1115 - offset), 45);
+                    int offset = i * 100;
+                    EllipsePolygon ellipse = new(new PointF(900, 1115 - offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     if (!ranks[i].Active) ranks[i].Image.Mutate(x => x.Brightness(0.5f));
                     ctx.DrawImage(ranks[i].Image, new Point(860, 1075 - offset), 1f);
@@ -294,13 +297,13 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < baseSkillImages.Length; i++)
                 {
-                    var offset = i * 100;
-                    var ellipse = new EllipsePolygon(new PointF(900, 80 + offset), 45);
+                    int offset = i * 100;
+                    EllipsePolygon ellipse = new(new PointF(900, 80 + offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
                     ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
 
-                    var levelEllipse = new EllipsePolygon(new PointF(865, 115 + offset), 20);
+                    EllipsePolygon levelEllipse = new(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
@@ -313,25 +316,25 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < skillImages.Length; i++)
                 {
-                    var yOffset = i * 100;
+                    int yOffset = i * 100;
                     for (int j = 0; j < skillImages[i].Length; j++)
                     {
-                        var skill = skillImages[i][j];
+                        (Skill Data, Image Image) skill = skillImages[i][j];
                         if (!skill.Data.IsActivated!.Value)
                             skill.Image.Mutate(x => x.Brightness(0.5f));
 
                         if (skill.Data.PointType == 3)
                         {
-                            var xOffset = j * 100;
-                            var ellipse = new EllipsePolygon(new PointF(1020 + xOffset, 80 + yOffset), 45);
+                            int xOffset = j * 100;
+                            EllipsePolygon ellipse = new(new PointF(1020 + xOffset, 80 + yOffset), 45);
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(980 + xOffset, 40 + yOffset), 1f);
                             ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
                         }
                         else
                         {
-                            var xOffset = (j - 1) * 100;
-                            var ellipse = new EllipsePolygon(new PointF(1120 + xOffset, 80 + yOffset), 30);
+                            int xOffset = (j - 1) * 100;
+                            EllipsePolygon ellipse = new(new PointF(1120 + xOffset, 80 + yOffset), 30);
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(1095 + xOffset, 55 + yOffset), 1f);
                             ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
@@ -341,13 +344,13 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < servantImages.Length; i++)
                 {
-                    var offset = i * 120;
-                    var ellipse = new EllipsePolygon(new PointF(900 + offset, 480), 45);
+                    int offset = i * 120;
+                    EllipsePolygon ellipse = new(new PointF(900 + offset, 480), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);
                     ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
 
-                    var levelEllipse = new EllipsePolygon(new PointF(865 + offset, 515), 20);
+                    EllipsePolygon levelEllipse = new(new PointF(865 + offset, 515), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
@@ -367,20 +370,20 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                         WrappingLength = 300,
                         VerticalAlignment = VerticalAlignment.Bottom
                     }, characterInformation.Equip.Name!, Color.White);
-                    var equipEllipse = new EllipsePolygon(new PointF(1020, 690), 20);
+                    EllipsePolygon equipEllipse = new(new PointF(1020, 690), 20);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), equipEllipse);
                     ctx.DrawText(((char)(0x215F + characterInformation.Equip.Rank!.Value)).ToString(), m_SmallFont,
                         Color.Gold, new PointF(1007, 676));
                     ctx.Draw(Color.Gold, 2f, equipEllipse.AsClosedPath());
                     ctx.DrawText($"Lv. {characterInformation.Equip.Level!.Value}", m_NormalFont, Color.White,
                         new PointF(1080, 670));
-                    var stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity!.Value,
+                    Image<Rgba32> stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity!.Value,
                         false);
                     ctx.DrawImage(stars, new Point(990, 730), 1f);
                 }
                 else
                 {
-                    var rectangle = new RectangleF(1000, 730, 300, 420);
+                    RectangleF rectangle = new(1000, 730, 300, 420);
                     ctx.DrawImage(equipImage, new Point(1000, 805), 1f);
                     ctx.Draw(Color.White, 5f, rectangle);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
@@ -391,12 +394,12 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     }, "No Light Cone", Color.White);
                 }
 
-                var statOffset = 1100 / stats.Count;
+                int statOffset = 1100 / stats.Count;
                 for (int i = 0; i < stats.Count; i++)
                 {
-                    var offset = i * statOffset;
-                    var property = stats[i];
-                    var statImage = m_StatImages.GetValueOrDefault(property.PropertyType!.Value);
+                    int offset = i * statOffset;
+                    Property property = stats[i];
+                    Image? statImage = m_StatImages.GetValueOrDefault(property.PropertyType!.Value);
                     if (statImage == null)
                     {
                         m_Logger.LogWarning("Stat image not found for property type {PropertyType}",
@@ -416,14 +419,14 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < relicImages.Length; i++)
                 {
-                    var offset = i * 170;
+                    int offset = i * 170;
                     ctx.DrawImage(relicImages[i], new Point(2200, 50 + offset), 1f);
                 }
 
-                var k = 0;
-                foreach (var relicSet in activeRelicSet)
+                int k = 0;
+                foreach (KeyValuePair<string, int> relicSet in activeRelicSet)
                 {
-                    var offset = k * 30;
+                    int offset = k * 30;
                     ctx.DrawText(relicSet.Value.ToString(), m_SmallFont, Color.White,
                         new PointF(2200, 720 + offset));
                     ctx.DrawText(relicSet.Key, m_SmallFont, Color.White, new PointF(2230, 720 + offset));
@@ -432,14 +435,14 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
                 for (int i = 0; i < ornamentImages.Length; i++)
                 {
-                    var offset = i * 170;
+                    int offset = i * 170;
                     ctx.DrawImage(ornamentImages[ornamentImages.Length - 1 - i], new Point(2200, 1000 - offset), 1f);
                 }
 
                 k = 0;
-                foreach (var ornamentSet in activeOrnamentSet)
+                foreach (KeyValuePair<string, int> ornamentSet in activeOrnamentSet)
                 {
-                    var offset = k * 30;
+                    int offset = k * 30;
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
                         Origin = new PointF(2940, 820 - offset),
@@ -477,9 +480,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
     private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic)
     {
-        var relicImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+        Image relicImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
             string.Format(BasePath, relic.Id)));
-        var relicSlotImage = m_RelicSlotTemplate.Clone();
+        Image<Rgba32> relicSlotImage = m_RelicSlotTemplate.Clone();
         relicSlotImage.Mutate(ctx =>
         {
             ctx.DrawImage(relicImage, new Point(10, 0), 1f);
@@ -492,16 +495,16 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             }, relic.MainProperty!.Value!, Color.White);
             ctx.DrawText($"+{relic.Level}", m_SmallFont, Color.White, new PointF(180, 20));
 
-            for (var i = 0; i < relic.Properties!.Count; i++)
+            for (int i = 0; i < relic.Properties!.Count; i++)
             {
-                var subStat = relic.Properties[i];
-                var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                var xOffset = i % 2 * 245;
-                var yOffset = i / 2 * 70;
-                var color = Color.White;
+                Property subStat = relic.Properties[i];
+                Image subStatImage = m_StatImages[subStat.PropertyType!.Value];
+                int xOffset = i % 2 * 245;
+                int yOffset = i / 2 * 70;
+                Color color = Color.White;
                 if (subStat.PropertyType is 27 or 29 or 31)
                 {
-                    var dim = subStatImage.CloneAs<Rgba32>();
+                    Image<Rgba32> dim = subStatImage.CloneAs<Rgba32>();
                     dim.Mutate(x => x.Brightness(0.5f));
                     ctx.DrawImage(dim, new Point(260 + xOffset, 15 + yOffset), 1f);
                     color = Color.FromRgb(128, 128, 128);
@@ -512,7 +515,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 }
 
                 ctx.DrawText(subStat.Value!, m_NormalFont, color, new PointF(310 + xOffset, 20 + yOffset));
-                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
+                string rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
                 ctx.DrawText(rolls, m_NormalFont, color, new PointF(435 + xOffset, 10 + yOffset));
             }
 
@@ -523,12 +526,12 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
     private async Task<Image> CreateTemplateRelicSlotImageAsync(int slot)
     {
-        var path = $"hsr_relic_template_{slot}";
+        string path = $"hsr_relic_template_{slot}";
         m_Logger.LogDebug("Loading template relic image from {Path}", path);
 
-        var relicImage = await Image.LoadAsync<Rgba32>(
+        Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
             await m_ImageRepository.DownloadFileToStreamAsync(path));
-        var template = m_RelicSlotTemplate.Clone();
+        Image<Rgba32> template = m_RelicSlotTemplate.Clone();
         template.Mutate(ctx =>
         {
             ctx.DrawImage(relicImage, new Point(25, 10), 1f);
@@ -547,31 +550,32 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
     private static List<List<Skill>> BuildSkillTree(List<Skill> skills)
     {
-        var result = new List<List<Skill>>();
-        var skillLookup = skills.ToDictionary(s => s.PointId!, s => s);
-        var processed = new HashSet<string>();
+        List<List<Skill>> result = [];
+        Dictionary<string, Skill> skillLookup = skills.ToDictionary(s => s.PointId!, s => s);
+        HashSet<string> processed = [];
 
         // Find all skills that have point_type == 3 and can be roots
-        var type3Skills = skills.Where(s => s.PointType == 3).ToList();
-        var potentialRoots = type3Skills.Where(skill =>
+        List<Skill> type3Skills = skills.Where(s => s.PointType == 3).ToList();
+        List<Skill> potentialRoots = type3Skills.Where(skill =>
                 string.IsNullOrEmpty(skill.PrePoint) || skill.PrePoint == "0" ||
                 !skillLookup.ContainsKey(skill.PrePoint))
             .ToList();
 
-        // Check which type 3 skills can actually be roots (their pre_point either doesn't exist in our filtered list or is "0")
+        // Check which type 3 skills can actually be roots (their pre_point
+        // either doesn't exist in our filtered list or is "0")
 
         // Build chains from each root
-        foreach (var rootSkill in potentialRoots)
+        foreach (Skill? rootSkill in potentialRoots)
         {
             if (processed.Contains(rootSkill.PointId!))
                 continue;
 
-            var chain = BuildChainFromRoot(rootSkill, processed, skills);
+            List<Skill> chain = BuildChainFromRoot(rootSkill, processed, skills);
             if (chain.Count > 0) result.Add(chain);
         }
 
         // Collect any remaining unprocessed skills
-        var unprocessedSkills = skills
+        List<Skill> unprocessedSkills = skills
             .Where(skill => !processed.Contains(skill.PointId!))
             .OrderBy(skill => skill.Anchor) // Sort by anchor as required
             .ToList();
@@ -584,13 +588,13 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 
     private static List<Skill> BuildChainFromRoot(Skill rootSkill, HashSet<string> processed, List<Skill> allSkills)
     {
-        var chain = new List<Skill>();
-        var queue = new Queue<Skill>();
+        List<Skill> chain = [];
+        Queue<Skill> queue = new();
         queue.Enqueue(rootSkill);
 
         while (queue.Count > 0)
         {
-            var current = queue.Dequeue();
+            Skill current = queue.Dequeue();
 
             if (processed.Contains(current.PointId!))
                 continue;
@@ -599,11 +603,11 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             processed.Add(current.PointId!);
 
             // Find all skills that have this skill as their pre_point
-            var childSkills = allSkills
+            List<Skill> childSkills = allSkills
                 .Where(s => s.PrePoint == current.PointId && !processed.Contains(s.PointId!))
                 .ToList();
 
-            foreach (var childSkill in childSkills) queue.Enqueue(childSkill);
+            foreach (Skill? childSkill in childSkills) queue.Enqueue(childSkill);
         }
 
         return chain;

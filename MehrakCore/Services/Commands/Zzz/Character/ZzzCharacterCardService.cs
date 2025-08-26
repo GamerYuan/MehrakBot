@@ -21,12 +21,12 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<ZzzCharacterCardService> m_Logger;
 
-    private readonly Dictionary<string, Image> m_StatImages;
-    private readonly Dictionary<int, Image> m_SkillImages;
-    private readonly Dictionary<string, Image> m_AttributeImages;
-    private readonly Dictionary<int, Image> m_ProfessionImages;
-    private readonly Dictionary<char, Image> m_RarityImages;
-    private readonly Dictionary<int, Image> m_WeaponStarImages;
+    private Dictionary<string, Image> m_StatImages = [];
+    private Dictionary<int, Image> m_SkillImages = [];
+    private Dictionary<string, Image> m_AttributeImages = [];
+    private Dictionary<int, Image> m_ProfessionImages = [];
+    private Dictionary<char, Image> m_RarityImages = [];
+    private Dictionary<int, Image> m_WeaponStarImages = [];
 
     private readonly Font m_SmallFont;
     private readonly Font m_NormalFont;
@@ -65,7 +65,19 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             Interleaved = false
         };
 
-        List<string> files = imageRepository.ListFilesAsync("zzz_stats").Result;
+        m_WeaponTemplate = new Image<Rgba32>(100, 100);
+
+        m_DiskTemplate = new Image<Rgba32>(800, 170);
+        m_DiskTemplate.Mutate(x =>
+        {
+            x.Fill(OverlayColor);
+            x.ApplyRoundedCorners(30);
+        });
+    }
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        List<string> files = await m_ImageRepository.ListFilesAsync("zzz_stats");
         List<Task<(string x, Image)>> tasks = [.. files.Select(async file =>
             (file.Replace("zzz_stats_", "").TrimStart(),
             await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(file))))];
@@ -75,7 +87,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             (id, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format(FileNameFormat.ZzzSkillName, id)))))];
 
-        List<Task<(string x, Image)>> attributeTasks = [.. imageRepository.ListFilesAsync("zzz_attribute").Result.Select(async file =>
+        List<Task<(string x, Image)>> attributeTasks = [.. (await m_ImageRepository.ListFilesAsync("zzz_attribute")).Select(async file =>
             (file.Replace("zzz_attribute_", "").TrimStart(),
                 await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(file))))];
 
@@ -92,21 +104,12 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             .Select(async i => (i, await Image.LoadAsync(
                 await m_ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}"))))];
 
-        m_StatImages = Task.WhenAll(tasks).Result.ToDictionary(StringComparer.OrdinalIgnoreCase);
-        m_SkillImages = Task.WhenAll(skillTasks).Result.ToDictionary();
-        m_AttributeImages = Task.WhenAll(attributeTasks).Result.ToDictionary();
-        m_ProfessionImages = Task.WhenAll(professionTasks).Result.ToDictionary();
-        m_RarityImages = Task.WhenAll(rarityTasks).Result.ToDictionary(CaseInsensitiveCharComparer.Instance);
-        m_WeaponStarImages = Task.WhenAll(weaponStarTasks).Result.ToDictionary();
-
-        m_WeaponTemplate = new Image<Rgba32>(100, 100);
-
-        m_DiskTemplate = new Image<Rgba32>(800, 170);
-        m_DiskTemplate.Mutate(x =>
-        {
-            x.Fill(OverlayColor);
-            x.ApplyRoundedCorners(30);
-        });
+        m_StatImages = (await Task.WhenAll(tasks)).ToDictionary(StringComparer.OrdinalIgnoreCase);
+        m_SkillImages = (await Task.WhenAll(skillTasks)).ToDictionary();
+        m_AttributeImages = (await Task.WhenAll(attributeTasks)).ToDictionary();
+        m_ProfessionImages = (await Task.WhenAll(professionTasks)).ToDictionary();
+        m_RarityImages = (await Task.WhenAll(rarityTasks)).ToDictionary(CaseInsensitiveCharComparer.Instance);
+        m_WeaponStarImages = (await Task.WhenAll(weaponStarTasks)).ToDictionary();
     }
 
     public async Task<Stream> GenerateCharacterCardAsync(ZzzFullAvatarData characterInformation, string gameUid)

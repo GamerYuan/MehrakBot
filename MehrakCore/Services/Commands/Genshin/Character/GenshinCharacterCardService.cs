@@ -24,7 +24,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
 
-    private readonly Dictionary<int, Image> m_StatImages;
+    private Dictionary<int, Image> m_StatImages = null!;
 
     private const string BasePath = FileNameFormat.GenshinFileName;
     private const string StatsPath = FileNameFormat.GenshinStatsName;
@@ -56,11 +56,21 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             Interleaved = false
         };
 
+        m_RelicSlotTemplate = new Image<Rgba32>(970, 170);
+        m_RelicSlotTemplate.Mutate(ctx =>
+        {
+            ctx.Fill(new Rgba32(0, 0, 0, 0.25f));
+            ctx.ApplyRoundedCorners(15);
+        });
+    }
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
         int[] statIds =
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 30, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
 
         m_Logger.LogDebug("Loading {Count} stat icons", statIds.Length);
-        List<Task<KeyValuePair<int, Image>>> statImageTasks = [.. statIds.Select(async x =>
+        m_StatImages = await statIds.ToAsyncEnumerable().SelectAwait(async x =>
         {
             try
             {
@@ -75,17 +85,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 m_Logger.LogError(ex, "Failed to load stat icon {StatId}", x);
                 throw;
             }
-        })];
-
-        KeyValuePair<int, Image>[] results = Task.WhenAll(statImageTasks).Result;
-        m_StatImages = results.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-        m_RelicSlotTemplate = new Image<Rgba32>(970, 170);
-        m_RelicSlotTemplate.Mutate(ctx =>
-        {
-            ctx.Fill(new Rgba32(0, 0, 0, 0.25f));
-            ctx.ApplyRoundedCorners(15);
-        });
+        }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value, cancellationToken: cancellationToken);
 
         m_Logger.LogInformation(
             "Resources initialized successfully with {Count} icons.",
