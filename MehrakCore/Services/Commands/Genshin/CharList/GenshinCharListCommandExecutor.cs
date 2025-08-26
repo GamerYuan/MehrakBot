@@ -39,11 +39,11 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
-        var server = (Regions?)parameters[0];
-        var profile = (uint)(parameters[1] ?? 1);
+        Regions? server = (Regions?)parameters[0];
+        uint profile = (uint)(parameters[1] ?? 1);
         try
         {
-            var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
+            (UserModel user, UserProfile selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null) return;
 
             server ??= GetCachedServer(selectedProfile, GameName.Genshin);
@@ -55,7 +55,7 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
 
             m_PendingServer = server.Value;
 
-            var ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
+            string? ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
             if (ltoken != null)
             {
                 await Context.Interaction.SendResponseAsync(
@@ -96,34 +96,34 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
     {
         try
         {
-            var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
-            var region = server.GetRegion();
+            UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            string region = server.GetRegion();
 
-            var response = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            ApiResult<UserGameData> response = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
             if (!response.IsSuccess)
                 return;
 
-            var userData = response.Data;
-            var gameUid = response.Data.GameUid!;
+            UserGameData userData = response.Data;
+            string gameUid = response.Data.GameUid!;
 
-            var characterList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToList();
+            List<GenshinBasicCharacterData> characterList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToList();
             if (characterList.Count == 0)
             {
                 await SendErrorMessageAsync("No characters found for this account.");
                 return;
             }
 
-            var avatarTask =
+            IEnumerable<Task> avatarTask =
                 characterList.Select(async x =>
                     await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString()!, x.Icon!));
-            var weaponTask =
+            IEnumerable<Task> weaponTask =
                 characterList.Select(async x =>
                     await m_ImageUpdaterService.UpdateWeaponImageTask(x.Weapon));
 
             await Task.WhenAll(avatarTask);
             await Task.WhenAll(weaponTask);
 
-            var message = await GetCardAsync(userData, characterList);
+            InteractionMessageProperties message = await GetCardAsync(userData, characterList);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
@@ -159,6 +159,10 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
         ]));
         message.AddAttachments(new AttachmentProperties("charlist.jpg",
             await m_CommandService.GetCharListCardAsync(gameData, characters)));
+        message.AddComponents(
+            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                "Remove",
+                ButtonStyle.Danger)));
 
         return message;
     }
