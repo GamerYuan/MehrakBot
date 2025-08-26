@@ -21,6 +21,7 @@ using MehrakCore.Services.Commands.Genshin.Stygian;
 using MehrakCore.Services.Commands.Genshin.Theater;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
+using MehrakCore.Services.Commands.Hsr.CharList;
 using MehrakCore.Services.Commands.Hsr.CodeRedeem;
 using MehrakCore.Services.Commands.Hsr.EndGame;
 using MehrakCore.Services.Commands.Hsr.EndGame.BossChallenge;
@@ -197,6 +198,8 @@ internal class Program
             builder.Services.AddSingleton<ICommandService<BaseHsrEndGameCommandExecutor>, HsrEndGameCardService>();
             builder.Services.AddTransient<HsrPureFictionCommandExecutor>();
             builder.Services.AddTransient<HsrBossChallengeCommandExecutor>();
+            builder.Services.AddSingleton<ICommandService<HsrCharListCommandExecutor>, HsrCharListCardService>();
+            builder.Services.AddTransient<HsrCharListCommandExecutor>();
 
             // Zzz Services
             builder.Services.AddSingleton<ImageUpdaterService<ZzzFullAvatarData>, ZzzImageUpdaterService>();

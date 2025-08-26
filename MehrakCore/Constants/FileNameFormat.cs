@@ -52,6 +52,11 @@ public static class FileNameFormat
     public const string HsrStatsName = "hsr_stats_{0}";
 
     /// <summary>
+    /// HSR weapon icon file name format, where {0} is the weapon ID
+    /// </summary>
+    public const string HsrWeaponIconName = "hsr_weapon_icon_{0}";
+
+    /// <summary>
     /// ZZZ file name format, where {0} is the character ID or other identifier
     /// </summary>
     public const string ZzzFileName = "zzz_{0}";
