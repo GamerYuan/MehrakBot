@@ -87,7 +87,12 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), HsrAvatarIdComparer.Instance);
             ValueTask<Dictionary<int, Image>> buffImageTask = buffMap.ToAsyncEnumerable().ToDictionaryAwaitAsync(
                 async x => await Task.FromResult(x.Key),
-                async x => await Image.LoadAsync(x.Value));
+                async x =>
+                {
+                    Image image = await Image.LoadAsync(x.Value);
+                    image.Mutate(ctx => ctx.Resize(128, 0));
+                    return image;
+                });
 
             Dictionary<HsrAvatar, Image<Rgba32>> avatarImages = await avatarImageTask;
             Dictionary<int, Image> buffImages = await buffImageTask;
