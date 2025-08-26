@@ -21,7 +21,8 @@ public static class FileNameFormat
     public const string GenshinSideAvatarName = "genshin_side_avatar_{0}";
 
     /// <summary>
-    /// Genshin skill file name format, where {0} is the character ID and {1} is the skill ID
+    /// Genshin skill file name format, where {0} is the character ID and {1} is
+    /// the skill ID
     /// </summary>
     public const string GenshinSkillName = "genshin_{0}_{1}";
 
@@ -49,4 +50,19 @@ public static class FileNameFormat
     /// HSR stats file name format, where {0} is the stat ID
     /// </summary>
     public const string HsrStatsName = "hsr_stats_{0}";
+
+    /// <summary>
+    /// ZZZ file name format, where {0} is the character ID or other identifier
+    /// </summary>
+    public const string ZzzFileName = "zzz_{0}";
+
+    /// <summary>
+    /// ZZZ skill file name format, where {0} is the skill type
+    /// </summary>
+    public const string ZzzSkillName = "zzz_skill_{0}";
+
+    /// <summary>
+    /// ZZZ profession file name format, where {0} is the profession ID
+    /// </summary>
+    public const string ZzzProfessionName = "zzz_profession_{0}";
 }

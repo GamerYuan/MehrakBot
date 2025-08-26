@@ -1,8 +1,8 @@
 ﻿#region
 
-using System.Globalization;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
+using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Config;
 using MehrakCore.Models;
 using MehrakCore.Modules;
@@ -27,6 +27,8 @@ using MehrakCore.Services.Commands.Hsr.EndGame.BossChallenge;
 using MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
 using MehrakCore.Services.Commands.Hsr.Memory;
 using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
+using MehrakCore.Services.Commands.Zzz;
+using MehrakCore.Services.Commands.Zzz.Character;
 using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
@@ -46,6 +48,7 @@ using NetCord.Services.ComponentInteractions;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using StackExchange.Redis;
+using System.Globalization;
 
 #endregion
 
@@ -67,7 +70,7 @@ internal class Program
             .AddEnvironmentVariables()
             .Build();
 
-        var builder = Host.CreateApplicationBuilder(args);
+        HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
         if (builder.Environment.IsDevelopment())
         {
@@ -76,7 +79,7 @@ internal class Program
         }
 
         // Configure Serilog
-        var loggerConfig = new LoggerConfiguration()
+        LoggerConfiguration loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
             .WriteTo.Console(
@@ -196,9 +199,15 @@ internal class Program
             builder.Services.AddTransient<HsrBossChallengeCommandExecutor>();
 
             // Zzz Services
+            builder.Services.AddSingleton<ImageUpdaterService<ZzzFullAvatarData>, ZzzImageUpdaterService>();
             builder.Services
                 .AddTransient<ICodeRedeemExecutor<ZzzCommandModule>, ZzzCodeRedeemExecutor>();
             builder.Services.AddSingleton<ICodeRedeemApiService<ZzzCommandModule>, ZzzCodeRedeemApiService>();
+            builder.Services.AddSingleton<ICharacterApi<ZzzBasicAvatarData, ZzzFullAvatarData>,
+                ZzzCharacterApiService>();
+            builder.Services.AddSingleton<ICharacterCardService<ZzzFullAvatarData>, ZzzCharacterCardService>();
+            builder.Services.AddTransient<ICharacterCommandExecutor<ZzzCommandModule>,
+                ZzzCharacterCommandExecutor>();
 
             // Daily Check-In Services
             builder.Services
@@ -230,22 +239,22 @@ internal class Program
             // Metrics
             builder.Services.AddHostedService<MetricsService>();
 
-            var host = builder.Build();
+            IHost host = builder.Build();
 
-            var logger = host.Services.GetRequiredService<ILogger<Program>>();
+            ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("MehrakBot application starting");
 
             // Configure MongoDB
-            var imageRepo = host.Services.GetRequiredService<ImageRepository>();
+            ImageRepository imageRepo = host.Services.GetRequiredService<ImageRepository>();
 
-            foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*.png",
+            foreach (string image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*.png",
                          SearchOption.AllDirectories))
             {
                 if (image.Contains("Test")) continue;
-                var fileName = Path.GetFileName(image).Split('.')[0];
+                string fileName = Path.GetFileName(image).Split('.')[0];
                 if (await imageRepo.FileExistsAsync(fileName)) continue;
 
-                await using var stream = File.OpenRead(image);
+                await using FileStream stream = File.OpenRead(image);
                 await imageRepo.UploadFileAsync(fileName, stream);
                 logger.LogInformation("Uploaded {FileName} to MongoDB, file path {Image}", fileName, image);
             }

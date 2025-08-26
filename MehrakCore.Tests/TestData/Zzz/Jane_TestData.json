@@ -1,0 +1,861 @@
+{
+  "avatar_list": [
+    {
+      "id": 1261,
+      "level": 60,
+      "name_mi18n": "Jane",
+      "full_name_mi18n": "Jane Doe",
+      "element_type": 200,
+      "camp_name_mi18n": "Criminal Investigation Special Response Team",
+      "avatar_profession": 3,
+      "rarity": "S",
+      "group_icon_path": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/435b49d680ff8e6eabafb941e49e57db.png",
+      "hollow_icon_path": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/0cd0578d3ad8d37f8aae2580b2a15202.png",
+      "equip": [
+        {
+          "id": 32641,
+          "level": 15,
+          "name": "Fanged Metal [1]",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/c482a7a45c82e4ed439d1da6c7ed0fab.png",
+          "rarity": "S",
+          "properties": [
+            {
+              "property_name": "DEF",
+              "property_id": 13102,
+              "base": "14.4%",
+              "level": 3,
+              "valid": false,
+              "system_id": 131,
+              "add": 2
+            },
+            {
+              "property_name": "Anomaly Proficiency",
+              "property_id": 31203,
+              "base": "18",
+              "level": 2,
+              "valid": true,
+              "system_id": 312,
+              "add": 1
+            },
+            {
+              "property_name": "ATK",
+              "property_id": 12102,
+              "base": "3%",
+              "level": 1,
+              "valid": true,
+              "system_id": 121,
+              "add": 0
+            },
+            {
+              "property_name": "CRIT DMG",
+              "property_id": 21103,
+              "base": "9.6%",
+              "level": 2,
+              "valid": false,
+              "system_id": 211,
+              "add": 1
+            }
+          ],
+          "main_properties": [
+            {
+              "property_name": "HP",
+              "property_id": 11103,
+              "base": "2200",
+              "level": 1,
+              "valid": false,
+              "system_id": 111,
+              "add": 0
+            }
+          ],
+          "equip_suit": {
+            "suit_id": 32600,
+            "name": "Fanged Metal",
+            "own": 4,
+            "desc1": "<color=#F0D12B>Physical DMG</color> +10%",
+            "desc2": "Whenever a squad member inflicts <color=#F0D12B>Assault</color> on an enemy, the equipper deals 35% additional DMG to the target for 12s."
+          },
+          "equipment_type": 1,
+          "invalid_property_cnt": 3,
+          "all_hit": false
+        },
+        {
+          "id": 31342,
+          "level": 15,
+          "name": "Freedom Blues [2]",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/a2b4719a9afc575082c00aecb5e9e4a7.png",
+          "rarity": "S",
+          "properties": [
+            {
+              "property_name": "CRIT DMG",
+              "property_id": 21103,
+              "base": "4.8%",
+              "level": 1,
+              "valid": false,
+              "system_id": 211,
+              "add": 0
+            },
+            {
+              "property_name": "Anomaly Proficiency",
+              "property_id": 31203,
+              "base": "27",
+              "level": 3,
+              "valid": true,
+              "system_id": 312,
+              "add": 2
+            },
+            {
+              "property_name": "HP",
+              "property_id": 11102,
+              "base": "9%",
+              "level": 3,
+              "valid": false,
+              "system_id": 111,
+              "add": 2
+            },
+            {
+              "property_name": "DEF",
+              "property_id": 13103,
+              "base": "15",
+              "level": 1,
+              "valid": false,
+              "system_id": 131,
+              "add": 0
+            }
+          ],
+          "main_properties": [
+            {
+              "property_name": "ATK",
+              "property_id": 12103,
+              "base": "316",
+              "level": 1,
+              "valid": false,
+              "system_id": 121,
+              "add": 0
+            }
+          ],
+          "equip_suit": {
+            "suit_id": 31300,
+            "name": "Freedom Blues",
+            "own": 2,
+            "desc1": "Anomaly Proficiency +30",
+            "desc2": "When an <color=#FFFFFF>EX Special Attack</color> hits an enemy, reduce the target's Anomaly Buildup RES to the equipper's Attribute by 20% for 8s. This effect does not stack with others of the same attribute."
+          },
+          "equipment_type": 2,
+          "invalid_property_cnt": 2,
+          "all_hit": false
+        },
+        {
+          "id": 31343,
+          "level": 15,
+          "name": "Freedom Blues [3]",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/a2b4719a9afc575082c00aecb5e9e4a7.png",
+          "rarity": "S",
+          "properties": [
+            {
+              "property_name": "Anomaly Proficiency",
+              "property_id": 31203,
+              "base": "9",
+              "level": 1,
+              "valid": true,
+              "system_id": 312,
+              "add": 0
+            },
+            {
+              "property_name": "CRIT Rate",
+              "property_id": 20103,
+              "base": "7.2%",
+              "level": 3,
+              "valid": false,
+              "system_id": 201,
+              "add": 2
+            },
+            {
+              "property_name": "HP",
+              "property_id": 11103,
+              "base": "224",
+              "level": 2,
+              "valid": false,
+              "system_id": 111,
+              "add": 1
+            },
+            {
+              "property_name": "HP",
+              "property_id": 11102,
+              "base": "9%",
+              "level": 3,
+              "valid": false,
+              "system_id": 111,
+              "add": 2
+            }
+          ],
+          "main_properties": [
+            {
+              "property_name": "DEF",
+              "property_id": 13103,
+              "base": "184",
+              "level": 1,
+              "valid": false,
+              "system_id": 131,
+              "add": 0
+            }
+          ],
+          "equip_suit": {
+            "suit_id": 31300,
+            "name": "Freedom Blues",
+            "own": 2,
+            "desc1": "Anomaly Proficiency +30",
+            "desc2": "When an <color=#FFFFFF>EX Special Attack</color> hits an enemy, reduce the target's Anomaly Buildup RES to the equipper's Attribute by 20% for 8s. This effect does not stack with others of the same attribute."
+          },
+          "equipment_type": 3,
+          "invalid_property_cnt": 5,
+          "all_hit": false
+        },
+        {
+          "id": 32644,
+          "level": 15,
+          "name": "Fanged Metal [4]",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/c482a7a45c82e4ed439d1da6c7ed0fab.png",
+          "rarity": "S",
+          "properties": [
+            {
+              "property_name": "ATK",
+              "property_id": 12103,
+              "base": "38",
+              "level": 2,
+              "valid": false,
+              "system_id": 121,
+              "add": 1
+            },
+            {
+              "property_name": "CRIT Rate",
+              "property_id": 20103,
+              "base": "7.2%",
+              "level": 3,
+              "valid": false,
+              "system_id": 201,
+              "add": 2
+            },
+            {
+              "property_name": "HP",
+              "property_id": 11103,
+              "base": "224",
+              "level": 2,
+              "valid": false,
+              "system_id": 111,
+              "add": 1
+            },
+            {
+              "property_name": "DEF",
+              "property_id": 13103,
+              "base": "15",
+              "level": 1,
+              "valid": false,
+              "system_id": 131,
+              "add": 0
+            }
+          ],
+          "main_properties": [
+            {
+              "property_name": "Anomaly Proficiency",
+              "property_id": 31203,
+              "base": "92",
+              "level": 1,
+              "valid": false,
+              "system_id": 312,
+              "add": 0
+            }
+          ],
+          "equip_suit": {
+            "suit_id": 32600,
+            "name": "Fanged Metal",
+            "own": 4,
+            "desc1": "<color=#F0D12B>Physical DMG</color> +10%",
+            "desc2": "Whenever a squad member inflicts <color=#F0D12B>Assault</color> on an enemy, the equipper deals 35% additional DMG to the target for 12s."
+          },
+          "equipment_type": 4,
+          "invalid_property_cnt": 4,
+          "all_hit": false
+        },
+        {
+          "id": 32645,
+          "level": 15,
+          "name": "Fanged Metal [5]",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/c482a7a45c82e4ed439d1da6c7ed0fab.png",
+          "rarity": "S",
+          "properties": [
+            {
+              "property_name": "ATK",
+              "property_id": 12102,
+              "base": "6%",
+              "level": 2,
+              "valid": true,
+              "system_id": 121,
+              "add": 1
+            },
+            {
+              "property_name": "DEF",
+              "property_id": 13102,
+              "base": "9.6%",
+              "level": 2,
+              "valid": false,
+              "system_id": 131,
+              "add": 1
+            },
+            {
+              "property_name": "CRIT Rate",
+              "property_id": 20103,
+              "base": "2.4%",
+              "level": 1,
+              "valid": false,
+              "system_id": 201,
+              "add": 0
+            },
+            {
+              "property_name": "CRIT DMG",
+              "property_id": 21103,
+              "base": "14.4%",
+              "level": 3,
+              "valid": false,
+              "system_id": 211,
+              "add": 2
+            }
+          ],
+          "main_properties": [
+            {
+              "property_name": "Physical DMG Bonus",
+              "property_id": 31503,
+              "base": "30%",
+              "level": 1,
+              "valid": false,
+              "system_id": 315,
+              "add": 0
+            }
+          ],
+          "equip_suit": {
+            "suit_id": 32600,
+            "name": "Fanged Metal",
+            "own": 4,
+            "desc1": "<color=#F0D12B>Physical DMG</color> +10%",
+            "desc2": "Whenever a squad member inflicts <color=#F0D12B>Assault</color> on an enemy, the equipper deals 35% additional DMG to the target for 12s."
+          },
+          "equipment_type": 5,
+          "invalid_property_cnt": 3,
+          "all_hit": false
+        },
+        {
+          "id": 32646,
+          "level": 15,
+          "name": "Fanged Metal [6]",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/c482a7a45c82e4ed439d1da6c7ed0fab.png",
+          "rarity": "S",
+          "properties": [
+            {
+              "property_name": "ATK",
+              "property_id": 12102,
+              "base": "6%",
+              "level": 2,
+              "valid": true,
+              "system_id": 121,
+              "add": 1
+            },
+            {
+              "property_name": "CRIT Rate",
+              "property_id": 20103,
+              "base": "2.4%",
+              "level": 1,
+              "valid": false,
+              "system_id": 201,
+              "add": 0
+            },
+            {
+              "property_name": "Anomaly Proficiency",
+              "property_id": 31203,
+              "base": "27",
+              "level": 3,
+              "valid": true,
+              "system_id": 312,
+              "add": 2
+            },
+            {
+              "property_name": "CRIT DMG",
+              "property_id": 21103,
+              "base": "9.6%",
+              "level": 2,
+              "valid": false,
+              "system_id": 211,
+              "add": 1
+            }
+          ],
+          "main_properties": [
+            {
+              "property_name": "Anomaly Mastery",
+              "property_id": 31402,
+              "base": "30%",
+              "level": 1,
+              "valid": false,
+              "system_id": 314,
+              "add": 0
+            }
+          ],
+          "equip_suit": {
+            "suit_id": 32600,
+            "name": "Fanged Metal",
+            "own": 4,
+            "desc1": "<color=#F0D12B>Physical DMG</color> +10%",
+            "desc2": "Whenever a squad member inflicts <color=#F0D12B>Assault</color> on an enemy, the equipper deals 35% additional DMG to the target for 12s."
+          },
+          "equipment_type": 6,
+          "invalid_property_cnt": 1,
+          "all_hit": false
+        }
+      ],
+      "weapon": {
+        "id": 14126,
+        "level": 60,
+        "name": "Sharpened Stinger",
+        "star": 1,
+        "icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/890f23ee49e99ef99b0a49866239c535.png",
+        "rarity": "S",
+        "properties": [
+          {
+            "property_name": "Anomaly Proficiency",
+            "property_id": 31203,
+            "base": "90",
+            "level": 0,
+            "valid": false,
+            "system_id": 0,
+            "add": 0
+          }
+        ],
+        "main_properties": [
+          {
+            "property_name": "Base ATK",
+            "property_id": 12101,
+            "base": "713",
+            "level": 0,
+            "valid": false,
+            "system_id": 0,
+            "add": 0
+          }
+        ],
+        "talent_title": "Indulge in the Hunt",
+        "talent_content": "Upon activating a <color=#FFFFFF>Dash Attack</color>, gain 1 stack of <color=#FFFFFF>Predatory Instinct</color>. Each stack of <color=#FFFFFF>Predatory Instinct</color> increases the equipper's <color=#F0D12B>Physical DMG</color> by <color=#2BAD00>12%</color> for 10s, stacking up to 3 times. This effect can trigger once every 0.5s and repeated triggers reset the duration. When entering combat or triggering <color=#FFFFFF>Perfect Dodge</color>, gain 3 stacks of <color=#FFFFFF>Predatory Instinct</color>. While <color=#FFFFFF>Predatory Instinct</color> is at maximum stacks, the equipper's Anomaly Buildup Rate increases by <color=#2BAD00>40%</color>.",
+        "profession": 3
+      },
+      "properties": [
+        {
+          "property_name": "HP",
+          "property_id": 1,
+          "base": "7788",
+          "add": "4050",
+          "final": "11838"
+        },
+        {
+          "property_name": "ATK",
+          "property_id": 2,
+          "base": "1593",
+          "add": "592",
+          "final": "2185"
+        },
+        {
+          "property_name": "DEF",
+          "property_id": 3,
+          "base": "606",
+          "add": "359",
+          "final": "965"
+        },
+        {
+          "property_name": "Impact",
+          "property_id": 4,
+          "base": "",
+          "add": "",
+          "final": "86"
+        },
+        {
+          "property_name": "CRIT Rate",
+          "property_id": 5,
+          "base": "",
+          "add": "",
+          "final": "24.2%"
+        },
+        {
+          "property_name": "CRIT DMG",
+          "property_id": 6,
+          "base": "",
+          "add": "",
+          "final": "88.4%"
+        },
+        {
+          "property_name": "Anomaly Mastery",
+          "property_id": 7,
+          "base": "148",
+          "add": "44",
+          "final": "192"
+        },
+        {
+          "property_name": "Anomaly Proficiency",
+          "property_id": 8,
+          "base": "",
+          "add": "",
+          "final": "407"
+        },
+        {
+          "property_name": "PEN Ratio",
+          "property_id": 9,
+          "base": "",
+          "add": "",
+          "final": "0.0%"
+        },
+        {
+          "property_name": "Energy Regen",
+          "property_id": 11,
+          "base": "",
+          "add": "",
+          "final": "1.20"
+        },
+        {
+          "property_name": "PEN",
+          "property_id": 232,
+          "base": "",
+          "add": "",
+          "final": "0"
+        },
+        {
+          "property_name": "Physical DMG Bonus",
+          "property_id": 315,
+          "base": "",
+          "add": "",
+          "final": "40.0%"
+        }
+      ],
+      "skills": [
+        {
+          "level": 12,
+          "skill_type": 0,
+          "items": [
+            {
+              "title": "Basic Attack: Dancing Blades",
+              "text": "Press <IconMap:Icon_Normal> to activate:\\nUnleashes up to 6 attacks in front, dealing <color=#F0D12B>Physical DMG</color>.",
+              "awaken": false
+            },
+            {
+              "title": "Passion",
+              "text": "When Jane triggers <color=#FFFFFF>Perfect Dodge</color>, <color=#FFFFFF>Defensive Assist</color>, or performs a move that deals DMG to the enemy, she accumulates <color=#FFFFFF>Passion Stream</color>. Upon reaching the maximum <color=#FFFFFF>Passion Stream</color>, Jane enters the <color=#FFFFFF>Passion</color> state.\\nWhile in the <color=#FFFFFF>Passion</color> state, Jane's <color=#F0D12B>Physical Anomaly Buildup Rate</color> is increased by 25%. Additionally, if Jane's Anomaly Proficiency exceeds 120, each extra point raises her ATK by 2, up to a maximum of 600.\\nIn the <color=#FFFFFF>Passion</color> state, Jane's skills that deal damage consume <color=#FFFFFF>Passion Stream</color>. Activating a <color=#FFFFFF>Perfect Dodge</color> or <color=#FFFFFF>Defensive Assist</color> regenerates <color=#FFFFFF>Passion Stream</color>. Jane exits the <color=#FFFFFF>Passion</color> state when all of her <color=#FFFFFF>Passion Stream</color> is consumed.",
+              "awaken": false
+            },
+            {
+              "title": "Basic Attack: Salchow Jump",
+              "text": "Entering the <color=#FFFFFF>Passion</color> state grants Jane one use of <color=#FFFFFF>Basic Attack: Salchow Jump</color>.\\nWhen available, hold <IconMap:Icon_Normal> to activate:\\nLaunch rapid consecutive attacks forward, followed by a Finishing Move, dealing <color=#F0D12B>Physical DMG</color>.\\nHold the button during the consecutive attacks to extend the skill duration. Release <IconMap:Icon_Normal> to trigger the Finishing Move early.\\nAnti-Interrupt level is increased during the consecutive attacks, and Jane takes 40% reduced DMG. Jane is invulnerable during the Finishing Move.\\nUsing and damaging an enemy with <color=#FFFFFF>Basic Attack: Salchow Jump</color> while in the <color=#FFFFFF>Passion</color> state generates <color=#FFFFFF>Passion Stream</color>.",
+              "awaken": false
+            }
+          ],
+          "awaken_state": "AwakenStateNotVisible"
+        },
+        {
+          "level": 12,
+          "skill_type": 1,
+          "items": [
+            {
+              "title": "Special Attack: Aerial Sweep",
+              "text": "Press <IconMap:Icon_Special> to activate:\\nLeaps into the air to launch consecutive kicks forward, then sweeps across, dealing <color=#F0D12B>Physical DMG</color>.\\nAnti-Interrupt level is increased while using this skill.",
+              "awaken": false
+            },
+            {
+              "title": "EX Special Attack: Aerial Sweep - Clearout",
+              "text": "With enough Energy, press <IconMap:Icon_SpecialReady> to activate:\\nLeaps into the air to launch multiple consecutive kicks forward, then sweeps across, dealing massive <color=#F0D12B>Physical DMG</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            }
+          ],
+          "awaken_state": "AwakenStateNotVisible"
+        },
+        {
+          "level": 11,
+          "skill_type": 2,
+          "items": [
+            {
+              "title": "Dodge: Phantom",
+              "text": "Press <IconMap:Icon_Evade> to trigger.\\nA quick slide dodge.\\nCharacter is invulnerable while using this skill.\\nJane has an extra dodge. Before she enters the <color=#FFFFFF>Passion</color> state, she alternates between the two dodges. After entering the <color=#FFFFFF>Passion</color> state, Jane can pass through enemies in front when dodging.",
+              "awaken": false
+            },
+            {
+              "title": "Dash Attack: Edge Jump",
+              "text": "Press <IconMap:Icon_Normal> during a dodge to activate:\\nIf after the first dodge, launch an upward slash in front, dealing <color=#F0D12B>Physical DMG</color>.\\nIf after the second dodge, perform a consecutive slashes in front, dealing <color=#F0D12B>Physical DMG</color>.",
+              "awaken": false
+            },
+            {
+              "title": "Dash Attack: Phantom Thrust",
+              "text": "While in the <color=#FFFFFF>Passion</color> state, press <IconMap:Icon_Normal> during a dodge to activate:\\nLaunch three quick rushing slashes in front, dealing <color=#F0D12B>Physical DMG</color>.",
+              "awaken": false
+            },
+            {
+              "title": "Dodge Counter: Swift Shadow",
+              "text": "Press <IconMap:Icon_Normal> during a <color=#FFFFFF>Perfect Dodge</color> to activate:\\nIf after the first dodge, unleash multiple slashes at enemies in front, followed by a downward thrust, dealing <color=#F0D12B>Physical DMG</color>.\\nIf after the second dodge, leap up and deliver three consecutive attacks to enemies in front, dealing <color=#F0D12B>Physical DMG</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            },
+            {
+              "title": "Dodge Counter: Swift Shadow Dance",
+              "text": "While in the <color=#FFFFFF>Passion</color> state, press <IconMap:Icon_Normal> during a <color=#FFFFFF>Perfect Dodge</color> to activate:\\nSlash enemies in front quickly multiple times, dealing <color=#F0D12B>Physical DMG</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            }
+          ],
+          "awaken_state": "AwakenStateNotVisible"
+        },
+        {
+          "level": 12,
+          "skill_type": 3,
+          "items": [
+            {
+              "title": "Chain Attack: Flowers of Sin",
+              "text": "When a <color=#FFFFFF>Chain Attack</color> is triggered, select the character to activate:\\nWeaves between and slashes enemies in a large area in front, dealing massive <color=#F0D12B>Physical DMG</color>.\\nJane directly enters the <color=#FFFFFF>Passion</color> state upon activating the skill, and gains max <color=#FFFFFF>Passion Stream</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            },
+            {
+              "title": "Ultimate: Final Curtain",
+              "text": "When Decibel Rating is at <color=#FFFFFF>Maximum</color>, press <IconMap:Icon_UltimateReady> to activate:\\nWeaves between and slashes enemies with a powerful attack in a large area in front, followed by a Finishing Move, dealing massive <color=#F0D12B>Physical DMG</color>.\\nJane directly enters the <color=#FFFFFF>Passion</color> state upon activating the skill, and gains max <color=#FFFFFF>Passion Stream</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            }
+          ],
+          "awaken_state": "AwakenStateNotVisible"
+        },
+        {
+          "level": 7,
+          "skill_type": 5,
+          "items": [
+            {
+              "title": "Core Passive: Insight",
+              "text": "When Jane's attacks hit an enemy, it causes them to enter the <color=#FFFFFF>Gnawed</color> state, lasting for 10s. If any squad member triggers <color=#F0D12B>Assault</color> on an enemy in the <color=#FFFFFF>Gnawed</color> state and causes the <color=#F0D12B>Flinch</color> effect, the <color=#F0D12B>Flinch</color> effect duration is extended by 5s. <color=#F0D12B>Assault</color> DMG has a chance to trigger a critical hit against enemies in the <color=#FFFFFF>Gnawed</color> state, with a base CRIT Rate of <color=#2BAD00>40%</color> and CRIT DMG of 50%. Each point of Jane's Anomaly Proficiency further increases this CRIT Rate by <color=#2BAD00>0.16%</color>.",
+              "awaken": false
+            },
+            {
+              "title": "Additional Ability: Sore Spot",
+              "text": "When another character in your squad is an <color=#FFFFFF>Anomaly</color> character or shares the same Faction:\\nJane's <color=#F0D12B>Physical Anomaly Buildup Rate</color> is increased by 20%. When the enemy is already suffering from an Attribute Anomaly, Jane's <color=#F0D12B>Physical Anomaly Buildup</color> towards the target is increased by an additional 15%.",
+              "awaken": false
+            }
+          ],
+          "awaken_state": "AwakenStateNotVisible"
+        },
+        {
+          "level": 11,
+          "skill_type": 6,
+          "items": [
+            {
+              "title": "Quick Assist: Dark Thorn",
+              "text": "When the active character is launched, press <IconMap:Icon_Switch> to activate:\\nUnleash multiple slashes at enemies in front, followed by a downward thrust, dealing <color=#F0D12B>Physical DMG</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            },
+            {
+              "title": "Quick Assist: Lutz Jump",
+              "text": "While in the <color=#FFFFFF>Passion</color> state, when the active character is launched, press <IconMap:Icon_Switch> to activate:\\nSlash enemies in front quickly multiple times, dealing <color=#F0D12B>Physical DMG</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            },
+            {
+              "title": "Defensive Assist: Last Defense",
+              "text": "When the on-field character is about to be attacked, press <IconMap:Icon_Switch> to activate:\\nParries the enemy's attack, dealing massive Daze.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            },
+            {
+              "title": "Assist Follow-Up: Gale Sweep",
+              "text": "Press <IconMap:Icon_Normal> after a <color=#FFFFFF>Defensive Assist</color> to activate:\\nLeap up and swiftly slash the enemy, then execute a wide sweeping slash across a large area in front, dealing <color=#F0D12B>Physical DMG</color>.\\nCharacter is invulnerable while using this skill.",
+              "awaken": false
+            }
+          ],
+          "awaken_state": "AwakenStateNotVisible"
+        }
+      ],
+      "rank": 0,
+      "ranks": [
+        {
+          "id": 1,
+          "name": "Crime Counsel",
+          "desc": "The maximum uses of <color=#FFFFFF>Basic Attack: Salchow Jump</color> are increased by one.\\nWhile in the <color=#FFFFFF>Passion</color> state, Jane's <color=#F0D12B>Physical Anomaly Buildup Rate</color> increases by an extra 15% and each point of Jane's Anomaly Proficiency increases her DMG by 0.1%, up to a maximum increase of 30%.",
+          "pos": 1,
+          "is_unlocked": false
+        },
+        {
+          "id": 2,
+          "name": "Adapt to the Environment",
+          "desc": "When Jane's attack hits an enemy in the <color=#FFFFFF>Gnawed</color> state, or when any squad member triggers <color=#F0D12B>Assault</color> on an enemy in the <color=#FFFFFF>Gnawed</color> state, 15% of the enemy's DEF is ignored. Additionally, when <color=#F0D12B>Assault</color> DMG triggers a critical hit, the CRIT DMG dealt is increased by an additional 50%.",
+          "pos": 2,
+          "is_unlocked": false
+        },
+        {
+          "id": 3,
+          "name": "Anonymity",
+          "desc": "<color=#FFFFFF>Basic Attack</color>, <color=#FFFFFF>Dodge</color>, <color=#FFFFFF>Assist</color>, <color=#FFFFFF>Special Attack</color>, and <color=#FFFFFF>Chain Attack</color> Lv. +2",
+          "pos": 3,
+          "is_unlocked": false
+        },
+        {
+          "id": 4,
+          "name": "Adapt and Thrive",
+          "desc": "When any squad member triggers the <color=#F0D12B>Assault</color> or <color=#FFFFFF>Disorder</color> effects, all squad members' Attribute Anomaly DMG is increased by 18%, lasting 15s.",
+          "pos": 4,
+          "is_unlocked": false
+        },
+        {
+          "id": 5,
+          "name": "Compulsive Hoarder",
+          "desc": "<color=#FFFFFF>Basic Attack</color>, <color=#FFFFFF>Dodge</color>, <color=#FFFFFF>Assist</color>, <color=#FFFFFF>Special Attack</color>, and <color=#FFFFFF>Chain Attack</color> Lv. +2",
+          "pos": 5,
+          "is_unlocked": false
+        },
+        {
+          "id": 6,
+          "name": "\"Shady\" Technique",
+          "desc": "While in the <color=#FFFFFF>Passion</color> state, Jane's CRIT Rate increases by 20%, and CRIT DMG by 40%. After any squad member inflicts <color=#F0D12B>Assault</color>, Jane instantly enters the <color=#FFFFFF>Passion</color> state, and gains max <color=#FFFFFF>Passion Stream</color>. When that instance of <color=#F0D12B>Assault</color> triggers a critical hit, Jane performs an additional attack on the target, dealing <color=#F0D12B>Physical DMG</color> equal to 1600% of her Anomaly Proficiency.",
+          "pos": 6,
+          "is_unlocked": false
+        }
+      ],
+      "role_vertical_painting_url": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_vertical_painting/role_vertical_painting_1261.png",
+      "equip_plan_info": {
+        "type": 1,
+        "game_default": {
+          "property_list": [
+            {
+              "id": 2,
+              "name": "ATK",
+              "full_name": "ATK",
+              "system_id": 2,
+              "is_select": false
+            },
+            {
+              "id": 8,
+              "name": "Anomaly Proficiency",
+              "full_name": "Anomaly Proficiency",
+              "system_id": 8,
+              "is_select": false
+            }
+          ]
+        },
+        "cultivate_info": {
+          "name": "",
+          "plan_id": "0",
+          "is_delete": false,
+          "old_plan": false
+        },
+        "custom_info": {
+          "property_list": [
+            {
+              "id": 11103,
+              "name": "HP",
+              "full_name": "HP",
+              "system_id": 111,
+              "is_select": false
+            },
+            {
+              "id": 11102,
+              "name": "HP",
+              "full_name": "Percent HP",
+              "system_id": 111,
+              "is_select": false
+            },
+            {
+              "id": 12103,
+              "name": "ATK",
+              "full_name": "ATK",
+              "system_id": 121,
+              "is_select": false
+            },
+            {
+              "id": 12102,
+              "name": "ATK",
+              "full_name": "Percent ATK",
+              "system_id": 121,
+              "is_select": false
+            },
+            {
+              "id": 13103,
+              "name": "DEF",
+              "full_name": "DEF",
+              "system_id": 131,
+              "is_select": false
+            },
+            {
+              "id": 13102,
+              "name": "DEF",
+              "full_name": "Percent DEF",
+              "system_id": 131,
+              "is_select": false
+            },
+            {
+              "id": 20103,
+              "name": "CRIT Rate",
+              "full_name": "CRIT Rate",
+              "system_id": 201,
+              "is_select": false
+            },
+            {
+              "id": 21103,
+              "name": "CRIT DMG",
+              "full_name": "CRIT DMG",
+              "system_id": 211,
+              "is_select": false
+            },
+            {
+              "id": 31203,
+              "name": "Anomaly Proficiency",
+              "full_name": "Anomaly Proficiency",
+              "system_id": 312,
+              "is_select": false
+            },
+            {
+              "id": 23203,
+              "name": "PEN",
+              "full_name": "PEN",
+              "system_id": 232,
+              "is_select": false
+            }
+          ]
+        },
+        "valid_property_cnt": 14,
+        "plan_only_special_property": false,
+        "equip_rating": "ER_A",
+        "plan_effective_property_list": [
+          {
+            "id": 12102,
+            "name": "ATK",
+            "full_name": "Percent ATK",
+            "system_id": 121,
+            "is_select": false
+          },
+          {
+            "id": 31203,
+            "name": "Anomaly Proficiency",
+            "full_name": "Anomaly Proficiency",
+            "system_id": 312,
+            "is_select": false
+          }
+        ],
+        "equip_rating_score": 67.07
+      },
+      "us_full_name": "Jane Doe",
+      "vertical_painting_color": "#86d4e8",
+      "sub_element_type": 0,
+      "skin_list": [],
+      "role_square_url": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261.png",
+      "awaken_state": "AwakenStateNotVisible"
+    }
+  ],
+  "equip_wiki": {
+    "31342": "https://wiki.hoyolab.com/pc/zzz/entry/130",
+    "31343": "https://wiki.hoyolab.com/pc/zzz/entry/130",
+    "32641": "https://wiki.hoyolab.com/pc/zzz/entry/137",
+    "32644": "https://wiki.hoyolab.com/pc/zzz/entry/137",
+    "32645": "https://wiki.hoyolab.com/pc/zzz/entry/137",
+    "32646": "https://wiki.hoyolab.com/pc/zzz/entry/137"
+  },
+  "weapon_wiki": {
+    "14126": "https://wiki.hoyolab.com/pc/zzz/entry/377"
+  },
+  "avatar_wiki": {
+    "1261": "https://wiki.hoyolab.com/pc/zzz/entry/368"
+  },
+  "strategy_wiki": {},
+  "cultivate_index": {
+    "1261": "https://act.hoyolab.com/zzz/event/character-builder/index.html?hyl_presentation_style=fullscreen&utm_source=bbs&utm_medium=zzz&utm_campaign=zj-char#/?avatar_id=1261"
+  },
+  "cultivate_equip": {
+    "1261": "https://act.hoyolab.com/zzz/event/character-builder/index.html?hyl_presentation_style=fullscreen&utm_source=bbs&utm_medium=zzz&utm_campaign=zj-drive#/?avatar_id=1261"
+  }
+}
