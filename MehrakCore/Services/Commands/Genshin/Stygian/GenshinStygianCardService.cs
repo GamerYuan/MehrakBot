@@ -21,7 +21,7 @@ using System.Text.Json;
 
 namespace MehrakCore.Services.Commands.Genshin.Stygian;
 
-public class GenshinStygianCardService : ICommandService<GenshinStygianCommandExecutor>
+public class GenshinStygianCardService : ICommandService<GenshinStygianCommandExecutor>, IAsyncInitializable
 {
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
@@ -38,8 +38,8 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
-    private readonly Image[] m_DifficultyLogo;
-    private readonly Image m_Background;
+    private Image[] m_DifficultyLogo = [];
+    private Image m_Background = null!;
 
     public GenshinStygianCardService(ImageRepository imageRepository, ILogger<GenshinStygianCardService> logger)
     {
@@ -50,12 +50,14 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
         FontFamily fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
+    }
 
-        m_DifficultyLogo = [.. Enumerable.Range(0, 7).Select(x =>
-            Image.Load(m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}").GetAwaiter()
-                .GetResult()))];
-        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg").GetAwaiter()
-            .GetResult());
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().SelectAwait(async x =>
+            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}")))
+            .ToArrayAsync(cancellationToken: cancellationToken);
+        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg"), cancellationToken);
     }
 
     public async ValueTask<Stream> GetStygianCardImageAsync(StygianData stygianInfo, UserGameData gameData,

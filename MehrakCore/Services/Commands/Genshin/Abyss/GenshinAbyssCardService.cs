@@ -20,7 +20,7 @@ using System.Numerics;
 
 namespace MehrakCore.Services.Commands.Genshin.Abyss;
 
-internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExecutor>
+internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExecutor>, IAsyncInitializable
 {
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<GenshinAbyssCardService> m_Logger;
@@ -34,9 +34,9 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    private readonly Image m_AbyssStarIconLit;
-    private readonly Image m_AbyssStarIconUnlit;
-    private readonly Image m_BackgroundImage;
+    private Image m_AbyssStarIconLit = null!;
+    private Image m_AbyssStarIconUnlit = null!;
+    private Image m_BackgroundImage = null!;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -51,12 +51,15 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
+    }
 
-        m_AbyssStarIconLit = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars").Result);
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        m_AbyssStarIconLit = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars"), cancellationToken);
         m_AbyssStarIconUnlit = m_AbyssStarIconLit.CloneAs<Rgba32>();
         m_AbyssStarIconUnlit.Mutate(ctx => ctx.Brightness(0.35f));
 
-        m_BackgroundImage = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg").Result);
+        m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"), cancellationToken);
     }
 
     public async ValueTask<Stream> GetAbyssCardAsync(uint floor, UserGameData gameData, Regions region,
