@@ -21,7 +21,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
     private Regions m_PendingServer;
 
     public HsrCharListCommandExecutor(ICommandService<HsrCharListCommandExecutor> commandService,
-        HsrImageUpdaterService imageUpdaterService,
+        ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
         ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> characterApi,
         UserRepository userRepository,
         TokenCacheService tokenCacheService,
@@ -31,7 +31,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
         : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApi, logger)
     {
         m_CommandService = (HsrCharListCardService)commandService;
-        m_ImageUpdaterService = imageUpdaterService;
+        m_ImageUpdaterService = (HsrImageUpdaterService)imageUpdaterService;
         m_CharacterApi = characterApi;
     }
 
@@ -44,7 +44,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
             (UserModel? user, UserProfile? selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null) return;
 
-            server ??= GetCachedServer(selectedProfile, GameName.Genshin);
+            server ??= GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
             if (server == null)
             {
                 await SendErrorMessageAsync("No cached server found! Please select a server first.");
@@ -97,7 +97,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
             UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
             string region = server.GetRegion();
 
-            ApiResult<UserGameData> response = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            ApiResult<UserGameData> response = await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server, region);
             if (!response.IsSuccess)
                 return;
 
