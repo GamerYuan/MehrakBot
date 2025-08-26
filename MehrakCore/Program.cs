@@ -33,6 +33,7 @@ using MehrakCore.Services.Commands.Zzz.Character;
 using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
+using MehrakCore.Utility;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -142,75 +143,13 @@ internal class Program
             builder.Services.AddTransient<IDailyCheckInService, DailyCheckInService>();
 
             // Genshin Services
-            builder.Services
-                .AddSingleton<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>,
-                    GenshinCharacterApiService>();
-            builder.Services
-                .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
-            builder.Services.AddSingleton<GenshinImageUpdaterService>();
-            builder.Services
-                .AddTransient<ICharacterCommandExecutor<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
-            builder.Services
-                .AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>,
-                    GenshinCharacterAutocompleteService>();
-            builder.Services
-                .AddSingleton<IRealTimeNotesApiService<GenshinRealTimeNotesData>, GenshinRealTimeNotesApiService>();
-            builder.Services
-                .AddTransient<IRealTimeNotesCommandExecutor<GenshinCommandModule>,
-                    GenshinRealTimeNotesCommandExecutor>();
-            builder.Services.AddSingleton<ICodeRedeemApiService<GenshinCommandModule>, GenshinCodeRedeemApiService>();
-            builder.Services
-                .AddTransient<ICodeRedeemExecutor<GenshinCommandModule>, GenshinCodeRedeemExecutor>();
-            builder.Services.AddTransient<GenshinAbyssCommandExecutor>();
-            builder.Services.AddSingleton<IApiService<GenshinAbyssCommandExecutor>, GenshinAbyssApiService>();
-            builder.Services.AddSingleton<ICommandService<GenshinAbyssCommandExecutor>, GenshinAbyssCardService>();
-            builder.Services.AddTransient<GenshinTheaterCommandExecutor>();
-            builder.Services.AddSingleton<IApiService<GenshinTheaterCommandExecutor>, GenshinTheaterApiService>();
-            builder.Services.AddSingleton<ICommandService<GenshinTheaterCommandExecutor>, GenshinTheaterCardService>();
-            builder.Services.AddTransient<GenshinStygianCommandExecutor>();
-            builder.Services.AddSingleton<IApiService<GenshinStygianCommandExecutor>, GenshinStygianApiService>();
-            builder.Services.AddSingleton<ICommandService<GenshinStygianCommandExecutor>, GenshinStygianCardService>();
-            builder.Services.AddTransient<GenshinCharListCommandExecutor>();
-            builder.Services
-                .AddSingleton<ICommandService<GenshinCharListCommandExecutor>, GenshinCharListCardService>();
+            AddGenshinServices(builder);
 
             // Hsr Services
-            builder.Services
-                .AddSingleton<ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>,
-                    HsrCharacterApiService>();
-            builder.Services
-                .AddSingleton<ICharacterCardService<HsrCharacterInformation>, HsrCharacterCardService>();
-            builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
-            builder.Services
-                .AddTransient<ICharacterCommandExecutor<HsrCommandModule>, HsrCharacterCommandExecutor>();
-            builder.Services
-                .AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
-            builder.Services.AddSingleton<IRealTimeNotesApiService<HsrRealTimeNotesData>, HsrRealTimeNotesApiService>();
-            builder.Services
-                .AddTransient<IRealTimeNotesCommandExecutor<HsrCommandModule>, HsrRealTimeNotesCommandExecutor>();
-            builder.Services.AddSingleton<ICodeRedeemApiService<HsrCommandModule>, HsrCodeRedeemApiService>();
-            builder.Services
-                .AddTransient<ICodeRedeemExecutor<HsrCommandModule>, HsrCodeRedeemExecutor>();
-            builder.Services.AddSingleton<IApiService<HsrMemoryCommandExecutor>, HsrMemoryApiService>();
-            builder.Services.AddSingleton<ICommandService<HsrMemoryCommandExecutor>, HsrMemoryCardService>();
-            builder.Services.AddTransient<HsrMemoryCommandExecutor>();
-            builder.Services.AddSingleton<IApiService<BaseHsrEndGameCommandExecutor>, HsrEndGameApiService>();
-            builder.Services.AddSingleton<ICommandService<BaseHsrEndGameCommandExecutor>, HsrEndGameCardService>();
-            builder.Services.AddTransient<HsrPureFictionCommandExecutor>();
-            builder.Services.AddTransient<HsrBossChallengeCommandExecutor>();
-            builder.Services.AddSingleton<ICommandService<HsrCharListCommandExecutor>, HsrCharListCardService>();
-            builder.Services.AddTransient<HsrCharListCommandExecutor>();
+            AddHsrServices(builder);
 
             // Zzz Services
-            builder.Services.AddSingleton<ImageUpdaterService<ZzzFullAvatarData>, ZzzImageUpdaterService>();
-            builder.Services
-                .AddTransient<ICodeRedeemExecutor<ZzzCommandModule>, ZzzCodeRedeemExecutor>();
-            builder.Services.AddSingleton<ICodeRedeemApiService<ZzzCommandModule>, ZzzCodeRedeemApiService>();
-            builder.Services.AddSingleton<ICharacterApi<ZzzBasicAvatarData, ZzzFullAvatarData>,
-                ZzzCharacterApiService>();
-            builder.Services.AddSingleton<ICharacterCardService<ZzzFullAvatarData>, ZzzCharacterCardService>();
-            builder.Services.AddTransient<ICharacterCommandExecutor<ZzzCommandModule>,
-                ZzzCharacterCommandExecutor>();
+            AddZzzServices(builder);
 
             // Daily Check-In Services
             builder.Services
@@ -241,6 +180,11 @@ internal class Program
 
             // Metrics
             builder.Services.AddHostedService<MetricsService>();
+
+            // Initialize services
+            builder.Services.AddHostedService<AsyncInitializationHostedService>();
+
+            RegisterAsyncInitializableServices(builder);
 
             IHost host = builder.Build();
 
@@ -277,5 +221,91 @@ internal class Program
         {
             await Log.CloseAndFlushAsync();
         }
+    }
+
+    private static void AddGenshinServices(HostApplicationBuilder builder)
+    {
+        builder.Services
+                .AddSingleton<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>,
+                    GenshinCharacterApiService>();
+        builder.Services
+            .AddSingleton<ICharacterCardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
+        builder.Services.AddSingleton<GenshinImageUpdaterService>();
+        builder.Services
+            .AddTransient<ICharacterCommandExecutor<GenshinCommandModule>, GenshinCharacterCommandExecutor>();
+        builder.Services
+            .AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>,
+                GenshinCharacterAutocompleteService>();
+        builder.Services
+            .AddSingleton<IRealTimeNotesApiService<GenshinRealTimeNotesData>, GenshinRealTimeNotesApiService>();
+        builder.Services
+            .AddTransient<IRealTimeNotesCommandExecutor<GenshinCommandModule>,
+                GenshinRealTimeNotesCommandExecutor>();
+        builder.Services.AddSingleton<ICodeRedeemApiService<GenshinCommandModule>, GenshinCodeRedeemApiService>();
+        builder.Services
+            .AddTransient<ICodeRedeemExecutor<GenshinCommandModule>, GenshinCodeRedeemExecutor>();
+        builder.Services.AddTransient<GenshinAbyssCommandExecutor>();
+        builder.Services.AddSingleton<IApiService<GenshinAbyssCommandExecutor>, GenshinAbyssApiService>();
+        builder.Services.AddSingleton<ICommandService<GenshinAbyssCommandExecutor>, GenshinAbyssCardService>();
+        builder.Services.AddTransient<GenshinTheaterCommandExecutor>();
+        builder.Services.AddSingleton<IApiService<GenshinTheaterCommandExecutor>, GenshinTheaterApiService>();
+        builder.Services.AddSingleton<ICommandService<GenshinTheaterCommandExecutor>, GenshinTheaterCardService>();
+        builder.Services.AddTransient<GenshinStygianCommandExecutor>();
+        builder.Services.AddSingleton<IApiService<GenshinStygianCommandExecutor>, GenshinStygianApiService>();
+        builder.Services.AddSingleton<ICommandService<GenshinStygianCommandExecutor>, GenshinStygianCardService>();
+        builder.Services.AddTransient<GenshinCharListCommandExecutor>();
+        builder.Services
+            .AddSingleton<ICommandService<GenshinCharListCommandExecutor>, GenshinCharListCardService>();
+    }
+
+    private static void AddHsrServices(HostApplicationBuilder builder)
+    {
+        builder.Services
+                .AddSingleton<ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>,
+                    HsrCharacterApiService>();
+        builder.Services
+            .AddSingleton<ICharacterCardService<HsrCharacterInformation>, HsrCharacterCardService>();
+        builder.Services.AddSingleton<ImageUpdaterService<HsrCharacterInformation>, HsrImageUpdaterService>();
+        builder.Services
+            .AddTransient<ICharacterCommandExecutor<HsrCommandModule>, HsrCharacterCommandExecutor>();
+        builder.Services
+            .AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
+        builder.Services.AddSingleton<IRealTimeNotesApiService<HsrRealTimeNotesData>, HsrRealTimeNotesApiService>();
+        builder.Services
+            .AddTransient<IRealTimeNotesCommandExecutor<HsrCommandModule>, HsrRealTimeNotesCommandExecutor>();
+        builder.Services.AddSingleton<ICodeRedeemApiService<HsrCommandModule>, HsrCodeRedeemApiService>();
+        builder.Services
+            .AddTransient<ICodeRedeemExecutor<HsrCommandModule>, HsrCodeRedeemExecutor>();
+        builder.Services.AddSingleton<IApiService<HsrMemoryCommandExecutor>, HsrMemoryApiService>();
+        builder.Services.AddSingleton<ICommandService<HsrMemoryCommandExecutor>, HsrMemoryCardService>();
+        builder.Services.AddTransient<HsrMemoryCommandExecutor>();
+        builder.Services.AddSingleton<IApiService<BaseHsrEndGameCommandExecutor>, HsrEndGameApiService>();
+        builder.Services.AddSingleton<ICommandService<BaseHsrEndGameCommandExecutor>, HsrEndGameCardService>();
+        builder.Services.AddTransient<HsrPureFictionCommandExecutor>();
+        builder.Services.AddTransient<HsrBossChallengeCommandExecutor>();
+        builder.Services.AddSingleton<ICommandService<HsrCharListCommandExecutor>, HsrCharListCardService>();
+        builder.Services.AddTransient<HsrCharListCommandExecutor>();
+    }
+
+    private static void AddZzzServices(HostApplicationBuilder builder)
+    {
+        builder.Services.AddSingleton<ImageUpdaterService<ZzzFullAvatarData>, ZzzImageUpdaterService>();
+        builder.Services
+            .AddTransient<ICodeRedeemExecutor<ZzzCommandModule>, ZzzCodeRedeemExecutor>();
+        builder.Services.AddSingleton<ICodeRedeemApiService<ZzzCommandModule>, ZzzCodeRedeemApiService>();
+        builder.Services.AddSingleton<ICharacterApi<ZzzBasicAvatarData, ZzzFullAvatarData>,
+            ZzzCharacterApiService>();
+        builder.Services.AddSingleton<ICharacterCardService<ZzzFullAvatarData>, ZzzCharacterCardService>();
+        builder.Services.AddTransient<ICharacterCommandExecutor<ZzzCommandModule>,
+            ZzzCharacterCommandExecutor>();
+    }
+
+    private static void RegisterAsyncInitializableServices(HostApplicationBuilder builder)
+    {
+        builder.Services.RegisterAsyncInitializable<ICharacterCardService<GenshinCharacterInformation>>();
+
+        builder.Services.RegisterAsyncInitializable<ICharacterCardService<HsrCharacterInformation>>();
+
+        builder.Services.RegisterAsyncInitializable<ICharacterCardService<ZzzFullAvatarData>>();
     }
 }
