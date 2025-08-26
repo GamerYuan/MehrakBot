@@ -105,8 +105,8 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                 .SelectAwait(async x =>
                 {
                     Image image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.HsrWeaponIconName, x.Id)));
-                    return (Id: x.Id!.Value, Image: image);
+                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.HsrWeaponIconName, x!.Id)));
+                    return (Id: x!.Id!.Value, Image: image);
                 }).ToDictionaryAsync(x => x.Id, x => x.Image);
             disposables.AddRange(weaponImages.Values);
 
