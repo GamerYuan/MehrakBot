@@ -32,10 +32,14 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     }
 
     /// <summary>
-    /// Updates the character data for HSR using the provided information and wiki data
+    /// Updates the character data for HSR using the provided information and
+    /// wiki data
     /// </summary>
     /// <param name="characterInformation">The character information</param>
-    /// <param name="wiki">The list of wiki. For Hsr, the first should be equipWiki and the second is relicWiki</param>
+    /// <param name="wiki">
+    /// The list of wiki. For Hsr, the first should be equipWiki and the second
+    /// is relicWiki
+    /// </param>
     /// <returns></returns>
     public override async Task UpdateDataAsync(HsrCharacterInformation characterInformation,
         IEnumerable<Dictionary<string, string>> wiki)
@@ -77,6 +81,49 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             Logger.LogError(e, "An error occurred while updating character data {Character}",
                 characterInformation);
             throw new CommandException("An error occurred while updating character image", e);
+        }
+    }
+
+    public async ValueTask UpdateEquipIconAsync(int id, string iconUrl)
+    {
+        string filename = string.Format(FileNameFormat.HsrWeaponIconName, id);
+        try
+        {
+            if (await ImageRepository.FileExistsAsync(filename))
+            {
+                Logger.LogDebug("Equip image for ID {EquipId} already exists, skipping download", id);
+                return;
+            }
+
+            Logger.LogInformation("Downloading equip icon for {EquipId} with {Filename}", id, filename);
+            HttpClient client = HttpClientFactory.CreateClient("Default");
+            HttpResponseMessage imageResponse = await client.GetAsync(iconUrl);
+
+            if (!imageResponse.IsSuccessStatusCode)
+            {
+                Logger.LogWarning("Failed to download image for equip ID {EquipId} with {Filename}: {StatusCode}",
+                    id, filename, imageResponse.StatusCode);
+                throw new CommandException("An error occurred while updating light cone icon");
+            }
+
+            await using Stream imageStream = await imageResponse.Content.ReadAsStreamAsync();
+            using Image image = await Image.LoadAsync(imageStream);
+            image.Mutate(x => x.Resize(150, 0));
+            using MemoryStream processedStream = new();
+            await image.SaveAsPngAsync(processedStream);
+            processedStream.Position = 0;
+            await ImageRepository.UploadFileAsync(filename, processedStream, "png");
+
+            Logger.LogInformation("Successfully updated equip icon for ID {EquipId} with {Filename}", id, filename);
+        }
+        catch (CommandException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error updating equip icon for ID {EquipId} with {Filename}", id, filename);
+            throw new CommandException("An error occurred while updating light cone icon", e);
         }
     }
 
