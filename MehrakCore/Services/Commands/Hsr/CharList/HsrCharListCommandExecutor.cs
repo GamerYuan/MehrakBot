@@ -116,8 +116,8 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
                 characterList.Select(async x =>
                     await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString()!, x.Icon!));
             IEnumerable<Task> weaponTask =
-                characterList.Where(x => x.Equip is not null).Select(async x =>
-                    await m_ImageUpdaterService.UpdateEquipIconAsync(x.Equip!.Id!.Value, x.Equip!.Icon!));
+                characterList.Where(x => x.Equip is not null).Select(x =>
+                    m_ImageUpdaterService.UpdateEquipIconAsync(x.Equip!.Id!.Value, x.Equip!.Icon!));
 
             await Task.WhenAll(avatarTask);
             await Task.WhenAll(weaponTask);

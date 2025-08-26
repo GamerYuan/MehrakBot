@@ -84,7 +84,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
         }
     }
 
-    public async ValueTask UpdateEquipIconAsync(int id, string iconUrl)
+    public async Task UpdateEquipIconAsync(int id, string iconUrl)
     {
         string filename = string.Format(FileNameFormat.HsrWeaponIconName, id);
         try
