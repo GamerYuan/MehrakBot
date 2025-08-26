@@ -157,6 +157,9 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
             ));
         message.AddAttachments(new AttachmentProperties("hsr_charlist.jpg",
             await m_CommandService.GetCharListCardAsync(gameData, charData)));
+        message.AddComponents(
+            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                "Remove", ButtonStyle.Danger)));
 
         return message;
     }
