@@ -49,7 +49,7 @@ public class HsrCharListCardServiceTests
         HsrBasicCharacterData? testData = await
             JsonSerializer.DeserializeAsync<HsrBasicCharacterData>(
                 File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-            "Hsr", "CharList_TestData_1.json")), JsonOptions);
+            "Hsr", filename)), JsonOptions);
 
         Stream image = await m_Service.GetCharListCardAsync(GetTestUserGameData(),
             testData!.AvatarList!);
