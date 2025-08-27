@@ -16,9 +16,10 @@ public class ZzzCharacterCardServiceTests
     private ImageRepository m_ImageRepository;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<HttpClient> m_HttpClientMock;
+    private ZzzCharacterCardService m_Service;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
         m_ImageRepository =
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, new NullLogger<ImageRepository>());
@@ -27,6 +28,10 @@ public class ZzzCharacterCardServiceTests
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(m_HttpClientMock.Object);
+
+        m_Service = new ZzzCharacterCardService(m_ImageRepository,
+            NullLogger<ZzzCharacterCardService>.Instance);
+        await m_Service.InitializeAsync();
     }
 
     [Test]
@@ -39,12 +44,10 @@ public class ZzzCharacterCardServiceTests
                     await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(characterDetail, Is.Not.Null);
 
-        ZzzCharacterCardService service = new(m_ImageRepository,
-            NullLogger<ZzzCharacterCardService>.Instance);
         byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
-        Stream image = await service.GenerateCharacterCardAsync(characterDetail, "Test");
+        Stream image = await m_Service.GenerateCharacterCardAsync(characterDetail, "Test");
         Assert.That(image, Is.Not.Null);
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);

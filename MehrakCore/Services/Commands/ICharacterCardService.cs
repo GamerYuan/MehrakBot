@@ -6,7 +6,7 @@ using MehrakCore.ApiResponseTypes;
 
 namespace MehrakCore.Services.Commands;
 
-public interface ICharacterCardService<in T> where T : ICharacterInformation
+public interface ICharacterCardService<in T> : IAsyncInitializable where T : ICharacterInformation
 {
     public Task<Stream> GenerateCharacterCardAsync(T characterInformation, string gameUid);
 }

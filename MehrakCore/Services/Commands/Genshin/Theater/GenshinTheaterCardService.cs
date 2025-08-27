@@ -20,7 +20,7 @@ using System.Numerics;
 
 namespace MehrakCore.Services.Commands.Genshin.Theater;
 
-internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommandExecutor>
+internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommandExecutor>, IAsyncInitializable
 {
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<GenshinTheaterCardService> m_Logger;
@@ -34,10 +34,10 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    private readonly Image m_Background;
-    private readonly Image m_TheaterStarLit;
-    private readonly Image m_TheaterStarUnlit;
-    private readonly Image m_TheaterBuff;
+    private Image m_Background = null!;
+    private Image m_TheaterStarLit = null!;
+    private Image m_TheaterStarUnlit = null!;
+    private Image m_TheaterBuff = null!;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -52,13 +52,16 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
+    }
 
-        m_TheaterStarLit = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_star").Result);
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        m_TheaterStarLit = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_star"), cancellationToken);
         m_TheaterStarUnlit = m_TheaterStarLit.CloneAs<Rgba32>();
         m_TheaterStarUnlit.Mutate(ctx => ctx.Brightness(0.5f));
 
-        m_TheaterBuff = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_buff").Result);
-        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_bg").Result);
+        m_TheaterBuff = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_buff"), cancellationToken);
+        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_bg"), cancellationToken);
         m_Background.Mutate(x => x.Brightness(0.35f));
     }
 

@@ -21,7 +21,7 @@ using System.Text.Json;
 
 namespace MehrakCore.Services.Commands.Hsr.Memory;
 
-internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
+internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>, IAsyncInitializable
 {
     private readonly ImageRepository m_ImageRepository;
     private readonly ILogger<HsrMemoryCardService> m_Logger;
@@ -35,10 +35,10 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    private readonly Image m_StarLit;
-    private readonly Image m_StarUnlit;
-    private readonly Image m_CycleIcon;
-    private readonly Image m_Background;
+    private Image m_StarLit = null!;
+    private Image m_StarUnlit = null!;
+    private Image m_CycleIcon = null!;
+    private Image m_Background = null!;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -53,17 +53,20 @@ internal class HsrMemoryCardService : ICommandService<HsrMemoryCommandExecutor>
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
+    }
 
-        m_StarLit = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star").Result);
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        m_StarLit = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star"), cancellationToken);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
         m_StarUnlit.Mutate(ctx =>
         {
             ctx.Grayscale();
             ctx.Brightness(0.7f);
         });
-        m_CycleIcon = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass").Result);
+        m_CycleIcon = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass"), cancellationToken);
 
-        m_Background = Image.Load(m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_bg").Result);
+        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_bg"), cancellationToken);
         m_Background.Mutate(ctx =>
         {
             ctx.Brightness(0.5f);

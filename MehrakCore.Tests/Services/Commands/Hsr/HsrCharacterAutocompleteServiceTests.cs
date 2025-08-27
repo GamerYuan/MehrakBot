@@ -10,7 +10,7 @@ using Moq;
 
 #endregion
 
-namespace MehrakCore.Tests.Services.Commands.Hsr.Character;
+namespace MehrakCore.Tests.Services.Commands.Hsr;
 
 [Parallelizable(ParallelScope.Fixtures)]
 public class HsrCharacterAutocompleteServiceTests
