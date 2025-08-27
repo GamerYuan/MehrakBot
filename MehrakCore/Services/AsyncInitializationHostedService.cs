@@ -1,9 +1,8 @@
-﻿using DnsClient.Internal;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MehrakCore.Services.Commands;
+namespace MehrakCore.Services;
 
 public class AsyncInitializationHostedService : IHostedService
 {
