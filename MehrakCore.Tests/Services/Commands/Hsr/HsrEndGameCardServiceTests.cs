@@ -30,12 +30,13 @@ public class HsrEndGameCardServiceTests
     };
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
         m_ImageRepository =
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<ImageRepository>.Instance);
 
         m_Service = new HsrEndGameCardService(m_ImageRepository, NullLogger<HsrEndGameCardService>.Instance);
+        await m_Service.InitializeAsync();
     }
 
     [Test]

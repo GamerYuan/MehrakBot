@@ -1,8 +1,5 @@
 ﻿#region
 
-using System.Collections.Concurrent;
-using System.Reflection;
-using System.Text.Json;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Hsr;
@@ -10,6 +7,9 @@ using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using System.Collections.Concurrent;
+using System.Reflection;
+using System.Text.Json;
 
 #endregion
 
@@ -24,9 +24,10 @@ public class HsrCharacterCardServiceTests
     private HsrImageUpdaterService m_HsrImageUpdaterService;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<HttpClient> m_HttpClientMock;
+    private HsrCharacterCardService m_HsrCharacterCardService;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
         m_ImageRepository =
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, new NullLogger<ImageRepository>());
@@ -39,7 +40,7 @@ public class HsrCharacterCardServiceTests
         m_HsrImageUpdaterService = new HsrImageUpdaterService(m_ImageRepository, m_HttpClientFactoryMock.Object,
             new NullLogger<HsrImageUpdaterService>());
 
-        var dict =
+        ConcurrentDictionary<int, string> dict =
             (ConcurrentDictionary<int, string>)typeof(HsrImageUpdaterService).GetField("m_SetMapping",
                 BindingFlags.NonPublic |
                 BindingFlags.Instance)!.GetValue(m_HsrImageUpdaterService)!;
@@ -53,24 +54,25 @@ public class HsrCharacterCardServiceTests
         dict.TryAdd(63076, "Talia: Kingdom of Banditry");
         dict.TryAdd(63105, "Broken Keel");
         dict.TryAdd(63106, "Broken Keel");
+
+        m_HsrCharacterCardService = new HsrCharacterCardService(m_ImageRepository, m_HsrImageUpdaterService,
+            new NullLogger<HsrCharacterCardService>());
+        await m_HsrCharacterCardService.InitializeAsync();
     }
 
     [Test]
     public async Task GenerateCharacterCardAsync_Stelle_ShouldMatchGoldenImage()
     {
         // Arrange
-        var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
-        var goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
+        string testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
+        string goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
             "Stelle_GoldenImage.jpg");
-        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+        HsrCharacterInformation? characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);
 
-        var service = new HsrCharacterCardService(m_ImageRepository, m_HsrImageUpdaterService,
-            new NullLogger<HsrCharacterCardService>());
-
         // Act
-        var generatedImageStream = await service.GenerateCharacterCardAsync(characterDetail, "Test");
+        Stream generatedImageStream = await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, "Stelle");
@@ -80,18 +82,15 @@ public class HsrCharacterCardServiceTests
     public async Task GenerateCharacterCardAsync_StelleNoEquipNoRelic_ShouldMatchGoldenImage()
     {
         // Arrange
-        var testDataPath = Path.Combine(TestDataPath, "Stelle_NoEquip_NoRelic_TestData.json");
-        var goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
+        string testDataPath = Path.Combine(TestDataPath, "Stelle_NoEquip_NoRelic_TestData.json");
+        string goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
             "Stelle_NoEquip_NoRelic_GoldenImage.jpg");
-        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+        HsrCharacterInformation? characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);
 
-        var service = new HsrCharacterCardService(m_ImageRepository, m_HsrImageUpdaterService,
-            new NullLogger<HsrCharacterCardService>());
-
         // Act
-        var generatedImageStream = await service.GenerateCharacterCardAsync(characterDetail, "Test");
+        Stream generatedImageStream = await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, "StelleNoEquipNoRelic");
@@ -101,18 +100,15 @@ public class HsrCharacterCardServiceTests
     public async Task GenerateCharacterCardAsync_StelleRemembrance_ShouldMatchGoldenImage()
     {
         // Arrange
-        var testDataPath = Path.Combine(TestDataPath, "Stelle_Remembrance_TestData.json");
-        var goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
+        string testDataPath = Path.Combine(TestDataPath, "Stelle_Remembrance_TestData.json");
+        string goldenImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets",
             "Stelle_Remembrance_GoldenImage.jpg");
-        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+        HsrCharacterInformation? characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);
 
-        var service = new HsrCharacterCardService(m_ImageRepository, m_HsrImageUpdaterService,
-            new NullLogger<HsrCharacterCardService>());
-
         // Act
-        var generatedImageStream = await service.GenerateCharacterCardAsync(characterDetail, "Test");
+        Stream generatedImageStream = await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, "StelleRemembrance");
@@ -121,13 +117,9 @@ public class HsrCharacterCardServiceTests
     [Test]
     public void GenerateCharacterCardAsync_InvalidCharacterData_ShouldThrowException()
     {
-        // Arrange
-        var service = new HsrCharacterCardService(m_ImageRepository, m_HsrImageUpdaterService,
-            new NullLogger<HsrCharacterCardService>());
-
         // Act & Assert
         Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await service.GenerateCharacterCardAsync(null!, "Test"));
+            await m_HsrCharacterCardService.GenerateCharacterCardAsync(null!, "Test"));
     }
 
     private static async Task AssertImageMatches(Stream generatedImageStream, string goldenImagePath, string testName)
@@ -137,18 +129,18 @@ public class HsrCharacterCardServiceTests
             $"Generated image should have content for {testName}");
 
         // Read the generated image
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         await generatedImageStream.CopyToAsync(memoryStream);
-        var generatedImageBytes = memoryStream.ToArray();
+        byte[] generatedImageBytes = memoryStream.ToArray();
 
         // Compare basic properties
         Assert.That(generatedImageBytes, Is.Not.Empty,
             $"Generated image should have content for {testName}");
 
         // Save generated image to output folder for comparison
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
+        string outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
 
         if (!File.Exists(goldenImagePath))
@@ -160,33 +152,25 @@ public class HsrCharacterCardServiceTests
         }
 
         // Read the golden image
-        var goldenImageBytes = await File.ReadAllBytesAsync(goldenImagePath);
+        byte[] goldenImageBytes = await File.ReadAllBytesAsync(goldenImagePath);
 
         // Save golden image to output folder for comparison
-        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
+        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImageBytes);
     }
 
-    // To be used to generate golden image should the generation algorithm be updated
-    // [Test]
-    // public async Task GenerateGoldenImage()
-    // {
-    //     foreach (var file in Directory.EnumerateFiles(TestDataPath, "*.json"))
-    //     {
-    //         var characterDetail =
-    //             JsonSerializer.Deserialize<HsrCharacterInformation>(
-    //                 await File.ReadAllTextAsync(file));
-    //         Assert.That(characterDetail, Is.Not.Null);
+    // To be used to generate golden image should the generation algorithm be
+    // updated [Test] public async Task GenerateGoldenImage() { foreach (var
+    // file in Directory.EnumerateFiles(TestDataPath, "*.json")) { var
+    // characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+    // await File.ReadAllTextAsync(file)); Assert.That(characterDetail, Is.Not.Null);
     //
-    //         var service = new HsrCharacterCardService(m_ImageRepository, m_HsrImageUpdaterService,
-    //             new NullLogger<HsrCharacterCardService>());
+    // var service = new HsrCharacterCardService(m_ImageRepository,
+    // m_HsrImageUpdaterService, new NullLogger<HsrCharacterCardService>());
     //
-    //         var image = await service.GenerateCharacterCardAsync(characterDetail, "Test");
-    //         using var stream = new MemoryStream();
-    //         await image.CopyToAsync(stream);
-    //         await File.WriteAllBytesAsync(
-    //             $"{TestDataPath}/Assets/{Path.GetFileNameWithoutExtension(file).Replace("TestData", "GoldenImage")}.jpg",
-    //             stream.ToArray());
-    //     }
-    // }
+    // var image = await service.GenerateCharacterCardAsync(characterDetail,
+    // "Test"); using var stream = new MemoryStream(); await
+    // image.CopyToAsync(stream); await File.WriteAllBytesAsync(
+    // $"{TestDataPath}/Assets/{Path.GetFileNameWithoutExtension(file).Replace("TestData",
+    // "GoldenImage")}.jpg", stream.ToArray()); } }
 }
