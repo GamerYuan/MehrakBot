@@ -101,6 +101,8 @@ public class GenshinAbyssCommandExecutorTests
         m_CardService = new GenshinAbyssCardService(m_ImageRepository,
             NullLogger<GenshinAbyssCardService>.Instance);
 
+        await m_CardService.InitializeAsync();
+
         // Setup mocks
         m_CharacterApiMock = new Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>>();
         m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(
@@ -258,8 +260,7 @@ public class GenshinAbyssCommandExecutorTests
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
-        // Assert
-        // Verify authentication was requested
+        // Assert Verify authentication was requested
         m_AuthenticationMiddlewareMock.Verify(
             x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
             Times.Once);
@@ -673,8 +674,8 @@ public class GenshinAbyssCommandExecutorTests
     [Test]
     public async Task OnAuthenticationCompletedAsync_WhenExceptionOccurs_LogsError()
     {
-        // Arrange
-        // Create user with matching ltuid so the flow continues past profile validation
+        // Arrange Create user with matching ltuid so the flow continues past
+        // profile validation
         UserModel user = new()
         {
             Id = m_TestUserId,
