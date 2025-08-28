@@ -209,6 +209,15 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                            "### Examples\n" +
                            "```/hsr character Trailblazer\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```" +
                            "-# [List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/honkai-star-rail-commands/character/supported-alias)",
+            "charlist" => "## Character List\n" +
+                          "Get character list from Honkai: Star Rail\n" +
+                          "### Usage\n" +
+                          "```/hsr charlist [server] [profile]```\n" +
+                          "### Parameters\n" +
+                          "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                          "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                          "### Examples\n" +
+                          "```/hsr charlist\n/hsr charlist Asia 2```",
             "codes" => "## Redemption Codes\n" +
                        "Redeem Honkai: Star Rail codes\n" +
                        "### Usage\n" +
@@ -249,10 +258,13 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
+                 "- `as`: Get Apocalyptic Shadow card summary card\n" +
                  "- `character`: Get character card from Honkai: Star Rail\n" +
+                 "- `charlist`: Get character list from Honkai: Star Rail\n" +
                  "- `codes`: Redeem Honkai: Star Rail codes\n" +
                  "- `moc`: Get Memory of Chaos card summary card\n" +
-                 "- `notes`: Get real-time notes for Honkai: Star Rail\n"
+                 "- `notes`: Get real-time notes for Honkai: Star Rail\n" +
+                 "- `pf`: Get Pure Fiction card summary card\n"
         };
     }
 }

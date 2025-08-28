@@ -286,6 +286,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                  "### Subcommands\n" +
                  "- `abyss`: Get Spiral Abyss summary card" +
                  "- `character`: Get character card from Genshin Impact\n" +
+                 "- `charlist`: Get character list from Genshin Impact\n" +
                  "- `codes`: Redeem Genshin Impact codes\n" +
                  "- `notes`: Get real-time notes for Genshin Impact\n" +
                  "- `stygian`: Get Stygian Onslaught summary card\n" +

@@ -94,6 +94,16 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     {
         return subcommand switch
         {
+            "character" => "## Zenless Zone Zero Character\n" +
+                           "Get character card from Zenless Zone Zero\n" +
+                           "### Usage\n" +
+                           "```/zzz character <character> [server] [profile]```\n" +
+                           "### Parameters\n" +
+                           "- `character`: Character Name (Case-insensitive)\n" +
+                           "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                           "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                           "### Examples\n" +
+                           "```/zzz character Miyabi\n/zzz character Jane Doe America\n/zzz character Nekomata Asia 3```",
             "codes" => "## Redemption Codes\n" +
                        "Redeem Zenless Zone Zero codes\n" +
                        "### Usage\n" +
@@ -107,6 +117,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Zenless Zone Zero Toolbox\n" +
                  "Zenless Zone Zero related commands and utilities.\n" +
                  "### Subcommands\n" +
+                 "- `character`: Get character card from Zenless Zone Zero\n" +
                  "- `codes`: Redeem Zenless Zone Zero codes\n"
         };
     }

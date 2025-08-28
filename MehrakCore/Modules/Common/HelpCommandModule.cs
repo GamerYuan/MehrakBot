@@ -18,8 +18,8 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         ])]
     public InteractionMessageProperties HelpCommand(string commandName = "")
     {
-        var commands = commandName.ToLowerInvariant().Split(' ');
-        var helpMessage = commands[0].TrimStart('/') switch
+        string[] commands = commandName.ToLowerInvariant().Split(' ');
+        string helpMessage = commands[0].TrimStart('/') switch
         {
             "genshin" => GenshinCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
@@ -31,8 +31,8 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
                  "- `/profile [add|delete|list]`\n" +
                  "- `/checkin`\n" +
                  "- `/genshin [abyss|character|charlist|codes|notes|stygian|theater]`\n" +
-                 "- `/hsr [as|character|codes|moc|notes|pf]`\n" +
-                 "- `/zzz [codes]`\n" +
+                 "- `/hsr [as|character|charlist|codes|moc|notes|pf]`\n" +
+                 "- `/zzz [character|codes]`\n" +
                  "Use `/help <command>` to get help about a specific command or subcommand.\n" +
                  "For example: `/help genshin` or `/help genshin character`"
         };
