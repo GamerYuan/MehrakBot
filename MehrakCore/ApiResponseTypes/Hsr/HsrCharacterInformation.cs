@@ -107,6 +107,11 @@ public class Relic
     {
         return $"{Name} (ID: {Id})";
     }
+
+    public int GetSetId()
+    {
+        return int.Parse(Id?.ToString()[1..^2] ?? "0");
+    }
 }
 
 public class CharacterListApiResponse

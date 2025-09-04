@@ -17,14 +17,14 @@ public class MongoDbService
 
     public MongoDbService(IConfiguration configuration, ILogger<MongoDbService> logger)
     {
-        var connectionString = configuration["MongoDB:ConnectionString"];
-        var databaseName = configuration["MongoDB:DatabaseName"];
+        string? connectionString = configuration["MongoDB:ConnectionString"];
+        string? databaseName = configuration["MongoDB:DatabaseName"];
 
         logger.LogInformation("Initializing MongoDB connection to database: {DatabaseName}", databaseName);
 
         try
         {
-            var client = new MongoClient(connectionString);
+            MongoClient client = new(connectionString);
             m_Database = client.GetDatabase(databaseName);
             logger.LogInformation("MongoDB connection established successfully");
         }
@@ -39,6 +39,7 @@ public class MongoDbService
     public IMongoCollection<CharacterModel> Characters => m_Database.GetCollection<CharacterModel>("characters");
     public IMongoCollection<AliasModel> Aliases => m_Database.GetCollection<AliasModel>("aliases");
     public IMongoCollection<CodeRedeemModel> Codes => m_Database.GetCollection<CodeRedeemModel>("codes");
+    public IMongoCollection<HsrRelicModel> HsrRelics => m_Database.GetCollection<HsrRelicModel>("hsr_relics");
 
     public GridFSBucket Bucket => new(m_Database);
 

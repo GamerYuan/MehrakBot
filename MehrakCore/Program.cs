@@ -124,6 +124,7 @@ internal class Program
             builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
             builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
             builder.Services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
+            builder.Services.AddSingleton<IRelicRepository<ApiResponseTypes.Hsr.Relic>, HsrRelicRepository>();
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
 
             // Character Cache Services
