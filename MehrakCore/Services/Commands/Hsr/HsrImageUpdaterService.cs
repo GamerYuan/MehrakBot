@@ -493,9 +493,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             Logger.LogInformation("Matched wiki relic {RelicName} to relic ID {RelicId}", relicName, actualRelicId);
 
-            // Add to set mapping regardless of download status
-            int relicIdInt = int.Parse(actualRelicId);
-            await m_RelicRepository.AddSetName(relicIdInt, setName);
+            await m_RelicRepository.AddSetName(int.Parse(actualRelicId[1..^1]), setName);
 
             bool success = await DownloadAndSaveRelicImage(actualRelicId, iconUrl, relicName, client);
             overallSuccess = overallSuccess && success;
@@ -517,7 +515,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 continue;
             }
 
-            if (setName != null) await m_RelicRepository.AddSetName(relic.Id!.Value, setName);
+            if (setName != null) await m_RelicRepository.AddSetName(relic.GetSetId(), setName);
 
             bool success = await DownloadAndSaveRelicImage(relic.Id.ToString()!, relic.Icon, relic.Name!, client,
                 "from Icon URL");

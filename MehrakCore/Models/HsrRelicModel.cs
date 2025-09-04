@@ -13,5 +13,8 @@ public class HsrRelicModel
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
-    [BsonElement("set_names")] public required Dictionary<int, string> SetNames { get; set; }
+    // Each document stores a single mapping: set_id -> set_name
+    [BsonElement("set_id")] public int SetId { get; set; }
+
+    [BsonElement("set_name")] public required string SetName { get; set; }
 }

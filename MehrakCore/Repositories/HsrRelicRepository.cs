@@ -27,37 +27,42 @@ public class HsrRelicRepository : IRelicRepository<Relic>
 
     public async Task AddSetName(int setId, string setName)
     {
-        string fieldPath = $"set_names.{setId}";
-        FilterDefinition<HsrRelicModel> filter = Builders<HsrRelicModel>.Filter.Exists(fieldPath, false);
-        UpdateDefinition<HsrRelicModel> update = Builders<HsrRelicModel>.Update.Set(fieldPath, setName);
-        UpdateOptions options = new() { IsUpsert = true };
+        // Upsert a document for this setId, but do not overwrite existing set_name once present
+        FilterDefinition<HsrRelicModel> filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
+        UpdateDefinition<HsrRelicModel> update = Builders<HsrRelicModel>.Update
+            .SetOnInsert(x => x.SetId, setId)
+            .SetOnInsert(x => x.SetName, setName);
 
+        UpdateOptions options = new() { IsUpsert = true };
         UpdateResult result = await m_MongoCollection.UpdateOneAsync(filter, update, options);
 
         if (result.UpsertedId != null)
         {
-            m_Logger.LogInformation("Inserted new relic set mapping and added set name for setId {SetId} to {SetName}", setId, setName);
+            m_Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
         }
         else if (result.ModifiedCount > 0)
         {
-            m_Logger.LogInformation("Added set name for setId {SetId} to {SetName}", setId, setName);
+            // Should not normally happen since we only SetOnInsert, but log anyway
+            m_Logger.LogInformation("Added relic set mapping for setId {SetId}", setId);
         }
         else
         {
-            m_Logger.LogInformation("Skipped adding set name for setId {SetId} because it already exists", setId);
+            // Document already existed; we did not overwrite
+            m_Logger.LogInformation("Relic set mapping for setId {SetId} already exists; skipping overwrite", setId);
         }
     }
 
     public async Task<string> GetSetName(int setId)
     {
-        HsrRelicModel doc = await (await m_MongoCollection.FindAsync(_ => true)).FirstOrDefaultAsync();
-        if (doc == null || !doc.SetNames.TryGetValue(setId, out string? value))
+        FilterDefinition<HsrRelicModel> filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
+        HsrRelicModel? doc = await (await m_MongoCollection.FindAsync(filter)).FirstOrDefaultAsync();
+        if (doc == null)
         {
             m_Logger.LogWarning("Set name for setId {SetId} not found", setId);
             return string.Empty;
         }
 
-        m_Logger.LogInformation("Retrieved set name for setId {SetId}: {SetName}", setId, value);
-        return value;
+        m_Logger.LogInformation("Retrieved set name for setId {SetId}: {SetName}", setId, doc.SetName);
+        return doc.SetName;
     }
 }

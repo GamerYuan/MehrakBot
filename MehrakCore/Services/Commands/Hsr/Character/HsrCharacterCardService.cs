@@ -23,7 +23,6 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
 {
     private readonly ImageRepository m_ImageRepository;
     private readonly IRelicRepository<Relic> m_RelicRepository;
-    private readonly HsrImageUpdaterService m_ImageUpdater;
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
     private Dictionary<int, Image> m_StatImages = null!;

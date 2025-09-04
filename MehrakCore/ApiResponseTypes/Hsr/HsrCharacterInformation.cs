@@ -110,7 +110,7 @@ public class Relic
 
     public int GetSetId()
     {
-        return int.Parse(Id?.ToString()[1..^2] ?? "0");
+        return int.Parse(Id?.ToString()[1..^1] ?? "0");
     }
 }
 
