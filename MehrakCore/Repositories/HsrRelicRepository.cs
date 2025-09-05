@@ -27,7 +27,8 @@ public class HsrRelicRepository : IRelicRepository<Relic>
 
     public async Task AddSetName(int setId, string setName)
     {
-        // Upsert a document for this setId, but do not overwrite existing set_name once present
+        // Upsert a document for this setId, but do not overwrite existing
+        // set_name once present
         FilterDefinition<HsrRelicModel> filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
         UpdateDefinition<HsrRelicModel> update = Builders<HsrRelicModel>.Update
             .SetOnInsert(x => x.SetId, setId)
@@ -55,7 +56,7 @@ public class HsrRelicRepository : IRelicRepository<Relic>
     public async Task<string> GetSetName(int setId)
     {
         FilterDefinition<HsrRelicModel> filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
-        HsrRelicModel? doc = await (await m_MongoCollection.FindAsync(filter)).FirstOrDefaultAsync();
+        HsrRelicModel? doc = await m_MongoCollection.Find(filter).FirstOrDefaultAsync();
         if (doc == null)
         {
             m_Logger.LogWarning("Set name for setId {SetId} not found", setId);
