@@ -22,7 +22,7 @@ namespace MehrakCore.Services.Commands.Hsr.Character;
 public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInformation>
 {
     private readonly ImageRepository m_ImageRepository;
-    private readonly HsrImageUpdaterService m_ImageUpdater;
+    private readonly IRelicRepository<Relic> m_RelicRepository;
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
     private Dictionary<int, Image> m_StatImages = null!;
@@ -39,11 +39,11 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
     private readonly Image<Rgba32> m_RelicSlotTemplate;
 
     public HsrCharacterCardService(ImageRepository imageRepository,
-        ImageUpdaterService<HsrCharacterInformation> imageUpdater,
+        IRelicRepository<Relic> relicRepository,
         ILogger<HsrCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
-        m_ImageUpdater = (HsrImageUpdaterService)imageUpdater;
+        m_RelicRepository = relicRepository;
         m_Logger = logger;
 
         FontFamily fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
@@ -168,9 +168,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             }).ToArray();
 
             Dictionary<string, int> activeRelicSet = [];
-            foreach (Relic relic in characterInformation.Relics!)
+            foreach (int setId in characterInformation.Relics!.Select(x => x.GetSetId()))
             {
-                string setName = m_ImageUpdater.GetRelicSetName(relic.Id!.Value);
+                string setName = await m_RelicRepository.GetSetName(setId);
                 if (!activeRelicSet.TryAdd(setName, 1))
                     activeRelicSet[setName]++;
             }
@@ -180,9 +180,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 .ToDictionary(x => x.Key, x => x.Value);
 
             Dictionary<string, int> activeOrnamentSet = [];
-            foreach (Relic ornament in characterInformation.Ornaments!)
+            foreach (int setId in characterInformation.Ornaments!.Select(x => x.GetSetId()))
             {
-                string setName = m_ImageUpdater.GetRelicSetName(ornament.Id!.Value);
+                string setName = await m_RelicRepository.GetSetName(setId);
                 if (!activeOrnamentSet.TryAdd(setName, 1))
                     activeOrnamentSet[setName]++;
             }

@@ -1,5 +1,4 @@
-﻿using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.ApiResponseTypes.Hsr;
+﻿using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
@@ -45,7 +44,6 @@ public class HsrCharListCommandExecutorTests
     private const string TestLToken = "test_ltoken_value";
     private const uint TestProfileId = 1;
 
-    private List<GenshinBasicCharacterData> m_TestCharacterList;
     private Mock<IInteractionContext> m_ContextMock;
 
     private static readonly string AccountRolesUrl =
@@ -69,6 +67,7 @@ public class HsrCharListCommandExecutorTests
         m_ImageUpdaterServiceMock = new Mock<HsrImageUpdaterService>(
             imageRepository,
             m_HttpClientFactoryMock.Object,
+            Mock.Of<IRelicRepository<Relic>>(),
             NullLogger<HsrImageUpdaterService>.Instance);
 
         m_DistributedCacheMock = new Mock<IDistributedCache>();
@@ -84,9 +83,6 @@ public class HsrCharListCommandExecutorTests
         m_LoggerMock = new Mock<ILogger<HsrCharListCommandExecutor>>();
 
         m_DiscordTestHelper = new DiscordTestHelper();
-
-        // Load test character data
-        LoadTestCharacterData();
 
         m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
@@ -117,14 +113,6 @@ public class HsrCharListCommandExecutorTests
     }
 
     #region Helpers
-
-    private void LoadTestCharacterData()
-    {
-        string testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", "CharList_TestData_1.json");
-        string jsonContent = File.ReadAllText(testDataPath);
-        CharacterListData? testData = JsonSerializer.Deserialize<CharacterListData>(jsonContent);
-        m_TestCharacterList = testData?.List ?? [];
-    }
 
     private static UserModel CreateTestUser(ulong userId, ulong ltUid = TestLtUid, uint profileId = TestProfileId)
     {

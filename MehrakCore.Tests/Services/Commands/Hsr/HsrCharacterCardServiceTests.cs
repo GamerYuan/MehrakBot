@@ -2,13 +2,10 @@
 
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Repositories;
-using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Collections.Concurrent;
-using System.Reflection;
 using System.Text.Json;
 
 #endregion
@@ -21,9 +18,9 @@ public class HsrCharacterCardServiceTests
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr");
 
     private ImageRepository m_ImageRepository;
-    private HsrImageUpdaterService m_HsrImageUpdaterService;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<HttpClient> m_HttpClientMock;
+    private Mock<IRelicRepository<Relic>> m_HsrRelicRepositoryMock;
     private HsrCharacterCardService m_HsrCharacterCardService;
 
     [SetUp]
@@ -36,26 +33,15 @@ public class HsrCharacterCardServiceTests
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(m_HttpClientMock.Object);
+        m_HsrRelicRepositoryMock = new Mock<IRelicRepository<Relic>>();
 
-        m_HsrImageUpdaterService = new HsrImageUpdaterService(m_ImageRepository, m_HttpClientFactoryMock.Object,
-            new NullLogger<HsrImageUpdaterService>());
+        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(116)).ReturnsAsync("Prisoner in Deep Confinement");
+        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(118)).ReturnsAsync("Watchmaker, Master of Dream Machinations");
+        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(119)).ReturnsAsync("Iron Cavalry Against the Scourge");
+        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(307)).ReturnsAsync("Talia: Kingdom of Banditry");
+        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(310)).ReturnsAsync("Broken Keel");
 
-        ConcurrentDictionary<int, string> dict =
-            (ConcurrentDictionary<int, string>)typeof(HsrImageUpdaterService).GetField("m_SetMapping",
-                BindingFlags.NonPublic |
-                BindingFlags.Instance)!.GetValue(m_HsrImageUpdaterService)!;
-        dict.TryAdd(61161, "Prisoner in Deep Confinement");
-        dict.TryAdd(61162, "Prisoner in Deep Confinement");
-        dict.TryAdd(61163, "Prisoner in Deep Confinement");
-        dict.TryAdd(61164, "Prisoner in Deep Confinement");
-        dict.TryAdd(61192, "Iron Cavalry Against the Scourge");
-        dict.TryAdd(61183, "Watchmaker, Master of Dream Machinations");
-        dict.TryAdd(63075, "Talia: Kingdom of Banditry");
-        dict.TryAdd(63076, "Talia: Kingdom of Banditry");
-        dict.TryAdd(63105, "Broken Keel");
-        dict.TryAdd(63106, "Broken Keel");
-
-        m_HsrCharacterCardService = new HsrCharacterCardService(m_ImageRepository, m_HsrImageUpdaterService,
+        m_HsrCharacterCardService = new HsrCharacterCardService(m_ImageRepository, m_HsrRelicRepositoryMock.Object,
             new NullLogger<HsrCharacterCardService>());
         await m_HsrCharacterCardService.InitializeAsync();
     }

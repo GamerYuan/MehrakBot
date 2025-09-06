@@ -8,7 +8,6 @@ using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
-using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -21,14 +20,16 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     private const string BaseString = FileNameFormat.HsrFileName;
     private const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki/hsr/wapi/entry_page";
 
-    private readonly ConcurrentDictionary<int, string> m_SetMapping = new();
+    private readonly IRelicRepository<Relic> m_RelicRepository;
 
     protected override string AvatarString => FileNameFormat.HsrAvatarName;
     protected override string SideAvatarString => FileNameFormat.HsrSideAvatarName;
 
     public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
-        ILogger<HsrImageUpdaterService> logger) : base(imageRepository, httpClientFactory, logger)
+        IRelicRepository<Relic> relicRepository, ILogger<HsrImageUpdaterService> logger)
+        : base(imageRepository, httpClientFactory, logger)
     {
+        m_RelicRepository = relicRepository;
     }
 
     /// <summary>
@@ -125,11 +126,6 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
             Logger.LogError(e, "Error updating equip icon for ID {EquipId} with {Filename}", id, filename);
             throw new CommandException("An error occurred while updating light cone icon", e);
         }
-    }
-
-    public string GetRelicSetName(int relicId)
-    {
-        return m_SetMapping.TryGetValue(relicId, out string? setName) ? setName : string.Empty;
     }
 
     private async Task<bool> UpdateCharacterImageAsync(HsrCharacterInformation characterInformation)
@@ -497,11 +493,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
 
             Logger.LogInformation("Matched wiki relic {RelicName} to relic ID {RelicId}", relicName, actualRelicId);
 
-            // Add to set mapping regardless of download status
-            int relicIdInt = int.Parse(actualRelicId);
-            if (m_SetMapping.TryAdd(relicIdInt, setName))
-                Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}", relicIdInt,
-                    setName);
+            await m_RelicRepository.AddSetName(int.Parse(actualRelicId[1..^1]), setName);
 
             bool success = await DownloadAndSaveRelicImage(actualRelicId, iconUrl, relicName, client);
             overallSuccess = overallSuccess && success;
@@ -523,9 +515,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
                 continue;
             }
 
-            if (setName != null && m_SetMapping.TryAdd(relic.Id!.Value, setName))
-                Logger.LogInformation("Added relic ID {RelicId} to set mapping with set name {SetName}",
-                    relic.Id.Value, setName);
+            if (setName != null) await m_RelicRepository.AddSetName(relic.GetSetId(), setName);
 
             bool success = await DownloadAndSaveRelicImage(relic.Id.ToString()!, relic.Icon, relic.Name!, client,
                 "from Icon URL");
