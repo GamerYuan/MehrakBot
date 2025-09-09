@@ -22,7 +22,7 @@ public class ZzzBuddy
     [JsonPropertyName("bangboo_rectangle_url")] public required string BangbooRectangleUrl { get; init; }
 }
 
-public class ZzzChallengeData
+public class ZzzDefenseData
 {
     [JsonPropertyName("begin_time")] public required string BeginTime { get; init; }
     [JsonPropertyName("end_time")] public required string EndTime { get; init; }
