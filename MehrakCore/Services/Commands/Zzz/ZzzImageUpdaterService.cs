@@ -11,6 +11,9 @@ namespace MehrakCore.Services.Commands.Zzz;
 
 internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
 {
+    protected override string AvatarString => FileNameFormat.ZzzAvatarName;
+    protected override string SideAvatarString => string.Empty;
+
     private const string WikiEndpoint = "/hoyowiki/zzz/wapi/entry_page";
 
     public ZzzImageUpdaterService(ImageRepository imageRepository,

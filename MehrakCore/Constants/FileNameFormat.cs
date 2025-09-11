@@ -70,4 +70,9 @@ public static class FileNameFormat
     /// ZZZ profession file name format, where {0} is the profession ID
     /// </summary>
     public const string ZzzProfessionName = "zzz_profession_{0}";
+
+    /// <summary>
+    /// ZZZ avatar file name format, where {0} is the avatar ID
+    /// </summary>
+    public const string ZzzAvatarName = "zzz_avatar_{0}";
 }

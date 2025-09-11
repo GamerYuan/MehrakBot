@@ -30,17 +30,31 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseCommandExecutor>
 
         if (!response.IsSuccessStatusCode)
         {
-            m_Logger.LogError("Failed to fetch Zzz Defense data. Status Code: {StatusCode}", response.StatusCode);
-            throw new HttpRequestException($"Failed to fetch Zzz Defense data. Status Code: {response.StatusCode}");
+            m_Logger.LogError("Failed to fetch Zzz Defense data for gameUid: {GameUid}, Status Code: {StatusCode}",
+                gameUid, response.StatusCode);
+            throw new CommandException("An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
 
         ApiResponse<ZzzDefenseData>? json =
             await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseData>>();
 
-        if (json == null || json.Retcode != 0)
+        if (json == null)
         {
-            m_Logger.LogError("Error in API response: Retcode {Retcode}, Message: {Message}",
-                json?.Retcode, json?.Message);
+            m_Logger.LogError("Failed to fetch Zzz Defense data for gameUid: {GameUid}, Status Code: {StatusCode}",
+                gameUid, response.StatusCode);
+            throw new CommandException("An unknown error occurred when accessing HoYoLAB API. Please try again later");
+        }
+
+        if (json.Retcode == 10001)
+        {
+            m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
+            throw new CommandException("Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+        }
+
+        if (json.Retcode != 0)
+        {
+            m_Logger.LogWarning("Failed to fetch Zzz Defense data for {GameUid}, Retcode {Retcode}, Message: {Message}",
+                gameUid, json?.Retcode, json?.Message);
             throw new CommandException("An error occurred while fetching Shiyu Defense data");
         }
 
