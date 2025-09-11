@@ -396,7 +396,7 @@ public class HsrCharacterCommandExecutorTests
 
         // Setup token cache to return a token (user is authenticated)
         byte[] cachedToken = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedToken);
 
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
@@ -1080,7 +1080,8 @@ public class HsrCharacterCommandExecutorTests
         // Setup game record API
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(server));
 
-        // Setup alias in character cache service (note: alias is stored as "TB" but we're searching for "tb")
+        // Setup alias in character cache service (note: alias is stored as "TB"
+        // but we're searching for "tb")
         Dictionary<string, string> aliases = new(StringComparer.OrdinalIgnoreCase)
         {
             { "TB", actualCharacterName },

@@ -216,7 +216,7 @@ public class DailyCheckInCommandExecutorTests
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user); // Setup token cache to return null (no cached token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
 
         m_AuthenticationMiddlewareMock.Setup(x =>
@@ -251,7 +251,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -283,7 +283,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache to return valid token (shouldn't be used)
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -321,7 +321,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -337,7 +337,8 @@ public class DailyCheckInCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenCrossedMidnightInChinaTimeZone_ShouldProceedWithCheckIn()
     {
-        // Arrange - Simulate checking in late at night and then early next morning in China time
+        // Arrange - Simulate checking in late at night and then early next
+        // morning in China time
         TimeZoneInfo chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
 
         // Previous check-in was at 23:30 China time yesterday
@@ -357,7 +358,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -386,7 +387,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -414,7 +415,7 @@ public class DailyCheckInCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes); // Make CheckInAsync throw an exception
         m_DailyCheckInServiceMock.Setup(x =>
                 x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
@@ -452,8 +453,7 @@ public class DailyCheckInCommandExecutorTests
     [Test]
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulResult_ShouldCallCheckInService()
     {
-        // Arrange
-        // Create interaction
+        // Arrange Create interaction
         (string Name, object Value, ApplicationCommandOptionType Type)[] parameters = [];
         SlashCommandInteraction interaction = m_DiscordTestHelper.CreateCommandInteraction(
             m_TestUserId,
@@ -475,7 +475,7 @@ public class DailyCheckInCommandExecutorTests
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
         m_AuthenticationMiddlewareMock.Setup(x =>
                 x.RegisterAuthenticationListener(m_TestUserId, It.IsAny<IAuthenticationListener>()))
@@ -511,7 +511,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache for profile 2
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid + 1}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid + 1}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -538,7 +538,8 @@ public class DailyCheckInCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenCheckedInJustBeforeMidnightUtc8_ShouldAllowNextDayCheckIn()
     {
-        // Arrange - Simulate checking in at 23:58 UTC+8 yesterday and now it's 00:01 UTC+8 today
+        // Arrange - Simulate checking in at 23:58 UTC+8 yesterday and now it's
+        // 00:01 UTC+8 today
         TimeZoneInfo chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
         DateTime nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone);
 
@@ -558,7 +559,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -574,7 +575,8 @@ public class DailyCheckInCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenCheckedInEarlyMorningUtc8SameDay_ShouldPreventSecondCheckIn()
     {
-        // Arrange - Simulate checking in at 01:00 UTC+8 today and now it's 23:00 UTC+8 same day
+        // Arrange - Simulate checking in at 01:00 UTC+8 today and now it's
+        // 23:00 UTC+8 same day
         TimeZoneInfo chinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
         DateTime nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTimeZone);
 
@@ -594,7 +596,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Setup token cache to return valid token (shouldn't be used)
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act

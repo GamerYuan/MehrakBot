@@ -191,7 +191,7 @@ public class ZzzCharacterCommandExecutorTests
     {
         await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
         // Provide token in cache
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Mock character list and details
@@ -238,7 +238,7 @@ public class ZzzCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenAuthenticatedButCharacterNotFound_SendsError()
     {
         await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         m_CharacterApiMock
@@ -254,7 +254,7 @@ public class ZzzCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenAuthenticated_UsesAliasResolution()
     {
         await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Aliases: jd -> Jane
@@ -305,7 +305,7 @@ public class ZzzCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenCharacterDetailApiFails_SendsErrorMessage()
     {
         await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         m_CharacterApiMock
@@ -343,7 +343,7 @@ public class ZzzCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenCharacterDetailApiReturnsNullData_SendsErrorMessage()
     {
         await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         m_CharacterApiMock
@@ -382,7 +382,7 @@ public class ZzzCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenNoSavedGameUid_CallsGameRecordApi_AndSendsCard()
     {
         await CreateOrUpdateTestUserAsync(1); // No saved game uid
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Mock Game Role API

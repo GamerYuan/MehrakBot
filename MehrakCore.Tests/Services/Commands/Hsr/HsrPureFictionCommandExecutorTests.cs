@@ -170,8 +170,7 @@ public class HsrPureFictionCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_UserNotFound_RequestsAuthentication()
     {
-        // Arrange
-        // Don't create a user
+        // Arrange Don't create a user
 
         // Act
         await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
@@ -646,14 +645,14 @@ public class HsrPureFictionCommandExecutorTests
 
     private void SetupTokenCacheEmpty()
     {
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
     }
 
     private void SetupTokenCacheWithData()
     {
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
     }
 
