@@ -21,19 +21,19 @@ public class TokenCacheService
             m_DefaultExpiration.TotalMinutes);
     }
 
-    public async Task AddCacheEntryAsync(ulong ltuid, string ltoken)
+    public async Task AddCacheEntryAsync(ulong ltuid, string ltoken, ulong userId)
     {
         m_Logger.LogDebug("Adding cache entry with ltuid {LtUid}", ltuid);
 
-        var options = new DistributedCacheEntryOptions()
+        DistributedCacheEntryOptions options = new DistributedCacheEntryOptions()
             .SetAbsoluteExpiration(m_DefaultExpiration);
 
-        await m_Cache.SetStringAsync($"TokenCache_{ltuid}", ltoken, options);
+        await m_Cache.SetStringAsync($"TokenCache_{userId}_{ltuid}", ltoken, options);
     }
 
     public async Task<string?> GetCacheEntry(ulong userId, ulong ltuid)
     {
-        var ltoken = await m_Cache.GetStringAsync($"TokenCache_{ltuid}");
+        string? ltoken = await m_Cache.GetStringAsync($"TokenCache_{userId}_{ltuid}");
         m_Logger.LogDebug("Cache retrieval for user {UserId}, ltuid {Ltuid}: {Result}", userId, ltuid,
             ltoken != null ? "Found" : "Not Found");
         return ltoken;
