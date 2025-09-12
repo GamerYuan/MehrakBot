@@ -1,6 +1,5 @@
 ﻿#region
 
-using System.Security.Cryptography;
 using MehrakCore.Models;
 using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
@@ -9,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
+using System.Security.Cryptography;
 
 #endregion
 
@@ -56,16 +56,16 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         {
             m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
 
-            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+            UserModel? user = await m_UserRepository.GetUserAsync(Context.User.Id);
             user ??= new UserModel
             {
                 Id = Context.User.Id
             };
 
-            var inputs = Context.Components.OfType<TextInput>()
+            Dictionary<string, string> inputs = Context.Components.OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
+            if (!ulong.TryParse(inputs["ltuid"], out ulong ltuid))
             {
                 m_Logger.LogWarning("User {UserId} provided invalid UID format", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -75,7 +75,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
-            user.Profiles ??= new List<UserProfile>();
+            user.Profiles ??= [];
             if (user.Profiles.Any(x => x.LtUid == ltuid))
             {
                 m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
@@ -91,7 +91,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 LtUid = ltuid,
                 LToken = await Task.Run(() =>
                     m_CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"])),
-                GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                GameUids = []
             };
 
             user.Profiles = user.Profiles.Append(profile);
@@ -132,7 +132,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             return;
         }
 
-        var authResult = await AuthenticateUser(profile);
+        AuthenticationResult authResult = await AuthenticateUser(profile);
 
         // Notify the middleware about the authentication result
         await m_AuthenticationMiddleware.NotifyAuthenticationCompletedAsync(guid, authResult);
@@ -145,7 +145,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             m_Logger.LogInformation("Processing auth modal submission from user {UserId}", Context.User.Id);
             await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
-            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+            UserModel? user = await m_UserRepository.GetUserAsync(Context.User.Id);
             if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
             {
                 m_Logger.LogWarning("User {UserId} not found in database", Context.User.Id);
@@ -155,14 +155,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return AuthenticationResult.Failure(Context.User.Id, "No profile found");
             }
 
-            var selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
+            UserProfile selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
 
-            var inputs = Context.Components.OfType<TextInput>()
+            Dictionary<string, string> inputs = Context.Components.OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            var ltoken = m_CookieService.DecryptCookie(selectedProfile.LToken, inputs["passphrase"]);
+            string ltoken = m_CookieService.DecryptCookie(selectedProfile.LToken, inputs["passphrase"]);
 
-            await m_TokenCacheService.AddCacheEntryAsync(selectedProfile.LtUid, ltoken);
+            await m_TokenCacheService.AddCacheEntryAsync(selectedProfile.LtUid, ltoken, Context.Interaction.User.Id);
             return AuthenticationResult.Success(Context.User.Id, selectedProfile.LtUid, ltoken, Context);
         }
         catch (AuthenticationTagMismatchException)

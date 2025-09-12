@@ -195,8 +195,7 @@ public class GenshinStygianCommandExecutorTests
         // Act
         await m_Executor.ExecuteAsync(parameters);
 
-        // Assert
-        // Verify the user's cached server was used
+        // Assert Verify the user's cached server was used
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
         Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[GameName.Genshin], Is.EqualTo(Regions.Asia));
@@ -393,7 +392,8 @@ public class GenshinStygianCommandExecutorTests
         VerifyHttpRequest(HardChallengeUrl, Times.Once());
 
         // For now, we'll just verify that the workflow completed without errors
-        // In a more comprehensive test, we could check for specific attachment names or content
+        // In a more comprehensive test, we could check for specific attachment
+        // names or content
         Assert.That(responseMessage, Is.Not.Empty);
     }
 
@@ -562,8 +562,7 @@ public class GenshinStygianCommandExecutorTests
 
         bool[] results = await Task.WhenAll(tasks);
 
-        // Assert
-        // At least some requests should complete successfully
+        // Assert At least some requests should complete successfully
         Assert.That(results.Count(r => r), Is.GreaterThan(0));
 
         // Verify that concurrent requests don't cause issues
@@ -793,7 +792,7 @@ public class GenshinStygianCommandExecutorTests
     private Task SetupCachedToken()
     {
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
         return Task.CompletedTask;
     }
