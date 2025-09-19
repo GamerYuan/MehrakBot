@@ -34,7 +34,7 @@ public class ZzzDefenseData
 public class RatingData
 {
     [JsonPropertyName("times")] public int Times { get; init; }
-    [JsonPropertyName("rating")] public int Rating { get; init; }
+    [JsonPropertyName("rating")] public string Rating { get; init; }
 }
 
 public class FloorDetail
@@ -49,6 +49,6 @@ public class FloorDetail
 public class NodeData
 {
     [JsonPropertyName("avatars")] public required List<ZzzChallengeAvatar> Avatars { get; init; }
-    [JsonPropertyName("buddy")] public required ZzzBuddy Buddy { get; init; }
+    [JsonPropertyName("buddy")] public required ZzzBuddy? Buddy { get; init; }
     [JsonPropertyName("battle_time")] public int BattleTime { get; init; }
 }

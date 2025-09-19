@@ -75,4 +75,9 @@ public static class FileNameFormat
     /// ZZZ avatar file name format, where {0} is the avatar ID
     /// </summary>
     public const string ZzzAvatarName = "zzz_avatar_{0}";
+
+    /// <summary>
+    /// Zzz buddy file name format, where {0} is the buddy ID
+    /// </summary>
+    public const string ZzzBuddyName = "zzz_buddy_{0}";
 }
