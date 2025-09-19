@@ -28,6 +28,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
     private Dictionary<char, Image> m_RatingImages = [];
     private Dictionary<char, Image> m_SmallRatingImages = [];
     private Image m_BaseBuddyImage = null!;
+    private Image m_BackgroundImage = null!;
 
     private static readonly string[] FrontierNames =
         ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh"];
@@ -67,6 +68,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
             .ToDictionary();
         m_BaseBuddyImage = await Image.LoadAsync(await
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzBuddyName, "base")), cancellationToken);
+        m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg"), cancellationToken);
     }
 
     public async ValueTask<Stream> GetDefenseCardAsync(ZzzDefenseData data, UserGameData gameData, Regions region)
@@ -106,13 +108,19 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
             int height = 515 + floorDetails.Where(x => x.FloorNumber != 6).Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
-            Image<Rgba32> background = new(1550, height);
+            // 1550 x height
+            Image background = m_BackgroundImage.Clone(ctx =>
+                ctx.Resize(new ResizeOptions
+                {
+                    CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
+                    Size = new Size(1550, height),
+                    Mode = ResizeMode.Crop,
+                    Sampler = KnownResamplers.Bicubic
+                }));
             disposables.Add(background);
 
             background.Mutate(ctx =>
             {
-                ctx.Clear(Color.RebeccaPurple);
-
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
