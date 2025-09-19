@@ -204,6 +204,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                     if (floorData == null)
                     {
                         bool isFast = floorDetails.FirstOrDefault(x => x.FloorNumber > floorNumber && x.Data is not null).Data is not null;
+                        bool isBigBlob = false;
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
                              !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
                             (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
@@ -218,6 +219,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
                             }, isFast ? "Quick Clear" : "No Clear Records", Color.White);
+                            isBigBlob = true;
                         }
                         else
                         {
@@ -240,7 +242,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                         },
                             $"{FrontierNames[floorNumber]} Frontier", Color.White);
 
-                        if (floorNumber % 2 == 1) yOffset += isFast ? 200 : 620;
+                        if (floorNumber % 2 == 1) yOffset += isBigBlob ? 620 : 200;
                         continue;
                     }
 

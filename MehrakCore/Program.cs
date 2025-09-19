@@ -31,6 +31,7 @@ using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
 using MehrakCore.Services.Commands.Zzz;
 using MehrakCore.Services.Commands.Zzz.Character;
 using MehrakCore.Services.Commands.Zzz.CodeRedeem;
+using MehrakCore.Services.Commands.Zzz.Defense;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
@@ -299,6 +300,9 @@ internal class Program
         builder.Services.AddSingleton<ICharacterCardService<ZzzFullAvatarData>, ZzzCharacterCardService>();
         builder.Services.AddTransient<ICharacterCommandExecutor<ZzzCommandModule>,
             ZzzCharacterCommandExecutor>();
+        builder.Services.AddSingleton<IApiService<ZzzDefenseCommandExecutor>, ZzzDefenseApiService>();
+        builder.Services.AddSingleton<ICommandService<ZzzDefenseCommandExecutor>, ZzzDefenseCardService>();
+        builder.Services.AddTransient<ZzzDefenseCommandExecutor>();
     }
 
     private static void RegisterAsyncInitializableServices(HostApplicationBuilder builder)
@@ -313,5 +317,6 @@ internal class Program
         builder.Services.RegisterAsyncInitializableFor<ICommandService<BaseHsrEndGameCommandExecutor>, HsrEndGameCardService>();
 
         builder.Services.RegisterAsyncInitializable<ICharacterCardService<ZzzFullAvatarData>>();
+        builder.Services.RegisterAsyncInitializableFor<ICommandService<ZzzDefenseCommandExecutor>, ZzzDefenseCardService>();
     }
 }

@@ -48,7 +48,7 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
             (UserModel? user, UserProfile? selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null) return;
 
-            server ??= GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
+            server ??= GetCachedServer(selectedProfile, GameName.ZenlessZoneZero);
             if (server == null)
             {
                 await SendErrorMessageAsync("No cached server found! Please select a server first.", false);
@@ -101,7 +101,7 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
             string region = server.GetRegion();
             UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
             ApiResult<ApiResponseTypes.UserGameData> response =
-                await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server, region);
+                await GetAndUpdateGameDataAsync(user, GameName.ZenlessZoneZero, ltuid, ltoken, server, region);
             if (!response.IsSuccess)
                 return;
 
@@ -141,17 +141,17 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(message);
-            BotMetrics.TrackCommand(Context.Interaction.User, "zzz defense", true);
+            BotMetrics.TrackCommand(Context.Interaction.User, "zzz shiyu", true);
         }
         catch (CommandException e)
         {
-            BotMetrics.TrackCommand(Context.Interaction.User, "zzz defense", false);
+            BotMetrics.TrackCommand(Context.Interaction.User, "zzz shiyu", false);
             Logger.LogError(e, "Error fetching Zzz Defense data for user {UserId}", Context.Interaction.User.Id);
             await SendErrorMessageAsync(e.Message, false);
         }
         catch (Exception ex)
         {
-            BotMetrics.TrackCommand(Context.Interaction.User, "zzz defense", false);
+            BotMetrics.TrackCommand(Context.Interaction.User, "zzz shiyu", false);
             Logger.LogError(ex, "Unexpected error fetching Zzz Defense data for user {UserId}", Context.Interaction.User.Id);
             await SendErrorMessageAsync(followup: false);
         }

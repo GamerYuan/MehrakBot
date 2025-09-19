@@ -24,7 +24,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseCommandExecutor>
     {
         HttpClient client = m_HttpClientFactory.CreateClient("Default");
         HttpRequestMessage request = new(HttpMethod.Get,
-            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={region}&role_id={gameUid}&schedule_type=1");
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={region}&role_id={gameUid}&schedule_type=2");
         request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={ltuid};");
         HttpResponseMessage response = await client.SendAsync(request);
 
