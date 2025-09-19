@@ -11,29 +11,22 @@ namespace MehrakCore.Services.Commands.Zzz;
 
 internal static class AvatarImageUtility
 {
-    private static readonly Font NormalFont;
+    private static readonly Font NormalFont = new FontCollection().Add("Assets/Fonts/zzz.ttf").CreateFont(24, FontStyle.Bold);
 
     private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
     private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
     private static readonly Color NormalConstColor = new Rgba32(69, 69, 69, 200);
     private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
 
-    static AvatarImageUtility()
-    {
-        FontCollection collection = new();
-        FontFamily fontFamily = collection.Add("Assets/Fonts/zzz.ttf");
-        NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
-    }
-
     public static Image<Rgba32> GetStyledAvatarImage(this ZzzAvatar avatar, string text = "")
     {
-        Image<Rgba32> avatarImage = new(148, 180);
+        Image<Rgba32> avatarImage = new(150, 180);
         RectangleF rectangle = new(0, 145, 150, 35);
 
         avatarImage.Mutate(ctx =>
         {
             ctx.Fill(avatar.Rarity == 'A' ? PurpleBackgroundColor : GoldBackgroundColor);
-            ctx.DrawImage(avatar.AvatarImage, new Point(-1, -1), 1f);
+            ctx.DrawImage(avatar.AvatarImage, new Point(0, 0), 1f);
             ctx.Fill(Color.Black, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
             {
@@ -62,6 +55,9 @@ internal static class AvatarImageUtility
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"{avatar.Rank}", Color.White);
             }
+
+            IPath border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
+            ctx.Draw(Color.Black, 4, border);
 
             ctx.ApplyRoundedCorners(15);
         });
