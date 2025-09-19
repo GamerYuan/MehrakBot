@@ -8,7 +8,6 @@ using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using NetCord;
-using NetCord.Gateway;
 using NetCord.Rest;
 
 namespace MehrakCore.Services.Commands.Zzz.Defense;
@@ -16,11 +15,13 @@ namespace MehrakCore.Services.Commands.Zzz.Defense;
 public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandExecutor>
 {
     private readonly ZzzDefenseApiService m_ApiService;
-    private readonly ImageUpdaterService<ZzzFullAvatarData> m_ImageUpdaterService;
+    private readonly ZzzDefenseCardService m_CommandService;
+    private readonly ZzzImageUpdaterService m_ImageUpdaterService;
     private Regions m_PendingServer;
 
     public ZzzDefenseCommandExecutor(
         IApiService<ZzzDefenseCommandExecutor> apiService,
+        ICommandService<ZzzDefenseCommandExecutor> commandService,
         ImageUpdaterService<ZzzFullAvatarData> imageUpdaterService,
         UserRepository userRepository,
         TokenCacheService tokenCacheService,
@@ -30,7 +31,8 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
         : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApi, logger)
     {
         m_ApiService = (ZzzDefenseApiService)apiService;
-        m_ImageUpdaterService = imageUpdaterService;
+        m_CommandService = (ZzzDefenseCardService)commandService;
+        m_ImageUpdaterService = (ZzzImageUpdaterService)imageUpdaterService;
     }
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
@@ -123,12 +125,18 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
                 return;
             }
 
-            var updateImageTask = nonNull.Select(x => x.Node1.Avatars.Concat(x.Node2.Avatars)).SelectMany(x => x)
+            IEnumerable<Task> updateImageTask = nonNull.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x!.Id)
                 .Select(async avatar => await m_ImageUpdaterService.UpdateAvatarAsync(avatar.Id.ToString(), avatar.RoleSquareUrl));
-            await Task.WhenAll(updateImageTask);
+            IEnumerable<Task> updateBuddyTask = nonNull.SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
+                .Where(x => x is not null)
+                .DistinctBy(x => x!.Id)
+                .Select(async buddy => await m_ImageUpdaterService.UpdateBuddyImageAsync(buddy!.Id, buddy.BangbooRectangleUrl));
 
-            var message = await GetMessageAsync(defenseData, response.Data);
+            await Task.WhenAll(updateImageTask);
+            await Task.WhenAll(updateBuddyTask);
+
+            InteractionMessageProperties message = await GetMessageAsync(defenseData, response.Data, server);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
@@ -149,10 +157,24 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
         }
     }
 
-    private async ValueTask<InteractionMessageProperties> GetMessageAsync(ZzzDefenseData data, UserGameData gameData)
+    private async ValueTask<InteractionMessageProperties> GetMessageAsync(ZzzDefenseData data, UserGameData gameData, Regions region)
     {
         InteractionMessageProperties message = new();
         message.WithFlags(MessageFlags.IsComponentsV2);
+        ComponentContainerProperties container =
+            [
+                new TextDisplayProperties(
+                    $"### <@{Context.Interaction.User.Id}>'s Shiyu Defense Summary"),
+                new TextDisplayProperties(
+                    $"Cycle start: <t:{data.BeginTime}:f>\nCycle end: <t:{data.EndTime}:f>"),
+                new MediaGalleryProperties().AddItems(
+                    new MediaGalleryItemProperties(new ComponentMediaProperties($"attachment://defense_card.jpg"))),
+                new TextDisplayProperties(
+                    $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.")
+            ];
+        message.WithComponents([container]);
+        message.AddAttachments(new AttachmentProperties($"defense_card.jpg",
+            await m_CommandService.GetDefenseCardAsync(data, gameData, region)));
 
         return message;
     }
