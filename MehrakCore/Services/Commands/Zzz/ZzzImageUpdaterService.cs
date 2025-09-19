@@ -58,7 +58,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
             HttpClient client = HttpClientFactory.CreateClient("Default");
             HttpResponseMessage result = await client.GetAsync(url);
             using Image image = await Image.LoadAsync(await result.Content.ReadAsStreamAsync());
-            image.Mutate(x => x.Resize(AvatarSize, 0, KnownResamplers.Lanczos3));
+            image.Mutate(x => x.Resize(300, 0, KnownResamplers.Lanczos3));
             using MemoryStream processedStream = new();
             await image.SaveAsPngAsync(processedStream);
             processedStream.Position = 0;
