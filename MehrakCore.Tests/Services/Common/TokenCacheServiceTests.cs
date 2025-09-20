@@ -1,12 +1,12 @@
 #region
 
-using System.Text;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Text;
 
 #endregion
 
@@ -36,10 +36,11 @@ public class TokenCacheServiceTests
         // Arrange
         const ulong ltuid = 123456;
         const string ltoken = "test-token";
-        string cacheKey = $"TokenCache_{ltuid}";
+        const ulong userId = 100;
+        string cacheKey = $"TokenCache_{userId}_{ltuid}";
 
         // Act
-        await m_Service.AddCacheEntryAsync(ltuid, ltoken);
+        await m_Service.AddCacheEntryAsync(ltuid, ltoken, 100);
 
         // Assert
         byte[]? cachedBytes = await m_Cache.GetAsync(cacheKey);
@@ -55,7 +56,7 @@ public class TokenCacheServiceTests
         const ulong userId = 100;
         const ulong ltuid = 123456;
         const string ltoken = "test-token";
-        string cacheKey = $"TokenCache_{ltuid}";
+        string cacheKey = $"TokenCache_{userId}_{ltuid}";
 
         // Add the entry directly to the cache
         byte[] tokenBytes = Encoding.UTF8.GetBytes(ltoken);
@@ -112,12 +113,12 @@ public class TokenCacheServiceTests
         const string ltoken = "test-token";
         const ulong userId = 100; // Any user ID for testing
 
-        var testCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-        var logger = new Mock<ILogger<TokenCacheService>>();
-        var service = new TokenCacheService(testCache, logger.Object);
+        MemoryDistributedCache testCache = new(Options.Create(new MemoryDistributedCacheOptions()));
+        Mock<ILogger<TokenCacheService>> logger = new();
+        TokenCacheService service = new(testCache, logger.Object);
 
         // Act
-        await service.AddCacheEntryAsync(ltuid, ltoken);
+        await service.AddCacheEntryAsync(ltuid, ltoken, userId);
 
         // Assert - Entry exists initially
         string? token = await service.GetCacheEntry(userId, ltuid);
