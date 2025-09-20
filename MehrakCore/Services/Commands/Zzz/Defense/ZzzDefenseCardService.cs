@@ -92,6 +92,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x!.Id), async x =>
                     await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzBuddyName, x!.Id))));
 
+            disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);
             disposables.AddRange(buddyImages.Values);
 
@@ -304,6 +305,10 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
             m_Logger.LogError(e, "Error generating Zzz Defense card for UID {GameUid}, Data:\n{Data}",
                 gameData.GameUid, JsonSerializer.Serialize(data));
             throw new CommandException("An error occurred while generating Shiyu Defense summary card", e);
+        }
+        finally
+        {
+            disposables.ForEach(x => x.Dispose());
         }
     }
 
