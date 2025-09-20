@@ -36,7 +36,41 @@ public class ZzzDefenseCardServiceTests
         await m_Service.InitializeAsync();
     }
 
-    private static UserGameData GetUserGameDataa()
+    [Test]
+    [TestCase("Shiyu_TestData_1.json")]
+    [TestCase("Shiyu_TestData_2.json")]
+    [TestCase("Shiyu_TestData_3.json")]
+    public async Task GetDefenseCardAsync_TestData_ShouldMatchGoldenImage(string testData)
+    {
+        ZzzDefenseData? defenseData = JsonSerializer.Deserialize<ZzzDefenseData>(
+            await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
+        Assert.That(defenseData, Is.Not.Null);
+
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+            $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
+        Stream image = await m_Service.GetDefenseCardAsync(defenseData,
+            GetUserGameData(), Regions.Asia);
+        Assert.That(image, Is.Not.Null);
+        MemoryStream memoryStream = new();
+        await image.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+        byte[] generatedImageBytes = memoryStream.ToArray();
+
+        // Save generated image to output folder for comparison
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        string outputImagePath = Path.Combine(outputDirectory,
+            $"ZzzDefense_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
+        // Save golden image to output folder for comparison
+        string outputGoldenImagePath = Path.Combine(outputDirectory,
+            $"ZzzDefense_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
+
+        Assert.That(generatedImageBytes, Is.EqualTo(goldenImage), "Generated image should match the golden image");
+    }
+
+    private static UserGameData GetUserGameData()
     {
         return new()
         {
@@ -47,6 +81,7 @@ public class ZzzDefenseCardServiceTests
         };
     }
 
+    /*
     [Test]
     [TestCase("Shiyu_TestData_1.json")]
     [TestCase("Shiyu_TestData_2.json")]
@@ -59,7 +94,7 @@ public class ZzzDefenseCardServiceTests
         Assert.That(defenseData, Is.Not.Null);
 
         Stream image = await m_Service.GetDefenseCardAsync(defenseData,
-            GetUserGameDataa(), Regions.Asia);
+            GetUserGameData(), Regions.Asia);
         FileStream fileStream = File.OpenWrite(
             $"{Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
                 Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage"))}.jpg");
@@ -67,4 +102,5 @@ public class ZzzDefenseCardServiceTests
         await image.CopyToAsync(fileStream);
         await fileStream.FlushAsync();
     }
+    */
 }

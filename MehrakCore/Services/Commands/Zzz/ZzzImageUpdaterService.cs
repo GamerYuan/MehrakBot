@@ -45,7 +45,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
         }
     }
 
-    public async Task UpdateBuddyImageAsync(int id, string url)
+    public virtual async Task UpdateBuddyImageAsync(int id, string url)
     {
         try
         {
