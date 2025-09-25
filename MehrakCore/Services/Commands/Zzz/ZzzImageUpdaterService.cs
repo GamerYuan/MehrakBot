@@ -11,6 +11,9 @@ namespace MehrakCore.Services.Commands.Zzz;
 
 internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
 {
+    protected override string AvatarString => FileNameFormat.ZzzAvatarName;
+    protected override string SideAvatarString => string.Empty;
+
     private const string WikiEndpoint = "/hoyowiki/zzz/wapi/entry_page";
 
     public ZzzImageUpdaterService(ImageRepository imageRepository,
@@ -39,6 +42,32 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
         {
             Logger.LogError(e, "Failed to update data for character {CharacterName}", characterInformation.AvatarList[0].Name);
             throw new CommandException("An error occurred while updating character images", e);
+        }
+    }
+
+    public virtual async Task UpdateBuddyImageAsync(int id, string url)
+    {
+        try
+        {
+            string fileName = string.Format(FileNameFormat.ZzzBuddyName, id);
+            if (await ImageRepository.FileExistsAsync(fileName))
+            {
+                Logger.LogDebug("Buddy image for {BuddyId} already exists. Skipping update.", id);
+                return;
+            }
+            HttpClient client = HttpClientFactory.CreateClient("Default");
+            HttpResponseMessage result = await client.GetAsync(url);
+            using Image image = await Image.LoadAsync(await result.Content.ReadAsStreamAsync());
+            image.Mutate(x => x.Resize(300, 0, KnownResamplers.Lanczos3));
+            using MemoryStream processedStream = new();
+            await image.SaveAsPngAsync(processedStream);
+            processedStream.Position = 0;
+            await ImageRepository.UploadFileAsync(fileName, processedStream, "png");
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to update buddy image for {BuddyId}", id);
+            throw new CommandException("An error occurred while updating bangboo images", e);
         }
     }
 

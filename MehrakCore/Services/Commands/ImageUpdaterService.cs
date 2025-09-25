@@ -20,7 +20,7 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
 
     protected virtual string AvatarString => "{0}";
     protected virtual string SideAvatarString => "{0}";
-    private const int AvatarSize = 150;
+    protected const int AvatarSize = 150;
 
     protected ImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<ImageUpdaterService<T>> logger)
@@ -42,18 +42,18 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
                 return;
             }
 
-            var filename = string.Format(AvatarString, avatarId);
+            string filename = string.Format(AvatarString, avatarId);
             if (await ImageRepository.FileExistsAsync(filename))
             {
                 Logger.LogDebug("Avatar image {Filename} already exists. Skipping update.", filename);
                 return;
             }
 
-            var response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
+            HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
             response.EnsureSuccessStatusCode();
-            using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+            using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
             image.Mutate(x => x.Resize(AvatarSize, 0, KnownResamplers.Lanczos3));
-            using var processedImageStream = new MemoryStream();
+            using MemoryStream processedImageStream = new();
             await image.SaveAsPngAsync(processedImageStream, new PngEncoder
             {
                 BitDepth = PngBitDepth.Bit8,
@@ -79,18 +79,18 @@ public abstract class ImageUpdaterService<T> where T : ICharacterInformation
                 return;
             }
 
-            var filename = string.Format(SideAvatarString, avatarId);
+            string filename = string.Format(SideAvatarString, avatarId);
             if (await ImageRepository.FileExistsAsync(filename))
             {
                 Logger.LogDebug("Side avatar image {Filename} already exists. Skipping update.", filename);
                 return;
             }
 
-            var response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
+            HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
             response.EnsureSuccessStatusCode();
-            using var image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
+            using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
             image.Mutate(x => x.Resize(0, AvatarSize, KnownResamplers.Lanczos3));
-            using var processedImageStream = new MemoryStream();
+            using MemoryStream processedImageStream = new();
             await image.SaveAsPngAsync(processedImageStream, new PngEncoder
             {
                 BitDepth = PngBitDepth.Bit8,
