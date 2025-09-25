@@ -17,6 +17,7 @@ using System.Text.Json;
 
 namespace MehrakCore.Tests.Services.Commands.Zzz;
 
+[Parallelizable(ParallelScope.Fixtures)]
 public class ZzzDefenseCommandExecutorTests
 {
     private ZzzDefenseCommandExecutor m_Executor;
@@ -29,7 +30,7 @@ public class ZzzDefenseCommandExecutorTests
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareServiceMock;
     private Mock<IInteractionContext> m_ContextMock;
     private Mock<ZzzImageUpdaterService> m_ImageUpdaterMock;
-    private readonly DiscordTestHelper m_DiscordTestHelper = new();
+    private DiscordTestHelper m_DiscordTestHelper;
     private HttpClient m_HttpClient;
 
     private ulong m_TestUserId;
@@ -49,6 +50,9 @@ public class ZzzDefenseCommandExecutorTests
     [SetUp]
     public async Task Setup()
     {
+        m_DiscordTestHelper = new DiscordTestHelper();
+        m_DiscordTestHelper.SetupRequestCapture();
+
         m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
         m_HttpMessageHandlerMock = new();
@@ -77,15 +81,16 @@ public class ZzzDefenseCommandExecutorTests
             Context = m_ContextMock.Object
         };
 
+        SetupImageUpdaterNoop();
         m_TestDataStr = LoadTestData();
-        m_GoldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets", "Shiyu_GoldenImage_1.jpg"));
-        await m_CardService.InitializeAsync();
+        m_GoldenImage = await
+            File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets", "Shiyu_GoldenImage_1.jpg"));
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
-        m_HttpClient.Dispose();
+        await m_UserRepository.DeleteUserAsync(m_TestUserId);
         m_DiscordTestHelper.Dispose();
     }
 
@@ -97,8 +102,8 @@ public class ZzzDefenseCommandExecutorTests
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiSuccess();
-        SetupImageUpdaterNoop();
         SetupApiServiceWithData();
+        await m_CardService.InitializeAsync();
 
         await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
         byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
@@ -126,9 +131,7 @@ public class ZzzDefenseCommandExecutorTests
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiUnauthorized();
-        SetupImageUpdaterNoop();
-        // Need defense API setup because code attempts to call after getting
-        // game data failure? Actually unauthorized stops earlier.
+
         await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("Invalid HoYoLAB UID or Cookies"));
@@ -139,7 +142,6 @@ public class ZzzDefenseCommandExecutorTests
     {
         await CreateUserAsync();
         SetupNullTokenCache();
-        // capture guid registration
         m_AuthenticationMiddlewareServiceMock.Setup(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor))
             .Returns(Guid.NewGuid().ToString());
 
@@ -176,7 +178,6 @@ public class ZzzDefenseCommandExecutorTests
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiSuccess();
-        SetupImageUpdaterNoop();
         SetupApiServiceNoData();
 
         await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
@@ -190,7 +191,6 @@ public class ZzzDefenseCommandExecutorTests
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiSuccess();
-        SetupImageUpdaterNoop();
         // custom defense response with empty floor list
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -215,7 +215,6 @@ public class ZzzDefenseCommandExecutorTests
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiSuccess();
-        SetupImageUpdaterNoop();
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -239,7 +238,6 @@ public class ZzzDefenseCommandExecutorTests
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiSuccess();
-        SetupImageUpdaterNoop();
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -263,7 +261,6 @@ public class ZzzDefenseCommandExecutorTests
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiSuccess();
-        SetupImageUpdaterNoop();
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -290,8 +287,8 @@ public class ZzzDefenseCommandExecutorTests
         m_AuthenticationMiddlewareServiceMock.Setup(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor))
             .Returns(Guid.NewGuid().ToString());
         SetupGameRoleApiSuccess();
-        SetupImageUpdaterNoop();
         SetupApiServiceWithData();
+        await m_CardService.InitializeAsync();
 
         await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId); // sets pending server
 
@@ -469,7 +466,7 @@ public class ZzzDefenseCommandExecutorTests
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{\"retcode\":0,\"message\":\"OK\",\"data\":{\"has_data\":false,\"begin_time\":\"1756411200\",\"end_time\":\"1757620799\",\"all_floor_detail\":[]}}", Encoding.UTF8, "application/json")
+                Content = new StringContent("{\"retcode\":0,\"message\":\"OK\",\"data\":{\"has_data\":false,\"begin_time\":\"1756411200\",\"end_time\":\"1757620799\",\"all_floor_detail\":[],\"rating_list\":[]}}", Encoding.UTF8, "application/json")
             });
     }
 
