@@ -67,13 +67,13 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error processing Pure Fiction command for user {UserId} profile {Profile}",
+            Logger.LogError(e, "Error processing Shiyu Defense command for user {UserId} profile {Profile}",
                 Context.Interaction.User.Id, profile);
             await SendErrorMessageAsync(e.Message, false);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing Pure Fiction command for user {UserId} profile {Profile}",
+            Logger.LogError(ex, "Error processing Shiyu Defense command for user {UserId} profile {Profile}",
                 Context.Interaction.User.Id, profile);
             await SendErrorMessageAsync(followup: false);
         }

@@ -67,7 +67,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
         catch (Exception e)
         {
             Logger.LogError(e, "Failed to update buddy image for {BuddyId}", id);
-            throw new CommandException("An error occurred while update bangboo images", e);
+            throw new CommandException("An error occurred while updating bangboo images", e);
         }
     }
 
