@@ -31,6 +31,17 @@ public class ZzzDefenseData
     [JsonPropertyName("all_floor_detail")] public required List<FloorDetail> AllFloorDetail { get; init; }
 }
 
+public class ZzzAssaultData
+{
+    [JsonPropertyName("start_time")] public required ScheduleTime StartTime { get; init; }
+    [JsonPropertyName("end_time")] public required ScheduleTime EndTime { get; init; }
+    [JsonPropertyName("rank_percent")] public int RankPercent { get; init; }
+    [JsonPropertyName("list")] public required List<AssaultFloorDetail> List { get; init; }
+    [JsonPropertyName("has_data")] public bool HasData { get; init; }
+    [JsonPropertyName("total_score")] public int TotalScore { get; init; }
+    [JsonPropertyName("total_star")] public int TotalStar { get; init; }
+}
+
 public class RatingData
 {
     [JsonPropertyName("times")] public int Times { get; init; }
@@ -51,4 +62,29 @@ public class NodeData
     [JsonPropertyName("avatars")] public required List<ZzzChallengeAvatar> Avatars { get; init; }
     [JsonPropertyName("buddy")] public required ZzzBuddy? Buddy { get; init; }
     [JsonPropertyName("battle_time")] public int BattleTime { get; init; }
+}
+
+public class AssaultFloorDetail
+{
+    [JsonPropertyName("score")] public int Score { get; init; }
+    [JsonPropertyName("star")] public int Star { get; init; }
+    [JsonPropertyName("boss")] public required AssaultBoss Boss { get; init; }
+    [JsonPropertyName("avatar_list")] public required List<ZzzChallengeAvatar> AvatarList { get; init; }
+    [JsonPropertyName("buddy")] public required ZzzBuddy? Buddy { get; init; }
+}
+
+public class AssaultBoss
+{
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
+}
+
+public class ScheduleTime
+{
+    [JsonPropertyName("year")] public int Year { get; init; }
+    [JsonPropertyName("month")] public int Month { get; init; }
+    [JsonPropertyName("day")] public int Day { get; init; }
+    [JsonPropertyName("hour")] public int Hour { get; init; }
+    [JsonPropertyName("minute")] public int Minute { get; init; }
+    [JsonPropertyName("second")] public int Second { get; init; }
 }
