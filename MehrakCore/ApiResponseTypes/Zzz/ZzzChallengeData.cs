@@ -68,8 +68,9 @@ public class AssaultFloorDetail
 {
     [JsonPropertyName("score")] public int Score { get; init; }
     [JsonPropertyName("star")] public int Star { get; init; }
-    [JsonPropertyName("boss")] public required AssaultBoss Boss { get; init; }
+    [JsonPropertyName("boss")] public required List<AssaultBoss> Boss { get; init; }
     [JsonPropertyName("avatar_list")] public required List<ZzzChallengeAvatar> AvatarList { get; init; }
+    [JsonPropertyName("buffer")] public required List<AssaultBuff> Buff { get; init; }
     [JsonPropertyName("buddy")] public required ZzzBuddy? Buddy { get; init; }
 }
 
@@ -77,6 +78,13 @@ public class AssaultBoss
 {
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("bg_icon")] public required string BgIcon { get; init; }
+}
+
+public class AssaultBuff
+{
+    [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
 }
 
 public class ScheduleTime
@@ -87,4 +95,11 @@ public class ScheduleTime
     [JsonPropertyName("hour")] public int Hour { get; init; }
     [JsonPropertyName("minute")] public int Minute { get; init; }
     [JsonPropertyName("second")] public int Second { get; init; }
+
+    public long ToTimestamp(TimeZoneInfo tz)
+    {
+        DateTime dt = new(Year, Month, Day, Hour, Minute, Second, DateTimeKind.Unspecified);
+        DateTimeOffset dto = TimeZoneInfo.ConvertTimeToUtc(dt, tz);
+        return dto.ToUnixTimeSeconds();
+    }
 }
