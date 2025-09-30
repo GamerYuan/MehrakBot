@@ -111,7 +111,6 @@ public class ZzzAssaultCommandExecutorTests
 
         await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
         byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
-        File.WriteAllBytes("TestOutput.jpg", bytes!);
         Assert.That(bytes, Is.Not.Null);
         Assert.That(bytes, Is.EqualTo(m_GoldenImage));
     }
