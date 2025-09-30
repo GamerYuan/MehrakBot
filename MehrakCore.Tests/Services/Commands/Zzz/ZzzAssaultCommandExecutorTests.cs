@@ -178,7 +178,7 @@ public class ZzzAssaultCommandExecutorTests
     }
 
     [Test]
-    public async Task ExecuteAsync_WithDefenseApiNoData_ShouldSendNoRecordsMessage()
+    public async Task ExecuteAsync_WithAssaultApiNoData_ShouldSendNoRecordsMessage()
     {
         await CreateUserAsync();
         SetupBasicTokenCache();
@@ -191,12 +191,12 @@ public class ZzzAssaultCommandExecutorTests
     }
 
     [Test]
-    public async Task ExecuteAsync_WithDefenseApiHasDataButEmptyFloorList_ShouldSendNoRecordsMessage()
+    public async Task ExecuteAsync_WithAssaultApiHasDataButEmptyFloorList_ShouldSendNoRecordsMessage()
     {
         await CreateUserAsync();
         SetupBasicTokenCache();
         SetupGameRoleApiSuccess();
-        // custom defense response with empty floor list
+        // custom Assault response with empty floor list
         m_HttpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -215,7 +215,7 @@ public class ZzzAssaultCommandExecutorTests
     }
 
     [Test]
-    public async Task ExecuteAsync_DefenseApiInvalidCookies_ShouldSendInvalidCookiesMessage()
+    public async Task ExecuteAsync_AssaultApiInvalidCookies_ShouldSendInvalidCookiesMessage()
     {
         await CreateUserAsync();
         SetupBasicTokenCache();
@@ -238,7 +238,7 @@ public class ZzzAssaultCommandExecutorTests
     }
 
     [Test]
-    public async Task ExecuteAsync_DefenseApiErrorRetcode_ShouldSendGenericDefenseErrorMessage()
+    public async Task ExecuteAsync_AssaultApiErrorRetcode_ShouldSendGenericAssaultErrorMessage()
     {
         await CreateUserAsync();
         SetupBasicTokenCache();
@@ -261,7 +261,7 @@ public class ZzzAssaultCommandExecutorTests
     }
 
     [Test]
-    public async Task ExecuteAsync_DefenseApiNonSuccessStatus_ShouldSendUnknownErrorMessage()
+    public async Task ExecuteAsync_AssaultApiNonSuccessStatus_ShouldSendUnknownErrorMessage()
     {
         await CreateUserAsync();
         SetupBasicTokenCache();
@@ -307,7 +307,7 @@ public class ZzzAssaultCommandExecutorTests
     }
 
     [Test]
-    public async Task OnAuthenticationCompletedAsync_Failure_ShouldNotSendDefenseCard()
+    public async Task OnAuthenticationCompletedAsync_Failure_ShouldNotSendAssaultCard()
     {
         await CreateUserAsync();
         SetupNullTokenCache();

@@ -73,11 +73,11 @@ public class ZzzAssaultCardServiceTests
         string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
         string outputImagePath = Path.Combine(outputDirectory,
-            $"ZzzDefense_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Generated.jpg");
+            $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
         // Save golden image to output folder for comparison
         string outputGoldenImagePath = Path.Combine(outputDirectory,
-            $"ZzzDefense_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
+            $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImage), "Generated image should match the golden image");
