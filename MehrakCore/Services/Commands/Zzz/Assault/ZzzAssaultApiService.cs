@@ -181,12 +181,14 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
     public Task StartAsync(CancellationToken cancellationToken)
     {
         m_CleanupTimer = new Timer(_ => CleanupCache(), null, TimeSpan.Zero, TimeSpan.FromHours(4));
+        m_Logger.LogInformation("Service started and cache cleanup timer initialized.");
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
         m_CleanupTimer?.Change(Timeout.Infinite, 0);
+        m_Logger.LogInformation("Service stopped and cache cleanup timer disposed.");
         return Task.CompletedTask;
     }
 
