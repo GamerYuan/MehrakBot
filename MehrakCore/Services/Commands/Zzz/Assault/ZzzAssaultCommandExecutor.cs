@@ -135,7 +135,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
             {
                 AssaultBuff buff = x.Buff[0];
                 Stream stream = new MemoryStream();
-                await m_ApiService.GetBuffImageAsync(buff.Icon, stream);
+                await m_ApiService.GetBuffImageAsync(buff, stream);
                 return (buff.Name, stream);
             });
 

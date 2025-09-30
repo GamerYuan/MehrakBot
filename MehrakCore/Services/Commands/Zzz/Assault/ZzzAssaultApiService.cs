@@ -102,7 +102,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         if (m_BossImage.TryGetValue(bossData.Name, out Stream? value))
         {
             value.Position = 0;
-            await stream.CopyToAsync(value);
+            await value.CopyToAsync(stream);
             value.Position = 0;
             stream.Position = 0;
             return;
@@ -148,23 +148,23 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         stream.Position = 0;
     }
 
-    public async Task GetBuffImageAsync(string buffIconUrl, Stream stream)
+    public async Task GetBuffImageAsync(AssaultBuff buff, Stream stream)
     {
-        if (m_BuffImage.TryGetValue(buffIconUrl, out Stream? value))
+        if (m_BuffImage.TryGetValue(buff.Name, out Stream? value))
         {
             value.Position = 0;
-            await stream.CopyToAsync(value);
+            await value.CopyToAsync(stream);
             value.Position = 0;
             stream.Position = 0;
             return;
         }
 
         HttpClient client = m_HttpClientFactory.CreateClient("Default");
-        HttpResponseMessage iconResponse = await client.GetAsync(buffIconUrl);
+        HttpResponseMessage iconResponse = await client.GetAsync(buff.Icon);
         if (!iconResponse.IsSuccessStatusCode)
         {
             m_Logger.LogError("Failed to fetch buff image from URL: {IconUrl}, Status Code: {StatusCode}",
-                buffIconUrl, iconResponse.StatusCode);
+                buff.Name, iconResponse.StatusCode);
             throw new CommandException("An error occurred while fetching Deadly Assault buff image");
         }
         Stream imageStream = new MemoryStream();
@@ -172,7 +172,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         image.Mutate(ctx => ctx.Resize(0, BuffImageHeight));
         await image.SaveAsPngAsync(imageStream);
         imageStream.Position = 0;
-        m_BuffImage.AddOrUpdate(buffIconUrl, _ => imageStream, (_, _) => imageStream);
+        m_BuffImage.AddOrUpdate(buff.Name, _ => imageStream, (_, _) => imageStream);
         await imageStream.CopyToAsync(stream);
         imageStream.Position = 0;
         stream.Position = 0;
