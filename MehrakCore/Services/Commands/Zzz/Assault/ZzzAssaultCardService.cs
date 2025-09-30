@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System.Numerics;
+using System.Text.Json;
 
 namespace MehrakCore.Services.Commands.Zzz.Assault;
 
@@ -29,14 +30,14 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
     private Image m_StarLitSmall = null!;
     private Image m_StarUnlitSmall = null!;
     private Image m_BaseBuddyImage = null!;
-    private readonly Image m_BackgroundImage = null!;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
         Quality = 90,
         Interleaved = false
     };
-    private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
+    private static readonly Color OverlayColor = Color.FromRgb(69, 69, 69);
+    private static readonly Color BackgroundColor = Color.FromRgb(30, 30, 30);
 
     public ZzzAssaultCardService(ImageRepository imageRepository, ILogger<ZzzAssaultCardService> logger)
     {
@@ -65,8 +66,6 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
 
         m_BaseBuddyImage = await Image.LoadAsync(await
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzBuddyName, "base")), cancellationToken);
-        // m_BackgroundImage = await Image.LoadAsync(await
-        // m_ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg"), cancellationToken);
     }
 
     public async Task<Stream> GetAssaultCardAsync(ZzzAssaultData data, UserGameData gameData,
@@ -113,7 +112,7 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
 
             background.Mutate(ctx =>
             {
-                ctx.Clear(Color.RebeccaPurple);
+                ctx.Clear(BackgroundColor);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
@@ -187,7 +186,8 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error generating Zzz Assault card");
+            m_Logger.LogError(e, "Error generating Zzz Assault card for GameUid: {GameUid}, Data:\n{AssaultData}",
+                gameData.GameUid, JsonSerializer.Serialize(data));
             throw new CommandException("An error occurred while generating the Assault card image. Please try again later.", e);
         }
         finally
