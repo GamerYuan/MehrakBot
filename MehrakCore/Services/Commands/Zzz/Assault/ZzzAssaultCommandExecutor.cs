@@ -139,9 +139,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
                 return (buff.Name, stream);
             });
 
-            await Task.WhenAll(avatarImageTask.Concat(buddyImageTask));
-            await Task.WhenAll(bossImageTask);
-            await Task.WhenAll(buffImageTask);
+            await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));
 
             Dictionary<string, Stream> bossImages = bossImageTask.ToDictionary(x => x.Result.Item1, x => x.Result.Item2);
             Dictionary<string, Stream> buffImages = buffImageTask.ToDictionary(x => x.Result.Item1, x => x.Result.Item2);
