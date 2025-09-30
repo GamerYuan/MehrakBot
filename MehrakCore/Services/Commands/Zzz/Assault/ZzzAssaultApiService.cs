@@ -140,7 +140,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         MemoryStream memoryStream = new();
         await background.SaveAsPngAsync(memoryStream);
         memoryStream.Position = 0;
-        m_BossImage.AddOrUpdate(bossData.Name, _ => memoryStream, (_, _) => memoryStream);
+        m_BossImage.AddOrUpdate(bossData.Name, _ => memoryStream, (_, oldStream) => { oldStream.Dispose(); return memoryStream; });
 
         memoryStream.Position = 0;
         await memoryStream.CopyToAsync(stream);
@@ -172,7 +172,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         image.Mutate(ctx => ctx.Resize(0, BuffImageHeight));
         await image.SaveAsPngAsync(imageStream);
         imageStream.Position = 0;
-        m_BuffImage.AddOrUpdate(buff.Name, _ => imageStream, (_, _) => imageStream);
+        m_BuffImage.AddOrUpdate(buff.Name, _ => imageStream, (_, oldStream) => { oldStream.Dispose(); return imageStream; });
         await imageStream.CopyToAsync(stream);
         imageStream.Position = 0;
         stream.Position = 0;
