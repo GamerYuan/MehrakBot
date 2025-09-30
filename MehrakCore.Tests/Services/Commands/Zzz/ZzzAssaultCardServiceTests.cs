@@ -4,7 +4,6 @@ using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Zzz.Assault;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using System.Text.Json;
 
 namespace MehrakCore.Tests.Services.Commands.Zzz;
@@ -44,8 +43,16 @@ public class ZzzAssaultCardServiceTests
             await m_ImageRepository.DownloadFileToStreamAsync("Buff_PowerBoost"));
     }
 
+    [TearDown]
+    public void TearDown()
+    {
+        m_BuffImage.Clear();
+        m_BossImage.Clear();
+    }
+
     [Test]
     [TestCase("Da_TestData_1.json")]
+    [TestCase("Da_TestData_2.json")]
     public async Task GetAssaultCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         ZzzAssaultData? assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(
@@ -83,12 +90,15 @@ public class ZzzAssaultCardServiceTests
             GameUid = "1300000000",
             GameBiz = "nap_global",
             Nickname = "Test",
-            Region = "prod_gf_jp"
+            Region = "prod_gf_jp",
+            Level = 60,
         };
     }
 
+    /*
     [Test]
     [TestCase("Da_TestData_1.json")]
+    [TestCase("Da_TestData_2.json")]
     public async Task GenerateGoldenImage(string testData)
     {
         ZzzAssaultData? assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(
@@ -140,4 +150,5 @@ public class ZzzAssaultCardServiceTests
             await fileStream.FlushAsync();
         }
     }
+    */
 }
