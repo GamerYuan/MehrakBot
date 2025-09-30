@@ -109,7 +109,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
             ZzzAssaultData assaultData = await m_ApiService.GetAssaultDataAsync(ltoken, ltuid,
                 response.Data.GameUid!, region);
 
-            if (!assaultData.HasData)
+            if (!assaultData.HasData || assaultData.List.Count == 0)
             {
                 Logger.LogInformation("No Deadly Assault clear records found for user {UserId}",
                     Context.Interaction.User.Id);
