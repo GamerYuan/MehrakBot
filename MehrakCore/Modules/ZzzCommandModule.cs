@@ -1,6 +1,7 @@
 ﻿#region
 
 using MehrakCore.Services.Commands.Executor;
+using MehrakCore.Services.Commands.Zzz.Assault;
 using MehrakCore.Services.Commands.Zzz.Defense;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
@@ -19,12 +20,14 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     private readonly ICodeRedeemExecutor<ZzzCommandModule> m_CodeRedeemExecutor;
     private readonly ICharacterCommandExecutor<ZzzCommandModule> m_CharacterCommandExecutor;
     private readonly ZzzDefenseCommandExecutor m_ShiyuCommandExecutor;
+    private readonly ZzzAssaultCommandExecutor m_AssaultCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
     private readonly ILogger<ZzzCommandModule> m_Logger;
 
     public ZzzCommandModule(ICodeRedeemExecutor<ZzzCommandModule> codeRedeemExecutor,
         ICharacterCommandExecutor<ZzzCommandModule> characterCommandExecutor,
         ZzzDefenseCommandExecutor shiyuCommandExecutor,
+        ZzzAssaultCommandExecutor assaultCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<ZzzCommandModule> logger)
     {
         m_CodeRedeemExecutor = codeRedeemExecutor;
@@ -32,6 +35,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         m_CommandRateLimitService = commandRateLimitService;
         m_ShiyuCommandExecutor = shiyuCommandExecutor;
         m_Logger = logger;
+        m_AssaultCommandExecutor = assaultCommandExecutor;
     }
 
     [SubSlashCommand("codes", "Redeem Zenless Zone Zero codes")]
@@ -96,6 +100,24 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         m_ShiyuCommandExecutor.Context = Context;
         await m_ShiyuCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("da", "Get Deadly Assault summary card")]
+    public async Task AssaultCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
+        uint profile = 1
+        )
+    {
+        m_Logger.LogInformation(
+            "User {User} used the da command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_AssaultCommandExecutor.Context = Context;
+        await m_AssaultCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     private async Task<bool> ValidateRateLimitAsync()
