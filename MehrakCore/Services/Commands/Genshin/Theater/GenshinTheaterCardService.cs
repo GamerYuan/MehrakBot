@@ -114,7 +114,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
             int maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
 
             int height = 590 +
-                         (maxRound + 1) / 2 * 300;
+                         ((maxRound + 1) / 2 * 300);
             // 1900 x height
             Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
             disposableResources.Add(background);
@@ -123,8 +123,8 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
             {
                 if (height > background.Height)
                     ctx.Resize(0, height);
-                Rectangle rectangle = new(ctx.GetCurrentSize().Width / 2 - 1900 / 2,
-                    ctx.GetCurrentSize().Height / 2 - height / 2, 1900, height);
+                Rectangle rectangle = new((ctx.GetCurrentSize().Width / 2) - (1900 / 2),
+                    (ctx.GetCurrentSize().Height / 2) - (height / 2), 1900, height);
                 ctx.Crop(rectangle);
                 ctx.GaussianBlur(10);
 
@@ -239,42 +239,109 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
                 IPath starBackground = ImageUtility.CreateRoundedRectanglePath(875, 110, 15).Translate(985, 430);
                 ctx.Fill(OverlayColor, starBackground);
-                ctx.DrawText("Star Challenge Stellas", m_NormalFont, Color.White, new PointF(1005, 470));
+                ctx.DrawText("Stellas", m_NormalFont, Color.White, new PointF(1005, 470));
 
-                for (int i = theaterData.Stat.GetMedalRoundList.Count - 1; i >= 0; i--)
+                int medalOffset = 0;
+
+                if (theaterData.Stat.GetMedalRoundList.Count > 10)
+                {
+                    for (int i = theaterData.Stat.GetMedalRoundList.Count - 1; i >= 10; i--)
+                    {
+                        ctx.DrawImage(theaterData.Stat.GetMedalRoundList[i] == 1
+                                ? m_TheaterStarLit
+                                : m_TheaterStarUnlit,
+                            new Point(1800 - medalOffset, 465), 1f);
+                        medalOffset += 45;
+                    }
+                    int lineX = 1800 - medalOffset + 30;
+                    ctx.DrawLine(Color.FromRgba(69, 69, 69, 128), 2f, new PointF(lineX, 450), new PointF(lineX, 525));
+                    medalOffset += 25;
+                }
+
+                for (int i = Math.Min(9, theaterData.Stat.GetMedalRoundList.Count - 1); i >= 0; i--)
+                {
                     ctx.DrawImage(theaterData.Stat.GetMedalRoundList[i] == 1
                             ? m_TheaterStarLit
                             : m_TheaterStarUnlit,
-                        new Point(1800 - (theaterData.Stat.GetMedalRoundList.Count - 1 - i) * 45, 465), 1f);
+                        new Point(1800 - medalOffset, 465), 1f);
+                    medalOffset += 45;
+                }
 
                 bool hasFastest = false;
+                int levelIndex = 1;
+                int arcanaLeft = 2;
+                bool[] arcanaCleared = [false, false];
 
                 Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> alternateLookup = avatarImages.GetAlternateLookup<int>();
 
-                for (int i = 0; i < theaterData.Detail.RoundsData.Count; i++)
+                for (int i = 0; i < maxRound; i++)
                 {
                     int xOffset = i == maxRound - 1 &&
                                   maxRound % 2 == 1
                         ? 512
                         : 50 + (i % 2 == 0 ? 0 : 945);
-                    int yOffset = 660 + i / 2 * 300;
-                    RoundsData roundData = theaterData.Detail.RoundsData[i];
+                    int yOffset = 660 + (i / 2 * 300);
+                    RoundsData? roundData = i < theaterData.Detail.RoundsData.Count ? theaterData.Detail.RoundsData[i] : null;
 
                     IPath avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
                     ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
 
+                    IPath buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
+                    ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
+
+                    if (roundData == null)
+                    {
+                        if (i < 12 - arcanaLeft)
+                        {
+                            levelIndex++;
+                            ctx.DrawText(new RichTextOptions(m_NormalFont)
+                            {
+                                Origin = new Vector2(xOffset + 15, yOffset - 45)
+                            }, GetActName(levelIndex), Color.White);
+                        }
+                        else
+                        {
+                            int firstArcana = Array.IndexOf(arcanaCleared, false);
+                            arcanaCleared[firstArcana] = true;
+                            ctx.DrawText(new RichTextOptions(m_NormalFont)
+                            {
+                                Origin = new Vector2(xOffset + 15, yOffset - 45)
+                            }, GetActName(11 + firstArcana), Color.White);
+                            arcanaLeft--;
+                        }
+
+                        ctx.DrawText(new RichTextOptions(m_NormalFont)
+                        {
+                            Origin = new Vector2(xOffset + 335, yOffset + 80),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, "No Clear Records", Color.White);
+
+                        ctx.DrawLine(new SolidPen(new PenOptions(Color.White, 5f) { EndCapStyle = EndCapStyle.Round }),
+                            new PointF(xOffset + 690, yOffset + 180),
+                            new PointF(xOffset + 845, yOffset - 50));
+                        continue;
+                    }
+
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 15, yOffset - 45)
-                    }, $"Act {roundData.RoundId}", Color.White);
+                    }, GetActName(roundData.IsTarot ? roundData.RoundId + roundData.TarotSerialNumber : roundData.RoundId),
+                        Color.White);
+                    if (roundData.IsTarot)
+                    {
+                        arcanaLeft--;
+                        arcanaCleared[roundData.TarotSerialNumber - 1] = true;
+                    }
+                    else
+                    {
+                        levelIndex = roundData.RoundId;
+                    }
 
                     ctx.DrawImage(GetRosterImage(roundData.Avatars.Select(x => x.AvatarId), alternateLookup),
-                        new Point(xOffset, yOffset), 1f);
+                            new Point(xOffset, yOffset), 1f);
                     ctx.DrawImage(roundData.IsGetMedal ? m_TheaterStarLit : m_TheaterStarUnlit,
                         new Point(xOffset + 600, yOffset - 55), 1f);
-
-                    IPath buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
-                    ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
 
                     ctx.DrawImage(m_TheaterBuff, new Point(xOffset + 690, yOffset - 60), 1f);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -289,7 +356,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     {
                         Buff buff = roundData.SplendourBuff.Buffs[j];
                         Image buffImage = buffImages[buff.Name];
-                        int y = yOffset + 20 + j * 55;
+                        int y = yOffset + 20 + (j * 55);
                         ctx.DrawImage(buffImage, new Point(xOffset + 690, y), 1f);
 
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -311,35 +378,6 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                             Origin = new Vector2(xOffset + 412, yOffset - 45)
                         }, "Fastest Act", Color.Gold);
                     }
-                }
-
-                for (int i = theaterData.Detail.RoundsData.Count; i < maxRound; i++)
-                {
-                    int xOffset = i == maxRound - 1 && maxRound % 2 == 1
-                        ? 512
-                        : 50 + (i % 2 == 0 ? 0 : 945);
-                    int yOffset = 660 + i / 2 * 300;
-
-                    IPath avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
-                    ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
-
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 15, yOffset - 45)
-                    }, $"Act {i + 1}", Color.White);
-
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 335, yOffset + 80),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, "No Clear Records", Color.White);
-
-                    IPath buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
-                    ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
-                    ctx.DrawLine(new SolidPen(new PenOptions(Color.White, 5f) { EndCapStyle = EndCapStyle.Round }),
-                        new PointF(xOffset + 690, yOffset + 180),
-                        new PointF(xOffset + 845, yOffset - 50));
                 }
             });
 
@@ -365,7 +403,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         const int avatarWidth = 150;
 
         List<int> avatarIds = [.. ids];
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        int offset = ((4 - avatarIds.Count) * avatarWidth / 2) + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -375,7 +413,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
 
             for (int i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                int x = offset + (i * (avatarWidth + 10));
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });
@@ -391,7 +429,8 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
             2 => "Normal Mode",
             3 => "Hard Mode",
             4 => "Visionary Mode",
-            _ => throw new ArgumentException("Difficulty must be between 1 and 4", nameof(difficulty))
+            5 => "Lunar Mode",
+            _ => throw new ArgumentException("Difficulty must be between 1 and 5", nameof(difficulty))
         };
     }
 
@@ -403,7 +442,17 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
             2 => 6,
             3 => 8,
             4 => 10,
-            _ => throw new ArgumentException("Difficulty must be between 1 and 4", nameof(difficulty))
+            5 => 12,
+            _ => throw new ArgumentException("Difficulty must be between 1 and 5", nameof(difficulty))
+        };
+    }
+
+    private static string GetActName(int floorNumber)
+    {
+        return floorNumber switch
+        {
+            >= 11 => $"Arcana {floorNumber - 10}",
+            _ => $"Act {floorNumber}"
         };
     }
 }

@@ -38,6 +38,10 @@ public class GenshinTheaterCardServiceTests
     [TestCase("Theater_TestData_2.json")]
     [TestCase("Theater_TestData_3.json")]
     [TestCase("Theater_TestData_4.json")]
+    [TestCase("Theater_TestData_5.json")]
+    [TestCase("Theater_TestData_6.json")]
+    [TestCase("Theater_TestData_7.json")]
+    [TestCase("Theater_TestData_8.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         GenshinTheaterInformation? testData =
@@ -116,44 +120,30 @@ public class GenshinTheaterCardServiceTests
         };
     }
 
-    // [Test] public async Task GenerateGoldenImage() { var testData1 = await
-    // JsonSerializer.DeserializeAsync<GenshinTheaterInformation>(
-    // File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-    // "Genshin", "Theater_TestData_1.json"))); var testData2 = await
-    // JsonSerializer.DeserializeAsync<GenshinTheaterInformation>(
-    // File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-    // "Genshin", "Theater_TestData_2.json"))); var testData3 = await
-    // JsonSerializer.DeserializeAsync<GenshinTheaterInformation>(
-    // File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-    // "Genshin", "Theater_TestData_3.json"))); var testData4 = await
-    // JsonSerializer.DeserializeAsync<GenshinTheaterInformation>(
-    // File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-    // "Genshin", "Theater_TestData_4.json")));
-    //
-    // var image1 = await m_Service.GetTheaterCardAsync(testData1!,
-    // GetTestUserGameData(), GetTestConstDictionary(), GetBuffImages()); var
-    // image2 = await m_Service.GetTheaterCardAsync(testData2!,
-    // GetTestUserGameData(), GetTestConstDictionary(), GetBuffImages()); var
-    // image3 = await m_Service.GetTheaterCardAsync(testData3!,
-    // GetTestUserGameData(), GetTestConstDictionary(), GetBuffImages()); var
-    // image4 = await m_Service.GetTheaterCardAsync(testData4!,
-    // GetTestUserGameData(), GetTestConstDictionary(), GetBuffImages());
-    //
-    // Assert.Multiple(() => { Assert.That(image1, Is.Not.Null);
-    // Assert.That(image2, Is.Not.Null); Assert.That(image3, Is.Not.Null);
-    // Assert.That(image4, Is.Not.Null); });
-    //
-    // await using var fileStream1 =
-    // File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    // "TestAssets", "Theater_GoldenImage_1.jpg")); await using var fileStream2
-    // = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    // "TestAssets", "Theater_GoldenImage_2.jpg")); await using var fileStream3
-    // = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    // "TestAssets", "Theater_GoldenImage_3.jpg")); await using var fileStream4
-    // = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    // "TestAssets", "Theater_GoldenImage_4.jpg"));
-    //
-    // await image1.CopyToAsync(fileStream1); await
-    // image2.CopyToAsync(fileStream2); await image3.CopyToAsync(fileStream3);
-    // await image4.CopyToAsync(fileStream4); }
+    /*
+    [Test]
+    [TestCase("Theater_TestData_1.json")]
+    [TestCase("Theater_TestData_2.json")]
+    [TestCase("Theater_TestData_3.json")]
+    [TestCase("Theater_TestData_4.json")]
+    [TestCase("Theater_TestData_5.json")]
+    [TestCase("Theater_TestData_6.json")]
+    [TestCase("Theater_TestData_7.json")]
+    [TestCase("Theater_TestData_8.json")]
+    public async Task GenerateGoldenImage(string testData)
+    {
+        GenshinTheaterInformation? testData1 = await
+            JsonSerializer.DeserializeAsync<GenshinTheaterInformation>(
+            File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
+            "Genshin", testData)));
+        Assert.That(testData1, Is.Not.Null, "Test data should not be null");
+
+        UserGameData userGameData = GetTestUserGameData();
+        Stream stream = await m_Service.GetTheaterCardAsync(testData1!, userGameData, GetTestConstDictionary(), GetBuffImages());
+        FileStream fs = File.OpenWrite(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+                "TestAssets", testData.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
+        await stream.CopyToAsync(fs);
+        await fs.FlushAsync();
+    }
+    */
 }
