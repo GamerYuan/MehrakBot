@@ -162,6 +162,9 @@ public class RoundsData
     [JsonPropertyName("finish_date_time")] public required FinishDateTime FinishDateTime { get; init; }
 
     [JsonPropertyName("splendour_buff")] public SplendourBuff? SplendourBuff { get; init; }
+
+    [JsonPropertyName("is_tarot")] public bool IsTarot { get; init; }
+    [JsonPropertyName("tarot_serial_no")] public int TarotSerialNumber { get; init; }
 }
 
 public class Schedule
