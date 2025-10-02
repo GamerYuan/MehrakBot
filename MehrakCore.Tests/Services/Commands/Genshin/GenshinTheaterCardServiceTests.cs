@@ -42,6 +42,7 @@ public class GenshinTheaterCardServiceTests
     [TestCase("Theater_TestData_6.json")]
     [TestCase("Theater_TestData_7.json")]
     [TestCase("Theater_TestData_8.json")]
+    [TestCase("Theater_TestData_9.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         GenshinTheaterInformation? testData =
@@ -120,7 +121,6 @@ public class GenshinTheaterCardServiceTests
         };
     }
 
-    /*
     [Test]
     [TestCase("Theater_TestData_1.json")]
     [TestCase("Theater_TestData_2.json")]
@@ -130,6 +130,7 @@ public class GenshinTheaterCardServiceTests
     [TestCase("Theater_TestData_6.json")]
     [TestCase("Theater_TestData_7.json")]
     [TestCase("Theater_TestData_8.json")]
+    [TestCase("Theater_TestData_9.json")]
     public async Task GenerateGoldenImage(string testData)
     {
         GenshinTheaterInformation? testData1 = await
@@ -145,5 +146,4 @@ public class GenshinTheaterCardServiceTests
         await stream.CopyToAsync(fs);
         await fs.FlushAsync();
     }
-    */
 }
