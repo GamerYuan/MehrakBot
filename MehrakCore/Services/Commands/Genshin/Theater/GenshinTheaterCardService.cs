@@ -297,7 +297,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
                                 Origin = new Vector2(xOffset + 15, yOffset - 45)
-                            }, GetActName(levelIndex), Color.White);
+                            }, GetActName(levelIndex, false), Color.White);
                         }
                         else
                         {
@@ -306,7 +306,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
                                 Origin = new Vector2(xOffset + 15, yOffset - 45)
-                            }, GetActName(11 + firstArcana), Color.White);
+                            }, GetActName(firstArcana + 1, true), Color.White);
                             arcanaLeft--;
                         }
 
@@ -326,7 +326,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 15, yOffset - 45)
-                    }, GetActName(roundData.IsTarot ? roundData.RoundId + roundData.TarotSerialNumber : roundData.RoundId),
+                    }, GetActName(roundData.IsTarot ? roundData.TarotSerialNumber : roundData.RoundId, roundData.IsTarot),
                         Color.White);
                     if (roundData.IsTarot)
                     {
@@ -447,12 +447,12 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         };
     }
 
-    private static string GetActName(int floorNumber)
+    private static string GetActName(int floorNumber, bool isArcana)
     {
-        return floorNumber switch
+        return isArcana switch
         {
-            >= 11 => $"Arcana {floorNumber - 10}",
-            _ => $"Act {floorNumber}"
+            true => $"Arcana {floorNumber}",
+            false => $"Act {floorNumber}"
         };
     }
 }

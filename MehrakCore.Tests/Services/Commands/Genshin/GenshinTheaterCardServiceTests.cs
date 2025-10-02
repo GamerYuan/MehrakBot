@@ -42,6 +42,7 @@ public class GenshinTheaterCardServiceTests
     [TestCase("Theater_TestData_6.json")]
     [TestCase("Theater_TestData_7.json")]
     [TestCase("Theater_TestData_8.json")]
+    [TestCase("Theater_TestData_9.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         GenshinTheaterInformation? testData =
@@ -130,6 +131,7 @@ public class GenshinTheaterCardServiceTests
     [TestCase("Theater_TestData_6.json")]
     [TestCase("Theater_TestData_7.json")]
     [TestCase("Theater_TestData_8.json")]
+    [TestCase("Theater_TestData_9.json")]
     public async Task GenerateGoldenImage(string testData)
     {
         GenshinTheaterInformation? testData1 = await

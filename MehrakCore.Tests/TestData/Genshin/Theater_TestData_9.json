@@ -301,6 +301,82 @@
         "avatars": [
           {
             "avatar_id": 10000112,
+            "avatar_type": 1,
+            "name": "Escoffier",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+            "level": 90,
+            "rarity": 5
+          },
+          {
+            "avatar_id": 10000112,
+            "avatar_type": 1,
+            "name": "Escoffier",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+            "level": 90,
+            "rarity": 5
+          },
+          {
+            "avatar_id": 10000112,
+            "avatar_type": 1,
+            "name": "Escoffier",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+            "level": 90,
+            "rarity": 5
+          },
+          {
+            "avatar_id": 10000112,
+            "avatar_type": 1,
+            "name": "Escoffier",
+            "element": "Cryo",
+            "image": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+            "level": 90,
+            "rarity": 5
+          }
+        ],
+        "is_get_medal": true,
+        "round_id": 5,
+        "finish_time": "1746088095",
+        "finish_date_time": {
+          "year": 2025,
+          "month": 5,
+          "day": 1,
+          "hour": 16,
+          "minute": 28,
+          "second": 15
+        },
+        "splendour_buff": {
+          "summary": {
+            "total_level": 16,
+            "desc": "Blessing Level \u003Ccolor=#f39001\u003E16\u003C/color\u003E: During performance challenges, characters\u0027 Max HP increases by \u003Ccolor=#f39001\u003E12800\u003C/color\u003E, ATK by \u003Ccolor=#f39001\u003E800\u003C/color\u003E, DEF by \u003Ccolor=#f39001\u003E800\u003C/color\u003E, and Elemental Mastery by \u003Ccolor=#f39001\u003E320\u003C/color\u003E.\\nThe buff effects received by \u003Ccolor=#f39001\u003ESpecial Guest Stars\u003C/color\u003E are increased by \u003Ccolor=#f39001\u003E100%\u003C/color\u003E."
+          },
+          "buffs": [
+            {
+              "name": "Cryo Crystal Blessing",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f776/4375aacdce2b0f4328568c78f6205f34.png",
+              "level": 3
+            },
+            {
+              "name": "Frozen Blessing",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f776/87ec5dc1effdd933295f684a878903ab.png",
+              "level": 2
+            },
+            {
+              "name": "Hydro Crystal Blessing",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67e33601/dee4d6d9aeca77b7b68639d5e66b96e0.png",
+              "level": 3
+            }
+          ]
+        },
+        "is_tarot": true,
+        "tarot_serial_no": 1
+      },
+      {
+        "avatars": [
+          {
+            "avatar_id": 10000112,
             "avatar_type": 3,
             "name": "Escoffier",
             "element": "Cryo",
