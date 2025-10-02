@@ -121,6 +121,7 @@ public class GenshinTheaterCardServiceTests
         };
     }
 
+    /*
     [Test]
     [TestCase("Theater_TestData_1.json")]
     [TestCase("Theater_TestData_2.json")]
@@ -146,4 +147,5 @@ public class GenshinTheaterCardServiceTests
         await stream.CopyToAsync(fs);
         await fs.FlushAsync();
     }
+    */
 }
