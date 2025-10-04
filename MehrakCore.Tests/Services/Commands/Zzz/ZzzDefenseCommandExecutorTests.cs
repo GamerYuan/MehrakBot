@@ -35,7 +35,7 @@ public class ZzzDefenseCommandExecutorTests
 
     private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
-    private const string TestGameUid = "130000000";
+    private const string TestGameUid = "1300000000";
     private const string TestLToken = "test_ltoken_value";
     private const uint TestProfileId = 1;
 
@@ -406,7 +406,7 @@ public class ZzzDefenseCommandExecutorTests
                         game_uid = TestGameUid,
                         region = "prod_gf_jp",
                         game_biz = "nap_global",
-                        nickname = "TestPlayer",
+                        nickname = "Test",
                         level = 60,
                         is_chosen = false,
                         region_name = "Asia",

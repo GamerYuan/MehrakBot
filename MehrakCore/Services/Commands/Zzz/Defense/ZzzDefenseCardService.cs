@@ -138,6 +138,20 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                         .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy}",
                     Color.White);
 
+                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                {
+                    Origin = new Vector2(1500, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{gameData.Nickname}·IK {gameData.Level}", Color.White);
+                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                {
+                    Origin = new Vector2(1500, 110),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                },
+                    $"{gameData.GameUid}", Color.White);
+
                 IPath ratingModule = ImageUtility.CreateRoundedRectanglePath(500, 90, 15).Translate(450, 30);
                 ctx.Fill(OverlayColor, ratingModule);
 

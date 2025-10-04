@@ -77,7 +77,8 @@ public class ZzzDefenseCardServiceTests
             GameUid = "1300000000",
             GameBiz = "nap_global",
             Nickname = "Test",
-            Region = "prod_gf_jp"
+            Region = "prod_gf_jp",
+            Level = 60
         };
     }
 
