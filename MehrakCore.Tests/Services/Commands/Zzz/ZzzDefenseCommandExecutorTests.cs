@@ -406,7 +406,7 @@ public class ZzzDefenseCommandExecutorTests
                         game_uid = TestGameUid,
                         region = "prod_gf_jp",
                         game_biz = "nap_global",
-                        nickname = "TestPlayer",
+                        nickname = "Test",
                         level = 60,
                         is_chosen = false,
                         region_name = "Asia",
