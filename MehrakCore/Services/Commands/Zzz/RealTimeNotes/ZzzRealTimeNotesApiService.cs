@@ -68,13 +68,7 @@ internal class ZzzRealTimeNotesApiService : IRealTimeNotesApiService<ZzzRealTime
                     "No data found in real-time notes API response");
             }
 
-            ZzzRealTimeNotesData? data = json.Data;
-            if (data != null) return ApiResult<ZzzRealTimeNotesData>.Success(data);
-
-            m_Logger.LogError("Failed to deserialize real-time notes data for roleId {RoleId} on server {Server}",
-                roleId, server);
-            return ApiResult<ZzzRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
-                "Failed to deserialize real-time notes data");
+            return ApiResult<ZzzRealTimeNotesData>.Success(json.Data);
         }
         catch (Exception e)
         {
