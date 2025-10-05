@@ -2,12 +2,10 @@
 
 using MehrakCore.Constants;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -20,24 +18,24 @@ namespace MehrakCore.Tests.Services.Commands.Common;
 [Parallelizable(ParallelScope.Fixtures)]
 public class DailyCheckInServiceTests
 {
-    private ulong m_TestUserId;
     private const ulong TestLtuid = 987654321UL;
     private const string TestLtoken = "test_ltoken_value";
-    private const uint TestProfile = 1u;
 
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock = null!;
-    private UserRepository m_UserRepository = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<DailyCheckInService>> m_LoggerMock = null!;
     private Mock<ILogger<GameRecordApiService>> m_GameRecordApiLoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private Mock<HttpMessageHandler> m_MockHttpMessageHandler = null!;
 
+    private DailyCheckInService m_Service = null!;
+
     // Constants for testing
     private static readonly string GenshinCheckInApiUrl = $"{HoYoLabDomains.GenshinApi}/event/sol/sign";
     private static readonly string HsrCheckInApiUrl = $"{HoYoLabDomains.PublicApi}/event/luna/hkrpg/os/sign";
     private static readonly string ZzzCheckInApiUrl = $"{HoYoLabDomains.PublicApi}/event/luna/zzz/os/sign";
     private static readonly string Hi3CheckInApiUrl = $"{HoYoLabDomains.PublicApi}/event/mani/sign";
+    private static readonly string ToTCheckInApiUrl = $"{HoYoLabDomains.PublicApi}/event/luna/nxx/os/sign";
 
     private static readonly string GameRecordApiUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
@@ -46,8 +44,6 @@ public class DailyCheckInServiceTests
     public void Setup()
     {
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
-        m_UserRepository =
-            new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_LoggerMock = new Mock<ILogger<DailyCheckInService>>();
         m_GameRecordApiLoggerMock = new Mock<ILogger<GameRecordApiService>>();
         m_DiscordTestHelper = new DiscordTestHelper();
@@ -61,7 +57,7 @@ public class DailyCheckInServiceTests
         m_GameRecordApiService =
             new GameRecordApiService(m_HttpClientFactoryMock.Object, m_GameRecordApiLoggerMock.Object);
 
-        m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
+        m_Service = new(m_HttpClientFactoryMock.Object, m_GameRecordApiService, m_LoggerMock.Object);
     }
 
     [TearDown]
@@ -73,15 +69,6 @@ public class DailyCheckInServiceTests
     [Test]
     public async Task CheckInAsync_AllGamesSuccessful_SendsSuccessMessage()
     {
-        UserModel user = new()
-        {
-            Id = m_TestUserId,
-            Profiles =
-            [
-                new() { ProfileId = TestProfile, LtUid = TestLtuid }
-            ]
-        };
-
         // Setup GameRecord API to return valid user data (passes guard clause)
         SetupGameRecordApiResponse(TestLtuid, true);
 
@@ -90,46 +77,33 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
-
-        DailyCheckInService service = new(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
-            m_LoggerMock.Object);
+        SetupHttpResponseForUrl(ToTCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
 
         // Act
-        ApiResult<string> response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
+        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.True);
-        string? responseMessage = response.Data;
+        string? responseMessage = response.Data.Item2;
 
         // Verify the message contains success messages for all games
         Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Success").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Success").IgnoreCase);
         Assert.That(responseMessage,
-            Does.Contain("Honkai Impact 3rd: Success").IgnoreCase); // Verify HTTP requests had proper headers
+            Does.Contain("Honkai Impact 3rd: Success").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Tears of Themis: Success").IgnoreCase);
+
         VerifyHttpRequestForGame(GenshinCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
         VerifyHttpRequestForGame(HsrCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
         VerifyHttpRequestForGame(ZzzCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
         VerifyHttpRequestForGame(Hi3CheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
-
-        // Verify user profile was updated with LastCheckIn
-        UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
-        Assert.That(updatedUser, Is.Not.Null);
-        Assert.That(updatedUser.Profiles!.First(p => p.ProfileId == TestProfile).LastCheckIn, Is.Not.Null);
+        VerifyHttpRequestForGame(ToTCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
     }
 
     [Test]
     public async Task CheckInAsync_MixedResults_SendsMixedResultsMessage()
     {
-        UserModel user = new()
-        {
-            Id = m_TestUserId,
-            Profiles =
-            [
-                new() { ProfileId = TestProfile, LtUid = TestLtuid }
-            ]
-        };
-
         // Setup GameRecord API to return valid user data (passes guard clause)
         SetupGameRecordApiResponse(TestLtuid, true);
 
@@ -138,16 +112,14 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateNoAccountResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.InternalServerError, "");
-
-        DailyCheckInService service = new(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
-            m_LoggerMock.Object);
+        SetupHttpResponseForUrl(ToTCheckInApiUrl, HttpStatusCode.InternalServerError, "");
 
         // Act
-        ApiResult<string> response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
+        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.True);
-        string? responseMessage = response.Data;
+        string? responseMessage = response.Data.Item2;
 
         // Verify the message contains the correct mixed results
         Assert.That(responseMessage, Does.Contain("Genshin Impact: Success").IgnoreCase);
@@ -155,27 +127,21 @@ public class DailyCheckInServiceTests
         Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: No valid game account found").IgnoreCase);
         Assert.That(responseMessage,
             Does.Contain("Honkai Impact 3rd: An unknown error occurred")
-                .IgnoreCase); // Verify HTTP requests had proper headers
+                .IgnoreCase);
+        Assert.That(responseMessage,
+            Does.Contain("Tears of Themis: An unknown error occurred")
+                .IgnoreCase);
+
         VerifyHttpRequestForGame(GenshinCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
         VerifyHttpRequestForGame(HsrCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
         VerifyHttpRequestForGame(ZzzCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
-
-        // Note: User profile is not updated since not all check-ins were successful
         VerifyHttpRequestForGame(Hi3CheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
+        VerifyHttpRequestForGame(ToTCheckInApiUrl, TestLtuid, TestLtoken, Times.Once());
     }
 
     [Test]
     public async Task CheckInAsync_AllAlreadyCheckedIn_SendsAlreadyCheckedInMessage()
     {
-        UserModel user = new()
-        {
-            Id = m_TestUserId,
-            Profiles =
-            [
-                new() { ProfileId = TestProfile, LtUid = TestLtuid }
-            ]
-        };
-
         // Setup GameRecord API to return valid user data (passes guard clause)
         SetupGameRecordApiResponse(TestLtuid, true);
 
@@ -184,22 +150,21 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
-
-        DailyCheckInService service = new(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
-            m_LoggerMock.Object);
+        SetupHttpResponseForUrl(ToTCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
 
         // Act
-        ApiResult<string> response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
+        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.True);
-        string? responseMessage = response.Data;
+        string? responseMessage = response.Data.Item2;
 
         // Verify the message contains already checked in messages for all games
         Assert.That(responseMessage, Does.Contain("Genshin Impact: Already checked in today").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Honkai: Star Rail: Already checked in today").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Zenless Zone Zero: Already checked in today").IgnoreCase);
         Assert.That(responseMessage, Does.Contain("Honkai Impact 3rd: Already checked in today").IgnoreCase);
+        Assert.That(responseMessage, Does.Contain("Tears of Themis: Already checked in today").IgnoreCase);
 
         // Note: User profile is not updated since no new check-ins were made
     }
@@ -207,15 +172,6 @@ public class DailyCheckInServiceTests
     [Test]
     public async Task CheckInAsync_ZZZRequest_ContainsProperRpcSignHeader()
     {
-        UserModel user = new()
-        {
-            Id = m_TestUserId,
-            Profiles =
-            [
-                new() { ProfileId = TestProfile, LtUid = TestLtuid }
-            ]
-        };
-
         // Setup GameRecord API to return valid user data (passes guard clause)
         SetupGameRecordApiResponse(TestLtuid, true);
 
@@ -224,15 +180,12 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(HsrCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(ZzzCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
         SetupHttpResponseForUrl(Hi3CheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
-
-        DailyCheckInService service = new(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
-            m_LoggerMock.Object);
+        SetupHttpResponseForUrl(ToTCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
 
         // Act
-        await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
+        await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
-        // Assert
-        // Verify ZZZ request has the special X-Rpc-Signgame header
+        // Assert Verify ZZZ request has the special X-Rpc-Signgame header
         m_MockHttpMessageHandler.Protected()
             .Verify("SendAsync", Times.AtLeastOnce(), ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.ToString() == ZzzCheckInApiUrl &&
@@ -244,25 +197,14 @@ public class DailyCheckInServiceTests
     [Test]
     public async Task CheckInAsync_InvalidCookies_SendsInvalidCookiesMessage()
     {
-        UserModel user = new()
-        {
-            Id = m_TestUserId,
-            Profiles =
-            [
-                new() { ProfileId = TestProfile, LtUid = TestLtuid }
-            ]
-        };
-
         // Setup GameRecord API to return invalid data (fails guard clause)
         SetupGameRecordApiResponse(TestLtuid, false);
 
-        // Note: Individual game API responses are not needed since the guard clause will fail first
-
-        DailyCheckInService service = new(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
-            m_LoggerMock.Object);
+        // Note: Individual game API responses are not needed since the guard
+        // clause will fail first
 
         // Act
-        ApiResult<string> response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
+        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.False);
@@ -276,23 +218,11 @@ public class DailyCheckInServiceTests
     [Test]
     public async Task CheckInAsync_GameRecordApiReturnsNull_SendsInvalidCookiesMessage()
     {
-        UserModel user = new()
-        {
-            Id = m_TestUserId,
-            Profiles =
-            [
-                new() { ProfileId = TestProfile, LtUid = TestLtuid }
-            ]
-        };
-
         // Setup GameRecord API to return null (fails guard clause)
         SetupGameRecordApiResponse(TestLtuid, false);
 
-        DailyCheckInService service = new(m_UserRepository, m_HttpClientFactoryMock.Object, m_GameRecordApiService,
-            m_LoggerMock.Object);
-
         // Act
-        ApiResult<string> response = await service.CheckInAsync(m_TestUserId, user, TestProfile, TestLtuid, TestLtoken);
+        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.False);
@@ -302,13 +232,15 @@ public class DailyCheckInServiceTests
         Assert.That(responseMessage,
             Does.Contain("Invalid UID or Cookies. Please re-authenticate your profile").IgnoreCase);
 
-        // Verify that individual game check-in APIs were not called since guard clause failed
+        // Verify that individual game check-in APIs were not called since guard
+        // clause failed
         m_MockHttpMessageHandler.Protected()
             .Verify("SendAsync", Times.Never(), ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.ToString() == GenshinCheckInApiUrl ||
                     req.RequestUri!.ToString() == HsrCheckInApiUrl ||
                     req.RequestUri!.ToString() == ZzzCheckInApiUrl ||
-                    req.RequestUri!.ToString() == Hi3CheckInApiUrl),
+                    req.RequestUri!.ToString() == Hi3CheckInApiUrl ||
+                    req.RequestUri.ToString() == ToTCheckInApiUrl),
                 ItExpr.IsAny<CancellationToken>());
     }
 
