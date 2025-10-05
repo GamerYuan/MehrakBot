@@ -18,7 +18,8 @@ internal class ZzzRealTimeNotesApiService : IRealTimeNotesApiService<ZzzRealTime
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        NumberHandling = JsonNumberHandling.AllowReadingFromString
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
     public ZzzRealTimeNotesApiService(IHttpClientFactory httpClientFactory,
