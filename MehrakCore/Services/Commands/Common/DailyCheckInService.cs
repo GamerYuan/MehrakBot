@@ -3,7 +3,6 @@
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Constants;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -17,7 +16,6 @@ namespace MehrakCore.Services.Commands.Common;
 
 public class DailyCheckInService : IDailyCheckInService
 {
-    private readonly UserRepository m_UserRepository;
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly GameRecordApiService m_GameRecordApiService;
     private readonly ILogger<DailyCheckInService> m_Logger;
@@ -40,25 +38,21 @@ public class DailyCheckInService : IDailyCheckInService
         { GameName.TearsOfThemis, "e202202281857121" }
     };
 
-    public DailyCheckInService(UserRepository userRepository, IHttpClientFactory httpClientFactory,
+    public DailyCheckInService(IHttpClientFactory httpClientFactory,
         GameRecordApiService gameRecordApiService, ILogger<DailyCheckInService> logger)
     {
-        m_UserRepository = userRepository;
         m_HttpClientFactory = httpClientFactory;
         m_GameRecordApiService = gameRecordApiService;
         m_Logger = logger;
     }
 
-    public async Task<ApiResult<string>> CheckInAsync(ulong userId, UserModel user, uint profile, ulong ltuid,
-        string ltoken)
+    public async Task<ApiResult<(bool, string)>> CheckInAsync(ulong ltuid, string ltoken)
     {
         try
         {
-            m_Logger.LogInformation("User {UserId} is performing daily check-in", userId);
-
             UserData? userData = await m_GameRecordApiService.GetUserDataAsync(ltuid, ltoken);
             if (userData == null)
-                return ApiResult<string>.Failure(HttpStatusCode.Unauthorized,
+                return ApiResult<(bool, string)>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid UID or Cookies. Please re-authenticate your profile");
 
             GameName[] checkInTypes = Enum.GetValues<GameName>();
@@ -67,7 +61,7 @@ public class DailyCheckInService : IDailyCheckInService
             {
                 try
                 {
-                    return await CheckInHelperAsync(type, userId, ltuid, ltoken);
+                    return await CheckInHelperAsync(type, ltuid, ltoken);
                 }
                 catch (Exception ex)
                 {
@@ -92,19 +86,14 @@ public class DailyCheckInService : IDailyCheckInService
                 sb.AppendLine($"{gameName}: {gameResult}");
             }
 
-            if (tasks.All(x => x.Result.IsSuccess || x.Result.StatusCode == HttpStatusCode.Forbidden))
-            {
-                user.Profiles!.First(x => x.ProfileId == profile).LastCheckIn = DateTime.UtcNow;
-                await m_UserRepository.CreateOrUpdateUserAsync(user);
-            }
-
-            return ApiResult<string>.Success(sb.ToString());
+            return ApiResult<(bool, string)>.Success(
+                (tasks.All(x => x.Result.IsSuccess || x.Result.StatusCode == HttpStatusCode.Forbidden), sb.ToString()));
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "An error occurred while performing daily check-in for user {UserId}",
-                userId);
-            return ApiResult<string>.Failure(HttpStatusCode.InternalServerError,
+            m_Logger.LogError(e, "An error occurred while performing daily check-in for user LtUid: {UserId}",
+                ltuid);
+            return ApiResult<(bool, string)>.Failure(HttpStatusCode.InternalServerError,
                 "An unknown error occurred while performing daily check-in");
         }
     }
@@ -121,8 +110,7 @@ public class DailyCheckInService : IDailyCheckInService
         };
     }
 
-    private async Task<ApiResult<bool>> CheckInHelperAsync(GameName type, ulong userId, ulong ltuid,
-        string ltoken)
+    private async Task<ApiResult<bool>> CheckInHelperAsync(GameName type, ulong ltuid, string ltoken)
     {
         if (!CheckInUrls.TryGetValue(type, out string? url) || !CheckInActIds.TryGetValue(type, out string? actId))
         {
@@ -159,21 +147,21 @@ public class DailyCheckInService : IDailyCheckInService
         switch (retcode)
         {
             case -5003:
-                m_Logger.LogInformation("User {UserId} has already checked in today for game {Game}", userId,
+                m_Logger.LogInformation("User LtUid: {UserId} has already checked in today for game {Game}", ltuid,
                     type.ToString());
                 return ApiResult<bool>.Success(false, -5003, response.StatusCode);
 
             case 0:
-                m_Logger.LogInformation("User {UserId} check-in successful for game {Game}", userId, type.ToString());
+                m_Logger.LogInformation("User LtUid: {UserId} check-in successful for game {Game}", ltuid, type.ToString());
                 return ApiResult<bool>.Success(true, 0, response.StatusCode);
 
             case -10002:
-                m_Logger.LogInformation("User {UserId} does not have a valid account for game {Game}", userId,
+                m_Logger.LogInformation("User LtUid: {UserId} does not have a valid account for game {Game}", ltuid,
                     type.ToString());
                 return ApiResult<bool>.Failure(HttpStatusCode.Forbidden, "No valid game account found");
 
             default:
-                m_Logger.LogError("Check-in failed for user {UserId} for game {Game} with retcode {Retcode}", userId,
+                m_Logger.LogError("Check-in failed for user LtUid: {UserId} for game {Game} with retcode {Retcode}", ltuid,
                     type.ToString(), retcode);
                 return ApiResult<bool>.Failure(response.StatusCode,
                     $"An unknown error occurred during check-in");
