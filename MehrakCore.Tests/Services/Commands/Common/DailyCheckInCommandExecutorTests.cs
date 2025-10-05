@@ -257,8 +257,7 @@ public class DailyCheckInCommandExecutorTests
         // Act
         await ExecuteDailyCheckInCommand(m_TestUserId, 1u); // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), 1u, TestLtUid,
-                TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -295,8 +294,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Verify that the check-in service was NOT called
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                It.IsAny<ulong>(), It.IsAny<string>()),
+            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -329,8 +327,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -366,8 +363,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -395,8 +391,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -418,8 +413,7 @@ public class DailyCheckInCommandExecutorTests
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes); // Make CheckInAsync throw an exception
         m_DailyCheckInServiceMock.Setup(x =>
-                x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                    It.IsAny<ulong>(), It.IsAny<string>()))
+                x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
         // Act
@@ -488,8 +482,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(), TestLtUid,
-                TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -517,8 +510,7 @@ public class DailyCheckInCommandExecutorTests
         // Act
         await ExecuteDailyCheckInCommand(m_TestUserId, 2u); // Select profile 2        // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid + 1, TestLToken), Times.Once);
+            x => x.CheckInAsync(TestLtUid + 1, TestLToken), Times.Once);
     }
 
     [Test]
@@ -567,8 +559,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Assert
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -608,8 +599,7 @@ public class DailyCheckInCommandExecutorTests
 
         // Verify that the check-in service was NOT called
         m_DailyCheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                It.IsAny<ulong>(), It.IsAny<string>()),
+            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<string>()),
             Times.Never);
     }
 }

@@ -261,9 +261,8 @@ public class DailyCheckInCommandModuleTests
         // Set up distributed cache for token check (has token)
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken)); // Set up check-in service to succeed
-        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(),
-                It.IsAny<uint>(), TestLtUid, TestLToken))
-            .Returns(Task.FromResult(ApiResult<string>.Success("Check in success")));
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(TestLtUid, TestLToken))
+            .Returns(Task.FromResult(ApiResult<(bool, string)>.Success((true, "Check in success"))));
 
         // Create test user with a profile
         UserModel testUser = new()
@@ -304,8 +303,7 @@ public class DailyCheckInCommandModuleTests
                 It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()),
             Times.Once); // Verify check-in service was called with the correct parameters
         m_CheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -323,9 +321,8 @@ public class DailyCheckInCommandModuleTests
         // Set up distributed cache for token check (has token)
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{customLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken)); // Set up check-in service to succeed
-        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(),
-                It.IsAny<uint>(), customLtUid, TestLToken))
-            .Returns(Task.FromResult(ApiResult<string>.Success("Check in success")));
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(customLtUid, TestLToken))
+            .Returns(Task.FromResult(ApiResult<(bool, string)>.Success((true, "Check in success"))));
 
         // Create test user with multiple profiles
         UserModel testUser = new()
@@ -366,8 +363,7 @@ public class DailyCheckInCommandModuleTests
         m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{m_TestUserId}_{customLtUid}", It.IsAny<CancellationToken>()),
             Times.Once); // Verify check-in service was called with the correct parameters
         m_CheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                customLtUid, TestLToken),
+            x => x.CheckInAsync(customLtUid, TestLToken),
             Times.Once);
     }
 
@@ -481,8 +477,7 @@ public class DailyCheckInCommandModuleTests
 
         // Verify check-in service was NOT called since user already checked in today
         m_CheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                It.IsAny<ulong>(), It.IsAny<string>()),
+            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -504,9 +499,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set up check-in service to succeed
-        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(),
-                It.IsAny<uint>(), TestLtUid, TestLToken))
-            .Returns(Task.FromResult(ApiResult<string>.Success("Check in success")));
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(TestLtUid, TestLToken))
+            .Returns(Task.FromResult(ApiResult<(bool, string)>.Success((true, "Check in success"))));
 
         // Create test user with a profile that was checked in yesterday
         UserModel testUser = new()
@@ -550,8 +544,7 @@ public class DailyCheckInCommandModuleTests
         // Verify check-in service was called with the correct parameters since
         // yesterday's check-in should allow today's check-in
         m_CheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -567,9 +560,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set up check-in service to succeed
-        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(),
-                It.IsAny<uint>(), TestLtUid, TestLToken))
-            .Returns(Task.FromResult(ApiResult<string>.Success("Check in success")));
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(TestLtUid, TestLToken))
+            .Returns(Task.FromResult(ApiResult<(bool, string)>.Success((true, "Check in success"))));
 
         // Create test user with a profile that has never checked in
         // (LastCheckIn = null)
@@ -613,8 +605,7 @@ public class DailyCheckInCommandModuleTests
 
         // Verify check-in service was called since user has never checked in
         m_CheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 
@@ -676,8 +667,7 @@ public class DailyCheckInCommandModuleTests
 
         // Verify check-in service was NOT called since user already checked in today
         m_CheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                It.IsAny<ulong>(), It.IsAny<string>()),
+            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -698,9 +688,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set up check-in service to succeed
-        m_CheckInServiceMock.Setup(x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(),
-                It.IsAny<uint>(), TestLtUid, TestLToken))
-            .Returns(Task.FromResult(ApiResult<string>.Success("Check-in success")));
+        m_CheckInServiceMock.Setup(x => x.CheckInAsync(TestLtUid, TestLToken))
+            .Returns(Task.FromResult(ApiResult<(bool, string)>.Success((true, "Check-in success"))));
 
         // Create test user with a profile that has a very old LastCheckIn
         // (should definitely allow check-in)
@@ -735,8 +724,7 @@ public class DailyCheckInCommandModuleTests
         // Since the last check-in was 30 days ago, it should definitely proceed
         // with check-in
         m_CheckInServiceMock.Verify(
-            x => x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<UserModel>(), It.IsAny<uint>(),
-                TestLtUid, TestLToken),
+            x => x.CheckInAsync(TestLtUid, TestLToken),
             Times.Once);
     }
 }
