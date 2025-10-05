@@ -2,7 +2,7 @@
 
 namespace MehrakCore.ApiResponseTypes.Zzz;
 
-public class ZzzRealTimeNotesData
+public class ZzzRealTimeNotesData : IRealTimeNotesData
 {
     [JsonPropertyName("energy")] public required EnergyInfo Energy { get; init; }
     [JsonPropertyName("vitality")] public required RegenProgress Vitality { get; init; }
