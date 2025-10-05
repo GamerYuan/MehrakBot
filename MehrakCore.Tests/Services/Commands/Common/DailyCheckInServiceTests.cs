@@ -240,7 +240,7 @@ public class DailyCheckInServiceTests
                     req.RequestUri!.ToString() == HsrCheckInApiUrl ||
                     req.RequestUri!.ToString() == ZzzCheckInApiUrl ||
                     req.RequestUri!.ToString() == Hi3CheckInApiUrl ||
-                    req.RequestUri.ToString() == ToTCheckInApiUrl),
+                    req.RequestUri!.ToString() == ToTCheckInApiUrl),
                 ItExpr.IsAny<CancellationToken>());
     }
 
