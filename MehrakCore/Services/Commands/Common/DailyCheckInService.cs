@@ -82,7 +82,7 @@ public class DailyCheckInService : IDailyCheckInService
                         : "Already checked in today"
                     : tasks[i].Result.ErrorMessage;
 
-                string gameName = GetFormattedGameName(checkInTypes[i]);
+                string gameName = checkInTypes[i].ToFriendlyString();
                 sb.AppendLine($"{gameName}: {gameResult}");
             }
 
@@ -96,18 +96,6 @@ public class DailyCheckInService : IDailyCheckInService
             return ApiResult<(bool, string)>.Failure(HttpStatusCode.InternalServerError,
                 "An unknown error occurred while performing daily check-in");
         }
-    }
-
-    private static string GetFormattedGameName(GameName type)
-    {
-        return type switch
-        {
-            GameName.Genshin => "Genshin Impact",
-            GameName.HonkaiStarRail => "Honkai: Star Rail",
-            GameName.ZenlessZoneZero => "Zenless Zone Zero",
-            GameName.HonkaiImpact3 => "Honkai Impact 3rd",
-            _ => type.ToString()
-        };
     }
 
     private async Task<ApiResult<bool>> CheckInHelperAsync(GameName type, ulong ltuid, string ltoken)
