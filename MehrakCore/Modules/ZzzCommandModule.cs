@@ -19,6 +19,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 {
     private readonly ICodeRedeemExecutor<ZzzCommandModule> m_CodeRedeemExecutor;
     private readonly ICharacterCommandExecutor<ZzzCommandModule> m_CharacterCommandExecutor;
+    private readonly IRealTimeNotesCommandExecutor<ZzzCommandModule> m_NotesCommandExecutor;
     private readonly ZzzDefenseCommandExecutor m_ShiyuCommandExecutor;
     private readonly ZzzAssaultCommandExecutor m_AssaultCommandExecutor;
     private readonly CommandRateLimitService m_CommandRateLimitService;
@@ -26,6 +27,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     public ZzzCommandModule(ICodeRedeemExecutor<ZzzCommandModule> codeRedeemExecutor,
         ICharacterCommandExecutor<ZzzCommandModule> characterCommandExecutor,
+        IRealTimeNotesCommandExecutor<ZzzCommandModule> notesCommandExecutor,
         ZzzDefenseCommandExecutor shiyuCommandExecutor,
         ZzzAssaultCommandExecutor assaultCommandExecutor,
         CommandRateLimitService commandRateLimitService, ILogger<ZzzCommandModule> logger)
@@ -36,6 +38,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         m_ShiyuCommandExecutor = shiyuCommandExecutor;
         m_Logger = logger;
         m_AssaultCommandExecutor = assaultCommandExecutor;
+        m_NotesCommandExecutor = notesCommandExecutor;
     }
 
     [SubSlashCommand("codes", "Redeem Zenless Zone Zero codes")]
@@ -118,6 +121,23 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         m_AssaultCommandExecutor.Context = Context;
         await m_AssaultCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+    }
+
+    [SubSlashCommand("notes", "Get real-time notes")]
+    public async Task NotesCommand(
+    [SlashCommandParameter(Name = "server", Description = "Server")]
+        Regions? server = null,
+    [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the notes command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        if (!await ValidateRateLimitAsync()) return;
+
+        m_NotesCommandExecutor.Context = Context;
+        await m_NotesCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     private async Task<bool> ValidateRateLimitAsync()

@@ -33,6 +33,7 @@ using MehrakCore.Services.Commands.Zzz.Assault;
 using MehrakCore.Services.Commands.Zzz.Character;
 using MehrakCore.Services.Commands.Zzz.CodeRedeem;
 using MehrakCore.Services.Commands.Zzz.Defense;
+using MehrakCore.Services.Commands.Zzz.RealTimeNotes;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using MehrakCore.Utility;
@@ -308,6 +309,8 @@ internal class Program
         builder.Services.AddSingleton<ICommandService<ZzzAssaultCommandExecutor>, ZzzAssaultCardService>();
         builder.Services.AddHostedService<ZzzAssaultApiService>();
         builder.Services.AddTransient<ZzzAssaultCommandExecutor>();
+        builder.Services.AddSingleton<IRealTimeNotesApiService<ZzzRealTimeNotesData>, ZzzRealTimeNotesApiService>();
+        builder.Services.AddTransient<IRealTimeNotesCommandExecutor<ZzzCommandModule>, ZzzRealTimeNotesCommandExecutor>();
     }
 
     private static void RegisterAsyncInitializableServices(HostApplicationBuilder builder)
