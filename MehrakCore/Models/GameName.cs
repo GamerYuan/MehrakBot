@@ -12,5 +12,6 @@ public enum GameName
     Genshin,
     HonkaiStarRail,
     ZenlessZoneZero,
-    HonkaiImpact3
+    HonkaiImpact3,
+    TearsOfThemis
 }
