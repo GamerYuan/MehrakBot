@@ -168,7 +168,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                     Color.White.WithAlpha(0.25f));
 
                 ctx.DrawImage(portraitImage,
-                    new Point(350 - portraitImage.Width / 2, 650 - portraitImage.Height / 4), 1f);
+                    new Point(350 - (portraitImage.Width / 2), 650 - (portraitImage.Height / 4)), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
@@ -279,16 +279,32 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                 ctx.Fill(OverlayColor, statsModule);
                 ctx.Draw(accentColor, 4f, statsModule);
 
+                int offsetInterval = 880 / (character.Properties.Count - 1);
+                int statsYOffset = 0;
+
                 for (int i = 0; i < character.Properties.Count; i++)
                 {
                     CharacterProperty stat = character.Properties[i];
-                    int yOffset = i * 80;
 
-                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(stat.PropertyName)], new Point(1440, 75 + yOffset), 1f);
-                    ctx.DrawText(stat.PropertyName, m_MediumFont, Color.White, new PointF(1495, 90 + yOffset));
+                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(stat.PropertyName)], new Point(1440, 75 + statsYOffset), 1f);
+
+                    if (stat.PropertyName.Length > 20)
+                    {
+                        ctx.DrawText(new RichTextOptions(m_SmallFont)
+                        {
+                            Origin = new Vector2(1495, 103 + statsYOffset),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            WrappingLength = 620
+                        }, stat.PropertyName, Color.White);
+                    }
+                    else
+                    {
+                        ctx.DrawText(stat.PropertyName, m_MediumFont, Color.White, new PointF(1495, 90 + statsYOffset));
+                    }
+
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
-                        Origin = new Vector2(2100, 90 + yOffset),
+                        Origin = new Vector2(2100, 90 + statsYOffset),
                         HorizontalAlignment = HorizontalAlignment.Right,
                     }, stat.Final!, Color.White);
 
@@ -296,7 +312,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                     {
                         RichTextOptions option = new(m_VerySmallFont)
                         {
-                            Origin = new Vector2(2100, 125 + yOffset),
+                            Origin = new Vector2(2100, 125 + statsYOffset),
                             HorizontalAlignment = HorizontalAlignment.Right
                         };
                         string addText = $"+{stat.Add}";
@@ -305,10 +321,11 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
 
                         ctx.DrawText(new RichTextOptions(m_VerySmallFont)
                         {
-                            Origin = new Vector2(addBound.Left - 5, 125 + yOffset),
+                            Origin = new Vector2(addBound.Left - 5, 125 + statsYOffset),
                             HorizontalAlignment = HorizontalAlignment.Right
                         }, stat.Base, Color.LightSlateGrey);
                     }
+                    statsYOffset += offsetInterval;
                 }
 
                 // Active Set
@@ -457,7 +474,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
             IPath path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
             ctx.Fill(OverlayColor, path);
             ctx.Draw(accentColor, 4f, path);
-            ctx.DrawImage(icon, new Point(60 - icon.Width / 2, 75 - icon.Height / 2), 1f);
+            ctx.DrawImage(icon, new Point(60 - (icon.Width / 2), 75 - (icon.Height / 2)), 1f);
             ctx.Rotate(10, KnownResamplers.Bicubic);
         });
 
