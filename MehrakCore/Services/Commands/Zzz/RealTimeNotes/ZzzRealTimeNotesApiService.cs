@@ -5,6 +5,7 @@ using MehrakCore.Models;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MehrakCore.Services.Commands.Zzz.RealTimeNotes;
 
@@ -12,6 +13,13 @@ internal class ZzzRealTimeNotesApiService : IRealTimeNotesApiService<ZzzRealTime
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzRealTimeNotesApiService> m_Logger;
+
+    private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/note";
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
 
     public ZzzRealTimeNotesApiService(IHttpClientFactory httpClientFactory,
         ILogger<ZzzRealTimeNotesApiService> logger)
@@ -36,7 +44,8 @@ internal class ZzzRealTimeNotesApiService : IRealTimeNotesApiService<ZzzRealTime
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
-            ApiResponse<ZzzRealTimeNotesData>? json = await JsonSerializer.DeserializeAsync<ApiResponse<ZzzRealTimeNotesData>>(await response.Content.ReadAsStreamAsync());
+            ApiResponse<ZzzRealTimeNotesData>? json = await
+                JsonSerializer.DeserializeAsync<ApiResponse<ZzzRealTimeNotesData>>(await response.Content.ReadAsStreamAsync(), JsonOptions);
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");
