@@ -37,6 +37,7 @@ public class ZzzCharacterCardServiceTests
     [Test]
     [TestCase("Jane_TestData.json")]
     [TestCase("Miyabi_TestData.json")]
+    [TestCase("Yixuan_TestData.json")]
     public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         ZzzFullAvatarData? characterDetail =
@@ -67,25 +68,25 @@ public class ZzzCharacterCardServiceTests
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImage));
     }
 
-    // To be used to generate golden image should the generation algorithm be updated
-    //[Test]
-    //[TestCase("Jane_TestData.json")]
-    //[TestCase("Miyabi_TestData.json")]
-    //public async Task GenerateGoldenImage(string testData)
-    //{
-    //    ZzzFullAvatarData? characterDetail =
-    //            JsonSerializer.Deserialize<ZzzFullAvatarData>(
-    //                await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
-    //    Assert.That(characterDetail, Is.Not.Null);
+    /*
+    [Test]
+    [TestCase("Jane_TestData.json")]
+    [TestCase("Miyabi_TestData.json")]
+    [TestCase("Yixuan_TestData.json")]
+    public async Task GenerateGoldenImage(string testData)
+    {
+        ZzzFullAvatarData? characterDetail =
+                JsonSerializer.Deserialize<ZzzFullAvatarData>(
+                    await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
+        Assert.That(characterDetail, Is.Not.Null);
 
-    // ZzzCharacterCardService service = new(m_ImageRepository, NullLogger<ZzzCharacterCardService>.Instance);
+        Stream image = await m_Service.GenerateCharacterCardAsync(characterDetail, "Test");
+        FileStream fileStream = File.OpenWrite(
+            $"{Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+                Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage"))}.jpg");
 
-    // Stream image = await service.GenerateCharacterCardAsync(characterDetail,
-    // "Test"); FileStream fileStream = File.OpenWrite(
-    // $"{Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
-    // Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage"))}.jpg");
-
-    //    await image.CopyToAsync(fileStream);
-    //    await fileStream.FlushAsync();
-    //}
+        await image.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+    }
+    */
 }
