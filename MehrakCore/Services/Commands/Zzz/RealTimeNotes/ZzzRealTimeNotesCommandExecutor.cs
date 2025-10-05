@@ -17,7 +17,7 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
 {
     private Regions m_PendingServer;
     private readonly ImageRepository m_ImageRepository;
-    public readonly IRealTimeNotesApiService<ZzzRealTimeNotesData> m_ApiService;
+    private readonly IRealTimeNotesApiService<ZzzRealTimeNotesData> m_ApiService;
 
     public ZzzRealTimeNotesCommandExecutor(
         IRealTimeNotesApiService<ZzzRealTimeNotesData> apiService,
