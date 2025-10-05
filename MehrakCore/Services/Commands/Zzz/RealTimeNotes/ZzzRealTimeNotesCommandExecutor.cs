@@ -152,8 +152,17 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
         response.WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral);
 
         string omnicoins = data.TempleManage.CurrencyNextRefreshTs == 0
-                            ? ""
-                            : $"\n-# Refreshes in <t:{data.TempleManage.CurrencyNextRefreshTs}:F>";
+            ? "-"
+            : $"{data.TempleManage.CurrentCurrency}/{data.TempleManage.WeeklyCurrencyMax}" +
+              $"-# Refreshes in <t:{data.TempleManage.CurrencyNextRefreshTs}:F>";
+        string bounty = data.BountyCommission.Total == 0
+            ? "-"
+            : $"{data.BountyCommission.Num}/{data.BountyCommission.Total}\n" +
+              $"-# Refreshes in <t:{currTime + data.BountyCommission.RefreshTime}:F>";
+        string weeklyTask = data.WeeklyTask is null
+            ? "-"
+            : $"{data.WeeklyTask!.CurPoint}/{data.WeeklyTask!.MaxPoint}\n" +
+              $"-# Refreshes in <t:{currTime + data.WeeklyTask.RefreshTime}:F>";
 
         ComponentContainerProperties container =
             [
@@ -168,23 +177,18 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
                             ? "Fully Recovered!"
                             : $"-# Recovers <t:{currTime + data.Energy.Restore}:R>")
                     ]),
-                new TextDisplayProperties("### Daily Missions\n" +
-                    $"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}\n" +
-                    $"Scratch Card/Divination: {data.CardSign.ToReadableString()}\n" +
-                    $"Video Store Management: {data.VhsSale.SaleState.ToReadableString()}"),
-                new TextDisplayProperties("### Season Missions\n" +
-                    $"Bounty Commission: {data.BountyCommission.Num}/{data.BountyCommission.Total}\n" +
-                    $"-# Refreshes in <t:{currTime + data.BountyCommission.RefreshTime}:F>\n" +
-                    $"Ridu Weekly Points: " +
-                        data.WeeklyTask == null
-                            ? "-"
-                            : $"{data.WeeklyTask!.CurPoint}/{data.WeeklyTask!.MaxPoint}\n" +
-                              $"-# Refreshes in <t:{currTime + data.WeeklyTask.RefreshTime}:F>\n" +
-                    $"Omnicoins: {data.TempleManage.CurrentCurrency}/{data.TempleManage.WeeklyCurrencyMax}" + omnicoins),
-                new TextDisplayProperties("### Suibian Temple Management\n" +
-                    $"Adventure: {data.TempleManage.ExpeditionState.ToReadableString()}\n" +
-                    $"Crafting Workshop: {data.TempleManage.BenchState.ToReadableString()}\n" +
-                    $"Sales Stall: {data.TempleManage.ShelveState.ToReadableString()}")
+                new TextDisplayProperties("### Daily Missions\n"),
+                new TextDisplayProperties($"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}\n"),
+                new TextDisplayProperties($"Scratch Card/Divination: {data.CardSign.ToReadableString()}\n"),
+                new TextDisplayProperties($"Video Store Management: {data.VhsSale.SaleState.ToReadableString()}"),
+                new TextDisplayProperties("### Season Missions\n"),
+                new TextDisplayProperties($"Bounty Commission: {bounty}\n"),
+                new TextDisplayProperties($"Ridu Weekly Points: {weeklyTask}\n"),
+                new TextDisplayProperties($"Omnicoins: {omnicoins}"),
+                new TextDisplayProperties("### Suibian Temple Management\n"),
+                new TextDisplayProperties($"Adventure: {data.TempleManage.ExpeditionState.ToReadableString()}\n"),
+                new TextDisplayProperties($"Crafting Workshop: {data.TempleManage.BenchState.ToReadableString()}\n"),
+                new TextDisplayProperties($"Sales Stall: {data.TempleManage.ShelveState.ToReadableString()}")
             ];
 
         response.AddAttachments(
