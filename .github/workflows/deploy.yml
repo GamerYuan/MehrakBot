@@ -33,3 +33,4 @@ jobs:
             git submodule update --init --recursive
             docker compose build --pull
             docker compose up -d --remove-orphans
+            docker image prune -af --filter "until=24h"
