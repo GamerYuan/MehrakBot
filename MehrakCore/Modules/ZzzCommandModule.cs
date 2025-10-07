@@ -178,11 +178,41 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
                        "```/zzz codes\n/zzz codes ZENLESS\n/zzz codes ZENLESS, ZENLESSCODE\n/zzz codes ZENLESS Asia 2```",
+            "shiyu" => "## Shiyu Defense\n" +
+                        "Get Shiyu Defense summary card\n" +
+                        "### Usage\n" +
+                        "```/zzz shiyu [server] [profile]```\n" +
+                        "### Parameters\n" +
+                        "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                        "### Examples\n" +
+                        "```/zzz shiyu\n/zzz shiyu Asia\n/zzz shiyu America 3```",
+            "da" => "## Deadly Assault\n" +
+                    "Get Deadly Assault summary card\n" +
+                    "### Usage\n" +
+                    "```/zzz da [server] [profile]```\n" +
+                    "### Parameters\n" +
+                    "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                    "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                    "### Examples\n" +
+                    "```/zzz da\n/zzz da Asia\n/zzz da America 2```",
+            "notes" => "## Real-Time Notes\n" +
+                       "Get real-time notes for Zenless Zone Zero\n" +
+                       "### Usage\n" +
+                       "```/zzz notes [server] [profile]```\n" +
+                       "### Parameters\n" +
+                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                       "### Examples\n" +
+                       "```/zzz notes\n/zzz notes Asia\n/zzz notes America 3```",
             _ => "## Zenless Zone Zero Toolbox\n" +
                  "Zenless Zone Zero related commands and utilities.\n" +
                  "### Subcommands\n" +
                  "- `character`: Get character card from Zenless Zone Zero\n" +
-                 "- `codes`: Redeem Zenless Zone Zero codes\n"
+                 "- `codes`: Redeem Zenless Zone Zero codes\n" +
+                 "- `da`: Get Deadly Assault summary card\n" +
+                 "- `shiyu`: Get Shiyu Defense summary card\n" +
+                 "- `notes`: Get real-time notes for Zenless Zone Zero"
         };
     }
 }
