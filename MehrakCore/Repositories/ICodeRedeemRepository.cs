@@ -1,14 +1,1 @@
-﻿#region
-
-using MehrakCore.Models;
-
-#endregion
-
-namespace MehrakCore.Repositories;
-
-public interface ICodeRedeemRepository
-{
-    public Task<List<string>> GetCodesAsync(GameName gameName);
-
-    public Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes);
-}
+﻿// Intentionally left empty. ICodeRedeemRepository now resides in Mehrak.Application.Repositories.

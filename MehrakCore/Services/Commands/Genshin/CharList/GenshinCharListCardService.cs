@@ -3,7 +3,6 @@
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Constants;
-using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;

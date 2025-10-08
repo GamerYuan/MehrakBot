@@ -1,12 +1,3 @@
-#region
-
-#endregion
-
-namespace MehrakCore.Services.Common;
-
-public interface IAuthenticationMiddlewareService
-{
-    string RegisterAuthenticationListener(ulong userId, IAuthenticationListener listener);
-    Task NotifyAuthenticationCompletedAsync(string guid, AuthenticationResult result);
-    bool ContainsAuthenticationRequest(string guid);
-}
+// This file is intentionally left empty. Authentication middleware contracts now live in
+// Mehrak.Application.Services.IAuthenticationMiddlewareService, and implementations are located in
+// Mehrak.Infrastructure.Services.AuthenticationMiddlewareService.

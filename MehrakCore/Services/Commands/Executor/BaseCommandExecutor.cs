@@ -4,7 +4,6 @@ using System.Net;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;

@@ -1,7 +1,7 @@
 ﻿#region
 
+using Mehrak.GameApi.Genshin.Types;
 using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Genshin.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;

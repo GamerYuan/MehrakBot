@@ -1,0 +1,169 @@
+﻿#region
+
+using Mehrak.Bot.Executors.Executor;
+using Mehrak.Bot.Modules;
+using MehrakCore.ApiResponseTypes;
+using MehrakCore.ApiResponseTypes.Genshin;
+using MehrakCore.Models;
+using MehrakCore.Services.Commands.Genshin.CharList;
+using MehrakCore.Services.Common;
+using MehrakCore.Services.Metrics;
+using MehrakCore.Utility;
+using Microsoft.Extensions.Logging;
+using NetCord;
+using NetCord.Rest;
+
+#endregion
+
+namespace Mehrak.Bot.Executors.Genshin;
+
+public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommandModule>
+{
+    private readonly GenshinCharListCardService m_CommandService;
+    private readonly GenshinImageUpdaterService m_ImageUpdaterService;
+    private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_CharacterApi;
+    private Regions m_PendingServer;
+
+    public GenshinCharListCommandExecutor(ICommandService<GenshinCharListCommandExecutor> commandService,
+        GenshinImageUpdaterService imageUpdaterService,
+        ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> characterApi,
+        UserRepository userRepository, TokenCacheService tokenCacheService,
+        IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
+        ILogger<GenshinCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
+        gameRecordApi, logger)
+    {
+        m_CommandService = (GenshinCharListCardService)commandService;
+        m_ImageUpdaterService = imageUpdaterService;
+        m_CharacterApi = characterApi;
+    }
+
+    public override async ValueTask ExecuteAsync(params object?[] parameters)
+    {
+        Regions? server = (Regions?)parameters[0];
+        uint profile = (uint)(parameters[1] ?? 1);
+        try
+        {
+            (UserModel user, UserProfile selectedProfile) = await ValidateUserAndProfileAsync(profile);
+            if (user == null || selectedProfile == null) return;
+
+            server ??= GetCachedServer(selectedProfile, GameName.Genshin);
+            if (server == null)
+            {
+                await SendErrorMessageAsync("No cached server found! Please select a server first.");
+                return;
+            }
+
+            m_PendingServer = server.Value;
+
+            string? ltoken = await GetOrRequestAuthenticationAsync(selectedProfile, profile);
+            if (ltoken != null)
+            {
+                await Context.Interaction.SendResponseAsync(
+                    InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+                await GetCharListCardAsync(server.Value, selectedProfile.LtUid, ltoken).ConfigureAwait(false);
+            }
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Command execution failed for region: {Region}, profile: {Profile}", server, profile);
+            await SendErrorMessageAsync(e.Message);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e,
+                "An unexpected error occurred while executing command for region: {Region}, profile: {Profile}",
+                server, profile);
+            await SendErrorMessageAsync();
+        }
+    }
+
+    public override async Task OnAuthenticationCompletedAsync(AuthenticationResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            Logger.LogWarning("Authentication failed for user {UserId}: {ErrorMessage}", Context.Interaction.User.Id,
+                result.ErrorMessage);
+            return;
+        }
+
+        Context = result.Context;
+        Logger.LogInformation("Authentication completed successfully for user {UserId}",
+            Context.Interaction.User.Id);
+        await GetCharListCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask GetCharListCardAsync(Regions server, ulong ltuid, string ltoken)
+    {
+        try
+        {
+            UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
+            string region = server.GetRegion();
+
+            ApiResult<UserGameData> response = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            if (!response.IsSuccess)
+                return;
+
+            UserGameData userData = response.Data;
+            string gameUid = response.Data.GameUid!;
+
+            List<GenshinBasicCharacterData> characterList = (await m_CharacterApi.GetAllCharactersAsync(ltuid, ltoken, gameUid, region)).ToList();
+            if (characterList.Count == 0)
+            {
+                await SendErrorMessageAsync("No characters found for this account.");
+                return;
+            }
+
+            IEnumerable<Task> avatarTask =
+                characterList.Select(async x =>
+                    await m_ImageUpdaterService.UpdateAvatarAsync(x.Id.ToString()!, x.Icon!));
+            IEnumerable<Task> weaponTask =
+                characterList.Select(async x =>
+                    await m_ImageUpdaterService.UpdateWeaponImageTask(x.Weapon));
+
+            await Task.WhenAll(avatarTask);
+            await Task.WhenAll(weaponTask);
+
+            InteractionMessageProperties message = await GetCardAsync(userData, characterList);
+            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties("Command execution completed")));
+            await Context.Interaction.SendFollowupMessageAsync(message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin charlist", true);
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
+                Context.Interaction.User.Id);
+            await SendErrorMessageAsync(e.Message);
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin charlist", false);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
+                Context.Interaction.User.Id);
+            await SendErrorMessageAsync("An error occurred while generating Character List card");
+            BotMetrics.TrackCommand(Context.Interaction.User, "genshin charlist", false);
+        }
+    }
+
+    private async ValueTask<InteractionMessageProperties> GetCardAsync(UserGameData gameData,
+        List<GenshinBasicCharacterData> characters)
+    {
+        InteractionMessageProperties message = new();
+        message.WithFlags(MessageFlags.IsComponentsV2);
+        message.WithAllowedMentions(
+            new AllowedMentionsProperties().AddAllowedUsers(Context.Interaction.User.Id));
+        message.AddComponents(new TextDisplayProperties($"<@{Context.Interaction.User.Id}>"));
+        message.AddComponents(new MediaGalleryProperties([
+            new MediaGalleryItemProperties(new ComponentMediaProperties("attachment://charlist.jpg"))
+        ]));
+        message.AddAttachments(new AttachmentProperties("charlist.jpg",
+            await m_CommandService.GetCharListCardAsync(gameData, characters)));
+        message.AddComponents(
+            new ActionRowProperties().AddButtons(new ButtonProperties($"remove_card",
+                "Remove",
+                ButtonStyle.Danger)));
+
+        return message;
+    }
+}

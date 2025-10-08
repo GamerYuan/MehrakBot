@@ -1,8 +1,7 @@
 #region
 
-using MehrakCore.Models;
-using MehrakCore.Repositories;
-using MehrakCore.Services.Common;
+using Mehrak.Domain.Enums;
+using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 

@@ -1,6 +1,5 @@
 ﻿#region
 
-using MehrakCore.Repositories;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;

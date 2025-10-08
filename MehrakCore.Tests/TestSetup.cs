@@ -1,6 +1,5 @@
 ﻿#region
 
-using MehrakCore.Repositories;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 

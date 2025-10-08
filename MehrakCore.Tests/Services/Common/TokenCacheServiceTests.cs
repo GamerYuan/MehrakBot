@@ -1,6 +1,6 @@
 #region
 
-using MehrakCore.Services.Common;
+using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

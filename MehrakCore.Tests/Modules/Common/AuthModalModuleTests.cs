@@ -2,8 +2,8 @@
 
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
-using MehrakCore.Repositories;
-using MehrakCore.Services.Common;
+using Mehrak.Application.Services;
+using Mehrak.Infrastructure.Services;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
@@ -15,6 +15,7 @@ using NetCord;
 using NetCord.JsonModels;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
+using Mehrak.Bot.Modules.Common;
 
 #endregion
 

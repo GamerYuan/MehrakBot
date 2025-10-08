@@ -2,7 +2,6 @@
 
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;

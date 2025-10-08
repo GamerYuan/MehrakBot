@@ -1,7 +1,8 @@
 #region
 
+using Mehrak.Bot.Executors.Common;
+using Mehrak.Domain.Interfaces;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
 using MehrakCore.Services.Common;

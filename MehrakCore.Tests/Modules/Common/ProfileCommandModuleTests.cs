@@ -1,8 +1,8 @@
 ﻿#region
 
+using Mehrak.Bot.Modules.Common;
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
-using MehrakCore.Repositories;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

@@ -4,6 +4,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MehrakCore", "MehrakCore\Me
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MehrakCore.Tests", "MehrakCore.Tests\MehrakCore.Tests.csproj", "{DED54DCE-9602-4D75-8784-846DEE02E1E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mehrak.Domain", "Mehrak.Domain\Mehrak.Domain.csproj", "{D88039B7-9101-463C-B68B-7DCCB1E6769E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mehrak.GameApi", "Mehrak.GameApi\Mehrak.GameApi.csproj", "{ECD7E19B-D4F8-41E3-A528-8A3293103807}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mehrak.Infrastructure", "Mehrak.Infrastructure\Mehrak.Infrastructure.csproj", "{FD772D51-096E-49D7-96B0-8C3F30CF1D5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mehrak.Application", "Mehrak.Application\Mehrak.Application.csproj", "{80977C87-E9B8-40C8-B4B1-1230310523E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mehrak.Bot", "Mehrak.Bot\Mehrak.Bot.csproj", "{32CC70F2-7372-4557-8EA2-60DF1CA66FB9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +28,25 @@ Global
 		{DED54DCE-9602-4D75-8784-846DEE02E1E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DED54DCE-9602-4D75-8784-846DEE02E1E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DED54DCE-9602-4D75-8784-846DEE02E1E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D88039B7-9101-463C-B68B-7DCCB1E6769E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D88039B7-9101-463C-B68B-7DCCB1E6769E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D88039B7-9101-463C-B68B-7DCCB1E6769E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D88039B7-9101-463C-B68B-7DCCB1E6769E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECD7E19B-D4F8-41E3-A528-8A3293103807}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECD7E19B-D4F8-41E3-A528-8A3293103807}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECD7E19B-D4F8-41E3-A528-8A3293103807}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECD7E19B-D4F8-41E3-A528-8A3293103807}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD772D51-096E-49D7-96B0-8C3F30CF1D5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD772D51-096E-49D7-96B0-8C3F30CF1D5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD772D51-096E-49D7-96B0-8C3F30CF1D5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD772D51-096E-49D7-96B0-8C3F30CF1D5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80977C87-E9B8-40C8-B4B1-1230310523E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80977C87-E9B8-40C8-B4B1-1230310523E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80977C87-E9B8-40C8-B4B1-1230310523E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80977C87-E9B8-40C8-B4B1-1230310523E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32CC70F2-7372-4557-8EA2-60DF1CA66FB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32CC70F2-7372-4557-8EA2-60DF1CA66FB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32CC70F2-7372-4557-8EA2-60DF1CA66FB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32CC70F2-7372-4557-8EA2-60DF1CA66FB9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

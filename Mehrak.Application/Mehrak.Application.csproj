@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.410" />
+  </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
+      <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
+    </ItemGroup>
+
+</Project>

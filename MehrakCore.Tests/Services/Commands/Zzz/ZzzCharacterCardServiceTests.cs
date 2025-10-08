@@ -1,5 +1,5 @@
-﻿using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Repositories;
+﻿using Mehrak.GameApi.Zzz.Types;
+using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Services.Commands.Zzz.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;

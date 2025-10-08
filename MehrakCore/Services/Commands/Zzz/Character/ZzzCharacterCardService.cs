@@ -1,7 +1,6 @@
 ﻿using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Constants;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;

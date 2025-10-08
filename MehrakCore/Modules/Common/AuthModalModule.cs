@@ -1,7 +1,6 @@
 ﻿#region
 
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;

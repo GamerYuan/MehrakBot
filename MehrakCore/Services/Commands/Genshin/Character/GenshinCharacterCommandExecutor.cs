@@ -3,7 +3,6 @@
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Modules;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Executor;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;

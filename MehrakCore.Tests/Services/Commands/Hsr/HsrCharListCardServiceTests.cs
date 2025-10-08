@@ -1,6 +1,7 @@
-﻿using MehrakCore.ApiResponseTypes;
+﻿using Mehrak.GameApi.Common.ApiResponseTypes;
+using Mehrak.GameApi.Hsr.Types;
+using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Hsr.CharList;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;

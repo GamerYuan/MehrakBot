@@ -1,7 +1,8 @@
 #region
 
 using System.Reflection;
-using MehrakCore.Services.Common;
+using Mehrak.Application.Services;
+using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NetCord.Services;

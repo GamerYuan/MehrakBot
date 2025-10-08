@@ -1,7 +1,7 @@
 ﻿#region
 
+using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,7 +20,7 @@ public class HsrCharacterCardServiceTests
     private ImageRepository m_ImageRepository;
     private Mock<IHttpClientFactory> m_HttpClientFactoryMock;
     private Mock<HttpClient> m_HttpClientMock;
-    private Mock<IRelicRepository<Relic>> m_HsrRelicRepositoryMock;
+    private Mock<IRelicRepository> m_HsrRelicRepositoryMock;
     private HsrCharacterCardService m_HsrCharacterCardService;
 
     [SetUp]
@@ -33,7 +33,7 @@ public class HsrCharacterCardServiceTests
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(m_HttpClientMock.Object);
-        m_HsrRelicRepositoryMock = new Mock<IRelicRepository<Relic>>();
+    m_HsrRelicRepositoryMock = new Mock<IRelicRepository>();
 
         m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(116)).ReturnsAsync("Prisoner in Deep Confinement");
         m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(118)).ReturnsAsync("Watchmaker, Master of Dream Machinations");

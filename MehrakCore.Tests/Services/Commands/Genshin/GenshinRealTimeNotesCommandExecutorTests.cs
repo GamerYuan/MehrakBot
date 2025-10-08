@@ -1,8 +1,10 @@
 #region
 
+using Mehrak.Bot.Executors.Genshin;
+using Mehrak.Domain.Interfaces;
+using Mehrak.GameApi.Genshin.Types;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
 using MehrakCore.Services.Common;

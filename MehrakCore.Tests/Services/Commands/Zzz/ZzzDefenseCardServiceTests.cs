@@ -1,6 +1,7 @@
-﻿using MehrakCore.ApiResponseTypes;
+﻿using Mehrak.GameApi.Common.ApiResponseTypes;
+using Mehrak.GameApi.Zzz.Types;
+using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Repositories;
 using MehrakCore.Services.Commands.Zzz.Defense;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;

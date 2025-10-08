@@ -1,9 +1,7 @@
 #region
 
 using System.Text.Json;
-using MehrakCore.Models;
-using MehrakCore.Repositories;
-using MehrakCore.Services.Common;
+using Mehrak.Infrastructure.Services;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 

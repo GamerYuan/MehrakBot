@@ -3,10 +3,8 @@
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Config;
 using MehrakCore.Models;
 using MehrakCore.Modules;
-using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
 using MehrakCore.Services.Commands.Common;
@@ -127,7 +125,7 @@ internal class Program
             builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
             builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
             builder.Services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
-            builder.Services.AddSingleton<IRelicRepository<ApiResponseTypes.Hsr.Relic>, HsrRelicRepository>();
+            builder.Services.AddSingleton<IRelicRepository, HsrRelicRepository>();
             BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
 
             // Character Cache Services

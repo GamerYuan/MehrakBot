@@ -3,7 +3,6 @@
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
@@ -22,7 +21,7 @@ namespace MehrakCore.Services.Commands.Hsr.Character;
 public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInformation>
 {
     private readonly ImageRepository m_ImageRepository;
-    private readonly IRelicRepository<Relic> m_RelicRepository;
+    private readonly IRelicRepository m_RelicRepository;
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
     private Dictionary<int, Image> m_StatImages = null!;
@@ -39,7 +38,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
     private readonly Image<Rgba32> m_RelicSlotTemplate;
 
     public HsrCharacterCardService(ImageRepository imageRepository,
-        IRelicRepository<Relic> relicRepository,
+        IRelicRepository relicRepository,
         ILogger<HsrCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;

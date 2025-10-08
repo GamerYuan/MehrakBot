@@ -1,7 +1,10 @@
-﻿using MehrakCore.ApiResponseTypes.Hsr;
+﻿using Mehrak.Bot.Executors.Hsr;
+using Mehrak.Domain.Interfaces;
+using Mehrak.GameApi;
+using Mehrak.GameApi.Hsr.Types;
+using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
 using MehrakCore.Models;
-using MehrakCore.Repositories;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands.Hsr;
 using MehrakCore.Services.Commands.Hsr.CharList;
@@ -67,7 +70,7 @@ public class HsrCharListCommandExecutorTests
         m_ImageUpdaterServiceMock = new Mock<HsrImageUpdaterService>(
             imageRepository,
             m_HttpClientFactoryMock.Object,
-            Mock.Of<IRelicRepository<Relic>>(),
+            Mock.Of<IRelicRepository>(),
             NullLogger<HsrImageUpdaterService>.Instance);
 
         m_DistributedCacheMock = new Mock<IDistributedCache>();
