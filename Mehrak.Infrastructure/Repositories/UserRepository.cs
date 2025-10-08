@@ -1,11 +1,12 @@
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-public class UserRepository
+public class UserRepository : IUserRepository
 {
     private readonly IMongoCollection<UserModel> m_Users;
     private readonly ILogger<UserRepository> m_Logger;

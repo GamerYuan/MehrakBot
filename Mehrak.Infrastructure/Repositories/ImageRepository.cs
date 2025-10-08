@@ -1,3 +1,4 @@
+using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -6,7 +7,7 @@ using MongoDB.Driver.GridFS;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-public class ImageRepository
+public class ImageRepository : IImageRepository
 {
     private readonly GridFSBucket m_Bucket;
     private readonly ILogger<ImageRepository> m_Logger;
@@ -17,14 +18,15 @@ public class ImageRepository
         m_Logger = logger;
     }
 
-    public async Task<ObjectId> UploadFileAsync(string fileNameInDb, Stream sourceStream, string? contentType = null)
+    public async Task<bool> UploadFileAsync(string fileNameInDb, Stream sourceStream, string? contentType = null)
     {
         GridFSUploadOptions options = new()
         {
             Metadata = contentType != null ? new BsonDocument("contentType", contentType) : null
         };
         m_Logger.LogInformation("Uploading file to GridFS {FileNameInDb}", fileNameInDb);
-        return await m_Bucket.UploadFromStreamAsync(fileNameInDb, sourceStream, options);
+        var objectId = await m_Bucket.UploadFromStreamAsync(fileNameInDb, sourceStream, options);
+        return objectId != ObjectId.Empty;
     }
 
     public async Task<Stream> DownloadFileToStreamAsync(string fileNameInDb)
