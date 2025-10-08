@@ -1,4 +1,4 @@
-﻿using Mehrak.GameApi.Common.Types;
+﻿using Mehrak.Domain.Interfaces;
 using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Zzz.Types;
