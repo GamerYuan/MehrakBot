@@ -1,13 +1,8 @@
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -56,7 +51,7 @@ public class CharacterInitializationService : IHostedService
             return;
         }
 
-        var characterJsonFiles = Directory.GetFiles(m_AssetsPath, "*characters*.json", SearchOption.AllDirectories);
+        string[] characterJsonFiles = Directory.GetFiles(m_AssetsPath, "*characters*.json", SearchOption.AllDirectories);
 
         if (characterJsonFiles.Length == 0)
         {
@@ -66,7 +61,7 @@ public class CharacterInitializationService : IHostedService
 
         m_Logger.LogInformation("Found {Count} character JSON files", characterJsonFiles.Length);
 
-        foreach (var jsonFile in characterJsonFiles)
+        foreach (string jsonFile in characterJsonFiles)
         {
             await ProcessCharacterJsonFile(jsonFile);
         }
@@ -78,7 +73,7 @@ public class CharacterInitializationService : IHostedService
         {
             m_Logger.LogDebug("Processing character JSON file: {FilePath}", jsonFilePath);
 
-            var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
+            string jsonContent = await File.ReadAllTextAsync(jsonFilePath);
             var characterJsonModel = JsonSerializer.Deserialize<CharacterJsonModel>(jsonContent);
 
             if (characterJsonModel == null)
@@ -91,7 +86,7 @@ public class CharacterInitializationService : IHostedService
             var newCharacters = characterJsonModel.Characters;
 
             var existingModel = await m_CharacterRepository.GetCharacterModelAsync(gameName);
-            var existingCharacters = existingModel?.Characters ?? new List<string>();
+            var existingCharacters = existingModel?.Characters ?? [];
 
             var missingCharacters = newCharacters.Except(existingCharacters, StringComparer.OrdinalIgnoreCase).ToList();
 
@@ -105,7 +100,7 @@ public class CharacterInitializationService : IHostedService
 
                 var mergedCharacters = new List<string>();
 
-                foreach (var character in newCharacters)
+                foreach (string character in newCharacters)
                 {
                     if (!mergedCharacters.Contains(character, StringComparer.OrdinalIgnoreCase))
                     {
@@ -113,7 +108,7 @@ public class CharacterInitializationService : IHostedService
                     }
                 }
 
-                foreach (var existingChar in existingCharacters)
+                foreach (string existingChar in existingCharacters)
                 {
                     if (!mergedCharacters.Contains(existingChar, StringComparer.OrdinalIgnoreCase))
                     {

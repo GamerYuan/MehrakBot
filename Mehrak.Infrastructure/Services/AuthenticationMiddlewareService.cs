@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Mehrak.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -26,14 +22,23 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService,
 
     public void Dispose()
     {
-        m_Timer.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            m_Timer.Dispose();
+        }
     }
 
     public string RegisterAuthenticationListener(ulong userId, IAuthenticationListener listener)
     {
-        var guid = Guid.CreateVersion7().ToString();
+        string guid = Guid.CreateVersion7().ToString();
 
-        var request = new AuthenticationRequest
+        AuthenticationRequest request = new()
         {
             UserId = userId,
             Listener = listener,
@@ -51,7 +56,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService,
 
     public async Task NotifyAuthenticationCompletedAsync(string guid, AuthenticationResult result)
     {
-        if (m_PendingRequests.TryRemove(guid, out var request))
+        if (m_PendingRequests.TryRemove(guid, out AuthenticationRequest? request))
         {
             m_Logger.LogDebug(
                 "Notifying authentication completion for user {UserId} with guid {Guid}, success: {IsSuccess}",
@@ -85,12 +90,12 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService,
     private void CleanupExpiredRequests(object? state)
     {
         m_Logger.LogDebug("Cleaning up expired authentication requests");
-        var cutoff = DateTime.UtcNow.AddMinutes(-TimeoutMinutes);
-        var expiredRequests = m_PendingRequests
+        DateTime cutoff = DateTime.UtcNow.AddMinutes(-TimeoutMinutes);
+        List<KeyValuePair<string, AuthenticationRequest>> expiredRequests = m_PendingRequests
             .Where(kvp => kvp.Value.RequestTime < cutoff)
             .ToList();
 
-        foreach (var (messageId, request) in expiredRequests)
+        foreach ((string? messageId, AuthenticationRequest? request) in expiredRequests)
         {
             if (m_PendingRequests.TryRemove(messageId, out _))
             {
@@ -102,7 +107,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService,
         }
     }
 
-    private class AuthenticationRequest
+    private sealed class AuthenticationRequest
     {
         public ulong UserId { get; init; }
         public IAuthenticationListener Listener { get; init; } = null!;

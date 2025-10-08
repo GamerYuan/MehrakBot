@@ -22,7 +22,7 @@ public class CharacterRepository : ICharacterRepository
     {
         m_Logger.LogInformation("Retrieving characters for game {GameName} from database", gameName);
         var characterModel = await GetCharacterModelAsync(gameName);
-        return characterModel?.Characters ?? new List<string>();
+        return characterModel?.Characters ?? [];
     }
 
     public async Task<CharacterModel?> GetCharacterModelAsync(GameName gameName)

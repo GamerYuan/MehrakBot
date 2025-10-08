@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
@@ -22,7 +20,7 @@ public class CommandRateLimitService
 
     public async Task SetRateLimitAsync(ulong userId)
     {
-        var options = new DistributedCacheEntryOptions().SetAbsoluteExpiration(m_DefaultExpiration);
+        DistributedCacheEntryOptions options = new DistributedCacheEntryOptions().SetAbsoluteExpiration(m_DefaultExpiration);
         m_Logger.LogDebug("Setting rate limit for user {UserId}", userId);
         await m_Cache.SetStringAsync($"RateLimit_{userId}", "true", options);
     }

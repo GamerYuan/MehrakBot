@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Interfaces;
 using Mehrak.Infrastructure.Config;
@@ -54,10 +49,15 @@ public class CharacterCacheBackgroundService : BackgroundService
         {
             m_Logger.LogInformation("Performing initial character cache population");
             await m_CharacterCacheService.UpdateAllCharactersAsync();
+            stoppingToken.ThrowIfCancellationRequested();
 
-            var cacheStatus = m_CharacterCacheService.GetCacheStatus();
+            Dictionary<GameName, int> cacheStatus = m_CharacterCacheService.GetCacheStatus();
             m_Logger.LogInformation("Initial character cache populated: {CacheStatus}",
                 string.Join(", ", cacheStatus.Select(kvp => $"{kvp.Key}={kvp.Value}")));
+        }
+        catch (OperationCanceledException)
+        {
+            m_Logger.LogInformation("Initial character cache population canceled");
         }
         catch (Exception ex)
         {
@@ -69,15 +69,10 @@ public class CharacterCacheBackgroundService : BackgroundService
     {
         try
         {
-            while (!stoppingToken.IsCancellationRequested)
+            while (true)
             {
                 await Task.Delay(m_Config.UpdateInterval, stoppingToken);
-
-                if (stoppingToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
+                stoppingToken.ThrowIfCancellationRequested();
                 await PerformPeriodicUpdate();
             }
         }
@@ -97,9 +92,9 @@ public class CharacterCacheBackgroundService : BackgroundService
         {
             m_Logger.LogDebug("Performing periodic character cache update");
 
-            var beforeStatus = m_CharacterCacheService.GetCacheStatus();
+            Dictionary<GameName, int> beforeStatus = m_CharacterCacheService.GetCacheStatus();
             await m_CharacterCacheService.UpdateAllCharactersAsync();
-            var afterStatus = m_CharacterCacheService.GetCacheStatus();
+            Dictionary<GameName, int> afterStatus = m_CharacterCacheService.GetCacheStatus();
 
             LogCacheChanges(beforeStatus, afterStatus);
         }
@@ -111,11 +106,11 @@ public class CharacterCacheBackgroundService : BackgroundService
 
     private void LogCacheChanges(Dictionary<GameName, int> beforeStatus, Dictionary<GameName, int> afterStatus)
     {
-        var changes = new List<string>();
+        List<string> changes = [];
 
-        foreach (var (game, afterCount) in afterStatus)
+        foreach ((GameName game, int afterCount) in afterStatus)
         {
-            if (beforeStatus.TryGetValue(game, out var beforeCount))
+            if (beforeStatus.TryGetValue(game, out int beforeCount))
             {
                 if (beforeCount != afterCount)
                 {
@@ -128,7 +123,7 @@ public class CharacterCacheBackgroundService : BackgroundService
             }
         }
 
-        foreach (var (game, beforeCount) in beforeStatus)
+        foreach ((GameName game, int beforeCount) in beforeStatus)
         {
             if (!afterStatus.ContainsKey(game))
             {

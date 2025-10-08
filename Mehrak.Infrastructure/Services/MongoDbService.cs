@@ -1,4 +1,3 @@
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

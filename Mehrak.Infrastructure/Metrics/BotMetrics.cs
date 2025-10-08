@@ -71,18 +71,17 @@ public static class BotMetrics
 
     public static void CreateCharacterSelection(string game, List<string> characters)
     {
-        foreach (var character in characters)
+        foreach (string character in characters)
             CharacterSelection.WithLabels(game, character.ToLowerInvariant()).Inc(0);
     }
 
-    private static async Task UpdateMetrics(GatewayClient client)
+    private static async Task UpdateMetrics(GatewayClient client, CancellationToken token = default)
     {
-        while (true)
+        while (!token.IsCancellationRequested)
         {
             BotLatency.Set(client.Latency.TotalMilliseconds);
             MemoryUsage.Set(GC.GetTotalMemory(false));
-            await Task.Delay(TimeSpan.FromMinutes(1));
+            await Task.Delay(TimeSpan.FromMinutes(1), token);
         }
-        // ReSharper disable once FunctionNeverReturns
     }
 }

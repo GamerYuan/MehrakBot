@@ -1,7 +1,6 @@
 ﻿#region
 
-using MehrakCore.Services.Metrics;
-using MehrakCore.Utility;
+using Mehrak.Infrastructure.Config;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -31,7 +30,7 @@ public class MetricsService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var metricsConfig = m_MetricsOptions.Value;
+        MetricsConfig metricsConfig = m_MetricsOptions.Value;
         if (!metricsConfig.Enabled)
         {
             m_Logger.LogInformation("Metrics service disabled");

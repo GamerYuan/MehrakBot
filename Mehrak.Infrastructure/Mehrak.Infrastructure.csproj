@@ -13,13 +13,14 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.7" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.7" />
-    <PackageReference Include="MongoDB.Driver" Version="3.4.2" />
+	<PackageReference Include="MongoDB.Bson" Version="3.4.2" />
+	<PackageReference Include="MongoDB.Driver" Version="3.4.2" />
+	<PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Mehrak.Application\Mehrak.Application.csproj" />
     <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
-    <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
   </ItemGroup>
 
 </Project>

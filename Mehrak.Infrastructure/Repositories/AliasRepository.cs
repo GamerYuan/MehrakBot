@@ -24,7 +24,7 @@ public class AliasRepository : IAliasRepository
         return await m_AliasesCollection
             .Find(alias => alias.Game == gameName)
             .Project(alias => alias.Alias)
-            .FirstOrDefaultAsync() ?? new Dictionary<string, string>();
+            .FirstOrDefaultAsync() ?? [];
     }
 
     public async Task UpsertCharacterAliasesAsync(AliasModel aliasModel)
@@ -32,7 +32,7 @@ public class AliasRepository : IAliasRepository
         m_Logger.LogInformation("Upserting aliases for game {GameName} with {Count} aliases", aliasModel.Game,
             aliasModel.Alias.Count);
 
-        var existing = await m_AliasesCollection.Find(x => x.Game == aliasModel.Game).FirstOrDefaultAsync();
+        AliasModel existing = await m_AliasesCollection.Find(x => x.Game == aliasModel.Game).FirstOrDefaultAsync();
         if (existing != null)
         {
             m_Logger.LogInformation("Updating existing aliases for game {GameName}", aliasModel.Game);

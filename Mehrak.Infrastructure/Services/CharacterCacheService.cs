@@ -1,12 +1,8 @@
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Interfaces;
 using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -34,7 +30,7 @@ public class CharacterCacheService : ICharacterCacheService
 
     public List<string> GetCharacters(GameName gameName)
     {
-        if (m_CharacterCache.TryGetValue(gameName, out var characters))
+        if (m_CharacterCache.TryGetValue(gameName, out List<string>? characters))
         {
             m_Logger.LogDebug("Retrieved {Count} characters for {GameName} from cache", characters.Count, gameName);
             return characters;
@@ -49,7 +45,7 @@ public class CharacterCacheService : ICharacterCacheService
 
     public Dictionary<string, string> GetAliases(GameName gameName)
     {
-        return m_AliasCache.TryGetValue(gameName, out var dict) ? dict : [];
+        return m_AliasCache.TryGetValue(gameName, out Dictionary<string, string>? dict) ? dict : [];
     }
 
     public async Task UpdateAllCharactersAsync()
@@ -59,9 +55,9 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogInformation("Starting character cache update for all games");
 
-            var games = Enum.GetValues<GameName>();
-            var updateTasks = games.Select(UpdateCharactersAsync);
-            var aliasTasks = games.Select(UpdateAliasesAsync);
+            GameName[] games = Enum.GetValues<GameName>();
+            IEnumerable<Task> updateTasks = games.Select(UpdateCharactersAsync);
+            IEnumerable<Task> aliasTasks = games.Select(UpdateAliasesAsync);
 
             await Task.WhenAll(updateTasks);
             await Task.WhenAll(aliasTasks);
@@ -84,7 +80,7 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating character cache for {GameName}", gameName);
 
-            var characters = await m_CharacterRepository.GetCharactersAsync(gameName);
+            List<string> characters = await m_CharacterRepository.GetCharactersAsync(gameName);
             characters.Sort();
 
             if (characters.Count > 0)

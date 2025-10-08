@@ -1,8 +1,6 @@
-using System;
-using System.Linq;
+using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -45,7 +43,7 @@ public class CookieService
                 Pbkdf2HashAlgorithm,
                 KeySizeBytes);
 
-            using (var aesGcm = new AesGcm(key, TagSizeBytes))
+            using (AesGcm aesGcm = new(key, TagSizeBytes))
             {
                 aesGcm.Encrypt(nonce, cookieBytes, encryptedCookie, tag);
             }
@@ -143,7 +141,7 @@ public class CookieService
 
             try
             {
-                using (var aesGcm = new AesGcm(key, TagSizeBytes))
+                using (AesGcm aesGcm = new(key, TagSizeBytes))
                 {
                     aesGcm.Decrypt(nonce, ciphertext, tag, decryptedBytes);
                 }
@@ -173,7 +171,7 @@ public class CookieService
             m_Logger.LogDebug("Cookie decryption completed successfully");
             return plainTextCookie;
         }
-        catch (Exception ex) when (ex is not AuthenticationTagMismatchException && ex is not FormatException)
+        catch (Exception ex) when (ex is not AuthenticationTagMismatchException and not FormatException)
         {
             m_Logger.LogError(ex, "Error during cookie decryption");
             throw;

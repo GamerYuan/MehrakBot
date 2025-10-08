@@ -21,14 +21,14 @@ public class CodeRedeemRepository : ICodeRedeemRepository
     public async Task<List<string>> GetCodesAsync(GameName gameName)
     {
         m_Logger.LogDebug("Fetching codes for game: {GameName}", gameName);
-        var entry = await m_Collection
+        CodeRedeemModel entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
         return entry?.Codes ?? [];
     }
 
     public async Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes)
     {
-        var entry = await m_Collection
+        CodeRedeemModel entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
         if (entry == null)
         {
@@ -40,7 +40,7 @@ public class CodeRedeemRepository : ICodeRedeemRepository
             await m_Collection.InsertOneAsync(entry);
         }
 
-        entry.Codes ??= new List<string>();
+        entry.Codes ??= [];
 
         var expiredCodes = codes
             .Where(kvp => kvp.Value == CodeStatus.Invalid)
