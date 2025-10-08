@@ -2,7 +2,7 @@
 
 using Mehrak.Bot.Executors.Executor;
 using Mehrak.Bot.Executors.Genshin;
-using MehrakCore.Provider.Commands.Genshin;
+using Mehrak.Bot.Provider.Commands.Genshin;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;

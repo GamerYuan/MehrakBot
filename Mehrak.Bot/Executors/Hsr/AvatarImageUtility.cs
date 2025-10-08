@@ -1,6 +1,6 @@
 ﻿#region
 
-using MehrakCore.Models;
+using Mehrak.Domain.Models;
 using MehrakCore.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;

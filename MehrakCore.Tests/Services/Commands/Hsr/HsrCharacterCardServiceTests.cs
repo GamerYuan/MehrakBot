@@ -1,5 +1,7 @@
 ﻿#region
 
+using Mehrak.Application.Services.Hsr;
+using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Services.Commands.Hsr.Character;

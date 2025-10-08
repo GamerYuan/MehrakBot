@@ -1,7 +1,7 @@
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 
-namespace Mehrak.Application.Repositories;
+namespace Mehrak.Domain.Repositories;
 
 public interface IAliasRepository
 {

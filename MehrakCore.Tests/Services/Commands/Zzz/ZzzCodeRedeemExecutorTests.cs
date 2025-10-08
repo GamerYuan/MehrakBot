@@ -1,9 +1,11 @@
 #region
 
+using Mehrak.Application.Services.Zzz.CodeRedeem;
 using Mehrak.Bot.Executors.Executor;
 using Mehrak.Bot.Executors.Zzz;
 using Mehrak.Bot.Modules;
 using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Repositories;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Services.Commands;

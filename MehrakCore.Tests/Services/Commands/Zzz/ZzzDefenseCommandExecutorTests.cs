@@ -1,4 +1,6 @@
-﻿using Mehrak.Bot.Executors.Zzz;
+﻿using Mehrak.Application.Services.Zzz.Defense;
+using Mehrak.Bot.Executors.Zzz;
+using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
 using MehrakCore.Constants;
 using MehrakCore.Models;

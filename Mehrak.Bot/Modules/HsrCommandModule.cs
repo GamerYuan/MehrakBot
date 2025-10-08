@@ -4,7 +4,7 @@ using Mehrak.Bot.Executors.Executor;
 using Mehrak.Bot.Executors.Hsr;
 using Mehrak.Bot.Executors.Hsr.BossChallenge;
 using Mehrak.Bot.Executors.Hsr.PureFiction;
-using MehrakCore.Provider.Commands.Hsr;
+using Mehrak.Bot.Provider.Commands.Hsr;
 using MehrakCore.Services.Common;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;

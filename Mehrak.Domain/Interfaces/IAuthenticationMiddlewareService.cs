@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using NetCord.Services;
 
-namespace Mehrak.Application.Services;
+namespace Mehrak.Domain.Interfaces;
 
 public interface IAuthenticationMiddlewareService
 {

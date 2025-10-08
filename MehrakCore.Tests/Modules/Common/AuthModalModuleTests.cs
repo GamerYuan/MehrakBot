@@ -2,7 +2,6 @@
 
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
-using Mehrak.Application.Services;
 using Mehrak.Infrastructure.Services;
 using MehrakCore.Tests.TestHelpers;
 using MehrakCore.Utility;
@@ -16,6 +15,7 @@ using NetCord.JsonModels;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
 using Mehrak.Bot.Modules.Common;
+using Mehrak.Domain.Interfaces;
 
 #endregion
 

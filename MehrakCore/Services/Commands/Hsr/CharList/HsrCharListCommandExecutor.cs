@@ -1,4 +1,5 @@
-﻿using MehrakCore.ApiResponseTypes;
+﻿using Mehrak.Domain.Interfaces;
+using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Services.Commands.Executor;

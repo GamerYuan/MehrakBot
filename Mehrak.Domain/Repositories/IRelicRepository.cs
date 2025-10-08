@@ -1,4 +1,4 @@
-namespace Mehrak.Application.Repositories;
+namespace Mehrak.Domain.Repositories;
 
 public interface IRelicRepository
 {

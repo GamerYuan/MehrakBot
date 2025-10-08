@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Mehrak.Application.Repositories;
-using Mehrak.Application.Services;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Services;

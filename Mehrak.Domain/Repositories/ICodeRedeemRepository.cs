@@ -1,6 +1,6 @@
 using Mehrak.Domain.Enums;
 
-namespace Mehrak.Application.Repositories;
+namespace Mehrak.Domain.Repositories;
 
 public interface ICodeRedeemRepository
 {

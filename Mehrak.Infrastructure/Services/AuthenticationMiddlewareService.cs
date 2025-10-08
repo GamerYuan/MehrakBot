@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Mehrak.Application.Services;
+using Mehrak.Domain.Interfaces;
 
 namespace Mehrak.Infrastructure.Services;
 

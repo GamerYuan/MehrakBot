@@ -1,7 +1,9 @@
 #region
 
+using Mehrak.Application.Services.Hsr.EndGame.PureFiction;
 using Mehrak.Bot.Executors.Hsr.PureFiction;
 using Mehrak.Bot.Modules;
+using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;

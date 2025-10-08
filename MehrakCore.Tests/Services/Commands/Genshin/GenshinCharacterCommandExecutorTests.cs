@@ -1,5 +1,7 @@
 #region
 
+using Mehrak.Application.Services.Genshin;
+using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Bot.Executors.Genshin;
 using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi.Genshin.Types;

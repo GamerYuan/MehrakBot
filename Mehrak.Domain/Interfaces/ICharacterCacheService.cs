@@ -1,6 +1,6 @@
 using Mehrak.Domain.Enums;
 
-namespace Mehrak.Application.Services;
+namespace Mehrak.Domain.Interfaces;
 
 public interface ICharacterCacheService
 {

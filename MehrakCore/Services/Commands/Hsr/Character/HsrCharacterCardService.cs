@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Domain.Repositories;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
 using MehrakCore.Models;

@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Application.Services.Genshin;
 using Mehrak.GameApi.Common.ApiResponseTypes;
 using Mehrak.GameApi.Genshin.Types;
 using MehrakCore.ApiResponseTypes;

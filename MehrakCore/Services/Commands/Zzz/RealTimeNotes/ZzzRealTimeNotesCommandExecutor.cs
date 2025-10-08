@@ -1,4 +1,5 @@
-﻿using MehrakCore.ApiResponseTypes.Zzz;
+﻿using Mehrak.Domain.Interfaces;
+using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Services.Commands.Executor;

@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Domain.Interfaces;
 using MehrakCore.Models;
 using MehrakCore.Services.Common;
 using MehrakCore.Services.Metrics;

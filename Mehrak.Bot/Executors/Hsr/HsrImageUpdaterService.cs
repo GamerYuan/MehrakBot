@@ -1,7 +1,7 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
 using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Constants;
 using MehrakCore.Models;
 using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;

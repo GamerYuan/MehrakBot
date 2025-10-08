@@ -3,6 +3,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Mehrak.Application.Services.Hsr.RealTimeNotes;
 using Mehrak.Bot.Executors.Hsr;
 using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi.Hsr.Types;

@@ -1,6 +1,7 @@
 #region
 
 using System.Net;
+using Mehrak.Domain.Interfaces;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.Models;
 using MehrakCore.Modules.Common;
