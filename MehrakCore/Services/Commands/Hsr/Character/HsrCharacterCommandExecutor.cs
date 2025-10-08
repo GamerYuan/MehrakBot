@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Services.Abstractions;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;

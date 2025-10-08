@@ -1,4 +1,5 @@
-﻿using MehrakCore.ApiResponseTypes;
+﻿using Mehrak.Application.Models;
+using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Constants;
 using MehrakCore.Models;

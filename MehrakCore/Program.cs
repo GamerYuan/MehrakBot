@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Domain.Interfaces;
 using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.ApiResponseTypes.Zzz;

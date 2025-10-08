@@ -1,6 +1,6 @@
 ﻿using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Bot.Executors.Zzz;
-using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Zzz.Types;
 using MehrakCore.ApiResponseTypes.Zzz;

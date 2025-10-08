@@ -1,9 +1,9 @@
 ﻿#region
 
+using Mehrak.Application.Models;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Hsr.EndGame;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Models;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Utility;

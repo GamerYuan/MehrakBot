@@ -4,7 +4,6 @@ using Mehrak.Application.Services.Genshin.CodeRedeem;
 using Mehrak.Bot.Executors.Executor;
 using Mehrak.Bot.Executors.Genshin;
 using Mehrak.Bot.Modules;
-using Mehrak.Domain.Interfaces;
 using Mehrak.Domain.Repositories;
 using MehrakCore.Models;
 using MehrakCore.Modules;

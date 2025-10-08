@@ -1,8 +1,8 @@
 ﻿#region
 
+using Mehrak.Application.Models;
 using Mehrak.Application.Services.Genshin;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Models;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Text.Json;

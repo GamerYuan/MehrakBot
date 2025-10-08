@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Interfaces;
+﻿using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using System.Net.Http.Json;
 

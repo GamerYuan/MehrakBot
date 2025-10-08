@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Models;
+﻿using Mehrak.Application.Models;
 using MehrakCore.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;

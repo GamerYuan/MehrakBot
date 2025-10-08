@@ -1,6 +1,6 @@
-﻿using Mehrak.Application.Services.Zzz.Assault;
+﻿using Mehrak.Application.Models;
+using Mehrak.Application.Services.Zzz.Assault;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Models;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Utility;

@@ -7,7 +7,7 @@ using MehrakCore.Modules;
 
 #endregion
 
-namespace Mehrak.Domain.Interfaces;
+namespace Mehrak.Bot.Provider;
 
 public interface ICharacterAutocompleteService<T> where T : ICommandModule
 {

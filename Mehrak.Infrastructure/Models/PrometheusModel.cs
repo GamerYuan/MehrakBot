@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 #endregion
 
-namespace MehrakCore.Models;
+namespace Mehrak.Infrastructure.Models;
 
 #endregion
 

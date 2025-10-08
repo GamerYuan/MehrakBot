@@ -1,6 +1,6 @@
 ﻿using Mehrak.Domain.Models;
 
-namespace Mehrak.Domain.Interfaces;
+namespace Mehrak.Domain.Services.Abstractions;
 
 public interface IApiService<T>
 {

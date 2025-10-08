@@ -3,7 +3,7 @@
 using Mehrak.Application.Services.Genshin;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Bot.Executors.Genshin;
-using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;

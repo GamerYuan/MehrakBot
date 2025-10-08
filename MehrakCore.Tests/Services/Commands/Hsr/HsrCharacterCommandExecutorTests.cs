@@ -2,7 +2,7 @@
 
 using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Bot.Executors.Hsr;
-using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;

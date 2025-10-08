@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Application.Models;
 using MehrakCore.Models;
 using MehrakCore.Utility;
 using SixLabors.Fonts;

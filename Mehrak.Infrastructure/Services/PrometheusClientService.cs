@@ -1,7 +1,7 @@
 ﻿#region
 
 using Mehrak.Domain.Models;
-using MehrakCore.Models;
+using Mehrak.Infrastructure.Models;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 

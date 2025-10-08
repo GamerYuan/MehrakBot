@@ -3,8 +3,9 @@
 #endregion
 
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
 
-namespace Mehrak.Domain.Interfaces;
+namespace Mehrak.Application.Services;
 
 public interface ICardService<T> : IAsyncInitializable
 {

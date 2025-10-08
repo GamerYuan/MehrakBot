@@ -1,9 +1,9 @@
 ﻿#region
 
+using Mehrak.Application.Models;
 using Mehrak.Application.Services.Genshin;
 using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Models;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Utility;

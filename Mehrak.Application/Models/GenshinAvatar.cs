@@ -4,7 +4,7 @@ using SixLabors.ImageSharp;
 
 #endregion
 
-namespace Mehrak.Domain.Models;
+namespace Mehrak.Application.Models;
 
 public sealed record GenshinAvatar : IDisposable
 {

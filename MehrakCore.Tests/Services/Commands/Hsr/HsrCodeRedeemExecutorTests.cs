@@ -4,7 +4,6 @@ using Mehrak.Application.Services.Hsr.CodeRedeem;
 using Mehrak.Bot.Executors.Executor;
 using Mehrak.Bot.Executors.Hsr;
 using Mehrak.Bot.Modules;
-using Mehrak.Domain.Interfaces;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi;
 using MehrakCore.Constants;

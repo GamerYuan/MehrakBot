@@ -1,6 +1,6 @@
 ﻿using SixLabors.ImageSharp;
 
-namespace Mehrak.Domain.Models;
+namespace Mehrak.Application.Models;
 
 public sealed record ZzzAvatar : IDisposable
 {

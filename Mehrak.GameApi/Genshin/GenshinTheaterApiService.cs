@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using System.Net;
 using System.Text.Json;
