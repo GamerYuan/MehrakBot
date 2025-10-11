@@ -48,7 +48,7 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
             (UserModel? user, UserProfile? selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null) return;
 
-            server ??= GetCachedServer(selectedProfile, GameName.ZenlessZoneZero);
+            server ??= GetCachedServer(selectedProfile, Game.ZenlessZoneZero);
             if (server == null)
             {
                 await SendErrorMessageAsync("No cached server found! Please select a server first.", false);
@@ -101,7 +101,7 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
             string region = server.GetRegion();
             UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
             ApiResult<ApiResponseTypes.UserGameData> response =
-                await GetAndUpdateGameDataAsync(user, GameName.ZenlessZoneZero, ltuid, ltoken, server, region);
+                await GetAndUpdateGameDataAsync(user, Game.ZenlessZoneZero, ltuid, ltoken, server, region);
             if (!response.IsSuccess)
                 return;
 

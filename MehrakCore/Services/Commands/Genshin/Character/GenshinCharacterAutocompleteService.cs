@@ -21,7 +21,7 @@ public class GenshinCharacterAutocompleteService : ICharacterAutocompleteService
 
     public IReadOnlyList<string> FindCharacter(string query)
     {
-        var characterNames = m_CharacterCacheService.GetCharacters(GameName.Genshin);
+        var characterNames = m_CharacterCacheService.GetCharacters(Game.Genshin);
         return characterNames
             .Where(x => x.Contains(query, StringComparison.InvariantCultureIgnoreCase))
             .Take(Limit)

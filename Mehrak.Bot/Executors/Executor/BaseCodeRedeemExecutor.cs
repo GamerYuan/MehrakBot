@@ -48,7 +48,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
     /// <summary>
     /// Gets the game name for the specific implementation.
     /// </summary>
-    protected abstract GameName GameName { get; }
+    protected abstract Game Game { get; }
 
     /// <summary>
     /// Gets the command name for metrics tracking.
@@ -89,7 +89,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
             Logger.LogInformation("User {UserId} used the code command", Context.Interaction.User.Id);
             var codes = RegexExpressions.RedeemCodeSplitRegex().Split(input).Where(x => !string.IsNullOrEmpty(x))
                 .ToList();
-            if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(GameName);
+            if (codes.Count == 0) codes = await m_CodeRedeemRepository.GetCodesAsync(Game);
 
             if (codes.Count == 0)
             {
@@ -105,7 +105,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
             if (user == null || selectedProfile == null)
                 return;
 
-            var cachedServer = server ?? GetCachedServer(selectedProfile, GameName);
+            var cachedServer = server ?? GetCachedServer(selectedProfile, Game);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
@@ -157,7 +157,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
             var region = GetRegionString(server);
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameUidAsync(user, GameName, ltuid, ltoken, server, region);
+            var result = await GetAndUpdateGameUidAsync(user, Game, ltuid, ltoken, server, region);
             if (!result.IsSuccess) return;
 
             var gameUid = result.Data;
@@ -187,7 +187,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
             }
 
             if (successfulCodes.Count > 0)
-                await m_CodeRedeemRepository.AddCodesAsync(GameName, successfulCodes).ConfigureAwait(false);
+                await m_CodeRedeemRepository.AddCodesAsync(Game, successfulCodes).ConfigureAwait(false);
 
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)

@@ -1,9 +1,9 @@
-﻿using Mehrak.Application.Services.Hsr;
-using Mehrak.Application.Services.Hsr.CharList;
+﻿using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Bot.Executors.Hsr;
 using Mehrak.Domain.Interfaces;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi;
+using Mehrak.GameApi.Hsr;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
@@ -131,18 +131,18 @@ public class HsrCharListCommandExecutorTests
                 {
                     ProfileId = profileId,
                     LtUid = ltUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { nameof(Regions.Asia), TestGameUid }
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Regions.Asia }
                     }
                 }
             ]

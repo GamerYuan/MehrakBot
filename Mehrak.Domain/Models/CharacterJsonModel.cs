@@ -6,15 +6,15 @@ namespace Mehrak.Domain.Models;
 public class CharacterJsonModel
 {
     [JsonPropertyName("game")]
-    public required GameName Game { get; init; }
+    public required Game Game { get; init; }
     [JsonPropertyName("characters")]
     public required List<string> Characters { get; init; }
 
-    public GameName GetGameName() => Game;
+    public Game GetGame() => Game;
 
     public CharacterModel ToCharacterModel() => new CharacterModel
     {
-        Game = GetGameName(),
+        Game = GetGame(),
         Characters = Characters
     };
 }

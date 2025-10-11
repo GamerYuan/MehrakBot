@@ -23,7 +23,7 @@ public class GenshinCodeRedeemExecutor : BaseCodeRedeemExecutor<GenshinCommandMo
     {
     }
 
-    protected override GameName GameName => GameName.Genshin;
+    protected override Game Game => Game.Genshin;
 
     protected override string CommandName => "genshin codes";
 

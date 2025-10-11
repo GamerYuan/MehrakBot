@@ -24,7 +24,7 @@ public class HsrCodeRedeemExecutor : BaseCodeRedeemExecutor<HsrCommandModule, Hs
     {
     }
 
-    protected override GameName GameName => GameName.HonkaiStarRail;
+    protected override Game Game => Game.HonkaiStarRail;
 
     protected override string CommandName => "hsr codes";
 

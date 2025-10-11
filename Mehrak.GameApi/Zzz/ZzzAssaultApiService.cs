@@ -1,4 +1,7 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -7,7 +10,7 @@ using System.Net.Http.Json;
 
 namespace Mehrak.GameApi.Zzz;
 
-public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHostedService
+public class ZzzAssaultApiService : IApiService<ZzzAssaultData>, IHostedService
 {
     private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/mem_detail";
     private const int BossImageHeight = 230;
@@ -26,8 +29,15 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         m_Logger = logger;
     }
 
-    public async Task<ZzzAssaultData> GetAssaultDataAsync(string ltoken, ulong ltuid, string gameUid, string region)
+    public async Task<Result<ZzzAssaultData>> GetAsync(ulong ltuid, string ltoken, string gameUid = "", string region = "")
     {
+        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        {
+            m_Logger.LogError("Game UID or region is null or empty");
+            return Result<ZzzAssaultData>.Failure(StatusCode.BadParameter,
+                "Game UID or region is null or empty");
+        }
+
         HttpClient client = m_HttpClientFactory.CreateClient("Default");
         HttpRequestMessage request = new(HttpMethod.Get,
             $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={region}&uid={gameUid}&schedule_type=1");
@@ -38,7 +48,8 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         {
             m_Logger.LogError("Failed to fetch Zzz Assault data for gameUid: {GameUid}, Status Code: {StatusCode}",
                 gameUid, response.StatusCode);
-            throw new CommandException("An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,
+                "An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
 
         ApiResponse<ZzzAssaultData>? json =
@@ -48,23 +59,25 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultCommandExecutor>, IHos
         {
             m_Logger.LogError("Failed to fetch Zzz Assault data for gameUid: {GameUid}, Status Code: {StatusCode}",
                 gameUid, response.StatusCode);
-            throw new CommandException("An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,
+                "An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
 
         if (json.Retcode == 10001)
         {
             m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-            throw new CommandException("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+            return Result<ZzzAssaultData>.Failure(StatusCode.Unauthorized, "Invalid HoYoLAB UID or Cookies. Please authenticate again");
         }
 
         if (json.Retcode != 0)
         {
             m_Logger.LogWarning("Failed to fetch Zzz Assault data for {GameUid}, Retcode {Retcode}, Message: {Message}",
                 gameUid, json?.Retcode, json?.Message);
-            throw new CommandException("An error occurred while fetching Deadly Assault data");
+            return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,
+                "An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
 
-        return json.Data!;
+        return Result<ZzzAssaultData>.Success(json.Data!);
     }
 
     /// <summary>

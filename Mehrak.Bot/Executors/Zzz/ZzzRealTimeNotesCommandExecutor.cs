@@ -48,10 +48,10 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
 
             // Auto-select server from cache if not provided
             if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.ZenlessZoneZero, out Regions tmp))
+                selectedProfile.LastUsedRegions.TryGetValue(Game.ZenlessZoneZero, out Regions tmp))
                 server = tmp;
 
-            Regions? cachedServer = server ?? GetCachedServer(selectedProfile, GameName.ZenlessZoneZero);
+            Regions? cachedServer = server ?? GetCachedServer(selectedProfile, Game.ZenlessZoneZero);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
@@ -97,7 +97,7 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
             string region = server.GetRegion();
             UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            ApiResult<ApiResponseTypes.UserGameData> result = await GetAndUpdateGameDataAsync(user, GameName.ZenlessZoneZero, ltuid, ltoken, server,
+            ApiResult<ApiResponseTypes.UserGameData> result = await GetAndUpdateGameDataAsync(user, Game.ZenlessZoneZero, ltuid, ltoken, server,
                 server.GetRegion());
 
             if (!result.IsSuccess) return;

@@ -78,7 +78,7 @@ public class GameRecordApiService : IApiService<object>
     /// <param name="gameIdentifier">Game identifier</param>
     /// <param name="region">Region string</param>
     /// <returns>ApiResult containing the game UID and HTTP status code</returns>
-    public async Task<ApiResult<UserGameData>> GetUserGameDataAsync(ulong uid, string ltoken, string gameIdentifier,
+    public async Task<Result<UserGameData>> GetUserGameDataAsync(ulong uid, string ltoken, string gameIdentifier,
         string region)
     {
         try
@@ -101,7 +101,7 @@ public class GameRecordApiService : IApiService<object>
             {
                 m_Logger.LogWarning("Game roles API returned non-success status code: {StatusCode}",
                     response.StatusCode);
-                return ApiResult<UserGameData>.Failure(response.StatusCode, "API returned error status code");
+                return Result<UserGameData>.Failure(response.StatusCode, "API returned error status code");
             }
 
             var node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -110,7 +110,7 @@ public class GameRecordApiService : IApiService<object>
             {
                 m_Logger.LogWarning("Invalid ltoken or ltuid for user {Uid} on {Region}",
                     uid, region);
-                return ApiResult<UserGameData>.Failure(HttpStatusCode.Unauthorized,
+                return Result<UserGameData>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please re-authenticate");
             }
 
@@ -118,14 +118,14 @@ public class GameRecordApiService : IApiService<object>
             {
                 m_Logger.LogWarning("Game roles API returned error code: {Retcode} - {Message}",
                     node?["retcode"], node?["message"]);
-                return ApiResult<UserGameData>.Failure(HttpStatusCode.InternalServerError,
+                return Result<UserGameData>.Failure(HttpStatusCode.InternalServerError,
                     $"An error occurred while retrieving profile information");
             }
 
             if (node["data"]?["list"] == null || node["data"]?["list"]?.AsArray().Count == 0)
             {
                 m_Logger.LogWarning("No game data found for user {Uid} on {Region}", uid, region);
-                return ApiResult<UserGameData>.Failure(HttpStatusCode.NotFound,
+                return Result<UserGameData>.Failure(HttpStatusCode.NotFound,
                     "No game information found. Please select the correct region");
             }
 
@@ -133,7 +133,7 @@ public class GameRecordApiService : IApiService<object>
 
             m_Logger.LogInformation("Successfully retrieved game UID {GameUid} for user {Uid} on {Region}",
                 gameUid, uid, region);
-            return ApiResult<UserGameData>.Success(gameUid!, node?["retcode"]?.GetValue<int>() ?? 0,
+            return Result<UserGameData>.Success(gameUid!, node?["retcode"]?.GetValue<int>() ?? 0,
                 response.StatusCode);
         }
         catch (Exception ex)

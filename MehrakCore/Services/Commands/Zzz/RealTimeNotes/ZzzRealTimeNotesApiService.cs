@@ -29,7 +29,7 @@ internal class ZzzRealTimeNotesApiService : IRealTimeNotesApiService<ZzzRealTime
         m_Logger = logger;
     }
 
-    public async Task<ApiResult<ZzzRealTimeNotesData>> GetRealTimeNotesAsync(
+    public async Task<Result<ZzzRealTimeNotesData>> GetRealTimeNotesAsync(
         string roleId, string server, ulong ltuid, string ltoken)
     {
         try
@@ -41,7 +41,7 @@ internal class ZzzRealTimeNotesApiService : IRealTimeNotesApiService<ZzzRealTime
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch real-time notes: {StatusCode}", response.StatusCode);
-                return ApiResult<ZzzRealTimeNotesData>.Failure(response.StatusCode,
+                return Result<ZzzRealTimeNotesData>.Failure(response.StatusCode,
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
@@ -50,32 +50,32 @@ internal class ZzzRealTimeNotesApiService : IRealTimeNotesApiService<ZzzRealTime
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");
-                return ApiResult<ZzzRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<ZzzRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                     "Failed to parse JSON response from real-time notes API");
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
-                return ApiResult<ZzzRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
+                return Result<ZzzRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API");
             }
 
             if (json.Data == null)
             {
                 m_Logger.LogError("No data found in real-time notes API response");
-                return ApiResult<ZzzRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<ZzzRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                     "No data found in real-time notes API response");
             }
 
-            return ApiResult<ZzzRealTimeNotesData>.Success(json.Data);
+            return Result<ZzzRealTimeNotesData>.Success(json.Data);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
                 roleId, server);
-            return ApiResult<ZzzRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
+            return Result<ZzzRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while fetching real-time notes");
         }
     }

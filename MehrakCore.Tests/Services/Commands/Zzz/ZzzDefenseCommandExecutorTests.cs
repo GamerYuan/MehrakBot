@@ -335,18 +335,18 @@ public class ZzzDefenseCommandExecutorTests
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.ZenlessZoneZero, new Dictionary<string, string>
+                            Game.ZenlessZoneZero, new Dictionary<string, string>
                             {
                                 { nameof(Regions.Asia), TestGameUid }
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Regions.Asia }
                     }
                 }
             ]

@@ -75,7 +75,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// <summary>
     /// Gets the cached server for the specified game from the user's profile, or null if not found.
     /// </summary>
-    protected Regions? GetCachedServer(UserProfile profile, GameName gameName)
+    protected Regions? GetCachedServer(UserProfile profile, Game gameName)
     {
         if (profile.LastUsedRegions != null &&
             profile.LastUsedRegions.TryGetValue(gameName, out var cachedServer))
@@ -143,7 +143,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// <param name="server">server</param>
     /// <param name="region">region string</param>
     /// <returns></returns>
-    protected async ValueTask<ApiResult<string>> GetAndUpdateGameUidAsync(UserModel? user, GameName gameName,
+    protected async ValueTask<ApiResult<string>> GetAndUpdateGameUidAsync(UserModel? user, Game gameName,
         ulong ltuid, string ltoken, Regions server, string region)
     {
         try
@@ -194,7 +194,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
             }
 
             // Update game UIDs
-            selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
+            selectedProfile.GameUids ??= new Dictionary<Game, Dictionary<string, string>>();
             if (!selectedProfile.GameUids.ContainsKey(gameName))
                 selectedProfile.GameUids[gameName] = new Dictionary<string, string>();
 
@@ -202,7 +202,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
                 selectedProfile.GameUids[gameName][server.ToString()] = gameUid;
 
             // Update last used regions
-            selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+            selectedProfile.LastUsedRegions ??= new Dictionary<Game, Regions>();
 
             if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
                 selectedProfile.LastUsedRegions[gameName] = server;
@@ -217,7 +217,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
         }
     }
 
-    protected async Task<ApiResult<UserGameData>> GetAndUpdateGameDataAsync(UserModel? user, GameName gameName,
+    protected async Task<ApiResult<UserGameData>> GetAndUpdateGameDataAsync(UserModel? user, Game gameName,
         ulong ltuid, string ltoken, Regions server, string region)
     {
         try
@@ -258,7 +258,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
                 !dict.ContainsKey(server.ToString()))
             {
                 var gameUid = result.Data.GameUid!;
-                selectedProfile.GameUids ??= new Dictionary<GameName, Dictionary<string, string>>();
+                selectedProfile.GameUids ??= new Dictionary<Game, Dictionary<string, string>>();
                 if (!selectedProfile.GameUids.ContainsKey(gameName))
                     selectedProfile.GameUids[gameName] = new Dictionary<string, string>();
 
@@ -267,7 +267,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
             }
 
             // Update last used regions
-            selectedProfile.LastUsedRegions ??= new Dictionary<GameName, Regions>();
+            selectedProfile.LastUsedRegions ??= new Dictionary<Game, Regions>();
 
             if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
                 selectedProfile.LastUsedRegions[gameName] = server;
@@ -301,14 +301,14 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
 
     public abstract Task OnAuthenticationCompletedAsync(AuthenticationResult result);
 
-    private static string GetGameIdentifier(GameName gameName)
+    private static string GetGameIdentifier(Game gameName)
     {
         return gameName switch
         {
-            GameName.Genshin => "hk4e_global",
-            GameName.HonkaiStarRail => "hkrpg_global",
-            GameName.ZenlessZoneZero => "nap_global",
-            GameName.HonkaiImpact3 => "expr",
+            Game.Genshin => "hk4e_global",
+            Game.HonkaiStarRail => "hkrpg_global",
+            Game.ZenlessZoneZero => "nap_global",
+            Game.HonkaiImpact3 => "expr",
             _ => throw new ArgumentOutOfRangeException(nameof(gameName), gameName, null)
         };
     }

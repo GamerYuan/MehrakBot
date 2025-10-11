@@ -51,7 +51,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
                 return;
 
             // Try to get cached server or use provided server
-            server ??= GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
+            server ??= GetCachedServer(selectedProfile, Game.HonkaiStarRail);
 
             if (!await ValidateServerAsync(server))
                 return;
@@ -91,7 +91,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
             string region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
+            var result = await GetAndUpdateGameDataAsync(user, Game.HonkaiStarRail, ltuid, ltoken, server,
                 region);
 
             if (!result.IsSuccess) return;
@@ -115,7 +115,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
 
             if (characterInfo == null)
             {
-                m_CharacterCacheService.GetAliases(GameName.HonkaiStarRail).TryGetValue(characterName, out var alias);
+                m_CharacterCacheService.GetAliases(Game.HonkaiStarRail).TryGetValue(characterName, out var alias);
                 if (alias == null ||
                     (characterInfo = characterList.AvatarList?.FirstOrDefault(x =>
                         x.Name!.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
@@ -138,7 +138,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(response);
             BotMetrics.TrackCommand(Context.Interaction.User, "hsr character", true);
-            BotMetrics.TrackCharacterSelection(nameof(GameName.HonkaiStarRail), characterName);
+            BotMetrics.TrackCharacterSelection(nameof(Game.HonkaiStarRail), characterName);
         }
         catch (CommandException e)
         {

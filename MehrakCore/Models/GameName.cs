@@ -1,1 +1,1 @@
-﻿// Intentionally left empty. GameName has been moved to Mehrak.Domain.
+﻿// Intentionally left empty. Game has been moved to Mehrak.Domain.

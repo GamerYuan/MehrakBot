@@ -49,7 +49,7 @@ public class HsrBossChallengeCommandExecutor : BaseHsrEndGameCommandExecutor
             var (user, selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null) return;
 
-            server ??= GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
+            server ??= GetCachedServer(selectedProfile, Game.HonkaiStarRail);
             if (server == null)
             {
                 await SendErrorMessageAsync("No cached server found! Please select a server first.", false);
@@ -102,7 +102,7 @@ public class HsrBossChallengeCommandExecutor : BaseHsrEndGameCommandExecutor
             var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
             var response =
-                await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server, region);
+                await GetAndUpdateGameDataAsync(user, Game.HonkaiStarRail, ltuid, ltoken, server, region);
             if (!response.IsSuccess)
                 return;
 

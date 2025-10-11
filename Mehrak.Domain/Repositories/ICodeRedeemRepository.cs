@@ -4,6 +4,6 @@ namespace Mehrak.Domain.Repositories;
 
 public interface ICodeRedeemRepository
 {
-    Task<List<string>> GetCodesAsync(GameName gameName);
-    Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes);
+    Task<List<string>> GetCodesAsync(Game gameName);
+    Task AddCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes);
 }

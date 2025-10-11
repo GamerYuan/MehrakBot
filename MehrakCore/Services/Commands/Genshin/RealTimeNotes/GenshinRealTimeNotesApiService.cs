@@ -26,7 +26,7 @@ public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRe
         m_Logger = logger;
     }
 
-    public async Task<ApiResult<GenshinRealTimeNotesData>> GetRealTimeNotesAsync(string roleId, string server,
+    public async Task<Result<GenshinRealTimeNotesData>> GetRealTimeNotesAsync(string roleId, string server,
         ulong ltuid, string ltoken)
     {
         try
@@ -38,7 +38,7 @@ public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRe
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch real-time notes: {StatusCode}", response.StatusCode);
-                return ApiResult<GenshinRealTimeNotesData>.Failure(response.StatusCode,
+                return Result<GenshinRealTimeNotesData>.Failure(response.StatusCode,
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
@@ -46,30 +46,30 @@ public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRe
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");
-                return ApiResult<GenshinRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<GenshinRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                     "Failed to parse JSON response from real-time notes API");
             }
 
             if (json["retcode"]!.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
-                return ApiResult<GenshinRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
+                return Result<GenshinRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API");
             }
 
             if (json["data"] == null)
             {
                 m_Logger.LogError("No data found in real-time notes API response");
-                return ApiResult<GenshinRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<GenshinRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                     "No data found in real-time notes API response");
             }
 
             var data = json["data"]!.Deserialize<GenshinRealTimeNotesData>();
-            if (data != null) return ApiResult<GenshinRealTimeNotesData>.Success(data);
+            if (data != null) return Result<GenshinRealTimeNotesData>.Success(data);
 
             m_Logger.LogError("Failed to deserialize real-time notes data for roleId {RoleId} on server {Server}",
                 roleId, server);
-            return ApiResult<GenshinRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+            return Result<GenshinRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                 "Failed to deserialize real-time notes data");
         }
         catch (Exception e)
@@ -77,7 +77,7 @@ public class GenshinRealTimeNotesApiService : IRealTimeNotesApiService<GenshinRe
             m_Logger.LogError(e,
                 "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
                 roleId, server);
-            return ApiResult<GenshinRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
+            return Result<GenshinRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while fetching real-time notes");
         }
     }

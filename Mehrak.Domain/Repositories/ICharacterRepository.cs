@@ -5,7 +5,7 @@ namespace Mehrak.Domain.Repositories;
 
 public interface ICharacterRepository
 {
-    Task<List<string>> GetCharactersAsync(GameName gameName);
-    Task<CharacterModel?> GetCharacterModelAsync(GameName gameName);
+    Task<List<string>> GetCharactersAsync(Game gameName);
+    Task<CharacterModel?> GetCharacterModelAsync(Game gameName);
     Task UpsertCharactersAsync(CharacterModel characterModel);
 }

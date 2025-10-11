@@ -583,9 +583,9 @@ public class ZzzCodeRedeemExecutorTests
                     ProfileId = 2, // Different profile ID
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Regions.Asia }
                     }
                 }
             ]
@@ -640,7 +640,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Expired"));
+            .ReturnsAsync(Result<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Expired"));
 
         // Act
         await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
@@ -745,7 +745,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"))
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"))
             .Verifiable();
 
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
@@ -754,11 +754,11 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"))
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"))
             .Verifiable();
 
         // Setup repository to return cached codes
-        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.ZenlessZoneZero))
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(Game.ZenlessZoneZero))
             .ReturnsAsync(cachedCodes)
             .Verifiable();
 
@@ -774,7 +774,7 @@ public class ZzzCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.ZenlessZoneZero,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.Count == cachedCodes.Count &&
                                                               list.All(kvp => cachedCodes.Contains(kvp.Key)))),
             Times.Once);
@@ -808,7 +808,7 @@ public class ZzzCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.ZenlessZoneZero,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.Count == expectedCodes.Length &&
                                                               expectedCodes.All(c =>
                                                                   list.ContainsKey(c.ToUpperInvariant())))),
@@ -838,7 +838,7 @@ public class ZzzCodeRedeemExecutorTests
             TestLToken), Times.Once);
 
         // Verify the code was added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.ZenlessZoneZero,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.ContainsKey(TestCode.ToUpperInvariant()))),
             Times.Once);
     }
@@ -860,7 +860,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"));
 
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
                 "INVALID1",
@@ -868,7 +868,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
+            .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
 
         // Act
         await m_Executor.ExecuteAsync(codes, Regions.Asia, 1u);
@@ -903,7 +903,7 @@ public class ZzzCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redemption failed"));
 
         // No codes should be added to the repository since the process failed
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.ZenlessZoneZero,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.ZenlessZoneZero,
             It.IsAny<Dictionary<string, CodeStatus>>()), Times.Never);
     }
 
@@ -916,7 +916,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(gameRecord);
 
         // Explicitly configure empty result for GetCodesAsync
-        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.ZenlessZoneZero))
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(Game.ZenlessZoneZero))
             .ReturnsAsync([]);
 
         // Act
@@ -925,8 +925,8 @@ public class ZzzCodeRedeemExecutorTests
         // Assert
         // Should attempt to get codes from repository
         m_CodeRedeemRepositoryMock.Verify(x =>
-            x.GetCodesAsync(It.Is<GameName>(input =>
-                input.Equals(GameName.ZenlessZoneZero))), Times.Once);
+            x.GetCodesAsync(It.Is<Game>(input =>
+                input.Equals(Game.ZenlessZoneZero))), Times.Once);
 
         // No codes should be redeemed
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -961,7 +961,7 @@ public class ZzzCodeRedeemExecutorTests
             m_LoggerMock.Object);
 
         List<string> codes = ["EXPIREDCODE", "VALIDCODE"];
-        await codeRedeemRepo.AddCodesAsync(GameName.ZenlessZoneZero,
+        await codeRedeemRepo.AddCodesAsync(Game.ZenlessZoneZero,
             codes.ToDictionary(code => code, _ => CodeStatus.Valid));
         executor.Context = m_ContextMock.Object;
 
@@ -970,14 +970,14 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"));
         // ZZZ uses -2001 for expired codes and marks them as Invalid (which removes them from DB)
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync("EXPIREDCODE",
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Expired code", -2001));
+            .ReturnsAsync(Result<string>.Success("Expired code", -2001));
 
         // Act
         await executor.ExecuteAsync("", Regions.Asia, 1u);
@@ -988,7 +988,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>()), Times.Exactly(2));
 
         // Expired codes should be removed from DB (repository removes all Invalid codes)
-        List<string> codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.ZenlessZoneZero);
+        List<string> codesInDb = await codeRedeemRepo.GetCodesAsync(Game.ZenlessZoneZero);
         Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
         Assert.That(codesInDb, Does.Contain("VALIDCODE"));
     }
@@ -1009,7 +1009,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Test error message"));
+            .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Test error message"));
 
         // Act
         await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
@@ -1031,14 +1031,14 @@ public class ZzzCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Regions.Asia }
                     },
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.ZenlessZoneZero, new Dictionary<string, string>
+                            Game.ZenlessZoneZero, new Dictionary<string, string>
                             {
                                 { nameof(Regions.Asia), TestGameUid }
                             }
@@ -1063,9 +1063,9 @@ public class ZzzCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Regions.Asia }
                     }
                     // No GameUids - this will trigger the API call
                 }
@@ -1192,7 +1192,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"));
     }
 
     private void SetupCodeRedeemApiFailure()
@@ -1203,7 +1203,7 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
+            .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
     }
 
     private void SetupTokenCache()

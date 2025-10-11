@@ -20,22 +20,22 @@ public class DailyCheckInService : IDailyCheckInService
     private readonly GameRecordApiService m_GameRecordApiService;
     private readonly ILogger<DailyCheckInService> m_Logger;
 
-    private static readonly Dictionary<GameName, string> CheckInUrls = new()
+    private static readonly Dictionary<Game, string> CheckInUrls = new()
     {
-        { GameName.Genshin, $"{HoYoLabDomains.GenshinApi}/event/sol/sign" },
-        { GameName.HonkaiStarRail, $"{HoYoLabDomains.PublicApi}/event/luna/hkrpg/os/sign" },
-        { GameName.ZenlessZoneZero, $"{HoYoLabDomains.PublicApi}/event/luna/zzz/os/sign" },
-        { GameName.HonkaiImpact3, $"{HoYoLabDomains.PublicApi}/event/mani/sign" },
-        { GameName.TearsOfThemis, $"{HoYoLabDomains.PublicApi}/event/luna/nxx/os/sign" }
+        { Game.Genshin, $"{HoYoLabDomains.GenshinApi}/event/sol/sign" },
+        { Game.HonkaiStarRail, $"{HoYoLabDomains.PublicApi}/event/luna/hkrpg/os/sign" },
+        { Game.ZenlessZoneZero, $"{HoYoLabDomains.PublicApi}/event/luna/zzz/os/sign" },
+        { Game.HonkaiImpact3, $"{HoYoLabDomains.PublicApi}/event/mani/sign" },
+        { Game.TearsOfThemis, $"{HoYoLabDomains.PublicApi}/event/luna/nxx/os/sign" }
     };
 
-    private static readonly Dictionary<GameName, string> CheckInActIds = new()
+    private static readonly Dictionary<Game, string> CheckInActIds = new()
     {
-        { GameName.Genshin, "e202102251931481" },
-        { GameName.HonkaiStarRail, "e202303301540311" },
-        { GameName.ZenlessZoneZero, "e202406031448091" },
-        { GameName.HonkaiImpact3, "e202110291205111" },
-        { GameName.TearsOfThemis, "e202202281857121" }
+        { Game.Genshin, "e202102251931481" },
+        { Game.HonkaiStarRail, "e202303301540311" },
+        { Game.ZenlessZoneZero, "e202406031448091" },
+        { Game.HonkaiImpact3, "e202110291205111" },
+        { Game.TearsOfThemis, "e202202281857121" }
     };
 
     public DailyCheckInService(IHttpClientFactory httpClientFactory,
@@ -55,7 +55,7 @@ public class DailyCheckInService : IDailyCheckInService
                 return ApiResult<(bool, string)>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid UID or Cookies. Please re-authenticate your profile");
 
-            GameName[] checkInTypes = Enum.GetValues<GameName>();
+            Game[] checkInTypes = Enum.GetValues<Game>();
 
             List<Task<ApiResult<bool>>> tasks = [.. checkInTypes.Select(async type =>
             {
@@ -98,7 +98,7 @@ public class DailyCheckInService : IDailyCheckInService
         }
     }
 
-    private async Task<ApiResult<bool>> CheckInHelperAsync(GameName type, ulong ltuid, string ltoken)
+    private async Task<ApiResult<bool>> CheckInHelperAsync(Game type, ulong ltuid, string ltoken)
     {
         if (!CheckInUrls.TryGetValue(type, out string? url) || !CheckInActIds.TryGetValue(type, out string? actId))
         {
@@ -111,7 +111,7 @@ public class DailyCheckInService : IDailyCheckInService
         CheckInApiPayload requestBody = new(actId);
         request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
 
-        if (type == GameName.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
+        if (type == Game.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
 
         request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
         m_Logger.LogDebug("Sending check-in request to {Endpoint}", request.RequestUri);

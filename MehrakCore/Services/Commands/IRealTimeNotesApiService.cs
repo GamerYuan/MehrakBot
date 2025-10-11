@@ -12,5 +12,5 @@ namespace MehrakCore.Services.Commands;
 public interface IRealTimeNotesApiService<T> : IApiService<IRealTimeNotesCommandExecutor<ICommandModule>>
     where T : IRealTimeNotesData
 {
-    Task<ApiResult<T>> GetRealTimeNotesAsync(string roleId, string server, ulong ltuid, string ltoken);
+    Task<Result<T>> GetRealTimeNotesAsync(string roleId, string server, ulong ltuid, string ltoken);
 }

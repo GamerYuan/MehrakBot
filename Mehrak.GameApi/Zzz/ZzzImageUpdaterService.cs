@@ -1,12 +1,12 @@
 ﻿using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Models;
+using Mehrak.GameApi.Common;
+using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using System.Text.Json.Nodes;
 
-namespace Mehrak.Bot.Executors.Zzz;
+namespace Mehrak.GameApi.Zzz;
 
 internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
 {
@@ -15,7 +15,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
 
     private const string WikiEndpoint = "/hoyowiki/zzz/wapi/entry_page";
 
-    public ZzzImageUpdaterService(ImageRepository imageRepository,
+    public ZzzImageUpdaterService(IImageRepository imageRepository,
         IHttpClientFactory httpClientFactory,
         ILogger<ZzzImageUpdaterService> logger)
         : base(imageRepository, httpClientFactory, logger)

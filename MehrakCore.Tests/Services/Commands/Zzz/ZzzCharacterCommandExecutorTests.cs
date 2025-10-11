@@ -2,6 +2,7 @@
 using Mehrak.Bot.Executors.Zzz;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Zzz.Types;
 using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Constants;
@@ -102,7 +103,7 @@ public class ZzzCharacterCommandExecutorTests
 
         // Set up default behavior for GetAliases to return empty dictionary
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(It.IsAny<GameName>()))
+            .Setup(x => x.GetAliases(It.IsAny<Game>()))
             .Returns([]);
 
         // Set up default distributed cache behavior
@@ -224,7 +225,7 @@ public class ZzzCharacterCommandExecutorTests
         ZzzFullAvatarData characterDetail = await LoadTestCharacterDetailAsync("Jane_TestData.json");
         m_CharacterApiMock
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
-            .ReturnsAsync(ApiResult<ZzzFullAvatarData>.Success(characterDetail));
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(characterDetail));
 
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid))
@@ -266,7 +267,7 @@ public class ZzzCharacterCommandExecutorTests
         {
             { "jd", "Jane" }
         };
-        m_CharacterCacheServiceMock.Setup(x => x.GetAliases(GameName.ZenlessZoneZero)).Returns(aliases);
+        m_CharacterCacheServiceMock.Setup(x => x.GetAliases(Game.ZenlessZoneZero)).Returns(aliases);
 
         m_CharacterApiMock
             .Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>()))
@@ -293,7 +294,7 @@ public class ZzzCharacterCommandExecutorTests
         ZzzFullAvatarData characterDetail = await LoadTestCharacterDetailAsync("Jane_TestData.json");
         m_CharacterApiMock
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
-            .ReturnsAsync(ApiResult<ZzzFullAvatarData>.Success(characterDetail));
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(characterDetail));
 
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid))
@@ -302,7 +303,7 @@ public class ZzzCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync("jd", Regions.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.ZenlessZoneZero), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.ZenlessZoneZero), Times.Once);
     }
 
     [Test]
@@ -336,7 +337,7 @@ public class ZzzCharacterCommandExecutorTests
 
         m_CharacterApiMock
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
-            .ReturnsAsync(ApiResult<ZzzFullAvatarData>.Failure(HttpStatusCode.BadGateway, "Failed to fetch"));
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Failure(HttpStatusCode.BadGateway, "Failed to fetch"));
 
         await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -375,7 +376,7 @@ public class ZzzCharacterCommandExecutorTests
         // Success but null data
         m_CharacterApiMock
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
-            .ReturnsAsync(ApiResult<ZzzFullAvatarData>.Success(null!));
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(null!));
 
         await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -418,7 +419,7 @@ public class ZzzCharacterCommandExecutorTests
         ZzzFullAvatarData characterDetail = await LoadTestCharacterDetailAsync("Jane_TestData.json");
         m_CharacterApiMock
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
-            .ReturnsAsync(ApiResult<ZzzFullAvatarData>.Success(characterDetail));
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(characterDetail));
 
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid))
@@ -430,8 +431,8 @@ public class ZzzCharacterCommandExecutorTests
         UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(updatedUser?.Profiles?.First().GameUids?[GameName.ZenlessZoneZero][Regions.Asia.ToString()], Is.EqualTo(TestGameUid));
-            Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[GameName.ZenlessZoneZero], Is.EqualTo(Regions.Asia));
+            Assert.That(updatedUser?.Profiles?.First().GameUids?[Game.ZenlessZoneZero][Regions.Asia.ToString()], Is.EqualTo(TestGameUid));
+            Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[Game.ZenlessZoneZero], Is.EqualTo(Regions.Asia));
             Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
         }
     }
@@ -491,7 +492,7 @@ public class ZzzCharacterCommandExecutorTests
         ZzzFullAvatarData characterDetail = await LoadTestCharacterDetailAsync("Jane_TestData.json");
         m_CharacterApiMock
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
-            .ReturnsAsync(ApiResult<ZzzFullAvatarData>.Success(characterDetail));
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(characterDetail));
 
         m_CharacterCardServiceMock
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid))
@@ -574,24 +575,24 @@ public class ZzzCharacterCommandExecutorTests
         (Regions server, string gameUid)? gameProfileForZzz = null,
         Regions? lastUsedRegionForHsr = null)
     {
-        Dictionary<GameName, Dictionary<string, string>>? gameUids = null;
+        Dictionary<Game, Dictionary<string, string>>? gameUids = null;
         if (gameProfileForZzz is not null)
         {
-            gameUids = new Dictionary<GameName, Dictionary<string, string>>
+            gameUids = new Dictionary<Game, Dictionary<string, string>>
             {
                 {
-                    GameName.ZenlessZoneZero,
+                    Game.ZenlessZoneZero,
                     new Dictionary<string, string> { { gameProfileForZzz.Value.server.ToString(), gameProfileForZzz.Value.gameUid } }
                 }
             };
         }
 
-        Dictionary<GameName, Regions>? lastUsed = null;
+        Dictionary<Game, Regions>? lastUsed = null;
         if (lastUsedRegionForHsr is not null)
         {
-            lastUsed = new Dictionary<GameName, Regions>
+            lastUsed = new Dictionary<Game, Regions>
             {
-                { GameName.HonkaiStarRail, lastUsedRegionForHsr.Value }
+                { Game.HonkaiStarRail, lastUsedRegionForHsr.Value }
             };
         }
 

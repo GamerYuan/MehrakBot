@@ -20,7 +20,7 @@ public class HsrCharacterAutocompleteService : ICharacterAutocompleteService<Hsr
 
     public IReadOnlyList<string> FindCharacter(string query)
     {
-        var characterNames = m_CharacterCacheService.GetCharacters(GameName.HonkaiStarRail);
+        var characterNames = m_CharacterCacheService.GetCharacters(Game.HonkaiStarRail);
         return characterNames
             .Where(x => x.Contains(query, StringComparison.InvariantCultureIgnoreCase))
             .Take(Limit)

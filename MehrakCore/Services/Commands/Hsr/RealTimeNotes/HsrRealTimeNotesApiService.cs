@@ -26,7 +26,7 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
         m_Logger = logger;
     }
 
-    public async Task<ApiResult<HsrRealTimeNotesData>> GetRealTimeNotesAsync(string roleId, string server, ulong ltuid,
+    public async Task<Result<HsrRealTimeNotesData>> GetRealTimeNotesAsync(string roleId, string server, ulong ltuid,
         string ltoken)
     {
         try
@@ -43,7 +43,7 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch real-time notes: {StatusCode}", response.StatusCode);
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
@@ -51,29 +51,29 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                     "Failed to parse JSON response from real-time notes API");
             }
 
             if (json["retcode"]!.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
+                return Result<HsrRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API");
             }
 
             if (json["data"] == null)
             {
                 m_Logger.LogError("No data found in real-time notes API response");
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                     "No data found in real-time notes API response");
             }
 
             var data = json["data"].Deserialize<HsrRealTimeNotesData>();
-            if (data != null) return ApiResult<HsrRealTimeNotesData>.Success(data);
+            if (data != null) return Result<HsrRealTimeNotesData>.Success(data);
 
             m_Logger.LogError("Failed to deserialize real-time notes data");
-            return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+            return Result<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
                 "Failed to deserialize real-time notes data");
         }
         catch (Exception e)
@@ -81,7 +81,7 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
             m_Logger.LogError(e,
                 "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
                 roleId, server);
-            return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
+            return Result<HsrRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while fetching real-time notes");
         }
     }

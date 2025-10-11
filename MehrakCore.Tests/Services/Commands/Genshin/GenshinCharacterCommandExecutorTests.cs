@@ -105,7 +105,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Set up default behavior for GetAliases to return empty dictionary
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(It.IsAny<GameName>()))
+            .Setup(x => x.GetAliases(It.IsAny<Game>()))
             .Returns([]);
 
         // Set up default distributed cache behavior
@@ -285,7 +285,7 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
         m_CharacterApiMock.Setup(x =>
                 x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, "800800800", "os_asia", 10000007))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -410,7 +410,7 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
         m_CharacterApiMock.Setup(x =>
                 x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, "800800800", "os_asia", 10000007))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -522,7 +522,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Mock character detail API to return authentication error
         m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail> { RetCode = 10001 });
+            .ReturnsAsync(new Result<GenshinCharacterDetail> { RetCode = 10001 });
 
         // Act
         await m_Executor.SendCharacterCardResponseAsync(TestLtUid, TestLToken, characterName, server);
@@ -558,7 +558,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Mock character detail API to return empty list
         m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -602,7 +602,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Mock character detail API to return valid data
         m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -674,7 +674,7 @@ public class GenshinCharacterCommandExecutorTests
 
         // Mock character detail API to return valid data
         m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -696,8 +696,8 @@ public class GenshinCharacterCommandExecutorTests
 
         // Verify user profile was updated with the game UID
         UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
-        Assert.That(updatedUser?.Profiles?.First().GameUids?[GameName.Genshin][server.ToString()], Is.EqualTo(TestGameUid));
-        Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[GameName.Genshin], Is.EqualTo(server));
+        Assert.That(updatedUser?.Profiles?.First().GameUids?[Game.Genshin][server.ToString()], Is.EqualTo(TestGameUid));
+        Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[Game.Genshin], Is.EqualTo(server));
 
         // Verify response was sent with attachment
         byte[]? fileBytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
@@ -728,7 +728,7 @@ public class GenshinCharacterCommandExecutorTests
             { "mc", "Traveler" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Setup(x => x.GetAliases(Game.Genshin))
             .Returns(aliases);
 
         // Mock character API to return both characters
@@ -756,7 +756,7 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
         m_CharacterApiMock
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", travelerId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -807,7 +807,7 @@ public class GenshinCharacterCommandExecutorTests
             { "baal", "Raiden Shogun" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Setup(x => x.GetAliases(Game.Genshin))
             .Returns(aliases);
 
         // Mock character API
@@ -828,7 +828,7 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
         m_CharacterApiMock.Setup(x =>
                 x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -847,7 +847,7 @@ public class GenshinCharacterCommandExecutorTests
         await m_Executor.SendCharacterCardResponseAsync(TestLtUid, TestLToken, characterAlias, server);
 
         // Assert Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.Genshin), Times.Once);
 
         // Verify APIs were called correctly (character should be found via alias)
         m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"), Times.Once);
@@ -877,7 +877,7 @@ public class GenshinCharacterCommandExecutorTests
             { "walnut", "Hu Tao" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Setup(x => x.GetAliases(Game.Genshin))
             .Returns(aliases);
 
         // Mock character API
@@ -898,7 +898,7 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
         m_CharacterApiMock.Setup(x =>
                 x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -917,7 +917,7 @@ public class GenshinCharacterCommandExecutorTests
         await m_Executor.SendCharacterCardResponseAsync(TestLtUid, TestLToken, characterAlias, server);
 
         // Assert Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.Genshin), Times.Once);
 
         // Verify APIs were called correctly (character should be found via alias)
         m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"), Times.Once);
@@ -941,7 +941,7 @@ public class GenshinCharacterCommandExecutorTests
             { "mc", "Traveler" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Setup(x => x.GetAliases(Game.Genshin))
             .Returns(aliases);
 
         // Mock character API to return some characters
@@ -962,7 +962,7 @@ public class GenshinCharacterCommandExecutorTests
         await m_Executor.SendCharacterCardResponseAsync(TestLtUid, TestLToken, characterName, server);
 
         // Assert Verify that GetAliases was called
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.Genshin), Times.Once);
 
         // Verify error message was sent
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -997,7 +997,7 @@ public class GenshinCharacterCommandExecutorTests
             { "lumine", "Traveler" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.Genshin))
+            .Setup(x => x.GetAliases(Game.Genshin))
             .Returns(aliases);
 
         // Mock character API
@@ -1018,7 +1018,7 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
         m_CharacterApiMock.Setup(x =>
                 x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
-            .ReturnsAsync(new ApiResult<GenshinCharacterDetail>
+            .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
@@ -1044,7 +1044,7 @@ public class GenshinCharacterCommandExecutorTests
         Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
 
         // Verify that GetAliases was called for each test case
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.Genshin), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.Genshin), Times.Once);
 
         // Verify character card was generated for each test case
         m_CharacterCardServiceMock.Verify(
@@ -1119,13 +1119,13 @@ public class GenshinCharacterCommandExecutorTests
         (Regions server, string gameUid)? gameProfile = null,
         Regions? lastUsedRegion = null)
     {
-        Dictionary<GameName, Dictionary<string, string>> gameUids = [];
+        Dictionary<Game, Dictionary<string, string>> gameUids = [];
         if (gameProfile is not null)
         {
-            gameUids = new Dictionary<GameName, Dictionary<string, string>>
+            gameUids = new Dictionary<Game, Dictionary<string, string>>
             {
                 {
-                    GameName.Genshin,
+                    Game.Genshin,
                     new Dictionary<string, string>
                     {
                         { gameProfile.Value.server.ToString(), gameProfile.Value.gameUid }
@@ -1134,12 +1134,12 @@ public class GenshinCharacterCommandExecutorTests
             };
         }
 
-        Dictionary<GameName, Regions>? lastUsed = null;
+        Dictionary<Game, Regions>? lastUsed = null;
         if (lastUsedRegion is not null)
         {
-            lastUsed = new Dictionary<GameName, Regions>
+            lastUsed = new Dictionary<Game, Regions>
             {
-                { GameName.Genshin, lastUsedRegion.Value }
+                { Game.Genshin, lastUsedRegion.Value }
             };
         }
 

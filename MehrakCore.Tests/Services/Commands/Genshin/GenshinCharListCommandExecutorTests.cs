@@ -148,18 +148,18 @@ public class GenshinCharListCommandExecutorTests
                 {
                     ProfileId = profileId,
                     LtUid = ltUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.Genshin, new Dictionary<string, string>
+                            Game.Genshin, new Dictionary<string, string>
                             {
                                 { nameof(Regions.Asia), TestGameUid }
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.Genshin, Regions.Asia }
+                        { Game.Genshin, Regions.Asia }
                     }
                 }
             ]
@@ -535,10 +535,10 @@ public class GenshinCharListCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.Genshin, new Dictionary<string, string>
+                            Game.Genshin, new Dictionary<string, string>
                             {
                                 { "os_asia", TestGameUid }
                             }

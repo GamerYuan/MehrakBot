@@ -4,17 +4,17 @@ namespace Mehrak.Domain.Services.Abstractions;
 
 public interface ICharacterCacheService
 {
-    List<string> GetCharacters(GameName gameName);
+    List<string> GetCharacters(Game gameName);
 
-    Dictionary<string, string> GetAliases(GameName gameName);
+    Dictionary<string, string> GetAliases(Game gameName);
 
-    Task UpdateCharactersAsync(GameName gameName);
+    Task UpdateCharactersAsync(Game gameName);
 
     Task UpdateAllCharactersAsync();
 
-    Dictionary<GameName, int> GetCacheStatus();
+    Dictionary<Game, int> GetCacheStatus();
 
     void ClearCache();
 
-    void ClearCache(GameName gameName);
+    void ClearCache(Game gameName);
 }

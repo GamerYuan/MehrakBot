@@ -205,7 +205,7 @@ public class GenshinStygianCommandExecutorTests
         // Assert Verify the user's cached server was used
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
-        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[GameName.Genshin], Is.EqualTo(Regions.Asia));
+        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[Game.Genshin], Is.EqualTo(Regions.Asia));
     }
 
     [Test]
@@ -757,14 +757,14 @@ public class GenshinStygianCommandExecutorTests
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.Genshin, Regions.Asia }
+                        { Game.Genshin, Regions.Asia }
                     },
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.Genshin, new Dictionary<string, string>
+                            Game.Genshin, new Dictionary<string, string>
                             {
                                 { Regions.Asia.ToString(), TestGameUid }
                             }

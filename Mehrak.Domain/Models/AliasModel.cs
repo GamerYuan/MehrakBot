@@ -11,7 +11,7 @@ public class AliasModel
     public string? Id { get; set; }
 
     [BsonElement("game")]
-    public GameName Game { get; set; }
+    public Game Game { get; set; }
 
     [BsonElement("alias")]
     public required Dictionary<string, string> Alias { get; set; }

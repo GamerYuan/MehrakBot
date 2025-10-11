@@ -18,23 +18,23 @@ public class CharacterRepository : ICharacterRepository
         m_Characters = mongoDbService.Characters;
     }
 
-    public async Task<List<string>> GetCharactersAsync(GameName gameName)
+    public async Task<List<string>> GetCharactersAsync(Game gameName)
     {
-        m_Logger.LogInformation("Retrieving characters for game {GameName} from database", gameName);
+        m_Logger.LogInformation("Retrieving characters for game {Game} from database", gameName);
         var characterModel = await GetCharacterModelAsync(gameName);
         return characterModel?.Characters ?? [];
     }
 
-    public async Task<CharacterModel?> GetCharacterModelAsync(GameName gameName)
+    public async Task<CharacterModel?> GetCharacterModelAsync(Game gameName)
     {
-        m_Logger.LogDebug("Retrieving character model for game {GameName} from database", gameName);
+        m_Logger.LogDebug("Retrieving character model for game {Game} from database", gameName);
         var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
         return await m_Characters.Find(filter).FirstOrDefaultAsync();
     }
 
     public async Task UpsertCharactersAsync(CharacterModel characterModel)
     {
-        m_Logger.LogInformation("Upserting characters for game {GameName} with {Count} characters",
+        m_Logger.LogInformation("Upserting characters for game {Game} with {Count} characters",
             characterModel.Game, characterModel.Characters.Count);
 
         var existing = await m_Characters.Find(c => c.Game == characterModel.Game).FirstOrDefaultAsync();
@@ -52,6 +52,6 @@ public class CharacterRepository : ICharacterRepository
             await m_Characters.InsertOneAsync(characterModel);
         }
 
-        m_Logger.LogInformation("Successfully upserted characters for game {GameName}", characterModel.Game);
+        m_Logger.LogInformation("Successfully upserted characters for game {Game}", characterModel.Game);
     }
 }

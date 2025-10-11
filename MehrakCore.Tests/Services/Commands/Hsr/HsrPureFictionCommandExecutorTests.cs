@@ -5,6 +5,7 @@ using Mehrak.Bot.Executors.Hsr.PureFiction;
 using Mehrak.Bot.Modules;
 using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
@@ -537,13 +538,13 @@ public class HsrPureFictionCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
-                        { GameName.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
+                        { Game.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Regions.Asia }
                     }
                 }
             ]

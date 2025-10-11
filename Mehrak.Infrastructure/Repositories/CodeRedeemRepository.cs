@@ -18,15 +18,15 @@ public class CodeRedeemRepository : ICodeRedeemRepository
         m_Collection = service.Codes;
     }
 
-    public async Task<List<string>> GetCodesAsync(GameName gameName)
+    public async Task<List<string>> GetCodesAsync(Game gameName)
     {
-        m_Logger.LogDebug("Fetching codes for game: {GameName}", gameName);
+        m_Logger.LogDebug("Fetching codes for game: {Game}", gameName);
         CodeRedeemModel entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
         return entry?.Codes ?? [];
     }
 
-    public async Task AddCodesAsync(GameName gameName, Dictionary<string, CodeStatus> codes)
+    public async Task AddCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes)
     {
         CodeRedeemModel entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
@@ -59,11 +59,11 @@ public class CodeRedeemRepository : ICodeRedeemRepository
 
         if (removed == 0 && newValidCodes.Count == 0)
         {
-            m_Logger.LogDebug("No changes to codes for game: {GameName}", gameName);
+            m_Logger.LogDebug("No changes to codes for game: {Game}", gameName);
             return;
         }
 
-        m_Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {GameName}.",
+        m_Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
             newValidCodes.Count, removed, gameName);
 
         await m_Collection.ReplaceOneAsync(

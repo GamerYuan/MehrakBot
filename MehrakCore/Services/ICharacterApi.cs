@@ -15,9 +15,9 @@ public interface ICharacterApi<T1, T2> : IApiService<ICharacterCommandExecutor<I
     public Task<IEnumerable<T1>>
         GetAllCharactersAsync(ulong uid, string ltoken, string gameUid, string region);
 
-    public Task<ApiResult<T2>> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid,
+    public Task<Result<T2>> GetCharacterDataFromIdAsync(ulong uid, string ltoken, string gameUid,
         string region, uint characterId);
 
-    public Task<ApiResult<T2>> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid, string region,
+    public Task<Result<T2>> GetCharacterDataFromNameAsync(ulong uid, string ltoken, string gameUid, string region,
         string characterName);
 }

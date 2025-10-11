@@ -82,7 +82,7 @@ public class CharacterInitializationService : IHostedService
                 return;
             }
 
-            var gameName = characterJsonModel.GetGameName();
+            var gameName = characterJsonModel.GetGame();
             var newCharacters = characterJsonModel.Characters;
 
             var existingModel = await m_CharacterRepository.GetCharacterModelAsync(gameName);
@@ -93,7 +93,7 @@ public class CharacterInitializationService : IHostedService
             if (missingCharacters.Count > 0)
             {
                 m_Logger.LogInformation(
-                    "Found {Count} missing characters for {GameName}: {Characters}",
+                    "Found {Count} missing characters for {Game}: {Characters}",
                     missingCharacters.Count,
                     gameName,
                     string.Join(", ", missingCharacters));
@@ -126,13 +126,13 @@ public class CharacterInitializationService : IHostedService
                 await m_CharacterRepository.UpsertCharactersAsync(updatedModel);
 
                 m_Logger.LogInformation(
-                    "Successfully updated character database for {GameName} with {TotalCount} characters",
+                    "Successfully updated character database for {Game} with {TotalCount} characters",
                     gameName,
                     mergedCharacters.Count);
             }
             else
             {
-                m_Logger.LogInformation("No missing characters found for {GameName}, database is up to date", gameName);
+                m_Logger.LogInformation("No missing characters found for {Game}, database is up to date", gameName);
             }
         }
         catch (Exception ex)

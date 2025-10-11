@@ -83,7 +83,7 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(ToTCheckInApiUrl, HttpStatusCode.OK, CreateSuccessResponse());
 
         // Act
-        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
+        Result<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.True);
@@ -118,7 +118,7 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(ToTCheckInApiUrl, HttpStatusCode.InternalServerError, "");
 
         // Act
-        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
+        Result<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.True);
@@ -156,7 +156,7 @@ public class DailyCheckInServiceTests
         SetupHttpResponseForUrl(ToTCheckInApiUrl, HttpStatusCode.OK, CreateAlreadyCheckedInResponse());
 
         // Act
-        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
+        Result<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.True);
@@ -207,7 +207,7 @@ public class DailyCheckInServiceTests
         // clause will fail first
 
         // Act
-        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
+        Result<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.False);
@@ -225,7 +225,7 @@ public class DailyCheckInServiceTests
         SetupGameRecordApiResponse(TestLtuid, false);
 
         // Act
-        ApiResult<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
+        Result<(bool, string)> response = await m_Service.CheckInAsync(TestLtuid, TestLtoken);
 
         // Assert
         Assert.That(response.IsSuccess, Is.False);

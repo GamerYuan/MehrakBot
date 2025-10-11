@@ -11,7 +11,7 @@ public class CodeRedeemModel
     public string? Id { get; set; }
 
     [BsonElement("game")]
-    public GameName Game { get; set; }
+    public Game Game { get; set; }
 
     [BsonElement("codes")]
     public List<string>? Codes { get; set; }

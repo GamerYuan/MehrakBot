@@ -49,10 +49,10 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
 
             // Auto-select server from cache if not provided
             if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.HonkaiStarRail, out var tmp))
+                selectedProfile.LastUsedRegions.TryGetValue(Game.HonkaiStarRail, out var tmp))
                 server = tmp;
 
-            var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
+            var cachedServer = server ?? GetCachedServer(selectedProfile, Game.HonkaiStarRail);
             if (!await ValidateServerAsync(cachedServer))
                 return;
             m_PendingServer = cachedServer!.Value;
@@ -103,7 +103,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
             var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameDataAsync(user, GameName.HonkaiStarRail, ltuid, ltoken, server,
+            var result = await GetAndUpdateGameDataAsync(user, Game.HonkaiStarRail, ltuid, ltoken, server,
                 server.GetRegion());
 
             if (!result.IsSuccess) return;

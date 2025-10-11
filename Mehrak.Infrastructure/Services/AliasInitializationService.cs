@@ -85,7 +85,7 @@ public class AliasInitializationService : IHostedService
                 return;
             }
 
-            GameName gameName = aliasJsonModel.Game;
+            Game gameName = aliasJsonModel.Game;
             Dictionary<string, string> aliases = aliasJsonModel.Aliases
                 .SelectMany(x => x.Alias.Select(alias => (alias, x.Name)))
                 .ToDictionary(x => x.alias, x => x.Name);
@@ -97,7 +97,7 @@ public class AliasInitializationService : IHostedService
             if (newAliases.Count > 0)
             {
                 m_Logger.LogInformation(
-                    "Found {Count} new alias for game {GameName}, {Alias}",
+                    "Found {Count} new alias for game {Game}, {Alias}",
                     newAliases.Count,
                     gameName,
                     string.Join(',', newAliases.Select(x => x.Key)));
@@ -121,7 +121,7 @@ public class AliasInitializationService : IHostedService
             else
             {
                 m_Logger.LogInformation(
-                    "No missing aliases found for {GameName}, database is up to date",
+                    "No missing aliases found for {Game}, database is up to date",
                     gameName);
             }
         }

@@ -50,10 +50,10 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
 
             // Auto-select server from cache if not provided
             if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(GameName.Genshin, out Regions tmp))
+                selectedProfile.LastUsedRegions.TryGetValue(Game.Genshin, out Regions tmp))
                 server = tmp;
 
-            Regions? cachedServer = server ?? GetCachedServer(selectedProfile, GameName.Genshin);
+            Regions? cachedServer = server ?? GetCachedServer(selectedProfile, Game.Genshin);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
@@ -99,13 +99,13 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
             string region = server.GetRegion();
             UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            ApiResult<ApiResponseTypes.UserGameData> result = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server,
+            Result<ApiResponseTypes.UserGameData> result = await GetAndUpdateGameDataAsync(user, Game.Genshin, ltuid, ltoken, server,
                 server.GetRegion());
 
             if (!result.IsSuccess) return;
 
             string gameUid = result.Data.GameUid!;
-            ApiResult<GenshinRealTimeNotesData> notesResult = await m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
+            Result<GenshinRealTimeNotesData> notesResult = await m_ApiService.GetRealTimeNotesAsync(gameUid, region, ltuid, ltoken);
 
             if (!notesResult.IsSuccess)
             {

@@ -25,7 +25,7 @@ public class UserProfile
     [BsonElement("game_uids")]
     [BsonDictionaryOptions(DictionaryRepresentation.Document)]
     [BsonRepresentation(BsonType.String)]
-    public Dictionary<GameName, Dictionary<string, string>>? GameUids { get; set; } = null;
+    public Dictionary<Game, Dictionary<string, string>>? GameUids { get; set; } = null;
 
-    [BsonElement("last_used_regions")] public Dictionary<GameName, Regions>? LastUsedRegions { get; set; } = null;
+    [BsonElement("last_used_regions")] public Dictionary<Game, Regions>? LastUsedRegions { get; set; } = null;
 }

@@ -1,9 +1,9 @@
 ﻿#region
 
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Utilities;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -211,7 +211,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             (Skill Data, Image Image)[][] skillImages = skillTasks.Select(x => x.Result).ToArray();
             List<Property> stats = characterInformation.Properties!.Where(x =>
                 float.Parse(x.Final!.TrimEnd('%')) >
-                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.HonkaiStarRail)).ToList();
+                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, Game.HonkaiStarRail)).ToList();
             if (stats.Count < 7)
                 stats = [.. stats.Concat(characterInformation.Properties!)
                     .DistinctBy(x => x.PropertyType!.Value).Take(7).OrderBy(x => x.PropertyType!.Value)];

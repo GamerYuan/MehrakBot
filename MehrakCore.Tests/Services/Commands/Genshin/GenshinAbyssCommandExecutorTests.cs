@@ -399,9 +399,9 @@ public class GenshinAbyssCommandExecutorTests
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.Genshin, Regions.America }
+                        { Game.Genshin, Regions.America }
                     }
                 }
             ]
@@ -691,9 +691,9 @@ public class GenshinAbyssCommandExecutorTests
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid, // This matches the TestLtUid used in AuthenticationResult
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.Genshin, Regions.America }
+                        { Game.Genshin, Regions.America }
                     }
                 }
             ]

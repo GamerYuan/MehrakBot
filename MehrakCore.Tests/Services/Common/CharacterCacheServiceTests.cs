@@ -35,11 +35,11 @@ public class CharacterCacheServiceTests
         // Arrange
         var testCharacters = new List<string> { "Character1", "Character2", "Character3" };
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.HonkaiStarRail))
+            .Setup(repo => repo.GetCharactersAsync(Game.HonkaiStarRail))
             .ReturnsAsync(testCharacters);
 
         // Act
-        var result = m_CharacterCacheService.GetCharacters(GameName.HonkaiStarRail);
+        var result = m_CharacterCacheService.GetCharacters(Game.HonkaiStarRail);
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -54,16 +54,16 @@ public class CharacterCacheServiceTests
         // Arrange
         var testCharacters = new List<string> { "Character1", "Character2", "Character3" };
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.HonkaiStarRail))
+            .Setup(repo => repo.GetCharactersAsync(Game.HonkaiStarRail))
             .ReturnsAsync(testCharacters);
 
         // Act
-        await m_CharacterCacheService.UpdateCharactersAsync(GameName.HonkaiStarRail);
-        var result = m_CharacterCacheService.GetCharacters(GameName.HonkaiStarRail);
+        await m_CharacterCacheService.UpdateCharactersAsync(Game.HonkaiStarRail);
+        var result = m_CharacterCacheService.GetCharacters(Game.HonkaiStarRail);
 
         // Assert
         Assert.That(result, Is.EqualTo(testCharacters));
-        m_CharacterRepositoryMock.Verify(repo => repo.GetCharactersAsync(GameName.HonkaiStarRail), Times.Once);
+        m_CharacterRepositoryMock.Verify(repo => repo.GetCharactersAsync(Game.HonkaiStarRail), Times.Once);
     }
 
     [Test]
@@ -74,25 +74,25 @@ public class CharacterCacheServiceTests
         var genshinCharacters = new List<string> { "Genshin_Character1", "Genshin_Character2" };
 
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.HonkaiStarRail))
+            .Setup(repo => repo.GetCharactersAsync(Game.HonkaiStarRail))
             .ReturnsAsync(hsrCharacters);
 
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.Genshin))
+            .Setup(repo => repo.GetCharactersAsync(Game.Genshin))
             .ReturnsAsync(genshinCharacters);
 
         // Act
         await m_CharacterCacheService.UpdateAllCharactersAsync();
 
         // Assert
-        var hsrResult = m_CharacterCacheService.GetCharacters(GameName.HonkaiStarRail);
-        var genshinResult = m_CharacterCacheService.GetCharacters(GameName.Genshin);
+        var hsrResult = m_CharacterCacheService.GetCharacters(Game.HonkaiStarRail);
+        var genshinResult = m_CharacterCacheService.GetCharacters(Game.Genshin);
 
         Assert.That(hsrResult, Is.EqualTo(hsrCharacters));
         Assert.That(genshinResult, Is.EqualTo(genshinCharacters));
 
         // Verify all games were updated
-        foreach (var game in Enum.GetValues<GameName>())
+        foreach (var game in Enum.GetValues<Game>())
             m_CharacterRepositoryMock.Verify(repo => repo.GetCharactersAsync(game), Times.Once);
     }
 
@@ -104,21 +104,21 @@ public class CharacterCacheServiceTests
         var genshinCharacters = new List<string> { "Genshin1", "Genshin2" };
 
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.HonkaiStarRail))
+            .Setup(repo => repo.GetCharactersAsync(Game.HonkaiStarRail))
             .ReturnsAsync(hsrCharacters);
 
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.Genshin))
+            .Setup(repo => repo.GetCharactersAsync(Game.Genshin))
             .ReturnsAsync(genshinCharacters);
 
         // Act
-        await m_CharacterCacheService.UpdateCharactersAsync(GameName.HonkaiStarRail);
-        await m_CharacterCacheService.UpdateCharactersAsync(GameName.Genshin);
+        await m_CharacterCacheService.UpdateCharactersAsync(Game.HonkaiStarRail);
+        await m_CharacterCacheService.UpdateCharactersAsync(Game.Genshin);
         var status = m_CharacterCacheService.GetCacheStatus();
 
         // Assert
-        Assert.That(status[GameName.HonkaiStarRail], Is.EqualTo(3));
-        Assert.That(status[GameName.Genshin], Is.EqualTo(2));
+        Assert.That(status[Game.HonkaiStarRail], Is.EqualTo(3));
+        Assert.That(status[Game.Genshin], Is.EqualTo(2));
     }
 
     [Test]
@@ -127,14 +127,14 @@ public class CharacterCacheServiceTests
         // Arrange
         var testCharacters = new List<string> { "Character1", "Character2" };
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.HonkaiStarRail))
+            .Setup(repo => repo.GetCharactersAsync(Game.HonkaiStarRail))
             .ReturnsAsync(testCharacters);
 
-        await m_CharacterCacheService.UpdateCharactersAsync(GameName.HonkaiStarRail);
+        await m_CharacterCacheService.UpdateCharactersAsync(Game.HonkaiStarRail);
 
         // Act
         m_CharacterCacheService.ClearCache();
-        var result = m_CharacterCacheService.GetCharacters(GameName.HonkaiStarRail);
+        var result = m_CharacterCacheService.GetCharacters(Game.HonkaiStarRail);
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -148,22 +148,22 @@ public class CharacterCacheServiceTests
         var genshinCharacters = new List<string> { "Genshin1", "Genshin2" };
 
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.HonkaiStarRail))
+            .Setup(repo => repo.GetCharactersAsync(Game.HonkaiStarRail))
             .ReturnsAsync(hsrCharacters);
 
         m_CharacterRepositoryMock
-            .Setup(repo => repo.GetCharactersAsync(GameName.Genshin))
+            .Setup(repo => repo.GetCharactersAsync(Game.Genshin))
             .ReturnsAsync(genshinCharacters);
 
-        await m_CharacterCacheService.UpdateCharactersAsync(GameName.HonkaiStarRail);
-        await m_CharacterCacheService.UpdateCharactersAsync(GameName.Genshin);
+        await m_CharacterCacheService.UpdateCharactersAsync(Game.HonkaiStarRail);
+        await m_CharacterCacheService.UpdateCharactersAsync(Game.Genshin);
 
         // Act
-        m_CharacterCacheService.ClearCache(GameName.HonkaiStarRail);
+        m_CharacterCacheService.ClearCache(Game.HonkaiStarRail);
 
         // Assert
-        var hsrResult = m_CharacterCacheService.GetCharacters(GameName.HonkaiStarRail);
-        var genshinResult = m_CharacterCacheService.GetCharacters(GameName.Genshin);
+        var hsrResult = m_CharacterCacheService.GetCharacters(Game.HonkaiStarRail);
+        var genshinResult = m_CharacterCacheService.GetCharacters(Game.Genshin);
 
         Assert.That(hsrResult, Is.Empty);
         Assert.That(genshinResult, Is.EqualTo(genshinCharacters));

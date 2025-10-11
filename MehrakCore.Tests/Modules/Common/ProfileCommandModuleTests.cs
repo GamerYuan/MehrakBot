@@ -84,11 +84,11 @@ public class ProfileCommandModuleTests
             {
                 new()
                 {
-                    ProfileId = 1, LtUid = 111111, GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    ProfileId = 1, LtUid = 111111, GameUids = new Dictionary<Game, Dictionary<string, string>>()
                 },
                 new()
                 {
-                    ProfileId = 2, LtUid = 222222, GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    ProfileId = 2, LtUid = 222222, GameUids = new Dictionary<Game, Dictionary<string, string>>()
                 }
             }
         };
@@ -167,11 +167,11 @@ public class ProfileCommandModuleTests
             {
                 new()
                 {
-                    ProfileId = 1, LtUid = 111111, GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    ProfileId = 1, LtUid = 111111, GameUids = new Dictionary<Game, Dictionary<string, string>>()
                 },
                 new()
                 {
-                    ProfileId = 2, LtUid = 222222, GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    ProfileId = 2, LtUid = 222222, GameUids = new Dictionary<Game, Dictionary<string, string>>()
                 }
             }
         };
@@ -226,11 +226,11 @@ public class ProfileCommandModuleTests
             {
                 new()
                 {
-                    ProfileId = 1, LtUid = 111111, GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    ProfileId = 1, LtUid = 111111, GameUids = new Dictionary<Game, Dictionary<string, string>>()
                 },
                 new()
                 {
-                    ProfileId = 2, LtUid = 222222, GameUids = new Dictionary<GameName, Dictionary<string, string>>()
+                    ProfileId = 2, LtUid = 222222, GameUids = new Dictionary<Game, Dictionary<string, string>>()
                 }
             }
         };

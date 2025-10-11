@@ -102,7 +102,7 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
         }
     }
 
-    public async Task<ApiResult<HsrCharacterInformation>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
+    public async Task<Result<HsrCharacterInformation>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
         string gameUid, string region, uint characterId)
     {
         try
@@ -112,24 +112,24 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
             var characterList = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
             var character = characterList.FirstOrDefault()?.AvatarList?.FirstOrDefault(x => x.Id == characterId);
             if (character == null)
-                return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
+                return Result<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
                     $"Character with ID {characterId} not found for user {uid} on {region} server (game UID: {gameUid})");
             m_Logger.LogInformation(
                 "Successfully retrieved character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<HsrCharacterInformation>.Success(character);
+            return Result<HsrCharacterInformation>.Success(character);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "An error occurred while retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<HsrCharacterInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while retrieving character data");
         }
     }
 
-    public async Task<ApiResult<HsrCharacterInformation>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
+    public async Task<Result<HsrCharacterInformation>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
         string gameUid, string region, string characterName)
     {
         try
@@ -141,19 +141,19 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
                 characterList.FirstOrDefault()?.AvatarList?
                     .FirstOrDefault(x => x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
             if (character == null)
-                return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
+                return Result<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
                     $"Character with name {characterName} not found for user {uid} on {region} server (game UID: {gameUid})");
             m_Logger.LogInformation(
                 "Successfully retrieved character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<HsrCharacterInformation>.Success(character);
+            return Result<HsrCharacterInformation>.Success(character);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "An error occurred while retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<HsrCharacterInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<HsrCharacterInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while retrieving character data");
         }
     }

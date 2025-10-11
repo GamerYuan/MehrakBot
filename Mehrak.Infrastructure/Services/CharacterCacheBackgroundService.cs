@@ -51,7 +51,7 @@ public class CharacterCacheBackgroundService : BackgroundService
             await m_CharacterCacheService.UpdateAllCharactersAsync();
             stoppingToken.ThrowIfCancellationRequested();
 
-            Dictionary<GameName, int> cacheStatus = m_CharacterCacheService.GetCacheStatus();
+            Dictionary<Game, int> cacheStatus = m_CharacterCacheService.GetCacheStatus();
             m_Logger.LogInformation("Initial character cache populated: {CacheStatus}",
                 string.Join(", ", cacheStatus.Select(kvp => $"{kvp.Key}={kvp.Value}")));
         }
@@ -92,9 +92,9 @@ public class CharacterCacheBackgroundService : BackgroundService
         {
             m_Logger.LogDebug("Performing periodic character cache update");
 
-            Dictionary<GameName, int> beforeStatus = m_CharacterCacheService.GetCacheStatus();
+            Dictionary<Game, int> beforeStatus = m_CharacterCacheService.GetCacheStatus();
             await m_CharacterCacheService.UpdateAllCharactersAsync();
-            Dictionary<GameName, int> afterStatus = m_CharacterCacheService.GetCacheStatus();
+            Dictionary<Game, int> afterStatus = m_CharacterCacheService.GetCacheStatus();
 
             LogCacheChanges(beforeStatus, afterStatus);
         }
@@ -104,11 +104,11 @@ public class CharacterCacheBackgroundService : BackgroundService
         }
     }
 
-    private void LogCacheChanges(Dictionary<GameName, int> beforeStatus, Dictionary<GameName, int> afterStatus)
+    private void LogCacheChanges(Dictionary<Game, int> beforeStatus, Dictionary<Game, int> afterStatus)
     {
         List<string> changes = [];
 
-        foreach ((GameName game, int afterCount) in afterStatus)
+        foreach ((Game game, int afterCount) in afterStatus)
         {
             if (beforeStatus.TryGetValue(game, out int beforeCount))
             {
@@ -123,7 +123,7 @@ public class CharacterCacheBackgroundService : BackgroundService
             }
         }
 
-        foreach ((GameName game, int beforeCount) in beforeStatus)
+        foreach ((Game game, int beforeCount) in beforeStatus)
         {
             if (!afterStatus.ContainsKey(game))
             {

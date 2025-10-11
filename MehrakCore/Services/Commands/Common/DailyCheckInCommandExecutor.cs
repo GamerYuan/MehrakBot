@@ -122,7 +122,7 @@ public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInComma
     {
         try
         {
-            ApiResult<(bool, string)> response = await m_DailyCheckInService.CheckInAsync(ltuid, ltoken);
+            Result<(bool, string)> response = await m_DailyCheckInService.CheckInAsync(ltuid, ltoken);
             if (!response.IsSuccess)
             {
                 Logger.LogError("Daily check-in failed for user {UserId}: {ErrorMessage}",

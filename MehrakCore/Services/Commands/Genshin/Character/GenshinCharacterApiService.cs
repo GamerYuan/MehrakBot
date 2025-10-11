@@ -101,7 +101,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         }
     }
 
-    public async Task<ApiResult<GenshinCharacterDetail>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
+    public async Task<Result<GenshinCharacterDetail>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
         string gameUid, string region, uint characterId)
     {
         try
@@ -131,7 +131,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             {
                 m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
                     response.StatusCode);
-                return ApiResult<GenshinCharacterDetail>.Failure(response.StatusCode,
+                return Result<GenshinCharacterDetail>.Failure(response.StatusCode,
                     "An error occurred while retrieving character data");
             }
 
@@ -141,23 +141,23 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             if (data?.List == null)
             {
                 m_Logger.LogWarning("Failed to deserialize character detail response for user {Uid}", uid);
-                return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinCharacterDetail>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving character data");
             }
 
-            return ApiResult<GenshinCharacterDetail>.Success(data, json?.Retcode ?? 0, HttpStatusCode.Accepted);
+            return Result<GenshinCharacterDetail>.Success(data, json?.Retcode ?? 0, HttpStatusCode.Accepted);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "Failed to retrieve character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.BadGateway,
+            return Result<GenshinCharacterDetail>.Failure(HttpStatusCode.BadGateway,
                 "An error occurred while retrieving character data");
         }
     }
 
-    public async Task<ApiResult<GenshinCharacterDetail>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
+    public async Task<Result<GenshinCharacterDetail>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
         string gameUid, string region, string characterName)
     {
         try
@@ -173,7 +173,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             if (character == null)
             {
                 m_Logger.LogWarning("Character {CharacterName} not found for user {Uid}", characterName, uid);
-                return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.BadRequest,
+                return Result<GenshinCharacterDetail>.Failure(HttpStatusCode.BadRequest,
                     "Character not found. Please try again");
             }
 
@@ -182,18 +182,18 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             {
                 m_Logger.LogError("Failed to retrieve data for character {CharacterName} for user {Uid}",
                     characterName, uid);
-                return ApiResult<GenshinCharacterDetail>.Failure(result.StatusCode,
+                return Result<GenshinCharacterDetail>.Failure(result.StatusCode,
                     "An error occurred while retrieving character data");
             }
 
-            return ApiResult<GenshinCharacterDetail>.Success(result.Data);
+            return Result<GenshinCharacterDetail>.Success(result.Data);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "Failed to retrieve character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.BadGateway,
+            return Result<GenshinCharacterDetail>.Failure(HttpStatusCode.BadGateway,
                 "An error occurred while retrieving character data");
         }
     }

@@ -13,5 +13,5 @@ namespace MehrakCore.Services.Commands;
 
 public interface IDailyCheckInService : IApiService<IDailyCheckInCommandExecutor>
 {
-    public Task<ApiResult<(bool, string)>> CheckInAsync(ulong ltuid, string ltoken);
+    public Task<Result<(bool, string)>> CheckInAsync(ulong ltuid, string ltoken);
 }

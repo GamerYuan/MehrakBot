@@ -11,7 +11,7 @@ public class CharacterModel
     public string? Id { get; set; }
 
     [BsonElement("game")]
-    public GameName Game { get; set; }
+    public Game Game { get; set; }
 
     [BsonElement("characters")]
     public required List<string> Characters { get; set; }

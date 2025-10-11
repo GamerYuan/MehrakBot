@@ -243,7 +243,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         var notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(notesData));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(server);
@@ -272,7 +272,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         // Setup API service to return error
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadRequest, "API Error"));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadRequest, "API Error"));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(server);
@@ -302,7 +302,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         var notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(notesData));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(server);
@@ -366,7 +366,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         var notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(notesData));
 
         // Setup game record API for the cached server region
         SetupGameRecordApiForSuccessfulResponse(cachedServer);
@@ -415,7 +415,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         var notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(notesData));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(
@@ -453,7 +453,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         var notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(notesData));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(server);
@@ -513,7 +513,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         };
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(fullStaminaData));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(fullStaminaData));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(server);
@@ -564,7 +564,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         };
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(noExpeditionsData));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(noExpeditionsData));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(server);
@@ -616,7 +616,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         };
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<HsrRealTimeNotesData>.Success(fullyClaimed));
+            .ReturnsAsync(Result<HsrRealTimeNotesData>.Success(fullyClaimed));
 
         // Setup game record API for the correct region
         SetupGameRecordApiForSuccessfulResponse(server);
@@ -662,16 +662,16 @@ public class HsrRealTimeNotesCommandExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail,
+                            Game.HonkaiStarRail,
                             new Dictionary<string, string> { { server.ToString(), TestGameUid } }
                         }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, server }
+                        { Game.HonkaiStarRail, server }
                     }
                 }
             }

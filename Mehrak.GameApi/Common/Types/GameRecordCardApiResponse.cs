@@ -62,5 +62,5 @@ public record GameData(
     string BackgroundImageV2,
     [property: JsonPropertyName("logo")] string Logo,
     [property: JsonPropertyName("game_name")]
-    string GameName
+    string Game
 );

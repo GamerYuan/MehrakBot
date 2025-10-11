@@ -24,7 +24,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<GenshinAbyssInformation>> GetAbyssInformationAsync(string gameUid, string region,
+    public async ValueTask<Result<GenshinAbyssInformation>> GetAbyssInformationAsync(string gameUid, string region,
         ulong ltuid, string ltoken)
     {
         try
@@ -37,7 +37,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinAbyssInformation>.Failure(response.StatusCode,
+                return Result<GenshinAbyssInformation>.Failure(response.StatusCode,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
@@ -45,14 +45,14 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
             if (json == null)
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.Unauthorized,
+                return Result<GenshinAbyssInformation>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
@@ -60,19 +60,19 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]);
-                return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             var abyssInfo = json["data"]?.Deserialize<GenshinAbyssInformation>()!;
 
-            return ApiResult<GenshinAbyssInformation>.Success(abyssInfo);
+            return Result<GenshinAbyssInformation>.Success(abyssInfo);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to get Abyss information for gameUid: {GameUid}, region: {Region}",
                 gameUid, region);
-            return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while fetching Abyss information");
         }
     }

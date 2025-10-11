@@ -5,6 +5,7 @@ using Mehrak.Bot.Executors.Hsr.BossChallenge;
 using Mehrak.Bot.Modules;
 using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
@@ -169,13 +170,13 @@ public class HsrBossChallengeCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
-                        { GameName.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
+                        { Game.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Regions.Asia }
                     }
                 }
             ]
@@ -471,9 +472,9 @@ public class HsrBossChallengeCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
-                        { GameName.HonkaiStarRail, new Dictionary<string, string> { { "Asia", TestGameUid } } }
+                        { Game.HonkaiStarRail, new Dictionary<string, string> { { "Asia", TestGameUid } } }
                     },
                     // No LastUsedRegions - this should trigger the error
                     LastUsedRegions = []
@@ -745,10 +746,10 @@ public class HsrBossChallengeCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail,
+                            Game.HonkaiStarRail,
                             new Dictionary<string, string>
                             {
                                 { "America", TestGameUid },
@@ -757,9 +758,9 @@ public class HsrBossChallengeCommandExecutorTests
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.Europe }
+                        { Game.HonkaiStarRail, Regions.Europe }
                     }
                 }
             ]

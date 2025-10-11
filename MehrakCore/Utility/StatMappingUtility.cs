@@ -131,12 +131,12 @@ public static class StatMappingUtility
         });
     }
 
-    public static float GetDefaultValue(int propertyType, GameName gameName)
+    public static float GetDefaultValue(int propertyType, Game gameName)
     {
         return gameName switch
         {
-            GameName.Genshin => GenshinDefaultValues.GetValueOrDefault(propertyType, 0),
-            GameName.HonkaiStarRail => HsrDefaultValues.GetValueOrDefault(propertyType, 0),
+            Game.Genshin => GenshinDefaultValues.GetValueOrDefault(propertyType, 0),
+            Game.HonkaiStarRail => HsrDefaultValues.GetValueOrDefault(propertyType, 0),
             _ => throw new InvalidOperationException("Unsupported game name.")
         };
     }

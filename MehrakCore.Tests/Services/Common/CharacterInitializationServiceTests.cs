@@ -47,7 +47,7 @@ public class CharacterInitializationServiceTests
         // Arrange
         var characterModel = new CharacterModel
         {
-            Game = GameName.HonkaiStarRail,
+            Game = Game.HonkaiStarRail,
             Characters = ["Kafka", "Blade", "Silver Wolf"]
         };
 
@@ -55,11 +55,11 @@ public class CharacterInitializationServiceTests
         await m_CharacterRepository.UpsertCharactersAsync(characterModel);
 
         // Assert
-        var retrievedModel = await m_CharacterRepository.GetCharacterModelAsync(GameName.HonkaiStarRail);
+        var retrievedModel = await m_CharacterRepository.GetCharacterModelAsync(Game.HonkaiStarRail);
         Assert.That(retrievedModel, Is.Not.Null);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(retrievedModel!.Game, Is.EqualTo(GameName.HonkaiStarRail));
+            Assert.That(retrievedModel!.Game, Is.EqualTo(Game.HonkaiStarRail));
             Assert.That(retrievedModel.Characters, Is.EqualTo(characterModel.Characters));
         }
     }
@@ -70,7 +70,7 @@ public class CharacterInitializationServiceTests
         // Arrange - Create initial entry
         var initialModel = new CharacterModel
         {
-            Game = GameName.HonkaiStarRail,
+            Game = Game.HonkaiStarRail,
             Characters = ["Kafka", "Blade"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(initialModel);
@@ -78,13 +78,13 @@ public class CharacterInitializationServiceTests
         // Act - Update with more characters
         var updatedModel = new CharacterModel
         {
-            Game = GameName.HonkaiStarRail,
+            Game = Game.HonkaiStarRail,
             Characters = ["Kafka", "Blade", "Silver Wolf", "Seele"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(updatedModel);
 
         // Assert
-        var retrievedModel = await m_CharacterRepository.GetCharacterModelAsync(GameName.HonkaiStarRail);
+        var retrievedModel = await m_CharacterRepository.GetCharacterModelAsync(Game.HonkaiStarRail);
         Assert.That(retrievedModel, Is.Not.Null);
         Assert.That(retrievedModel!.Characters, Has.Count.EqualTo(4));
         Assert.That(retrievedModel.Characters, Contains.Item("Silver Wolf"));
@@ -95,7 +95,7 @@ public class CharacterInitializationServiceTests
     public async Task GetCharacterModelAsync_NonExistentGame_ReturnsNull()
     {
         // Act
-        var result = await m_CharacterRepository.GetCharacterModelAsync(GameName.ZenlessZoneZero);
+        var result = await m_CharacterRepository.GetCharacterModelAsync(Game.ZenlessZoneZero);
 
         // Assert
         Assert.That(result, Is.Null);
@@ -105,7 +105,7 @@ public class CharacterInitializationServiceTests
     public async Task GetCharactersAsync_NonExistentGame_ReturnsEmptyList()
     {
         // Act
-        var result = await m_CharacterRepository.GetCharactersAsync(GameName.ZenlessZoneZero);
+        var result = await m_CharacterRepository.GetCharactersAsync(Game.ZenlessZoneZero);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -113,20 +113,20 @@ public class CharacterInitializationServiceTests
     }
 
     [Test]
-    public void CharacterJsonModel_GetGameName_ValidGame_ReturnsCorrectEnum()
+    public void CharacterJsonModel_GetGame_ValidGame_ReturnsCorrectEnum()
     {
         // Arrange
         var jsonModel = new CharacterJsonModel
         {
-            Game = GameName.HonkaiStarRail,
+            Game = Game.HonkaiStarRail,
             Characters = ["Kafka"]
         };
 
         // Act
-        var gameName = jsonModel.GetGameName();
+        var gameName = jsonModel.GetGame();
 
         // Assert
-        Assert.That(gameName, Is.EqualTo(GameName.HonkaiStarRail));
+        Assert.That(gameName, Is.EqualTo(Game.HonkaiStarRail));
     }
 
     [Test]
@@ -135,7 +135,7 @@ public class CharacterInitializationServiceTests
         // Arrange
         var jsonModel = new CharacterJsonModel
         {
-            Game = GameName.HonkaiStarRail,
+            Game = Game.HonkaiStarRail,
             Characters = ["Kafka", "Blade"]
         };
 
@@ -143,7 +143,7 @@ public class CharacterInitializationServiceTests
         var characterModel = jsonModel.ToCharacterModel();
 
         // Assert
-        Assert.That(characterModel.Game, Is.EqualTo(GameName.HonkaiStarRail));
+        Assert.That(characterModel.Game, Is.EqualTo(Game.HonkaiStarRail));
         Assert.That(characterModel.Characters, Is.EqualTo(jsonModel.Characters));
     }
 
@@ -153,7 +153,7 @@ public class CharacterInitializationServiceTests
         // Arrange
         var testCharacters = new CharacterJsonModel
         {
-            Game = GameName.Genshin, // Use different game to avoid conflicts
+            Game = Game.Genshin, // Use different game to avoid conflicts
             Characters = ["Diluc", "Venti", "Zhongli"]
         };
         CreateTestCharacterJsonFile("genshin_characters.json", testCharacters);
@@ -162,7 +162,7 @@ public class CharacterInitializationServiceTests
         await m_InitializationService.StartAsync(CancellationToken.None);
 
         // Assert
-        var retrievedCharacters = await m_CharacterRepository.GetCharactersAsync(GameName.Genshin);
+        var retrievedCharacters = await m_CharacterRepository.GetCharactersAsync(Game.Genshin);
         Assert.That(retrievedCharacters, Has.Count.EqualTo(3));
         Assert.That(retrievedCharacters, Contains.Item("Diluc"));
         Assert.That(retrievedCharacters, Contains.Item("Venti"));
@@ -175,7 +175,7 @@ public class CharacterInitializationServiceTests
         // Arrange - Add existing data to database
         var existingModel = new CharacterModel
         {
-            Game = GameName.ZenlessZoneZero, // Use different game
+            Game = Game.ZenlessZoneZero, // Use different game
             Characters = ["Belle", "ManuallyAdded"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(existingModel);
@@ -183,7 +183,7 @@ public class CharacterInitializationServiceTests
         // Create JSON file with additional characters
         var testCharacters = new CharacterJsonModel
         {
-            Game = GameName.ZenlessZoneZero,
+            Game = Game.ZenlessZoneZero,
             Characters = ["Belle", "Wise", "Nicole"]
         };
         CreateTestCharacterJsonFile("zzz_characters.json", testCharacters);
@@ -192,7 +192,7 @@ public class CharacterInitializationServiceTests
         await m_InitializationService.StartAsync(CancellationToken.None);
 
         // Assert
-        var retrievedCharacters = await m_CharacterRepository.GetCharactersAsync(GameName.ZenlessZoneZero);
+        var retrievedCharacters = await m_CharacterRepository.GetCharactersAsync(Game.ZenlessZoneZero);
         Assert.That(retrievedCharacters, Has.Count.EqualTo(4)); // 3 from JSON + 1 manually added
         Assert.That(retrievedCharacters, Contains.Item("Belle"));
         Assert.That(retrievedCharacters, Contains.Item("Wise"));
@@ -206,7 +206,7 @@ public class CharacterInitializationServiceTests
         // Arrange - Add existing data that matches JSON
         var existingModel = new CharacterModel
         {
-            Game = GameName.HonkaiImpact3, // Use different game
+            Game = Game.HonkaiImpact3, // Use different game
             Characters = ["Kiana", "Mei"]
         };
         await m_CharacterRepository.UpsertCharactersAsync(existingModel);
@@ -214,7 +214,7 @@ public class CharacterInitializationServiceTests
         // Create JSON file with same characters
         var testCharacters = new CharacterJsonModel
         {
-            Game = GameName.HonkaiImpact3,
+            Game = Game.HonkaiImpact3,
             Characters = ["Kiana", "Mei"]
         };
         CreateTestCharacterJsonFile("hi3_characters.json", testCharacters);
@@ -223,7 +223,7 @@ public class CharacterInitializationServiceTests
         await m_InitializationService.StartAsync(CancellationToken.None);
 
         // Assert - Should remain unchanged
-        var retrievedCharacters = await m_CharacterRepository.GetCharactersAsync(GameName.HonkaiImpact3);
+        var retrievedCharacters = await m_CharacterRepository.GetCharactersAsync(Game.HonkaiImpact3);
         Assert.That(retrievedCharacters, Has.Count.EqualTo(2));
         Assert.That(retrievedCharacters, Contains.Item("Kiana"));
         Assert.That(retrievedCharacters, Contains.Item("Mei"));

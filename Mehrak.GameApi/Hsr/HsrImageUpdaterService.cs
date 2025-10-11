@@ -1,9 +1,10 @@
 ﻿#region
 
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Models;
-using MehrakCore.Utility;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Utilities;
+using Mehrak.GameApi.Common;
+using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -12,7 +13,7 @@ using System.Text.RegularExpressions;
 
 #endregion
 
-namespace MehrakCore.Services.Commands.Hsr;
+namespace Mehrak.GameApi.Hsr;
 
 public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterInformation>
 {
@@ -24,7 +25,7 @@ public partial class HsrImageUpdaterService : ImageUpdaterService<HsrCharacterIn
     protected override string AvatarString => FileNameFormat.HsrAvatarName;
     protected override string SideAvatarString => FileNameFormat.HsrSideAvatarName;
 
-    public HsrImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
+    public HsrImageUpdaterService(IImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         IRelicRepository relicRepository, ILogger<HsrImageUpdaterService> logger)
         : base(imageRepository, httpClientFactory, logger)
     {

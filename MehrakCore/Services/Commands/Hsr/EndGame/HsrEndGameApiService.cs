@@ -32,7 +32,7 @@ internal class HsrEndGameApiService : IApiService<BaseHsrEndGameCommandExecutor>
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<HsrEndInformation>> GetEndGameDataAsync(string gameUid, string region,
+    public async ValueTask<Result<HsrEndInformation>> GetEndGameDataAsync(string gameUid, string region,
         ulong ltuid, string ltoken, EndGameMode gameMode)
     {
         try
@@ -56,7 +56,7 @@ internal class HsrEndGameApiService : IApiService<BaseHsrEndGameCommandExecutor>
             {
                 m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", gameMode.GetString(),
                     gameUid);
-                return ApiResult<HsrEndInformation>.Failure(response.StatusCode,
+                return Result<HsrEndInformation>.Failure(response.StatusCode,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
@@ -65,14 +65,14 @@ internal class HsrEndGameApiService : IApiService<BaseHsrEndGameCommandExecutor>
             {
                 m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", gameMode.GetString(),
                     gameUid);
-                return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-                return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.Unauthorized,
+                return Result<HsrEndInformation>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
@@ -82,20 +82,20 @@ internal class HsrEndGameApiService : IApiService<BaseHsrEndGameCommandExecutor>
                     "Failed to fetch {GameMode} information for gameUid: {GameUid}, retcode: {Retcode}",
                     gameMode.GetString(),
                     gameUid, json["retcode"]);
-                return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             var pureFictionInfo = json["data"]?.Deserialize<HsrEndInformation>(JsonOptions)!;
 
-            return ApiResult<HsrEndInformation>.Success(pureFictionInfo);
+            return Result<HsrEndInformation>.Success(pureFictionInfo);
         }
         catch
         {
             m_Logger.LogError("Failed to get {GameMode} data for gameUid: {GameUid}, region: {Region}",
                 gameMode.GetString(),
                 gameUid, region);
-            return ApiResult<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<HsrEndInformation>.Failure(HttpStatusCode.InternalServerError,
                 $"An unknown error occurred while fetching {gameMode.GetString()} information");
         }
     }

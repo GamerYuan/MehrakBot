@@ -1,9 +1,9 @@
 ﻿#region
 
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Utilities;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -202,14 +202,14 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             // 2. EM
             // 3. Other stats
             StatProperty[] bonusStats = [.. charInfo.SelectedProperties.Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin))
+                            StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, Game.Genshin))
                 .OrderBy(x => x.PropertyType)];
 
             StatProperty[] stats;
             if (bonusStats.Length >= 6)
                 stats = [.. charInfo.BaseProperties.Take(4)
                     .Where(x => float.Parse(x.Final.TrimEnd('%')) >
-                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, GameName.Genshin))
+                                StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, Game.Genshin))
                     .Concat(bonusStats)
                     .DistinctBy(x => x.PropertyType)];
             else

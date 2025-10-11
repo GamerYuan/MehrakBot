@@ -4,6 +4,7 @@ using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Bot.Executors.Hsr;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
@@ -104,7 +105,7 @@ public class HsrCharacterCommandExecutorTests
 
         // Set up default behavior for GetAliases to return empty dictionary
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(It.IsAny<GameName>()))
+            .Setup(x => x.GetAliases(It.IsAny<Game>()))
             .Returns([]);
 
         // Set up default distributed cache behavior
@@ -257,9 +258,9 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Regions.Asia }
                     },
                     GameUids = []
                 }
@@ -338,10 +339,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -386,9 +387,9 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
-                        [GameName.HonkaiStarRail] = new()
+                        [Game.HonkaiStarRail] = new()
                         {
                             ["Asia"] = TestGameUid
                         }
@@ -466,10 +467,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { nameof(Regions.Asia), TestGameUid }
                             }
@@ -519,10 +520,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -577,10 +578,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -627,10 +628,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -731,8 +732,8 @@ public class HsrCharacterCommandExecutorTests
         Assert.That(updatedProfile?.GameUids, Is.Not.Null);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(updatedProfile?.GameUids?.ContainsKey(GameName.HonkaiStarRail), Is.True);
-            Assert.That(updatedProfile?.GameUids?[GameName.HonkaiStarRail][server.ToString()], Is.EqualTo(TestGameUid));
+            Assert.That(updatedProfile?.GameUids?.ContainsKey(Game.HonkaiStarRail), Is.True);
+            Assert.That(updatedProfile?.GameUids?[Game.HonkaiStarRail][server.ToString()], Is.EqualTo(TestGameUid));
             Assert.That(bytes, Is.Not.Empty);
         }
         m_CharacterCardServiceMock.Verify(
@@ -792,10 +793,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -849,10 +850,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { inputRegion.ToString(), TestGameUid }
                             }
@@ -903,18 +904,18 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.Asia } // Different from what we'll use
+                        { Game.HonkaiStarRail, Regions.Asia } // Different from what we'll use
                     }
                 }
             ]
@@ -950,7 +951,7 @@ public class HsrCharacterCommandExecutorTests
         // Assert
         UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         UserProfile? updatedProfile = updatedUser?.Profiles?.FirstOrDefault(x => x.ProfileId == profile);
-        Assert.That(updatedProfile?.LastUsedRegions?[GameName.HonkaiStarRail], Is.EqualTo(server));
+        Assert.That(updatedProfile?.LastUsedRegions?[Game.HonkaiStarRail], Is.EqualTo(server));
     }
 
     #endregion
@@ -975,10 +976,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1005,7 +1006,7 @@ public class HsrCharacterCommandExecutorTests
             { "trailblazer", actualCharacterName }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API with a character named "Trailblazer"
@@ -1040,7 +1041,7 @@ public class HsrCharacterCommandExecutorTests
             x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
 
         // Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.HonkaiStarRail), Times.Once);
     }
 
     [Test]
@@ -1061,10 +1062,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1092,7 +1093,7 @@ public class HsrCharacterCommandExecutorTests
             { "Stelle", actualCharacterName }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API with a character named "Trailblazer"
@@ -1127,7 +1128,7 @@ public class HsrCharacterCommandExecutorTests
             x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
 
         // Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.HonkaiStarRail), Times.Once);
     }
 
     [Test]
@@ -1149,10 +1150,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1180,7 +1181,7 @@ public class HsrCharacterCommandExecutorTests
             { "Caelus", actualCharacterName }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API with a character named "Trailblazer"
@@ -1215,7 +1216,7 @@ public class HsrCharacterCommandExecutorTests
             x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
 
         // Verify that GetAliases was called
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.HonkaiStarRail), Times.Once);
     }
 
     [Test]
@@ -1236,10 +1237,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1266,7 +1267,7 @@ public class HsrCharacterCommandExecutorTests
             { "Ratio", actualCharacterName }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API with a character named "Dr. Ratio"
@@ -1301,7 +1302,7 @@ public class HsrCharacterCommandExecutorTests
             x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
 
         // Verify that GetAliases was called for each test case
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.HonkaiStarRail), Times.Once);
     }
 
     [Test]
@@ -1321,10 +1322,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1351,7 +1352,7 @@ public class HsrCharacterCommandExecutorTests
             { "March7", "March 7th" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API with both "March" and "March 7th" characters
@@ -1391,7 +1392,7 @@ public class HsrCharacterCommandExecutorTests
             Times.Once);
 
         // GetAliases should not be called if exact match is found first
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Never);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.HonkaiStarRail), Times.Never);
     }
 
     [Test]
@@ -1411,10 +1412,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1441,7 +1442,7 @@ public class HsrCharacterCommandExecutorTests
             { "Stelle", "Trailblazer" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API that doesn't include the searched character
@@ -1464,7 +1465,7 @@ public class HsrCharacterCommandExecutorTests
         Assert.That(response, Contains.Substring("Character not found"));
 
         // Verify that GetAliases was called to try resolving the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.HonkaiStarRail), Times.Once);
     }
 
     [Test]
@@ -1485,10 +1486,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1515,7 +1516,7 @@ public class HsrCharacterCommandExecutorTests
             { "TB", "Trailblazer" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API that only has Trailblazer (not Firefly)
@@ -1538,7 +1539,7 @@ public class HsrCharacterCommandExecutorTests
         Assert.That(response, Contains.Substring("Character not found"));
 
         // Verify that GetAliases was called to resolve the alias
-        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(GameName.HonkaiStarRail), Times.Once);
+        m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.HonkaiStarRail), Times.Once);
     }
 
     [Test]
@@ -1560,10 +1561,10 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.HonkaiStarRail, new Dictionary<string, string>
+                            Game.HonkaiStarRail, new Dictionary<string, string>
                             {
                                 { server.ToString(), TestGameUid }
                             }
@@ -1589,7 +1590,7 @@ public class HsrCharacterCommandExecutorTests
             { "TB", "Trailblazer" }
         };
         m_CharacterCacheServiceMock
-            .Setup(x => x.GetAliases(GameName.HonkaiStarRail))
+            .Setup(x => x.GetAliases(Game.HonkaiStarRail))
             .Returns(aliases);
 
         // Setup character API

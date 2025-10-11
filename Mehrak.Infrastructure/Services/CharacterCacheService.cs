@@ -11,8 +11,8 @@ public class CharacterCacheService : ICharacterCacheService
     private readonly ICharacterRepository m_CharacterRepository;
     private readonly IAliasRepository m_AliasRepository;
     private readonly ILogger<CharacterCacheService> m_Logger;
-    private readonly ConcurrentDictionary<GameName, List<string>> m_CharacterCache;
-    private readonly Dictionary<GameName, Dictionary<string, string>> m_AliasCache;
+    private readonly ConcurrentDictionary<Game, List<string>> m_CharacterCache;
+    private readonly Dictionary<Game, Dictionary<string, string>> m_AliasCache;
     private readonly SemaphoreSlim m_UpdateSemaphore;
 
     public CharacterCacheService(
@@ -24,26 +24,26 @@ public class CharacterCacheService : ICharacterCacheService
         m_AliasRepository = aliasRepository;
         m_Logger = logger;
         m_AliasCache = [];
-        m_CharacterCache = new ConcurrentDictionary<GameName, List<string>>();
+        m_CharacterCache = new ConcurrentDictionary<Game, List<string>>();
         m_UpdateSemaphore = new SemaphoreSlim(1, 1);
     }
 
-    public List<string> GetCharacters(GameName gameName)
+    public List<string> GetCharacters(Game gameName)
     {
         if (m_CharacterCache.TryGetValue(gameName, out List<string>? characters))
         {
-            m_Logger.LogDebug("Retrieved {Count} characters for {GameName} from cache", characters.Count, gameName);
+            m_Logger.LogDebug("Retrieved {Count} characters for {Game} from cache", characters.Count, gameName);
             return characters;
         }
 
-        m_Logger.LogWarning("No cached characters found for {GameName}, returning empty list", gameName);
+        m_Logger.LogWarning("No cached characters found for {Game}, returning empty list", gameName);
 
         _ = Task.Run(async () => await UpdateCharactersAsync(gameName));
 
         return [];
     }
 
-    public Dictionary<string, string> GetAliases(GameName gameName)
+    public Dictionary<string, string> GetAliases(Game gameName)
     {
         return m_AliasCache.TryGetValue(gameName, out Dictionary<string, string>? dict) ? dict : [];
     }
@@ -55,7 +55,7 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogInformation("Starting character cache update for all games");
 
-            GameName[] games = Enum.GetValues<GameName>();
+            Game[] games = Enum.GetValues<Game>();
             IEnumerable<Task> updateTasks = games.Select(UpdateCharactersAsync);
             IEnumerable<Task> aliasTasks = games.Select(UpdateAliasesAsync);
 
@@ -74,11 +74,11 @@ public class CharacterCacheService : ICharacterCacheService
         }
     }
 
-    public async Task UpdateCharactersAsync(GameName gameName)
+    public async Task UpdateCharactersAsync(Game gameName)
     {
         try
         {
-            m_Logger.LogDebug("Updating character cache for {GameName}", gameName);
+            m_Logger.LogDebug("Updating character cache for {Game}", gameName);
 
             List<string> characters = await m_CharacterRepository.GetCharactersAsync(gameName);
             characters.Sort();
@@ -86,24 +86,24 @@ public class CharacterCacheService : ICharacterCacheService
             if (characters.Count > 0)
             {
                 m_CharacterCache.AddOrUpdate(gameName, characters, (_, _) => characters);
-                m_Logger.LogDebug("Updated character cache for {GameName} with {Count} characters", gameName, characters.Count);
+                m_Logger.LogDebug("Updated character cache for {Game} with {Count} characters", gameName, characters.Count);
             }
             else
             {
-                m_Logger.LogWarning("No characters found for {GameName} in database", gameName);
+                m_Logger.LogWarning("No characters found for {Game} in database", gameName);
             }
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Error occurred while updating character cache for {GameName}", gameName);
+            m_Logger.LogError(ex, "Error occurred while updating character cache for {Game}", gameName);
         }
     }
 
-    private async Task UpdateAliasesAsync(GameName gameName)
+    private async Task UpdateAliasesAsync(Game gameName)
     {
         try
         {
-            m_Logger.LogDebug("Updating alias cache for {GameName}", gameName);
+            m_Logger.LogDebug("Updating alias cache for {Game}", gameName);
 
             var aliases = new Dictionary<string, string>(await m_AliasRepository.GetAliasesAsync(gameName), StringComparer.OrdinalIgnoreCase);
 
@@ -114,20 +114,20 @@ public class CharacterCacheService : ICharacterCacheService
                     m_AliasCache[gameName] = aliases;
                 }
 
-                m_Logger.LogDebug("Updated alias cache for {GameName} with {Count} aliases", gameName, aliases.Count);
+                m_Logger.LogDebug("Updated alias cache for {Game} with {Count} aliases", gameName, aliases.Count);
             }
             else
             {
-                m_Logger.LogWarning("No aliases found for {GameName} in database", gameName);
+                m_Logger.LogWarning("No aliases found for {Game} in database", gameName);
             }
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Error occurred while updating alias cache for {GameName}", gameName);
+            m_Logger.LogError(ex, "Error occurred while updating alias cache for {Game}", gameName);
         }
     }
 
-    public Dictionary<GameName, int> GetCacheStatus()
+    public Dictionary<Game, int> GetCacheStatus()
     {
         return m_CharacterCache.ToDictionary(
             kvp => kvp.Key,
@@ -140,11 +140,11 @@ public class CharacterCacheService : ICharacterCacheService
         m_CharacterCache.Clear();
     }
 
-    public void ClearCache(GameName gameName)
+    public void ClearCache(Game gameName)
     {
         if (m_CharacterCache.TryRemove(gameName, out _))
         {
-            m_Logger.LogInformation("Cleared character cache for {GameName}", gameName);
+            m_Logger.LogInformation("Cleared character cache for {Game}", gameName);
         }
     }
 }

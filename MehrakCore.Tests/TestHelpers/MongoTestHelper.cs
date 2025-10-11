@@ -24,7 +24,7 @@ public sealed class MongoTestHelper : IDisposable
 
     public MongoTestHelper()
     {
-        BsonSerializer.RegisterSerializer(new EnumSerializer<GameName>(BsonType.String));
+        BsonSerializer.RegisterSerializer(new EnumSerializer<Game>(BsonType.String));
         m_MongoRunner = MongoDbRunner.Start(logger: NullLogger<MongoDbRunner>.Instance);
 
         Dictionary<string, string?> inMemorySettings = new()

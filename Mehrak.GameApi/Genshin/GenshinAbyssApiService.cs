@@ -1,17 +1,17 @@
 ﻿#region
 
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
-using System.Net;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
 
 #endregion
 
 namespace Mehrak.GameApi.Genshin;
 
-internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
+internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinAbyssApiService> m_Logger;
@@ -23,9 +23,16 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<GenshinAbyssInformation>> GetAbyssInformationAsync(string gameUid, string region,
-        ulong ltuid, string ltoken)
+    public async Task<Result<GenshinAbyssInformation>> GetAsync(ulong ltuid, string ltoken,
+        string gameUid = "", string region = "")
     {
+        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        {
+            m_Logger.LogError("Game UID or region is null or empty");
+            return Result<GenshinAbyssInformation>.Failure(StatusCode.BadParameter,
+                "Game UID or region is null or empty");
+        }
+
         try
         {
             var client = m_HttpClientFactory.CreateClient("Default");
@@ -36,7 +43,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinAbyssInformation>.Failure(response.StatusCode,
+                return Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
@@ -44,14 +51,14 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
             if (json == null)
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.Unauthorized,
+                return Result<GenshinAbyssInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
@@ -59,19 +66,19 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssCommandExecutor>
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]);
-                return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             var abyssInfo = json["data"]?.Deserialize<GenshinAbyssInformation>()!;
 
-            return ApiResult<GenshinAbyssInformation>.Success(abyssInfo);
+            return Result<GenshinAbyssInformation>.Success(abyssInfo);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to get Abyss information for gameUid: {GameUid}, region: {Region}",
                 gameUid, region);
-            return ApiResult<GenshinAbyssInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<GenshinAbyssInformation>.Failure(StatusCode.BotError,
                 "An error occurred while fetching Abyss information");
         }
     }

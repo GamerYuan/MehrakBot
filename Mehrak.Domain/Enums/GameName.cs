@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Mehrak.Domain.Enums;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum GameName
+public enum Game
 {
     Genshin,
     HonkaiStarRail,
@@ -12,15 +12,23 @@ public enum GameName
     TearsOfThemis
 }
 
-public static class GameNameExtensions
+public static class GameEnumExtensions
 {
-    public static string ToFriendlyString(this GameName gameName) => gameName switch
+    public static string ToFriendlyString(this Game gameName) => gameName switch
     {
-        GameName.Genshin => "Genshin Impact",
-        GameName.HonkaiStarRail => "Honkai: Star Rail",
-        GameName.ZenlessZoneZero => "Zenless Zone Zero",
-        GameName.HonkaiImpact3 => "Honkai Impact 3rd",
-        GameName.TearsOfThemis => "Tears of Themis",
+        Game.Genshin => "Genshin Impact",
+        Game.HonkaiStarRail => "Honkai: Star Rail",
+        Game.ZenlessZoneZero => "Zenless Zone Zero",
+        Game.HonkaiImpact3 => "Honkai Impact 3rd",
+        Game.TearsOfThemis => "Tears of Themis",
         _ => gameName.ToString()
+    };
+
+    public static string ToGameBizString(this Game gameName) => gameName switch
+    {
+        Game.Genshin => "hk4e_global",
+        Game.HonkaiStarRail => "hkrpg_global",
+        Game.ZenlessZoneZero => "nap_global",
+        _ => throw new ArgumentOutOfRangeException(nameof(gameName), gameName, null)
     };
 }

@@ -38,7 +38,7 @@ public class HsrCharacterAutocompleteServiceTests
         };
 
         m_CharacterCacheServiceMock
-            .Setup(cache => cache.GetCharacters(GameName.HonkaiStarRail))
+            .Setup(cache => cache.GetCharacters(Game.HonkaiStarRail))
             .Returns(testCharacters);
 
         // Act
@@ -49,7 +49,7 @@ public class HsrCharacterAutocompleteServiceTests
         Assert.That(result, Contains.Item("Kafka"));
 
         m_CharacterCacheServiceMock.Verify(
-            cache => cache.GetCharacters(GameName.HonkaiStarRail),
+            cache => cache.GetCharacters(Game.HonkaiStarRail),
             Times.Once);
     }
 
@@ -63,7 +63,7 @@ public class HsrCharacterAutocompleteServiceTests
         };
 
         m_CharacterCacheServiceMock
-            .Setup(cache => cache.GetCharacters(GameName.HonkaiStarRail))
+            .Setup(cache => cache.GetCharacters(Game.HonkaiStarRail))
             .Returns(testCharacters);
 
         // Act
@@ -84,7 +84,7 @@ public class HsrCharacterAutocompleteServiceTests
         };
 
         m_CharacterCacheServiceMock
-            .Setup(cache => cache.GetCharacters(GameName.HonkaiStarRail))
+            .Setup(cache => cache.GetCharacters(Game.HonkaiStarRail))
             .Returns(testCharacters);
 
         // Act
@@ -105,7 +105,7 @@ public class HsrCharacterAutocompleteServiceTests
         }
 
         m_CharacterCacheServiceMock
-            .Setup(cache => cache.GetCharacters(GameName.HonkaiStarRail))
+            .Setup(cache => cache.GetCharacters(Game.HonkaiStarRail))
             .Returns(testCharacters);
 
         // Act
@@ -120,7 +120,7 @@ public class HsrCharacterAutocompleteServiceTests
     {
         // Arrange
         m_CharacterCacheServiceMock
-            .Setup(cache => cache.GetCharacters(GameName.HonkaiStarRail))
+            .Setup(cache => cache.GetCharacters(Game.HonkaiStarRail))
             .Returns(new List<string>());
 
         // Act
@@ -140,7 +140,7 @@ public class HsrCharacterAutocompleteServiceTests
         };
 
         m_CharacterCacheServiceMock
-            .Setup(cache => cache.GetCharacters(GameName.HonkaiStarRail))
+            .Setup(cache => cache.GetCharacters(Game.HonkaiStarRail))
             .Returns(testCharacters);
 
         // Act

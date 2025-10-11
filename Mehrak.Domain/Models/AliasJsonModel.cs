@@ -6,7 +6,7 @@ namespace Mehrak.Domain.Models;
 public class AliasJsonModel
 {
     [JsonPropertyName("game")]
-    public required GameName Game { get; init; }
+    public required Game Game { get; init; }
 
     [JsonPropertyName("aliases")]
     public required List<AliasEntry> Aliases { get; init; }

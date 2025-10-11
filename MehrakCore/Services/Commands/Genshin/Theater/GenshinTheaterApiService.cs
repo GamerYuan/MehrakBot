@@ -25,7 +25,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<GenshinTheaterInformation>> GetTheaterDataAsync(string gameUid, string region,
+    public async ValueTask<Result<GenshinTheaterInformation>> GetTheaterDataAsync(string gameUid, string region,
         ulong ltuid, string ltoken)
     {
         try
@@ -38,7 +38,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch Theater data for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinTheaterInformation>.Failure(response.StatusCode,
+                return Result<GenshinTheaterInformation>.Failure(response.StatusCode,
                     "An error occurred while retrieving Imaginarium Theater data");
             }
 
@@ -46,14 +46,14 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse Theater data for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinTheaterInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.Unauthorized,
+                return Result<GenshinTheaterInformation>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again");
             }
 
@@ -61,14 +61,14 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
             {
                 m_Logger.LogError("Failed to fetch Theater data for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]?.GetValue<int>());
-                return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinTheaterInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data");
             }
 
             if (json["data"]?["is_unlock"]?.GetValue<bool>() == false)
             {
                 m_Logger.LogInformation("Imaginarium Theater is not unlocked for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.NotFound,
+                return Result<GenshinTheaterInformation>.Failure(HttpStatusCode.NotFound,
                     "Imaginarium Theater is not unlocked yet");
             }
 
@@ -76,7 +76,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
             if (theaterInfo == null || theaterInfo.Length == 0)
             {
                 m_Logger.LogError("No Theater data found for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.NotFound,
+                return Result<GenshinTheaterInformation>.Failure(HttpStatusCode.NotFound,
                     "No Imaginarium Theater data found");
             }
 
@@ -84,22 +84,22 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
             if (!theaterData.HasDetailData || theaterData.Schedule.ScheduleType != 1)
             {
                 m_Logger.LogError("No Theater data found for this cycle for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.NotFound,
+                return Result<GenshinTheaterInformation>.Failure(HttpStatusCode.NotFound,
                     "No Imaginarium Theater data found for this cycle");
             }
 
-            return ApiResult<GenshinTheaterInformation>.Success(theaterData);
+            return Result<GenshinTheaterInformation>.Success(theaterData);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to get Theater data for gameUid: {GameUid}, region: {Region}",
                 gameUid, region);
-            return ApiResult<GenshinTheaterInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<GenshinTheaterInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while retrieving Imaginarium Theater data");
         }
     }
 
-    public async Task<ApiResult<Dictionary<string, Stream>>> GetBuffIconsAsync(SplendourBuff buffs)
+    public async Task<Result<Dictionary<string, Stream>>> GetBuffIconsAsync(SplendourBuff buffs)
     {
         var isSuccess = true;
         var dict = await buffs.Buffs.ToAsyncEnumerable().ToDictionaryAwaitAsync(
@@ -125,10 +125,10 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterCommandExecu
                 }
             });
 
-        if (isSuccess) return ApiResult<Dictionary<string, Stream>>.Success(dict);
+        if (isSuccess) return Result<Dictionary<string, Stream>>.Success(dict);
 
         m_Logger.LogError("Failed to fetch some buff icons");
-        return ApiResult<Dictionary<string, Stream>>.Failure(HttpStatusCode.InternalServerError,
+        return Result<Dictionary<string, Stream>>.Failure(HttpStatusCode.InternalServerError,
             "An error occurred while retrieving Imaginarium Theater data");
     }
 }

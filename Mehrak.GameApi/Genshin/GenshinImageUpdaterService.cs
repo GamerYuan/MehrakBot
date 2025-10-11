@@ -1,7 +1,15 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Utilities;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Genshin.Types;
-using MongoDB.Bson;
+using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System.Text.Json.Nodes;
 
 #endregion
@@ -16,7 +24,7 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
     protected override string AvatarString => FileNameFormat.GenshinAvatarName;
     protected override string SideAvatarString => FileNameFormat.GenshinSideAvatarName;
 
-    public GenshinImageUpdaterService(ImageRepository imageRepository, IHttpClientFactory httpClientFactory,
+    public GenshinImageUpdaterService(IImageRepository imageRepository, IHttpClientFactory httpClientFactory,
         ILogger<GenshinImageUpdaterService> logger) : base(
         imageRepository,
         httpClientFactory,
@@ -330,14 +338,14 @@ public class GenshinImageUpdaterService : ImageUpdaterService<GenshinCharacterIn
                     Logger.LogError(ex,
                         "Error downloading constellation icon for constellation {ConstellationName}, ID: {ConstellationId} URL: {IconUrl}",
                         constellation.Name, constellation.Id.Value, constellation.Icon);
-                    return ObjectId.Empty;
+                    return false;
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex,
                         "Error processing constellation icon for constellation {ConstellationName}, ID: {ConstellationId}",
                         constellation.Name, constellation.Id.Value);
-                    return ObjectId.Empty;
+                    return false;
                 }
             }).ToEnumerable());
     }

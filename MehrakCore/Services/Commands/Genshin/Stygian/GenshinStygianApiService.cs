@@ -25,7 +25,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianCommandExecu
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<GenshinStygianInformation>> GetStygianDataAsync(string gameUid, string region,
+    public async ValueTask<Result<GenshinStygianInformation>> GetStygianDataAsync(string gameUid, string region,
         ulong ltuid, string ltoken)
     {
         try
@@ -38,7 +38,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianCommandExecu
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch Stygian data for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinStygianInformation>.Failure(response.StatusCode,
+                return Result<GenshinStygianInformation>.Failure(response.StatusCode,
                     "An error occurred while retrieving Stygian Onslaught data");
             }
 
@@ -46,14 +46,14 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianCommandExecu
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse Stygian data for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinStygianInformation>.Failure(HttpStatusCode.Unauthorized,
+                return Result<GenshinStygianInformation>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again");
             }
 
@@ -61,7 +61,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianCommandExecu
             {
                 m_Logger.LogError("Failed to fetch Stygian data for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]?.GetValue<int>());
-                return ApiResult<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data");
             }
 
@@ -69,16 +69,16 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianCommandExecu
             if (stygianData == null)
             {
                 m_Logger.LogError("Failed to deserialize Stygian data for gameUid: {GameUid}", gameUid);
-                return ApiResult<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data");
             }
 
-            return ApiResult<GenshinStygianInformation>.Success(stygianData);
+            return Result<GenshinStygianInformation>.Success(stygianData);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "An error occurred while fetching Stygian data for gameUid: {GameUid}", gameUid);
-            return ApiResult<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<GenshinStygianInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while retrieving Stygian Onslaught data");
         }
     }

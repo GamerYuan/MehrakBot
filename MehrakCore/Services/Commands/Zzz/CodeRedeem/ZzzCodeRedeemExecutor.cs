@@ -24,7 +24,7 @@ public class ZzzCodeRedeemExecutor : BaseCodeRedeemExecutor<ZzzCommandModule, Zz
     {
     }
 
-    protected override GameName GameName => GameName.ZenlessZoneZero;
+    protected override Game Game => Game.ZenlessZoneZero;
 
     protected override string CommandName => "zzz codes";
 

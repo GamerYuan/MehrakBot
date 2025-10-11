@@ -37,7 +37,7 @@ public class CodeRedeemRepositoryTests
     public async Task GetCodesAsync_WhenNoCodesExist_ShouldReturnEmptyList()
     {
         // Act
-        var result = await m_Repository.GetCodesAsync(GameName.Genshin);
+        var result = await m_Repository.GetCodesAsync(Game.Genshin);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -48,7 +48,7 @@ public class CodeRedeemRepositoryTests
     public async Task GetCodesAsync_WhenCodesExist_ShouldReturnCodes()
     {
         // Arrange
-        var gameName = GameName.HonkaiStarRail;
+        var gameName = Game.HonkaiStarRail;
         var expectedCodes = new List<string> { "CODE123", "CODE456", "CODE789" };
 
         // Insert test data directly
@@ -71,7 +71,7 @@ public class CodeRedeemRepositoryTests
     public async Task GetCodesAsync_WhenEmptyCodesListExists_ShouldReturnEmptyList()
     {
         // Arrange
-        var gameName = GameName.ZenlessZoneZero;
+        var gameName = Game.ZenlessZoneZero;
 
         // Insert test data with empty codes list
         var collection = MongoTestHelper.Instance.MongoDbService.Codes;
@@ -99,18 +99,18 @@ public class CodeRedeemRepositoryTests
         var collection = MongoTestHelper.Instance.MongoDbService.Codes;
         await collection.InsertOneAsync(new CodeRedeemModel
         {
-            Game = GameName.Genshin,
+            Game = Game.Genshin,
             Codes = genshinCodes
         });
         await collection.InsertOneAsync(new CodeRedeemModel
         {
-            Game = GameName.HonkaiStarRail,
+            Game = Game.HonkaiStarRail,
             Codes = hsrCodes
         });
 
         // Act
-        var genshinResult = await m_Repository.GetCodesAsync(GameName.Genshin);
-        var hsrResult = await m_Repository.GetCodesAsync(GameName.HonkaiStarRail);
+        var genshinResult = await m_Repository.GetCodesAsync(Game.Genshin);
+        var hsrResult = await m_Repository.GetCodesAsync(Game.HonkaiStarRail);
 
         // Assert
         Assert.That(genshinResult, Is.EqualTo(genshinCodes));
@@ -125,7 +125,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenNoEntryExists_ShouldCreateNewEntry()
     {
         // Arrange
-        var gameName = GameName.Genshin;
+        var gameName = Game.Genshin;
         var codes = new Dictionary<string, CodeStatus>
         {
             { "NEWCODE123", CodeStatus.Valid },
@@ -147,7 +147,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenEntryExists_ShouldAddNewValidCodes()
     {
         // Arrange
-        var gameName = GameName.HonkaiStarRail;
+        var gameName = Game.HonkaiStarRail;
         var existingCodes = new List<string> { "EXISTING123" };
 
         // Create existing entry
@@ -180,7 +180,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenAddingDuplicateCodes_ShouldNotAddDuplicates()
     {
         // Arrange
-        var gameName = GameName.Genshin;
+        var gameName = Game.Genshin;
         var existingCodes = new List<string> { "DUPLICATE123" };
 
         // Create existing entry
@@ -212,7 +212,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenAddingDuplicateCodesCaseInsensitive_ShouldNotAddDuplicates()
     {
         // Arrange
-        var gameName = GameName.HonkaiStarRail;
+        var gameName = Game.HonkaiStarRail;
         var existingCodes = new List<string> { "testcode123" };
 
         // Create existing entry
@@ -244,7 +244,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenRemovingExpiredCodes_ShouldRemoveExpiredCodes()
     {
         // Arrange
-        var gameName = GameName.ZenlessZoneZero;
+        var gameName = Game.ZenlessZoneZero;
         var existingCodes = new List<string> { "EXPIREDCODE123", "VALIDCODE456", "EXPIREDCODE789" };
 
         // Create existing entry
@@ -279,7 +279,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenRemovingExpiredCodesCaseInsensitive_ShouldRemoveCorrectly()
     {
         // Arrange
-        var gameName = GameName.HonkaiImpact3;
+        var gameName = Game.HonkaiImpact3;
         var existingCodes = new List<string> { "expiredcode123", "VALIDCODE456" };
 
         // Create existing entry
@@ -311,7 +311,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WithMixedValidAndExpiredCodes_ShouldHandleCorrectly()
     {
         // Arrange
-        var gameName = GameName.Genshin;
+        var gameName = Game.Genshin;
         var existingCodes = new List<string> { "KEEPTHIS123", "REMOVETHIS456", "KEEPTHIS789" };
 
         // Create existing entry
@@ -349,7 +349,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WithEmptyCodesDictionary_ShouldMakeNoChanges()
     {
         // Arrange
-        var gameName = GameName.HonkaiStarRail;
+        var gameName = Game.HonkaiStarRail;
         var existingCodes = new List<string> { "EXISTING123" };
 
         // Create existing entry
@@ -376,7 +376,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WithOnlyExpiredCodesNoneToRemove_ShouldMakeNoChanges()
     {
         // Arrange
-        var gameName = GameName.ZenlessZoneZero;
+        var gameName = Game.ZenlessZoneZero;
         var existingCodes = new List<string> { "EXISTING123" };
 
         // Create existing entry
@@ -406,7 +406,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WithOnlyValidCodesAlreadyExisting_ShouldMakeNoChanges()
     {
         // Arrange
-        var gameName = GameName.Genshin;
+        var gameName = Game.Genshin;
         var existingCodes = new List<string> { "EXISTING123", "EXISTING456" };
 
         // Create existing entry
@@ -438,7 +438,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_ComplexScenario_ShouldHandleAllOperationsCorrectly()
     {
         // Arrange
-        var gameName = GameName.HonkaiStarRail;
+        var gameName = Game.HonkaiStarRail;
         var existingCodes = new List<string>
         {
             "KEEP123",
@@ -498,7 +498,7 @@ public class CodeRedeemRepositoryTests
     public async Task GetCodesAsync_ShouldLogDebugMessage()
     {
         // Arrange
-        var gameName = GameName.Genshin;
+        var gameName = Game.Genshin;
 
         // Act
         await m_Repository.GetCodesAsync(gameName);
@@ -518,7 +518,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenNoChanges_ShouldLogDebugMessage()
     {
         // Arrange
-        var gameName = GameName.HonkaiStarRail;
+        var gameName = Game.HonkaiStarRail;
         var existingCodes = new List<string> { "EXISTING123" };
 
         // Create existing entry
@@ -552,7 +552,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenChangesOccur_ShouldLogInformationMessage()
     {
         // Arrange
-        var gameName = GameName.ZenlessZoneZero;
+        var gameName = Game.ZenlessZoneZero;
         var existingCodes = new List<string> { "EXISTING123", "TOREMOVE456" };
 
         // Create existing entry
@@ -591,7 +591,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenAllCodesAreExpiredAndDontExist_ShouldMakeNoChanges()
     {
         // Arrange
-        var gameName = GameName.HonkaiImpact3;
+        var gameName = Game.HonkaiImpact3;
         var codes = new Dictionary<string, CodeStatus>
         {
             { "NONEXISTENT1", CodeStatus.Invalid },
@@ -611,7 +611,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WhenEntryExistsButCodesListIsNull_ShouldHandleGracefully()
     {
         // Arrange
-        var gameName = GameName.Genshin;
+        var gameName = Game.Genshin;
 
         // Create entry with null codes list (shouldn't happen in practice, but test robustness)
         var collection = MongoTestHelper.Instance.MongoDbService.Codes;
@@ -641,7 +641,7 @@ public class CodeRedeemRepositoryTests
     public async Task AddCodesAsync_WithVeryLargeCodesList_ShouldHandleCorrectly()
     {
         // Arrange
-        var gameName = GameName.HonkaiStarRail;
+        var gameName = Game.HonkaiStarRail;
         var codes = new Dictionary<string, CodeStatus>();
 
         // Add 1000 codes

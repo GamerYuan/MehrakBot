@@ -46,7 +46,7 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
             (UserModel user, UserProfile selectedProfile) = await ValidateUserAndProfileAsync(profile);
             if (user == null || selectedProfile == null) return;
 
-            server ??= GetCachedServer(selectedProfile, GameName.Genshin);
+            server ??= GetCachedServer(selectedProfile, Game.Genshin);
             if (server == null)
             {
                 await SendErrorMessageAsync("No cached server found! Please select a server first.");
@@ -99,7 +99,7 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
             UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
             string region = server.GetRegion();
 
-            ApiResult<UserGameData> response = await GetAndUpdateGameDataAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            Result<UserGameData> response = await GetAndUpdateGameDataAsync(user, Game.Genshin, ltuid, ltoken, server, region);
             if (!response.IsSuccess)
                 return;
 

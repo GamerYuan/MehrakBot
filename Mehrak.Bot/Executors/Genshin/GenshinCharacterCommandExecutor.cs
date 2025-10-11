@@ -63,7 +63,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             if (user == null || selectedProfile == null)
                 return;
 
-            var cachedServer = server ?? GetCachedServer(selectedProfile, GameName.Genshin);
+            var cachedServer = server ?? GetCachedServer(selectedProfile, Game.Genshin);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
@@ -122,7 +122,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             var region = server.GetRegion();
             var user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            var result = await GetAndUpdateGameUidAsync(user, GameName.Genshin, ltuid, ltoken, server, region);
+            var result = await GetAndUpdateGameUidAsync(user, Game.Genshin, ltuid, ltoken, server, region);
             if (!result.IsSuccess) return;
             var gameUid = result.Data;
 
@@ -133,7 +133,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
                 characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
             if (character == null)
             {
-                m_CharacterCacheService.GetAliases(GameName.Genshin).TryGetValue(characterName, out var name);
+                m_CharacterCacheService.GetAliases(Game.Genshin).TryGetValue(characterName, out var name);
 
                 if (name == null ||
                     (character =
@@ -152,7 +152,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(properties);
             BotMetrics.TrackCommand(Context.Interaction.User, "genshin character", true);
-            BotMetrics.TrackCharacterSelection(nameof(GameName.Genshin), characterName);
+            BotMetrics.TrackCharacterSelection(nameof(Game.Genshin), characterName);
         }
         catch (CommandException e)
         {

@@ -254,7 +254,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         // Setup API service to return error
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<GenshinRealTimeNotesData>.Failure(HttpStatusCode.TooManyRequests,
+            .ReturnsAsync(Result<GenshinRealTimeNotesData>.Failure(HttpStatusCode.TooManyRequests,
                 "API Error: Rate limit exceeded"));
 
         // Act
@@ -282,7 +282,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         GenshinRealTimeNotesData notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<GenshinRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<GenshinRealTimeNotesData>.Success(notesData));
 
         // Setup game record API
         SetupGameRecordApi();
@@ -317,7 +317,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         GenshinRealTimeNotesData notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<GenshinRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<GenshinRealTimeNotesData>.Success(notesData));
 
         // Setup game record API
         SetupGameRecordApi();
@@ -372,7 +372,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         GenshinRealTimeNotesData notesData = CreateTestNotesData();
         m_ApiServiceMock.Setup(x => x.GetRealTimeNotesAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<GenshinRealTimeNotesData>.Success(notesData));
+            .ReturnsAsync(Result<GenshinRealTimeNotesData>.Success(notesData));
 
         // Setup game record API
         SetupGameRecordApi();
@@ -425,16 +425,16 @@ public class GenshinRealTimeNotesCommandExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.Genshin,
+                            Game.Genshin,
                             new Dictionary<string, string> { { server.ToString(), TestGameUid } }
                         }
                     },
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.Genshin, server }
+                        { Game.Genshin, server }
                     }
                 }
             ]

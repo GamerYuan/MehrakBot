@@ -54,7 +54,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
                 return;
 
             // Try to get cached server or use provided server
-            server ??= GetCachedServer(selectedProfile, GameName.HonkaiStarRail);
+            server ??= GetCachedServer(selectedProfile, Game.HonkaiStarRail);
 
             if (!await ValidateServerAsync(server))
                 return;
@@ -114,7 +114,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
             string region = server.GetRegion();
             UserModel? user = await UserRepository.GetUserAsync(Context.Interaction.User.Id);
 
-            ApiResult<string> result = await GetAndUpdateGameUidAsync(user, GameName.ZenlessZoneZero, ltuid, ltoken, server, region);
+            ApiResult<string> result = await GetAndUpdateGameUidAsync(user, Game.ZenlessZoneZero, ltuid, ltoken, server, region);
             if (!result.IsSuccess) return;
             string gameUid = result.Data;
 
@@ -126,7 +126,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
 
             if (character == null)
             {
-                m_CharacterCacheService.GetAliases(GameName.ZenlessZoneZero).TryGetValue(characterName, out string? name);
+                m_CharacterCacheService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out string? name);
 
                 if (name == null ||
                     (character =
@@ -162,7 +162,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
                 .AddComponents(new TextDisplayProperties("Command execution completed")));
             await Context.Interaction.SendFollowupMessageAsync(message);
             BotMetrics.TrackCommand(Context.Interaction.User, "zzz character", true);
-            BotMetrics.TrackCharacterSelection(nameof(GameName.ZenlessZoneZero), character.Name);
+            BotMetrics.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), character.Name);
         }
         catch (CommandException e)
         {

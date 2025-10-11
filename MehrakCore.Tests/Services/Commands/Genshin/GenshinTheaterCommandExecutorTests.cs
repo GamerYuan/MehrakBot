@@ -229,7 +229,7 @@ public class GenshinTheaterCommandExecutorTests
         // Assert
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
-        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[GameName.Genshin], Is.EqualTo(Regions.America));
+        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[Game.Genshin], Is.EqualTo(Regions.America));
     }
 
     [Test]
@@ -671,9 +671,9 @@ public class GenshinTheaterCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
-                        [GameName.Genshin] = new()
+                        [Game.Genshin] = new()
                         {
                             ["uid"] = TestGameUid
                         }
@@ -700,13 +700,13 @@ public class GenshinTheaterCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        [GameName.Genshin] = Regions.America
+                        [Game.Genshin] = Regions.America
                     },
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
-                        [GameName.Genshin] = new()
+                        [Game.Genshin] = new()
                         {
                             ["uid"] = TestGameUid
                         }

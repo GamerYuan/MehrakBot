@@ -1,8 +1,10 @@
 ﻿#region
 
-using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Hsr.Types;
-using System.Net;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -10,7 +12,7 @@ using System.Text.Json.Nodes;
 
 namespace Mehrak.GameApi.Hsr;
 
-public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNotesData>
+public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrRealTimeNotesApiService> m_Logger;
@@ -23,13 +25,20 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
         m_Logger = logger;
     }
 
-    public async Task<ApiResult<HsrRealTimeNotesData>> GetRealTimeNotesAsync(string roleId, string server, ulong ltuid,
-        string ltoken)
+    public async Task<Result<HsrRealTimeNotesData>> GetAsync(ulong ltuid,
+        string ltoken, string gameUid = "", string region = "")
     {
+        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        {
+            m_Logger.LogError("Game UID or region is null or empty");
+            return Result<HsrRealTimeNotesData>.Failure(StatusCode.BadParameter,
+                "Game UID or region is null or empty");
+        }
+
         try
         {
             var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={roleId}&server={server}");
+            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={gameUid}&server={region}");
             request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
             request.Headers.Add("X-Rpc-Client_type", "5");
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
@@ -40,7 +49,7 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch real-time notes: {StatusCode}", response.StatusCode);
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
@@ -48,37 +57,37 @@ public class HsrRealTimeNotesApiService : IRealTimeNotesApiService<HsrRealTimeNo
             if (json == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     "Failed to parse JSON response from real-time notes API");
             }
 
             if (json["retcode"]!.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.Unauthorized,
+                return Result<HsrRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API");
             }
 
             if (json["data"] == null)
             {
                 m_Logger.LogError("No data found in real-time notes API response");
-                return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     "No data found in real-time notes API response");
             }
 
             HsrRealTimeNotesData data = json["data"].Deserialize<HsrRealTimeNotesData>();
-            if (data != null) return ApiResult<HsrRealTimeNotesData>.Success(data);
+            if (data != null) return Result<HsrRealTimeNotesData>.Success(data);
 
             m_Logger.LogError("Failed to deserialize real-time notes data");
-            return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.BadGateway,
+            return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                 "Failed to deserialize real-time notes data");
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
-                roleId, server);
-            return ApiResult<HsrRealTimeNotesData>.Failure(HttpStatusCode.InternalServerError,
+                gameUid, region);
+            return Result<HsrRealTimeNotesData>.Failure(StatusCode.BotError,
                 "An error occurred while fetching real-time notes");
         }
     }

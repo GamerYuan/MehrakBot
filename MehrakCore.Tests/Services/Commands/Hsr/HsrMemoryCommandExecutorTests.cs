@@ -5,6 +5,7 @@ using Mehrak.Bot.Executors.Hsr;
 using Mehrak.Bot.Modules;
 using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Hsr.Types;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;
@@ -599,9 +600,9 @@ public class HsrMemoryCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Regions.Asia }
                     }
                 }
             ]

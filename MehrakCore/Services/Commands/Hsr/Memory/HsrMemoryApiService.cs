@@ -25,7 +25,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
         m_Logger = logger;
     }
 
-    public async ValueTask<ApiResult<HsrMemoryInformation>> GetMemoryInformationAsync(string gameUid, string region,
+    public async ValueTask<Result<HsrMemoryInformation>> GetMemoryInformationAsync(string gameUid, string region,
         ulong ltuid, string ltoken)
     {
         try
@@ -42,7 +42,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to fetch Memory of Chaos information for gameUid: {GameUid}", gameUid);
-                return ApiResult<HsrMemoryInformation>.Failure(response.StatusCode,
+                return Result<HsrMemoryInformation>.Failure(response.StatusCode,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
@@ -50,14 +50,14 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
             if (json == null)
             {
                 m_Logger.LogError("Failed to fetch Memory of Chaos information for gameUid: {GameUid}", gameUid);
-                return ApiResult<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
-                return ApiResult<HsrMemoryInformation>.Failure(HttpStatusCode.Unauthorized,
+                return Result<HsrMemoryInformation>.Failure(HttpStatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
@@ -66,19 +66,19 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryCommandExecutor>
                 m_Logger.LogError(
                     "Failed to fetch Memory of Chaos information for gameUid: {GameUid}, retcode: {Retcode}",
                     gameUid, json["retcode"]);
-                return ApiResult<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
+                return Result<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             var memoryInfo = json["data"]?.Deserialize<HsrMemoryInformation>()!;
 
-            return ApiResult<HsrMemoryInformation>.Success(memoryInfo);
+            return Result<HsrMemoryInformation>.Success(memoryInfo);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to get Memory of Chaos information for gameUid: {GameUid}, region: {Region}",
                 gameUid, region);
-            return ApiResult<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
+            return Result<HsrMemoryInformation>.Failure(HttpStatusCode.InternalServerError,
                 "An error occurred while fetching Memory of Chaos information");
         }
     }

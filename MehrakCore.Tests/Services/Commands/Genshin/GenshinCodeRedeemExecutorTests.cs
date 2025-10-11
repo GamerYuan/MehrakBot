@@ -324,7 +324,7 @@ public class GenshinCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"))
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"))
             .Verifiable();
 
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
@@ -333,11 +333,11 @@ public class GenshinCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"))
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"))
             .Verifiable();
 
         // Setup repository to return cached codes
-        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.Genshin))
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(Game.Genshin))
             .ReturnsAsync(cachedCodes)
             .Verifiable();
 
@@ -353,7 +353,7 @@ public class GenshinCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.Count == cachedCodes.Count &&
                                                               list.All(kvp =>
                                                                   cachedCodes.Contains(kvp.Key.ToUpperInvariant())))),
@@ -388,7 +388,7 @@ public class GenshinCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redeemed successfully"));
 
         // Verify that codes were added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.Count == expectedCodes.Length &&
                                                               expectedCodes.All(c =>
                                                                   list.ContainsKey(c.ToUpperInvariant())))),
@@ -418,7 +418,7 @@ public class GenshinCodeRedeemExecutorTests
             TestLToken), Times.Once);
 
         // Verify the code was added to the repository
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(list => list.ContainsKey(TestCode.ToUpperInvariant()))),
             Times.Once);
     }
@@ -440,7 +440,7 @@ public class GenshinCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"));
 
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
                 "INVALID1",
@@ -448,7 +448,7 @@ public class GenshinCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
+            .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
 
         // Act
         await m_Executor.ExecuteAsync(codes, Regions.Asia, 1u);
@@ -483,7 +483,7 @@ public class GenshinCodeRedeemExecutorTests
         Assert.That(response, Does.Contain("Code redemption failed"));
 
         // No codes should be added to the repository since the process failed
-        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(GameName.Genshin,
+        m_CodeRedeemRepositoryMock.Verify(x => x.AddCodesAsync(Game.Genshin,
             It.IsAny<Dictionary<string, CodeStatus>>()), Times.Never);
     }
 
@@ -496,7 +496,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(gameRecord);
 
         // Explicitly configure empty result for GetCodesAsync
-        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(GameName.Genshin))
+        m_CodeRedeemRepositoryMock.Setup(x => x.GetCodesAsync(Game.Genshin))
             .ReturnsAsync([]);
 
         // Act
@@ -505,8 +505,8 @@ public class GenshinCodeRedeemExecutorTests
         // Assert
         // Should attempt to get codes from repository
         m_CodeRedeemRepositoryMock.Verify(x =>
-            x.GetCodesAsync(It.Is<GameName>(input =>
-                input.Equals(GameName.Genshin))), Times.Once); // Verify all verifiable expectations
+            x.GetCodesAsync(It.Is<Game>(input =>
+                input.Equals(Game.Genshin))), Times.Once); // Verify all verifiable expectations
 
         // No codes should be redeemed
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -541,7 +541,7 @@ public class GenshinCodeRedeemExecutorTests
             m_LoggerMock.Object);
 
         List<string> codes = ["EXPIREDCODE", "VALIDCODE"];
-        await codeRedeemRepo.AddCodesAsync(GameName.Genshin,
+        await codeRedeemRepo.AddCodesAsync(Game.Genshin,
             codes.ToDictionary(code => code, _ => CodeStatus.Valid));
         executor.Context = m_ContextMock.Object;
 
@@ -550,13 +550,13 @@ public class GenshinCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"));
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync("EXPIREDCODE",
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Expired code", -2001));
+            .ReturnsAsync(Result<string>.Success("Expired code", -2001));
 
         // Act
         await executor.ExecuteAsync("", Regions.Asia, 1u);
@@ -565,7 +565,7 @@ public class GenshinCodeRedeemExecutorTests
         m_CodeRedeemApiServiceMock.Verify(x =>
             x.RedeemCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ulong>(),
                 It.IsAny<string>()), Times.Exactly(2));
-        List<string> codesInDb = await codeRedeemRepo.GetCodesAsync(GameName.Genshin);
+        List<string> codesInDb = await codeRedeemRepo.GetCodesAsync(Game.Genshin);
 
         Assert.That(codesInDb, Does.Not.Contain("EXPIREDCODE"));
         Assert.That(codesInDb, Does.Contain("VALIDCODE"));
@@ -638,15 +638,15 @@ public class GenshinCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.Genshin, Regions.Asia },
-                        { GameName.HonkaiStarRail, Regions.Asia }
+                        { Game.Genshin, Regions.Asia },
+                        { Game.HonkaiStarRail, Regions.Asia }
                     },
-                    GameUids = new Dictionary<GameName, Dictionary<string, string>>
+                    GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
-                            GameName.Genshin, new Dictionary<string, string>
+                            Game.Genshin, new Dictionary<string, string>
                             {
                                 { nameof(Regions.Asia), TestGameUid }
                             }
@@ -671,10 +671,10 @@ public class GenshinCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<GameName, Regions>
+                    LastUsedRegions = new Dictionary<Game, Regions>
                     {
-                        { GameName.Genshin, Regions.Asia },
-                        { GameName.HonkaiStarRail, Regions.Asia }
+                        { Game.Genshin, Regions.Asia },
+                        { Game.HonkaiStarRail, Regions.Asia }
                     }
                     // No GameUids - this will trigger the API call
                 }
@@ -754,7 +754,7 @@ public class GenshinCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Success("Code redeemed successfully"));
+            .ReturnsAsync(Result<string>.Success("Code redeemed successfully"));
     }
 
     private void SetupCodeRedeemApiFailure()
@@ -765,7 +765,7 @@ public class GenshinCodeRedeemExecutorTests
                 It.IsAny<string>(),
                 It.IsAny<ulong>(),
                 It.IsAny<string>()))
-            .ReturnsAsync(ApiResult<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
+            .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
     }
 
     private void SetupTokenCache()

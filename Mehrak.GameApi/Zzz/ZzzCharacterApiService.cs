@@ -1,5 +1,4 @@
-﻿using Mehrak.Domain.Interfaces;
-using Mehrak.Domain.Models;
+﻿using Mehrak.Domain.Models;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -98,7 +97,7 @@ internal class ZzzCharacterApiService : ICharacterApi<ZzzBasicAvatarData, ZzzFul
         }
     }
 
-    public async Task<ApiResult<ZzzFullAvatarData>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
+    public async Task<Result<ZzzFullAvatarData>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
         string gameUid, string region, uint characterId)
     {
         try
@@ -120,7 +119,7 @@ internal class ZzzCharacterApiService : ICharacterApi<ZzzBasicAvatarData, ZzzFul
             {
                 m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
                     response.StatusCode);
-                return ApiResult<ZzzFullAvatarData>.Failure(response.StatusCode,
+                return Result<ZzzFullAvatarData>.Failure(response.StatusCode,
                     "An error occurred while retrieving character data");
             }
 
@@ -130,7 +129,7 @@ internal class ZzzCharacterApiService : ICharacterApi<ZzzBasicAvatarData, ZzzFul
             if (data?["avatar_list"] == null)
             {
                 m_Logger.LogWarning("Failed to deserialize character detail response for user {Uid}", uid);
-                return ApiResult<ZzzFullAvatarData>.Failure(HttpStatusCode.InternalServerError,
+                return Result<ZzzFullAvatarData>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving character data");
             }
 
@@ -139,23 +138,23 @@ internal class ZzzCharacterApiService : ICharacterApi<ZzzBasicAvatarData, ZzzFul
             if (character == null)
             {
                 m_Logger.LogWarning("Failed to deserialize character detail response for user {Uid}", uid);
-                return ApiResult<ZzzFullAvatarData>.Failure(HttpStatusCode.InternalServerError,
+                return Result<ZzzFullAvatarData>.Failure(HttpStatusCode.InternalServerError,
                     "An error occurred while retrieving character data");
             }
 
-            return ApiResult<ZzzFullAvatarData>.Success(character, json?["retcode"]?.GetValue<int>() ?? 0, HttpStatusCode.Accepted);
+            return Result<ZzzFullAvatarData>.Success(character, json?["retcode"]?.GetValue<int>() ?? 0, HttpStatusCode.Accepted);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "Failed to retrieve character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<ZzzFullAvatarData>.Failure(HttpStatusCode.BadGateway,
+            return Result<ZzzFullAvatarData>.Failure(HttpStatusCode.BadGateway,
                 "An error occurred while retrieving character data");
         }
     }
 
-    public async Task<ApiResult<ZzzFullAvatarData>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
+    public async Task<Result<ZzzFullAvatarData>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
         string gameUid, string region, string characterName)
     {
         try
@@ -171,27 +170,27 @@ internal class ZzzCharacterApiService : ICharacterApi<ZzzBasicAvatarData, ZzzFul
             if (character == null)
             {
                 m_Logger.LogWarning("Character {CharacterName} not found for user {Uid}", characterName, uid);
-                return ApiResult<ZzzFullAvatarData>.Failure(HttpStatusCode.BadRequest,
+                return Result<ZzzFullAvatarData>.Failure(HttpStatusCode.BadRequest,
                     "Character not found. Please try again");
             }
 
-            ApiResult<ZzzFullAvatarData> result = await GetCharacterDataFromIdAsync(uid, ltoken, gameUid, region, (uint)character.Id!);
+            Result<ZzzFullAvatarData> result = await GetCharacterDataFromIdAsync(uid, ltoken, gameUid, region, (uint)character.Id!);
             if (!result.IsSuccess)
             {
                 m_Logger.LogError("Failed to retrieve data for character {CharacterName} for user {Uid}",
                     characterName, uid);
-                return ApiResult<ZzzFullAvatarData>.Failure(result.StatusCode,
+                return Result<ZzzFullAvatarData>.Failure(result.StatusCode,
                     "An error occurred while retrieving character data");
             }
 
-            return ApiResult<ZzzFullAvatarData>.Success(result.Data);
+            return Result<ZzzFullAvatarData>.Success(result.Data);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "Failed to retrieve character data for user {Uid} on {Region} server (game UID: {GameUid})",
                 uid, region, gameUid);
-            return ApiResult<ZzzFullAvatarData>.Failure(HttpStatusCode.BadGateway,
+            return Result<ZzzFullAvatarData>.Failure(HttpStatusCode.BadGateway,
                 "An error occurred while retrieving character data");
         }
     }
