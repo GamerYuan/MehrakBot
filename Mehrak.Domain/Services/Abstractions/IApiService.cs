@@ -1,4 +1,5 @@
 ﻿using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 
 namespace Mehrak.Domain.Services.Abstractions;
 

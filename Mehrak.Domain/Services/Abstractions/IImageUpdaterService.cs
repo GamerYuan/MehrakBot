@@ -1,10 +1,8 @@
-﻿namespace Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Domain.Models.Abstractions;
 
-public interface IImageUpdaterService<T>
+namespace Mehrak.Domain.Services.Abstractions;
+
+public interface IImageUpdaterService
 {
-    public Task UpdateDataAsync(T characterInformation, IEnumerable<Dictionary<string, string>> wiki);
-
-    public Task UpdateAvatarAsync(string avatarId, string avatarUrl);
-
-    public Task UpdateSideAvatarAsync(string avatarId, string avatarUrl);
+    public Task UpdateImageAsync(IImageData data, IImageProcessor processor);
 }

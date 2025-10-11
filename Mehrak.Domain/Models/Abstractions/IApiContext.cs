@@ -1,4 +1,4 @@
-﻿namespace Mehrak.Domain.Services.Abstractions;
+﻿namespace Mehrak.Domain.Models.Abstractions;
 
 public interface IApiContext
 {

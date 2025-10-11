@@ -1,108 +1,52 @@
 ﻿#region
 
-using Mehrak.Domain.Common;
+using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Processing;
 
 #endregion
 
 namespace Mehrak.GameApi.Common;
 
-public abstract class ImageUpdaterService<T> : IImageUpdaterService<T>
+public class ImageUpdaterService : IImageUpdaterService
 {
-    protected readonly IImageRepository ImageRepository;
-    protected readonly IHttpClientFactory HttpClientFactory;
-    protected readonly ILogger<ImageUpdaterService<T>> Logger;
+    private readonly IImageRepository m_ImageRepository;
+    private readonly IHttpClientFactory m_HttpClientFactory;
+    private readonly ILogger<ImageUpdaterService> m_Logger;
 
-    protected virtual string AvatarString => "{0}";
-    protected virtual string SideAvatarString => "{0}";
-    protected const int AvatarSize = 150;
-
-    protected ImageUpdaterService(IImageRepository imageRepository, IHttpClientFactory httpClientFactory,
-        ILogger<ImageUpdaterService<T>> logger)
+    public ImageUpdaterService(IImageRepository imageRepository, IHttpClientFactory httpClientFactory,
+        ILogger<ImageUpdaterService> logger)
     {
-        ImageRepository = imageRepository;
-        HttpClientFactory = httpClientFactory;
-        Logger = logger;
+        m_ImageRepository = imageRepository;
+        m_HttpClientFactory = httpClientFactory;
+        m_Logger = logger;
     }
 
-    public abstract Task UpdateDataAsync(T characterInformation, IEnumerable<Dictionary<string, string>> wiki);
-
-    public virtual async Task UpdateAvatarAsync(string avatarId, string avatarUrl)
+    public async Task UpdateImageAsync(IImageData data, IImageProcessor processor)
     {
-        try
+        if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
-            if (string.IsNullOrEmpty(avatarId) || string.IsNullOrEmpty(avatarUrl))
-            {
-                Logger.LogWarning("Avatar ID or URL is null or empty. Skipping update.");
-                return;
-            }
-
-            string filename = string.Format(AvatarString, avatarId);
-            if (await ImageRepository.FileExistsAsync(filename))
-            {
-                Logger.LogDebug("Avatar image {Filename} already exists. Skipping update.", filename);
-                return;
-            }
-
-            HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
-            response.EnsureSuccessStatusCode();
-            using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
-            image.Mutate(x => x.Resize(AvatarSize, 0, KnownResamplers.Lanczos3));
-            using MemoryStream processedImageStream = new();
-            await image.SaveAsPngAsync(processedImageStream, new PngEncoder
-            {
-                BitDepth = PngBitDepth.Bit8,
-                ColorType = PngColorType.RgbWithAlpha
-            });
-            processedImageStream.Position = 0;
-            Logger.LogInformation("Uploading avatar image {Filename}", filename);
-            await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
+            return;
         }
-        catch (Exception e)
+
+        var client = m_HttpClientFactory.CreateClient();
+
+        var response = await client.GetAsync(data.Url);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+
+        if (processor.ShouldProcess())
         {
-            throw new CommandException("An error occurred while updating avatar image", e);
+            await using var processedStream = processor.ProcessImage(stream);
+            processedStream.Position = 0;
+            await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
         }
-    }
-
-    public virtual async Task UpdateSideAvatarAsync(string avatarId, string avatarUrl)
-    {
-        try
+        else
         {
-            if (string.IsNullOrEmpty(avatarId) || string.IsNullOrEmpty(avatarUrl))
-            {
-                Logger.LogWarning("Avatar ID or URL is null or empty. Skipping update.");
-                return;
-            }
-
-            string filename = string.Format(SideAvatarString, avatarId);
-            if (await ImageRepository.FileExistsAsync(filename))
-            {
-                Logger.LogDebug("Side avatar image {Filename} already exists. Skipping update.", filename);
-                return;
-            }
-
-            HttpResponseMessage response = await HttpClientFactory.CreateClient("Default").GetAsync(avatarUrl);
-            response.EnsureSuccessStatusCode();
-            using Image image = await Image.LoadAsync(await response.Content.ReadAsStreamAsync());
-            image.Mutate(x => x.Resize(0, AvatarSize, KnownResamplers.Lanczos3));
-            using MemoryStream processedImageStream = new();
-            await image.SaveAsPngAsync(processedImageStream, new PngEncoder
-            {
-                BitDepth = PngBitDepth.Bit8,
-                ColorType = PngColorType.RgbWithAlpha
-            });
-            processedImageStream.Position = 0;
-            Logger.LogInformation("Uploading side avatar image {Filename}", filename);
-            await ImageRepository.UploadFileAsync(filename, processedImageStream, "png");
-        }
-        catch (Exception e)
-        {
-            throw new CommandException("An error occurred while updating side avatar image", e);
+            stream.Position = 0;
+            await m_ImageRepository.UploadFileAsync(data.Name, stream);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Domain.Models.Abstractions;
 
 namespace Mehrak.GameApi.Common.Types;
 
