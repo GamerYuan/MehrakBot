@@ -3,6 +3,7 @@
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common;
+using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -12,7 +13,7 @@ using System.Text.Json.Nodes;
 
 namespace Mehrak.GameApi.Hsr;
 
-public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData>
+public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, BaseHoYoApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrRealTimeNotesApiService> m_Logger;
@@ -25,10 +26,9 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData>
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrRealTimeNotesData>> GetAsync(ulong ltuid,
-        string ltoken, string gameUid = "", string region = "")
+    public async Task<Result<HsrRealTimeNotesData>> GetAsync(BaseHoYoApiContext context)
     {
-        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError("Game UID or region is null or empty");
             return Result<HsrRealTimeNotesData>.Failure(StatusCode.BadParameter,
@@ -38,8 +38,8 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData>
         try
         {
             var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={gameUid}&server={region}");
-            request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
+            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}");
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Client_type", "5");
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
             request.Headers.Add("X-Rpc-Language", "en-us");
@@ -86,7 +86,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData>
         {
             m_Logger.LogError(e,
                 "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
-                gameUid, region);
+                context.GameUid, context.Region);
             return Result<HsrRealTimeNotesData>.Failure(StatusCode.BotError,
                 "An error occurred while fetching real-time notes");
         }

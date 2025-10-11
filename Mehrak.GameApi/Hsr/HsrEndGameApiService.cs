@@ -14,12 +14,10 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Hsr;
 
-public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
+public abstract class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrEndGameApiService> m_Logger;
-
-    protected abstract HsrEndGameMode GameMode { get; }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -34,10 +32,9 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrEndInformation>> GetAsync(ulong ltuid, string ltoken,
-        string gameUid = "", string region = "")
+    public async Task<Result<HsrEndInformation>> GetAsync(HsrEndGameApiContext context)
     {
-        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError("Game UID or region is null or empty");
             return Result<HsrEndInformation>.Failure(StatusCode.BadParameter,
@@ -46,7 +43,7 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
 
         try
         {
-            var endpoint = GameMode switch
+            var endpoint = context.GameMode switch
             {
                 HsrEndGameMode.PureFiction => "challenge_story",
                 HsrEndGameMode.ApocalypticShadow => "challenge_boss",
@@ -54,8 +51,8 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
             };
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get,
-                $"{HoYoLabDomains.PublicApi}{BasePath}{endpoint}?role_id={gameUid}&server={region}&schedule_type=1&need_all=true");
-            request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
+                $"{HoYoLabDomains.PublicApi}{BasePath}{endpoint}?role_id={context.GameUid}&server={context.Region}&schedule_type=1&need_all=true");
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("Ds", DSGenerator.GenerateDS());
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
             request.Headers.Add("X-Rpc-Language", "en-us");
@@ -63,8 +60,8 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", GameMode.GetString(),
-                    gameUid);
+                m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", context.GameMode.GetString(),
+                    context.GameUid);
                 return Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -72,15 +69,15 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
             var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             if (json == null)
             {
-                m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", GameMode.GetString(),
-                    gameUid);
+                m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", context.GameMode.GetString(),
+                    context.GameUid);
                 return Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             if (json["retcode"]?.GetValue<int>() == 10001)
             {
-                m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
                 return Result<HsrEndInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
@@ -89,8 +86,8 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
             {
                 m_Logger.LogError(
                     "Failed to fetch {GameMode} information for gameUid: {GameUid}, retcode: {Retcode}",
-                    GameMode.GetString(),
-                    gameUid, json["retcode"]);
+                    context.GameMode.GetString(),
+                    context.GameUid, json["retcode"]);
                 return Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
@@ -102,9 +99,9 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to get {GameMode} data for gameUid: {GameUid}, region: {Region}",
-                GameMode.GetString(), gameUid, region);
+                context.GameMode.GetString(), context.GameUid, context.Region);
             return Result<HsrEndInformation>.Failure(StatusCode.BotError,
-                $"An unknown error occurred while fetching {GameMode.GetString()} information");
+                $"An unknown error occurred while fetching {context.GameMode.GetString()} information");
         }
     }
 
@@ -121,23 +118,5 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation>
                     var response = await client.GetAsync(x.Icon);
                     return await response.Content.ReadAsStreamAsync();
                 });
-    }
-
-    public class HsrPureFictionApiService : HsrEndGameApiService
-    {
-        protected override HsrEndGameMode GameMode => HsrEndGameMode.PureFiction;
-
-        public HsrPureFictionApiService(IHttpClientFactory httpClientFactory,
-            ILogger<HsrPureFictionApiService> logger)
-            : base(httpClientFactory, logger) { }
-    }
-
-    public class HsrApocalypticShadowApiService : HsrEndGameApiService
-    {
-        protected override HsrEndGameMode GameMode => HsrEndGameMode.ApocalypticShadow;
-
-        public HsrApocalypticShadowApiService(IHttpClientFactory httpClientFactory,
-            ILogger<HsrApocalypticShadowApiService> logger)
-            : base(httpClientFactory, logger) { }
     }
 }

@@ -1,12 +1,13 @@
 ﻿using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Nodes;
 
 namespace Mehrak.GameApi.Common;
 
-public class CodeRedeemApiService : ICodeRedeemApiService
+public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<CodeRedeemApiService> m_Logger;
@@ -17,8 +18,7 @@ public class CodeRedeemApiService : ICodeRedeemApiService
         m_Logger = logger;
     }
 
-    public async Task<Result<(string, CodeStatus)>> RedeemCodeAsync(
-        Game game, string code, ulong ltuid, string ltoken, string gameUid, string region)
+    public async Task<Result<CodeRedeemResult>> GetAsync(CodeRedeemApiContext context)
     {
         try
         {
@@ -27,10 +27,11 @@ public class CodeRedeemApiService : ICodeRedeemApiService
             {
                 Method = HttpMethod.Get,
                 RequestUri =
-                    new Uri($"{GetUri(game)}?cdkey={code}&game_biz={game.ToGameBizString()}&region={region}&uid={gameUid}&lang=en-us"),
+                    new Uri($"{GetUri(context.Game)}?cdkey={context.Code}&game_biz={context.Game.ToGameBizString()}" +
+                        $"&region={context.Region}&uid={context.GameUid}&lang=en-us"),
                 Headers =
                 {
-                    { "Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}" }
+                    { "Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}" }
                 }
             };
 
@@ -38,35 +39,35 @@ public class CodeRedeemApiService : ICodeRedeemApiService
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Failed to redeem code {Code} for uid {GameUid}. Status code: {StatusCode}",
-                    code, gameUid, response.StatusCode);
-                return Result<(string, CodeStatus)>.Failure(StatusCode.ExternalServerError,
+                    context.Code, context.GameUid, response.StatusCode);
+                return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while redeeming the code");
             }
 
             JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             if (json == null)
             {
-                m_Logger.LogError("Failed to parse JSON response for code {Code} and uid {GameUid}", code, gameUid);
-                return Result<(string, CodeStatus)>.Failure(StatusCode.ExternalServerError,
+                m_Logger.LogError("Failed to parse JSON response for code {Code} and uid {GameUid}", context.Code, context.GameUid);
+                return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while redeeming the code");
             }
 
             int retCode = json["retcode"]?.GetValue<int>() ?? -1;
             return retCode switch
             {
-                0 => Result<(string, CodeStatus)>.Success(("Redeemed Successfully!", CodeStatus.Valid)),
-                -2001 => Result<(string, CodeStatus)>.Success(("Redemption Code Expired", CodeStatus.Invalid)),
-                -2003 => Result<(string, CodeStatus)>.Success(("Invalid Code", CodeStatus.Invalid)),
-                -2016 => Result<(string, CodeStatus)>.Success(("Redemption in Cooldown", CodeStatus.Valid)),
-                -2017 => Result<(string, CodeStatus)>.Success(("Redemption Code Already Used", CodeStatus.Valid)),
-                _ => Result<(string, CodeStatus)>.Failure(StatusCode.ExternalServerError,
+                0 => Result<CodeRedeemResult>.Success(new("Redeemed Successfully!", CodeStatus.Valid)),
+                -2001 => Result<CodeRedeemResult>.Success(new("Redemption Code Expired", CodeStatus.Invalid)),
+                -2003 => Result<CodeRedeemResult>.Success(new("Invalid Code", CodeStatus.Invalid)),
+                -2016 => Result<CodeRedeemResult>.Success(new("Redemption in Cooldown", CodeStatus.Valid)),
+                -2017 => Result<CodeRedeemResult>.Success(new("Redemption Code Already Used", CodeStatus.Valid)),
+                _ => Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while redeeming the code")
             };
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "An error occurred while redeeming code {Code} for gameUid {GameUid}", code, gameUid);
-            return Result<(string, CodeStatus)>.Failure(StatusCode.BotError,
+            m_Logger.LogError(e, "An error occurred while redeeming code {Code} for gameUid {GameUid}", context.Code, context.GameUid);
+            return Result<CodeRedeemResult>.Failure(StatusCode.BotError,
                 "An error occurred while redeeming the code");
         }
     }
@@ -77,8 +78,20 @@ public class CodeRedeemApiService : ICodeRedeemApiService
         {
             Game.Genshin => $"{HoYoLabDomains.GenshinOpsApi}/common/apicdkey/api/webExchangeCdkeyHyl",
             Game.HonkaiStarRail => $"{HoYoLabDomains.HsrOpsApi}/common/apicdkey/api/webExchangeCdkeyHyl",
-            Game.ZenlessZoneZero => $"{HoYoLabDomains.ZzzOpsApi}/common/apicdkey/api/webExchangeCdkeyHyl"
+            Game.ZenlessZoneZero => $"{HoYoLabDomains.ZzzOpsApi}/common/apicdkey/api/webExchangeCdkeyHyl",
             _ => ""
         };
+    }
+}
+
+public struct CodeRedeemResult
+{
+    public string Message { get; init; }
+    public CodeStatus Status { get; init; }
+
+    public CodeRedeemResult(string message, CodeStatus status)
+    {
+        Message = message;
+        Status = status;
     }
 }

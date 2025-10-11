@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Zzz;
 
-internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData>
+internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzRealTimeNotesApiService> m_Logger;
@@ -28,10 +28,9 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData>
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzRealTimeNotesData>> GetAsync(
-        ulong ltuid, string ltoken, string gameUid = "", string region = "")
+    public async Task<Result<ZzzRealTimeNotesData>> GetAsync(BaseHoYoApiContext context)
     {
-        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError("Game UID or region is null or empty");
             return Result<ZzzRealTimeNotesData>.Failure(StatusCode.BadParameter,
@@ -41,8 +40,8 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData>
         try
         {
             HttpClient client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={gameUid}&server={region}");
-            request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
+            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}");
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             HttpResponseMessage response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
@@ -80,7 +79,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData>
         {
             m_Logger.LogError(e,
                 "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
-                gameUid, region);
+                context.GameUid, context.Region);
             return Result<ZzzRealTimeNotesData>.Failure(StatusCode.BotError,
                 "An error occurred while fetching real-time notes");
         }

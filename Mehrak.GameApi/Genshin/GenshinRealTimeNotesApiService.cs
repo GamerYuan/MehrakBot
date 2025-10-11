@@ -2,6 +2,7 @@
 
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -11,7 +12,7 @@ using System.Text.Json.Nodes;
 
 namespace Mehrak.GameApi.Genshin;
 
-public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesData>
+public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext>
 {
     private static readonly string ApiEndpoint = "/event/game_record/app/genshin/api/dailyNote";
 
@@ -25,10 +26,9 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
         m_Logger = logger;
     }
 
-    public async Task<Result<GenshinRealTimeNotesData>> GetAsync(ulong ltuid, string ltoken,
-        string gameUid = "", string region = "")
+    public async Task<Result<GenshinRealTimeNotesData>> GetAsync(BaseHoYoApiContext context)
     {
-        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError("Game UID or region is null or empty");
             return Result<GenshinRealTimeNotesData>.Failure(StatusCode.BadParameter,
@@ -38,8 +38,8 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
         try
         {
             var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={gameUid}&server={region}");
-            request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
+            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}");
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
@@ -74,7 +74,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
             if (data != null) return Result<GenshinRealTimeNotesData>.Success(data);
 
             m_Logger.LogError("Failed to deserialize real-time notes data for roleId {RoleId} on server {Server}",
-                gameUid, region);
+                context.GameUid, context.Region);
             return Result<GenshinRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                 "Failed to deserialize real-time notes data");
         }
@@ -82,7 +82,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
         {
             m_Logger.LogError(e,
                 "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
-                gameUid, region);
+                context.GameUid, context.Region);
             return Result<GenshinRealTimeNotesData>.Failure(StatusCode.BotError,
                 "An error occurred while fetching real-time notes");
         }

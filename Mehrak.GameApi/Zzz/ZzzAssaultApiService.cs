@@ -1,16 +1,21 @@
 ﻿using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utilities;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Processing;
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 
 namespace Mehrak.GameApi.Zzz;
 
-public class ZzzAssaultApiService : IApiService<ZzzAssaultData>, IHostedService
+public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiContext>, IHostedService
 {
     private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/mem_detail";
     private const int BossImageHeight = 230;
@@ -29,9 +34,9 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData>, IHostedService
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzAssaultData>> GetAsync(ulong ltuid, string ltoken, string gameUid = "", string region = "")
+    public async Task<Result<ZzzAssaultData>> GetAsync(BaseHoYoApiContext context)
     {
-        if (string.IsNullOrEmpty(gameUid) || string.IsNullOrEmpty(region))
+        if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError("Game UID or region is null or empty");
             return Result<ZzzAssaultData>.Failure(StatusCode.BadParameter,
@@ -40,14 +45,14 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData>, IHostedService
 
         HttpClient client = m_HttpClientFactory.CreateClient("Default");
         HttpRequestMessage request = new(HttpMethod.Get,
-            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={region}&uid={gameUid}&schedule_type=1");
-        request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={ltuid};");
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={context.Region}&uid={context.GameUid}&schedule_type=1");
+        request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
         HttpResponseMessage response = await client.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
         {
             m_Logger.LogError("Failed to fetch Zzz Assault data for gameUid: {GameUid}, Status Code: {StatusCode}",
-                gameUid, response.StatusCode);
+                context.GameUid, response.StatusCode);
             return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,
                 "An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
@@ -58,21 +63,21 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData>, IHostedService
         if (json == null)
         {
             m_Logger.LogError("Failed to fetch Zzz Assault data for gameUid: {GameUid}, Status Code: {StatusCode}",
-                gameUid, response.StatusCode);
+                context.GameUid, response.StatusCode);
             return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,
                 "An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
 
         if (json.Retcode == 10001)
         {
-            m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
+            m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
             return Result<ZzzAssaultData>.Failure(StatusCode.Unauthorized, "Invalid HoYoLAB UID or Cookies. Please authenticate again");
         }
 
         if (json.Retcode != 0)
         {
             m_Logger.LogWarning("Failed to fetch Zzz Assault data for {GameUid}, Retcode {Retcode}, Message: {Message}",
-                gameUid, json?.Retcode, json?.Message);
+                context.GameUid, json?.Retcode, json?.Message);
             return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,
                 "An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
