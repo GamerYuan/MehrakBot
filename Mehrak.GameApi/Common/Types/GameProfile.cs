@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Common.Types;
 
-public class UserGameData
+public class GameProfile
 {
     [JsonPropertyName("game_biz")] public string? GameBiz { get; init; }
 
