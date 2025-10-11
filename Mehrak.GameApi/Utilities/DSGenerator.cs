@@ -5,7 +5,7 @@ using System.Text;
 
 #endregion
 
-namespace Mehrak.GameApi.Common;
+namespace Mehrak.GameApi.Utilities;
 
 public static class DSGenerator
 {

@@ -1,13 +1,12 @@
 ﻿#region
 
-using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi.Genshin.Types;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-
+using System.Text.Json.Serialization;
 
 #endregion
 
@@ -197,5 +196,27 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.BadGateway,
                 "An error occurred while retrieving character data");
         }
+    }
+
+    private class CharacterListPayload
+    {
+        [JsonPropertyName("role_id")]
+        public string RoleId { get; set; } = string.Empty;
+
+        [JsonPropertyName("server")] public string Server { get; set; } = string.Empty;
+
+        [JsonPropertyName("sort_type")]
+        public int SortType { get; set; }
+    }
+
+    private class CharacterDetailPayload
+    {
+        [JsonPropertyName("role_id")]
+        public string RoleId { get; set; } = string.Empty;
+
+        [JsonPropertyName("server")] public string Server { get; set; } = string.Empty;
+
+        [JsonPropertyName("character_ids")]
+        public List<uint> CharacterIds { get; set; } = [];
     }
 }
