@@ -71,7 +71,7 @@ public class ZzzAvatarData
     public required string AwakenState { get; set; }
 }
 
-public class ZzzFullAvatarData : ICharacterDetail, ICharacterInformation
+public class ZzzFullAvatarData
 {
     [JsonPropertyName("avatar_list")]
     public required List<ZzzAvatarData> AvatarList { get; set; }

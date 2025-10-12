@@ -1,8 +1,10 @@
 ﻿#region
 
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
-using System.Collections.ObjectModel;
-using System.Net;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -12,16 +14,16 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Genshin;
 
-public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>
+public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
 {
     private static readonly string BasePath = "/event/game_record/genshin/api";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinCharacterApiService> m_Logger;
-    private readonly IMemoryCache m_Cache;
+    private readonly ICacheService m_Cache;
     private const int CacheExpirationMinutes = 10;
 
-    public GenshinCharacterApiService(IMemoryCache cache,
+    public GenshinCharacterApiService(ICacheService cache,
         IHttpClientFactory httpClientFactory,
         ILogger<GenshinCharacterApiService> logger)
     {
@@ -30,34 +32,42 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         m_Logger = logger;
     }
 
-    public async Task<IEnumerable<GenshinBasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken,
-        string gameUid, string region)
+    public async Task<Result<IEnumerable<GenshinBasicCharacterData>>> GetAllCharactersAsync(CharacterApiContext context)
     {
+        if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
+        {
+            m_Logger.LogError("Region or Game UID is missing for user {Uid}", context.LtUid);
+            return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.BadParameter,
+                "Game UID or region is null or empty");
+        }
+
         try
         {
             m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            string cacheKey = $"genshin_characters_{gameUid}";
+                context.UserId, context.Region, context.GameUid);
+            string cacheKey = $"genshin_characters_{context.GameUid}";
 
-            if (m_Cache.TryGetValue(cacheKey, out IEnumerable<GenshinBasicCharacterData>? cachedEntry))
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey);
+
+            if (cachedEntry != null)
             {
-                m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", gameUid);
-                return cachedEntry!;
+                m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", context.GameUid);
+                return Result<IEnumerable<GenshinBasicCharacterData>>.Success(cachedEntry);
             }
 
-            var payload = new CharacterListPayload
-            (
-                gameUid,
-                region,
-                1
-            );
+            var payload = new CharacterListPayload()
+            {
+                RoleId = context.GameUid,
+                Server = context.Region,
+                SortType = 1
+            };
             var httpClient = m_HttpClientFactory.CreateClient("Default");
 
             HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Post
             };
-            request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}/character/list");
             request.Content =
@@ -70,57 +80,63 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
                 m_Logger.LogWarning("Character list API returned non-success status code: {StatusCode}",
                     response.StatusCode);
 
-            var json = await response.Content.ReadFromJsonAsync<CharacterListApiResponse>();
-            var data = json?.Data;
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>();
 
-            if (data?.List == null)
+            if (json?.Data == null || json.Data.List.Count == 0)
             {
-                m_Logger.LogError("Failed to deserialize character list response for user {Uid}", uid);
-                throw new JsonException("Failed to deserialize response");
+                m_Logger.LogError("Failed to deserialize character list response for user {UserId}", context.UserId);
+                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character list data");
             }
 
             m_Logger.LogInformation("Successfully retrieved {CharacterCount} characters for user {Uid}",
-                data.List.Count, uid);
+                json.Data.List.Count, context.LtUid);
 
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheExpirationMinutes));
-            m_Cache.Set(cacheKey, data.List, cacheOptions);
+            await m_Cache.SetAsync(
+                new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes)));
             m_Logger.LogInformation("Cached character data for game UID: {GameUid} for {Minutes} minutes",
-                gameUid, CacheExpirationMinutes);
+                context.GameUid, CacheExpirationMinutes);
 
-            return data.List;
+            return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
                 "Failed to retrieve character list for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            throw new CommandException("An error occurred while retrieving character data", e);
+                context.UserId, context.Region, context.GameUid);
+            return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.BotError,
+                "An error occurred while retrieving character list data");
         }
     }
 
-    public async Task<ApiResult<GenshinCharacterDetail>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
-        string gameUid, string region, uint characterId)
+    public async Task<Result<GenshinCharacterDetail>> GetCharacterDetailAsync(CharacterApiContext context)
     {
+        if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterId == 0)
+        {
+            m_Logger.LogError("Region or Game UID is missing for user {Uid}", context.LtUid);
+            return Result<GenshinCharacterDetail>.Failure(StatusCode.BadParameter,
+                "Game UID or region is null or empty");
+        }
+
         try
         {
             m_Logger.LogInformation(
-                "Retrieving character data for {CharacterId} for user {Uid} on {Region} server (game UID: {GameUid})",
-                characterId, uid, region, gameUid);
+                "Retrieving character data for {CharacterId} for user {UserId} on {Region} server (game UID: {GameUid})",
+                context.CharacterId, context.UserId, context.Region, context.GameUid);
 
-            var payload = new CharacterDetailPayload
-            (
-                gameUid,
-                region,
-                new ReadOnlyCollection<uint>([characterId])
-            );
+            var payload = new CharacterDetailPayload()
+            {
+                RoleId = context.GameUid,
+                Server = context.Region,
+                CharacterIds = [context.CharacterId]
+            };
             var httpClient = m_HttpClientFactory.CreateClient("Default");
 
             HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Post
             };
-            request.Headers.Add("Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}");
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}/character/detail");
             request.Content =
@@ -131,74 +147,32 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
             {
                 m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
                     response.StatusCode);
-                return ApiResult<GenshinCharacterDetail>.Failure(response.StatusCode,
+                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving character data");
             }
 
-            var json = await response.Content.ReadFromJsonAsync<CharacterDetailApiResponse>();
-            var data = json?.Data;
+            ApiResponse<GenshinCharacterDetail>? json = await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>();
 
-            if (data?.List == null)
+            if (json?.Data == null || json?.Data.List.Count == 0)
             {
-                m_Logger.LogWarning("Failed to deserialize character detail response for user {Uid}", uid);
-                return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.InternalServerError,
+                m_Logger.LogWarning("Failed to deserialize character detail response for user {UserId}", context.UserId);
+                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving character data");
             }
 
-            return ApiResult<GenshinCharacterDetail>.Success(data, json?.Retcode ?? 0, HttpStatusCode.Accepted);
+            return Result<GenshinCharacterDetail>.Success(json!.Data);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
-                "Failed to retrieve character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.BadGateway,
+                "Failed to retrieve character data for user {UserId} on {Region} server (game UID: {GameUid})",
+                context.UserId, context.Region, context.GameUid);
+            return Result<GenshinCharacterDetail>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character data");
         }
     }
 
-    public async Task<ApiResult<GenshinCharacterDetail>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
-        string gameUid, string region, string characterName)
-    {
-        try
-        {
-            m_Logger.LogInformation(
-                "Retrieving character data for {CharacterName} for user {Uid} on {Region} server (game UID: {GameUid})",
-                characterName, uid, region, gameUid);
-
-            IEnumerable<GenshinBasicCharacterData> characters = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
-            GenshinBasicCharacterData? character =
-                characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
-
-            if (character == null)
-            {
-                m_Logger.LogWarning("Character {CharacterName} not found for user {Uid}", characterName, uid);
-                return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.BadRequest,
-                    "Character not found. Please try again");
-            }
-
-            var result = await GetCharacterDataFromIdAsync(uid, ltoken, gameUid, region, (uint)character.Id!);
-            if (!result.IsSuccess)
-            {
-                m_Logger.LogError("Failed to retrieve data for character {CharacterName} for user {Uid}",
-                    characterName, uid);
-                return ApiResult<GenshinCharacterDetail>.Failure(result.StatusCode,
-                    "An error occurred while retrieving character data");
-            }
-
-            return ApiResult<GenshinCharacterDetail>.Success(result.Data);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogError(e,
-                "Failed to retrieve character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            return ApiResult<GenshinCharacterDetail>.Failure(HttpStatusCode.BadGateway,
-                "An error occurred while retrieving character data");
-        }
-    }
-
-    private class CharacterListPayload
+    private sealed class CharacterListPayload
     {
         [JsonPropertyName("role_id")]
         public string RoleId { get; set; } = string.Empty;
@@ -209,7 +183,7 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         public int SortType { get; set; }
     }
 
-    private class CharacterDetailPayload
+    private sealed class CharacterDetailPayload
     {
         [JsonPropertyName("role_id")]
         public string RoleId { get; set; } = string.Empty;
@@ -217,6 +191,6 @@ public class GenshinCharacterApiService : ICharacterApi<GenshinBasicCharacterDat
         [JsonPropertyName("server")] public string Server { get; set; } = string.Empty;
 
         [JsonPropertyName("character_ids")]
-        public List<uint> CharacterIds { get; set; } = [];
+        public List<int> CharacterIds { get; set; } = [];
     }
 }

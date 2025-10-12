@@ -1,60 +1,65 @@
 ﻿#region
 
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Interfaces;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Utilities;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System.Net;
 using System.Text.Json;
 
 #endregion
 
 namespace Mehrak.GameApi.Hsr;
 
-public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>
+public class HsrCharacterApiService : ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrCharacterApiService> m_Logger;
-    private readonly IMemoryCache m_MemoryCache;
+    private readonly ICacheService m_Cache;
 
     private static readonly string ApiEndpoint = "/event/game_record/hkrpg/api/avatar/info";
     private const int CacheExpirationMinutes = 10;
 
-    public HsrCharacterApiService(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache,
+    public HsrCharacterApiService(IHttpClientFactory httpClientFactory, ICacheService cache,
         ILogger<HsrCharacterApiService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
-        m_MemoryCache = memoryCache;
+        m_Cache = cache;
     }
 
-    public async Task<IEnumerable<HsrBasicCharacterData>> GetAllCharactersAsync(ulong uid, string ltoken,
-        string gameUid, string region)
+    public async Task<Result<IEnumerable<HsrBasicCharacterData>>> GetAllCharactersAsync(CharacterApiContext context)
     {
+        if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
+        {
+            m_Logger.LogError("Region or Game UID is missing for user {Uid}", context.LtUid);
+            return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.BadParameter,
+                "Game UID or region is null or empty");
+        }
+
         try
         {
-            string cacheKey = $"hsr_characters_{gameUid}";
+            string cacheKey = $"hsr_characters_{context.GameUid}";
+            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey);
 
             // Try to get data from cache first
-            if (m_MemoryCache.TryGetValue(cacheKey, out IEnumerable<HsrBasicCharacterData>? cachedData))
+            if (cachedData != null)
             {
-                m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", gameUid);
-                return cachedData!;
+                m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", context.GameUid);
+                return Result<IEnumerable<HsrBasicCharacterData>>.Success(cachedData);
             }
 
             HttpClient client = m_HttpClientFactory.CreateClient("Default");
-            m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
+            m_Logger.LogInformation("Retrieving character list for user {UserId} on {Region} server (game UID: {GameUid})",
+                context.UserId, context.Region, context.GameUid);
             HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={region}&role_id={gameUid}&need_wiki=true"),
+                RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true"),
                 Headers =
                 {
-                    { "Cookie", $"ltuid_v2={uid}; ltoken_v2={ltoken}" },
+                    { "Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}" },
                     { "X-Rpc-Client_type", "5" },
                     { "X-Rpc-App_version", "1.5.0" },
                     { "X-Rpc-Language", "en-us" },
@@ -63,99 +68,50 @@ public class HsrCharacterApiService : ICharacterApi<HsrBasicCharacterData, HsrCh
             };
             m_Logger.LogDebug("Sending character list request to {Endpoint}", request.RequestUri);
             HttpResponseMessage response = await client.SendAsync(request);
-            CharacterListApiResponse? data = await JsonSerializer.DeserializeAsync<CharacterListApiResponse>(
-                await response.Content.ReadAsStreamAsync());
 
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError("Error sending character list request to {Endpoint}", request.RequestUri);
-                return [];
+                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character information");
             }
 
-            if (data?.HsrBasicCharacterData?.AvatarList == null)
+            ApiResponse<HsrBasicCharacterData>? json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
+                await response.Content.ReadAsStreamAsync());
+
+            if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
-                m_Logger.LogWarning("No character data found for user {Uid} on {Region} server (game UID: {GameUid})",
-                    uid, region, gameUid);
-                return [];
+                m_Logger.LogWarning("No character data found for user {UserId} on {Region} server (game UID: {GameUid})",
+                   context.UserId, context.Region, context.GameUid);
+                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character information");
             }
 
             m_Logger.LogInformation(
-                "Successfully retrieved {Count} characters for user {Uid} on {Region} server (game UID: {GameUid})",
-                data.HsrBasicCharacterData.AvatarList.Count, uid, region, gameUid);
+                "Successfully retrieved {Count} characters for user {UserId} on {Region} server (game UID: {GameUid})",
+                json.Data.AvatarList.Count, context.UserId, context.Region, context.GameUid);
 
-            HsrBasicCharacterData[] result = [data.HsrBasicCharacterData];
+            HsrBasicCharacterData[] result = [json.Data];
 
-            MemoryCacheEntryOptions cacheOptions = new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromMinutes(CacheExpirationMinutes));
-
-            m_MemoryCache.Set(cacheKey, result, cacheOptions);
+            await m_Cache.SetAsync(
+                new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result, TimeSpan.FromMinutes(CacheExpirationMinutes)));
             m_Logger.LogInformation("Cached character data for game UID: {GameUid} for {Minutes} minutes",
-                gameUid, CacheExpirationMinutes);
+                context.GameUid, CacheExpirationMinutes);
 
-            return result;
+            return Result<IEnumerable<HsrBasicCharacterData>>.Success(result);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e,
-                "An error occurred while retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            throw new CommandException("An error occurred while retrieving character data", e);
+                "An error occurred while retrieving character data for user {UserId} on {Region} server (game UID: {GameUid})",
+                context.UserId, context.Region, context.GameUid);
+            return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.BotError,
+                "An error occurred while retrieving character information");
         }
     }
 
-    public async Task<Result<HsrCharacterInformation>> GetCharacterDataFromIdAsync(ulong uid, string ltoken,
-        string gameUid, string region, uint characterId)
+    public Task<Result<HsrCharacterInformation>> GetCharacterDetailAsync(CharacterApiContext context)
     {
-        try
-        {
-            m_Logger.LogInformation("Retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            IEnumerable<HsrBasicCharacterData> characterList = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
-            HsrCharacterInformation? character = characterList.FirstOrDefault()?.AvatarList?.FirstOrDefault(x => x.Id == characterId);
-            if (character == null)
-                return Result<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
-                    $"Character with ID {characterId} not found for user {uid} on {region} server (game UID: {gameUid})");
-            m_Logger.LogInformation(
-                "Successfully retrieved character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            return Result<HsrCharacterInformation>.Success(character);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogError(e,
-                "An error occurred while retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            return Result<HsrCharacterInformation>.Failure(HttpStatusCode.InternalServerError,
-                "An error occurred while retrieving character data");
-        }
-    }
-
-    public async Task<Result<HsrCharacterInformation>> GetCharacterDataFromNameAsync(ulong uid, string ltoken,
-        string gameUid, string region, string characterName)
-    {
-        try
-        {
-            m_Logger.LogInformation("Retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            IEnumerable<HsrBasicCharacterData> characterList = await GetAllCharactersAsync(uid, ltoken, gameUid, region);
-            HsrCharacterInformation? character =
-                characterList.FirstOrDefault()?.AvatarList?
-                    .FirstOrDefault(x => x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
-            if (character == null)
-                return Result<HsrCharacterInformation>.Failure(HttpStatusCode.BadRequest,
-                    $"Character with name {characterName} not found for user {uid} on {region} server (game UID: {gameUid})");
-            m_Logger.LogInformation(
-                "Successfully retrieved character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            return Result<HsrCharacterInformation>.Success(character);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogError(e,
-                "An error occurred while retrieving character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                uid, region, gameUid);
-            return Result<HsrCharacterInformation>.Failure(HttpStatusCode.InternalServerError,
-                "An error occurred while retrieving character data");
-        }
+        throw new NotImplementedException();
     }
 }

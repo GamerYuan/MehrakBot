@@ -6,21 +6,12 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Genshin.Types;
 
-public class CharacterListApiResponse
-{
-    [JsonPropertyName("retcode")] public required int Retcode { get; init; }
-
-    [JsonPropertyName("message")] public required string Message { get; init; }
-
-    [JsonPropertyName("data")] public required CharacterListData Data { get; init; }
-}
-
 public class CharacterListData
 {
-    [JsonPropertyName("list")] public List<GenshinBasicCharacterData>? List { get; init; }
+    [JsonPropertyName("list")] public required List<GenshinBasicCharacterData> List { get; init; }
 }
 
-public class GenshinBasicCharacterData : IBasicCharacterData
+public class GenshinBasicCharacterData
 {
     [JsonPropertyName("id")] public int? Id { get; init; }
     [JsonPropertyName("icon")] public required string Icon { get; init; }

@@ -6,16 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Genshin.Types;
 
-public class CharacterDetailApiResponse
-{
-    [JsonPropertyName("retcode")] public int Retcode { get; init; }
-
-    [JsonPropertyName("message")] public string? Message { get; init; }
-
-    [JsonPropertyName("data")] public GenshinCharacterDetail? Data { get; init; }
-}
-
-public class GenshinCharacterDetail : ICharacterDetail
+public class GenshinCharacterDetail
 
 {
     [JsonPropertyName("list")] public required List<GenshinCharacterInformation> List { get; init; }
@@ -76,7 +67,7 @@ public class StatProperty
     [JsonPropertyName("final")] public required string Final { get; init; }
 }
 
-public class GenshinCharacterInformation : ICharacterInformation
+public class GenshinCharacterInformation
 {
     [JsonPropertyName("base")] public required BaseCharacterDetail Base { get; init; }
     [JsonPropertyName("weapon")] public required WeaponDetail Weapon { get; init; }

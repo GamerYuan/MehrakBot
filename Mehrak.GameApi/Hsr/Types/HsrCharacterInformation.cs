@@ -1,13 +1,12 @@
 ﻿#region
 
-using Mehrak.Domain.Interfaces;
 using System.Text.Json.Serialization;
 
 #endregion
 
 namespace Mehrak.GameApi.Hsr.Types;
 
-public class HsrCharacterInformation : ICharacterInformation, ICharacterDetail
+public class HsrCharacterInformation
 {
     [JsonPropertyName("id")] public int? Id { get; init; }
     [JsonPropertyName("level")] public int? Level { get; init; }
@@ -36,11 +35,11 @@ public class HsrCharacterInformation : ICharacterInformation, ICharacterDetail
     }
 }
 
-public class HsrBasicCharacterData : IBasicCharacterData
+public class HsrBasicCharacterData
 {
-    [JsonPropertyName("avatar_list")] public List<HsrCharacterInformation>? AvatarList { get; init; }
-    [JsonPropertyName("equip_wiki")] public Dictionary<string, string>? EquipWiki { get; init; }
-    [JsonPropertyName("relic_wiki")] public Dictionary<string, string>? RelicWiki { get; init; }
+    [JsonPropertyName("avatar_list")] public required List<HsrCharacterInformation> AvatarList { get; init; }
+    [JsonPropertyName("equip_wiki")] public required Dictionary<string, string> EquipWiki { get; init; }
+    [JsonPropertyName("relic_wiki")] public required Dictionary<string, string> RelicWiki { get; init; }
 }
 
 public class Equip
@@ -113,13 +112,6 @@ public class Relic
     {
         return int.Parse(Id?.ToString()[1..^1] ?? "0");
     }
-}
-
-public class CharacterListApiResponse
-{
-    [JsonPropertyName("retcode")] public int? Retcode { get; init; }
-    [JsonPropertyName("message")] public string? Message { get; init; }
-    [JsonPropertyName("data")] public HsrBasicCharacterData? HsrBasicCharacterData { get; init; }
 }
 
 public class ServantDetail
