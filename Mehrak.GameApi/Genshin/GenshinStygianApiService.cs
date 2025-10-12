@@ -6,7 +6,6 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -48,38 +47,30 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
                     "An error occurred while retrieving Stygian Onslaught data");
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            if (json == null)
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinStygianInformation>>(await response.Content.ReadAsStreamAsync());
+            if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to parse Stygian data for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data");
             }
 
-            if (json["retcode"]?.GetValue<int>() == 10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again");
             }
 
-            if (json["retcode"]?.GetValue<int>() != 0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError("Failed to fetch Stygian data for gameUid: {GameUid}, retcode: {Retcode}",
-                    context.GameUid, json["retcode"]?.GetValue<int>());
+                    context.GameUid, json.Retcode);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data");
             }
 
-            var stygianData = json["data"]?.Deserialize<GenshinStygianInformation>();
-            if (stygianData == null)
-            {
-                m_Logger.LogError("Failed to deserialize Stygian data for gameUid: {GameUid}", context.GameUid);
-                return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving Stygian Onslaught data");
-            }
-
-            return Result<GenshinStygianInformation>.Success(stygianData);
+            return Result<GenshinStygianInformation>.Success(json.Data);
         }
         catch (Exception e)
         {

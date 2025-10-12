@@ -45,7 +45,7 @@ public class ZzzAssaultData
 public class RatingData
 {
     [JsonPropertyName("times")] public int Times { get; init; }
-    [JsonPropertyName("rating")] public string Rating { get; init; }
+    [JsonPropertyName("rating")] public required string Rating { get; init; }
 }
 
 public class FloorDetail

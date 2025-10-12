@@ -6,61 +6,50 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Common.Types;
 
-public record GameRecordCardApiResponse(
-    [property: JsonPropertyName("retcode")]
-    int Retcode,
-    [property: JsonPropertyName("message")]
-    string Message,
-    [property: JsonPropertyName("data")] UserData Data
-);
+public class UserData
+{
+    [JsonPropertyName("list")]
+    public required List<GameData> List { get; set; }
+}
 
-public record UserData(
-    [property: JsonPropertyName("list")] IReadOnlyList<GameData> List
-);
+public class GameDataEntry
+{
+    [JsonPropertyName("name")]
+    public required string Name { get; set; }
 
-public record GameDataEntry(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("type")] int? Type,
-    [property: JsonPropertyName("value")] string Value
-);
+    [JsonPropertyName("type")]
+    public int Type { get; set; }
 
-public record DataSwitch(
-    [property: JsonPropertyName("switch_id")]
-    int? SwitchId,
-    [property: JsonPropertyName("is_public")]
-    bool? IsPublic,
-    [property: JsonPropertyName("switch_name")]
-    string SwitchName
-);
+    [JsonPropertyName("value")]
+    public required string Value { get; set; }
+}
 
-public record GameData(
-    [property: JsonPropertyName("has_role")]
-    bool? HasRole,
-    [property: JsonPropertyName("game_id")]
-    int? GameId,
-    [property: JsonPropertyName("game_role_id")]
-    string GameRoleId,
-    [property: JsonPropertyName("nickname")]
-    string Nickname,
-    [property: JsonPropertyName("region")] string Region,
-    [property: JsonPropertyName("level")] int? Level,
-    [property: JsonPropertyName("background_image")]
-    string BackgroundImage,
-    [property: JsonPropertyName("is_public")]
-    bool? IsPublic,
-    [property: JsonPropertyName("data")] IReadOnlyList<GameDataEntry> Data,
-    [property: JsonPropertyName("region_name")]
-    string RegionName,
-    [property: JsonPropertyName("url")] string Url,
-    [property: JsonPropertyName("data_switches")]
-    IReadOnlyList<DataSwitch> DataSwitches,
-    [property: JsonPropertyName("h5_data_switches")]
-    IReadOnlyList<object> H5DataSwitches,
-    [property: JsonPropertyName("background_color")]
-    string BackgroundColor,
-    [property: JsonPropertyName("background_image_v2")]
-    string BackgroundImageV2,
-    [property: JsonPropertyName("logo")] string Logo,
-    [property: JsonPropertyName("game_name")]
-    string Game
-);
+public class GameData
+{
+    [JsonPropertyName("has_role")]
+    public bool? HasRole { get; set; }
+
+    [JsonPropertyName("game_id")]
+    public int? GameId { get; set; }
+
+    [JsonPropertyName("game_role_id")]
+    public required string GameRoleId { get; set; }
+
+    [JsonPropertyName("nickname")]
+    public required string Nickname { get; set; }
+
+    [JsonPropertyName("region")]
+    public required string Region { get; set; }
+
+    [JsonPropertyName("level")]
+    public int? Level { get; set; }
+
+    [JsonPropertyName("data")]
+    public IReadOnlyList<GameDataEntry> Data { get; set; }
+
+    [JsonPropertyName("region_name")]
+    public required string RegionName { get; set; }
+
+    [JsonPropertyName("game_name")]
+    public required string GameName { get; set; }
+}

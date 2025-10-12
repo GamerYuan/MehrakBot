@@ -7,7 +7,6 @@ using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Utilities;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -52,33 +51,31 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            if (json == null)
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrMemoryInformation>>(await response.Content.ReadAsStreamAsync());
+            if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to fetch Memory of Chaos information for gameUid: {GameUid}", context.GameUid);
                 return Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            if (json["retcode"]?.GetValue<int>() == 10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
                 return Result<HsrMemoryInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
-            if (json["retcode"]?.GetValue<int>() != 0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError(
                     "Failed to fetch Memory of Chaos information for gameUid: {GameUid}, retcode: {Retcode}",
-                    context.GameUid, json["retcode"]);
+                    context.GameUid, json.Retcode);
                 return Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var memoryInfo = json["data"]?.Deserialize<HsrMemoryInformation>()!;
-
-            return Result<HsrMemoryInformation>.Success(memoryInfo);
+            return Result<HsrMemoryInformation>.Success(json.Data);
         }
         catch (Exception e)
         {

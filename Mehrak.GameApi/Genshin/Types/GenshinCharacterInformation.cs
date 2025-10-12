@@ -143,21 +143,16 @@ public class Relic
     }
 }
 
-public class RelicSet : IEquatable<RelicSet>
+public sealed class RelicSet : IEquatable<RelicSet>
 {
     [JsonPropertyName("id")] public int? Id { get; init; }
     [JsonPropertyName("name")] public required string Name { get; init; }
 
     [JsonPropertyName("affixes")] public required List<RelicAffix> Affixes { get; init; }
 
-    public override bool Equals(object? other)
+    public override bool Equals(object? obj)
     {
-        return Equals(other as RelicSet);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Id, Name);
+        return Equals(obj as RelicSet);
     }
 
     public bool Equals(RelicSet? other)
@@ -165,6 +160,11 @@ public class RelicSet : IEquatable<RelicSet>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return Id == other.Id && Name == other.Name;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Id, Name);
     }
 }
 

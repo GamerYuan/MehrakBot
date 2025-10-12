@@ -128,7 +128,7 @@ public class DiskDrive
 /// <summary>
 /// Disk Drive set details
 /// </summary>
-public class EquipSuit : IEquatable<EquipSuit>
+public sealed class EquipSuit : IEquatable<EquipSuit>
 {
     [JsonPropertyName("suit_id")]
     public int SuitId { get; set; }

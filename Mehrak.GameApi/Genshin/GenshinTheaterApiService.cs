@@ -6,7 +6,6 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -48,39 +47,38 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
                     "An error occurred while retrieving Imaginarium Theater data");
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            if (json == null)
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinTheaterResponseData>>(await response.Content.ReadAsStreamAsync());
+            if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to parse Theater data for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data");
             }
 
-            if (json["retcode"]?.GetValue<int>() == 10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again");
             }
 
-            if (json["retcode"]?.GetValue<int>() != 0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError("Failed to fetch Theater data for gameUid: {GameUid}, retcode: {Retcode}",
-                    context.GameUid, json["retcode"]?.GetValue<int>());
+                    context.GameUid, json.Retcode);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data");
             }
 
-            // TODO: Update this logic
-            if (json["data"]?["is_unlock"]?.GetValue<bool>() == false)
+            if (!json.Data.IsUnlock)
             {
                 m_Logger.LogInformation("Imaginarium Theater is not unlocked for gameUid: {GameUid}", context.GameUid);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
+                return Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
                     "Imaginarium Theater is not unlocked yet");
             }
 
-            var theaterInfo = json["data"]?["data"]?.Deserialize<GenshinTheaterInformation[]>();
-            if (theaterInfo == null || theaterInfo.Length == 0)
+            var theaterInfo = json.Data.Data;
+            if (theaterInfo == null || theaterInfo.Count == 0)
             {
                 m_Logger.LogError("No Theater data found for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,

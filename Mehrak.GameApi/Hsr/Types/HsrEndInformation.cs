@@ -110,6 +110,6 @@ public class ScheduleTime
 
     public DateTime ToDateTime()
     {
-        return new DateTime(Year, Month, Day, Hour, Minute, 0);
+        return new DateTime(Year, Month, Day, Hour, Minute, 0, DateTimeKind.Unspecified);
     }
 }

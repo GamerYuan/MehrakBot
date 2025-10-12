@@ -7,7 +7,6 @@ using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Utilities;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -53,34 +52,22 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            if (json == null)
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(await response.Content.ReadAsStreamAsync());
+            if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     "Failed to parse JSON response from real-time notes API");
             }
 
-            if (json["retcode"]!.GetValue<int>() == 10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API");
             }
 
-            if (json["data"] == null)
-            {
-                m_Logger.LogError("No data found in real-time notes API response");
-                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    "No data found in real-time notes API response");
-            }
-
-            HsrRealTimeNotesData data = json["data"].Deserialize<HsrRealTimeNotesData>();
-            if (data != null) return Result<HsrRealTimeNotesData>.Success(data);
-
-            m_Logger.LogError("Failed to deserialize real-time notes data");
-            return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                "Failed to deserialize real-time notes data");
+            return Result<HsrRealTimeNotesData>.Success(json.Data);
         }
         catch (Exception e)
         {

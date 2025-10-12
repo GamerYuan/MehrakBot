@@ -6,7 +6,6 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -47,32 +46,30 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            if (json == null)
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinAbyssInformation>>(await response.Content.ReadAsStreamAsync());
+            if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            if (json["retcode"]?.GetValue<int>() == 10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinAbyssInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
-            if (json["retcode"]?.GetValue<int>() != 0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError("Failed to fetch Abyss information for gameUid: {GameUid}, retcode: {Retcode}",
-                    context.GameUid, json["retcode"]);
+                    context.GameUid, json.Retcode);
                 return Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var abyssInfo = json["data"]?.Deserialize<GenshinAbyssInformation>()!;
-
-            return Result<GenshinAbyssInformation>.Success(abyssInfo);
+            return Result<GenshinAbyssInformation>.Success(json.Data);
         }
         catch (Exception e)
         {

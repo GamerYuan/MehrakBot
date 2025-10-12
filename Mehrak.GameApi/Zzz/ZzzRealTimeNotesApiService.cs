@@ -52,7 +52,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
             ApiResponse<ZzzRealTimeNotesData>? json = await
                 JsonSerializer.DeserializeAsync<ApiResponse<ZzzRealTimeNotesData>>(await response.Content.ReadAsStreamAsync(), JsonOptions);
-            if (json == null)
+            if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
@@ -64,13 +64,6 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
                 m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API");
-            }
-
-            if (json.Data == null)
-            {
-                m_Logger.LogError("No data found in real-time notes API response");
-                return Result<ZzzRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    "No data found in real-time notes API response");
             }
 
             return Result<ZzzRealTimeNotesData>.Success(json.Data);

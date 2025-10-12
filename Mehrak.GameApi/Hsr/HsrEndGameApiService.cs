@@ -3,11 +3,11 @@
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Utilities;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 #endregion
@@ -66,8 +66,8 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation, HsrE
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-            if (json == null)
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(await response.Content.ReadAsStreamAsync());
+            if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", context.GameMode.GetString(),
                     context.GameUid);
@@ -75,26 +75,23 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation, HsrE
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            if (json["retcode"]?.GetValue<int>() == 10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
                 return Result<HsrEndInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
             }
 
-            if (json["retcode"]?.GetValue<int>() != 0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError(
                     "Failed to fetch {GameMode} information for gameUid: {GameUid}, retcode: {Retcode}",
-                    context.GameMode.GetString(),
-                    context.GameUid, json["retcode"]);
+                    context.GameMode.GetString(), context.GameUid, json.Retcode);
                 return Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var endGameInfo = json["data"]?.Deserialize<HsrEndInformation>(JsonOptions)!;
-
-            return Result<HsrEndInformation>.Success(endGameInfo);
+            return Result<HsrEndInformation>.Success(json.Data);
         }
         catch (Exception e)
         {

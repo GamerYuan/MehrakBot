@@ -6,7 +6,6 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Genshin.Types;
 
-// Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
 public class ArchonQuestProgress
 {
     [JsonPropertyName("list")] public List<object>? List { get; init; }
@@ -54,7 +53,7 @@ public class DailyTask
     public int StoredAttendanceRefreshCountdown { get; init; }
 }
 
-public class GenshinRealTimeNotesData : IRealTimeNotesData
+public class GenshinRealTimeNotesData
 {
     [JsonPropertyName("current_resin")] public int CurrentResin { get; init; }
 

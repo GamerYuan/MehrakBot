@@ -4,7 +4,7 @@ namespace Mehrak.GameApi.Zzz.Types;
 
 internal class ZzzBasicAvatarResponse
 {
-    [JsonPropertyName("avatar_list")] public required List AvatarList { get; init; }
+    [JsonPropertyName("avatar_list")] public required List<ZzzBasicAvatarData> AvatarList { get; init; }
 }
 
 public class ZzzBasicAvatarData

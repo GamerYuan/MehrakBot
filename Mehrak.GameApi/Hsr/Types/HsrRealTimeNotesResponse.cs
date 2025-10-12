@@ -1,6 +1,4 @@
-﻿// Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
-
-#region
+﻿#region
 
 using System.Text.Json.Serialization;
 
@@ -8,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Hsr.Types;
 
-public class HsrRealTimeNotesData : IRealTimeNotesData
+public class HsrRealTimeNotesData
 {
     [JsonPropertyName("current_stamina")] public int CurrentStamina { get; init; }
 

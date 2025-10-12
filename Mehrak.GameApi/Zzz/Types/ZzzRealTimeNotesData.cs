@@ -1,9 +1,8 @@
-﻿using Mehrak.Domain.Interfaces;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Zzz.Types;
 
-public class ZzzRealTimeNotesData : IRealTimeNotesData
+public class ZzzRealTimeNotesData
 {
     [JsonPropertyName("energy")] public required EnergyInfo Energy { get; init; }
     [JsonPropertyName("vitality")] public required RegenProgress Vitality { get; init; }

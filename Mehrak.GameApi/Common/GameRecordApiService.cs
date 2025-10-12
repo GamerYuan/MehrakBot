@@ -45,7 +45,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred");
             }
 
-            var json = await response.Content.ReadFromJsonAsync<GameRecordCardApiResponse>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>();
             if (json?.Data == null)
             {
                 m_Logger.LogWarning("Failed to retrieve user data for {Uid} - null response", context.UserId);
@@ -57,7 +57,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             var result = json.Data.List.Select(x => new GameRecordDto()
             {
                 GameId = x.GameId ?? 0,
-                GameName = x.Game,
+                GameName = x.GameName,
                 HasRole = x.HasRole ?? false,
                 Nickname = x.Nickname ?? string.Empty,
                 Region = x.Region ?? string.Empty,

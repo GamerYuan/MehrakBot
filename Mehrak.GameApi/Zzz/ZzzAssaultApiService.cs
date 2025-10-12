@@ -60,7 +60,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
         ApiResponse<ZzzAssaultData>? json =
             await response.Content.ReadFromJsonAsync<ApiResponse<ZzzAssaultData>>();
 
-        if (json == null)
+        if (json?.Data == null)
         {
             m_Logger.LogError("Failed to fetch Zzz Assault data for gameUid: {GameUid}, Status Code: {StatusCode}",
                 context.GameUid, response.StatusCode);
@@ -82,7 +82,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
                 "An unknown error occurred when accessing HoYoLAB API. Please try again later");
         }
 
-        return Result<ZzzAssaultData>.Success(json.Data!);
+        return Result<ZzzAssaultData>.Success(json.Data);
     }
 
     /// <summary>

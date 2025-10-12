@@ -6,6 +6,12 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Genshin.Types;
 
+public class GenshinTheaterResponseData
+{
+    [JsonPropertyName("data")] public required List<GenshinTheaterInformation> Data { get; init; }
+    [JsonPropertyName("is_unlock")] public bool IsUnlock { get; init; }
+}
+
 public class ItAvatar
 {
     [JsonPropertyName("avatar_id")] public int AvatarId { get; init; }

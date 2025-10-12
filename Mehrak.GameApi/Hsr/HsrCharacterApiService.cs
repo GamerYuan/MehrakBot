@@ -110,6 +110,9 @@ public class HsrCharacterApiService : ICharacterApiService<HsrBasicCharacterData
         }
     }
 
+    /// <summary>
+    /// Stub! DO NOT USE!
+    /// </summary>
     public Task<Result<HsrCharacterInformation>> GetCharacterDetailAsync(CharacterApiContext context)
     {
         throw new NotImplementedException();
