@@ -31,7 +31,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
     private readonly ICodeRedeemApiService<TModule> m_ApiService;
     private readonly ICodeRedeemRepository m_CodeRedeemRepository;
     private List<string> m_PendingCodes = [];
-    private Regions? m_PendingServer;
+    private Server? m_PendingServer;
 
     protected BaseCodeRedeemExecutor(
         UserRepository userRepository,
@@ -62,7 +62,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
     /// </summary>
     /// <param name="server">The server region</param>
     /// <returns>The region string for API calls</returns>
-    protected abstract string GetRegionString(Regions server);
+    protected abstract string GetRegionString(Server server);
 
     /// <summary>
     /// Gets the error message to display for generic exceptions.
@@ -83,7 +83,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
         if (parameters.Length != 3) throw new ArgumentException("Invalid number of parameters provided.");
 
         var input = (string)parameters[0]!;
-        var server = (Regions?)parameters[1];
+        var server = (Server?)parameters[1];
         var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
 
         try
@@ -152,7 +152,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
         await RedeemCodeAsync(m_PendingCodes, result.LtUid, result.LToken, m_PendingServer!.Value);
     }
 
-    private async ValueTask RedeemCodeAsync(List<string> codes, ulong ltuid, string ltoken, Regions server)
+    private async ValueTask RedeemCodeAsync(List<string> codes, ulong ltuid, string ltoken, Server server)
     {
         try
         {

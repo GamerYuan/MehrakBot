@@ -1,7 +1,10 @@
 ﻿using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Models;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utility;
+using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -15,9 +18,9 @@ using System.Text.Json;
 
 namespace Mehrak.Application.Services.Zzz;
 
-internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData>
+internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsyncInitializable
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<ZzzCharacterCardService> m_Logger;
 
     private Dictionary<string, Image> m_StatImages = [];
@@ -44,7 +47,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
     private static readonly Color BackgroundColor = Color.FromRgb(69, 69, 69);
     private static readonly Color OverlayColor = Color.FromRgb(36, 36, 36);
 
-    public ZzzCharacterCardService(ImageRepository imageRepository, ILogger<ZzzCharacterCardService> logger)
+    public ZzzCharacterCardService(IImageRepository imageRepository, ILogger<ZzzCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -111,14 +114,15 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         m_WeaponStarImages = (await Task.WhenAll(weaponStarTasks)).ToDictionary();
     }
 
-    public async Task<Stream> GenerateCharacterCardAsync(ZzzFullAvatarData characterInformation, string gameUid)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzFullAvatarData> context)
     {
         List<IDisposable> disposables = [];
 
+        var characterInformation = context.Data;
         try
         {
             m_Logger.LogInformation("Generating character card for UID: {GameUid}, Character: {CharacterName}",
-                gameUid, characterInformation.AvatarList[0].Name);
+                context.GameProfile.GameUid, characterInformation.AvatarList[0].Name);
 
             ZzzAvatarData character = characterInformation.AvatarList[0];
 
@@ -196,7 +200,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
                     new PointF(73, bounds.Bottom + 23));
                 ctx.DrawText($"Lv. {character.Level}", m_NormalFont, Color.White,
                     new PointF(70, bounds.Bottom + 20));
-                ctx.DrawText(gameUid, m_SmallFont, Color.White, new PointF(70, 1150));
+                ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.White, new PointF(70, 1150));
 
                 ctx.FillPolygon(BackgroundColor, new PointF(900, 0), new PointF(688, 1200), new PointF(3000, 1200), new PointF(3000, 0));
 
@@ -364,7 +368,7 @@ internal class ZzzCharacterCardService : ICharacterCardService<ZzzFullAvatarData
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to generate character card for {GameUid}, Data:{Data}\n",
-                gameUid, JsonSerializer.Serialize(characterInformation));
+                context.GameProfile.GameUid, JsonSerializer.Serialize(characterInformation));
             throw new CommandException("An error occurred while generating character card", e);
         }
         finally

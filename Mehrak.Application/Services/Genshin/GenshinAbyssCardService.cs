@@ -1,12 +1,13 @@
 ﻿#region
 
 using Mehrak.Application.Models;
-using Mehrak.Application.Services.Genshin;
-using Mehrak.Application.Services.Genshin.Abyss;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utility;
+using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -21,9 +22,10 @@ using System.Numerics;
 
 namespace Mehrak.Application.Services.Genshin;
 
-internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExecutor>, IAsyncInitializable
+internal class GenshinAbyssCardService :
+    ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>, IAsyncInitializable
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinAbyssCardService> m_Logger;
 
     private static readonly JpegEncoder JpegEncoder = new()
@@ -42,7 +44,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
-    public GenshinAbyssCardService(ImageRepository imageRepository, ILogger<GenshinAbyssCardService> logger)
+    public GenshinAbyssCardService(IImageRepository imageRepository, ILogger<GenshinAbyssCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -63,10 +65,11 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"), cancellationToken);
     }
 
-    public async ValueTask<Stream> GetAbyssCardAsync(uint floor, UserGameData gameData, Regions region,
-        GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
+    public async Task<Stream> GetCardAsync(GenshinEndGameGenerationContext<GenshinAbyssInformation> context)
     {
         List<IDisposable> disposableResources = [];
+        var abyssData = context.Data;
+        var floor = context.Floor;
         try
         {
             Floor floorData = abyssData.Floors!.First(x => x.Index == floor);
@@ -75,7 +78,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
                 .SelectAwait(async x =>
                     new GenshinAvatar(x.Id!.Value, x.Level!.Value,
-                        x.Rarity!.Value, constMap[x.Id!.Value], await Image.LoadAsync(
+                        x.Rarity!.Value, context.ConstMap[x.Id!.Value], await Image.LoadAsync(
                             await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.Id!.Value))),
                         0))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
@@ -93,7 +96,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
             Dictionary<GenshinAvatar, Image<Rgba32>> revealRankImages = await abyssData.RevealRank!
                 .ToAsyncEnumerable()
                 .SelectAwait(async x => (x, new GenshinAvatar(x.AvatarId!.Value, 0, x.Rarity!.Value,
-                    constMap[x.AvatarId!.Value],
+                    context.ConstMap[x.AvatarId!.Value],
                     await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.AvatarId!.Value))))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Item2),
@@ -107,6 +110,8 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
 
             Image<Rgba32> background = m_BackgroundImage.CloneAs<Rgba32>();
             disposableResources.Add(background);
+
+            var tzi = context.Server.GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {
@@ -122,18 +127,18 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     VerticalAlignment = VerticalAlignment.Bottom
                 },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!))
-                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy} - " +
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!))
-                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy}",
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
                     Color.White);
 
-                ctx.DrawText($"{gameData.Nickname}·AR {gameData.Level}", m_NormalFont, Color.White,
+                ctx.DrawText($"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", m_NormalFont, Color.White,
                     new PointF(50, 110));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(750, 110),
                     HorizontalAlignment = HorizontalAlignment.Right
-                }, gameData.GameUid!, Color.White);
+                }, context.GameProfile.GameUid!, Color.White);
 
                 IPath statsBackground = ImageUtility.CreateRoundedRectanglePath(700, 250, 15).Translate(50, 170);
                 ctx.Fill(OverlayColor, statsBackground);
@@ -261,7 +266,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                 ctx.DrawImage(m_AbyssStarIconLit, new Point(1395, 47), 1f);
                 for (int i = 0; i < 3; i++)
                 {
-                    int offset = i * 490 + 160;
+                    int offset = (i * 490) + 160;
                     IPath rosterBackground = ImageUtility.CreateRoundedRectanglePath(670, 470, 15)
                         .Translate(785, offset - 60);
                     ctx.Fill(OverlayColor, rosterBackground);
@@ -279,7 +284,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
 
                         for (int j = 0; j < 3; j++)
                         {
-                            int xOffset = 1310 + j * 40;
+                            int xOffset = 1310 + (j * 40);
                             ctx.DrawImage(m_AbyssStarIconUnlit, new Point(xOffset, offset - 45), 1f);
                         }
 
@@ -289,7 +294,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                     Level level = floorData.Levels![i];
                     for (int j = 0; j < 3; j++)
                     {
-                        int xOffset = 1310 + j * 40;
+                        int xOffset = 1310 + (j * 40);
                         ctx.DrawImage(j < floorData.Levels[i].Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
                             new Point(xOffset, offset - 45), 1f);
                     }
@@ -300,7 +305,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
                         Image<Rgba32> rosterImage =
                             GetRosterImage([.. battle.Avatars!.Select(x => x.Id!.Value)], lookup);
                         disposableResources.Add(rosterImage);
-                        int yOffset = offset + j * 200;
+                        int yOffset = offset + (j * 200);
                         ctx.DrawImage(rosterImage, new Point(795, yOffset), 1f);
                     }
                 }
@@ -313,7 +318,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to get abyss card for {GameUid}", gameData.GameUid!);
+            m_Logger.LogError(ex, "Failed to get abyss card for {GameUid}", context.GameProfile.GameUid!);
             throw new CommandException("An error occurred while generating abyss card", ex);
         }
         finally
@@ -327,7 +332,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
     {
         const int avatarWidth = 150;
 
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        int offset = ((4 - avatarIds.Count) * avatarWidth / 2) + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -337,7 +342,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
 
             for (int i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                int x = offset + (i * (avatarWidth + 10));
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

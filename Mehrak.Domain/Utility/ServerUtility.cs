@@ -1,6 +1,8 @@
-﻿namespace MehrakCore.Utility;
+﻿using Mehrak.Domain.Enums;
 
-public static class RegionUtility
+namespace Mehrak.Domain.Utility;
+
+public static class ServerUtility
 {
     public static TimeZoneInfo GetTimeZoneInfo(this Server region)
     {

@@ -23,7 +23,7 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
     private readonly GenshinTheaterApiService m_ApiService;
     private readonly GenshinImageUpdaterService m_ImageUpdaterService;
     private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_CharacterApi;
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public GenshinTheaterCommandExecutor(ICommandService<GenshinTheaterCommandExecutor> commandService,
         IApiService<GenshinTheaterCommandExecutor> apiService, GenshinImageUpdaterService imageUpdaterService,
@@ -41,7 +41,7 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
-        var server = (Regions?)parameters[0];
+        var server = (Server?)parameters[0];
         var profile = (uint)(parameters[1] ?? 1);
         try
         {
@@ -94,7 +94,7 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
         await GetTheaterCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask GetTheaterCardAsync(Regions server, ulong ltuid, string ltoken)
+    private async ValueTask GetTheaterCardAsync(Server server, ulong ltuid, string ltoken)
     {
         try
         {

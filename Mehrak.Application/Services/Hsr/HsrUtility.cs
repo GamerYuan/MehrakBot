@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Mehrak.Application.Services.Hsr;
 
-internal static class HsrCommandUtility
+internal static class HsrUtility
 {
     public static int GetFloorNumber(string text)
     {

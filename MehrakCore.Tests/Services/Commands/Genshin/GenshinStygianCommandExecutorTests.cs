@@ -149,7 +149,7 @@ public class GenshinStygianCommandExecutorTests
     public async Task ExecuteAsync_WithNonExistentUser_ReturnsEarly()
     {
         // Arrange
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -164,7 +164,7 @@ public class GenshinStygianCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithProfile();
-        object[] parameters = [Regions.Asia, 999u]; // Invalid profile ID
+        object[] parameters = [Server.Asia, 999u]; // Invalid profile ID
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -205,7 +205,7 @@ public class GenshinStygianCommandExecutorTests
         // Assert Verify the user's cached server was used
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
-        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[Game.Genshin], Is.EqualTo(Regions.Asia));
+        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[Game.Genshin], Is.EqualTo(Server.Asia));
     }
 
     [Test]
@@ -216,7 +216,7 @@ public class GenshinStygianCommandExecutorTests
         SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -244,7 +244,7 @@ public class GenshinStygianCommandExecutorTests
                 x.RegisterAuthenticationListener(It.IsAny<ulong>(), It.IsAny<IAuthenticationListener>()))
             .Returns(TestGuid);
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -267,7 +267,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(HardChallengeUrl,
             "", HttpStatusCode.InternalServerError);
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -290,7 +290,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(HardChallengeUrl,
             CreateStygianNotUnlockedResponse(), HttpStatusCode.OK);
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -313,7 +313,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(HardChallengeUrl,
             CreateStygianNoDataResponse(), HttpStatusCode.OK);
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -354,7 +354,7 @@ public class GenshinStygianCommandExecutorTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -381,7 +381,7 @@ public class GenshinStygianCommandExecutorTests
         SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -446,7 +446,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
         SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(emptyResponse));
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () => await m_Executor.ExecuteAsync(parameters));
@@ -474,7 +474,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
         SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(errorResponse));
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -494,7 +494,7 @@ public class GenshinStygianCommandExecutorTests
         await SetupCachedToken();
 
         // Test with an invalid region enum value
-        object[] parameters = [(Regions)999, TestProfileId];
+        object[] parameters = [(Server)999, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -525,7 +525,7 @@ public class GenshinStygianCommandExecutorTests
         SetupHttpResponse(AccountRolesUrl, CreateGameRoleResponse());
         SetupHttpResponse(HardChallengeUrl, JsonSerializer.Serialize(complexResponse));
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -551,7 +551,7 @@ public class GenshinStygianCommandExecutorTests
         SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act - Run multiple concurrent requests
         IEnumerable<Task<bool>> tasks = Enumerable.Range(0, 5).Select(async _ =>
@@ -598,7 +598,7 @@ public class GenshinStygianCommandExecutorTests
 
         SetupHttpResponse(AccountRolesUrl, JsonSerializer.Serialize(expiredTokenResponse));
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -625,7 +625,7 @@ public class GenshinStygianCommandExecutorTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new TaskCanceledException("Request timed out"));
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -654,7 +654,7 @@ public class GenshinStygianCommandExecutorTests
                 Content = new StringContent("{ invalid json }", Encoding.UTF8, "application/json")
             });
 
-        object[] parameters = [Regions.Asia, TestProfileId];
+        object[] parameters = [Server.Asia, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -681,7 +681,7 @@ public class GenshinStygianCommandExecutorTests
         // Set the pending server using reflection
         FieldInfo? pendingServerField = typeof(GenshinStygianCommandExecutor).GetField("m_PendingServer",
             BindingFlags.NonPublic | BindingFlags.Instance);
-        pendingServerField?.SetValue(m_Executor, Regions.Asia);
+        pendingServerField?.SetValue(m_Executor, Server.Asia);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -757,16 +757,16 @@ public class GenshinStygianCommandExecutorTests
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.Genshin, Regions.Asia }
+                        { Game.Genshin, Server.Asia }
                     },
                     GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
                             Game.Genshin, new Dictionary<string, string>
                             {
-                                { Regions.Asia.ToString(), TestGameUid }
+                                { Server.Asia.ToString(), TestGameUid }
                             }
                         }
                     }

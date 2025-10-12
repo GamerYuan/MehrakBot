@@ -1,10 +1,11 @@
 ﻿#region
 
-using Mehrak.Application.Services.Genshin.CharList;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -20,9 +21,9 @@ using System.Text.Json;
 
 namespace Mehrak.Application.Services.Genshin;
 
-public class GenshinCharListCardService : ICommandService<GenshinCharListCommandExecutor>
+public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicCharacterData>>
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharListCardService> m_Logger;
 
     private static readonly JpegEncoder JpegEncoder = new()
@@ -86,7 +87,7 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
         { "Dendro", Color.FromRgba(128, 175, 18, 128) }
     };
 
-    public GenshinCharListCardService(ImageRepository imageRepository, ILogger<GenshinCharListCardService> logger)
+    public GenshinCharListCardService(IImageRepository imageRepository, ILogger<GenshinCharListCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -99,14 +100,14 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
         m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
     }
 
-    public async ValueTask<Stream> GetCharListCardAsync(UserGameData gameData,
-        List<GenshinBasicCharacterData> charData)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>> context)
     {
+        var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
         try
         {
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
-                gameData.GameUid, charData.Count);
+                context.GameProfile.GameUid, charData.Count);
 
             Dictionary<int, Image> weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id).ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Id!.Value),
@@ -153,13 +154,13 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
                 {
                     Origin = new Vector2(50, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, $"{gameData.Nickname}·AR {gameData.Level}", Color.White);
+                }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(50, 110),
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, gameData.GameUid!, Color.White);
+                }, context.GameProfile.GameUid!, Color.White);
 
                 foreach (ImageUtility.ImagePosition position in layout.ImagePositions)
                 {
@@ -227,7 +228,7 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
             });
 
             m_Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
-                gameData.GameUid, charData.Count);
+                context.GameProfile.GameUid, charData.Count);
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
@@ -235,7 +236,7 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to get character list card for uid {UserId}\n{CharData}", gameData.GameUid,
+            m_Logger.LogError(ex, "Failed to get character list card for uid {UserId}\n{CharData}", context.GameProfile.GameUid,
                 JsonSerializer.Serialize(charData));
             throw;
         }
@@ -264,7 +265,7 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
             ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 110));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
             {
-                Origin = new Vector2(5, 120 + charLevelRect.Height / 2),
+                Origin = new Vector2(5, 120 + (charLevelRect.Height / 2)),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {charData.Level}", Color.White);
@@ -300,7 +301,7 @@ public class GenshinCharListCardService : ICommandService<GenshinCharListCommand
             ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 110));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
             {
-                Origin = new PointF(295 - weapLevelRect.Width / 2, 120 + weapLevelRect.Height / 2),
+                Origin = new PointF(295 - (weapLevelRect.Width / 2), 120 + (weapLevelRect.Height / 2)),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {charData.Weapon.Level}", Color.White);

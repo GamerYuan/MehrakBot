@@ -108,7 +108,7 @@ public class ZzzDefenseCommandExecutorTests
         SetupApiServiceWithData();
         await m_CardService.InitializeAsync();
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
         Assert.That(bytes, Is.Not.Null);
         Assert.That(bytes, Is.EqualTo(m_GoldenImage));
@@ -123,7 +123,7 @@ public class ZzzDefenseCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WithoutUserInDatabase_ShouldSendErrorMessage()
     {
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("You do not have a profile with this ID"));
     }
@@ -135,7 +135,7 @@ public class ZzzDefenseCommandExecutorTests
         SetupBasicTokenCache();
         SetupGameRoleApiUnauthorized();
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("Invalid HoYoLAB UID or Cookies"));
     }
@@ -148,7 +148,7 @@ public class ZzzDefenseCommandExecutorTests
         m_AuthenticationMiddlewareServiceMock.Setup(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor))
             .Returns(Guid.NewGuid().ToString());
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("Authenticate"));
         m_AuthenticationMiddlewareServiceMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -183,7 +183,7 @@ public class ZzzDefenseCommandExecutorTests
         SetupGameRoleApiSuccess();
         SetupApiServiceNoData();
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("No Shiyu Defense clear records found"));
     }
@@ -207,7 +207,7 @@ public class ZzzDefenseCommandExecutorTests
                 Content = new StringContent("{\"retcode\":0,\"message\":\"OK\",\"data\":{\"has_data\":true,\"begin_time\":\"0\",\"end_time\":\"0\",\"rating_list\":[],\"all_floor_detail\":[]}}", Encoding.UTF8, "application/json")
             });
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("No Shiyu Defense clear records found"));
     }
@@ -230,7 +230,7 @@ public class ZzzDefenseCommandExecutorTests
                 Content = new StringContent("{\"retcode\":10001,\"message\":\"Invalid\",\"data\":null}", Encoding.UTF8, "application/json")
             });
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("Invalid HoYoLAB UID or Cookies"));
     }
@@ -253,7 +253,7 @@ public class ZzzDefenseCommandExecutorTests
                 Content = new StringContent("{\"retcode\":-1,\"message\":\"Err\",\"data\":null}", Encoding.UTF8, "application/json")
             });
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("An error occurred while fetching Shiyu Defense data"));
     }
@@ -276,7 +276,7 @@ public class ZzzDefenseCommandExecutorTests
                 Content = new StringContent("{}", Encoding.UTF8, "application/json")
             });
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("An unknown error occurred when accessing HoYoLAB API"));
     }
@@ -293,7 +293,7 @@ public class ZzzDefenseCommandExecutorTests
         SetupApiServiceWithData();
         await m_CardService.InitializeAsync();
 
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId); // sets pending server
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId); // sets pending server
 
         // simulate authentication completion
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
@@ -311,7 +311,7 @@ public class ZzzDefenseCommandExecutorTests
         SetupNullTokenCache();
         m_AuthenticationMiddlewareServiceMock.Setup(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor))
             .Returns(Guid.NewGuid().ToString());
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId); // sets pending server
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId); // sets pending server
 
         AuthenticationResult failure = AuthenticationResult.Failure(m_TestUserId, "fail");
         await m_Executor.OnAuthenticationCompletedAsync(failure);
@@ -340,13 +340,13 @@ public class ZzzDefenseCommandExecutorTests
                         {
                             Game.ZenlessZoneZero, new Dictionary<string, string>
                             {
-                                { nameof(Regions.Asia), TestGameUid }
+                                { nameof(Server.Asia), TestGameUid }
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Server.Asia }
                     }
                 }
             ]

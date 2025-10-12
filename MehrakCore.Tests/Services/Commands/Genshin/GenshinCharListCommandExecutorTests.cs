@@ -153,13 +153,13 @@ public class GenshinCharListCommandExecutorTests
                         {
                             Game.Genshin, new Dictionary<string, string>
                             {
-                                { nameof(Regions.Asia), TestGameUid }
+                                { nameof(Server.Asia), TestGameUid }
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.Genshin, Regions.Asia }
+                        { Game.Genshin, Server.Asia }
                     }
                 }
             ]
@@ -234,7 +234,7 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_DistributedCacheMock.Verify(
@@ -309,7 +309,7 @@ public class GenshinCharListCommandExecutorTests
         m_CommandExecutor.Context = mockContext.Object;
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -325,7 +325,7 @@ public class GenshinCharListCommandExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(testUser);
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, 999u); // Invalid profile ID
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, 999u); // Invalid profile ID
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -349,7 +349,7 @@ public class GenshinCharListCommandExecutorTests
             .Returns(Guid.NewGuid().ToString());
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_CommandExecutor),
@@ -371,7 +371,7 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync([]); // Empty list
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -397,7 +397,7 @@ public class GenshinCharListCommandExecutorTests
         }));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -423,7 +423,7 @@ public class GenshinCharListCommandExecutorTests
         }));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -448,7 +448,7 @@ public class GenshinCharListCommandExecutorTests
             .ThrowsAsync(new CommandException("An error occurred while generating Character List card"));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -477,7 +477,7 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -571,7 +571,7 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set pending server (simulating it was set during ExecuteAsync)
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Act
         await m_CommandExecutor.OnAuthenticationCompletedAsync(authResult);
@@ -621,7 +621,7 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         // Verify all services were called
@@ -678,7 +678,7 @@ public class GenshinCharListCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert - Should still complete and generate card
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();

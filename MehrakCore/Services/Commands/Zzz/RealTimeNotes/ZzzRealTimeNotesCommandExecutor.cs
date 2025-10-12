@@ -15,7 +15,7 @@ namespace MehrakCore.Services.Commands.Zzz.RealTimeNotes;
 public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNotesCommandExecutor>,
     IRealTimeNotesCommandExecutor<ZzzCommandModule>
 {
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
     private readonly ImageRepository m_ImageRepository;
     private readonly IRealTimeNotesApiService<ZzzRealTimeNotesData> m_ApiService;
 
@@ -38,7 +38,7 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
         if (parameters.Length != 2)
             throw new ArgumentException("Invalid parameters count for real-time notes command");
 
-        Regions? server = (Regions?)parameters[0];
+        Server? server = (Server?)parameters[0];
         uint profile = parameters[1] == null ? 1 : (uint)parameters[1]!;
 
         try
@@ -49,10 +49,10 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
 
             // Auto-select server from cache if not provided
             if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(Game.ZenlessZoneZero, out Regions tmp))
+                selectedProfile.LastUsedRegions.TryGetValue(Game.ZenlessZoneZero, out Server tmp))
                 server = tmp;
 
-            Regions? cachedServer = server ?? GetCachedServer(selectedProfile, Game.ZenlessZoneZero);
+            Server? cachedServer = server ?? GetCachedServer(selectedProfile, Game.ZenlessZoneZero);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
@@ -91,7 +91,7 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
         }
     }
 
-    public async Task SendRealTimeNotesAsync(ulong ltuid, string ltoken, Regions server)
+    public async Task SendRealTimeNotesAsync(ulong ltuid, string ltoken, Server server)
     {
         try
         {
@@ -142,7 +142,7 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
         }
     }
 
-    public async Task<InteractionMessageProperties> BuildRealTimeNotes(ZzzRealTimeNotesData data, Regions server, string gameUid)
+    public async Task<InteractionMessageProperties> BuildRealTimeNotes(ZzzRealTimeNotesData data, Server server, string gameUid)
     {
         Stream stamImage = await m_ImageRepository.DownloadFileToStreamAsync("zzz_battery");
 

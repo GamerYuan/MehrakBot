@@ -30,14 +30,14 @@ public class ZzzCodeRedeemExecutor : BaseCodeRedeemExecutor<ZzzCommandModule, Zz
 
     protected override bool UseFollowupForErrors => false;
 
-    protected override string GetRegionString(Regions server)
+    protected override string GetRegionString(Server server)
     {
         return server switch
         {
-            Regions.Asia => "prod_gf_jp",
-            Regions.Europe => "prod_gf_eu",
-            Regions.America => "prod_gf_us",
-            Regions.Sar => "prod_gf_sg",
+            Server.Asia => "prod_gf_jp",
+            Server.Europe => "prod_gf_eu",
+            Server.America => "prod_gf_us",
+            Server.Sar => "prod_gf_sg",
             _ => throw new ArgumentException("Invalid server name")
         };
     }

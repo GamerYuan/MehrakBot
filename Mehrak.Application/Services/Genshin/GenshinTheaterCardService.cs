@@ -1,12 +1,12 @@
 ﻿#region
 
 using Mehrak.Application.Models;
-using Mehrak.Application.Services.Genshin;
-using Mehrak.Application.Services.Genshin.Theater;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -21,9 +21,10 @@ using System.Numerics;
 
 namespace Mehrak.Application.Services.Genshin;
 
-internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommandExecutor>, IAsyncInitializable
+internal class GenshinTheaterCardService :
+    ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation>, IAsyncInitializable
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinTheaterCardService> m_Logger;
 
     private static readonly JpegEncoder JpegEncoder = new()
@@ -43,7 +44,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
-    public GenshinTheaterCardService(ImageRepository imageRepository, ILogger<GenshinTheaterCardService> logger)
+    public GenshinTheaterCardService(IImageRepository imageRepository, ILogger<GenshinTheaterCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -66,9 +67,9 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         m_Background.Mutate(x => x.Brightness(0.35f));
     }
 
-    public async Task<Stream> GetTheaterCardAsync(GenshinTheaterInformation theaterData, UserGameData userGameData,
-        Dictionary<int, int> constMap, Dictionary<string, Stream> buffMap)
+    public async Task<Stream> GetCardAsync(GenshinEndGameGenerationContext<GenshinTheaterInformation> context)
     {
+        var theaterData = context.Data;
         List<IDisposable> disposableResources = [];
         try
         {
@@ -77,17 +78,18 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                 .DistinctBy(x => x.AvatarId)
                 .ToAsyncEnumerable()
                 .SelectAwait(async y =>
-                    new GenshinAvatar(y.AvatarId, y.Level, y.Rarity, y.AvatarType == 1 ? constMap[y.AvatarId] : 0,
+                    new GenshinAvatar(y.AvatarId, y.Level, y.Rarity, y.AvatarType == 1 ? context.ConstMap[y.AvatarId] : 0,
                         await Image.LoadAsync(
                             await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, y.AvatarId))),
                         y.AvatarType))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
-            Dictionary<string, Image> buffImages = await buffMap.ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Key),
+            Dictionary<string, Image> buffImages = await theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs.ToAsyncEnumerable()
+                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
                     async x =>
                     {
-                        Image image = await Image.LoadAsync(x.Value);
+                        Image image = await Image.LoadAsync(
+                            await m_ImageRepository.DownloadFileToStreamAsync($"zzz_theater_buff_{x.Name.Replace(' ', '_')}"));
                         image.Mutate(ctx => ctx.Resize(50, 0));
                         return image;
                     });
@@ -148,13 +150,13 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, GetDifficultyString(theaterData.Stat.DifficultyId), Color.White);
 
-                ctx.DrawText($"{userGameData.Nickname}·AR {userGameData.Level}", m_NormalFont, Color.White,
+                ctx.DrawText($"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", m_NormalFont, Color.White,
                     new PointF(50, 150));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(905, 150),
                     HorizontalAlignment = HorizontalAlignment.Right
-                }, userGameData.GameUid!, Color.White);
+                }, context.GameProfile.GameUid!, Color.White);
 
                 IPath statsBackground = ImageUtility.CreateRoundedRectanglePath(875, 330, 15).Translate(40, 210);
                 ctx.Fill(OverlayColor, statsBackground);
@@ -389,7 +391,7 @@ internal class GenshinTheaterCardService : ICommandService<GenshinTheaterCommand
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate theater card for uid {GameUid}", userGameData.GameUid);
+            m_Logger.LogError(e, "Failed to generate theater card for uid {GameUid}", context.GameProfile.GameUid);
             throw new CommandException("An error occurred while generating Imaginarium Theater card", e);
         }
         finally

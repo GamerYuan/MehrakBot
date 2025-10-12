@@ -8,14 +8,14 @@ namespace MehrakCore.Services.Commands.Genshin;
 
 internal static class RegionUtility
 {
-    internal static string GetRegion(this Regions server)
+    internal static string GetRegion(this Server server)
     {
         return server switch
         {
-            Regions.Asia => "os_asia",
-            Regions.Europe => "os_euro",
-            Regions.America => "os_usa",
-            Regions.Sar => "os_cht",
+            Server.Asia => "os_asia",
+            Server.Europe => "os_euro",
+            Server.America => "os_usa",
+            Server.Sar => "os_cht",
             _ => throw new ArgumentException("Invalid server name")
         };
     }

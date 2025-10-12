@@ -19,7 +19,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
     private readonly ICharacterCardService<ZzzFullAvatarData> m_CharacterCardService;
     private readonly ImageUpdaterService<ZzzFullAvatarData> m_ImageUpdaterService;
     private string m_PendingCharacterName = string.Empty;
-    private Regions m_PendingServer = Regions.Asia;
+    private Server m_PendingServer = Server.Asia;
 
     public ZzzCharacterCommandExecutor(
         ICharacterApi<ZzzBasicAvatarData, ZzzFullAvatarData> characterApi,
@@ -45,7 +45,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
             throw new ArgumentException("Invalid parameters count for character command");
 
         string characterName = parameters[0] == null ? string.Empty : (string)parameters[0]!;
-        Regions? server = (Regions?)parameters[1];
+        Server? server = (Server?)parameters[1];
         uint profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
 
         try
@@ -106,7 +106,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
     }
 
     private async ValueTask SendCharacterCardResponseAsync(ulong ltuid, string ltoken,
-        string characterName, Regions server)
+        string characterName, Server server)
     {
         try
         {

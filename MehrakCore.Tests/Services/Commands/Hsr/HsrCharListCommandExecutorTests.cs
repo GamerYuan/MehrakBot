@@ -136,13 +136,13 @@ public class HsrCharListCommandExecutorTests
                         {
                             Game.HonkaiStarRail, new Dictionary<string, string>
                             {
-                                { nameof(Regions.Asia), TestGameUid }
+                                { nameof(Server.Asia), TestGameUid }
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Server.Asia }
                     }
                 }
             ]
@@ -273,7 +273,7 @@ public class HsrCharListCommandExecutorTests
         SetupImageUpdaterNoop();
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()),
@@ -296,7 +296,7 @@ public class HsrCharListCommandExecutorTests
         SetupImageUpdaterNoop();
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -349,7 +349,7 @@ public class HsrCharListCommandExecutorTests
             .Verifiable();
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify();
@@ -368,7 +368,7 @@ public class HsrCharListCommandExecutorTests
         SetupCharacterApiWithData();
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -385,7 +385,7 @@ public class HsrCharListCommandExecutorTests
         SetupGameRecordApiError();
 
         // Act
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -421,7 +421,7 @@ public class HsrCharListCommandExecutorTests
         m_DistributedCacheMock.Setup(x =>
             x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
         .ReturnsAsync((byte[]?)null);
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Now complete auth
         SetupGameRecordApiSuccess();
@@ -451,7 +451,7 @@ public class HsrCharListCommandExecutorTests
         m_DistributedCacheMock.Setup(x =>
            x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
        .ReturnsAsync((byte[]?)null);
-        await m_CommandExecutor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Complete auth with no characters
         SetupGameRecordApiSuccess();

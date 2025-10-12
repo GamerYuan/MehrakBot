@@ -50,7 +50,7 @@ public class ZzzDefenseCardServiceTests
         byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
         Stream image = await m_Service.GetDefenseCardAsync(defenseData,
-            GetUserGameData(), Regions.Asia);
+            GetUserGameData(), Server.Asia);
         Assert.That(image, Is.Not.Null);
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);

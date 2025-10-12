@@ -2,8 +2,12 @@
 
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Models;
+using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utility;
+using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -18,9 +22,9 @@ using System.Numerics;
 
 namespace Mehrak.Application.Services.Hsr;
 
-public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInformation>
+public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IAsyncInitializable
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly IRelicRepository m_RelicRepository;
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
@@ -37,7 +41,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
     private readonly JpegEncoder m_JpegEncoder;
     private readonly Image<Rgba32> m_RelicSlotTemplate;
 
-    public HsrCharacterCardService(ImageRepository imageRepository,
+    public HsrCharacterCardService(IImageRepository imageRepository,
         IRelicRepository relicRepository,
         ILogger<HsrCharacterCardService> logger)
     {
@@ -87,11 +91,9 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
         m_Logger.LogInformation("HsrCharacterCardService initialized");
     }
 
-    public async Task<Stream> GenerateCharacterCardAsync(HsrCharacterInformation characterInformation, string gameUid)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrCharacterInformation> context)
     {
-        ArgumentNullException.ThrowIfNull(characterInformation);
-        ArgumentNullException.ThrowIfNull(gameUid);
-
+        HsrCharacterInformation characterInformation = context.Data;
         m_Logger.LogInformation("Generating character card for {CharacterName}", characterInformation.Name);
 
         List<IDisposable> disposableResources = [];
@@ -130,7 +132,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                     Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(x.PointType == 1
                             ? string.Format(BasePath,
-                                HsrImageUpdaterService.StatBonusRegex().Replace(x.SkillStages![0].Name!, ""))
+                                RegexExpressions.HsrStatBonusRegex().Replace(x.SkillStages![0].Name!, ""))
                             : string.Format(BasePath, x.PointId)));
                     return (Data: x, Image: image);
                 }));
@@ -231,7 +233,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
             backgroundImage.Mutate(ctx =>
             {
                 ctx.DrawImage(characterPortrait,
-                    new Point(400 - characterPortrait.Width / 2, 700 - characterPortrait.Height / 2), 1f);
+                    new Point(400 - (characterPortrait.Width / 2), 700 - (characterPortrait.Height / 2)), 1f);
             });
 
             // draw blur
@@ -282,7 +284,7 @@ public class HsrCharacterCardService : ICharacterCardService<HsrCharacterInforma
                 ctx.DrawText($"Lv. {characterInformation.Level}", m_NormalFont, Color.White,
                     new PointF(70, bounds.Bottom + 20));
                 ctx.DrawImage(overlay, new Point(800, 0), 1f);
-                ctx.DrawText(gameUid, m_SmallFont, Color.White, new PointF(70, 1150));
+                ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.White, new PointF(70, 1150));
 
                 for (int i = 0; i < ranks.Length; i++)
                 {

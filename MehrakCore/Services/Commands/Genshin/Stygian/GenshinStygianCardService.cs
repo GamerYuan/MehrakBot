@@ -2,6 +2,7 @@
 
 using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Constants;
@@ -62,7 +63,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
     }
 
     public async ValueTask<Stream> GetStygianCardImageAsync(StygianData stygianInfo, UserGameData gameData,
-        Regions region, Dictionary<int, Stream> monsterImage)
+        Server region, Dictionary<int, Stream> monsterImage)
     {
         List<IDisposable> disposableResources = [];
         try

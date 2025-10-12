@@ -174,9 +174,9 @@ public class HsrBossChallengeCommandExecutorTests
                     {
                         { Game.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Server.Asia }
                     }
                 }
             ]
@@ -328,7 +328,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()),
@@ -348,7 +348,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiError();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -361,7 +361,7 @@ public class HsrBossChallengeCommandExecutorTests
         // Arrange Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -375,7 +375,7 @@ public class HsrBossChallengeCommandExecutorTests
         await CreateTestUserAsync();
 
         // Act - Use a different profile ID
-        await m_Executor.ExecuteAsync(Regions.Asia, 999U);
+        await m_Executor.ExecuteAsync(Server.Asia, 999U);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -390,7 +390,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupTokenCacheEmpty();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -406,7 +406,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeNoData();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -423,7 +423,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -440,7 +440,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiError(10001, "Invalid credentials");
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -454,7 +454,7 @@ public class HsrBossChallengeCommandExecutorTests
         await CreateTestUserAsync();
 
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync(Regions.Asia));
+        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync(Server.Asia));
     }
 
     [Test]
@@ -527,7 +527,7 @@ public class HsrBossChallengeCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
@@ -547,7 +547,7 @@ public class HsrBossChallengeCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
@@ -572,7 +572,7 @@ public class HsrBossChallengeCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
@@ -606,7 +606,7 @@ public class HsrBossChallengeCommandExecutorTests
             .ThrowsAsync(new HttpRequestException("Network error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -645,7 +645,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess(emptyFloorData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -696,7 +696,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess(nullNodeData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -717,7 +717,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess();
 
         // Act - Start execution (should trigger auth)
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Verify auth was requested
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -758,9 +758,9 @@ public class HsrBossChallengeCommandExecutorTests
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.Europe }
+                        { Game.HonkaiStarRail, Server.Europe }
                     }
                 }
             ]
@@ -772,7 +772,7 @@ public class HsrBossChallengeCommandExecutorTests
         SetupBossChallengeApiSuccess();
 
         // Act - Test different regions
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();

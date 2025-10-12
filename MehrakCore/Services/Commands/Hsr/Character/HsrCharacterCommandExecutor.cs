@@ -25,7 +25,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
     private readonly ICharacterCacheService m_CharacterCacheService;
 
     private string m_PendingCharacterName = string.Empty;
-    private Regions m_PendingServer = Regions.Asia;
+    private Server m_PendingServer = Server.Asia;
 
     public HsrCharacterCommandExecutor(ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> characterApi,
         GameRecordApiService gameRecordApi, UserRepository userRepository, RedisCacheService tokenCacheService,
@@ -48,7 +48,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
             throw new ArgumentException("Invalid parameters count for character command");
 
         var characterName = parameters[0] == null ? string.Empty : (string)parameters[0]!;
-        var server = (Regions?)parameters[1];
+        var server = (Server?)parameters[1];
         var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
         try
         {
@@ -90,7 +90,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
         }
     }
 
-    private async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Regions server)
+    private async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Server server)
     {
         try
         {

@@ -163,7 +163,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserDoesNotExist_SendsErrorResponse()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         // Act
@@ -178,7 +178,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserHasNoMatchingProfile_SendsErrorResponse()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 2; // Non-existent profile
 
         var user = CreateTestUser();
@@ -196,7 +196,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenNoServerSpecifiedAndNoCachedServer_SendsErrorResponse()
     {
         // Arrange
-        Regions? server = null;
+        Server? server = null;
         uint profile = 1;
 
         var user = CreateTestUser();
@@ -214,7 +214,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserNotAuthenticated_SendsAuthenticationModal()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -230,7 +230,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserAuthenticated_DefersResponseAndFetchesNotes()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -260,7 +260,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenApiReturnsError_SendsErrorResponse()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -289,7 +289,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenSuccessful_BuildsAndSendsRealTimeNotesCard()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -323,7 +323,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenExceptionThrown_SendsGenericErrorResponse()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -352,9 +352,9 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WithCachedServerFromProfile_UsesCorrectServer()
     {
         // Arrange
-        Regions? server = null; // No server specified
+        Server? server = null; // No server specified
         uint profile = 1;
-        var cachedServer = Regions.Europe;
+        var cachedServer = Server.Europe;
 
         var user = CreateTestUserWithCachedServer(cachedServer);
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -405,7 +405,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenAuthenticationSuccessful_SendsRealTimeNotes()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -440,7 +440,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task BuildRealTimeNotes_CreatesCorrectMessageStructure()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -478,7 +478,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task BuildRealTimeNotes_WhenStaminaFull_ShowsCorrectMessage()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -530,7 +530,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task BuildRealTimeNotes_WhenNoExpeditions_ShowsCorrectMessage()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -582,7 +582,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     public async Task BuildRealTimeNotes_WhenWeeklyFullyClaimed_ShowsCorrectMessage()
     {
         // Arrange
-        var server = Regions.America;
+        var server = Server.America;
         uint profile = 1;
 
         var user = CreateTestUserWithCachedServer(server);
@@ -649,7 +649,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         };
     }
 
-    private UserModel CreateTestUserWithCachedServer(Regions server)
+    private UserModel CreateTestUserWithCachedServer(Server server)
     {
         return new UserModel
         {
@@ -669,7 +669,7 @@ public class HsrRealTimeNotesCommandExecutorTests
                             new Dictionary<string, string> { { server.ToString(), TestGameUid } }
                         }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
                         { Game.HonkaiStarRail, server }
                     }
@@ -684,14 +684,14 @@ public class HsrRealTimeNotesCommandExecutorTests
         SetupTokenCacheForAuthenticated();
     }
 
-    private string CreateValidGameRecordResponse(Regions region = Regions.Asia)
+    private string CreateValidGameRecordResponse(Server region = Server.Asia)
     {
         var regionMapping = region switch
         {
-            Regions.Asia => "prod_official_asia",
-            Regions.Europe => "prod_official_eur",
-            Regions.America => "prod_official_usa",
-            Regions.Sar => "prod_official_cht",
+            Server.Asia => "prod_official_asia",
+            Server.Europe => "prod_official_eur",
+            Server.America => "prod_official_usa",
+            Server.Sar => "prod_official_cht",
             _ => "prod_official_asia"
         };
 
@@ -729,7 +729,7 @@ public class HsrRealTimeNotesCommandExecutorTests
         return JsonSerializer.Serialize(gameRecord);
     }
 
-    private void SetupGameRecordApiForSuccessfulResponse(Regions region = Regions.Asia)
+    private void SetupGameRecordApiForSuccessfulResponse(Server region = Server.Asia)
     {
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(region));
     }
@@ -757,7 +757,7 @@ public class HsrRealTimeNotesCommandExecutorTests
     private void SetupGameRecordApi()
     {
         // For backward compatibility - default to successful response for Asia region
-        SetupGameRecordApiForSuccessfulResponse(Regions.Asia);
+        SetupGameRecordApiForSuccessfulResponse(Server.Asia);
     }
 
     private HsrRealTimeNotesData CreateTestNotesData()

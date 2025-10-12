@@ -152,7 +152,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public void ExecuteAsync_WhenParametersAreInvalid_ThrowsArgumentException()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 0;
         int invalid = 1;
         ArgumentException? ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -165,7 +165,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserHasNoProfiles_SendsErrorResponse()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 1;
 
         UserModel user = new()
@@ -188,7 +188,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserHasNoMatchingProfile_SendsErrorResponse()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 2; // Non-existent profile
 
         UserModel user = CreateTestUser();
@@ -206,7 +206,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenNoServerSpecifiedAndNoCachedServer_SendsErrorResponse()
     {
         // Arrange
-        Regions? server = null;
+        Server? server = null;
         uint profile = 1;
 
         UserModel user = CreateTestUser();
@@ -224,7 +224,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserNotAuthenticated_SendsAuthenticationModal()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 1;
 
         UserModel user = CreateTestUserWithCachedServer(server);
@@ -242,7 +242,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenApiReturnsError_SendsErrorResponse()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 1;
 
         UserModel user = CreateTestUserWithCachedServer(server);
@@ -269,7 +269,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenUserAuthenticated_DefersResponseAndFetchesNotes()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 1;
 
         UserModel user = CreateTestUserWithCachedServer(server);
@@ -304,7 +304,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task ExecuteAsync_WhenImageGenerationSucceeds_SendsImageResponse()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 1;
 
         UserModel user = CreateTestUserWithCachedServer(server);
@@ -357,7 +357,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithSuccessfulResult_FetchesNotesAndSendsCard()
     {
         // Arrange
-        Regions server = Regions.Asia;
+        Server server = Server.Asia;
         uint profile = 1;
 
         UserModel user = CreateTestUserWithCachedServer(server);
@@ -412,7 +412,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
         };
     }
 
-    private UserModel CreateTestUserWithCachedServer(Regions server)
+    private UserModel CreateTestUserWithCachedServer(Server server)
     {
         return new UserModel
         {
@@ -432,7 +432,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
                             new Dictionary<string, string> { { server.ToString(), TestGameUid } }
                         }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
                         { Game.Genshin, server }
                     }

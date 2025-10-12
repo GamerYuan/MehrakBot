@@ -46,7 +46,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -65,7 +65,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
      [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
         string characterName,
      [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
      [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -90,7 +90,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
     public async Task ShiyuCommand(
      [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
      [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
         uint profile = 1
     )
@@ -108,7 +108,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("da", "Get Deadly Assault summary card")]
     public async Task AssaultCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
         uint profile = 1
         )
@@ -126,7 +126,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task NotesCommand(
     [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
     [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {

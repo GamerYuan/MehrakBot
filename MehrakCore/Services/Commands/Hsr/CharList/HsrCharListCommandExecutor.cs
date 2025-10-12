@@ -18,7 +18,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
     private readonly HsrImageUpdaterService m_ImageUpdaterService;
     private readonly ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> m_CharacterApi;
 
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public HsrCharListCommandExecutor(ICommandService<HsrCharListCommandExecutor> commandService,
         ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
@@ -37,7 +37,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
-        Regions? server = (Regions?)parameters[0];
+        Server? server = (Server?)parameters[0];
         uint profile = (uint)(parameters[1] ?? 1);
         try
         {
@@ -90,7 +90,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
         await SendCharListCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask SendCharListCardAsync(Regions server, ulong ltuid, string ltoken)
+    private async ValueTask SendCharListCardAsync(Server server, ulong ltuid, string ltoken)
     {
         try
         {

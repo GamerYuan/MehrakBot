@@ -130,7 +130,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -158,7 +158,7 @@ public class GenshinCodeRedeemExecutorTests
         // Arrange - Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -173,7 +173,7 @@ public class GenshinCodeRedeemExecutorTests
         // Don't add profile to user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 2u); // Non-existent profile
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 2u); // Non-existent profile
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -191,7 +191,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupCodeRedeemApiFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -210,7 +210,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(lowercaseCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(lowercaseCode, Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -230,7 +230,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupHttpResponseForGameRecordFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -270,7 +270,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, null);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, null);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -299,7 +299,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u); // Assert
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u); // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("An unknown error occurred while processing your request"));
     }
@@ -342,7 +342,7 @@ public class GenshinCodeRedeemExecutorTests
             .Verifiable();
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("", Server.Asia, 1u);
 
         // Assert
         // Verify all setup calls were made
@@ -373,7 +373,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(multipleCodes, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(multipleCodes, Server.Asia, 1u);
 
         // Assert
         foreach (string? code in expectedCodes)
@@ -406,7 +406,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         // Verify the code was redeemed
@@ -451,7 +451,7 @@ public class GenshinCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
 
         // Act
-        await m_Executor.ExecuteAsync(codes, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(codes, Server.Asia, 1u);
 
         // Assert
         // Verify only the first two codes were attempted
@@ -500,7 +500,7 @@ public class GenshinCodeRedeemExecutorTests
             .ReturnsAsync([]);
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("", Server.Asia, 1u);
 
         // Assert
         // Should attempt to get codes from repository
@@ -559,7 +559,7 @@ public class GenshinCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Success("Expired code", -2001));
 
         // Act
-        await executor.ExecuteAsync("", Regions.Asia, 1u);
+        await executor.ExecuteAsync("", Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x =>
@@ -606,7 +606,7 @@ public class GenshinCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Set pending parameters by calling ExecuteAsync first
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
@@ -638,17 +638,17 @@ public class GenshinCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.Genshin, Regions.Asia },
-                        { Game.HonkaiStarRail, Regions.Asia }
+                        { Game.Genshin, Server.Asia },
+                        { Game.HonkaiStarRail, Server.Asia }
                     },
                     GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
                             Game.Genshin, new Dictionary<string, string>
                             {
-                                { nameof(Regions.Asia), TestGameUid }
+                                { nameof(Server.Asia), TestGameUid }
                             }
                         }
                     }
@@ -671,10 +671,10 @@ public class GenshinCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.Genshin, Regions.Asia },
-                        { Game.HonkaiStarRail, Regions.Asia }
+                        { Game.Genshin, Server.Asia },
+                        { Game.HonkaiStarRail, Server.Asia }
                     }
                     // No GameUids - this will trigger the API call
                 }

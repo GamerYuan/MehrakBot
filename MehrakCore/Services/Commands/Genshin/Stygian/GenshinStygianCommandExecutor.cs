@@ -23,7 +23,7 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
     private readonly GenshinStygianApiService m_ApiService;
     private readonly GenshinStygianCardService m_CommandService;
 
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public GenshinStygianCommandExecutor(GenshinImageUpdaterService imageUpdaterService,
         ICommandService<GenshinStygianCommandExecutor> commandService,
@@ -40,7 +40,7 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
-        var server = (Regions?)parameters[0];
+        var server = (Server?)parameters[0];
         var profile = (uint)(parameters[1] ?? 1);
         try
         {
@@ -93,7 +93,7 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
         await SendStygianCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask SendStygianCardAsync(Regions server, ulong ltuid, string ltoken)
+    private async ValueTask SendStygianCardAsync(Server server, ulong ltuid, string ltoken)
     {
         try
         {
@@ -167,7 +167,7 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
     }
 
     private async ValueTask<InteractionMessageProperties> GetStygianCardAsync(StygianData stygianData,
-        Regions region, UserGameData gameData, Dictionary<int, Stream> monsterImages)
+        Server region, UserGameData gameData, Dictionary<int, Stream> monsterImages)
     {
         try
         {

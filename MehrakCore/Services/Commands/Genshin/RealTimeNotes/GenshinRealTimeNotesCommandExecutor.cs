@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Models;
 using MehrakCore.Modules;
@@ -22,7 +23,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
     private readonly IRealTimeNotesApiService<GenshinRealTimeNotesData> m_ApiService;
     private readonly ImageRepository m_ImageRepository;
 
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public GenshinRealTimeNotesCommandExecutor(IRealTimeNotesApiService<GenshinRealTimeNotesData> apiService,
         ImageRepository imageRepository, GameRecordApiService gameRecordApi,
@@ -39,7 +40,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
         if (parameters.Length != 2)
             throw new ArgumentException("Invalid parameters count for real-time notes command");
 
-        Regions? server = (Regions?)parameters[0];
+        Server? server = (Server?)parameters[0];
         uint profile = parameters[1] == null ? 1 : (uint)parameters[1]!;
 
         try
@@ -50,10 +51,10 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
 
             // Auto-select server from cache if not provided
             if (selectedProfile.LastUsedRegions != null && !server.HasValue &&
-                selectedProfile.LastUsedRegions.TryGetValue(Game.Genshin, out Regions tmp))
+                selectedProfile.LastUsedRegions.TryGetValue(Game.Genshin, out Server tmp))
                 server = tmp;
 
-            Regions? cachedServer = server ?? GetCachedServer(selectedProfile, Game.Genshin);
+            Server? cachedServer = server ?? GetCachedServer(selectedProfile, Game.Genshin);
             if (!await ValidateServerAsync(cachedServer))
                 return;
 
@@ -92,7 +93,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
         }
     }
 
-    private async ValueTask SendRealTimeNotesAsync(ulong ltuid, string ltoken, Regions server)
+    private async ValueTask SendRealTimeNotesAsync(ulong ltuid, string ltoken, Server server)
     {
         try
         {
@@ -144,7 +145,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
     }
 
     private async ValueTask<InteractionMessageProperties> BuildRealTimeNotes(GenshinRealTimeNotesData data,
-        Regions region, string uid)
+        Server region, string uid)
     {
         try
         {

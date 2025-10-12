@@ -54,7 +54,7 @@ public class GenshinStygianCardServiceTests
         UserGameData userGameData = GetTestUserGameData();
 
         Stream stream =
-            await m_Service.GetStygianCardImageAsync(testData!, userGameData, Regions.Asia, GetMonsterImages());
+            await m_Service.GetStygianCardImageAsync(testData!, userGameData, Server.Asia, GetMonsterImages());
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

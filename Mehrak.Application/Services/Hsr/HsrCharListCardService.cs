@@ -1,9 +1,9 @@
-﻿using Mehrak.Application.Services.Hsr.CharList;
-using Mehrak.Application.Utility;
+﻿using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Models;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -17,9 +17,9 @@ using System.Text.Json;
 
 namespace Mehrak.Application.Services.Hsr;
 
-internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecutor>
+internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInformation>>
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<HsrCharListCardService> m_Logger;
 
     private static readonly JpegEncoder JpegEncoder = new()
@@ -78,7 +78,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
         { "Physical", Color.FromRgba(191, 195, 190, 128) }
     };
 
-    public HsrCharListCardService(ImageRepository imageRepository, ILogger<HsrCharListCardService> logger)
+    public HsrCharListCardService(IImageRepository imageRepository, ILogger<HsrCharListCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -91,14 +91,14 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
         m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
     }
 
-    public async ValueTask<Stream> GetCharListCardAsync(UserGameData gameData,
-        List<HsrCharacterInformation> charData)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<HsrCharacterInformation>> context)
     {
+        var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
         try
         {
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
-                gameData.GameUid, charData.Count);
+                context.GameProfile.GameUid, charData.Count);
             Dictionary<int, Image> weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)
                 .DistinctBy(x => x!.Id!.Value)
                 .ToAsyncEnumerable()
@@ -144,13 +144,13 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                 {
                     Origin = new Vector2(50, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, $"{gameData.Nickname} · AR {gameData.Level}", Color.White);
+                }, $"{context.GameProfile.Nickname} · AR {context.GameProfile.Level}", Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(50, 110),
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, gameData.GameUid!, Color.White);
+                }, context.GameProfile.GameUid!, Color.White);
 
                 foreach (ImageUtility.ImagePosition position in layout.ImagePositions)
                 {
@@ -218,7 +218,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
             });
 
             m_Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
-                gameData.GameUid, charData.Count);
+                context.GameProfile.GameUid, charData.Count);
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
@@ -226,7 +226,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate character list card for user {UserId}, Data:\n{CharData}", gameData.GameUid,
+            m_Logger.LogError(e, "Failed to generate character list card for user {UserId}, Data:\n{CharData}", context.GameProfile.GameUid,
                 JsonSerializer.Serialize(charData));
             throw new CommandException("An error occurred while generating character list card", e);
         }
@@ -243,7 +243,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
         background.Mutate(ctx =>
         {
             ctx.Fill(RarityColors[charData.Rarity!.Value - 2], new RectangleF(0, 0, 150, 180));
-            ctx.Fill(RarityColors[charData.Equip?.Rarity - 2 ?? 0], new RectangleF(150, 0, 150, 180));
+            ctx.Fill(RarityColors[(charData.Equip?.Rarity - 2) ?? 0], new RectangleF(150, 0, 150, 180));
 
             ctx.DrawImage(avatarImage, new Point(0, 0), 1f);
             if (weaponImage is not null)
@@ -256,7 +256,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
             ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 105));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
             {
-                Origin = new Vector2(5, 115 + charLevelRect.Height / 2),
+                Origin = new Vector2(5, 115 + (charLevelRect.Height / 2)),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {charData.Level}", Color.White);
@@ -294,7 +294,7 @@ internal class HsrCharListCardService : ICommandService<HsrCharListCommandExecut
                 ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 105));
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
                 {
-                    Origin = new PointF(295 - weapLevelRect.Width / 2, 115 + weapLevelRect.Height / 2),
+                    Origin = new PointF(295 - (weapLevelRect.Width / 2), 115 + (weapLevelRect.Height / 2)),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"Lv. {charData.Equip.Level}", Color.White);

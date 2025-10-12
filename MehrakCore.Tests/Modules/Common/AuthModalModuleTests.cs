@@ -179,13 +179,13 @@ public class AuthModalModuleTests
                 new()
                 {
                     ProfileId = 1,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.Genshin, Regions.Asia }
+                        { Game.Genshin, Server.Asia }
                     },
                     GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
-                        { Game.Genshin, new Dictionary<string, string> { { nameof(Regions.Asia), "800000001" } } }
+                        { Game.Genshin, new Dictionary<string, string> { { nameof(Server.Asia), "800000001" } } }
                     },
                     LtUid = 123456789UL,
                     LToken = m_EncryptedToken

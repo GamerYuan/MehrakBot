@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
@@ -23,7 +24,7 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
     private readonly ImageUpdaterService<HsrCharacterInformation> m_ImageUpdaterService;
     private readonly HsrMemoryCardService m_CommandService;
 
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public HsrMemoryCommandExecutor(IApiService<HsrMemoryCommandExecutor> apiService,
         ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
@@ -43,7 +44,7 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
         if (parameters.Length != 2)
             throw new ArgumentException("Invalid number of parameters provided.");
 
-        var server = (Regions?)parameters[0];
+        var server = (Server?)parameters[0];
         var profile = (uint)(parameters[1] ?? 1);
 
         try
@@ -97,7 +98,7 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
         await SendMemoryCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask SendMemoryCardAsync(Regions server, ulong ltuid, string ltoken)
+    private async ValueTask SendMemoryCardAsync(Server server, ulong ltuid, string ltoken)
     {
         try
         {
@@ -160,7 +161,7 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
     }
 
     private async ValueTask<InteractionMessageProperties> GetMemoryCardAsync(UserGameData gameData,
-        HsrMemoryInformation memoryData, Regions region)
+        HsrMemoryInformation memoryData, Server region)
     {
         try
         {

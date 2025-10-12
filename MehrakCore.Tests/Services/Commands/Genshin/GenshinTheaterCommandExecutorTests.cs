@@ -181,7 +181,7 @@ public class GenshinTheaterCommandExecutorTests
         // Arrange - Don't create user in database
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -195,7 +195,7 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUser();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, 999u); // Non-existent profile
+        await m_Executor.ExecuteAsync(Server.America, 999u); // Non-existent profile
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -229,7 +229,7 @@ public class GenshinTheaterCommandExecutorTests
         // Assert
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
         Assert.That(user, Is.Not.Null);
-        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[Game.Genshin], Is.EqualTo(Regions.America));
+        Assert.That(user!.Profiles?.FirstOrDefault()?.LastUsedRegions?[Game.Genshin], Is.EqualTo(Server.America));
     }
 
     [Test]
@@ -239,7 +239,7 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUserUnauthenticated(); // User without token
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
@@ -254,7 +254,7 @@ public class GenshinTheaterCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
@@ -269,7 +269,7 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUserWithToken();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -288,7 +288,7 @@ public class GenshinTheaterCommandExecutorTests
             .ReturnsAsync([]);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -304,7 +304,7 @@ public class GenshinTheaterCommandExecutorTests
         SetupTheaterApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -323,7 +323,7 @@ public class GenshinTheaterCommandExecutorTests
             .Throws(new CommandException("Command error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         m_LoggerMock.Verify(
@@ -351,7 +351,7 @@ public class GenshinTheaterCommandExecutorTests
             .Throws(new InvalidOperationException("Unexpected error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         m_LoggerMock.Verify(
@@ -401,7 +401,7 @@ public class GenshinTheaterCommandExecutorTests
         AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Set pending server (this would be set by ExecuteAsync)
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -432,7 +432,7 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUserUnauthenticated(); // User without token
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert - Verify that authentication middleware was called
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
@@ -450,7 +450,7 @@ public class GenshinTheaterCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -478,7 +478,7 @@ public class GenshinTheaterCommandExecutorTests
         }
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert - Should handle duplicates without errors
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -494,7 +494,7 @@ public class GenshinTheaterCommandExecutorTests
         SetupBuffApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -546,7 +546,7 @@ public class GenshinTheaterCommandExecutorTests
             .ReturnsAsync(charactersWithNulls);
 
         // Act & Assert
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(responseContent, Is.Not.Null);
@@ -566,7 +566,7 @@ public class GenshinTheaterCommandExecutorTests
         AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Set pending server
-        await m_Executor.ExecuteAsync(Regions.Europe, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Europe, TestProfileId);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(result);
@@ -606,7 +606,7 @@ public class GenshinTheaterCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.America, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.America, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -700,9 +700,9 @@ public class GenshinTheaterCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        [Game.Genshin] = Regions.America
+                        [Game.Genshin] = Server.America
                     },
                     GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {

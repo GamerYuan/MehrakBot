@@ -60,7 +60,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
         string characterName,
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -85,7 +85,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task NotesCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -104,7 +104,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -123,7 +123,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "floor", Description = "Floor Number (9-12)")]
         uint floor,
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -148,7 +148,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("theater", "Get Imaginarium Theater summary card")]
     public async Task TheaterCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id")]
         uint profile = 1)
     {
@@ -165,7 +165,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("stygian", "Get Stygian Onslaught summary card")]
     public async Task StygianCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -182,7 +182,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("charlist", "Get character list")]
     public async Task CharListCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {

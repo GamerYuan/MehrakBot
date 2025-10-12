@@ -2,6 +2,7 @@
 
 using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Constants;
@@ -63,7 +64,7 @@ internal class GenshinAbyssCardService : ICommandService<GenshinAbyssCommandExec
         m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"), cancellationToken);
     }
 
-    public async ValueTask<Stream> GetAbyssCardAsync(uint floor, UserGameData gameData, Regions region,
+    public async ValueTask<Stream> GetAbyssCardAsync(uint floor, UserGameData gameData, Server region,
         GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
     {
         List<IDisposable> disposableResources = [];

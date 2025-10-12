@@ -139,7 +139,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -167,7 +167,7 @@ public class HsrCodeRedeemExecutorTests
         // Arrange - Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -182,7 +182,7 @@ public class HsrCodeRedeemExecutorTests
         // Don't add profile to user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 2u); // Non-existent profile
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 2u); // Non-existent profile
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -214,7 +214,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -233,7 +233,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(lowercaseCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(lowercaseCode, Server.America, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -256,7 +256,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(codeWithWhitespace, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(codeWithWhitespace, Server.America, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -280,7 +280,7 @@ public class HsrCodeRedeemExecutorTests
             .Returns(guidString);
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
@@ -324,7 +324,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Set pending parameters by calling ExecuteAsync first (with no cached token)
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
@@ -349,7 +349,7 @@ public class HsrCodeRedeemExecutorTests
         SetupHttpResponseForGameRecordFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -389,7 +389,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, null);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, null);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -418,7 +418,7 @@ public class HsrCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -433,7 +433,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Setup to throw an exception
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
@@ -457,11 +457,11 @@ public class HsrCodeRedeemExecutorTests
     }
 
     [Test]
-    [TestCase(Regions.America, "prod_official_usa")]
-    [TestCase(Regions.Europe, "prod_official_eur")]
-    [TestCase(Regions.Asia, "prod_official_asia")]
-    [TestCase(Regions.Sar, "prod_official_cht")]
-    public async Task ExecuteAsync_AllAvailableRegions_ShouldUseCorrectRegions(Regions region, string regionString)
+    [TestCase(Server.America, "prod_official_usa")]
+    [TestCase(Server.Europe, "prod_official_eur")]
+    [TestCase(Server.Asia, "prod_official_asia")]
+    [TestCase(Server.Sar, "prod_official_cht")]
+    public async Task ExecuteAsync_AllAvailableRegions_ShouldUseCorrectRegions(Server region, string regionString)
     {
         // Arrange
         await CreateTestUserAsync();
@@ -494,7 +494,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Set pending parameters by calling ExecuteAsync first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         Mock<IInteractionContext> newContextMock = new();
         SlashCommandInteraction newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
@@ -544,7 +544,7 @@ public class HsrCodeRedeemExecutorTests
             .ReturnsAsync(httpResponse);
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -559,7 +559,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Setup HTTP response for game record failure
         SetupHttpResponseForGameRecordFailure();
@@ -586,7 +586,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(mixedCaseCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(mixedCaseCode, Server.America, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -611,9 +611,9 @@ public class HsrCodeRedeemExecutorTests
                     ProfileId = 2, // Different profile ID
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.America }
+                        { Game.HonkaiStarRail, Server.America }
                     }
                 }
             ]
@@ -622,7 +622,7 @@ public class HsrCodeRedeemExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act - Request profile ID 1 which doesn't exist
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -637,7 +637,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
@@ -671,7 +671,7 @@ public class HsrCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Expired"));
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -686,7 +686,7 @@ public class HsrCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Setup game record API to work
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
@@ -722,7 +722,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(codeWithSpecialChars, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(codeWithSpecialChars, Server.America, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -771,7 +771,7 @@ public class HsrCodeRedeemExecutorTests
             .Verifiable();
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+        await m_Executor.ExecuteAsync("", Server.America, 1u);
 
         // Assert
         // Verify all setup calls were made
@@ -801,7 +801,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(multipleCodes, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(multipleCodes, Server.America, 1u);
 
         // Assert
         foreach (string? code in expectedCodes)
@@ -834,7 +834,7 @@ public class HsrCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.America, 1u);
 
         // Assert
         // Verify the code was redeemed
@@ -879,7 +879,7 @@ public class HsrCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
 
         // Act
-        await m_Executor.ExecuteAsync(codes, Regions.America, 1u);
+        await m_Executor.ExecuteAsync(codes, Server.America, 1u);
 
         // Assert
         // Verify only the first two codes were attempted
@@ -928,7 +928,7 @@ public class HsrCodeRedeemExecutorTests
             .ReturnsAsync([]);
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.America, 1u);
+        await m_Executor.ExecuteAsync("", Server.America, 1u);
 
         // Assert
         // Should attempt to get codes from repository
@@ -987,7 +987,7 @@ public class HsrCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Success("Expired code", -2001));
 
         // Act
-        await executor.ExecuteAsync("", Regions.America, 1u);
+        await executor.ExecuteAsync("", Server.America, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x =>
@@ -1011,16 +1011,16 @@ public class HsrCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.America }
+                        { Game.HonkaiStarRail, Server.America }
                     },
                     GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
                             Game.HonkaiStarRail, new Dictionary<string, string>
                             {
-                                { nameof(Regions.America), TestGameUid }
+                                { nameof(Server.America), TestGameUid }
                             }
                         }
                     }
@@ -1043,9 +1043,9 @@ public class HsrCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.America }
+                        { Game.HonkaiStarRail, Server.America }
                     }
                     // No GameUids - this will trigger the API call
                 }
@@ -1102,14 +1102,14 @@ public class HsrCodeRedeemExecutorTests
         };
     }
 
-    private static string GetGameRecordRegion(Regions region)
+    private static string GetGameRecordRegion(Server region)
     {
         return region switch
         {
-            Regions.America => "prod_official_usa",
-            Regions.Europe => "prod_official_eur",
-            Regions.Asia => "prod_official_asia",
-            Regions.Sar => "prod_official_cht",
+            Server.America => "prod_official_usa",
+            Server.Europe => "prod_official_eur",
+            Server.Asia => "prod_official_asia",
+            Server.Sar => "prod_official_cht",
             _ => "prod_official_usa"
         };
     }

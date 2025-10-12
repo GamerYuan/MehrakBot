@@ -25,7 +25,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
     private readonly ICharacterCacheService m_CharacterCacheService;
 
     private string? m_PendingCharacterName;
-    private Regions? m_PendingServer;
+    private Server? m_PendingServer;
 
     public GenshinCharacterCommandExecutor(
         ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> genshinCharacterApiService,
@@ -54,7 +54,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             throw new ArgumentException("Invalid parameters count for character command");
 
         var characterName = parameters[0] == null ? string.Empty : (string)parameters[0]!;
-        var server = (Regions?)parameters[1];
+        var server = (Server?)parameters[1];
         var profile = parameters[2] == null ? 1 : (uint)parameters[2]!;
         try
         {
@@ -116,7 +116,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
             m_PendingServer!.Value);
     }
 
-    public async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Regions server)
+    public async Task SendCharacterCardResponseAsync(ulong ltuid, string ltoken, string characterName, Server server)
     {
         try
         {

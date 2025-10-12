@@ -5,14 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
+  
   <ItemGroup>
-    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.410" />
+    <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
+    <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
   </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
-      <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
-    </ItemGroup>
 
 </Project>

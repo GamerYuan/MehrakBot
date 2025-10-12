@@ -20,7 +20,7 @@ public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
     private readonly ImageUpdaterService<HsrCharacterInformation> m_ImageUpdaterService;
     private readonly HsrEndGameApiService m_ApiService;
 
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     protected override string GameModeName { get; } = "Pure Fiction";
     protected override string AttachmentName { get; } = "pf_card";
@@ -42,7 +42,7 @@ public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
         if (parameters.Length != 2)
             throw new ArgumentException("Invalid number of parameters provided.");
 
-        var server = (Regions?)parameters[0];
+        var server = (Server?)parameters[0];
         var profile = (uint)(parameters[1] ?? 1);
 
         try
@@ -96,7 +96,7 @@ public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
         await SendPureFictionCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask SendPureFictionCardAsync(Regions server, ulong ltuid, string ltoken)
+    private async ValueTask SendPureFictionCardAsync(Server server, ulong ltuid, string ltoken)
     {
         try
         {

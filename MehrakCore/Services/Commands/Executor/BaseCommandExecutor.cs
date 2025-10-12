@@ -76,7 +76,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// <summary>
     /// Gets the cached server for the specified game from the user's profile, or null if not found.
     /// </summary>
-    protected Regions? GetCachedServer(UserProfile profile, Game gameName)
+    protected Server? GetCachedServer(UserProfile profile, Game gameName)
     {
         if (profile.LastUsedRegions != null &&
             profile.LastUsedRegions.TryGetValue(gameName, out var cachedServer))
@@ -87,7 +87,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// <summary>
     /// Validates that a server is specified, sending an error response if not.
     /// </summary>
-    protected async Task<bool> ValidateServerAsync(Regions? server)
+    protected async Task<bool> ValidateServerAsync(Server? server)
     {
         try
         {
@@ -145,7 +145,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     /// <param name="region">region string</param>
     /// <returns></returns>
     protected async ValueTask<Result<string>> GetAndUpdateGameUidAsync(UserModel? user, Game gameName,
-        ulong ltuid, string ltoken, Regions server, string region)
+        ulong ltuid, string ltoken, Server server, string region)
     {
         try
         {
@@ -203,7 +203,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
                 selectedProfile.GameUids[gameName][server.ToString()] = gameUid;
 
             // Update last used regions
-            selectedProfile.LastUsedRegions ??= new Dictionary<Game, Regions>();
+            selectedProfile.LastUsedRegions ??= new Dictionary<Game, Server>();
 
             if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
                 selectedProfile.LastUsedRegions[gameName] = server;
@@ -219,7 +219,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     }
 
     protected async Task<Result<UserGameData>> GetAndUpdateGameDataAsync(UserModel? user, Game gameName,
-        ulong ltuid, string ltoken, Regions server, string region)
+        ulong ltuid, string ltoken, Server server, string region)
     {
         try
         {
@@ -268,7 +268,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
             }
 
             // Update last used regions
-            selectedProfile.LastUsedRegions ??= new Dictionary<Game, Regions>();
+            selectedProfile.LastUsedRegions ??= new Dictionary<Game, Server>();
 
             if (!selectedProfile.LastUsedRegions.TryAdd(gameName, server))
                 selectedProfile.LastUsedRegions[gameName] = server;

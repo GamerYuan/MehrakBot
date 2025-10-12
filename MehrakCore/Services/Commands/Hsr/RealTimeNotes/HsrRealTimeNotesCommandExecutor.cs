@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
 using MehrakCore.Modules;
@@ -22,7 +23,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
     private readonly IRealTimeNotesApiService<HsrRealTimeNotesData> m_ApiService;
     private readonly ImageRepository m_ImageRepository;
 
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public HsrRealTimeNotesCommandExecutor(IRealTimeNotesApiService<HsrRealTimeNotesData> apiService,
         UserRepository userRepository, ImageRepository imageRepository, RedisCacheService tokenCacheService,
@@ -39,7 +40,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         if (parameters.Length != 2)
             throw new ArgumentException("Invalid parameters count for real-time notes command");
 
-        var server = (Regions?)parameters[0];
+        var server = (Server?)parameters[0];
         var profile = parameters[1] == null ? 1 : (uint)parameters[1]!;
 
         try
@@ -97,7 +98,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         }
     }
 
-    private async ValueTask SendRealTimeNotesAsync(ulong ltuid, string ltoken, Regions server)
+    private async ValueTask SendRealTimeNotesAsync(ulong ltuid, string ltoken, Server server)
     {
         try
         {
@@ -144,7 +145,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
         }
     }
 
-    private async ValueTask<InteractionMessageProperties> BuildRealTimeNotes(HsrRealTimeNotesData data, Regions region,
+    private async ValueTask<InteractionMessageProperties> BuildRealTimeNotes(HsrRealTimeNotesData data, Server region,
         string uid)
     {
         try

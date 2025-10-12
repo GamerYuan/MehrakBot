@@ -53,7 +53,7 @@ public class GenshinAbyssCardServiceTests
         UserGameData userGameData = GetTestUserGameData();
 
         Stream stream =
-            await m_Service.GetAbyssCardAsync(12, userGameData, Regions.Asia, testData!, GetTestConstDictionary());
+            await m_Service.GetAbyssCardAsync(12, userGameData, Server.Asia, testData!, GetTestConstDictionary());
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

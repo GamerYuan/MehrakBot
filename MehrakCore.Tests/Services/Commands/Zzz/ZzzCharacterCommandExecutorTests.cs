@@ -149,14 +149,14 @@ public class ZzzCharacterCommandExecutorTests
     public void ExecuteAsync_WhenParametersCountInvalid_ThrowsArgumentException()
     {
         Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync("only1"));
-        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync("a", Regions.Asia));
-        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync("a", Regions.Asia, 1u, "extra"));
+        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync("a", Server.Asia));
+        Assert.ThrowsAsync<ArgumentException>(async () => await m_Executor.ExecuteAsync("a", Server.Asia, 1u, "extra"));
     }
 
     [Test]
     public async Task ExecuteAsync_WhenUserHasNoProfile_ReturnsNoProfileMessage()
     {
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("You do not have a profile with this ID"));
     }
@@ -175,7 +175,7 @@ public class ZzzCharacterCommandExecutorTests
     {
         // Note: Executor erroneously checks HonkaiStarRail cached server, so
         // set that
-        await CreateOrUpdateTestUserAsync(1, lastUsedRegionForHsr: Regions.Asia);
+        await CreateOrUpdateTestUserAsync(1, lastUsedRegionForHsr: Server.Asia);
         await m_Executor.ExecuteAsync("Jane", null, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring($"auth_modal:{TestGuid}:1"));
@@ -185,7 +185,7 @@ public class ZzzCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenUserNotAuthenticated_ShowsAuthModal()
     {
         await CreateOrUpdateTestUserAsync(1);
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring($"auth_modal:{TestGuid}:1"));
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -194,7 +194,7 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenAuthenticatedAndCharacterFound_SendsCharacterCard()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
         // Provide token in cache
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
@@ -231,7 +231,7 @@ public class ZzzCharacterCommandExecutorTests
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid))
             .ReturnsAsync(new MemoryStream(new byte[128]));
 
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
 
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
@@ -242,7 +242,7 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenAuthenticatedButCharacterNotFound_SendsError()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
@@ -250,7 +250,7 @@ public class ZzzCharacterCommandExecutorTests
             .Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>()))
             .ReturnsAsync([]);
 
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("Character not found"));
     }
@@ -258,7 +258,7 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenAuthenticated_UsesAliasResolution()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
@@ -300,7 +300,7 @@ public class ZzzCharacterCommandExecutorTests
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid))
             .ReturnsAsync(new MemoryStream(new byte[64]));
 
-        await m_Executor.ExecuteAsync("jd", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("jd", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
         m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.ZenlessZoneZero), Times.Once);
@@ -309,7 +309,7 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenCharacterDetailApiFails_SendsErrorMessage()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
@@ -339,7 +339,7 @@ public class ZzzCharacterCommandExecutorTests
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Failure(HttpStatusCode.BadGateway, "Failed to fetch"));
 
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("Failed to fetch"));
     }
@@ -347,7 +347,7 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenCharacterDetailApiReturnsNullData_SendsErrorMessage()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Regions.Asia, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
@@ -378,7 +378,7 @@ public class ZzzCharacterCommandExecutorTests
             .Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>(), 1261u))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(null!));
 
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring("Character data not found"));
     }
@@ -391,7 +391,7 @@ public class ZzzCharacterCommandExecutorTests
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Mock Game Role API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Server.Asia));
 
         // Mock character API
         m_CharacterApiMock
@@ -425,14 +425,14 @@ public class ZzzCharacterCommandExecutorTests
             .Setup(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid))
             .ReturnsAsync(new MemoryStream(new byte[128]));
 
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         // Verify profile updated
         UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(updatedUser?.Profiles?.First().GameUids?[Game.ZenlessZoneZero][Regions.Asia.ToString()], Is.EqualTo(TestGameUid));
-            Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[Game.ZenlessZoneZero], Is.EqualTo(Regions.Asia));
+            Assert.That(updatedUser?.Profiles?.First().GameUids?[Game.ZenlessZoneZero][Server.Asia.ToString()], Is.EqualTo(TestGameUid));
+            Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[Game.ZenlessZoneZero], Is.EqualTo(Server.Asia));
             Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
         }
     }
@@ -462,11 +462,11 @@ public class ZzzCharacterCommandExecutorTests
     {
         // First call ExecuteAsync to set pending state
         await CreateOrUpdateTestUserAsync(1); // No token so it will set pending and show modal
-        await m_Executor.ExecuteAsync("Jane", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         m_DiscordTestHelper.ClearCapturedRequests();
 
         // Prepare API mocks for the auth completion
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Server.Asia));
         m_CharacterApiMock
             .Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>()))
             .ReturnsAsync(
@@ -510,14 +510,14 @@ public class ZzzCharacterCommandExecutorTests
 
     #region Helpers
 
-    private static string CreateValidGameRecordResponse(Regions region = Regions.Asia)
+    private static string CreateValidGameRecordResponse(Server region = Server.Asia)
     {
         string regionMapping = region switch
         {
-            Regions.Asia => "prod_gf_jp",
-            Regions.Europe => "prod_gf_eu",
-            Regions.America => "prod_gf_usa",
-            Regions.Sar => "prod_gf_sg",
+            Server.Asia => "prod_gf_jp",
+            Server.Europe => "prod_gf_eu",
+            Server.America => "prod_gf_usa",
+            Server.Sar => "prod_gf_sg",
             _ => "prod_gf_jp"
         };
 
@@ -572,8 +572,8 @@ public class ZzzCharacterCommandExecutorTests
 
     private async Task<UserModel> CreateOrUpdateTestUserAsync(
         uint profileId = 1,
-        (Regions server, string gameUid)? gameProfileForZzz = null,
-        Regions? lastUsedRegionForHsr = null)
+        (Server server, string gameUid)? gameProfileForZzz = null,
+        Server? lastUsedRegionForHsr = null)
     {
         Dictionary<Game, Dictionary<string, string>>? gameUids = null;
         if (gameProfileForZzz is not null)
@@ -587,10 +587,10 @@ public class ZzzCharacterCommandExecutorTests
             };
         }
 
-        Dictionary<Game, Regions>? lastUsed = null;
+        Dictionary<Game, Server>? lastUsed = null;
         if (lastUsedRegionForHsr is not null)
         {
-            lastUsed = new Dictionary<Game, Regions>
+            lastUsed = new Dictionary<Game, Server>
             {
                 { Game.HonkaiStarRail, lastUsedRegionForHsr.Value }
             };

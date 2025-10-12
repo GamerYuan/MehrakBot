@@ -22,7 +22,7 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
     private readonly GenshinCharListCardService m_CommandService;
     private readonly GenshinImageUpdaterService m_ImageUpdaterService;
     private readonly ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> m_CharacterApi;
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public GenshinCharListCommandExecutor(ICommandService<GenshinCharListCommandExecutor> commandService,
         GenshinImageUpdaterService imageUpdaterService,
@@ -39,7 +39,7 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
 
     public override async ValueTask ExecuteAsync(params object?[] parameters)
     {
-        Regions? server = (Regions?)parameters[0];
+        Server? server = (Server?)parameters[0];
         uint profile = (uint)(parameters[1] ?? 1);
         try
         {
@@ -92,7 +92,7 @@ public class GenshinCharListCommandExecutor : BaseCommandExecutor<GenshinCommand
         await GetCharListCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask GetCharListCardAsync(Regions server, ulong ltuid, string ltoken)
+    private async ValueTask GetCharListCardAsync(Server server, ulong ltuid, string ltoken)
     {
         try
         {

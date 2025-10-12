@@ -146,7 +146,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_ImageUpdaterServiceMock.Verify(x => x.UpdateAvatarAsync(It.IsAny<string>(), It.IsAny<string>()),
@@ -166,7 +166,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiError();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -179,7 +179,7 @@ public class HsrPureFictionCommandExecutorTests
         // Arrange Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -193,7 +193,7 @@ public class HsrPureFictionCommandExecutorTests
         await CreateTestUserAsync();
 
         // Act - Use a different profile ID
-        await m_Executor.ExecuteAsync(Regions.Asia, 999U);
+        await m_Executor.ExecuteAsync(Server.Asia, 999U);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -208,7 +208,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheEmpty();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -224,7 +224,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionNoData();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -241,7 +241,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -258,7 +258,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiError(10001, "Invalid credentials");
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -279,7 +279,7 @@ public class HsrPureFictionCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
@@ -299,7 +299,7 @@ public class HsrPureFictionCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
@@ -344,7 +344,7 @@ public class HsrPureFictionCommandExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
@@ -376,7 +376,7 @@ public class HsrPureFictionCommandExecutorTests
             .ThrowsAsync(new HttpRequestException("Network error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -415,7 +415,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess(emptyFloorData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -466,7 +466,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess(nullNodeData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -487,7 +487,7 @@ public class HsrPureFictionCommandExecutorTests
         SetupPureFictionApiSuccess();
 
         // Act - Start execution (should trigger auth)
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Verify auth was requested
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
@@ -542,9 +542,9 @@ public class HsrPureFictionCommandExecutorTests
                     {
                         { Game.HonkaiStarRail, new Dictionary<string, string> { { "America", TestGameUid } } }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Server.Asia }
                     }
                 }
             ]

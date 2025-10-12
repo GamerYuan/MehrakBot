@@ -168,7 +168,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         // Act
@@ -184,7 +184,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 2; // Non-existent profile
 
         UserModel testUser = new()
@@ -215,7 +215,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        Regions? server = null;
+        Server? server = null;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -246,7 +246,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        Regions? server = null;
+        Server? server = null;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -258,9 +258,9 @@ public class HsrCharacterCommandExecutorTests
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Server.Asia }
                     },
                     GameUids = []
                 }
@@ -275,7 +275,7 @@ public class HsrCharacterCommandExecutorTests
             .ReturnsAsync(tokenBytes);
 
         // Setup game record API for fetching game UID
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Server.Asia));
 
         // Setup character API
         SetupCharacterApiForSuccessfulResponse();
@@ -293,7 +293,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -327,7 +327,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -404,14 +404,14 @@ public class HsrCharacterCommandExecutorTests
         m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedToken);
 
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Server.Asia));
         // Make the character API throw an exception
         m_CharacterApiMock.Setup(x =>
                 x.GetAllCharactersAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ThrowsAsync(new CommandException("An error occurred while retrieving character data"));
 
         // Act
-        await m_Executor.ExecuteAsync("Stelle", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Stelle", Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -423,7 +423,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         string? characterName = null;
-        Regions? server = Regions.Asia;
+        Server? server = Server.Asia;
         uint? profile = null;
 
         UserModel testUser = new()
@@ -472,7 +472,7 @@ public class HsrCharacterCommandExecutorTests
                         {
                             Game.HonkaiStarRail, new Dictionary<string, string>
                             {
-                                { nameof(Regions.Asia), TestGameUid }
+                                { nameof(Server.Asia), TestGameUid }
                             }
                         }
                     }
@@ -480,11 +480,11 @@ public class HsrCharacterCommandExecutorTests
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Set pending parameters
-        await m_Executor.ExecuteAsync("Trailblazer", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("Trailblazer", Server.Asia, 1u);
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup game record API
-        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Regions.Asia));
+        SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Server.Asia));
 
         SetupCharacterApiForSuccessfulResponse();
 
@@ -508,7 +508,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "NonExistentCharacter";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -566,7 +566,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -616,7 +616,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -682,7 +682,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -745,7 +745,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -781,7 +781,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -831,11 +831,11 @@ public class HsrCharacterCommandExecutorTests
     #region Region Mapping Tests
 
     [Test]
-    [TestCase(Regions.Asia, "prod_official_asia")]
-    [TestCase(Regions.Europe, "prod_official_eur")]
-    [TestCase(Regions.America, "prod_official_usa")]
-    [TestCase(Regions.Sar, "prod_official_cht")]
-    public async Task ExecuteAsync_ReturnsCorrectRegionMapping(Regions inputRegion, string expectedRegion)
+    [TestCase(Server.Asia, "prod_official_asia")]
+    [TestCase(Server.Europe, "prod_official_eur")]
+    [TestCase(Server.America, "prod_official_usa")]
+    [TestCase(Server.Sar, "prod_official_cht")]
+    public async Task ExecuteAsync_ReturnsCorrectRegionMapping(Server inputRegion, string expectedRegion)
     {
         // Arrange
         const string characterName = "Trailblazer";
@@ -892,7 +892,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Trailblazer";
-        const Regions server = Regions.Europe;
+        const Server server = Server.Europe;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -913,9 +913,9 @@ public class HsrCharacterCommandExecutorTests
                             }
                         }
                     },
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.Asia } // Different from what we'll use
+                        { Game.HonkaiStarRail, Server.Asia } // Different from what we'll use
                     }
                 }
             ]
@@ -964,7 +964,7 @@ public class HsrCharacterCommandExecutorTests
         // Arrange
         const string aliasName = "TB"; // Alias for Trailblazer
         const string actualCharacterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1050,7 +1050,7 @@ public class HsrCharacterCommandExecutorTests
         // Arrange
         const string aliasName = "tb"; // Lowercase alias for Trailblazer
         const string actualCharacterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1138,7 +1138,7 @@ public class HsrCharacterCommandExecutorTests
         // Arrange
         const string aliasName = "Stelle"; // Alternative alias for Trailblazer
         const string actualCharacterName = "Trailblazer";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1225,7 +1225,7 @@ public class HsrCharacterCommandExecutorTests
         // Arrange
         const string aliasName = "Dr.Ratio"; // Alias with special characters
         const string actualCharacterName = "Dr. Ratio";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1310,7 +1310,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "March"; // This exists as both exact character name and alias
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1400,7 +1400,7 @@ public class HsrCharacterCommandExecutorTests
     {
         // Arrange
         const string invalidAlias = "InvalidAlias";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1474,7 +1474,7 @@ public class HsrCharacterCommandExecutorTests
         // Arrange
         const string aliasName = "FF"; // Alias for Firefly
         const string actualCharacterName = "Firefly";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1549,7 +1549,7 @@ public class HsrCharacterCommandExecutorTests
     public async Task SendCharacterCardResponseAsync_WithEmptyOrNullAlias_ShouldHandleGracefully(string? aliasName)
     {
         // Arrange
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         UserModel testUser = new()
@@ -1615,14 +1615,14 @@ public class HsrCharacterCommandExecutorTests
     #endregion
     #region Helper Methods
 
-    private static string CreateValidGameRecordResponse(Regions region = Regions.Asia)
+    private static string CreateValidGameRecordResponse(Server region = Server.Asia)
     {
         string regionMapping = region switch
         {
-            Regions.Asia => "prod_official_asia",
-            Regions.Europe => "prod_official_eur",
-            Regions.America => "prod_official_usa",
-            Regions.Sar => "prod_official_cht",
+            Server.Asia => "prod_official_asia",
+            Server.Europe => "prod_official_eur",
+            Server.America => "prod_official_usa",
+            Server.Sar => "prod_official_cht",
             _ => "prod_official_asia"
         };
 

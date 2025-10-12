@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;
@@ -33,7 +34,7 @@ public abstract class BaseHsrEndGameCommandExecutor : BaseCommandExecutor<HsrCom
     }
 
     private protected async ValueTask<InteractionMessageProperties> GetEndGameCardAsync(EndGameMode gameMode,
-        UserGameData gameData, HsrEndInformation gameModeData, Regions region, Dictionary<int, Stream> buffMap)
+        UserGameData gameData, HsrEndInformation gameModeData, Server region, Dictionary<int, Stream> buffMap)
     {
         try
         {

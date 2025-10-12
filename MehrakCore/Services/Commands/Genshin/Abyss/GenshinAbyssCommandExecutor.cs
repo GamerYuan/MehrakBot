@@ -25,7 +25,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
     private readonly GenshinAbyssCardService m_CommandService;
 
     private uint m_PendingFloor = 12;
-    private Regions m_PendingServer = Regions.America;
+    private Server m_PendingServer = Server.America;
 
     public GenshinAbyssCommandExecutor(ICommandService<GenshinAbyssCommandExecutor> commandService,
         IApiService<GenshinAbyssCommandExecutor> apiService,
@@ -48,7 +48,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
             throw new ArgumentException("Invalid number of parameters provided.");
 
         var floor = (uint)parameters[0]!;
-        var server = (Regions?)parameters[1];
+        var server = (Server?)parameters[1];
         var profile = (uint)(parameters[2] ?? 1);
 
         try
@@ -103,7 +103,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
         await GetAbyssCardAsync(m_PendingFloor, m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask GetAbyssCardAsync(uint floor, Regions server, ulong ltuid, string ltoken)
+    private async ValueTask GetAbyssCardAsync(uint floor, Server server, ulong ltuid, string ltoken)
     {
         try
         {
@@ -187,7 +187,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
     }
 
     private async ValueTask<InteractionMessageProperties> GenerateAbyssCardAsync(uint floor, UserGameData gameData,
-        Regions region,
+        Server region,
         GenshinAbyssInformation abyssData, Dictionary<int, int> constMap)
     {
         try

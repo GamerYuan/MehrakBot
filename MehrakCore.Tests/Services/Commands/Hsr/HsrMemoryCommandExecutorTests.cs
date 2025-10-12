@@ -160,7 +160,7 @@ public class HsrMemoryCommandExecutorTests
     public async Task ExecuteAsync_UserNotFound_ReturnsEarly()
     {
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -174,7 +174,7 @@ public class HsrMemoryCommandExecutorTests
         await CreateTestUser();
 
         // Act - Use profile ID that doesn't exist
-        await m_Executor.ExecuteAsync(Regions.Asia, 999u);
+        await m_Executor.ExecuteAsync(Server.Asia, 999u);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -220,7 +220,7 @@ public class HsrMemoryCommandExecutorTests
             .ReturnsAsync((byte[]?)null);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(
@@ -235,7 +235,7 @@ public class HsrMemoryCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         UserModel? user = await m_UserRepository.GetUserAsync(m_TestUserId);
@@ -259,7 +259,7 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -305,7 +305,7 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiSuccess(emptyMemoryData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -324,7 +324,7 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiSuccess(noBattleMemoryData);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -340,7 +340,7 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiFailure(new InvalidOperationException("Unexpected error"));
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         string responseContent = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -365,7 +365,7 @@ public class HsrMemoryCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         // Verify image updater was called for each distinct avatar
@@ -398,7 +398,7 @@ public class HsrMemoryCommandExecutorTests
         SetupMemoryApiSuccess(memoryDataWithDuplicates);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         // Verify that each unique avatar ID was only updated once
@@ -479,7 +479,7 @@ public class HsrMemoryCommandExecutorTests
             .ReturnsAsync((byte[]?)null);
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         // Verify deferred response was sent
@@ -533,7 +533,7 @@ public class HsrMemoryCommandExecutorTests
         SetupSuccessfulApiResponses();
 
         // Act
-        await m_Executor.ExecuteAsync(Regions.Asia, TestProfileId);
+        await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Assert
         // Verify all expected HTTP calls were made
@@ -600,9 +600,9 @@ public class HsrMemoryCommandExecutorTests
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.HonkaiStarRail, Regions.Asia }
+                        { Game.HonkaiStarRail, Server.Asia }
                     }
                 }
             ]

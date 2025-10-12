@@ -1,5 +1,6 @@
 ﻿using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Constants;
@@ -72,7 +73,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
         m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg"), cancellationToken);
     }
 
-    public async ValueTask<Stream> GetDefenseCardAsync(ZzzDefenseData data, UserGameData gameData, Regions region)
+    public async ValueTask<Stream> GetDefenseCardAsync(ZzzDefenseData data, UserGameData gameData, Server region)
     {
         List<IDisposable> disposables = [];
         try

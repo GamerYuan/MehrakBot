@@ -29,14 +29,14 @@ public class GenshinCodeRedeemExecutor : BaseCodeRedeemExecutor<GenshinCommandMo
 
     protected override string CommandName => "genshin codes";
 
-    protected override string GetRegionString(Regions server)
+    protected override string GetRegionString(Server server)
     {
         return server switch
         {
-            Regions.Asia => "os_asia",
-            Regions.Europe => "os_euro",
-            Regions.America => "os_usa",
-            Regions.Sar => "os_cht",
+            Server.Asia => "os_asia",
+            Server.Europe => "os_euro",
+            Server.America => "os_usa",
+            Server.Sar => "os_cht",
             _ => throw new ArgumentException("Invalid server name")
         };
     }

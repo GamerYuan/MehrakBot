@@ -1,15 +1,27 @@
 ﻿using Mehrak.Application.Models;
-using Mehrak.Application.Services.Zzz;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utility;
+using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
+using SixLabors.Fonts;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System.Numerics;
 using System.Text.Json;
 
 namespace Mehrak.Application.Services.Zzz;
 
-internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor>, IAsyncInitializable
+internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncInitializable
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<ZzzDefenseCardService> m_Logger;
 
     private readonly Font m_TitleFont;
@@ -30,7 +42,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
     };
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    public ZzzDefenseCardService(ImageRepository imageRepository, ILogger<ZzzDefenseCardService> logger)
+    public ZzzDefenseCardService(IImageRepository imageRepository, ILogger<ZzzDefenseCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -61,8 +73,9 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
         m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg"), cancellationToken);
     }
 
-    public async ValueTask<Stream> GetDefenseCardAsync(ZzzDefenseData data, UserGameData gameData, Regions region)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzDefenseData> context)
     {
+        var data = context.Data;
         List<IDisposable> disposables = [];
         try
         {
@@ -110,6 +123,8 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                 }));
             disposables.Add(background);
 
+            var tzi = context.Server.GetTimeZoneInfo();
+
             background.Mutate(ctx =>
             {
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
@@ -123,9 +138,9 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                     VerticalAlignment = VerticalAlignment.Bottom
                 },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(data.BeginTime))
-                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy} - " +
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(data.EndTime))
-                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy}",
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
                     Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -133,14 +148,14 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
                     Origin = new Vector2(1500, 80),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{gameData.Nickname}·IK {gameData.Level}", Color.White);
+                }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(1500, 110),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
                 },
-                    $"{gameData.GameUid}", Color.White);
+                    $"{context.GameProfile.GameUid}", Color.White);
 
                 IPath ratingModule = ImageUtility.CreateRoundedRectanglePath(500, 90, 15).Translate(450, 30);
                 ctx.Fill(OverlayColor, ratingModule);
@@ -307,7 +322,7 @@ internal class ZzzDefenseCardService : ICommandService<ZzzDefenseCommandExecutor
         catch (Exception e)
         {
             m_Logger.LogError(e, "Error generating Zzz Defense card for UID {GameUid}, Data:\n{Data}",
-                gameData.GameUid, JsonSerializer.Serialize(data));
+                context.GameProfile.GameUid, JsonSerializer.Serialize(data));
             throw new CommandException("An error occurred while generating Shiyu Defense summary card", e);
         }
         finally

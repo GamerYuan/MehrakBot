@@ -1,4 +1,5 @@
 ﻿using Mehrak.Domain.Interfaces;
+using Mehrak.Domain.Utility;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Models;
@@ -18,7 +19,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
     private readonly ZzzAssaultCardService m_CommandService;
     private readonly ZzzImageUpdaterService m_ImageUpdaterService;
 
-    private Regions m_PendingServer;
+    private Server m_PendingServer;
 
     public ZzzAssaultCommandExecutor(
         IApiService<ZzzAssaultCommandExecutor> apiService,
@@ -41,7 +42,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
         if (parameters.Length != 2)
             throw new ArgumentException("Invalid number of parameters provided.");
 
-        Regions? server = (Regions?)parameters[0];
+        Server? server = (Server?)parameters[0];
         uint profile = (uint)(parameters[1] ?? 1);
 
         try
@@ -95,7 +96,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
         await SendAssaultCardAsync(m_PendingServer, result.LtUid, result.LToken).ConfigureAwait(false);
     }
 
-    private async ValueTask SendAssaultCardAsync(Regions server, ulong ltuid, string ltoken)
+    private async ValueTask SendAssaultCardAsync(Server server, ulong ltuid, string ltoken)
     {
         try
         {
@@ -166,7 +167,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
     }
 
     private async ValueTask<InteractionMessageProperties> GetMessageAsync(ZzzAssaultData data, UserGameData gameData,
-        Regions server, Dictionary<string, Stream> bossImages, Dictionary<string, Stream> buffImages)
+        Server server, Dictionary<string, Stream> bossImages, Dictionary<string, Stream> buffImages)
     {
         InteractionMessageProperties message = new();
         TimeZoneInfo tz = server.GetTimeZoneInfo();

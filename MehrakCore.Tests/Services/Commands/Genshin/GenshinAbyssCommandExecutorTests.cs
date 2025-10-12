@@ -180,7 +180,7 @@ public class GenshinAbyssCommandExecutorTests
     public void ExecuteAsync_WithInvalidParameterCount_ThrowsArgumentException()
     {
         // Arrange
-        object[] parameters = [TestFloor, Regions.America]; // Missing profile parameter
+        object[] parameters = [TestFloor, Server.America]; // Missing profile parameter
 
         // Act & Assert
         ArgumentException? exception = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync(parameters).AsTask());
@@ -192,7 +192,7 @@ public class GenshinAbyssCommandExecutorTests
     public async Task ExecuteAsync_WithNonExistentUser_ReturnsEarly()
     {
         // Arrange
-        object[] parameters = [TestFloor, Regions.America, TestProfileId];
+        object[] parameters = [TestFloor, Server.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters); // Assert
@@ -205,7 +205,7 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithProfile();
-        object[] parameters = [TestFloor, Regions.America, 999u]; // Invalid profile ID
+        object[] parameters = [TestFloor, Server.America, 999u]; // Invalid profile ID
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -238,7 +238,7 @@ public class GenshinAbyssCommandExecutorTests
         await SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [TestFloor, Regions.America, TestProfileId];
+        object[] parameters = [TestFloor, Server.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -257,7 +257,7 @@ public class GenshinAbyssCommandExecutorTests
     {
         // Arrange
         await CreateTestUserWithProfile();
-        object[] parameters = [TestFloor, Regions.America, TestProfileId];
+        object[] parameters = [TestFloor, Server.America, TestProfileId];
 
         // Setup token cache to return null (no cached token)
         m_DistributedCacheMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -328,7 +328,7 @@ public class GenshinAbyssCommandExecutorTests
         SetupHttpResponse(SpiralAbyssUrl,
             "", HttpStatusCode.InternalServerError);
 
-        object[] parameters = [TestFloor, Regions.America, TestProfileId];
+        object[] parameters = [TestFloor, Server.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -351,7 +351,7 @@ public class GenshinAbyssCommandExecutorTests
         SetupHttpResponse(SpiralAbyssUrl,
             abyssDataWithoutFloor12, HttpStatusCode.OK);
 
-        object[] parameters = [TestFloor, Regions.America, TestProfileId];
+        object[] parameters = [TestFloor, Server.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -374,7 +374,7 @@ public class GenshinAbyssCommandExecutorTests
                 It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync([]);
 
-        object[] parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = new object[] { TestFloor, Server.America, TestProfileId };
 
         // Act
         await m_Executor.ExecuteAsync(parameters);
@@ -399,9 +399,9 @@ public class GenshinAbyssCommandExecutorTests
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.Genshin, Regions.America }
+                        { Game.Genshin, Server.America }
                     }
                 }
             ]
@@ -659,7 +659,7 @@ public class GenshinAbyssCommandExecutorTests
                 ItExpr.IsAny<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
-        object[] parameters = new object[] { TestFloor, Regions.America, TestProfileId };
+        object[] parameters = new object[] { TestFloor, Server.America, TestProfileId };
 
         // Act
         await m_Executor.ExecuteAsync(parameters); // Assert
@@ -691,9 +691,9 @@ public class GenshinAbyssCommandExecutorTests
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid, // This matches the TestLtUid used in AuthenticationResult
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.Genshin, Regions.America }
+                        { Game.Genshin, Server.America }
                     }
                 }
             ]
@@ -735,7 +735,7 @@ public class GenshinAbyssCommandExecutorTests
         await SetupSuccessfulApiResponses();
         await SetupCachedToken();
 
-        object[] parameters = [TestFloor, Regions.America, TestProfileId];
+        object[] parameters = [TestFloor, Server.America, TestProfileId];
 
         // Act
         await m_Executor.ExecuteAsync(parameters);

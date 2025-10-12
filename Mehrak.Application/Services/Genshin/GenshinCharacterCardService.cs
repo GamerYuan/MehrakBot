@@ -2,8 +2,11 @@
 
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Models;
+using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -18,9 +21,9 @@ using System.Numerics;
 
 namespace Mehrak.Application.Services.Genshin;
 
-public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacterInformation>
+public class GenshinCharacterCardService : ICardService<GenshinCharacterInformation>
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
 
     private Dictionary<int, Image> m_StatImages = null!;
@@ -36,7 +39,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
     private readonly JpegEncoder m_JpegEncoder;
     private readonly Image<Rgba32> m_RelicSlotTemplate;
 
-    public GenshinCharacterCardService(ImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
+    public GenshinCharacterCardService(IImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -93,8 +96,9 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
         m_Logger.LogInformation("GenshinCharacterCardService initialized");
     }
 
-    public async Task<Stream> GenerateCharacterCardAsync(GenshinCharacterInformation charInfo, string gameUid)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinCharacterInformation> context)
     {
+        var charInfo = context.Data;
         m_Logger.LogInformation("Generating character card for {CharacterName} (ID: {CharacterId})",
             charInfo.Base.Name, charInfo.Base.Id);
 
@@ -169,13 +173,13 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
             Image<Rgba32> weaponImage = weaponImageTask.Result;
             disposableResources.Add(weaponImage);
 
-            (bool Active, Image Image)[] constellationIcons = [.. (await Task.WhenAll(constellationTasks))];
+            (bool Active, Image Image)[] constellationIcons = [.. await Task.WhenAll(constellationTasks)];
             disposableResources.AddRange(constellationIcons.Select(c => c.Image));
 
-            (Skill Data, Image Image)[] skillIcons = [.. (await Task.WhenAll(skillTasks))];
+            (Skill Data, Image Image)[] skillIcons = [.. await Task.WhenAll(skillTasks)];
             disposableResources.AddRange(skillIcons.Select(s => s.Image));
 
-            Image<Rgba32>[] relics = [.. (await Task.WhenAll(relicImageTasks))];
+            Image<Rgba32>[] relics = [.. await Task.WhenAll(relicImageTasks)];
             disposableResources.AddRange(relics);
 
             m_Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
@@ -228,7 +232,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 Color textColor = Color.White;
 
                 ctx.DrawImage(characterPortrait,
-                    new Point((1280 - characterPortrait.Width) / 2, 100 + (1080 - characterPortrait.Height) / 2),
+                    new Point((1280 - characterPortrait.Width) / 2, 100 + ((1080 - characterPortrait.Height) / 2)),
                     1f);
 
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, Color.Black, new PointF(73, 58));
@@ -255,7 +259,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                     }, skill.Data.Level.ToString()!, textColor);
                 }
 
-                ctx.DrawText(gameUid, m_SmallFont, textColor, new PointF(60, 1040));
+                ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, textColor, new PointF(60, 1040));
 
                 for (int i = 0; i < constellationIcons.Length; i++)
                 {
@@ -314,7 +318,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < stats.Length; i++)
                 {
                     StatProperty stat = stats[i];
-                    int y = 360 + spacing * i;
+                    int y = 360 + (spacing * i);
                     ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
                     ctx.DrawText(StatMappingUtility.GenshinMapping[stat.PropertyType!.Value], m_NormalFont, textColor,
                         new PointF(1264, y));
@@ -356,7 +360,7 @@ public class GenshinCharacterCardService : ICharacterCardService<GenshinCharacte
                 for (int i = 0; i < relics.Length; i++)
                 {
                     Image<Rgba32> relic = relics[i];
-                    ctx.DrawImage(relic, new Point(2200, 40 + i * 185), 1f);
+                    ctx.DrawImage(relic, new Point(2200, 40 + (i * 185)), 1f);
                 }
 
                 if (activeSet.Count > 0)

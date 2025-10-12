@@ -131,7 +131,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -159,7 +159,7 @@ public class ZzzCodeRedeemExecutorTests
         // Arrange - Don't create a user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -174,7 +174,7 @@ public class ZzzCodeRedeemExecutorTests
         // Don't add profile to user
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 2u); // Non-existent profile
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 2u); // Non-existent profile
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -206,7 +206,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -225,7 +225,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(lowercaseCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(lowercaseCode, Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -248,7 +248,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(codeWithWhitespace, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(codeWithWhitespace, Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -272,7 +272,7 @@ public class ZzzCodeRedeemExecutorTests
             .Returns(guidString);
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
@@ -296,7 +296,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters by calling ExecuteAsync first (with no cached token)
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
@@ -321,7 +321,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupHttpResponseForGameRecordFailure();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -361,7 +361,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, null);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, null);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -390,7 +390,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -405,7 +405,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Setup to throw an exception
         m_CodeRedeemApiServiceMock.Setup(x => x.RedeemCodeAsync(
@@ -429,11 +429,11 @@ public class ZzzCodeRedeemExecutorTests
     }
 
     [Test]
-    [TestCase(Regions.America, "prod_gf_us")]
-    [TestCase(Regions.Europe, "prod_gf_eu")]
-    [TestCase(Regions.Asia, "prod_gf_jp")]
-    [TestCase(Regions.Sar, "prod_gf_sg")]
-    public async Task ExecuteAsync_AllAvailableRegions_ShouldUseCorrectRegions(Regions region, string regionString)
+    [TestCase(Server.America, "prod_gf_us")]
+    [TestCase(Server.Europe, "prod_gf_eu")]
+    [TestCase(Server.Asia, "prod_gf_jp")]
+    [TestCase(Server.Sar, "prod_gf_sg")]
+    public async Task ExecuteAsync_AllAvailableRegions_ShouldUseCorrectRegions(Server region, string regionString)
     {
         // Arrange
         await CreateTestUserAsync();
@@ -466,7 +466,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters by calling ExecuteAsync first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         Mock<IInteractionContext> newContextMock = new();
         SlashCommandInteraction newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
@@ -516,7 +516,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(httpResponse);
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -531,7 +531,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Setup HTTP response for game record failure
         SetupHttpResponseForGameRecordFailure();
@@ -558,7 +558,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(mixedCaseCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(mixedCaseCode, Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -583,9 +583,9 @@ public class ZzzCodeRedeemExecutorTests
                     ProfileId = 2, // Different profile ID
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Server.Asia }
                     }
                 }
             ]
@@ -594,7 +594,7 @@ public class ZzzCodeRedeemExecutorTests
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Act - Request profile ID 1 which doesn't exist
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -609,7 +609,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
@@ -643,7 +643,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Failure(HttpStatusCode.Unauthorized, "Redemption Code Expired"));
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -678,7 +678,7 @@ public class ZzzCodeRedeemExecutorTests
 
         // Set pending parameters first
         SetupTokenCacheEmpty();
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Setup game record API to work
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
@@ -714,7 +714,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(codeWithSpecialChars, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(codeWithSpecialChars, Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x => x.RedeemCodeAsync(
@@ -763,7 +763,7 @@ public class ZzzCodeRedeemExecutorTests
             .Verifiable();
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("", Server.Asia, 1u);
 
         // Assert
         // Verify all setup calls were made
@@ -793,7 +793,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(multipleCodes, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(multipleCodes, Server.Asia, 1u);
 
         // Assert
         foreach (string? code in expectedCodes)
@@ -826,7 +826,7 @@ public class ZzzCodeRedeemExecutorTests
         SetupCodeRedeemApiSuccess();
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         // Verify the code was redeemed
@@ -871,7 +871,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Code redemption failed"));
 
         // Act
-        await m_Executor.ExecuteAsync(codes, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(codes, Server.Asia, 1u);
 
         // Assert
         // Verify only the first two codes were attempted
@@ -920,7 +920,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync([]);
 
         // Act
-        await m_Executor.ExecuteAsync("", Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync("", Server.Asia, 1u);
 
         // Assert
         // Should attempt to get codes from repository
@@ -980,7 +980,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Success("Expired code", -2001));
 
         // Act
-        await executor.ExecuteAsync("", Regions.Asia, 1u);
+        await executor.ExecuteAsync("", Server.Asia, 1u);
 
         // Assert
         m_CodeRedeemApiServiceMock.Verify(x =>
@@ -1012,7 +1012,7 @@ public class ZzzCodeRedeemExecutorTests
             .ReturnsAsync(Result<string>.Failure(HttpStatusCode.BadRequest, "Test error message"));
 
         // Act
-        await m_Executor.ExecuteAsync(TestCode, Regions.Asia, 1u);
+        await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
         // Assert
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -1031,16 +1031,16 @@ public class ZzzCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Server.Asia }
                     },
                     GameUids = new Dictionary<Game, Dictionary<string, string>>
                     {
                         {
                             Game.ZenlessZoneZero, new Dictionary<string, string>
                             {
-                                { nameof(Regions.Asia), TestGameUid }
+                                { nameof(Server.Asia), TestGameUid }
                             }
                         }
                     }
@@ -1063,9 +1063,9 @@ public class ZzzCodeRedeemExecutorTests
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     LToken = TestLToken,
-                    LastUsedRegions = new Dictionary<Game, Regions>
+                    LastUsedRegions = new Dictionary<Game, Server>
                     {
-                        { Game.ZenlessZoneZero, Regions.Asia }
+                        { Game.ZenlessZoneZero, Server.Asia }
                     }
                     // No GameUids - this will trigger the API call
                 }
@@ -1122,14 +1122,14 @@ public class ZzzCodeRedeemExecutorTests
         };
     }
 
-    private static string GetGameRecordRegion(Regions region)
+    private static string GetGameRecordRegion(Server region)
     {
         return region switch
         {
-            Regions.America => "prod_gf_us",
-            Regions.Europe => "prod_gf_eu",
-            Regions.Asia => "prod_gf_jp",
-            Regions.Sar => "prod_gf_sg",
+            Server.America => "prod_gf_us",
+            Server.Europe => "prod_gf_eu",
+            Server.Asia => "prod_gf_jp",
+            Server.Sar => "prod_gf_sg",
             _ => "prod_gf_us"
         };
     }

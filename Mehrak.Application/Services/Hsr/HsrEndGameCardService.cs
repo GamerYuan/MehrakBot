@@ -1,12 +1,13 @@
 ﻿#region
 
 using Mehrak.Application.Models;
-using Mehrak.Application.Services.Hsr;
-using Mehrak.Application.Services.Hsr.EndGame;
+using Mehrak.Application.Services.Hsr.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Hsr;
+using Mehrak.Domain.Enums;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -22,9 +23,9 @@ using System.Text.Json;
 
 namespace Mehrak.Application.Services.Hsr;
 
-internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExecutor>, IAsyncInitializable
+internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext, HsrEndInformation>, IAsyncInitializable
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<HsrEndGameCardService> m_Logger;
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -44,7 +45,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    public HsrEndGameCardService(ImageRepository imageRepository, ILogger<HsrEndGameCardService> logger)
+    public HsrEndGameCardService(IImageRepository imageRepository, ILogger<HsrEndGameCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -75,9 +76,9 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
         m_BossCheckmark = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_boss_check"), cancellationToken);
     }
 
-    public async ValueTask<Stream> GetEndGameCardImageAsync(EndGameMode gameMode, UserGameData gameData,
-        HsrEndInformation gameModeData, Dictionary<int, Stream> buffMap)
+    public async Task<Stream> GetCardAsync(HsrEndGameGenerationContext context)
     {
+        var gameModeData = context.Data;
         List<IDisposable> disposables = [];
         try
         {
@@ -89,11 +90,12 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                             await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.HsrAvatarName, x.Id))))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), HsrAvatarIdComparer.Instance);
-            ValueTask<Dictionary<int, Image>> buffImageTask = buffMap.ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                async x => await Task.FromResult(x.Key),
+            ValueTask<Dictionary<int, Image>> buffImageTask = gameModeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
+                .SelectMany(x => new HsrEndBuff[] { x.Node1!.Buff, x.Node2!.Buff }).DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAwaitAsync(
+                async x => await Task.FromResult(x.Id),
                 async x =>
                 {
-                    Image image = await Image.LoadAsync(x.Value);
+                    Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"hsr_endgame_buff_{x.Id}"));
                     image.Mutate(ctx => ctx.Resize(110, 0));
                     return image;
                 });
@@ -106,32 +108,32 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
             disposables.AddRange(buffImages.Values);
 
             Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
-            List<(int FloorNumber, HsrEndFloorDetail? Data)> floorDetails = gameMode switch
+            List<(int FloorNumber, HsrEndFloorDetail? Data)> floorDetails = context.GameMode switch
             {
-                EndGameMode.PureFiction => [.. Enumerable.Range(0, 4)
+                HsrEndGameMode.PureFiction => [.. Enumerable.Range(0, 4)
                         .Select(floorIndex =>
                         {
                             HsrEndFloorDetail? floorData = gameModeData.AllFloorDetail
-                                .FirstOrDefault(x => HsrCommandUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
+                                .FirstOrDefault(x => HsrUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
                             return (FloorNumber: floorIndex, Data: floorData);
                         })],
-                EndGameMode.ApocalypticShadow => [.. Enumerable.Range(0, 4)
+                HsrEndGameMode.ApocalypticShadow => [.. Enumerable.Range(0, 4)
                         .Select(floorIndex =>
                         {
                             HsrEndFloorDetail? floorData = gameModeData.AllFloorDetail
                                 .FirstOrDefault(x => x.Name.EndsWith((floorIndex + 1).ToString()));
                             return (FloorNumber: floorIndex, Data: floorData);
                         })],
-                _ => throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null),
+                _ => throw new InvalidOperationException()
             };
             int height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
-            Image<Rgba32> background = gameMode switch
+            Image<Rgba32> background = context.GameMode switch
             {
-                EndGameMode.PureFiction => m_PfBackground.CloneAs<Rgba32>(),
-                EndGameMode.ApocalypticShadow => m_AsBackground.CloneAs<Rgba32>(),
-                _ => throw new ArgumentOutOfRangeException(nameof(gameMode), gameMode, null)
+                HsrEndGameMode.PureFiction => m_PfBackground.CloneAs<Rgba32>(),
+                HsrEndGameMode.ApocalypticShadow => m_AsBackground.CloneAs<Rgba32>(),
+                _ => throw new InvalidOperationException()
             };
 
             disposables.Add(background);
@@ -147,7 +149,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                 });
 
                 HsrEndGroup group = gameModeData.Groups[0];
-                string modeString = gameMode.GetString();
+                string modeString = context.GameMode.GetString();
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
@@ -180,18 +182,18 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom
                 },
-                    $"{gameData.Nickname} • TB {gameData.Level}", Color.White);
+                    $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(1900, 120),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, gameData.GameUid!, Color.White);
+                }, context.GameProfile.GameUid!, Color.White);
 
                 int yOffset = 150;
                 foreach ((int floorNumber, HsrEndFloorDetail? floorData) in floorDetails)
                 {
-                    int xOffset = floorNumber % 2 * 950 + 50;
+                    int xOffset = (floorNumber % 2 * 950) + 50;
 
                     IPath overlay;
 
@@ -225,11 +227,11 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                             }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
-                        string stageText = gameMode switch
+                        string stageText = context.GameMode switch
                         {
-                            EndGameMode.PureFiction =>
-                                $"{gameModeData.Groups[0].Name} ({HsrCommandUtility.GetRomanNumeral(floorNumber + 1)})",
-                            EndGameMode.ApocalypticShadow =>
+                            HsrEndGameMode.PureFiction =>
+                                $"{gameModeData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})",
+                            HsrEndGameMode.ApocalypticShadow =>
                                 $"{gameModeData.Groups[0].Name}: Difficulty {floorNumber + 1}",
                             _ => ""
                         };
@@ -245,7 +247,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
 
                         for (int i = 0; i < 3; i++)
                             ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
-                                new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
+                                new Point(xOffset + 730 + (i * 50), yOffset + 5), 1f);
 
                         if (floorNumber % 2 == 1) yOffset += 200;
                         continue;
@@ -271,7 +273,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                         Origin = new Vector2(xOffset + 855, yOffset + 85),
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, $"Score: {floorData.Node1.Score}", Color.White);
-                    if (gameMode == EndGameMode.ApocalypticShadow && floorData.Node1.BossDefeated)
+                    if (context.GameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node1.BossDefeated)
                         ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 83),
                             1f);
 
@@ -289,7 +291,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                         Origin = new Vector2(xOffset + 855, yOffset + 350),
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, $"Score: {floorData.Node2.Score}", Color.White);
-                    if (gameMode == EndGameMode.ApocalypticShadow && floorData.Node2.BossDefeated)
+                    if (context.GameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node2.BossDefeated)
                         ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 348),
                             1f);
 
@@ -302,7 +304,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
 
                     for (int i = 0; i < 3; i++)
                         ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
-                            new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
+                            new Point(xOffset + 730 + (i * 50), yOffset + 5), 1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 720, yOffset + 10),
                         new PointF(xOffset + 720, yOffset + 55));
                     string scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
@@ -315,7 +317,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
                         Color.White);
 
                     // Draw cycle number
-                    if (gameMode == EndGameMode.PureFiction)
+                    if (context.GameMode == HsrEndGameMode.PureFiction)
                     {
                         FontRectangle size = TextMeasurer.MeasureSize(scoreText, new TextOptions(m_NormalFont));
                         ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 695 - (int)size.Width, yOffset + 10),
@@ -342,8 +344,8 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to generate {GameMode} card image for uid {UserId}\n{JsonString}",
-                gameMode.GetString(), gameData, JsonSerializer.Serialize(gameModeData));
-            throw new CommandException($"An error occurred while generating {gameMode.GetString()} card image", e);
+                context.GameMode.GetString(), context.GameProfile, JsonSerializer.Serialize(gameModeData));
+            throw new CommandException($"An error occurred while generating {context.GameMode.GetString()} card image", e);
         }
         finally
         {
@@ -361,7 +363,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
     {
         const int avatarWidth = 150;
 
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        int offset = ((4 - avatarIds.Count) * avatarWidth / 2) + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -371,7 +373,7 @@ internal class HsrEndGameCardService : ICommandService<BaseHsrEndGameCommandExec
 
             for (int i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                int x = offset + (i * (avatarWidth + 10));
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

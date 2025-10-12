@@ -1,9 +1,21 @@
 ﻿#region
 
 using Mehrak.Application.Models;
-using Mehrak.Application.Services.Genshin;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utility;
+using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
+using SixLabors.Fonts;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System.Numerics;
 using System.Text.Json;
 
@@ -11,7 +23,7 @@ using System.Text.Json;
 
 namespace Mehrak.Application.Services.Genshin;
 
-public class GenshinStygianCardService : ICommandService<GenshinStygianCommandExecutor>, IAsyncInitializable
+public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitializable
 {
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
@@ -22,7 +34,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
         ColorType = JpegEncodingColor.Rgb
     };
 
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinStygianCardService> m_Logger;
 
     private readonly Font m_TitleFont;
@@ -31,7 +43,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
     private Image[] m_DifficultyLogo = [];
     private Image m_Background = null!;
 
-    public GenshinStygianCardService(ImageRepository imageRepository, ILogger<GenshinStygianCardService> logger)
+    public GenshinStygianCardService(IImageRepository imageRepository, ILogger<GenshinStygianCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -50,9 +62,9 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
         m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg"), cancellationToken);
     }
 
-    public async ValueTask<Stream> GetStygianCardImageAsync(StygianData stygianInfo, UserGameData gameData,
-        Regions region, Dictionary<int, Stream> monsterImage)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<StygianData> context)
     {
+        var stygianInfo = context.Data;
         List<IDisposable> disposableResources = [];
         try
         {
@@ -70,18 +82,19 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.AvatarId),
                     async x => await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinSideAvatarName, x.AvatarId))));
-            Dictionary<int, Image> monsterImages = await monsterImage.ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Key),
-                    async x => await Image.LoadAsync(x.Value));
+            Dictionary<int, Image> monsterImages = await stygianData.Challenge!.Select(x => x.Monster).ToAsyncEnumerable()
+                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.MonsterId),
+                    async x => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_boss_{x.MonsterId}")));
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
             disposableResources.AddRange(bestAvatarImages.Values);
-            disposableResources.AddRange(monsterImage.Values);
             disposableResources.AddRange(monsterImages.Values);
 
             Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
 
             Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
+
+            var tzi = context.Server.GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {
@@ -96,9 +109,9 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
                     VerticalAlignment = VerticalAlignment.Bottom
                 },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
-                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy} - " +
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.EndTime))
-                        .ToOffset(region.GetTimeZoneInfo().BaseUtcOffset):dd/MM/yyyy}",
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
                     Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
@@ -118,14 +131,14 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
                     Origin = new Vector2(1650, 80),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{gameData.Nickname}·AR {gameData.Level}", Color.White);
+                }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(1650, 130),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
                 },
-                    $"{gameData.GameUid}", Color.White);
+                    $"{context.GameProfile.GameUid}", Color.White);
 
                 for (int i = 0; i < stygianData.Challenge!.Count; i++)
                 {
@@ -170,7 +183,7 @@ public class GenshinStygianCardService : ICommandService<GenshinStygianCommandEx
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to generate Stygian card image for uid {UserId}\n{Data}", gameData.GameUid,
+            m_Logger.LogError(ex, "Failed to generate Stygian card image for uid {UserId}\n{Data}", context.GameProfile.GameUid,
                 JsonSerializer.Serialize(stygianInfo));
             throw new CommandException("An error occurred while generating Stygian Onslaught card", ex);
         }

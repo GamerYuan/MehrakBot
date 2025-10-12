@@ -55,7 +55,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             AutocompleteProviderType = typeof(HsrCharacterAutocompleteProvider))]
         string characterName,
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -76,7 +76,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task RealTimeNotesCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -105,7 +105,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -122,7 +122,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("moc", "Get Memory of Chaos card")]
     public async Task MemoryCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -139,7 +139,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("pf", "Get Pure Fiction card")]
     public async Task FictionCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -156,7 +156,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("as", "Get Apocalyptic Shadow card")]
     public async Task ChallengeCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -173,7 +173,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("charlist", "Get character list card")]
     public async Task CharListCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {

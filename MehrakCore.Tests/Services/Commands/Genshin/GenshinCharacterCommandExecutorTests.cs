@@ -168,7 +168,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         // Act
@@ -184,7 +184,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 2; // Non-existent profile
 
         await CreateOrUpdateTestUserAsync(1);
@@ -202,7 +202,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        Regions? server = null;
+        Server? server = null;
         const uint profile = 1;
 
         await CreateOrUpdateTestUserAsync(1);
@@ -220,10 +220,10 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        Regions? server = null;
+        Server? server = null;
         const uint profile = 1;
 
-        await CreateOrUpdateTestUserAsync(1, lastUsedRegion: Regions.Asia);
+        await CreateOrUpdateTestUserAsync(1, lastUsedRegion: Server.Asia);
 
         // Act
         await m_Executor.ExecuteAsync(characterName, server, profile);
@@ -238,7 +238,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         await CreateOrUpdateTestUserAsync(1);
@@ -260,7 +260,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1;
 
         // Set up token cache to return a token
@@ -312,7 +312,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
         const uint profile = 1; // Create a user with a profile to avoid the "no profile" path
         await CreateOrUpdateTestUserAsync(profile);
 
@@ -349,7 +349,7 @@ public class GenshinCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WithNullParameters_HandlesGracefully()
     {
-        await CreateOrUpdateTestUserAsync(1, lastUsedRegion: Regions.Asia);
+        await CreateOrUpdateTestUserAsync(1, lastUsedRegion: Server.Asia);
 
         // Act
         await m_Executor.ExecuteAsync(null, null, null);
@@ -389,7 +389,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "Traveler";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Set pending parameters by calling ExecuteAsync first
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, "800800800"));
@@ -446,7 +446,7 @@ public class GenshinCharacterCommandExecutorTests
         AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Create a user in the database
-        await CreateOrUpdateTestUserAsync(1, lastUsedRegion: Regions.Asia);
+        await CreateOrUpdateTestUserAsync(1, lastUsedRegion: Server.Asia);
 
         // Set up pending parameters by reflection
         FieldInfo? pendingCharacterField = typeof(GenshinCharacterCommandExecutor).GetField("m_PendingCharacterName",
@@ -455,7 +455,7 @@ public class GenshinCharacterCommandExecutorTests
             BindingFlags.NonPublic | BindingFlags.Instance);
 
         pendingCharacterField?.SetValue(m_Executor, "Traveler");
-        pendingServerField?.SetValue(m_Executor, Regions.Asia);
+        pendingServerField?.SetValue(m_Executor, Server.Asia);
 
         // Mock character API to throw exception
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(
@@ -479,7 +479,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = "NonExistentCharacter";
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -502,7 +502,7 @@ public class GenshinCharacterCommandExecutorTests
         // Arrange
         const string characterName = "Traveler";
         const int characterId = 10000007;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -538,7 +538,7 @@ public class GenshinCharacterCommandExecutorTests
         // Arrange
         const string characterName = "Traveler";
         const int characterId = 10000007;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -579,7 +579,7 @@ public class GenshinCharacterCommandExecutorTests
         // Arrange
         const string characterName = "Traveler";
         const int characterId = 10000007;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -637,7 +637,7 @@ public class GenshinCharacterCommandExecutorTests
         // Arrange
         const string characterName = "Traveler";
         const int characterId = 10000007;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile but no game UID
         await CreateOrUpdateTestUserAsync(1);
@@ -715,7 +715,7 @@ public class GenshinCharacterCommandExecutorTests
         const string characterName = "Traveler"; // Exact character name
         const int travelerId = 10000007;
         const int dilucId = 10000016;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -793,7 +793,7 @@ public class GenshinCharacterCommandExecutorTests
         // Arrange
         const string characterAlias = "raiden"; // One of multiple aliases for Raiden Shogun
         const int characterId = 10000052;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -864,7 +864,7 @@ public class GenshinCharacterCommandExecutorTests
         // Arrange
         const string characterAlias = "hu_tao"; // Alias with underscore
         const int characterId = 10000046;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -930,7 +930,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const string characterName = ""; // Empty string
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -984,7 +984,7 @@ public class GenshinCharacterCommandExecutorTests
     {
         // Arrange
         const int characterId = 10000007;
-        const Regions server = Regions.Asia;
+        const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
         await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
@@ -1116,8 +1116,8 @@ public class GenshinCharacterCommandExecutorTests
     /// <param name="lastUsedRegion">Optional last used region for Genshin.</param>
     private async Task<UserModel> CreateOrUpdateTestUserAsync(
         uint profileId = 1,
-        (Regions server, string gameUid)? gameProfile = null,
-        Regions? lastUsedRegion = null)
+        (Server server, string gameUid)? gameProfile = null,
+        Server? lastUsedRegion = null)
     {
         Dictionary<Game, Dictionary<string, string>> gameUids = [];
         if (gameProfile is not null)
@@ -1134,10 +1134,10 @@ public class GenshinCharacterCommandExecutorTests
             };
         }
 
-        Dictionary<Game, Regions>? lastUsed = null;
+        Dictionary<Game, Server>? lastUsed = null;
         if (lastUsedRegion is not null)
         {
-            lastUsed = new Dictionary<Game, Regions>
+            lastUsed = new Dictionary<Game, Server>
             {
                 { Game.Genshin, lastUsedRegion.Value }
             };

@@ -1,9 +1,10 @@
 ﻿using Mehrak.Application.Models;
-using Mehrak.Application.Services.Zzz.Assault;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Zzz;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -17,9 +18,9 @@ using System.Text.Json;
 
 namespace Mehrak.Application.Services.Zzz;
 
-internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor>, IAsyncInitializable
+internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncInitializable
 {
-    private readonly ImageRepository m_ImageRepository;
+    private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<ZzzAssaultCardService> m_Logger;
 
     private readonly Font m_TitleFont;
@@ -39,7 +40,7 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
     private static readonly Color OverlayColor = Color.FromRgb(69, 69, 69);
     private static readonly Color BackgroundColor = Color.FromRgb(30, 30, 30);
 
-    public ZzzAssaultCardService(ImageRepository imageRepository, ILogger<ZzzAssaultCardService> logger)
+    public ZzzAssaultCardService(IImageRepository imageRepository, ILogger<ZzzAssaultCardService> logger)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
@@ -68,12 +69,10 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzBuddyName, "base")), cancellationToken);
     }
 
-    public async Task<Stream> GetAssaultCardAsync(ZzzAssaultData data, UserGameData gameData,
-        Dictionary<string, Stream> bossImages, Dictionary<string, Stream> buffImages)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzAssaultData> context)
     {
+        var data = context.Data;
         List<IDisposable> disposables = [];
-        disposables.AddRange(bossImages.Values);
-        disposables.AddRange(buffImages.Values);
         try
         {
             Dictionary<ZzzAvatar, Image<Rgba32>> avatarImages = await data.List.SelectMany(x => x.AvatarList)
@@ -105,6 +104,25 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
                 .ToDictionaryAsync(x => x.BuddyId, x => x.Image);
             disposables.AddRange(buddyImages.Values);
 
+            Dictionary<string, Stream> bossImages = await data.List.SelectMany(x => x.Boss)
+                .ToAsyncEnumerable()
+                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
+                    async x =>
+                    {
+                        Stream stream = await m_ImageRepository.DownloadFileToStreamAsync($"zzz_assault_boss_{x.Name}");
+                        return stream;
+                    });
+            Dictionary<string, Stream> buffImages = await data.List.SelectMany(x => x.Buff)
+                .ToAsyncEnumerable()
+                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
+                    async x =>
+                    {
+                        Stream stream = await m_ImageRepository.DownloadFileToStreamAsync($"zzz_assault_buff_{x.Name}");
+                        return stream;
+                    });
+            disposables.AddRange(bossImages.Values);
+            disposables.AddRange(buffImages.Values);
+
             Dictionary<ZzzAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
 
             int height = (data.List.Count * 270) + 200;
@@ -133,14 +151,14 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
                     Origin = new Vector2(1000, 80),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{gameData.Nickname}·IK {gameData.Level}", Color.White);
+                }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(1000, 110),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
                 },
-                    $"{gameData.GameUid}", Color.White);
+                    $"{context.GameProfile.GameUid}", Color.White);
 
                 string totalScoreText = $"Total Score: {data.TotalScore}";
                 FontRectangle totalScoreBounds = TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(m_TitleFont));
@@ -187,7 +205,7 @@ internal class ZzzAssaultCardService : ICommandService<ZzzAssaultCommandExecutor
         catch (Exception e)
         {
             m_Logger.LogError(e, "Error generating Zzz Assault card for GameUid: {GameUid}, Data:\n{AssaultData}",
-                gameData.GameUid, JsonSerializer.Serialize(data));
+                context.GameProfile.GameUid, JsonSerializer.Serialize(data));
             throw new CommandException("An error occurred while generating the Assault card image. Please try again later.", e);
         }
         finally
