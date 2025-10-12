@@ -2,6 +2,7 @@
 
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Metrics;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.ApiResponseTypes.Zzz;
@@ -168,8 +169,8 @@ internal class Program
                 options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
                 options.InstanceName = "MehrakBot_";
             });
-            builder.Services.AddSingleton<CookieService>();
-            builder.Services.AddSingleton<TokenCacheService>();
+            builder.Services.AddSingleton<CookieEncryptionService>();
+            builder.Services.AddSingleton<RedisCacheService>();
             builder.Services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
 
             // Other Services

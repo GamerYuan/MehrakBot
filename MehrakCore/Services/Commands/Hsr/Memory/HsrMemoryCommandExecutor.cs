@@ -28,7 +28,7 @@ public class HsrMemoryCommandExecutor : BaseCommandExecutor<HsrCommandModule>
     public HsrMemoryCommandExecutor(IApiService<HsrMemoryCommandExecutor> apiService,
         ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
         ICommandService<HsrMemoryCommandExecutor> commandService,
-        UserRepository userRepository, TokenCacheService tokenCacheService,
+        UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)

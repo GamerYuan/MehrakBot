@@ -66,7 +66,7 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation, HsrE
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(await response.Content.ReadAsStreamAsync());
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(await response.Content.ReadAsStreamAsync(), JsonOptions);
             if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to fetch {GameMode} information for gameUid: {GameUid}", context.GameMode.GetString(),

@@ -35,7 +35,7 @@ public abstract class BaseCodeRedeemExecutor<TModule, TLogger> : BaseCommandExec
 
     protected BaseCodeRedeemExecutor(
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApi,
         ICodeRedeemApiService<TModule> apiService,

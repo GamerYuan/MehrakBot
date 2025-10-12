@@ -15,7 +15,7 @@ namespace MehrakCore.Services.Commands.Hsr.CodeRedeem;
 
 public class HsrCodeRedeemExecutor : BaseCodeRedeemExecutor<HsrCommandModule, HsrCodeRedeemExecutor>
 {
-    public HsrCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
+    public HsrCodeRedeemExecutor(UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ICodeRedeemApiService<HsrCommandModule> apiService, ICodeRedeemRepository codeRedeemRepository,
         ILogger<HsrCodeRedeemExecutor> logger) : base(

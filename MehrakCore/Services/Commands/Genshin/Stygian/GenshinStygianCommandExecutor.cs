@@ -28,7 +28,7 @@ public class GenshinStygianCommandExecutor : BaseCommandExecutor<GenshinCommandM
     public GenshinStygianCommandExecutor(GenshinImageUpdaterService imageUpdaterService,
         ICommandService<GenshinStygianCommandExecutor> commandService,
         IApiService<GenshinStygianCommandExecutor> apiService,
-        UserRepository userRepository, TokenCacheService tokenCacheService,
+        UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<GenshinCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)

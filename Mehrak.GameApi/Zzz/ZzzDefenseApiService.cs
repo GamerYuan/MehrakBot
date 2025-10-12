@@ -58,7 +58,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
 
             if (json.Retcode == 10001)
             {
-                m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", gameUid);
+                m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
                 return Result<ZzzDefenseData>.Failure(StatusCode.Unauthorized,
                     "Invalid cookies. Please re-authenticate.");
             }

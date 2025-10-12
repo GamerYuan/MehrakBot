@@ -25,7 +25,7 @@ public class ZzzAssaultCommandExecutor : BaseCommandExecutor<ZzzAssaultCommandEx
         ICommandService<ZzzAssaultCommandExecutor> cardService,
         ImageUpdaterService<ZzzFullAvatarData> imageUpdaterService,
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApi,
         ILogger<ZzzAssaultCommandExecutor> logger) :

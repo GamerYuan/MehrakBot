@@ -1,6 +1,6 @@
 ﻿using Mehrak.Application.Services.Hsr.CharList;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Utilities;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Models;

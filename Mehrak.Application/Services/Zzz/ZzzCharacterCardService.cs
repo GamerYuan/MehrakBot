@@ -1,5 +1,5 @@
-﻿using Mehrak.Domain.Common;
-using Mehrak.Domain.Utilities;
+﻿using Mehrak.Application.Utility;
+using Mehrak.Domain.Common;
 using MehrakCore.ApiResponseTypes.Zzz;
 using MehrakCore.Models;
 using Microsoft.Extensions.Logging;

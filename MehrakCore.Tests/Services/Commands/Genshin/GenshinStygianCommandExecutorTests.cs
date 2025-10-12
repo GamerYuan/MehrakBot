@@ -54,7 +54,7 @@ public class GenshinStygianCommandExecutorTests
     private GenshinStygianApiService m_ApiService = null!;
     private GenshinStygianCardService m_CardService = null!;
     private UserRepository m_UserRepository = null!;
-    private TokenCacheService m_TokenCacheService = null!;
+    private RedisCacheService m_TokenCacheService = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<GenshinCommandModule>> m_LoggerMock = null!;
@@ -89,8 +89,8 @@ public class GenshinStygianCommandExecutorTests
             new Mock<ILogger<ImageRepository>>().Object);
 
         // Setup token cache service
-        m_TokenCacheService = new TokenCacheService(m_DistributedCacheMock.Object,
-            new Mock<ILogger<TokenCacheService>>().Object);
+        m_TokenCacheService = new RedisCacheService(m_DistributedCacheMock.Object,
+            new Mock<ILogger<RedisCacheService>>().Object);
 
         // Setup GameRecord API service
         m_GameRecordApiService = new GameRecordApiService(m_HttpClientFactoryMock.Object,

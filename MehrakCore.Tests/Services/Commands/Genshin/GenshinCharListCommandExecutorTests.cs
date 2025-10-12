@@ -41,7 +41,7 @@ public class GenshinCharListCommandExecutorTests
     private Mock<GenshinImageUpdaterService> m_ImageUpdaterServiceMock;
     private Mock<ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail>> m_CharacterApiMock;
     private UserRepository m_UserRepository;
-    private Mock<TokenCacheService> m_TokenCacheServiceMock;
+    private Mock<RedisCacheService> m_TokenCacheServiceMock;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock;
     private Mock<GameRecordApiService> m_GameRecordApiMock;
     private Mock<ILogger<GenshinCommandModule>> m_LoggerMock;
@@ -90,7 +90,7 @@ public class GenshinCharListCommandExecutorTests
         m_UserRepository =
             new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheServiceMock =
-            new Mock<TokenCacheService>(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
+            new Mock<RedisCacheService>(m_DistributedCacheMock.Object, NullLogger<RedisCacheService>.Instance);
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
         m_GameRecordApiMock =
             new Mock<GameRecordApiService>(m_HttpClientFactoryMock.Object, NullLogger<GameRecordApiService>.Instance);

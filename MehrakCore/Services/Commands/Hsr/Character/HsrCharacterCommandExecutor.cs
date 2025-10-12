@@ -28,7 +28,7 @@ public class HsrCharacterCommandExecutor : BaseCommandExecutor<HsrCharacterComma
     private Regions m_PendingServer = Regions.Asia;
 
     public HsrCharacterCommandExecutor(ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> characterApi,
-        GameRecordApiService gameRecordApi, UserRepository userRepository, TokenCacheService tokenCacheService,
+        GameRecordApiService gameRecordApi, UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         ImageUpdaterService<HsrCharacterInformation> hsrImageUpdaterService,
         ICharacterCardService<HsrCharacterInformation> hsrCharacterCardService,

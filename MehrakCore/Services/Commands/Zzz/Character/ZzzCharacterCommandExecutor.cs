@@ -27,7 +27,7 @@ public class ZzzCharacterCommandExecutor : BaseCommandExecutor<ZzzCharacterComma
         ICharacterCardService<ZzzFullAvatarData> characterCardService,
         ImageUpdaterService<ZzzFullAvatarData> imageUpdaterService,
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApi,
         ILogger<ZzzCharacterCommandExecutor> logger)

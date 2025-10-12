@@ -34,7 +34,7 @@ public class HsrCharListCommandExecutorTests
     private Mock<HsrImageUpdaterService> m_ImageUpdaterServiceMock;
     private Mock<ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation>> m_CharacterApiMock;
     private UserRepository m_UserRepository;
-    private Mock<TokenCacheService> m_TokenCacheServiceMock;
+    private Mock<RedisCacheService> m_TokenCacheServiceMock;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock;
     private GameRecordApiService m_GameRecordApiService;
     private Mock<ILogger<HsrCharListCommandExecutor>> m_LoggerMock;
@@ -82,7 +82,7 @@ public class HsrCharListCommandExecutorTests
         m_UserRepository =
             new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheServiceMock =
-            new Mock<TokenCacheService>(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
+            new Mock<RedisCacheService>(m_DistributedCacheMock.Object, NullLogger<RedisCacheService>.Instance);
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
         m_GameRecordApiService =
             new GameRecordApiService(m_HttpClientFactoryMock.Object, NullLogger<GameRecordApiService>.Instance);

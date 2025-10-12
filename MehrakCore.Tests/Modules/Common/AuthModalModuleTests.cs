@@ -28,8 +28,8 @@ public class AuthModalModuleTests
     private UserRepository m_UserRepository;
     private ServiceProvider m_ServiceProvider;
     private Mock<IDistributedCache> m_DistributedCacheMock;
-    private TokenCacheService m_TokenCacheService;
-    private CookieService m_CookieService;
+    private RedisCacheService m_TokenCacheService;
+    private CookieEncryptionService m_CookieService;
     private ComponentInteractionService<ModalInteractionContext> m_Service;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock;
 
@@ -48,8 +48,8 @@ public class AuthModalModuleTests
         m_Service = new ComponentInteractionService<ModalInteractionContext>();
         m_DistributedCacheMock = new Mock<IDistributedCache>();
         m_TokenCacheService =
-            new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
-        m_CookieService = new CookieService(NullLogger<CookieService>.Instance);
+            new RedisCacheService(m_DistributedCacheMock.Object, NullLogger<RedisCacheService>.Instance);
+        m_CookieService = new CookieEncryptionService(NullLogger<CookieEncryptionService>.Instance);
         m_AuthenticationMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
 
         m_Service.AddModule<AuthModalModule>();

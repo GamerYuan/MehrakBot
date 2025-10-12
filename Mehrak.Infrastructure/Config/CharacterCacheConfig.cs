@@ -1,5 +1,3 @@
-using System;
-
 namespace Mehrak.Infrastructure.Config;
 
 public class CharacterCacheConfig

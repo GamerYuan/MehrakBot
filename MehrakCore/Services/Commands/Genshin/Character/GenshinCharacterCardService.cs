@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Application.Utility;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Constants;
 using MehrakCore.Models;

@@ -28,7 +28,7 @@ public class GenshinTheaterCommandExecutor : BaseCommandExecutor<GenshinCommandM
     public GenshinTheaterCommandExecutor(ICommandService<GenshinTheaterCommandExecutor> commandService,
         IApiService<GenshinTheaterCommandExecutor> apiService, GenshinImageUpdaterService imageUpdaterService,
         ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> characterApi,
-        UserRepository userRepository, TokenCacheService tokenCacheService,
+        UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<GenshinCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)

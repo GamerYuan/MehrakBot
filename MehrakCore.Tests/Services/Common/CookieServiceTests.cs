@@ -14,14 +14,14 @@ public class CookieServiceTests
 {
     private string m_Cookie;
     private string m_Passphrase;
-    private CookieService m_CookieService;
+    private CookieEncryptionService m_CookieService;
 
     [SetUp]
     public void Setup()
     {
         m_Cookie = "test_cookie";
         m_Passphrase = "test_passphrase";
-        m_CookieService = new CookieService(NullLogger<CookieService>.Instance);
+        m_CookieService = new CookieEncryptionService(NullLogger<CookieEncryptionService>.Instance);
     }
 
     [Test]

@@ -68,7 +68,7 @@ public class ZzzAssaultCommandExecutorTests
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(m_HttpClient);
 
         m_DistributedCacheMock = new();
-        TokenCacheService tokenCacheService = new(m_DistributedCacheMock.Object, Mock.Of<ILogger<TokenCacheService>>());
+        RedisCacheService tokenCacheService = new(m_DistributedCacheMock.Object, Mock.Of<ILogger<RedisCacheService>>());
         m_AuthenticationMiddlewareServiceMock = new();
         GameRecordApiService gameRecordApiService = new(m_HttpClientFactoryMock.Object, Mock.Of<ILogger<GameRecordApiService>>());
 

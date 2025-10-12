@@ -15,7 +15,7 @@ namespace MehrakCore.Services.Commands.Genshin.CodeRedeem;
 
 public class GenshinCodeRedeemExecutor : BaseCodeRedeemExecutor<GenshinCommandModule, GenshinCodeRedeemExecutor>
 {
-    public GenshinCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
+    public GenshinCodeRedeemExecutor(UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ICodeRedeemRepository codeRedeemRepository,
         ICodeRedeemApiService<GenshinCommandModule> apiService, ILogger<GenshinCodeRedeemExecutor> logger) : base(

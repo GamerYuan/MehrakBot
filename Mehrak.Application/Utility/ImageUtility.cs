@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Processing;
 
 #endregion
 
-namespace Mehrak.Domain.Utilities;
+namespace Mehrak.Application.Utility;
 
 public static class ImageUtility
 {
@@ -16,7 +16,8 @@ public static class ImageUtility
     private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 100)); // Semi-transparent black for shadow
 
     /// <summary>
-    /// Applies a horizontal gradient fade to an image, making it gradually transparent towards the right
+    /// Applies a horizontal gradient fade to an image, making it gradually
+    /// transparent towards the right
     /// </summary>
     public static IImageProcessingContext ApplyGradientFade(this IImageProcessingContext context,
         float fadeStart = 0.75f)
@@ -29,7 +30,7 @@ public static class ImageUtility
             for (int x = fadeStartX; x < width; x++)
             {
                 // same fall‑off curve you had before
-                var alpha = 1.0f - (float)(x - fadeStartX) / (width - fadeStartX);
+                var alpha = 1.0f - ((float)(x - fadeStartX) / (width - fadeStartX));
                 alpha = MathF.Pow(alpha, 5);
                 alpha = Math.Clamp(alpha, 0, 1);
 
@@ -58,7 +59,7 @@ public static class ImageUtility
 
             for (int i = 0; i < starCount; i++)
             {
-                int centerX = offset + i * starSize + starSize / 2;
+                int centerX = offset + (i * starSize) + (starSize / 2);
 
                 // Create a star shape
                 var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
@@ -103,13 +104,13 @@ public static class ImageUtility
 
                 if (isHorizontal)
                 {
-                    centerX = i * starSize + 15; // Left-aligned horizontally
+                    centerX = (i * starSize) + 15; // Left-aligned horizontally
                     centerY = 15f;
                 }
                 else
                 {
                     centerX = 15f;
-                    centerY = i * starSize + 15; // Top-aligned vertically
+                    centerY = (i * starSize) + 15; // Top-aligned vertically
                 }
 
                 // Draw shadow only if requested
@@ -144,12 +145,13 @@ public static class ImageUtility
         {
             Antialias = true,
 
-            // Enforces that any part of this shape that has color is punched out of the background
+            // Enforces that any part of this shape that has color is punched
+            // out of the background
             AlphaCompositionMode = PixelAlphaCompositionMode.DestOut
         });
 
-        // Mutating in here as we already have a cloned original
-        // use any color (not Transparent), so the corners will be clipped
+        // Mutating in here as we already have a cloned original use any color
+        // (not Transparent), so the corners will be clipped
         foreach (IPath path in corners) context = context.Fill(Color.Red, path);
 
         return context;
@@ -210,8 +212,8 @@ public static class ImageUtility
         {
             float radius = i % 2 == 0 ? outerRadius : innerRadius;
             result[i] = new PointF(
-                centerX + radius * MathF.Cos(angle),
-                centerY + radius * MathF.Sin(angle)
+                centerX + (radius * MathF.Cos(angle)),
+                centerY + (radius * MathF.Sin(angle))
             );
             angle += angleIncrement;
         }
@@ -227,8 +229,9 @@ public static class ImageUtility
         // Then cut out of the square a circle so we are left with a corner
         IPath cornerTopLeft = rect.Clip(new EllipsePolygon(cornerRadius - 0.5f, cornerRadius - 0.5f, cornerRadius));
 
-        // Corner is now a corner shape positions top left
-        // let's make 3 more positioned correctly, we can do that by translating the original around the center of the image.
+        // Corner is now a corner shape positions top left let's make 3 more
+        // positioned correctly, we can do that by translating the original
+        // around the center of the image.
 
         float rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
         float bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
@@ -263,7 +266,7 @@ public static class ImageUtility
         public GridLayout(int[] padding)
         {
             Padding = padding;
-            ImagePositions = new List<ImagePosition>();
+            ImagePositions = [];
         }
 
         // Helper properties for easier access to padding values
@@ -301,19 +304,20 @@ public static class ImageUtility
             ImageSpacing = imageSpacing
         };
 
-        // Find the best grid dimensions (columns x rows) that gives us closest to 16:9 ratio
+        // Find the best grid dimensions (columns x rows) that gives us closest
+        // to 16:9 ratio
         var bestLayout = FindOptimalGridDimensions(imageCount, imageWidth, imageHeight, padding, imageSpacing);
         layout.Columns = bestLayout.columns;
         layout.Rows = bestLayout.rows;
 
         // Calculate output image dimensions
         layout.OutputWidth = layout.PaddingLeft + layout.PaddingRight +
-                             layout.Columns * imageWidth +
-                             (layout.Columns - 1) * imageSpacing;
+                             (layout.Columns * imageWidth) +
+                             ((layout.Columns - 1) * imageSpacing);
 
         layout.OutputHeight = layout.PaddingTop + layout.PaddingBottom +
-                              layout.Rows * imageHeight +
-                              (layout.Rows - 1) * imageSpacing;
+                              (layout.Rows * imageHeight) +
+                              ((layout.Rows - 1) * imageSpacing);
 
         // Calculate positions for each image
         layout.ImagePositions = CalculateImagePositions(layout.Columns, layout.Rows, imageCount,
@@ -339,15 +343,15 @@ public static class ImageUtility
 
             // Calculate what the aspect ratio would be with this grid
             int gridWidth = padding[3] + padding[1] + // left + right padding
-                            columns * imageWidth +
-                            (columns - 1) * imageSpacing;
+                            (columns * imageWidth) +
+                            ((columns - 1) * imageSpacing);
 
             int gridHeight = padding[0] + padding[2] + // top + bottom padding
-                             rows * imageHeight +
-                             (rows - 1) * imageSpacing;
+                             (rows * imageHeight) +
+                             ((rows - 1) * imageSpacing);
 
             double currentRatio = (double)gridWidth / gridHeight;
-            double ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
+            double ratioDifference = Math.Abs(currentRatio - (4.0 / 3.0));
 
             if (ratioDifference < bestRatioDifference)
             {
@@ -375,8 +379,8 @@ public static class ImageUtility
             int column = i % columns;
             int row = i / columns;
 
-            int x = padding[3] + column * (imageWidth + imageSpacing); // left padding + column offset
-            int y = padding[0] + row * (imageHeight + imageSpacing); // top padding + row offset
+            int x = padding[3] + (column * (imageWidth + imageSpacing)); // left padding + column offset
+            int y = padding[0] + (row * (imageHeight + imageSpacing)); // top padding + row offset
 
             positions.Add(new ImagePosition(x, y, i));
         }

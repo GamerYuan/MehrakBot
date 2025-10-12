@@ -31,7 +31,7 @@ public class GenshinAbyssCommandExecutor : BaseCommandExecutor<GenshinCommandMod
         IApiService<GenshinAbyssCommandExecutor> apiService,
         GenshinImageUpdaterService imageUpdaterService,
         ICharacterApi<GenshinBasicCharacterData, GenshinCharacterDetail> characterApi,
-        UserRepository userRepository, TokenCacheService tokenCacheService,
+        UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<GenshinCommandModule> logger) : base(userRepository, tokenCacheService, authenticationMiddleware,
         gameRecordApi, logger)

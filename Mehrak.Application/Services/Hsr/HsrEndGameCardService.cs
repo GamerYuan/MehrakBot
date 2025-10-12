@@ -3,8 +3,8 @@
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Hsr.EndGame;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Utilities;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using Microsoft.Extensions.Logging;

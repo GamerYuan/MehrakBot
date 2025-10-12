@@ -3,8 +3,8 @@
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Genshin;
 using Mehrak.Application.Services.Genshin.Abyss;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Utilities;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using Microsoft.Extensions.Logging;

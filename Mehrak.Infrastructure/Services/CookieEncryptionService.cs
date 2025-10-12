@@ -4,11 +4,11 @@ using System.Text;
 
 namespace Mehrak.Infrastructure.Services;
 
-public class CookieService
+public class CookieEncryptionService
 {
-    private readonly ILogger<CookieService> m_Logger;
+    private readonly ILogger<CookieEncryptionService> m_Logger;
 
-    public CookieService(ILogger<CookieService> logger)
+    public CookieEncryptionService(ILogger<CookieEncryptionService> logger)
     {
         m_Logger = logger;
     }

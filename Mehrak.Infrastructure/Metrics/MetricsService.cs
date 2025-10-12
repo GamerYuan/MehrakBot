@@ -19,7 +19,6 @@ public class MetricsService : BackgroundService
     private readonly GatewayClient m_Client;
     private readonly IOptions<MetricsConfig> m_MetricsOptions;
     private readonly ILogger<MetricsService> m_Logger;
-    private IWebHost? m_MetricsServer;
 
     public MetricsService(GatewayClient client, IOptions<MetricsConfig> metricsOptions, ILogger<MetricsService> logger)
     {
@@ -37,7 +36,7 @@ public class MetricsService : BackgroundService
             return;
         }
 
-        m_MetricsServer = new WebHostBuilder().UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
+        var metricServer = new WebHostBuilder().UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
             .Configure(app =>
             {
                 app.UseMetricServer(metricsConfig.Endpoint);
@@ -50,7 +49,7 @@ public class MetricsService : BackgroundService
                 }));
             }).Build();
 
-        await m_MetricsServer.StartAsync(stoppingToken).ConfigureAwait(false);
+        await metricServer.StartAsync(stoppingToken).ConfigureAwait(false);
         m_Logger.LogInformation("Metrics service started on {Host}:{Port} with endpoint {Endpoint}",
             metricsConfig.Host, metricsConfig.Port, metricsConfig.Endpoint);
 

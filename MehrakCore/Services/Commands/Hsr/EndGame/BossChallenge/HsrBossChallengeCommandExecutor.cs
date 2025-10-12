@@ -25,7 +25,7 @@ public class HsrBossChallengeCommandExecutor : BaseHsrEndGameCommandExecutor
     protected override string GameModeName { get; } = "Apocalyptic Shadow";
     protected override string AttachmentName { get; } = "as_card";
 
-    public HsrBossChallengeCommandExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
+    public HsrBossChallengeCommandExecutor(UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrCommandModule> logger, ICommandService<BaseHsrEndGameCommandExecutor> commandService,
         ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,

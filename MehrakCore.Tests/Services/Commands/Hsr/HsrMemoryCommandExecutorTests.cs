@@ -46,7 +46,7 @@ public class HsrMemoryCommandExecutorTests
     private HsrMemoryApiService m_ApiService = null!;
     private Mock<ImageUpdaterService<HsrCharacterInformation>> m_ImageUpdaterServiceMock = null!;
     private UserRepository m_UserRepository = null!;
-    private TokenCacheService m_TokenCacheService = null!;
+    private RedisCacheService m_TokenCacheService = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<HsrCommandModule>> m_LoggerMock = null!;
@@ -89,7 +89,7 @@ public class HsrMemoryCommandExecutorTests
         m_UserRepository =
             new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheService =
-            new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
+            new RedisCacheService(m_DistributedCacheMock.Object, NullLogger<RedisCacheService>.Instance);
         m_GameRecordApiService =
             new GameRecordApiService(m_HttpClientFactoryMock.Object, NullLogger<GameRecordApiService>.Instance);
 

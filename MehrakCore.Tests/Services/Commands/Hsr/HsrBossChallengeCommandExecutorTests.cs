@@ -45,7 +45,7 @@ public class HsrBossChallengeCommandExecutorTests
     private ulong m_TestUserId;
 
     private UserRepository m_UserRepository = null!;
-    private TokenCacheService m_TokenCacheService = null!;
+    private RedisCacheService m_TokenCacheService = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthMiddlewareMock = null!;
     private HsrBossChallengeCommandExecutor m_Executor = null!;
     private Mock<HsrEndGameCardService> m_CommandServiceMock = null!;
@@ -87,7 +87,7 @@ public class HsrBossChallengeCommandExecutorTests
 
         m_DistributedCacheMock = new Mock<IDistributedCache>();
         m_TokenCacheService =
-            new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
+            new RedisCacheService(m_DistributedCacheMock.Object, NullLogger<RedisCacheService>.Instance);
 
         m_AuthMiddlewareMock = new Mock<IAuthenticationMiddlewareService>();
 

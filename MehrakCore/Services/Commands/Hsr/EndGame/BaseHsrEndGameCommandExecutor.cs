@@ -23,7 +23,7 @@ public abstract class BaseHsrEndGameCommandExecutor : BaseCommandExecutor<HsrCom
     protected abstract string GameModeName { get; }
     protected abstract string AttachmentName { get; }
 
-    protected BaseHsrEndGameCommandExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
+    protected BaseHsrEndGameCommandExecutor(UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrCommandModule> logger, ICommandService<BaseHsrEndGameCommandExecutor> commandService) : base(
         userRepository,

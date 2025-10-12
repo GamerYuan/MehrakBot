@@ -25,7 +25,7 @@ public class HsrRealTimeNotesCommandExecutor : BaseCommandExecutor<HsrRealTimeNo
     private Regions m_PendingServer;
 
     public HsrRealTimeNotesCommandExecutor(IRealTimeNotesApiService<HsrRealTimeNotesData> apiService,
-        UserRepository userRepository, ImageRepository imageRepository, TokenCacheService tokenCacheService,
+        UserRepository userRepository, ImageRepository imageRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrRealTimeNotesCommandExecutor> logger)
         : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApi, logger)

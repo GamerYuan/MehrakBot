@@ -49,7 +49,7 @@ public class ZzzCharacterCommandExecutorTests
     private Mock<HttpMessageHandler> m_HttpMessageHandlerMock = null!;
     private Mock<IDistributedCache> m_DistributedCacheMock = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
-    private TokenCacheService m_TokenCacheService = null!;
+    private RedisCacheService m_TokenCacheService = null!;
     private Mock<ICharacterCacheService> m_CharacterCacheServiceMock = null!;
 
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Zzz");
@@ -91,9 +91,9 @@ public class ZzzCharacterCommandExecutorTests
             m_HttpClientFactoryMock.Object,
             NullLogger<GameRecordApiService>.Instance);
 
-        m_TokenCacheService = new TokenCacheService(
+        m_TokenCacheService = new RedisCacheService(
             m_DistributedCacheMock.Object,
-            NullLogger<TokenCacheService>.Instance);
+            NullLogger<RedisCacheService>.Instance);
 
         // Use real UserRepository with in-memory MongoDB
         m_UserRepository =

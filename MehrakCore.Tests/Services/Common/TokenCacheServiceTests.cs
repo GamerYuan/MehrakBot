@@ -16,8 +16,8 @@ namespace MehrakCore.Tests.Services.Common;
 public class TokenCacheServiceTests
 {
     private IDistributedCache m_Cache;
-    private Mock<ILogger<TokenCacheService>> m_MockLogger;
-    private TokenCacheService m_Service;
+    private Mock<ILogger<RedisCacheService>> m_MockLogger;
+    private RedisCacheService m_Service;
     private readonly TimeSpan m_DefaultServiceExpiration = TimeSpan.FromMinutes(5); // Mirroring service's default
 
     [SetUp]
@@ -25,9 +25,9 @@ public class TokenCacheServiceTests
     {
         // Create an in-memory distributed cache for testing
         m_Cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-        m_MockLogger = new Mock<ILogger<TokenCacheService>>();
+        m_MockLogger = new Mock<ILogger<RedisCacheService>>();
 
-        m_Service = new TokenCacheService(m_Cache, m_MockLogger.Object);
+        m_Service = new RedisCacheService(m_Cache, m_MockLogger.Object);
     }
 
     [Test]
@@ -114,8 +114,8 @@ public class TokenCacheServiceTests
         const ulong userId = 100; // Any user ID for testing
 
         MemoryDistributedCache testCache = new(Options.Create(new MemoryDistributedCacheOptions()));
-        Mock<ILogger<TokenCacheService>> logger = new();
-        TokenCacheService service = new(testCache, logger.Object);
+        Mock<ILogger<RedisCacheService>> logger = new();
+        RedisCacheService service = new(testCache, logger.Object);
 
         // Act
         await service.AddCacheEntryAsync(ltuid, ltoken, userId);

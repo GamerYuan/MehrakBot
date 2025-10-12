@@ -26,7 +26,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
     protected readonly UserRepository UserRepository;
     protected readonly ILogger<TLogger> Logger;
 
-    private readonly TokenCacheService m_TokenCacheService;
+    private readonly RedisCacheService m_TokenCacheService;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly GameRecordApiService m_GameRecordApi;
 
@@ -34,7 +34,7 @@ public abstract class BaseCommandExecutor<TLogger> : ICommandExecutor, IAuthenti
 
     protected BaseCommandExecutor(
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApi,
         ILogger<TLogger> logger)

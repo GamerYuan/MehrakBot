@@ -24,7 +24,7 @@ public class HsrCharListCommandExecutor : BaseCommandExecutor<HsrCharListCommand
         ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,
         ICharacterApi<HsrBasicCharacterData, HsrCharacterInformation> characterApi,
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApi,
         ILogger<HsrCharListCommandExecutor> logger)

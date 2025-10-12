@@ -51,7 +51,7 @@ public class GenshinCodeRedeemExecutorTests
     private Mock<HttpMessageHandler> m_HttpMessageHandlerMock = null!;
     private Mock<IDistributedCache> m_DistributedCacheMock = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
-    private TokenCacheService m_TokenCacheService = null!;
+    private RedisCacheService m_TokenCacheService = null!;
 
     [SetUp]
     public void Setup()
@@ -75,7 +75,7 @@ public class GenshinCodeRedeemExecutorTests
         m_UserRepository =
             new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheService =
-            new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
+            new RedisCacheService(m_DistributedCacheMock.Object, NullLogger<RedisCacheService>.Instance);
         m_GameRecordApiService =
             new GameRecordApiService(m_HttpClientFactoryMock.Object, NullLogger<GameRecordApiService>.Instance);
 

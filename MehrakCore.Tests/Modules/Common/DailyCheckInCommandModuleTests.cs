@@ -41,7 +41,7 @@ public class DailyCheckInCommandModuleTests
     private Mock<IDistributedCache> m_DistributedCacheMock = null!;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock = null!;
     private CommandRateLimitService m_CommandRateLimitService = null!;
-    private TokenCacheService m_TokenCacheService = null!;
+    private RedisCacheService m_TokenCacheService = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
     private ServiceProvider m_ServiceProvider = null!;
 
@@ -87,9 +87,9 @@ public class DailyCheckInCommandModuleTests
             m_DistributedCacheMock.Object,
             NullLogger<CommandRateLimitService>.Instance);
 
-        m_TokenCacheService = new TokenCacheService(
+        m_TokenCacheService = new RedisCacheService(
             m_DistributedCacheMock.Object,
-            NullLogger<TokenCacheService>.Instance);
+            NullLogger<RedisCacheService>.Instance);
 
         GameRecordApiService gameRecordApiService = new(
             Mock.Of<IHttpClientFactory>(),

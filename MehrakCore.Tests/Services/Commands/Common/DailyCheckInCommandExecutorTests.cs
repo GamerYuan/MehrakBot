@@ -30,7 +30,7 @@ public class DailyCheckInCommandExecutorTests
     private Mock<IDailyCheckInService> m_DailyCheckInServiceMock;
     private UserRepository m_UserRepository;
     private Mock<IDistributedCache> m_DistributedCacheMock;
-    private TokenCacheService m_TokenCacheService;
+    private RedisCacheService m_TokenCacheService;
     private Mock<IAuthenticationMiddlewareService> m_AuthenticationMiddlewareMock;
     private Mock<ILogger<DailyCheckInCommandExecutor>> m_LoggerMock;
     private ServiceProvider m_ServiceProvider;
@@ -67,7 +67,7 @@ public class DailyCheckInCommandExecutorTests
         m_UserRepository =
             new UserRepository(MongoTestHelper.Instance.MongoDbService, NullLogger<UserRepository>.Instance);
         m_TokenCacheService =
-            new TokenCacheService(m_DistributedCacheMock.Object, NullLogger<TokenCacheService>.Instance);
+            new RedisCacheService(m_DistributedCacheMock.Object, NullLogger<RedisCacheService>.Instance);
 
         GameRecordApiService gameRecordApiService = new(
             Mock.Of<IHttpClientFactory>(),

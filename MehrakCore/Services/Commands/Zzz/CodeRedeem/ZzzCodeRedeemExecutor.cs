@@ -15,7 +15,7 @@ namespace MehrakCore.Services.Commands.Zzz.CodeRedeem;
 
 public class ZzzCodeRedeemExecutor : BaseCodeRedeemExecutor<ZzzCommandModule, ZzzCodeRedeemExecutor>
 {
-    public ZzzCodeRedeemExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
+    public ZzzCodeRedeemExecutor(UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ICodeRedeemApiService<ZzzCommandModule> apiService, ICodeRedeemRepository codeRedeemRepository,
         ILogger<ZzzCodeRedeemExecutor> logger) : base(

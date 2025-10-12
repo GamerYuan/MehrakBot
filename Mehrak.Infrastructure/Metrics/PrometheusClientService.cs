@@ -2,24 +2,21 @@
 
 using Mehrak.Domain.Models;
 using Mehrak.Infrastructure.Models;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 #endregion
 
-namespace Mehrak.Infrastructure.Services;
+namespace Mehrak.Infrastructure.Metrics;
 
 public class PrometheusClientService
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
-    private readonly ILogger<PrometheusClientService> m_Logger;
 
     private const string PrometheusBaseUrl = "http://prometheus:9090/api/v1/";
 
-    public PrometheusClientService(IHttpClientFactory httpClientFactory, ILogger<PrometheusClientService> logger)
+    public PrometheusClientService(IHttpClientFactory httpClientFactory)
     {
         m_HttpClientFactory = httpClientFactory;
-        m_Logger = logger;
     }
 
     public async ValueTask<SystemResource> GetSystemResourceAsync()

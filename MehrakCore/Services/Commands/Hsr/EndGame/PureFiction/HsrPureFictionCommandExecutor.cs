@@ -25,7 +25,7 @@ public class HsrPureFictionCommandExecutor : BaseHsrEndGameCommandExecutor
     protected override string GameModeName { get; } = "Pure Fiction";
     protected override string AttachmentName { get; } = "pf_card";
 
-    public HsrPureFictionCommandExecutor(UserRepository userRepository, TokenCacheService tokenCacheService,
+    public HsrPureFictionCommandExecutor(UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, GameRecordApiService gameRecordApi,
         ILogger<HsrCommandModule> logger, ICommandService<BaseHsrEndGameCommandExecutor> commandService,
         ImageUpdaterService<HsrCharacterInformation> imageUpdaterService,

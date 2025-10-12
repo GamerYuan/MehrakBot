@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Application.Models;
+using Mehrak.Application.Utility;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.Constants;

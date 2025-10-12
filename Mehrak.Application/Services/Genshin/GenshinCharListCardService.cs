@@ -1,8 +1,8 @@
 ﻿#region
 
 using Mehrak.Application.Services.Genshin.CharList;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Utilities;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Genshin;
 using Microsoft.Extensions.Logging;

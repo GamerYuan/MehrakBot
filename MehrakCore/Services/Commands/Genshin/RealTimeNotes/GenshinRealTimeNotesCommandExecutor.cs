@@ -26,7 +26,7 @@ public class GenshinRealTimeNotesCommandExecutor : BaseCommandExecutor<GenshinRe
 
     public GenshinRealTimeNotesCommandExecutor(IRealTimeNotesApiService<GenshinRealTimeNotesData> apiService,
         ImageRepository imageRepository, GameRecordApiService gameRecordApi,
-        UserRepository userRepository, TokenCacheService tokenCacheService,
+        UserRepository userRepository, RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware, ILogger<GenshinRealTimeNotesCommandExecutor> logger) : base(
         userRepository, tokenCacheService, authenticationMiddleware, gameRecordApi, logger)
     {

@@ -23,7 +23,7 @@ public class ZzzRealTimeNotesCommandExecutor : BaseCommandExecutor<ZzzRealTimeNo
         IRealTimeNotesApiService<ZzzRealTimeNotesData> apiService,
         ImageRepository imageRepository,
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApi,
         ILogger<ZzzRealTimeNotesCommandExecutor> logger) :

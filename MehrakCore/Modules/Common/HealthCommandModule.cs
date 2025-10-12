@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Infrastructure.Metrics;
 using MehrakCore.Constants;
 using MehrakCore.Services.Common;
 using NetCord;

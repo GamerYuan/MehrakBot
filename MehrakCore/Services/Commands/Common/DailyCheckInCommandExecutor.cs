@@ -23,7 +23,7 @@ public class DailyCheckInCommandExecutor : BaseCommandExecutor<DailyCheckInComma
     public DailyCheckInCommandExecutor(
         IDailyCheckInService dailyCheckInService,
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApiService,
         ILogger<DailyCheckInCommandExecutor> logger)

@@ -35,12 +35,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
     private readonly UserRepository m_UserRepository;
     private readonly ILogger<AuthModalModule> m_Logger;
-    private readonly CookieService m_CookieService;
-    private readonly TokenCacheService m_TokenCacheService;
+    private readonly CookieEncryptionService m_CookieService;
+    private readonly RedisCacheService m_TokenCacheService;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
 
-    public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService, IAuthenticationMiddlewareService authenticationMiddleware)
+    public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieEncryptionService cookieService,
+        RedisCacheService tokenCacheService, IAuthenticationMiddlewareService authenticationMiddleware)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;

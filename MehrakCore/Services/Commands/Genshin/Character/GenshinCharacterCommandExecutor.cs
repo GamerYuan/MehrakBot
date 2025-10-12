@@ -33,7 +33,7 @@ public class GenshinCharacterCommandExecutor : BaseCommandExecutor<GenshinCharac
         ICharacterCardService<GenshinCharacterInformation> genshinCharacterCardService,
         GenshinImageUpdaterService genshinImageUpdaterService, UserRepository userRepository,
         ILogger<GenshinCharacterCommandExecutor> logger,
-        TokenCacheService tokenCacheService, ICharacterCacheService characterCacheService,
+        RedisCacheService tokenCacheService, ICharacterCacheService characterCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware)
         : base(userRepository, tokenCacheService, authenticationMiddleware, gameRecordApiService, logger)
     {

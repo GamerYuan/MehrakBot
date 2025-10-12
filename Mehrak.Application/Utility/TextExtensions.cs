@@ -3,7 +3,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 
-namespace Mehrak.Domain.Utilities;
+namespace Mehrak.Application.Utility;
 
 public static class TextExtensions
 {

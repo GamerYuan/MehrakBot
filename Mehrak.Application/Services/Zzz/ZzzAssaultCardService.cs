@@ -1,7 +1,7 @@
 ﻿using Mehrak.Application.Models;
 using Mehrak.Application.Services.Zzz.Assault;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Utilities;
 using MehrakCore.ApiResponseTypes;
 using MehrakCore.ApiResponseTypes.Zzz;
 using Microsoft.Extensions.Logging;

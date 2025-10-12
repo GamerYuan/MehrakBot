@@ -1,5 +1,5 @@
 ﻿using Mehrak.Application.Models;
-using Mehrak.Domain.Utilities;
+using Mehrak.Application.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;

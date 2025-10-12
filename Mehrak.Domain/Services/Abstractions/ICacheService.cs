@@ -9,6 +9,4 @@ public interface ICacheService
     public Task<T?> GetAsync<T>(string key);
 
     public Task RemoveAsync(string key);
-
-    public Task<bool> ExistsAsync(string key);
 }

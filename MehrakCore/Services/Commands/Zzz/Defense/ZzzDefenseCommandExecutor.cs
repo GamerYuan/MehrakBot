@@ -24,7 +24,7 @@ public class ZzzDefenseCommandExecutor : BaseCommandExecutor<ZzzDefenseCommandEx
         ICommandService<ZzzDefenseCommandExecutor> commandService,
         ImageUpdaterService<ZzzFullAvatarData> imageUpdaterService,
         UserRepository userRepository,
-        TokenCacheService tokenCacheService,
+        RedisCacheService tokenCacheService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRecordApiService gameRecordApi,
         ILogger<ZzzDefenseCommandExecutor> logger)
