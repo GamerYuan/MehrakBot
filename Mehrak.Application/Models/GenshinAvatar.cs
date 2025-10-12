@@ -32,7 +32,7 @@ public sealed record GenshinAvatar : IDisposable
 
     public bool Equals(GenshinAvatar? other)
     {
-        if (ReferenceEquals(null, other)) return false;
+        if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return AvatarId == other.AvatarId && Level == other.Level && AvatarType == other.AvatarType &&
                Rarity == other.Rarity && Constellation == other.Constellation;

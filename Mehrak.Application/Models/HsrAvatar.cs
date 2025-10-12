@@ -30,7 +30,7 @@ public sealed record HsrAvatar : IDisposable
 
     public bool Equals(HsrAvatar? other)
     {
-        if (ReferenceEquals(null, other)) return false;
+        if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return AvatarId == other.AvatarId && Level == other.Level &&
                Rarity == other.Rarity && Rank == other.Rank;

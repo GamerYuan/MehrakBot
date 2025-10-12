@@ -69,11 +69,11 @@ internal static class AvatarImageUtility
             {
                 ctx.Fill(NormalConstColor, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
-                    {
-                        Origin = new PointF(130, 126),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{rank}", Color.White);
+                {
+                    Origin = new PointF(130, 126),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{rank}", Color.White);
             }
 
             ctx.ApplyRoundedCorners(15);

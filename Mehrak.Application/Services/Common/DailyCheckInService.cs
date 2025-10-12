@@ -1,9 +1,5 @@
 ﻿#region
 
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Services.Common;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text;
