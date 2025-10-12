@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
@@ -87,27 +86,6 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             m_Logger.LogError(e, "An error occurred while fetching Stygian data for gameUid: {GameUid}", context.GameUid);
             return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
                 "An error occurred while retrieving Stygian Onslaught data");
-        }
-    }
-
-    public async ValueTask<Stream> GetMonsterImageAsync(string imageUrl)
-    {
-        try
-        {
-            var client = m_HttpClientFactory.CreateClient("Default");
-            var response = await client.GetAsync(imageUrl);
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError("Failed to fetch monster image from {ImageUrl}", imageUrl);
-                throw new CommandException("An error occurred while retrieving monster image");
-            }
-
-            return await response.Content.ReadAsStreamAsync();
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogError(e, "An error occurred while fetching monster image from {ImageUrl}", imageUrl);
-            throw new CommandException("An error occurred while retrieving monster image", e);
         }
     }
 }

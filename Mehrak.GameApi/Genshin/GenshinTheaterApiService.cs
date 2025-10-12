@@ -105,37 +105,4 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
                 "An error occurred while retrieving Imaginarium Theater data");
         }
     }
-
-    public async Task<Result<Dictionary<string, Stream>>> GetBuffIconsAsync(SplendourBuff buffs)
-    {
-        bool isSuccess = true;
-        var dict = await buffs.Buffs.ToAsyncEnumerable().ToDictionaryAwaitAsync(
-            async x => await Task.FromResult(x.Name),
-            async x =>
-            {
-                try
-                {
-                    var client = m_HttpClientFactory.CreateClient("Default");
-                    HttpRequestMessage request = new(HttpMethod.Get, x.Icon);
-                    var response = await client.SendAsync(request);
-                    if (response.IsSuccessStatusCode) return await response.Content.ReadAsStreamAsync();
-
-                    m_Logger.LogError("Failed to fetch buff icon for {BuffName}: {StatusCode}", x.Name,
-                        response.StatusCode);
-                    isSuccess = false;
-                    return new MemoryStream();
-                }
-                catch
-                {
-                    isSuccess = false;
-                    return new MemoryStream();
-                }
-            });
-
-        if (isSuccess) return Result<Dictionary<string, Stream>>.Success(dict);
-
-        m_Logger.LogError("Failed to fetch some buff icons");
-        return Result<Dictionary<string, Stream>>.Failure(StatusCode.BotError,
-            "An error occurred while retrieving Imaginarium Theater data");
-    }
 }

@@ -104,19 +104,4 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation, HsrE
                 $"An unknown error occurred while fetching {context.GameMode.GetString()} information");
         }
     }
-
-    public async ValueTask<Dictionary<int, Stream>> GetBuffMapAsync(
-        HsrEndInformation fictionData)
-    {
-        return await fictionData.AllFloorDetail.Where(x => !x.IsFast)
-            .SelectMany(x => new List<HsrEndBuff> { x.Node1!.Buff, x.Node2!.Buff })
-            .DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                async x => await Task.FromResult(x.Id),
-                async x =>
-                {
-                    var client = m_HttpClientFactory.CreateClient("Default");
-                    var response = await client.GetAsync(x.Icon);
-                    return await response.Content.ReadAsStreamAsync();
-                });
-    }
 }

@@ -27,11 +27,13 @@ public class ImageUpdaterService : IImageUpdaterService
     {
         if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
+            m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
             return;
         }
 
         var client = m_HttpClientFactory.CreateClient();
 
+        m_Logger.LogInformation("Downloading {Name} from {Url}", data.Name, data.Url);
         var response = await client.GetAsync(data.Url);
         response.EnsureSuccessStatusCode();
 
@@ -39,7 +41,8 @@ public class ImageUpdaterService : IImageUpdaterService
 
         if (processor.ShouldProcess())
         {
-            await using var processedStream = processor.ProcessImage(stream);
+            m_Logger.LogInformation("Processing {Name}", data.Name);
+            using var processedStream = processor.ProcessImage(stream);
             processedStream.Position = 0;
             await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
         }
@@ -47,6 +50,31 @@ public class ImageUpdaterService : IImageUpdaterService
         {
             stream.Position = 0;
             await m_ImageRepository.UploadFileAsync(data.Name, stream);
+        }
+    }
+
+    public async Task UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor)
+    {
+        if (await m_ImageRepository.FileExistsAsync(data.Name))
+        {
+            m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
+            return;
+        }
+
+        var client = m_HttpClientFactory.CreateClient();
+
+        m_Logger.LogInformation("Downloading {Name} from supplied Urls: {Url}", data.Name, string.Join(", ", data.Url, data.AdditionalUrls));
+
+        var streams = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToAsyncEnumerable()
+            .SelectAwait(async x => await (await client.GetAsync(x)).Content.ReadAsStreamAsync()).ToEnumerable();
+
+        using var processedStream = processor.ProcessImage(streams);
+        processedStream.Position = 0;
+        await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
+
+        foreach (var item in streams)
+        {
+            await item.DisposeAsync();
         }
     }
 }
