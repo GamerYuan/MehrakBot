@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Mehrak.Domain.Common;
+namespace Mehrak.Bot.Services;
 
 public class AsyncInitializationHostedService : IHostedService
 {
