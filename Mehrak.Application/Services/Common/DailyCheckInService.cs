@@ -1,154 +1,90 @@
 ﻿#region
 
+using Mehrak.Application.Models.Context;
+using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
-using System.Net;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
 namespace Mehrak.Application.Services.Common;
 
-public class DailyCheckInService : IDailyCheckInService
+public class DailyCheckInService : IApplicationService<CheckInApplicationContext>
 {
-    private readonly IHttpClientFactory m_HttpClientFactory;
-    private readonly GameRecordApiService m_GameRecordApiService;
+    private readonly IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext> m_GameRecordApiService;
+    private readonly IApiService<CheckInStatus, CheckInApiContext> m_ApiService;
     private readonly ILogger<DailyCheckInService> m_Logger;
 
-    private static readonly Dictionary<Game, string> CheckInUrls = new()
+    public DailyCheckInService(IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext> gameRecordApiService,
+        IApiService<CheckInStatus, CheckInApiContext> apiService,
+        ILogger<DailyCheckInService> logger)
     {
-        { Game.Genshin, $"{HoYoLabDomains.GenshinApi}/event/sol/sign" },
-        { Game.HonkaiStarRail, $"{HoYoLabDomains.PublicApi}/event/luna/hkrpg/os/sign" },
-        { Game.ZenlessZoneZero, $"{HoYoLabDomains.PublicApi}/event/luna/zzz/os/sign" },
-        { Game.HonkaiImpact3, $"{HoYoLabDomains.PublicApi}/event/mani/sign" },
-        { Game.TearsOfThemis, $"{HoYoLabDomains.PublicApi}/event/luna/nxx/os/sign" }
-    };
-
-    private static readonly Dictionary<Game, string> CheckInActIds = new()
-    {
-        { Game.Genshin, "e202102251931481" },
-        { Game.HonkaiStarRail, "e202303301540311" },
-        { Game.ZenlessZoneZero, "e202406031448091" },
-        { Game.HonkaiImpact3, "e202110291205111" },
-        { Game.TearsOfThemis, "e202202281857121" }
-    };
-
-    public DailyCheckInService(IHttpClientFactory httpClientFactory,
-        GameRecordApiService gameRecordApiService, ILogger<DailyCheckInService> logger)
-    {
-        m_HttpClientFactory = httpClientFactory;
         m_GameRecordApiService = gameRecordApiService;
+        m_ApiService = apiService;
         m_Logger = logger;
     }
 
-    public async Task<ApiResult<(bool, string)>> CheckInAsync(ulong ltuid, string ltoken)
+    public async Task<CommandResult> ExecuteAsync(CheckInApplicationContext context)
     {
         try
         {
-            UserData? userData = await m_GameRecordApiService.GetUserDataAsync(ltuid, ltoken);
-            if (userData == null)
-                return ApiResult<(bool, string)>.Failure(HttpStatusCode.Unauthorized,
-                    "Invalid UID or Cookies. Please re-authenticate your profile");
-
-            Game[] checkInTypes = Enum.GetValues<Game>();
-
-            List<Task<ApiResult<bool>>> tasks = [.. checkInTypes.Select(async type =>
+            m_Logger.LogInformation("Starting daily check-in for user {Uid}", context.UserId);
+            var gameRecordResult = await m_GameRecordApiService.GetAsync(new GameRecordApiContext(
+                context.UserId, context.LtUid, context.LToken));
+            if (!gameRecordResult.IsSuccess || gameRecordResult.Data == null)
             {
-                try
-                {
-                    return await CheckInHelperAsync(type, ltuid, ltoken);
-                }
-                catch (Exception ex)
-                {
-                    m_Logger.LogError(ex, "An error occurred while checking in for {Game}", type);
-                    return ApiResult<bool>.Failure(HttpStatusCode.InternalServerError,
-                        $"An error occurred while checking in for {type}");
-                }
-            })];
-
-            await Task.WhenAll(tasks);
-
-            StringBuilder sb = new("### Daily check-in results:\n");
-            for (int i = 0; i < checkInTypes.Length; i++)
+                m_Logger.LogWarning("Failed to retrieve game records for user {Uid}", context.UserId);
+                return CommandResult.Failure("Failed to retrieve game records.");
+            }
+            var gameRecords = gameRecordResult.Data.ToList();
+            if (gameRecords.Count == 0)
             {
-                string? gameResult = tasks[i].Result.IsSuccess
-                    ? tasks[i].Result.Data
-                        ? "Success"
-                        : "Already checked in today"
-                    : tasks[i].Result.ErrorMessage;
-
-                string gameName = checkInTypes[i].ToFriendlyString();
-                sb.AppendLine($"{gameName}: {gameResult}");
+                m_Logger.LogWarning("No game records found for user {Uid}", context.UserId);
+                return CommandResult.Failure("No game records found.");
             }
 
-            return ApiResult<(bool, string)>.Success(
-                (tasks.All(x => x.Result.IsSuccess || x.Result.StatusCode == HttpStatusCode.Forbidden), sb.ToString()));
+            var checkInResults = new List<string>();
+            foreach (var game in gameRecords.Select(x => x.Game))
+            {
+                CheckInApiContext apiContext = new(context.UserId, context.LtUid, context.LToken, game);
+                var checkInResponse = await m_ApiService.GetAsync(apiContext);
+
+                if (checkInResponse.IsSuccess)
+                {
+                    switch (checkInResponse.Data)
+                    {
+                        case CheckInStatus.Success:
+                            checkInResults.Add($"{game.ToFriendlyString()}: Check-in successful!");
+                            break;
+
+                        case CheckInStatus.AlreadyCheckedIn:
+                            checkInResults.Add($"{game.ToFriendlyString()}: Already checked in today.");
+                            break;
+
+                        case CheckInStatus.NoValidProfile:
+                            checkInResults.Add($"{game.ToFriendlyString()}: No valid account found.");
+                            break;
+
+                        default:
+                            checkInResults.Add($"{game.ToFriendlyString()}: Unknown status.");
+                            break;
+                    }
+                }
+                else
+                {
+                    checkInResults.Add($"{game.ToFriendlyString()}: {checkInResponse.ErrorMessage}");
+                }
+            }
+            var resultContent = string.Join("\n", checkInResults);
+            m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);
+            return CommandResult.Success(content: resultContent);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            m_Logger.LogError(e, "An error occurred while performing daily check-in for user LtUid: {UserId}",
-                ltuid);
-            return ApiResult<(bool, string)>.Failure(HttpStatusCode.InternalServerError,
-                "An unknown error occurred while performing daily check-in");
-        }
-    }
-
-    private async Task<ApiResult<bool>> CheckInHelperAsync(Game type, ulong ltuid, string ltoken)
-    {
-        if (!CheckInUrls.TryGetValue(type, out string? url) || !CheckInActIds.TryGetValue(type, out string? actId))
-        {
-            m_Logger.LogError("Invalid check-in type: {Type}", type);
-            return ApiResult<bool>.Failure(HttpStatusCode.BadRequest, "Invalid check-in type");
-        }
-
-        HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
-        HttpRequestMessage request = new(HttpMethod.Post, url);
-        CheckInApiPayload requestBody = new(actId);
-        request.Headers.Add("Cookie", $"ltuid_v2={ltuid}; ltoken_v2={ltoken}");
-
-        if (type == Game.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
-
-        request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        m_Logger.LogDebug("Sending check-in request to {Endpoint}", request.RequestUri);
-        HttpResponseMessage response = await httpClient.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            m_Logger.LogError("Check-in request failed with status code {StatusCode}", response.StatusCode);
-            return ApiResult<bool>.Failure(response.StatusCode, "An unknown error occurred during check-in");
-        }
-
-        JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-        if (json == null)
-        {
-            m_Logger.LogError("Failed to parse JSON response from check-in request");
-            return ApiResult<bool>.Failure(response.StatusCode, "An unknown error occurred during check-in");
-        }
-
-        int? retcode = json["retcode"]?.GetValue<int>();
-
-        switch (retcode)
-        {
-            case -5003:
-                m_Logger.LogInformation("User LtUid: {UserId} has already checked in today for game {Game}", ltuid,
-                    type.ToString());
-                return ApiResult<bool>.Success(false, -5003, response.StatusCode);
-
-            case 0:
-                m_Logger.LogInformation("User LtUid: {UserId} check-in successful for game {Game}", ltuid, type.ToString());
-                return ApiResult<bool>.Success(true, 0, response.StatusCode);
-
-            case -10002:
-                m_Logger.LogInformation("User LtUid: {UserId} does not have a valid account for game {Game}", ltuid,
-                    type.ToString());
-                return ApiResult<bool>.Failure(HttpStatusCode.Forbidden, "No valid game account found");
-
-            default:
-                m_Logger.LogError("Check-in failed for user LtUid: {UserId} for game {Game} with retcode {Retcode}", ltuid,
-                    type.ToString(), retcode);
-                return ApiResult<bool>.Failure(response.StatusCode,
-                    $"An unknown error occurred during check-in");
+            m_Logger.LogError(ex, "An error occurred during daily check-in for user {Uid}", context.UserId);
+            return CommandResult.Failure("An unexpected error occurred.");
         }
     }
 }

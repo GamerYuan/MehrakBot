@@ -1,4 +1,5 @@
-﻿using Mehrak.Domain.Models;
+﻿using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
@@ -57,7 +58,15 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             var result = json.Data.List.Select(x => new GameRecordDto()
             {
                 GameId = x.GameId ?? 0,
-                GameName = x.GameName,
+                Game = x.GameName switch
+                {
+                    "Genshin Impact" => Game.Genshin,
+                    "Honkai Impact 3rd" => Game.HonkaiImpact3,
+                    "Honkai: Star Rail" => Game.HonkaiStarRail,
+                    "Zenless Zone Zero" => Game.ZenlessZoneZero,
+                    "Tears of Themis" => Game.TearsOfThemis,
+                    _ => Game.Unsupported
+                },
                 HasRole = x.HasRole ?? false,
                 Nickname = x.Nickname ?? string.Empty,
                 Region = x.Region ?? string.Empty,

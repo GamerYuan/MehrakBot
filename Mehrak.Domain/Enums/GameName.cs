@@ -5,6 +5,7 @@ namespace Mehrak.Domain.Enums;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum Game
 {
+    Unsupported,
     Genshin,
     HonkaiStarRail,
     ZenlessZoneZero,

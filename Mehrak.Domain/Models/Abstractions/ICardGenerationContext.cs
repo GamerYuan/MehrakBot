@@ -2,7 +2,7 @@
 
 namespace Mehrak.Domain.Models.Abstractions;
 
-public interface ICardGenerationContext<T>
+public interface ICardGenerationContext<out T>
 {
     public ulong UserId { get; }
     public T Data { get; }
