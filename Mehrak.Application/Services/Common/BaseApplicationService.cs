@@ -1,0 +1,35 @@
+﻿using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common.Types;
+using Microsoft.Extensions.Logging;
+
+namespace Mehrak.Application.Services.Common;
+
+public abstract class BaseApplicationService<TContext> : IApplicationService<TContext> where TContext : IApplicationContext
+{
+    private readonly IApiService<GameProfileDto, GameRoleApiContext> m_GameRoleApi;
+    protected readonly ILogger<BaseApplicationService<TContext>> Logger;
+
+    protected BaseApplicationService(IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        ILogger<BaseApplicationService<TContext>> logger)
+    {
+        m_GameRoleApi = gameRoleApi;
+        Logger = logger;
+    }
+
+    public abstract Task<CommandResult> ExecuteAsync(TContext context);
+
+    protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltUid, string lToken, Game game, string region)
+    {
+        var gameProfileResult = await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltUid, lToken, game, region));
+        if (!gameProfileResult.IsSuccess)
+        {
+            Logger.LogWarning("Failed to fetch game profile for userId: {UserId}, game: {Game}, region: {Region}, error: {Error}",
+                userId, game, region, gameProfileResult.ErrorMessage);
+            return null;
+        }
+
+        return gameProfileResult.Data;
+    }
+}

@@ -20,7 +20,7 @@ using System.Numerics;
 
 #endregion
 
-namespace Mehrak.Application.Services.Genshin;
+namespace Mehrak.Application.Services.Genshin.Abyss;
 
 internal class GenshinAbyssCardService :
     ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>, IAsyncInitializable

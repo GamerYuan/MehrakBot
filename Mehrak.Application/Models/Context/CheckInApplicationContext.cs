@@ -1,6 +1,24 @@
-﻿namespace Mehrak.Application.Models.Context;
+﻿using Mehrak.Domain.Services.Abstractions;
 
-public class CheckInApplicationContext(ulong userId, ulong ltUid, string lToken, params (string, object)[] parameters)
-    : ApplicationContextBase(userId, ltUid, lToken, parameters)
+namespace Mehrak.Application.Models.Context;
+
+public class CheckInApplicationContext : IApplicationContext
 {
+    public ulong UserId { get; }
+
+    public ulong LtUid { get; }
+
+    public string LToken { get; }
+
+    public CheckInApplicationContext(ulong userId, ulong ltuid, string ltoken)
+    {
+        UserId = userId;
+        LtUid = ltuid;
+        LToken = ltoken;
+    }
+
+    public T? GetParameter<T>(string key)
+    {
+        return default;
+    }
 }

@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Application.Services.Genshin;
+using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.GameApi.Genshin.Types;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.Services.Commands.Genshin.Character;

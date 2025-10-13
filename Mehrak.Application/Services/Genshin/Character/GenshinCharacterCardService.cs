@@ -19,7 +19,7 @@ using System.Numerics;
 
 #endregion
 
-namespace Mehrak.Application.Services.Genshin;
+namespace Mehrak.Application.Services.Genshin.Character;
 
 public class GenshinCharacterCardService : ICardService<GenshinCharacterInformation>
 {

@@ -45,7 +45,7 @@ public class GameData
     public int? Level { get; set; }
 
     [JsonPropertyName("data")]
-    public IReadOnlyList<GameDataEntry> Data { get; set; }
+    public required List<GameDataEntry> Data { get; set; }
 
     [JsonPropertyName("region_name")]
     public required string RegionName { get; set; }

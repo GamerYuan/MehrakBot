@@ -39,7 +39,7 @@ public class ImageUpdaterService : IImageUpdaterService
 
         await using var stream = await response.Content.ReadAsStreamAsync();
 
-        if (processor.ShouldProcess())
+        if (processor.ShouldProcess)
         {
             m_Logger.LogInformation("Processing {Name}", data.Name);
             using var processedStream = processor.ProcessImage(stream);
