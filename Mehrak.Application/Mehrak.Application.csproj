@@ -10,9 +10,5 @@
     <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
     <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Factories\" />
-  </ItemGroup>
 
 </Project>

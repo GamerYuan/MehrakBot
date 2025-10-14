@@ -20,9 +20,9 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
 
     public abstract Task<CommandResult> ExecuteAsync(TContext context);
 
-    protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltUid, string lToken, Game game, string region)
+    protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game, string region)
     {
-        var gameProfileResult = await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltUid, lToken, game, region));
+        var gameProfileResult = await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region));
         if (!gameProfileResult.IsSuccess)
         {
             Logger.LogWarning("Failed to fetch game profile for userId: {UserId}, game: {Game}, region: {Region}, error: {Error}",

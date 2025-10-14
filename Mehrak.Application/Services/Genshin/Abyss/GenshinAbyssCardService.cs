@@ -77,9 +77,9 @@ internal class GenshinAbyssCardService :
             Dictionary<GenshinAvatar, Image<Rgba32>> portraitImages = await floorData.Levels!.SelectMany(y => y.Battles!)
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
                 .SelectAwait(async x =>
-                    new GenshinAvatar(x.Id!.Value, x.Level!.Value,
-                        x.Rarity!.Value, context.ConstMap[x.Id!.Value], await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.Id!.Value))),
+                    new GenshinAvatar(x.Id, x.Level,
+                        x.Rarity, context.ConstMap[x.Id], await Image.LoadAsync(
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.Id))),
                         0))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
@@ -90,15 +90,15 @@ internal class GenshinAbyssCardService :
                 .Concat(abyssData.EnergySkillRank!)
                 .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
                 .ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                    async x => await Task.FromResult(x.AvatarId!.Value),
+                    async x => await Task.FromResult(x.AvatarId),
                     async x => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinSideAvatarName, x.AvatarId!.Value))));
+                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinSideAvatarName, x.AvatarId))));
             Dictionary<GenshinAvatar, Image<Rgba32>> revealRankImages = await abyssData.RevealRank!
                 .ToAsyncEnumerable()
-                .SelectAwait(async x => (x, new GenshinAvatar(x.AvatarId!.Value, 0, x.Rarity!.Value,
-                    context.ConstMap[x.AvatarId!.Value],
+                .SelectAwait(async x => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
+                    context.ConstMap[x.AvatarId],
                     await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.AvatarId!.Value))))))
+                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.AvatarId))))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Item2),
                     async x => await Task.FromResult(x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!)),
                     GenshinAvatarIdComparer.Instance);
@@ -170,7 +170,7 @@ internal class GenshinAbyssCardService :
                 ctx.Fill(OverlayColor, mostUsedBackground);
                 ctx.DrawText("Most Used Characters", m_NormalFont, Color.White, new PointF(80, 460));
 
-                Image<Rgba32> revealRank = GetRosterImage([.. abyssData.RevealRank!.Select(x => x.AvatarId!.Value)],
+                Image<Rgba32> revealRank = GetRosterImage([.. abyssData.RevealRank!.Select(x => x.AvatarId)],
                     revealRankImages.GetAlternateLookup<int>());
                 disposableResources.AddRange(revealRankImages.Values);
                 disposableResources.Add(revealRank);
@@ -195,7 +195,7 @@ internal class GenshinAbyssCardService :
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"{abyssData.DamageRank![0].Value}", Color.White);
-                ctx.DrawImage(sideAvatarImages[abyssData.DamageRank![0].AvatarId!.Value], new Point(50, 700), 1f);
+                ctx.DrawImage(sideAvatarImages[abyssData.DamageRank![0].AvatarId], new Point(50, 700), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -208,7 +208,7 @@ internal class GenshinAbyssCardService :
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"{abyssData.DefeatRank![0].Value}", Color.White);
-                ctx.DrawImage(sideAvatarImages[abyssData.DefeatRank![0].AvatarId!.Value], new Point(50, 870), 1f);
+                ctx.DrawImage(sideAvatarImages[abyssData.DefeatRank![0].AvatarId], new Point(50, 870), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -221,7 +221,7 @@ internal class GenshinAbyssCardService :
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"{abyssData.TakeDamageRank![0].Value}", Color.White);
-                ctx.DrawImage(sideAvatarImages[abyssData.TakeDamageRank![0].AvatarId!.Value], new Point(50, 1040),
+                ctx.DrawImage(sideAvatarImages[abyssData.TakeDamageRank![0].AvatarId], new Point(50, 1040),
                     1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -235,7 +235,7 @@ internal class GenshinAbyssCardService :
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"{abyssData.NormalSkillRank![0].Value}", Color.White);
-                ctx.DrawImage(sideAvatarImages[abyssData.NormalSkillRank![0].AvatarId!.Value], new Point(50, 1210),
+                ctx.DrawImage(sideAvatarImages[abyssData.NormalSkillRank![0].AvatarId], new Point(50, 1210),
                     1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -249,7 +249,7 @@ internal class GenshinAbyssCardService :
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"{abyssData.EnergySkillRank![0].Value}", Color.White);
-                ctx.DrawImage(sideAvatarImages[abyssData.EnergySkillRank![0].AvatarId!.Value], new Point(50, 1380),
+                ctx.DrawImage(sideAvatarImages[abyssData.EnergySkillRank![0].AvatarId], new Point(50, 1380),
                     1f);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
@@ -303,7 +303,7 @@ internal class GenshinAbyssCardService :
                     {
                         Battle battle = level.Battles![j];
                         Image<Rgba32> rosterImage =
-                            GetRosterImage([.. battle.Avatars!.Select(x => x.Id!.Value)], lookup);
+                            GetRosterImage([.. battle.Avatars!.Select(x => x.Id)], lookup);
                         disposableResources.Add(rosterImage);
                         int yOffset = offset + (j * 200);
                         ctx.DrawImage(rosterImage, new Point(795, yOffset), 1f);
