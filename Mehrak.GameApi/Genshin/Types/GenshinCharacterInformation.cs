@@ -1,5 +1,8 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 using System.Text.Json.Serialization;
 
 #endregion
@@ -16,33 +19,28 @@ public class GenshinCharacterDetail
 
 public class BaseCharacterDetail
 {
-    [JsonPropertyName("id")] public int? Id { get; init; }
+    [JsonPropertyName("id")] public int Id { get; init; }
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("name")] public required string Name { get; init; }
 
     [JsonPropertyName("element")] public string? Element { get; init; }
 
     [JsonPropertyName("fetter")] public int? Fetter { get; init; }
-    [JsonPropertyName("level")] public int? Level { get; init; }
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
+    [JsonPropertyName("level")] public int Level { get; init; }
+    [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
     [JsonPropertyName("actived_constellation_num")]
     public int? ActivedConstellationNum { get; init; }
 
-    [JsonPropertyName("image")] public string? Image { get; init; }
+    [JsonPropertyName("image")] public required string Image { get; init; }
 
-    [JsonPropertyName("is_chosen")] public bool? IsChosen { get; init; }
+    [JsonPropertyName("is_chosen")] public bool IsChosen { get; init; }
 
     [JsonPropertyName("side_icon")] public string? SideIcon { get; init; }
 
     [JsonPropertyName("weapon_type")] public int? WeaponType { get; init; }
 
     [JsonPropertyName("weapon")] public required Weapon Weapon { get; init; }
-
-    public override string ToString()
-    {
-        return $"Id: {Id}, Name: {Name}";
-    }
 }
 
 public class Constellation
@@ -55,6 +53,9 @@ public class Constellation
     [JsonPropertyName("is_actived")] public bool? IsActived { get; init; }
 
     [JsonPropertyName("pos")] public int? Pos { get; init; }
+
+    public IImageData ToImageData() =>
+        new ImageData(string.Format(FileNameFormat.GenshinFileName, Id), Icon);
 }
 
 public class StatProperty
@@ -88,27 +89,24 @@ public class GenshinCharacterInformation
     public required List<StatProperty> ElementProperties { get; init; }
 
     [JsonPropertyName("skills")] public required List<Skill> Skills { get; init; }
-
-    public override string ToString()
-    {
-        return
-            $"{Base}, {Weapon}, Relics: {string.Join(", ", Relics.Select(x => x.ToString()))}";
-    }
 }
 
 public class Skill
 {
-    [JsonPropertyName("skill_id")] public int? SkillId { get; init; }
+    [JsonPropertyName("skill_id")] public int SkillId { get; init; }
 
     [JsonPropertyName("skill_type")] public int? SkillType { get; init; }
 
     [JsonPropertyName("level")] public int? Level { get; init; }
     [JsonPropertyName("desc")] public required string Desc { get; init; }
-    [JsonPropertyName("icon")] public string? Icon { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
 
     [JsonPropertyName("is_unlock")] public bool? IsUnlock { get; init; }
 
     [JsonPropertyName("name")] public required string Name { get; init; }
+
+    public IImageData ToImageData(int avatarId) =>
+        new ImageData(string.Format(FileNameFormat.GenshinSkillName, avatarId, SkillId), Icon);
 }
 
 public class RelicStatProperty
@@ -137,10 +135,7 @@ public class Relic
     [JsonPropertyName("sub_property_list")]
     public required List<RelicStatProperty> SubPropertyList { get; init; }
 
-    public override string ToString()
-    {
-        return $"{Name}, (ID: {Id})";
-    }
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinFileName, Id), Icon);
 }
 
 public sealed class RelicSet : IEquatable<RelicSet>
@@ -198,8 +193,5 @@ public class WeaponDetail
 
     [JsonPropertyName("sub_property")] public StatProperty? SubProperty { get; init; }
 
-    public override string ToString()
-    {
-        return $"{Name} (ID: {Id})";
-    }
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinFileName, Id), Icon);
 }

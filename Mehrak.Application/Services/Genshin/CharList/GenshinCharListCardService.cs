@@ -19,7 +19,7 @@ using System.Text.Json;
 
 #endregion
 
-namespace Mehrak.Application.Services.Genshin;
+namespace Mehrak.Application.Services.Genshin.CharList;
 
 public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicCharacterData>>
 {

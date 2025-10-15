@@ -48,5 +48,5 @@ public static class HoYoLabDomains
     /// <summary>
     /// HoYoWiki static API host
     /// </summary>
-    public const string WikiApi = "https://sg-wiki-api-static.hoyolab.com";
+    public const string WikiApi = "https://sg-wiki-api-static.hoyolab.com/hoyowiki";
 }

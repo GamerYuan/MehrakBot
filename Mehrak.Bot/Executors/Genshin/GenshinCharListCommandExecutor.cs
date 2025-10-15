@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Application.Services.Genshin;
+using Mehrak.Application.Services.Genshin.CharList;
 using Mehrak.Bot.Executors.Executor;
 using Mehrak.Bot.Modules;
 using MehrakCore.ApiResponseTypes;

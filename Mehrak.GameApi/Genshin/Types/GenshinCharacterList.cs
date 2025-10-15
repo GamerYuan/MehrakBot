@@ -1,5 +1,8 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 using System.Text.Json.Serialization;
 
 #endregion
@@ -35,6 +38,8 @@ public class GenshinBasicCharacterData
     [JsonPropertyName("weapon_type")] public int? WeaponType { get; init; }
 
     [JsonPropertyName("weapon")] public required Weapon Weapon { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinAvatarName, Id), Icon);
 }
 
 public class Weapon
@@ -48,4 +53,6 @@ public class Weapon
     [JsonPropertyName("affix_level")] public int? AffixLevel { get; init; }
 
     [JsonPropertyName("name")] public required string Name { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinFileName, Id), Icon);
 }
