@@ -47,6 +47,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, context.Server.ToRegion());
             if (profile == null)
             {
+                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
                 return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
             }
 

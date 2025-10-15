@@ -21,7 +21,7 @@ using System.Text.Json;
 
 #endregion
 
-namespace Mehrak.Application.Services.Genshin;
+namespace Mehrak.Application.Services.Genshin.Stygian;
 
 public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitializable
 {

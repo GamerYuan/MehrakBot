@@ -59,6 +59,7 @@ public class GenshinCharacterApplicationService : BaseApplicationService<Genshin
 
             if (profile == null)
             {
+                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
                 return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
             }
 

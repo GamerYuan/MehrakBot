@@ -1,5 +1,8 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
@@ -25,6 +28,8 @@ public class StygianBestAvatar
     [JsonPropertyName("dps")] public required string Dps { get; init; }
 
     [JsonPropertyName("type")] public int Type { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinSideAvatarName, AvatarId), SideIcon);
 }
 
 public class Challenge
@@ -58,6 +63,8 @@ public class Monster
     [JsonPropertyName("icon")] public required string Icon { get; init; }
 
     [JsonPropertyName("monster_id")] public int MonsterId { get; init; }
+
+    public IImageData ToImageData() => new ImageData($"genshin_stygian_boss_{MonsterId}", Icon);
 }
 
 public class StygianSchedule
@@ -106,4 +113,6 @@ public class StygianAvatar
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
     [JsonPropertyName("rank")] public int Rank { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinAvatarName, AvatarId), Image);
 }
