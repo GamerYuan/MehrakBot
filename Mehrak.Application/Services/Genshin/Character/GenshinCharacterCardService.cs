@@ -21,7 +21,7 @@ using System.Numerics;
 
 namespace Mehrak.Application.Services.Genshin.Character;
 
-public class GenshinCharacterCardService : ICardService<GenshinCharacterInformation>
+public class GenshinCharacterCardService : ICardService<GenshinCharacterInformation>, IAsyncInitializable
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
