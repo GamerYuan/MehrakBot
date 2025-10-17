@@ -1,10 +1,11 @@
 #region
 
-using Mehrak.Bot.Executors.Executor;
-using Mehrak.Bot.Executors.Genshin;
+using Mehrak.Application.Services.Genshin.Abyss;
+using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Provider.Commands.Genshin;
-using MehrakCore.Services.Common;
-using MehrakCore.Utility;
+using Mehrak.Domain.Enums;
+using Mehrak.Domain.Services.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -19,35 +20,20 @@ namespace Mehrak.Bot.Modules;
     [
         InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
     ])]
-public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
+public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ILogger<GenshinCommandModule> m_Logger;
-    private readonly ICharacterCommandExecutor<GenshinCommandModule> m_CharacterCommandExecutor;
-    private readonly IRealTimeNotesCommandExecutor<GenshinCommandModule> m_NotesCommandExecutor;
-    private readonly ICodeRedeemExecutor<GenshinCommandModule> m_CodesRedeemExecutor;
-    private readonly GenshinAbyssCommandExecutor m_AbyssCommandExecutor;
-    private readonly GenshinTheaterCommandExecutor m_TheaterCommandExecutor;
-    private readonly GenshinStygianCommandExecutor m_StygianCommandExecutor;
-    private readonly GenshinCharListCommandExecutor m_CharListCommandExecutor;
-    private readonly CommandRateLimitService m_CommandRateLimitService;
+    private readonly IServiceProvider m_ServiceProvider;
+    private readonly ICommandRateLimitService m_CommandRateLimitService;
 
-    public GenshinCommandModule(ICharacterCommandExecutor<GenshinCommandModule> characterCommandExecutor,
-        IRealTimeNotesCommandExecutor<GenshinCommandModule> notesCommandExecutor,
-        ICodeRedeemExecutor<GenshinCommandModule> codesRedeemExecutor,
-        GenshinAbyssCommandExecutor abyssCommandExecutor,
-        GenshinTheaterCommandExecutor theaterCommandExecutor,
-        GenshinStygianCommandExecutor stygianCommandExecutor,
-        GenshinCharListCommandExecutor charListCommandExecutor,
-        CommandRateLimitService commandRateLimitService, ILogger<GenshinCommandModule> logger)
+    public GenshinCommandModule(
+        IServiceProvider serviceProvider,
+        ICommandRateLimitService commandRateLimitService,
+        IAuthenticationMiddlewareService authenticationMiddleware,
+        ILogger<GenshinCommandModule> logger)
     {
         m_Logger = logger;
-        m_CharacterCommandExecutor = characterCommandExecutor;
-        m_NotesCommandExecutor = notesCommandExecutor;
-        m_AbyssCommandExecutor = abyssCommandExecutor;
-        m_TheaterCommandExecutor = theaterCommandExecutor;
-        m_StygianCommandExecutor = stygianCommandExecutor;
-        m_CharListCommandExecutor = charListCommandExecutor;
-        m_CodesRedeemExecutor = codesRedeemExecutor;
+        m_ServiceProvider = serviceProvider;
         m_CommandRateLimitService = commandRateLimitService;
     }
 
@@ -57,7 +43,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
         string characterName,
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -75,14 +61,13 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        m_CharacterCommandExecutor.Context = Context;
-        await m_CharacterCommandExecutor.ExecuteAsync(characterName, server, profile).ConfigureAwait(false);
+        var service = m_ServiceProvider.GetRequiredService<IApplicationService<GenshinAbyssApplicationContext>>();
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task NotesCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -101,7 +86,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -120,7 +105,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "floor", Description = "Floor Number (9-12)")]
         uint floor,
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -145,7 +130,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("theater", "Get Imaginarium Theater summary card")]
     public async Task TheaterCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id")]
         uint profile = 1)
     {
@@ -162,7 +147,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("stygian", "Get Stygian Onslaught summary card")]
     public async Task StygianCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -179,7 +164,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("charlist", "Get character list")]
     public async Task CharListCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {

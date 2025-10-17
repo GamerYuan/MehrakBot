@@ -1,4 +1,6 @@
 ﻿using Mehrak.Application;
+using Mehrak.Bot.Modules;
+using Mehrak.Bot.Services;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
@@ -6,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NetCord.Hosting.Gateway;
+using NetCord.Hosting.Services.Commands;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Globalization;
@@ -88,6 +92,19 @@ public class Program
             builder.Services.AddGameApiServices();
 
             builder.Services.AddGenshinApplicationServices();
+
+            builder.Services.AddHostedService<AsyncInitializationHostedService>();
+
+            var host = builder.Build();
+
+            ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
+
+            host.AddCommandModule<GenshinCommandModule>();
+
+            host.UseGatewayHandlers();
+            logger.LogInformation("Discord gateway initialized");
+
+            await host.RunAsync();
         }
         catch (Exception ex)
         {

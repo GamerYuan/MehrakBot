@@ -1,26 +1,18 @@
-using System.Diagnostics.CodeAnalysis;
 using NetCord.Services;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Mehrak.Bot.Authentication;
 
 public interface IAuthenticationMiddlewareService
 {
-    string RegisterAuthenticationListener(ulong userId, IAuthenticationListener listener);
-    Task NotifyAuthenticationCompletedAsync(string guid, AuthenticationResult result);
-    bool ContainsAuthenticationRequest(string guid);
-}
+    Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request);
 
-public interface IAuthenticationListener
-{
-    Task OnAuthenticationCompletedAsync(AuthenticationResult result);
+    Task NotifyAuthenticateAsync(AuthenticationResponse request);
 }
 
 public class AuthenticationResult
 {
-    [MemberNotNullWhen(true, nameof(LToken))]
-    [MemberNotNullWhen(true, nameof(Context))]
-    [MemberNotNullWhen(false, nameof(ErrorMessage))]
-    public bool IsSuccess { get; private init; }
+    public AuthStatus Status { get; private init; }
 
     public string? ErrorMessage { get; private init; }
     public ulong UserId { get; private init; }
@@ -28,39 +20,75 @@ public class AuthenticationResult
     public string? LToken { get; private init; }
     public IInteractionContext? Context { get; private init; }
 
+    [MemberNotNull(nameof(LToken), nameof(Context)))]
     public static AuthenticationResult Success(
         ulong userId,
-        ulong ltUid,
+        ulong ltuid,
         string ltoken,
         IInteractionContext context)
     {
         return new AuthenticationResult
         {
-            IsSuccess = true,
+            Status = AuthStatus.Success,
             UserId = userId,
-            LtUid = ltUid,
+            LtUid = ltuid,
             LToken = ltoken,
             Context = context
         };
     }
 
-    public static AuthenticationResult Failure(ulong userId, string errorMessage)
+    [MemberNotNull(nameof(ErrorMessage), nameof(Context)))]
+    public static AuthenticationResult Failure(IInteractionContext newContext, string errorMessage)
     {
         return new AuthenticationResult
         {
-            IsSuccess = false,
-            UserId = userId,
+            Status = AuthStatus.Failure,
+            Context = newContext,
             ErrorMessage = errorMessage
         };
     }
 
-    public static AuthenticationResult Timeout(ulong userId)
+    public static AuthenticationResult Timeout()
     {
         return new AuthenticationResult
         {
-            IsSuccess = false,
-            UserId = userId,
+            Status = AuthStatus.Timeout,
             ErrorMessage = "Authentication timed out"
         };
     }
+}
+
+public class AuthenticationRequest
+{
+    public IInteractionContext Context { get; init; }
+    public int ProfileId { get; init; }
+
+    public AuthenticationRequest(IInteractionContext context, int profileId)
+    {
+        Context = context;
+        ProfileId = profileId;
+    }
+}
+
+public class AuthenticationResponse
+{
+    public ulong UserId { get; init; }
+    public string Guid { get; init; }
+    public string Passphrase { get; init; }
+    public IInteractionContext Context { get; init; }
+
+    public AuthenticationResponse(ulong userId, string guid, string passphrase, IInteractionContext context)
+    {
+        UserId = userId;
+        Guid = guid;
+        Passphrase = passphrase;
+        Context = context;
+    }
+}
+
+public enum AuthStatus
+{
+    Success,
+    Failure,
+    Timeout
 }

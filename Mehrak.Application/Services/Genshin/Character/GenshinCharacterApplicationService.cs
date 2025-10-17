@@ -15,7 +15,7 @@ using System.Text.Json.Nodes;
 
 namespace Mehrak.Application.Services.Genshin.Character;
 
-public class GenshinCharacterApplicationService : BaseApplicationService<GenshinCharacterApplicationContext>
+internal class GenshinCharacterApplicationService : BaseApplicationService<GenshinCharacterApplicationContext>
 {
     private readonly ICardService<GenshinCharacterInformation> m_CardService;
     private readonly ICharacterCacheService m_CharacterCacheService;

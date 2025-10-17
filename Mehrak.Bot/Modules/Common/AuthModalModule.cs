@@ -1,8 +1,5 @@
 ﻿#region
 
-using MehrakCore.Models;
-using MehrakCore.Services.Common;
-using MehrakCore.Services.Metrics;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -23,13 +20,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
         ]);
 
-    public static ModalProperties AuthModal(string guid, uint profile)
+    public static ModalProperties AuthModal(string guid)
     {
-        return new ModalProperties($"auth_modal:{guid}:{profile}", "Authenticate")
-            .AddComponents([
+        return new ModalProperties($"auth_modal:{guid}", "Authenticate")
+            .AddComponents(
                 new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
                     .WithPlaceholder("Your Passphrase").WithMaxLength(64)
-            ]);
+            );
     }
 
     private readonly UserRepository m_UserRepository;
