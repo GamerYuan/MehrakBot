@@ -28,8 +28,8 @@ public class GenshinCharacterCardService : ICardService<GenshinCharacterInformat
 
     private Dictionary<int, Image> m_StatImages = null!;
 
-    private const string BasePath = FileNameFormat.GenshinFileName;
-    private const string StatsPath = FileNameFormat.GenshinStatsName;
+    private const string BasePath = FileNameFormat.Genshin.FileName;
+    private const string StatsPath = FileNameFormat.Genshin.StatsName;
 
     private readonly Font m_SmallFont;
     private readonly Font m_MediumFont;
@@ -133,7 +133,7 @@ public class GenshinCharacterCardService : ICardService<GenshinCharacterInformat
                 {
                     Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(
-                            string.Format(FileNameFormat.GenshinSkillName, charInfo.Base.Id, x.SkillId)));
+                            string.Format(FileNameFormat.Genshin.SkillName, charInfo.Base.Id, x.SkillId)));
                     return (Data: x, Image: image);
                 }).Reverse()];
 

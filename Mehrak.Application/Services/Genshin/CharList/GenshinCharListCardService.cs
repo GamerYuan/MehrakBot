@@ -114,7 +114,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                     async x =>
                     {
                         Image image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinFileName, x.Id)));
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.FileName, x.Id)));
                         image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
                         return image;
                     });
@@ -127,7 +127,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 .SelectAwait(async x =>
                 {
                     using Image avatarImage = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.Id)));
+                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.AvatarName, x.Id)));
                     return GetStyledCharacterImage(x, avatarImage, weaponImages[x.Weapon.Id!.Value]);
                 })
                 .ToListAsync();

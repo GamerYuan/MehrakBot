@@ -39,7 +39,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     private readonly JpegEncoder m_JpegEncoder;
 
-    private static readonly string BasePath = FileNameFormat.ZzzFileName;
+    private static readonly string BasePath = FileNameFormat.Zzz.FileName;
 
     private readonly Image m_WeaponTemplate;
     private readonly Image<Rgba32> m_DiskTemplate;
@@ -87,7 +87,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         int[] skillIds = [0, 1, 2, 3, 5, 6];
         List<Task<(int x, Image)>> skillTasks = [.. skillIds.Select(async id =>
             (id, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format(FileNameFormat.ZzzSkillName, id)))))];
+                string.Format(FileNameFormat.Zzz.SkillName, id)))))];
 
         List<Task<(string x, Image)>> attributeTasks = [.. (await m_ImageRepository.ListFilesAsync("zzz_attribute")).Select(async file =>
             (file.Replace("zzz_attribute_", "").TrimStart(),
@@ -95,7 +95,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
         List<Task<(int x, Image)>> professionTasks = [.. Enumerable.Range(1, 6).Select(async i =>
             (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format(FileNameFormat.ZzzProfessionName, i)))))];
+                string.Format(FileNameFormat.Zzz.ProfessionName, i)))))];
 
         char[] itemRarity = ['s', 'a', 'b'];
         List<Task<(char x, Image)>> rarityTasks = [.. itemRarity.Select(async i =>

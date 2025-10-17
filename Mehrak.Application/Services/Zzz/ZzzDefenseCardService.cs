@@ -69,7 +69,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
         m_SmallRatingImages = m_RatingImages.Select(x => (x.Key, x.Value.Clone(y => y.Resize(0, 50))))
             .ToDictionary();
         m_BaseBuddyImage = await Image.LoadAsync(await
-            m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzBuddyName, "base")), cancellationToken);
+            m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base")), cancellationToken);
         m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg"), cancellationToken);
     }
 
@@ -84,7 +84,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
                 .SelectAwait(async x => new ZzzAvatar(x.Id, x.Level, x.Rarity[0], x.Rank, await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzAvatarName, x.Id)))))
+                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.AvatarName, x.Id)))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), ZzzAvatarIdComparer.Instance);
             Dictionary<int, Image> buddyImages = await data.AllFloorDetail
@@ -93,7 +93,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 .DistinctBy(x => x!.Id)
                 .ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x!.Id), async x =>
-                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzBuddyName, x!.Id))));
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, x!.Id))));
 
             disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);

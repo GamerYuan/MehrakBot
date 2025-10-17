@@ -126,7 +126,7 @@ public class GenshinCharacterApplicationService : BaseApplicationService<Genshin
             }
 
             var charTask = m_ImageUpdaterService.UpdateImageAsync(new ImageData(
-                    string.Format(FileNameFormat.GenshinFileName, charData.Base.Id), url),
+                    string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id), url),
                 new ImageProcessorBuilder().AddOperation(GetCharacterImageProcessor()).Build());
             var weapTask = m_ImageUpdaterService.UpdateImageAsync(charData.Weapon.ToImageData(),
                 new ImageProcessorBuilder().Resize(200, 0).Build());

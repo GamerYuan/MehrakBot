@@ -85,7 +85,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
                 .SelectAwait(async x => new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.HsrAvatarName, x.Id)))))
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hsr.AvatarName, x.Id)))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()),
                     HsrAvatarIdComparer.Instance);

@@ -55,7 +55,7 @@ public class Constellation
     [JsonPropertyName("pos")] public int? Pos { get; init; }
 
     public IImageData ToImageData() =>
-        new ImageData(string.Format(FileNameFormat.GenshinFileName, Id), Icon);
+        new ImageData(string.Format(FileNameFormat.Genshin.FileName, Id), Icon);
 }
 
 public class StatProperty
@@ -106,7 +106,7 @@ public class Skill
     [JsonPropertyName("name")] public required string Name { get; init; }
 
     public IImageData ToImageData(int avatarId) =>
-        new ImageData(string.Format(FileNameFormat.GenshinSkillName, avatarId, SkillId), Icon);
+        new ImageData(string.Format(FileNameFormat.Genshin.SkillName, avatarId, SkillId), Icon);
 }
 
 public class RelicStatProperty
@@ -135,7 +135,7 @@ public class Relic
     [JsonPropertyName("sub_property_list")]
     public required List<RelicStatProperty> SubPropertyList { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinFileName, Id), Icon);
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.FileName, Id), Icon);
 }
 
 public sealed class RelicSet : IEquatable<RelicSet>
@@ -193,5 +193,5 @@ public class WeaponDetail
 
     [JsonPropertyName("sub_property")] public StatProperty? SubProperty { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinFileName, Id), Icon);
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.FileName, Id), Icon);
 }

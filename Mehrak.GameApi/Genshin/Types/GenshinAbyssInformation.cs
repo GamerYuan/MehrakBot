@@ -19,7 +19,7 @@ public class AbyssAvatar
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinAvatarName, Id), Icon);
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.AvatarName, Id), Icon);
 }
 
 public class Battle
@@ -106,5 +106,5 @@ public class AbyssRankAvatar
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.GenshinSideAvatarName, AvatarId), AvatarIcon);
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId), AvatarIcon);
 }

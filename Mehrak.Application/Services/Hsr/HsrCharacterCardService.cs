@@ -30,8 +30,8 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
     private Dictionary<int, Image> m_StatImages = null!;
 
-    private const string BasePath = FileNameFormat.HsrFileName;
-    private const string StatsPath = FileNameFormat.HsrStatsName;
+    private const string BasePath = FileNameFormat.Hsr.FileName;
+    private const string StatsPath = FileNameFormat.Hsr.StatsName;
 
     private readonly Font m_SmallFont;
     private readonly Font m_NormalFont;

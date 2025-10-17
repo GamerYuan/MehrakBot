@@ -87,7 +87,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                 .DistinctBy(x => x.Id).ToAsyncEnumerable().SelectAwait(async x =>
                     await Task.FromResult(new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
                         await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.HsrAvatarName, x.Id))))))
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hsr.AvatarName, x.Id))))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), HsrAvatarIdComparer.Instance);
             ValueTask<Dictionary<int, Image>> buffImageTask = gameModeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })

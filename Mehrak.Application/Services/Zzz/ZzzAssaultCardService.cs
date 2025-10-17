@@ -66,7 +66,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
         });
 
         m_BaseBuddyImage = await Image.LoadAsync(await
-            m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.ZzzBuddyName, "base")), cancellationToken);
+            m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base")), cancellationToken);
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzAssaultData> context)
@@ -82,7 +82,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 {
                     Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(
-                            string.Format(FileNameFormat.ZzzAvatarName, x.Id)));
+                            string.Format(FileNameFormat.Zzz.AvatarName, x.Id)));
                     ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
                     return (Avatar: avatar, Image: avatar.GetStyledAvatarImage());
                 })
@@ -98,7 +98,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 {
                     Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(
-                            string.Format(FileNameFormat.ZzzBuddyName, x!.Id)));
+                            string.Format(FileNameFormat.Zzz.BuddyName, x!.Id)));
                     return (BuddyId: x!.Id, Image: image);
                 })
                 .ToDictionaryAsync(x => x.BuddyId, x => x.Image);

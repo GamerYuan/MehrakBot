@@ -74,14 +74,14 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
                 .SelectAwait(async x =>
                     new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank,
                         await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinAvatarName, x.AvatarId)))))
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.AvatarName, x.AvatarId)))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
             Dictionary<int, Image> bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
                 .DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.AvatarId),
                     async x => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.GenshinSideAvatarName, x.AvatarId))));
+                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.SideAvatarName, x.AvatarId))));
             Dictionary<int, Image> monsterImages = await stygianData.Challenge!.Select(x => x.Monster).ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.MonsterId),
                     async x => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_boss_{x.MonsterId}")));
