@@ -1,9 +1,9 @@
 #region
 
-using Mehrak.Application.Services.Genshin.Abyss;
+using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Provider.Commands.Genshin;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,22 +25,26 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     private readonly ILogger<GenshinCommandModule> m_Logger;
     private readonly IServiceProvider m_ServiceProvider;
     private readonly ICommandRateLimitService m_CommandRateLimitService;
+    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly IUserRepository m_UserRepository;
 
     public GenshinCommandModule(
         IServiceProvider serviceProvider,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
+        IUserRepository userRepository,
         ILogger<GenshinCommandModule> logger)
     {
         m_Logger = logger;
         m_ServiceProvider = serviceProvider;
         m_CommandRateLimitService = commandRateLimitService;
+        m_AuthenticationMiddleware = authenticationMiddleware;
+        m_UserRepository = userRepository;
     }
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
-            AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
         string characterName,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
@@ -61,9 +65,38 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        var service = m_ServiceProvider.GetRequiredService<IApplicationService<GenshinAbyssApplicationContext>>();
+        var authResult = await m_AuthenticationMiddleware.GetAuthenticationAsync(new(Context, profile));
+
+        if (authResult.IsSuccess)
+        {
+            server ??= await GetLastUsedServerAsync(profile);
+            if (server == null)
+            {
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    new InteractionMessageProperties().WithContent(
+                            "Server is required for first time use. Please specify the server parameter.")
+                        .WithFlags(MessageFlags.Ephemeral)));
+                return;
+            }
+
+            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
+            var notesCommandExecutor =
+                m_ServiceProvider.GetRequiredService<IApplicationService<GenshinCharacterApplicationContext>>();
+            var commandResult = await notesCommandExecutor
+                .ExecuteAsync(new(Context.User.Id, authResult.LtUid, authResult.LToken!, server.Value, ("character", characterName)))
+                .ConfigureAwait(false);
+
+            await authResult.Context!.Interaction.SendFollowupMessageAsync("Hello");
+            await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data!.Content!);
+        }
+        else
+        {
+            // no op
+        }
     }
 
+    /*
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task NotesCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
@@ -76,9 +109,6 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         if (!await ValidateRateLimitAsync()) return;
-
-        m_NotesCommandExecutor.Context = Context;
-        await m_NotesCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
@@ -178,6 +208,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         await m_CharListCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
+    */
+
     private async Task<bool> ValidateRateLimitAsync()
     {
         if (await m_CommandRateLimitService.IsRateLimitedAsync(Context.Interaction.User.Id))
@@ -190,6 +222,22 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
         return true;
+    }
+
+    private async Task<Server?> GetLastUsedServerAsync(uint profileId)
+    {
+        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+        if (user == null) return null;
+
+        var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
+        if (profile == null) return null;
+
+        if (profile.LastUsedRegions?.TryGetValue(Game.Genshin, out var server) ?? false)
+        {
+            return server;
+        }
+
+        return null;
     }
 
     public static string GetHelpString(string subcommand = "")

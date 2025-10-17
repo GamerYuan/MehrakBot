@@ -16,6 +16,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
     private readonly IUserRepository m_UserRepository;
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
     private readonly ConcurrentDictionary<string, AuthenticationResponse> m_NotifiedRequests = [];
+    private readonly ConcurrentDictionary<string, byte> m_CurrentRequests = [];
 
     private const int TimeoutMinutes = 1;
 
@@ -59,13 +60,14 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         }
 
         var guid = Guid.NewGuid().ToString();
+        m_CurrentRequests.TryAdd(guid, 1);
         await request.Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal(guid)));
         m_Logger.LogDebug("Auth modal sent. Guid={Guid}, UserId={UserId}, LtUid={LtUid}", guid, request.Context.Interaction.User.Id, profile.LtUid);
 
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMinutes(TimeoutMinutes));
         m_Logger.LogDebug("Waiting for authentication response. Guid={Guid}, TimeoutMinutes={TimeoutMinutes}", guid, TimeoutMinutes);
-        var authResponse = await WaitForAuthenticationAsync(guid, cts.Token);
+        var authResponse = await WaitForAuthenticationAsync(guid, cts.Token).ConfigureAwait(false);
 
         if (authResponse is null)
         {
@@ -85,13 +87,19 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         }
 
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}", request.Context.Interaction.User.Id, profile.LtUid);
-        return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, request.Context);
+        return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, authResponse.Context);
     }
 
-    public async Task NotifyAuthenticateAsync(AuthenticationResponse request)
+    public async Task<bool> NotifyAuthenticateAsync(AuthenticationResponse request)
     {
+        if (!m_CurrentRequests.TryGetValue(request.Guid, out _))
+        {
+            m_Logger.LogWarning("No authentication requests found. Guid={Guid}", request.Guid);
+            return false;
+        }
+
         m_Logger.LogDebug("NotifyAuthenticateAsync received. Guid={Guid}, UserId={UserId}", request.Guid, request.UserId);
-        m_NotifiedRequests.TryAdd(request.Guid, request);
+        return m_NotifiedRequests.TryAdd(request.Guid, request);
     }
 
     private async Task<AuthenticationResponse?> WaitForAuthenticationAsync(string guid, CancellationToken token)
@@ -106,6 +114,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 await Task.Delay(100, token);
             }
 
+            m_CurrentRequests.TryRemove(guid, out _);
             m_Logger.LogDebug("Authentication response dequeued. Guid={Guid}", guid);
             return response;
         }

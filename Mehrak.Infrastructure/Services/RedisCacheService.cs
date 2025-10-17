@@ -20,7 +20,11 @@ public class RedisCacheService : ICacheService
     public async Task SetAsync<T>(ICacheEntry<T> entry)
     {
         m_Logger.LogDebug("Storing object with {Key} into cache", entry.Key);
-        await m_Cache.SetStringAsync(entry.Key, JsonSerializer.Serialize(entry.Value));
+        var options = new DistributedCacheEntryOptions()
+        {
+            AbsoluteExpirationRelativeToNow = entry.ExpirationTime
+        };
+        await m_Cache.SetStringAsync(entry.Key, JsonSerializer.Serialize(entry.Value), options);
     }
 
     public async Task<T?> GetAsync<T>(string key)

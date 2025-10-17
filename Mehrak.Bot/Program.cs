@@ -1,17 +1,24 @@
 ﻿using Mehrak.Application;
-using Mehrak.Bot.Modules;
+using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Hosting.Gateway;
-using NetCord.Hosting.Services.Commands;
+using NetCord.Hosting.Services;
+using NetCord.Hosting.Services.ApplicationCommands;
+using NetCord.Hosting.Services.ComponentInteractions;
+using NetCord.Services.ComponentInteractions;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
+using StackExchange.Redis;
 using System.Globalization;
 
 namespace Mehrak.Bot;
@@ -95,11 +102,29 @@ public class Program
 
             builder.Services.AddHostedService<AsyncInitializationHostedService>();
 
+            IConnectionMultiplexer multiplexer = await ConnectionMultiplexer.ConnectAsync(
+                builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
+            builder.Services.AddSingleton(multiplexer);
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
+                options.InstanceName = "MehrakBot_";
+            });
+
+            builder.Services.AddSingleton<CookieEncryptionService>();
+            builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+            builder.Services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
+            builder.Services.AddSingleton<ICommandRateLimitService, CommandRateLimitService>();
+
+            builder.Services.AddDiscordGateway().AddApplicationCommands()
+                .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
+                .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
+
             var host = builder.Build();
 
             ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
 
-            host.AddCommandModule<GenshinCommandModule>();
+            host.AddModules(typeof(Program).Assembly);
 
             host.UseGatewayHandlers();
             logger.LogInformation("Discord gateway initialized");

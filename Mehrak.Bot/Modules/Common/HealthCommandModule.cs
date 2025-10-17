@@ -1,18 +1,10 @@
 ﻿#region
 
-using MehrakCore.Constants;
-using MehrakCore.Services.Common;
-using NetCord;
-using NetCord.Gateway;
-using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
-using StackExchange.Redis;
-using System.Net.NetworkInformation;
-
 #endregion
 
 namespace Mehrak.Bot.Modules.Common;
 
+/*
 public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly MongoDbService m_MongoDbService;
@@ -147,3 +139,4 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
                "-# This command is only available to users with the `Manage Server` or `Administrator` permissions.\n";
     }
 }
+*/

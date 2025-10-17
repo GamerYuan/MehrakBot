@@ -1,19 +1,7 @@
 ﻿#region
 
-using Mehrak.Bot.Executors.Executor;
-using Mehrak.Bot.Executors.Hsr;
-using Mehrak.Bot.Executors.Hsr.BossChallenge;
-using Mehrak.Bot.Executors.Hsr.PureFiction;
-using Mehrak.Bot.Provider.Commands.Hsr;
-using MehrakCore.Services.Common;
-using MehrakCore.Utility;
-using Microsoft.Extensions.Logging;
-using NetCord;
-using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
-
 #endregion
-
+/*
 namespace Mehrak.Bot.Modules;
 
 [SlashCommand("hsr", "Honkai: Star Rail Toolbox")]
@@ -267,3 +255,4 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         };
     }
 }
+*/

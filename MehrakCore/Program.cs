@@ -6,7 +6,6 @@ using Mehrak.Infrastructure.Metrics;
 using MehrakCore.ApiResponseTypes.Genshin;
 using MehrakCore.ApiResponseTypes.Hsr;
 using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Models;
 using MehrakCore.Modules;
 using MehrakCore.Services;
 using MehrakCore.Services.Commands;
@@ -62,7 +61,7 @@ namespace MehrakCore;
 
 internal class Program
 {
-    private static async Task Main(string[] args)
+    private async Task Main(string[] args)
     {
         HostApplicationBuilderSettings settings = new()
         {

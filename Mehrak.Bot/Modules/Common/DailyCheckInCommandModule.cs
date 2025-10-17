@@ -1,14 +1,7 @@
 ﻿#region
 
-using Mehrak.Bot.Executors.Executor;
-using MehrakCore.Services.Common;
-using Microsoft.Extensions.Logging;
-using NetCord;
-using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
-
 #endregion
-
+/*
 namespace Mehrak.Bot.Modules.Common;
 
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
@@ -80,3 +73,4 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
                "```/checkin\n/checkin 2```\n";
     }
 }
+*/

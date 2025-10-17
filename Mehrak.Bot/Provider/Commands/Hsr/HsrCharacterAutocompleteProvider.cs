@@ -1,13 +1,7 @@
 ﻿#region
 
-using MehrakCore.Modules;
-using MehrakCore.Services.Commands;
-using NetCord;
-using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
-
 #endregion
-
+/*
 namespace Mehrak.Bot.Provider.Commands.Hsr;
 
 public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService<HsrCommandModule> autocompleteService)
@@ -20,3 +14,4 @@ public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService<HsrC
             .FindCharacter(option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }
+*/

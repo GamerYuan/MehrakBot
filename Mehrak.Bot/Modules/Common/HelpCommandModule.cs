@@ -1,13 +1,7 @@
 ﻿#region
 
-using Mehrak.Bot.Modules;
-using MehrakCore.Services.Metrics;
-using NetCord;
-using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
-
 #endregion
-
+/*
 namespace Mehrak.Bot.Modules.Common;
 
 public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandContext>
@@ -48,3 +42,4 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
             ]);
     }
 }
+*/

@@ -1,10 +1,13 @@
 ﻿#region
 
+using Mehrak.Bot.Authentication;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
+using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
-using System.Security.Cryptography;
 
 #endregion
 
@@ -29,19 +32,20 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             );
     }
 
-    private readonly UserRepository m_UserRepository;
     private readonly ILogger<AuthModalModule> m_Logger;
-    private readonly CookieService m_CookieService;
-    private readonly TokenCacheService m_TokenCacheService;
+    private readonly CookieEncryptionService m_CookieService;
+    private readonly IUserRepository m_UserRepository;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
 
-    public AuthModalModule(UserRepository userRepository, ILogger<AuthModalModule> logger, CookieService cookieService,
-        TokenCacheService tokenCacheService, IAuthenticationMiddlewareService authenticationMiddleware)
+    public AuthModalModule(
+        CookieEncryptionService cookieService,
+        IUserRepository userRepository,
+        IAuthenticationMiddlewareService authenticationMiddleware,
+        ILogger<AuthModalModule> logger)
     {
-        m_UserRepository = userRepository;
         m_Logger = logger;
         m_CookieService = cookieService;
-        m_TokenCacheService = tokenCacheService;
+        m_UserRepository = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
     }
 
@@ -98,7 +102,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("Added profile successfully!"))));
-            BotMetrics.TrackCommand(Context.Interaction.User, "profile add", true);
         }
         catch (Exception e)
         {
@@ -110,14 +113,16 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 Flags = MessageFlags.Ephemeral
             };
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
-            BotMetrics.TrackCommand(Context.Interaction.User, "profile add", false);
         }
     }
 
     [ComponentInteraction("auth_modal")]
-    public async Task AuthModalCallback(string guid, uint profile)
+    public async Task AuthModalCallback(string guid)
     {
-        if (!m_AuthenticationMiddleware.ContainsAuthenticationRequest(guid))
+        var passphrase = Context.Components.OfType<TextInput>()
+            .First(x => x.CustomId == "passphrase").Value;
+
+        if (!await m_AuthenticationMiddleware.NotifyAuthenticateAsync(new(Context.User.Id, guid, passphrase, Context)))
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
                 .WithFlags(
@@ -126,62 +131,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     new TextDisplayProperties(
                         "This authentication request has expired or is invalid. Please try again"))));
             return;
-        }
-
-        AuthenticationResult authResult = await AuthenticateUser(profile);
-
-        // Notify the middleware about the authentication result
-        await m_AuthenticationMiddleware.NotifyAuthenticationCompletedAsync(guid, authResult);
-    }
-
-    private async Task<AuthenticationResult> AuthenticateUser(uint profile)
-    {
-        try
-        {
-            m_Logger.LogInformation("Processing auth modal submission from user {UserId}", Context.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-
-            UserModel? user = await m_UserRepository.GetUserAsync(Context.User.Id);
-            if (user?.Profiles == null || user.Profiles.All(x => x.ProfileId != profile))
-            {
-                m_Logger.LogWarning("User {UserId} not found in database", Context.User.Id);
-                await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .WithComponents([new TextDisplayProperties("No profile found! Please add a profile first")]));
-                return AuthenticationResult.Failure(Context.User.Id, "No profile found");
-            }
-
-            UserProfile selectedProfile = user.Profiles.First(x => x.ProfileId == profile);
-
-            Dictionary<string, string> inputs = Context.Components.OfType<TextInput>()
-                .ToDictionary(x => x.CustomId, x => x.Value);
-
-            string ltoken = m_CookieService.DecryptCookie(selectedProfile.LToken, inputs["passphrase"]);
-
-            await m_TokenCacheService.AddCacheEntryAsync(selectedProfile.LtUid, ltoken, Context.Interaction.User.Id);
-            return AuthenticationResult.Success(Context.User.Id, selectedProfile.LtUid, ltoken, Context);
-        }
-        catch (AuthenticationTagMismatchException)
-        {
-            m_Logger.LogWarning("User {UserId} provided wrong passphrase", Context.User.Id);
-            if (Context.Interaction.Message?.InteractionMetadata?.OriginalResponseMessageId != null)
-                await Context.Interaction.DeleteFollowupMessageAsync(
-                    Context.Interaction.Message.InteractionMetadata
-                        .OriginalResponseMessageId!.Value);
-            await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .WithComponents([new TextDisplayProperties("Invalid passphrase. Please try again")]));
-            return AuthenticationResult.Failure(Context.User.Id, "Invalid passphrase");
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogError(e, "Error processing auth modal for user {UserId}", Context.User.Id);
-
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(
-                    new TextDisplayProperties("An error occurred during authentication. Please try again later"))));
-            return AuthenticationResult.Failure(Context.User.Id, "An error occurred during authentication");
         }
     }
 }

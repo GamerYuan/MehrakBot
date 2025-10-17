@@ -7,12 +7,16 @@ public interface IAuthenticationMiddlewareService
 {
     Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request);
 
-    Task NotifyAuthenticateAsync(AuthenticationResponse request);
+    Task<bool> NotifyAuthenticateAsync(AuthenticationResponse request);
 }
 
 public class AuthenticationResult
 {
     public AuthStatus Status { get; private init; }
+
+    [MemberNotNullWhen(true, nameof(LToken))]
+    [MemberNotNullWhen(false, nameof(ErrorMessage))]
+    public bool IsSuccess => Status == AuthStatus.Success;
 
     public string? ErrorMessage { get; private init; }
     public ulong UserId { get; private init; }
@@ -20,7 +24,6 @@ public class AuthenticationResult
     public string? LToken { get; private init; }
     public IInteractionContext? Context { get; private init; }
 
-    [MemberNotNull(nameof(LToken), nameof(Context)))]
     public static AuthenticationResult Success(
         ulong userId,
         ulong ltuid,
@@ -37,7 +40,6 @@ public class AuthenticationResult
         };
     }
 
-    [MemberNotNull(nameof(ErrorMessage), nameof(Context)))]
     public static AuthenticationResult Failure(IInteractionContext newContext, string errorMessage)
     {
         return new AuthenticationResult
@@ -61,9 +63,9 @@ public class AuthenticationResult
 public class AuthenticationRequest
 {
     public IInteractionContext Context { get; init; }
-    public int ProfileId { get; init; }
+    public uint ProfileId { get; init; }
 
-    public AuthenticationRequest(IInteractionContext context, int profileId)
+    public AuthenticationRequest(IInteractionContext context, uint profileId)
     {
         Context = context;
         ProfileId = profileId;

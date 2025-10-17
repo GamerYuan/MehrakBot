@@ -14,7 +14,7 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Hsr;
 
-public abstract class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApiContext>
+public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HsrEndGameApiService> m_Logger;
@@ -26,7 +26,7 @@ public abstract class HsrEndGameApiService : IApiService<HsrEndInformation, HsrE
 
     private static readonly string BasePath = "/event/game_record/hkrpg/api/";
 
-    protected HsrEndGameApiService(IHttpClientFactory httpClientFactory, ILogger<HsrEndGameApiService> logger)
+    public HsrEndGameApiService(IHttpClientFactory httpClientFactory, ILogger<HsrEndGameApiService> logger)
     {
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;

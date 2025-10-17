@@ -1,13 +1,7 @@
 ﻿#region
 
-using MehrakCore.Modules;
-using MehrakCore.Services.Commands;
-using NetCord;
-using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
-
 #endregion
-
+/*
 namespace Mehrak.Bot.Provider.Commands.Genshin;
 
 public class GenshinCharacterAutocompleteProvider(
@@ -21,3 +15,4 @@ public class GenshinCharacterAutocompleteProvider(
             .FindCharacter(option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }
+*/

@@ -1,6 +1,6 @@
 ﻿#region
 
-using MehrakCore.Services.Metrics;
+using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -14,10 +14,10 @@ namespace Mehrak.Bot.Modules.Common;
     Contexts = [InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel])]
 public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly UserRepository m_UserRepository;
+    private readonly IUserRepository m_UserRepository;
     private readonly ILogger<ProfileCommandModule> m_Logger;
 
-    public ProfileCommandModule(UserRepository userRepository, ILogger<ProfileCommandModule> logger)
+    public ProfileCommandModule(IUserRepository userRepository, ILogger<ProfileCommandModule> logger)
     {
         m_UserRepository = userRepository;
         m_Logger = logger;
@@ -87,7 +87,6 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(
                     new TextDisplayProperties($"Profile {profileId} deleted!"))));
-        BotMetrics.TrackCommand(Context.Interaction.User, "profile delete", true);
     }
 
     [SubSlashCommand("list", "List your profiles")]
@@ -105,13 +104,12 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         var profileList = user.Profiles.Select(x => new TextDisplayProperties(
             $"## Profile {x.ProfileId}:\n**HoYoLAB UID:** {x.LtUid}\n### Games:\n" +
             $"{string.Join('\n', x.GameUids?.Select(y =>
-                                     $"{y.Key.ToString()}\n{string.Join(", ", y.Value.Select(z =>
+                                     $"{y.Key}\n{string.Join(", ", y.Value.Select(z =>
                                          $"{z.Key}: {z.Value}"))}")
                                  ?? [])}"));
         await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(profileList)));
-        BotMetrics.TrackCommand(Context.Interaction.User, "profile list", true);
     }
 
     public static string GetHelpString(string subcommand)

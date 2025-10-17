@@ -1,16 +1,7 @@
 ﻿#region
 
-using Mehrak.Bot.Executors.Executor;
-using Mehrak.Bot.Executors.Zzz;
-using MehrakCore.Services.Common;
-using MehrakCore.Utility;
-using Microsoft.Extensions.Logging;
-using NetCord;
-using NetCord.Rest;
-using NetCord.Services.ApplicationCommands;
-
 #endregion
-
+/*
 namespace Mehrak.Bot.Modules;
 
 [SlashCommand("zzz", "Zenless Zone Zero Toolbox")]
@@ -215,3 +206,4 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         };
     }
 }
+*/
