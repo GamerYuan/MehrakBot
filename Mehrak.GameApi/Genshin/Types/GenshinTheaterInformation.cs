@@ -1,5 +1,8 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 using System.Text.Json.Serialization;
 
 #endregion
@@ -27,6 +30,8 @@ public class ItAvatar
     [JsonPropertyName("level")] public int Level { get; init; }
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.AvatarName, AvatarId), Image);
 }
 
 public class Buff
@@ -36,6 +41,8 @@ public class Buff
     [JsonPropertyName("icon")] public required string Icon { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.BuffIconName, Name.Replace(" ", "")), Icon);
 }
 
 public class GenshinTheaterInformation
@@ -106,6 +113,8 @@ public class ItRankAvatar
     [JsonPropertyName("value")] public required string Value { get; init; }
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId), AvatarIcon!);
 }
 
 public class FightStatistic

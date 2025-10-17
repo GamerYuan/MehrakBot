@@ -19,7 +19,7 @@ using System.Numerics;
 
 #endregion
 
-namespace Mehrak.Application.Services.Genshin;
+namespace Mehrak.Application.Services.Genshin.Theater;
 
 internal class GenshinTheaterCardService :
     ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation>, IAsyncInitializable
