@@ -50,7 +50,7 @@ public class DailyTask
     public string? StoredAttendance { get; init; }
 
     [JsonPropertyName("stored_attendance_refresh_countdown")]
-    public int StoredAttendanceRefreshCountdown { get; init; }
+    public long StoredAttendanceRefreshCountdown { get; init; }
 }
 
 public class GenshinRealTimeNotesData

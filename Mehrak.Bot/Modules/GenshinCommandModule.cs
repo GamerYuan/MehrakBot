@@ -3,6 +3,7 @@
 using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Application.Services.Genshin.CharList;
+using Mehrak.Application.Services.Genshin.RealTimeNotes;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Bot.Builders;
@@ -35,7 +36,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name or Alias (Case-insensitive)")]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
@@ -55,7 +56,6 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         await executor.ExecuteAsync(server, profile);
     }
 
-    /*
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task NotesCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
@@ -67,9 +67,17 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "User {User} used the notes command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<GenshinRealTimeNotesApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("genshin notes")
+            .WithEphemeralResponse(true)
+            .Build();
+
+        await executor.ExecuteAsync(server, profile);
     }
 
+    /*
     [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
     public async Task CodesCommand(
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]

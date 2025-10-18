@@ -56,12 +56,14 @@ public class CommandSection
 {
     public string? Title { get; }
     public string? Content { get; }
+    public string? Footer { get; }
     public CommandAttachment Attachment { get; }
 
-    public CommandSection(string? title, string? content, CommandAttachment attachment)
+    public CommandSection(string? title, string? content, string? footer, CommandAttachment attachment)
     {
         Title = title;
         Content = content;
+        Footer = footer;
         Attachment = attachment;
     }
 }

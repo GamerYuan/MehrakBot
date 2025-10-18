@@ -6,6 +6,7 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 #endregion
 
@@ -17,6 +18,11 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinRealTimeNotesApiService> m_Logger;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
 
     public GenshinRealTimeNotesApiService(IHttpClientFactory httpClientFactory,
         ILogger<GenshinRealTimeNotesApiService> logger)
@@ -47,7 +53,8 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinRealTimeNotesData>>(await response.Content.ReadAsStreamAsync());
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinRealTimeNotesData>>(
+                await response.Content.ReadAsStreamAsync(), JsonOptions);
             if (json?.Data == null)
             {
                 m_Logger.LogError("Failed to parse JSON response from real-time notes API");

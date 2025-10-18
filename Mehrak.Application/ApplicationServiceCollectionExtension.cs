@@ -1,6 +1,7 @@
 ﻿using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Application.Services.Genshin.CharList;
+using Mehrak.Application.Services.Genshin.RealTimeNotes;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Application.Services.Genshin.Types;
@@ -37,6 +38,8 @@ public static class ApplicationServiceCollectionExtension
         services.RegisterAsyncInitializableFor<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>,
             GenshinTheaterInformation>, GenshinTheaterCardService>();
         services.AddTransient<IApplicationService<GenshinTheaterApplicationContext>, GenshinTheaterApplicationService>();
+
+        services.AddTransient<IApplicationService<GenshinRealTimeNotesApplicationContext>, GenshinRealTimeNotesApplicationService>();
 
         return services;
     }

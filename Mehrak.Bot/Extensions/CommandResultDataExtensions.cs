@@ -20,13 +20,14 @@ internal static class CommandResultDataExtensions
             {
                 foreach (var section in data.Sections)
                 {
+                    properties.AddAttachments(new AttachmentProperties(section.Attachment.FileName, section.Attachment.Content));
                     var sectionComponent = new ComponentSectionProperties(
                         new ComponentSectionThumbnailProperties(new ComponentMediaProperties($"attachment://{section.Attachment.FileName}"))
                     );
                     if (section.Title != null) sectionComponent.AddComponents(new TextDisplayProperties($"### {section.Title}"));
                     if (section.Content != null) sectionComponent.AddComponents(new TextDisplayProperties(section.Content));
-                    container.AddComponents(sectionComponent);
-                    properties.AddAttachments(new AttachmentProperties(section.Attachment.FileName, section.Attachment.Content));
+                    if (section.Footer != null) sectionComponent.AddComponents(new TextDisplayProperties($"-# {section.Footer}"));
+                    container.AddComponents([sectionComponent]);
                 }
             }
             if (data.Attachments.Any())
