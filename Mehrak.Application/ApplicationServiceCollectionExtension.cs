@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Services.Genshin.Abyss;
+﻿using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Common;
+using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Application.Services.Genshin.CharList;
 using Mehrak.Application.Services.Genshin.RealTimeNotes;
@@ -16,6 +18,8 @@ public static class ApplicationServiceCollectionExtension
 {
     public static IServiceCollection AddGenshinApplicationServices(this IServiceCollection services)
     {
+        services.AddTransient<IApplicationService<CodeRedeemApplicationContext>, CodeRedeemApplicationService>();
+
         services.AddSingleton<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>,
             GenshinAbyssCardService>();
         services.RegisterAsyncInitializableFor<

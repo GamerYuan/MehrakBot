@@ -1,5 +1,6 @@
 #region
 
+using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Application.Services.Genshin.CharList;
@@ -77,7 +78,6 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         await executor.ExecuteAsync(server, profile);
     }
 
-    /*
     [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
     public async Task CodesCommand(
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
@@ -90,8 +90,16 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         m_Logger.LogInformation(
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
             Context.User.Id, code, server, profile);
+
+        var executor = m_Builder.For<CodeRedeemApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, Game.Genshin, (nameof(code), code)))
+            .WithCommandName("genshin codes")
+            .WithEphemeralResponse(true)
+            .Build();
+
+        await executor.ExecuteAsync(server, profile);
     }
-    */
 
     [SubSlashCommand("abyss", "Get Spiral Abyss summary card")]
     public async Task AbyssCommand(
