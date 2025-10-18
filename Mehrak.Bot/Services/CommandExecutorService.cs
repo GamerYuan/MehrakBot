@@ -1,4 +1,5 @@
-﻿using Mehrak.Bot.Authentication;
+﻿using Mehrak.Application.Models.Context;
+using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
@@ -11,10 +12,17 @@ using NetCord.Services;
 
 namespace Mehrak.Bot.Services;
 
-internal class CommandExecutorService<TContext> where TContext : IApplicationContext
+public interface ICommandExecutorService<TContext> where TContext : IApplicationContext
 {
-    internal IInteractionContext Context { get; set; }
-    internal TContext AppContext { get; set; }
+    Task ExecuteAsync(Server? server, uint profile);
+
+    void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null);
+}
+
+internal class CommandExecutorService<TContext> : ICommandExecutorService<TContext> where TContext : IApplicationContext
+{
+    internal IInteractionContext Context { get; set; } = default!;
+    internal TContext ApplicationContext { get; set; } = default!;
     internal string CommandName { get; set; } = string.Empty;
     internal bool IsResponseEphemeral { get; set; } = false;
 
@@ -22,7 +30,6 @@ internal class CommandExecutorService<TContext> where TContext : IApplicationCon
     private readonly IUserRepository m_UserRepository;
     private readonly ICommandRateLimitService m_CommandRateLimitService;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
-    private readonly ICacheService m_CacheService;
     private readonly ILogger<CommandExecutorService<TContext>> m_Logger;
 
     private readonly List<ParamValidator> validators = [];
@@ -32,7 +39,6 @@ internal class CommandExecutorService<TContext> where TContext : IApplicationCon
         IUserRepository userRepository,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        ICacheService cacheService,
         ILogger<CommandExecutorService<TContext>> logger
     )
     {
@@ -40,7 +46,6 @@ internal class CommandExecutorService<TContext> where TContext : IApplicationCon
         m_UserRepository = userRepository;
         m_CommandRateLimitService = commandRateLimitService;
         m_AuthenticationMiddleware = authenticationMiddleware;
-        m_CacheService = cacheService;
         m_Logger = logger;
     }
 
@@ -50,7 +55,7 @@ internal class CommandExecutorService<TContext> where TContext : IApplicationCon
             "User {User} used command {Command}",
             Context.Interaction.User.Id, CommandName);
 
-        var invalid = validators.Where(x => !x.IsValid(AppContext)).Select(x => x.ErrorMessage);
+        var invalid = validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
         if (invalid.Any())
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
@@ -78,10 +83,18 @@ internal class CommandExecutorService<TContext> where TContext : IApplicationCon
 
             await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
+            ApplicationContext.LToken = authResult.LToken;
+            ApplicationContext.LtUid = authResult.LtUid;
+
+            if (ApplicationContext is ApplicationContextBase context)
+            {
+                context.Server = server.Value;
+            }
+
             var notesCommandExecutor =
                 m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();
             var commandResult = await notesCommandExecutor
-                .ExecuteAsync(AppContext)
+                .ExecuteAsync(ApplicationContext)
                 .ConfigureAwait(false);
 
             if (commandResult.IsSuccess)
@@ -103,9 +116,9 @@ internal class CommandExecutorService<TContext> where TContext : IApplicationCon
         }
     }
 
-    public void AddValidator<TParam>(string paramName, Predicate<TParam> pred)
+    public void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null)
     {
-        validators.Add(new ParamValidator<TParam>(paramName, pred));
+        validators.Add(new ParamValidator<TParam>(paramName, pred, errorMessage));
     }
 
     private async Task<bool> ValidateRateLimitAsync()

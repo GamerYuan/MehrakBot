@@ -1,5 +1,6 @@
 ﻿using Mehrak.Application;
 using Mehrak.Bot.Authentication;
+using Mehrak.Bot.Builders;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
@@ -110,6 +111,8 @@ public class Program
                 options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
                 options.InstanceName = "MehrakBot_";
             });
+
+            builder.Services.AddCommandExecutorBuilder();
 
             builder.Services.AddSingleton<CookieEncryptionService>();
             builder.Services.AddSingleton<ICacheService, RedisCacheService>();

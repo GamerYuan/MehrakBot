@@ -89,7 +89,8 @@ internal class GenshinTheaterCardService :
                     async x =>
                     {
                         Image image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync($"zzz_theater_buff_{x.Name.Replace(' ', '_')}"));
+                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(
+                                FileNameFormat.Genshin.BuffIconName, x.Name.Replace(" ", ""))));
                         image.Mutate(ctx => ctx.Resize(50, 0));
                         return image;
                     });

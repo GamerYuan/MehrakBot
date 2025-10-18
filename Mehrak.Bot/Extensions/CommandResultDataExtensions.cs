@@ -11,10 +11,10 @@ internal static class CommandResultDataExtensions
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
 
-        if (data.Title != null || data.Sections != null)
+        if (data.Title != null || data.Sections.Any())
         {
             var container = new ComponentContainerProperties();
-            container.AddComponents(new TextDisplayProperties($"## {data.Title}"));
+            container.AddComponents(new TextDisplayProperties($"### {data.Title}"));
             if (data.Content != null) container.AddComponents(new TextDisplayProperties(data.Content));
             if (data.Sections.Any())
             {
@@ -38,7 +38,7 @@ internal static class CommandResultDataExtensions
                 container.AddComponents(mediaGallery);
             }
             if (data.Footer != null) container.AddComponents(new TextDisplayProperties(data.Footer));
-            properties.AddComponents(container);
+            properties.AddComponents([container]);
         }
         else
         {

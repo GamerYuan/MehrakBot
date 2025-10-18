@@ -46,6 +46,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
+            m_Logger.LogDebug("Retrieved json response {Response}", await response.Content.ReadAsStringAsync());
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinAbyssInformation>>(await response.Content.ReadAsStreamAsync());
             if (json?.Data == null)
             {

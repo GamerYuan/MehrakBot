@@ -37,12 +37,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
     {
         try
         {
-            var floor = context.GetParameter<int>("floor");
-
-            if (floor is < 9 or > 12)
-            {
-                return CommandResult.Failure("Invalid floor number. Please provide a floor between 9 and 12");
-            }
+            var floor = context.GetParameter<uint>("floor");
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, context.Server.ToRegion());
             if (profile == null)
@@ -110,7 +105,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             await Task.WhenAll(tasks);
             await Task.WhenAll(sideAvatarTasks);
 
-            var card = await m_CardService.GetCardAsync(new(context.UserId, (uint)floor, abyssData, context.Server, profile, constMap));
+            var card = await m_CardService.GetCardAsync(new(context.UserId, floor, abyssData, context.Server, profile, constMap));
 
             return CommandResult.Success(
                 $"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",

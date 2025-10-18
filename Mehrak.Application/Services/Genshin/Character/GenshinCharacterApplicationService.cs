@@ -49,12 +49,6 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             var region = context.Server.ToRegion();
             var characterName = context.GetParameter<string>("character");
 
-            if (string.IsNullOrWhiteSpace(characterName))
-            {
-                Logger.LogInformation("Character name is empty for user {UserId}", context.UserId);
-                return CommandResult.Failure("Character name cannot be empty. Please provide a valid character name.");
-            }
-
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)

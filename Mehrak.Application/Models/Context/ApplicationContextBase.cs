@@ -8,14 +8,13 @@ public class ApplicationContextBase : IApplicationContext
     public ulong UserId { get; }
     public ulong LtUid { get; set; }
     public string LToken { get; set; } = string.Empty;
-    public Server Server { get; }
+    public Server Server { get; set; }
 
     private Dictionary<string, object> Parameters { get; } = [];
 
-    public ApplicationContextBase(ulong userId, Server server, params (string, object)[] parameters)
+    public ApplicationContextBase(ulong userId, params (string, object)[] parameters)
     {
         UserId = userId;
-        Server = server;
         foreach (var (key, value) in parameters)
         {
             Parameters[key] = value;

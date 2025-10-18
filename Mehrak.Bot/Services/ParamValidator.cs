@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Services.Abstractions;
-using System.Net;
 
 namespace Mehrak.Bot.Services;
 
@@ -31,7 +30,7 @@ internal class ParamValidator<TParam> : ParamValidator
 
     public override bool IsValid(IApplicationContext context)
     {
-        var param = context.GetParameter<TransportContext>(ParamName);
+        var param = context.GetParameter<TParam>(ParamName);
         if (param is not TParam typedParam)
         {
             return false;

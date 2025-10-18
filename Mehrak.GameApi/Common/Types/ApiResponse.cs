@@ -1,8 +1,10 @@
-﻿namespace Mehrak.GameApi.Common.Types;
+﻿using System.Text.Json.Serialization;
+
+namespace Mehrak.GameApi.Common.Types;
 
 public class ApiResponse<T> where T : class
 {
-    public T? Data { get; init; }
-    public int Retcode { get; init; }
-    public required string Message { get; init; }
+    [JsonPropertyName("data")] public T? Data { get; init; }
+    [JsonPropertyName("retcode")] public int Retcode { get; init; }
+    [JsonPropertyName("message")] public required string Message { get; init; }
 }

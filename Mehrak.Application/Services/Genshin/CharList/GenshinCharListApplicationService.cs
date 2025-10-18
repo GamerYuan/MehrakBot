@@ -73,7 +73,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
             IEnumerable<Task> weaponTask =
                 characterList.Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(200, 0).Build()));
+                    m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(), new ImageProcessorBuilder().Resize(200, 0).Build()));
 
             await Task.WhenAll(avatarTask.Concat(weaponTask));
 

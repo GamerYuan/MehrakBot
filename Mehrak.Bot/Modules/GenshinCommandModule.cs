@@ -1,9 +1,12 @@
 #region
 
-using Mehrak.Bot.Authentication;
+using Mehrak.Application.Services.Genshin.Abyss;
+using Mehrak.Application.Services.Genshin.Character;
+using Mehrak.Application.Services.Genshin.CharList;
+using Mehrak.Application.Services.Genshin.Stygian;
+using Mehrak.Application.Services.Genshin.Theater;
+using Mehrak.Bot.Builders;
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Services.ApplicationCommands;
@@ -19,35 +22,37 @@ namespace Mehrak.Bot.Modules;
     ])]
 public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
+    private readonly ICommandExecutorBuilder m_Builder;
     private readonly ILogger<GenshinCommandModule> m_Logger;
-    private readonly IServiceProvider m_ServiceProvider;
-    private readonly ICommandRateLimitService m_CommandRateLimitService;
-    private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
-    private readonly IUserRepository m_UserRepository;
 
     public GenshinCommandModule(
-        IServiceProvider serviceProvider,
-        ICommandRateLimitService commandRateLimitService,
-        IAuthenticationMiddlewareService authenticationMiddleware,
-        IUserRepository userRepository,
+        ICommandExecutorBuilder builder,
         ILogger<GenshinCommandModule> logger)
     {
+        m_Builder = builder;
         m_Logger = logger;
-        m_ServiceProvider = serviceProvider;
-        m_CommandRateLimitService = commandRateLimitService;
-        m_AuthenticationMiddleware = authenticationMiddleware;
-        m_UserRepository = userRepository;
     }
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
-        string characterName,
+        string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
+        m_Logger.LogInformation("User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",
+            Context.User.Id, character, server, profile);
+
+        var executor = m_Builder.For<GenshinCharacterApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, (nameof(character), character)))
+            .WithCommandName("genshin character")
+            .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
+            .Build();
+
+        await executor.ExecuteAsync(server, profile);
     }
 
     /*
@@ -77,12 +82,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         m_Logger.LogInformation(
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
             Context.User.Id, code, server, profile);
-
-        if (!await ValidateRateLimitAsync()) return;
-
-        m_CodesRedeemExecutor.Context = Context;
-        await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
     }
+    */
 
     [SubSlashCommand("abyss", "Get Spiral Abyss summary card")]
     public async Task AbyssCommand(
@@ -97,18 +98,14 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "User {User} used the abyss command with floor {Floor}, server {Server}, profile {ProfileId}",
             Context.User.Id, floor, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<GenshinAbyssApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, (nameof(floor), floor)))
+            .WithCommandName("genshin abyss")
+            .AddValidator<uint>(nameof(floor), x => x is >= 9 and <= 12, "floor must be between 9 and 12")
+            .Build();
 
-        if (floor is < 9 or > 12)
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Floor must be between 9 and 12")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return;
-        }
-
-        m_AbyssCommandExecutor.Context = Context;
-        await m_AbyssCommandExecutor.ExecuteAsync(floor, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile);
     }
 
     [SubSlashCommand("theater", "Get Imaginarium Theater summary card")]
@@ -122,10 +119,13 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "User {User} used the theater command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<GenshinTheaterApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("genshin theater")
+            .Build();
 
-        m_TheaterCommandExecutor.Context = Context;
-        await m_TheaterCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile);
     }
 
     [SubSlashCommand("stygian", "Get Stygian Onslaught summary card")]
@@ -139,10 +139,13 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "User {User} used the stygian command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<GenshinStygianApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("genshin theater")
+            .Build();
 
-        m_StygianCommandExecutor.Context = Context;
-        await m_StygianCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile);
     }
 
     [SubSlashCommand("charlist", "Get character list")]
@@ -156,13 +159,14 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "User {User} used the charlist command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<GenshinCharListApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("genshin theater")
+            .Build();
 
-        m_CharListCommandExecutor.Context = Context;
-        await m_CharListCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile);
     }
-
-    */
 
     public static string GetHelpString(string subcommand = "")
     {
