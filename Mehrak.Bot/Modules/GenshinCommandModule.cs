@@ -2,6 +2,7 @@
 
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Bot.Authentication;
+using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
@@ -87,8 +88,15 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
                 .ExecuteAsync(new(Context.User.Id, authResult.LtUid, authResult.LToken!, server.Value, ("character", characterName)))
                 .ConfigureAwait(false);
 
-            await authResult.Context!.Interaction.SendFollowupMessageAsync("Hello");
-            await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data!.Content!);
+            if (commandResult.IsSuccess)
+            {
+                await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
+                await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
+            }
+            else
+            {
+                await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
+            }
         }
         else
         {

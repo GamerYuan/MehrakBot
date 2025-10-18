@@ -1,6 +1,7 @@
 using Mehrak.Bot.Modules.Common;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using NetCord.Rest;
@@ -86,6 +87,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             return AuthenticationResult.Failure(authResponse.Context, "Incorrect passphrase. Please try again");
         }
 
+        await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}", request.Context.Interaction.User.Id, profile.LtUid);
         return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, authResponse.Context);
     }

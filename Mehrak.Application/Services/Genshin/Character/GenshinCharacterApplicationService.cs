@@ -182,7 +182,11 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 }
             });
 
-            ctx.Crop(new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1));
+            if (maxX > minX && maxY > minY)
+            {
+                ctx.Crop(new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1));
+            }
+
             size = ctx.GetCurrentSize();
             if (size.Width >= size.Height)
                 ctx.Resize(0,
