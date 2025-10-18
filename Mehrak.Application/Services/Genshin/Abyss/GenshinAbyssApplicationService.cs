@@ -116,7 +116,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                 $"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
                 $"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>",
                 $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                [("abyss_card.jpg", card)]
+                [new("abyss_card.jpg", card)]
             );
         }
         catch (Exception e)

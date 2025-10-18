@@ -102,7 +102,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 $"<@{context.UserId}>'s Imaginarium Theater Summary",
                 $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>",
                 $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                [("theater_card.jpg", card)]);
+                [new("theater_card.jpg", card)]);
         }
         catch (CommandException e)
         {

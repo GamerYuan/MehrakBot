@@ -6,17 +6,15 @@ namespace Mehrak.Application.Models.Context;
 public class ApplicationContextBase : IApplicationContext
 {
     public ulong UserId { get; }
-    public ulong LtUid { get; }
-    public string LToken { get; }
+    public ulong LtUid { get; set; }
+    public string LToken { get; set; } = string.Empty;
     public Server Server { get; }
 
     private Dictionary<string, object> Parameters { get; } = [];
 
-    public ApplicationContextBase(ulong userId, ulong ltUid, string lToken, Server server, params (string, object)[] parameters)
+    public ApplicationContextBase(ulong userId, Server server, params (string, object)[] parameters)
     {
         UserId = userId;
-        LtUid = ltUid;
-        LToken = lToken;
         Server = server;
         foreach (var (key, value) in parameters)
         {

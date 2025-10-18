@@ -11,34 +11,47 @@ internal static class CommandResultDataExtensions
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
 
-        if (data.Title == null)
+        if (data.Title != null || data.Sections != null)
+        {
+            var container = new ComponentContainerProperties();
+            container.AddComponents(new TextDisplayProperties($"## {data.Title}"));
+            if (data.Content != null) container.AddComponents(new TextDisplayProperties(data.Content));
+            if (data.Sections.Any())
+            {
+                foreach (var section in data.Sections)
+                {
+                    var sectionComponent = new ComponentSectionProperties(
+                        new ComponentSectionThumbnailProperties(new ComponentMediaProperties($"attachment://{section.Attachment.FileName}"))
+                    );
+                    if (section.Title != null) sectionComponent.AddComponents(new TextDisplayProperties($"### {section.Title}"));
+                    if (section.Content != null) sectionComponent.AddComponents(new TextDisplayProperties(section.Content));
+                    container.AddComponents(sectionComponent);
+                    properties.AddAttachments(new AttachmentProperties(section.Attachment.FileName, section.Attachment.Content));
+                }
+            }
+            if (data.Attachments.Any())
+            {
+                var mediaGallery = new MediaGalleryProperties();
+                properties.AddAttachments(data.Attachments.Select(x => new AttachmentProperties(x.FileName, x.Content)));
+                mediaGallery.AddItems(data.Attachments.Select(x =>
+                    new MediaGalleryItemProperties(new ComponentMediaProperties($"attachment://{x.FileName}"))));
+                container.AddComponents(mediaGallery);
+            }
+            if (data.Footer != null) container.AddComponents(new TextDisplayProperties(data.Footer));
+            properties.AddComponents(container);
+        }
+        else
         {
             if (data.Content != null) properties.AddComponents(new TextDisplayProperties(data.Content));
             if (data.Attachments.Any())
             {
                 var mediaGallery = new MediaGalleryProperties();
-                properties.AddAttachments(data.Attachments.Select(x => new AttachmentProperties(x.Item1, x.Item2)));
+                properties.AddAttachments(data.Attachments.Select(x => new AttachmentProperties(x.FileName, x.Content)));
                 mediaGallery.AddItems(data.Attachments.Select(x =>
-                    new MediaGalleryItemProperties(new ComponentMediaProperties($"attachment://{x.Item1}"))));
+                    new MediaGalleryItemProperties(new ComponentMediaProperties($"attachment://{x.FileName}"))));
                 properties.AddComponents(mediaGallery);
             }
             if (data.Footer != null) properties.AddComponents(new TextDisplayProperties(data.Footer));
-        }
-        else
-        {
-            var container = new ComponentContainerProperties();
-            container.AddComponents(new TextDisplayProperties($"## {data.Title}"));
-            if (data.Content != null) container.AddComponents(new TextDisplayProperties(data.Content));
-            if (data.Attachments.Any())
-            {
-                var mediaGallery = new MediaGalleryProperties();
-                properties.AddAttachments(data.Attachments.Select(x => new AttachmentProperties(x.Item1, x.Item2)));
-                mediaGallery.AddItems(data.Attachments.Select(x =>
-                    new MediaGalleryItemProperties(new ComponentMediaProperties($"attachment://{x.Item1}"))));
-                container.AddComponents(mediaGallery);
-            }
-            if (data.Footer != null) container.AddComponents(new TextDisplayProperties(data.Footer));
-            properties.AddComponents(container);
         }
 
         return properties;

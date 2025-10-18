@@ -6,9 +6,9 @@ public class CheckInApplicationContext : IApplicationContext
 {
     public ulong UserId { get; }
 
-    public ulong LtUid { get; }
+    public ulong LtUid { get; set; }
 
-    public string LToken { get; }
+    public string LToken { get; set; }
 
     public CheckInApplicationContext(ulong userId, ulong ltuid, string ltoken)
     {

@@ -5,9 +5,9 @@ namespace Mehrak.Application.Services.Genshin.Abyss;
 
 public class GenshinAbyssApplicationContext : ApplicationContextBase
 {
-    public GenshinAbyssApplicationContext(ulong userId, ulong ltUid, string lToken, Server server,
+    public GenshinAbyssApplicationContext(ulong userId, Server server,
         params (string, object)[] parameters)
-        : base(userId, ltUid, lToken, server, parameters)
+        : base(userId, server, parameters)
     {
     }
 }

@@ -80,7 +80,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
             var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(context.UserId,
                 characterList, context.Server, profile));
 
-            return CommandResult.Success(content: $"<@{context.UserId}>", attachments: [("charlist_card.jpg", card)]);
+            return CommandResult.Success(content: $"<@{context.UserId}>", attachments: [new("charlist_card.jpg", card)]);
         }
         catch (CommandException e)
         {

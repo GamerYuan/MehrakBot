@@ -87,7 +87,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                  $"<@{context.UserId}>'s Stygian Onslaught Summary",
                  $"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\nCycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>",
                  $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                 [("abyss_card.jpg", card)]);
+                 [new("abyss_card.jpg", card)]);
         }
         catch (CommandException e)
         {

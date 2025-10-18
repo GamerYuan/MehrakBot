@@ -1,15 +1,11 @@
 #region
 
-using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
-using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 #endregion
@@ -52,56 +48,6 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
-        m_Logger.LogInformation(
-            "User {User} used the character command with character {CharacterName}, server {Server}, profile {ProfileId}",
-            Context.User.Id, characterName, server, profile);
-
-        if (!await ValidateRateLimitAsync()) return;
-
-        if (string.IsNullOrWhiteSpace(characterName))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Character name cannot be empty")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return;
-        }
-
-        var authResult = await m_AuthenticationMiddleware.GetAuthenticationAsync(new(Context, profile));
-
-        if (authResult.IsSuccess)
-        {
-            server ??= await GetLastUsedServerAsync(profile);
-            if (server == null)
-            {
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent(
-                            "Server is required for first time use. Please specify the server parameter.")
-                        .WithFlags(MessageFlags.Ephemeral)));
-                return;
-            }
-
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-
-            var notesCommandExecutor =
-                m_ServiceProvider.GetRequiredService<IApplicationService<GenshinCharacterApplicationContext>>();
-            var commandResult = await notesCommandExecutor
-                .ExecuteAsync(new(Context.User.Id, authResult.LtUid, authResult.LToken!, server.Value, ("character", characterName)))
-                .ConfigureAwait(false);
-
-            if (commandResult.IsSuccess)
-            {
-                await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
-                await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
-            }
-            else
-            {
-                await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
-            }
-        }
-        else
-        {
-            // no op
-        }
     }
 
     /*
@@ -217,36 +163,6 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     }
 
     */
-
-    private async Task<bool> ValidateRateLimitAsync()
-    {
-        if (await m_CommandRateLimitService.IsRateLimitedAsync(Context.Interaction.User.Id))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return false;
-        }
-
-        await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
-        return true;
-    }
-
-    private async Task<Server?> GetLastUsedServerAsync(uint profileId)
-    {
-        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
-        if (user == null) return null;
-
-        var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
-        if (profile == null) return null;
-
-        if (profile.LastUsedRegions?.TryGetValue(Game.Genshin, out var server) ?? false)
-        {
-            return server;
-        }
-
-        return null;
-    }
 
     public static string GetHelpString(string subcommand = "")
     {
