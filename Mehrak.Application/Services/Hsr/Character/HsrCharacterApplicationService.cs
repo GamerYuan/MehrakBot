@@ -1,0 +1,182 @@
+﻿using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Common;
+using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Utility;
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utility;
+using Mehrak.GameApi.Common.Types;
+using Mehrak.GameApi.Hsr.Types;
+using Microsoft.Extensions.Logging;
+using System.Text.Json.Nodes;
+
+namespace Mehrak.Application.Services.Hsr.Character;
+
+public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacterApplicationContext>
+{
+    private readonly ICardService<HsrCharacterInformation> m_CardService;
+    private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
+    private readonly IImageUpdaterService m_ImageUpdaterService;
+    private readonly IImageRepository m_ImageRepository;
+    private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> m_CharacterApi;
+
+    public HsrCharacterApplicationService(
+        ICardService<HsrCharacterInformation> cardService,
+        IApiService<JsonNode, WikiApiContext> wikiApi,
+        IImageUpdaterService imageUpdaterService,
+        IImageRepository imageRepository,
+        ICharacterCacheService characterCacheService,
+        ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
+        IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, logger)
+    {
+        m_CardService = cardService;
+        m_WikiApi = wikiApi;
+        m_ImageUpdaterService = imageUpdaterService;
+        m_ImageRepository = imageRepository;
+        m_CharacterCacheService = characterCacheService;
+        m_CharacterApi = characterApi;
+    }
+
+    public override async Task<CommandResult> ExecuteAsync(HsrCharacterApplicationContext context)
+    {
+        var characterName = context.GetParameter<string>("character")!;
+
+        try
+        {
+            var region = context.Server.ToRegion();
+
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region);
+
+            if (profile == null)
+            {
+                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
+                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+            }
+
+            var gameUid = profile.GameUid;
+
+            var charResponse = await m_CharacterApi.GetAllCharactersAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+
+            if (!charResponse.IsSuccess)
+            {
+                Logger.LogInformation("No character data found for user {UserId} on {Region} server",
+                    context.UserId, region);
+                return CommandResult.Failure("Failed to fetch character list. Please try again later.");
+            }
+
+            var characterList = charResponse.Data.First();
+
+            var characterInfo = characterList.AvatarList.FirstOrDefault(x =>
+                x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+
+            if (characterInfo == null)
+            {
+                m_CharacterCacheService.GetAliases(Game.HonkaiStarRail).TryGetValue(characterName, out var alias);
+                if (alias == null ||
+                    (characterInfo = characterList.AvatarList?.FirstOrDefault(x =>
+                        x.Name!.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
+                {
+                    Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
+                        characterName, context.UserId, region);
+                    return CommandResult.Failure($"Character {characterName} not found. Please try again");
+                }
+            }
+
+            var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments).DistinctBy(x => x.GetSetId())
+                .ToAsyncEnumerable()
+                .WhereAwait(async x => characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
+                    !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName, x.Id)))
+                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.GetSetId()),
+                    async x =>
+                    {
+                        var url = characterList.RelicWiki[x.Id.ToString()];
+                        var entryPage = url.Split('/')[^1];
+                        var wikiResponse = await m_WikiApi.GetAsync(new(context.UserId, Game.HonkaiStarRail, entryPage));
+                        if (!wikiResponse.IsSuccess) return null;
+
+                        var jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray().FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set")?
+                            ["components"]?.AsArray()[0]?["data"]?.GetValue<string>();
+                        if (jsonStr == null) return null;
+
+                        return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
+                    });
+
+            List<Task> tasks = [];
+
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
+                new ImageProcessorBuilder().Resize(1000, 0).Build()));
+            tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments).Select(r =>
+            {
+                var setId = r.GetSetId();
+                if (uniqueRelicSet.TryGetValue(setId, out var jsonArray) && jsonArray != null)
+                {
+                    string? iconUrl = jsonArray
+                        .FirstOrDefault(x => r.Name.Equals(RegexExpressions.QuotationMarkRegex()
+                            .Replace(x?["name"]?.GetValue<string>() ?? "", "'"), StringComparison.OrdinalIgnoreCase))
+                        ?["icon_url"]?.GetValue<string>();
+
+                    if (iconUrl != null) return new ImageData(string.Format(FileNameFormat.Hsr.FileName, r.Id), iconUrl);
+                }
+
+                return new ImageData(string.Format(FileNameFormat.Hsr.FileName, r.Id), r.Icon);
+            }).Select(x => m_ImageUpdaterService.UpdateImageAsync(x,
+                new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build())));
+
+            if (characterInfo.Equip != null &&
+                characterList.EquipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
+                !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName, characterInfo.Equip.Id)))
+            {
+                var entryPage = wikiEntry.Split('/')[^1];
+                var wikiResponse = await m_WikiApi.GetAsync(new(context.UserId, Game.HonkaiStarRail, entryPage));
+
+                if (!wikiResponse.IsSuccess)
+                {
+                    Logger.LogWarning("Failed to fetch equip image from wiki. Equip: {EquipName}", characterInfo.Equip.Name);
+                    return CommandResult.Failure("Unable to retrieve Light Cone image");
+                }
+
+                string? iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+
+                if (iconUrl == null)
+                {
+                    Logger.LogWarning("Failed to fetch equip image from wiki. Equip: {EquipName}", characterInfo.Equip.Name);
+                    return CommandResult.Failure("Unable to retrieve Light Cone image");
+                }
+
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
+                    new ImageData(string.Format(FileNameFormat.Hsr.FileName, characterInfo.Equip.Id), iconUrl),
+                        new ImageProcessorBuilder().Resize(300, 0).Build()));
+            }
+
+            tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build())));
+            tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(80, 0).Build())));
+
+            await Task.WhenAll(tasks);
+
+            var card = await m_CardService.GetCardAsync(
+                new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, context.Server, profile));
+
+            return CommandResult.Success(content: $"<@{context.UserId}>", attachments: [new("character_card.jpg", card)]);
+        }
+        catch (CommandException e)
+        {
+            Logger.LogError(e, "Error sending character card response with character {CharacterName} for user {UserId}",
+                characterName, context.UserId);
+            return CommandResult.Failure(e.Message);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e,
+                "Error sending character card response with character {CharacterName} for user {UserId}",
+                characterName, context.UserId);
+            return CommandResult.Failure("An unknown error occurred while processing your request");
+        }
+    }
+}

@@ -1,5 +1,9 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Utility;
 using System.Text.Json.Serialization;
 
 #endregion
@@ -8,31 +12,26 @@ namespace Mehrak.GameApi.Hsr.Types;
 
 public class HsrCharacterInformation
 {
-    [JsonPropertyName("id")] public int? Id { get; init; }
-    [JsonPropertyName("level")] public int? Level { get; init; }
-    [JsonPropertyName("name")] public string? Name { get; init; }
-    [JsonPropertyName("element")] public string? Element { get; init; }
-    [JsonPropertyName("icon")] public string? Icon { get; init; }
+    [JsonPropertyName("id")] public int Id { get; init; }
+    [JsonPropertyName("level")] public int Level { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("element")] public required string Element { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("rarity")] public int? Rarity { get; init; }
-    [JsonPropertyName("rank")] public int? Rank { get; init; }
-    [JsonPropertyName("image")] public string? Image { get; init; }
+    [JsonPropertyName("rank")] public int Rank { get; init; }
+    [JsonPropertyName("image")] public required string Image { get; init; }
     [JsonPropertyName("equip")] public Equip? Equip { get; init; }
-    [JsonPropertyName("relics")] public List<Relic>? Relics { get; init; }
-    [JsonPropertyName("ornaments")] public List<Relic>? Ornaments { get; init; }
-    [JsonPropertyName("ranks")] public List<Rank>? Ranks { get; init; }
-    [JsonPropertyName("properties")] public List<Property>? Properties { get; init; }
-    [JsonPropertyName("skills")] public List<Skill>? Skills { get; init; }
+    [JsonPropertyName("relics")] public required List<Relic> Relics { get; init; }
+    [JsonPropertyName("ornaments")] public required List<Relic> Ornaments { get; init; }
+    [JsonPropertyName("ranks")] public required List<Rank> Ranks { get; init; }
+    [JsonPropertyName("properties")] public required List<Property> Properties { get; init; }
+    [JsonPropertyName("skills")] public required List<Skill> Skills { get; init; }
     [JsonPropertyName("base_type")] public int? BaseType { get; init; }
     [JsonPropertyName("figure_path")] public string? FigurePath { get; init; }
     [JsonPropertyName("element_id")] public int? ElementId { get; init; }
     [JsonPropertyName("servant_detail")] public ServantDetail? ServantDetail { get; init; }
 
-    public override string ToString()
-    {
-        return
-            $"Id: {Id}, Name: {Name}, Equip: {Equip?.ToString() ?? "No Equip"}, Relics: {string.Join(", ", Relics?.Select(x => x.ToString()) ?? [])}, " +
-            $"Ornaments: {string.Join(", ", Ornaments?.Select(x => x.ToString()) ?? [])}";
-    }
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.FileName, Id), Image);
 }
 
 public class HsrBasicCharacterData
@@ -44,13 +43,13 @@ public class HsrBasicCharacterData
 
 public class Equip
 {
-    [JsonPropertyName("id")] public int? Id { get; init; }
-    [JsonPropertyName("level")] public int? Level { get; init; }
-    [JsonPropertyName("rank")] public int? Rank { get; init; }
-    [JsonPropertyName("name")] public string? Name { get; init; }
+    [JsonPropertyName("id")] public int Id { get; init; }
+    [JsonPropertyName("level")] public int Level { get; init; }
+    [JsonPropertyName("rank")] public int Rank { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("desc")] public string? Desc { get; init; }
-    [JsonPropertyName("icon")] public string? Icon { get; init; }
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
+    [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
     public override string ToString()
     {
@@ -83,25 +82,27 @@ public class Property
 
 public class Rank
 {
-    [JsonPropertyName("id")] public int? Id { get; init; }
-    [JsonPropertyName("pos")] public int? Pos { get; init; }
-    [JsonPropertyName("name")] public string? Name { get; init; }
-    [JsonPropertyName("icon")] public string? Icon { get; init; }
+    [JsonPropertyName("id")] public int Id { get; init; }
+    [JsonPropertyName("pos")] public int Pos { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("desc")] public string? Desc { get; init; }
-    [JsonPropertyName("is_unlocked")] public bool? IsUnlocked { get; init; }
+    [JsonPropertyName("is_unlocked")] public bool IsUnlocked { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.FileName, Id), Icon);
 }
 
 public class Relic
 {
-    [JsonPropertyName("id")] public int? Id { get; init; }
-    [JsonPropertyName("level")] public int? Level { get; init; }
-    [JsonPropertyName("pos")] public int? Pos { get; init; }
-    [JsonPropertyName("name")] public string? Name { get; init; }
+    [JsonPropertyName("id")] public int Id { get; init; }
+    [JsonPropertyName("level")] public int Level { get; init; }
+    [JsonPropertyName("pos")] public int Pos { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("desc")] public string? Desc { get; init; }
-    [JsonPropertyName("icon")] public string? Icon { get; init; }
-    [JsonPropertyName("rarity")] public int? Rarity { get; init; }
-    [JsonPropertyName("main_property")] public MainProperty? MainProperty { get; init; }
-    [JsonPropertyName("properties")] public List<Property>? Properties { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
+    [JsonPropertyName("rarity")] public int Rarity { get; init; }
+    [JsonPropertyName("main_property")] public required MainProperty MainProperty { get; init; }
+    [JsonPropertyName("properties")] public required List<Property> Properties { get; init; }
 
     public override string ToString()
     {
@@ -110,7 +111,7 @@ public class Relic
 
     public int GetSetId()
     {
-        return int.Parse(Id?.ToString()[1..^1] ?? "0");
+        return int.Parse(Id.ToString()[1..^1] ?? "0");
     }
 }
 
@@ -129,12 +130,12 @@ public class ServantDetail
 
 public class Skill
 {
-    [JsonPropertyName("point_id")] public string? PointId { get; init; }
-    [JsonPropertyName("point_type")] public int? PointType { get; init; }
-    [JsonPropertyName("item_url")] public string? ItemUrl { get; init; }
-    [JsonPropertyName("level")] public int? Level { get; init; }
-    [JsonPropertyName("is_activated")] public bool? IsActivated { get; init; }
-    [JsonPropertyName("is_rank_work")] public bool? IsRankWork { get; init; }
+    [JsonPropertyName("point_id")] public required string PointId { get; init; }
+    [JsonPropertyName("point_type")] public int PointType { get; init; }
+    [JsonPropertyName("item_url")] public required string ItemUrl { get; init; }
+    [JsonPropertyName("level")] public int Level { get; init; }
+    [JsonPropertyName("is_activated")] public bool IsActivated { get; init; }
+    [JsonPropertyName("is_rank_work")] public bool IsRankWork { get; init; }
     [JsonPropertyName("pre_point")] public string? PrePoint { get; init; }
     [JsonPropertyName("anchor")] public string? Anchor { get; init; }
     [JsonPropertyName("remake")] public string? Remake { get; init; }
@@ -142,6 +143,9 @@ public class Skill
 
     [JsonPropertyName("special_point_type")]
     public string? SpecialPointType { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.FileName,
+        PointType == 1 ? RegexExpressions.HsrStatBonusRegex().Replace(SkillStages![0].Name!, "") : PointId), ItemUrl);
 }
 
 public class SkillStage

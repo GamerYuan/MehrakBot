@@ -20,7 +20,7 @@ using System.Numerics;
 
 #endregion
 
-namespace Mehrak.Application.Services.Hsr;
+namespace Mehrak.Application.Services.Hsr.Character;
 
 public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IAsyncInitializable
 {

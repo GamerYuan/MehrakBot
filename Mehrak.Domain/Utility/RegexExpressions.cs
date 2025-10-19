@@ -8,7 +8,7 @@ public static partial class RegexExpressions
     public static partial Regex RedeemCodeSplitRegex();
 
     [GeneratedRegex(@"\u2018|\u2019")]
-    private static partial Regex QuotationMarkRegex();
+    public static partial Regex QuotationMarkRegex();
 
     [GeneratedRegex(@"[\s:]")]
     public static partial Regex HsrStatBonusRegex();
