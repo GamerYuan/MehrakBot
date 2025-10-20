@@ -47,7 +47,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             Logger.LogInformation("Executing character service for user {UserId}", context.UserId);
 
             var region = context.Server.ToRegion();
-            var characterName = context.GetParameter<string>("character");
+            var characterName = context.GetParameter<string>("character")!;
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 

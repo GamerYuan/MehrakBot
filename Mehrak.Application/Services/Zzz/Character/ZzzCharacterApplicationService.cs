@@ -43,10 +43,11 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
     public override async Task<CommandResult> ExecuteAsync(ZzzCharacterApplicationContext context)
     {
+        string characterName = context.GetParameter<string>("character")!;
+
         try
         {
             string region = context.Server.ToRegion();
-            string characterName = context.GetParameter<string>("character")!;
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero, region);
 
@@ -131,7 +132,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             if (charInfo.Weapon != null)
             {
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charInfo.Weapon.ToImageData(),
-                    new ImageProcessorBuilder().Resize(150, 0).Build()))));
+                    new ImageProcessorBuilder().Resize(150, 0).Build()));
             }
 
             tasks.AddRange(charInfo.Equip.DistinctBy(x => x.EquipSuit)
@@ -147,17 +148,15 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
         catch (CommandException e)
         {
             Logger.LogError(e, "Error sending character card response with character {CharacterName} for user {UserId}",
-                characterName, Context.Interaction.User.Id);
-            await SendErrorMessageAsync(e.Message);
-            BotMetrics.TrackCommand(Context.Interaction.User, "zzz character", false);
+                characterName, context.UserId);
+            return CommandResult.Failure(e.Message);
         }
         catch (Exception e)
         {
             Logger.LogError(e,
                 "Error sending character card response with character {CharacterName} for user {UserId}",
-                characterName, Context.Interaction.User.Id);
-            await SendErrorMessageAsync();
-            BotMetrics.TrackCommand(Context.Interaction.User, "zzz character", false);
+                characterName, context.UserId);
+            return CommandResult.Failure("An error occurred while processing your request");
         }
     }
 }
