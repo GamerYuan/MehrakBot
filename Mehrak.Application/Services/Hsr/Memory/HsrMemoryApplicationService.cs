@@ -5,6 +5,7 @@ using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
@@ -73,9 +74,15 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
             var card = await m_CardService.GetCardAsync(
                 new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, context.Server, profile));
 
+            var tz = context.Server.GetTimeZoneInfo();
+            var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+            var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+
             return CommandResult.Success(
                 $"<@{context.UserId}>'s Memory of Chaos Summary",
-                $"Cycle start: <t:{memoryData.StartTime}:f>\nCycle end: <t:{memoryData.EndTime}:f>",
+                $"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>",
                 $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
                 [new("moc_card.jpg", card)]);
         }
