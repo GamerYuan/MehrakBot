@@ -112,7 +112,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             {
                 Image image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.Id)));
-                return (Active: x.IsUnlocked!.Value, Image: image);
+                return (Active: x.IsUnlocked, Image: image);
             }).ToArray();
 
             Skill[] baseSkill = characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")
@@ -312,7 +312,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     }, baseSkillImages[i].Data.Level!.ToString()!,
-                        baseSkillImages[i].Data.IsRankWork!.Value ? Color.Aqua : Color.White);
+                        baseSkillImages[i].Data.IsRankWork ? Color.Aqua : Color.White);
                 }
 
                 for (int i = 0; i < skillImages.Length; i++)
@@ -321,7 +321,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     for (int j = 0; j < skillImages[i].Length; j++)
                     {
                         (Skill Data, Image Image) skill = skillImages[i][j];
-                        if (!skill.Data.IsActivated!.Value)
+                        if (!skill.Data.IsActivated)
                             skill.Image.Mutate(x => x.Brightness(0.5f));
 
                         if (skill.Data.PointType == 3)
@@ -359,7 +359,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     }, servantImages[i].Data.Level!.ToString()!,
-                        servantImages[i].Data.IsRankWork ?? false ? Color.Aqua : Color.White);
+                        servantImages[i].Data.IsRankWork ? Color.Aqua : Color.White);
                 }
 
                 if (characterInformation.Equip != null)
@@ -373,12 +373,12 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     }, characterInformation.Equip.Name!, Color.White);
                     EllipsePolygon equipEllipse = new(new PointF(1020, 690), 20);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), equipEllipse);
-                    ctx.DrawText(((char)(0x215F + characterInformation.Equip.Rank!.Value)).ToString(), m_SmallFont,
+                    ctx.DrawText(((char)(0x215F + characterInformation.Equip.Rank)).ToString(), m_SmallFont,
                         Color.Gold, new PointF(1007, 676));
                     ctx.Draw(Color.Gold, 2f, equipEllipse.AsClosedPath());
-                    ctx.DrawText($"Lv. {characterInformation.Equip.Level!.Value}", m_NormalFont, Color.White,
+                    ctx.DrawText($"Lv. {characterInformation.Equip.Level}", m_NormalFont, Color.White,
                         new PointF(1080, 670));
-                    Image<Rgba32> stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity!.Value,
+                    Image<Rgba32> stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity,
                         false);
                     ctx.DrawImage(stars, new Point(990, 730), 1f);
                 }
@@ -487,7 +487,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
         relicSlotImage.Mutate(ctx =>
         {
             ctx.DrawImage(relicImage, new Point(10, 0), 1f);
-            ctx.DrawImage(ImageUtility.GenerateFourSidedStarRating(relic.Rarity!.Value), new Point(20, 115), 1f);
+            ctx.DrawImage(ImageUtility.GenerateFourSidedStarRating(relic.Rarity), new Point(20, 115), 1f);
             ctx.DrawImage(m_StatImages[relic.MainProperty!.PropertyType!.Value], new Point(125, 10), 1f);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {

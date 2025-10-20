@@ -100,13 +100,13 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
                 context.GameProfile.GameUid, charData.Count);
             Dictionary<int, Image> weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)
-                .DistinctBy(x => x!.Id!.Value)
+                .DistinctBy(x => x!.Id)
                 .ToAsyncEnumerable()
                 .SelectAwait(async x =>
                 {
                     Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hsr.WeaponIconName, x!.Id)));
-                    return (Id: x!.Id!.Value, Image: image);
+                    return (Id: x!.Id, Image: image);
                 }).ToDictionaryAsync(x => x.Id, x => x.Image);
             disposables.AddRange(weaponImages.Values);
 
@@ -118,7 +118,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 {
                     using Image avatarImage = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hsr.AvatarName, x.Id)));
-                    return GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id!.Value]);
+                    return GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id]);
                 })
                 .ToListAsync();
 

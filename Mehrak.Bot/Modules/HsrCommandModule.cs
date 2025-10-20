@@ -1,90 +1,72 @@
 ﻿#region
 
 #endregion
-/*
+
+using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Hsr.Character;
+using Mehrak.Application.Services.Hsr.CharList;
+using Mehrak.Application.Services.Hsr.EndGame;
+using Mehrak.Application.Services.Hsr.Memory;
+using Mehrak.Application.Services.Hsr.RealTimeNotes;
+using Mehrak.Bot.Builders;
+using Mehrak.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using NetCord.Services.ApplicationCommands;
+
 namespace Mehrak.Bot.Modules;
 
 [SlashCommand("hsr", "Honkai: Star Rail Toolbox")]
-public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
+public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly ICharacterCommandExecutor<HsrCommandModule> m_CharacterCommandExecutor;
-    private readonly IRealTimeNotesCommandExecutor<HsrCommandModule> m_RealTimeNotesCommandExecutor;
-    private readonly HsrMemoryCommandExecutor m_MemoryCommandExecutor;
-    private readonly HsrPureFictionCommandExecutor m_FictionCommandExecutor;
-    private readonly HsrBossChallengeCommandExecutor m_ChallengeCommandExecutor;
-    private readonly HsrCharListCommandExecutor m_CharListCommandExecutor;
-    private readonly ICodeRedeemExecutor<HsrCommandModule> m_CodesRedeemExecutor;
-    private readonly CommandRateLimitService m_CommandRateLimitService;
+    private readonly ICommandExecutorBuilder m_Builder;
     private readonly ILogger<HsrCommandModule> m_Logger;
 
-    public HsrCommandModule(ICharacterCommandExecutor<HsrCommandModule> characterCommandExecutor,
-        IRealTimeNotesCommandExecutor<HsrCommandModule> realTimeNotesCommandExecutor,
-        HsrMemoryCommandExecutor memoryCommandExecutor, HsrPureFictionCommandExecutor fictionCommandExecutor,
-        HsrBossChallengeCommandExecutor challengeCommandExecutor,
-        HsrCharListCommandExecutor charListCommandExecutor,
-        ICodeRedeemExecutor<HsrCommandModule> codesRedeemExecutor,
-        CommandRateLimitService commandRateLimitService, ILogger<HsrCommandModule> logger)
+    public HsrCommandModule(ICommandExecutorBuilder builder, ILogger<HsrCommandModule> logger)
     {
-        m_CharacterCommandExecutor = characterCommandExecutor;
-        m_RealTimeNotesCommandExecutor = realTimeNotesCommandExecutor;
-        m_MemoryCommandExecutor = memoryCommandExecutor;
-        m_FictionCommandExecutor = fictionCommandExecutor;
-        m_ChallengeCommandExecutor = challengeCommandExecutor;
-        m_CharListCommandExecutor = charListCommandExecutor;
-        m_CommandRateLimitService = commandRateLimitService;
+        m_Builder = builder;
         m_Logger = logger;
-        m_CodesRedeemExecutor = codesRedeemExecutor;
     }
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
-            AutocompleteProviderType = typeof(HsrCharacterAutocompleteProvider))]
-        string characterName,
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
-        if (!await ValidateRateLimitAsync()) return;
+        m_Logger.LogInformation("User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",
+            Context.User.Id, character, server, profile);
 
-        if (string.IsNullOrWhiteSpace(characterName))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Character name cannot be empty")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return;
-        }
+        var executor = m_Builder.For<HsrCharacterApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, (nameof(character), character)))
+            .WithCommandName("genshin character")
+            .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
+            .Build();
 
-        m_CharacterCommandExecutor.Context = Context;
-        await m_CharacterCommandExecutor.ExecuteAsync(characterName, server, profile);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task RealTimeNotesCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
-        if (!await ValidateRateLimitAsync()) return;
+        m_Logger.LogInformation("User {UserId} used the real-time notes command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
 
-        m_RealTimeNotesCommandExecutor.Context = Context;
-        await m_RealTimeNotesCommandExecutor.ExecuteAsync(server, profile);
-    }
+        var executor = m_Builder.For<HsrRealTimeNotesApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("hsr notes")
+            .WithEphemeralResponse(true)
+            .Build();
 
-    private async Task<bool> ValidateRateLimitAsync()
-    {
-        if (await m_CommandRateLimitService.IsRateLimitedAsync(Context.Interaction.User.Id))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return false;
-        }
-
-        await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
-        return true;
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("codes", "Redeem Honkai: Star Rail codes")]
@@ -92,7 +74,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -100,16 +82,20 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
             Context.User.Id, code, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<CodeRedeemApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, Game.HonkaiStarRail, (nameof(code), code)))
+            .WithCommandName("genshin codes")
+            .WithEphemeralResponse(true)
+            .Build();
 
-        m_CodesRedeemExecutor.Context = Context;
-        await m_CodesRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("moc", "Get Memory of Chaos card")]
     public async Task MemoryCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -117,16 +103,19 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Memory command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<HsrMemoryApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("hsr moc")
+            .Build();
 
-        m_MemoryCommandExecutor.Context = Context;
-        await m_MemoryCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("pf", "Get Pure Fiction card")]
     public async Task FictionCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -134,16 +123,19 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<HsrEndGameApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, HsrEndGameMode.PureFiction))
+            .WithCommandName("hsr pf")
+            .Build();
 
-        m_FictionCommandExecutor.Context = Context;
-        await m_FictionCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("as", "Get Apocalyptic Shadow card")]
     public async Task ChallengeCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -151,25 +143,33 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<HsrEndGameApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, HsrEndGameMode.ApocalypticShadow))
+            .WithCommandName("hsr as")
+            .Build();
 
-        m_ChallengeCommandExecutor.Context = Context;
-        await m_ChallengeCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("charlist", "Get character list card")]
     public async Task CharListCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the Character List command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
-        if (!await ValidateRateLimitAsync()) return;
-        m_CharListCommandExecutor.Context = Context;
-        await m_CharListCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+
+        var executor = m_Builder.For<HsrCharListApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("hsr charlist")
+            .Build();
+
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")
@@ -255,4 +255,3 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         };
     }
 }
-*/

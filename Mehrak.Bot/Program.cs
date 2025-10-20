@@ -99,7 +99,7 @@ public class Program
 
             builder.Services.AddGameApiServices();
 
-            builder.Services.AddGenshinApplicationServices();
+            builder.Services.AddApplicationServices();
 
             builder.Services.AddHostedService<AsyncInitializationHostedService>();
 
