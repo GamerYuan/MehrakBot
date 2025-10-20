@@ -98,5 +98,15 @@ public static class FileNameFormat
         /// ZZZ buddy file name format, where {0} is the buddy ID
         /// </summary>
         public const string BuddyName = "zzz_buddy_{0}";
+
+        /// <summary>
+        /// ZZZ assault boss name, where {0} is the boss name space removed
+        /// </summary>
+        public const string AssaultBossName = "zzz_assault_boss_{0}";
+
+        /// <summary>
+        /// ZZZ assault buff name, where {0} is the buff name space removed
+        /// </summary>
+        public const string AssaultBuffName = "zzz_assault_buff_{0}";
     }
 }

@@ -1,4 +1,7 @@
-﻿using System.Text.Json.Serialization;
+﻿using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
+using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Zzz.Types;
 
@@ -12,6 +15,8 @@ public class ZzzChallengeAvatar
     [JsonPropertyName("rank")] public int Rank { get; init; }
     [JsonPropertyName("role_square_url")] public required string RoleSquareUrl { get; init; }
     [JsonPropertyName("sub_element_type")] public int SubElementType { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Zzz.AvatarName, Id), RoleSquareUrl);
 }
 
 public class ZzzBuddy
@@ -20,6 +25,8 @@ public class ZzzBuddy
     [JsonPropertyName("rarity")] public required string Rarity { get; init; }
     [JsonPropertyName("level")] public int Level { get; init; }
     [JsonPropertyName("bangboo_rectangle_url")] public required string BangbooRectangleUrl { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Zzz.BuddyName, Id), BangbooRectangleUrl);
 }
 
 public class ZzzDefenseData
@@ -79,12 +86,22 @@ public class AssaultBoss
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("bg_icon")] public required string BgIcon { get; init; }
+
+    public IMultiImageData ToImageData()
+    {
+        string filename = string.Format(FileNameFormat.Zzz.AssaultBossName,
+            string.Join('_', Name.Split(Path.GetInvalidFileNameChars())).Replace(" ", ""));
+        return new MultiImageData(filename, [BgIcon, Icon]);
+    }
 }
 
 public class AssaultBuff
 {
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("icon")] public required string Icon { get; init; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Zzz.AssaultBuffName,
+        string.Join('_', Name.Split(Path.GetInvalidFileNameChars())).Replace(" ", "")), Icon);
 }
 
 public class ScheduleTime
