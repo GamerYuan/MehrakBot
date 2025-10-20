@@ -17,7 +17,7 @@ using SixLabors.ImageSharp.Processing;
 using System.Numerics;
 using System.Text.Json;
 
-namespace Mehrak.Application.Services.Zzz;
+namespace Mehrak.Application.Services.Zzz.Defense;
 
 internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncInitializable
 {
