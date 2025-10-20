@@ -20,7 +20,7 @@ using System.Text.Json;
 
 #endregion
 
-namespace Mehrak.Application.Services.Hsr;
+namespace Mehrak.Application.Services.Hsr.Memory;
 
 internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsyncInitializable
 {
