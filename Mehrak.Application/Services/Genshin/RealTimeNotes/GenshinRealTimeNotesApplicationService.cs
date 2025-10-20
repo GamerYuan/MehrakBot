@@ -48,7 +48,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
 
             if (!notesResult.IsSuccess)
             {
-                Logger.LogWarning("Failed to fetch Stygian information for gameUid: {GameUid}, region: {Server}, error: {Error}",
+                Logger.LogWarning("Failed to fetch Real Time Notes information for gameUid: {GameUid}, region: {Server}, error: {Error}",
                     profile.GameUid, context.Server, notesResult.ErrorMessage);
                 return CommandResult.Failure(notesResult.ErrorMessage);
             }
