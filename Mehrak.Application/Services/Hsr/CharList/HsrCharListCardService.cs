@@ -15,7 +15,7 @@ using SixLabors.ImageSharp.Processing;
 using System.Numerics;
 using System.Text.Json;
 
-namespace Mehrak.Application.Services.Hsr;
+namespace Mehrak.Application.Services.Hsr.CharList;
 
 internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInformation>>
 {

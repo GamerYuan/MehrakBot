@@ -32,6 +32,8 @@ public class HsrCharacterInformation
     [JsonPropertyName("servant_detail")] public ServantDetail? ServantDetail { get; init; }
 
     public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.FileName, Id), Image);
+
+    public IImageData ToAvatarImageData() => new ImageData(string.Format(FileNameFormat.Hsr.AvatarName, Id), Icon);
 }
 
 public class HsrBasicCharacterData
@@ -51,10 +53,7 @@ public class Equip
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public override string ToString()
-    {
-        return $"{Name} (ID: {Id})";
-    }
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.WeaponIconName, Id), Icon);
 }
 
 public class ExclusiveSkill
