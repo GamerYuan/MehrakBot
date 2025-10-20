@@ -2,6 +2,7 @@
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin;
 using Mehrak.Application.Services.Hsr;
+using Mehrak.Application.Services.Zzz;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,6 +16,7 @@ public static class ApplicationServiceCollectionExtension
 
         services.AddGenshinApplicationServices();
         services.AddHsrApplicationServices();
+        services.AddZzzApplicationServices();
 
         return services;
     }
