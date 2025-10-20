@@ -65,6 +65,11 @@ public static class FileNameFormat
         /// HSR weapon icon file name format, where {0} is the weapon ID
         /// </summary>
         public const string WeaponIconName = "hsr_weapon_icon_{0}";
+
+        /// <summary>
+        /// HSR end game buff file name format, where {0} is the buff ID
+        /// </summary>
+        public const string EndGameBuffName = "hsr_endgame_buff_{0}";
     }
 
     public static class Zzz

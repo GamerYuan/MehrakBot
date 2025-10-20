@@ -21,7 +21,7 @@ using System.Text.Json;
 
 #endregion
 
-namespace Mehrak.Application.Services.Hsr;
+namespace Mehrak.Application.Services.Hsr.EndGame;
 
 internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext, HsrEndInformation>, IAsyncInitializable
 {
