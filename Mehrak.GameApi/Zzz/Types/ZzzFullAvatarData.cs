@@ -1,4 +1,7 @@
-﻿using System.Text.Json.Serialization;
+﻿using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
+using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Zzz.Types;
 
@@ -123,6 +126,8 @@ public class DiskDrive
 
     [JsonPropertyName("all_hit")]
     public bool AllHit { get; set; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Zzz.FileName, EquipSuit.SuitId), Icon);
 }
 
 /// <summary>
@@ -281,4 +286,6 @@ public class Weapon
 
     [JsonPropertyName("profession")]
     public int Profession { get; set; }
+
+    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Zzz.FileName, Id), Icon);
 }
