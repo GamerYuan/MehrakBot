@@ -11,7 +11,7 @@ internal static class CommandResultDataExtensions
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
 
-        if (data.Title != null || data.Sections.Any())
+        if (data.Title != null || data.Sections.Any() || data.Texts.Any())
         {
             var container = new ComponentContainerProperties();
             container.AddComponents(new TextDisplayProperties($"### {data.Title}"));
@@ -30,6 +30,12 @@ internal static class CommandResultDataExtensions
                     container.AddComponents([sectionComponent]);
                 }
             }
+
+            if (data.Texts.Any())
+            {
+                container.AddComponents(data.Texts.Select(x => new TextDisplayProperties(x.ToFormattedString())));
+            }
+
             if (data.Attachments.Any())
             {
                 var mediaGallery = new MediaGalleryProperties();
