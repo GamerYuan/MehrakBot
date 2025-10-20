@@ -20,7 +20,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
     private readonly IImageRepository m_ImageRepository;
     private readonly ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCacheService;
-    private readonly IApiService<JsonArray, WikiApiContext> m_WikiApi;
+    private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
 
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
@@ -28,7 +28,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
         IImageRepository imageRepository,
         ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> characterApi,
         ICharacterCacheService characterCacheService,
-        IApiService<JsonArray, WikiApiContext> wikiApi,
+        IApiService<JsonNode, WikiApiContext> wikiApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         ILogger<ZzzCharacterApplicationService> logger)
         : base(gameRoleApi, logger)

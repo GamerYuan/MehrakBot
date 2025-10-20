@@ -1,34 +1,31 @@
 ﻿#region
 
 #endregion
-/*
+
+using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Zzz.Assault;
+using Mehrak.Application.Services.Zzz.Character;
+using Mehrak.Application.Services.Zzz.Defense;
+using Mehrak.Application.Services.Zzz.RealTimeNotes;
+using Mehrak.Bot.Builders;
+using Mehrak.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using NetCord.Services.ApplicationCommands;
+
 namespace Mehrak.Bot.Modules;
 
 [SlashCommand("zzz", "Zenless Zone Zero Toolbox")]
-public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
+public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly ICodeRedeemExecutor<ZzzCommandModule> m_CodeRedeemExecutor;
-    private readonly ICharacterCommandExecutor<ZzzCommandModule> m_CharacterCommandExecutor;
-    private readonly IRealTimeNotesCommandExecutor<ZzzCommandModule> m_NotesCommandExecutor;
-    private readonly ZzzDefenseCommandExecutor m_ShiyuCommandExecutor;
-    private readonly ZzzAssaultCommandExecutor m_AssaultCommandExecutor;
-    private readonly CommandRateLimitService m_CommandRateLimitService;
+    private readonly ICommandExecutorBuilder m_Builder;
     private readonly ILogger<ZzzCommandModule> m_Logger;
 
-    public ZzzCommandModule(ICodeRedeemExecutor<ZzzCommandModule> codeRedeemExecutor,
-        ICharacterCommandExecutor<ZzzCommandModule> characterCommandExecutor,
-        IRealTimeNotesCommandExecutor<ZzzCommandModule> notesCommandExecutor,
-        ZzzDefenseCommandExecutor shiyuCommandExecutor,
-        ZzzAssaultCommandExecutor assaultCommandExecutor,
-        CommandRateLimitService commandRateLimitService, ILogger<ZzzCommandModule> logger)
+    public ZzzCommandModule(
+        ICommandExecutorBuilder builder,
+        ILogger<ZzzCommandModule> logger)
     {
-        m_CodeRedeemExecutor = codeRedeemExecutor;
-        m_CharacterCommandExecutor = characterCommandExecutor;
-        m_CommandRateLimitService = commandRateLimitService;
-        m_ShiyuCommandExecutor = shiyuCommandExecutor;
+        m_Builder = builder;
         m_Logger = logger;
-        m_AssaultCommandExecutor = assaultCommandExecutor;
-        m_NotesCommandExecutor = notesCommandExecutor;
     }
 
     [SubSlashCommand("codes", "Redeem Zenless Zone Zero codes")]
@@ -36,7 +33,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -44,43 +41,42 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
             Context.User.Id, code, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<CodeRedeemApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, Game.ZenlessZoneZero, (nameof(code), code)))
+            .WithCommandName("zzz codes")
+            .WithEphemeralResponse(true)
+            .Build();
 
-        m_CodeRedeemExecutor.Context = Context;
-        await m_CodeRedeemExecutor.ExecuteAsync(code, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
      [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
-        string characterName,
+        string character,
      [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
      [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the character command with character {CharacterName}, server {Server}, profile {ProfileId}",
-            Context.User.Id, characterName, server, profile);
+            Context.User.Id, character, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<ZzzCharacterApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id, (nameof(character), character)))
+            .WithCommandName("zzz character")
+            .Build();
 
-        if (string.IsNullOrWhiteSpace(characterName))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Character name cannot be empty")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return;
-        }
-
-        m_CharacterCommandExecutor.Context = Context;
-        await m_CharacterCommandExecutor.ExecuteAsync(characterName, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
     public async Task ShiyuCommand(
      [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
      [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
         uint profile = 1
     )
@@ -89,17 +85,20 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the shiyu command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<ZzzDefenseApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("zzz shiyu")
+            .Build();
 
-        m_ShiyuCommandExecutor.Context = Context;
-        await m_ShiyuCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("da", "Get Deadly Assault summary card")]
     public async Task AssaultCommand(
-        [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
-        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
+    [SlashCommandParameter(Name = "server", Description = "Server")]
+        Server? server = null,
+    [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
         uint profile = 1
         )
     {
@@ -107,16 +106,19 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the da command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<ZzzAssaultApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("zzz da")
+            .Build();
 
-        m_AssaultCommandExecutor.Context = Context;
-        await m_AssaultCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task NotesCommand(
     [SlashCommandParameter(Name = "server", Description = "Server")]
-        Regions? server = null,
+        Server? server = null,
     [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
@@ -124,24 +126,14 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the notes command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        if (!await ValidateRateLimitAsync()) return;
+        var executor = m_Builder.For<ZzzRealTimeNotesApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithCommandName("zzz notes")
+            .WithEphemeralResponse(true)
+            .Build();
 
-        m_NotesCommandExecutor.Context = Context;
-        await m_NotesCommandExecutor.ExecuteAsync(server, profile).ConfigureAwait(false);
-    }
-
-    private async Task<bool> ValidateRateLimitAsync()
-    {
-        if (await m_CommandRateLimitService.IsRateLimitedAsync(Context.Interaction.User.Id))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return false;
-        }
-
-        await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
-        return true;
+        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")
@@ -206,4 +198,3 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         };
     }
 }
-*/

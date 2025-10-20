@@ -85,7 +85,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new(Context.User.Id, Game.HonkaiStarRail, (nameof(code), code)))
-            .WithCommandName("genshin codes")
+            .WithCommandName("hsr codes")
             .WithEphemeralResponse(true)
             .Build();
 

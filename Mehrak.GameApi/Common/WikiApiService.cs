@@ -27,7 +27,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             {
                 Method = HttpMethod.Get
             };
-            request.Headers.Add("X-Rpc-Language", "zh-cn");
+            request.Headers.Add("X-Rpc-Language", context.Game == Game.Genshin ? "zh-cn" : "en-us");
             request.RequestUri = new Uri($"{HoYoLabDomains.WikiApi}{GetEndpoint(context.Game)}?entry_page_id={context.EntryPage}");
 
             if (context.Game == Game.ZenlessZoneZero)
