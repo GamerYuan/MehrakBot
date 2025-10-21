@@ -2,6 +2,7 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Services;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
@@ -131,6 +132,20 @@ public class Program
 
             host.UseGatewayHandlers();
             logger.LogInformation("Discord gateway initialized");
+
+            IImageRepository imageRepo = host.Services.GetRequiredService<IImageRepository>();
+
+            foreach (string image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*.png",
+                         SearchOption.AllDirectories))
+            {
+                if (Path.GetDirectoryName(image)?.Contains("Test") ?? false) continue;
+                string fileName = Path.GetFileName(image).Split('.')[0];
+                if (await imageRepo.FileExistsAsync(fileName)) continue;
+
+                await using FileStream stream = File.OpenRead(image);
+                await imageRepo.UploadFileAsync(fileName, stream);
+                logger.LogInformation("Uploaded {FileName} to Image Repository, file path {Image}", fileName, image);
+            }
 
             await host.RunAsync();
         }
