@@ -94,7 +94,7 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary", CommandText.TextType.Header3),
                 new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
                 new CommandAttachment($"{context.Mode.GetString().ToLowerInvariant().Replace(' ', '_')}_card.jpg", card),
-                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
                     CommandText.TextType.Footer)],
                 true
             );

@@ -34,6 +34,10 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             {
                 request.Headers.Add("X-Rpc-Wiki_app", "zzz");
             }
+            else if (context.Game == Game.HonkaiStarRail)
+            {
+                request.Headers.Add("X-Rpc-Wiki_app", "hsr");
+            }
 
             var response = await client.SendAsync(request);
 

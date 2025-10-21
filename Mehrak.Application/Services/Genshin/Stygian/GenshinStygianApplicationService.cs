@@ -88,7 +88,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                  new CommandText($"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\n" +
                     $"Cycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>"),
                  new CommandAttachment("abyss_card.jpg", card),
-                 new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                 new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
                     CommandText.TextType.Footer)],
                  true);
         }

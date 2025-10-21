@@ -93,8 +93,8 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                 new("Trailblaze Power", CommandText.TextType.Header3),
                 new($"{data.CurrentStamina}/{data.MaxStamina}"),
                 new(data.CurrentStamina == data.MaxStamina
-                            ? "-# Already Full!"
-                            : $"-# Recovers <t:{data.StaminaFullTs}:R>")],
+                            ? "Already Full!"
+                            : $"Recovers <t:{data.StaminaFullTs}:R>", CommandText.TextType.Footer)],
                 new("hsr_tbp.png", await tbpImage)
             ),
             new CommandSection([
@@ -110,13 +110,13 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                 new(data.WeeklyCocoonCnt > 0
                             ? $"Claimed {data.WeeklyCocoonLimit - data.WeeklyCocoonCnt}/{data.WeeklyCocoonLimit}"
                             : "Fully Claimed!"),
-                new("Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
+                new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
                 new("hsr_weekly.png", await weeklyImage)
             ),
             new CommandSection([
                 new("Simulated Universe", CommandText.TextType.Header3),
                 new($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
-                new($"-# Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
+                new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
                 new("hsr_rogue.png", await rogueImage)
             )
         ];

@@ -84,9 +84,9 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 [new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
                 new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
                 new CommandAttachment("moc_card.jpg", card),
-                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                    CommandText.TextType.Footer)]
-                );
+                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                    CommandText.TextType.Footer)],
+                true);
         }
         catch (CommandException e)
         {

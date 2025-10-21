@@ -111,7 +111,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                 new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})", CommandText.TextType.Header3),
                 new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
                 new CommandAttachment("abyss_card.jpg", card),
-                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
                     CommandText.TextType.Footer)],
                 true
             );

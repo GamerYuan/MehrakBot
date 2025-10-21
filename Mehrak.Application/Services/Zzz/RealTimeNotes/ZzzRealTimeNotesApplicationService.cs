@@ -102,7 +102,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
                 new($"{data.Energy.Progress.Current}/{data.Energy.Progress.Max}"),
                 new(data.Energy.Restore == 0
                     ? "Fully Recovered!"
-                    : $"-# Recovers <t:{currTime + data.Energy.Restore}:R>")],
+                    : $"Recovers <t:{currTime + data.Energy.Restore}:R>", CommandText.TextType.Footer)],
                 new("zzz_battery.png", stamImage)
             ),
             new CommandText("Daily Missions", CommandText.TextType.Header3),

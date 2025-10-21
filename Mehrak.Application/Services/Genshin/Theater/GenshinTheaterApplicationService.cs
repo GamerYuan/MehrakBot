@@ -102,7 +102,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),
                 new CommandText($"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
                 new CommandAttachment("theater_card.jpg", card),
-                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
                     CommandText.TextType.Footer)],
                 true);
         }
