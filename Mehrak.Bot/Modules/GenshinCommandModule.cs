@@ -8,6 +8,7 @@ using Mehrak.Application.Services.Genshin.RealTimeNotes;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Bot.Builders;
+using Mehrak.Bot.Provider.Commands.Genshin;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -37,7 +38,8 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name or Alias (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name or Alias (Case-insensitive)",
+        AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,

@@ -9,6 +9,7 @@ using Mehrak.Application.Services.Hsr.EndGame;
 using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Application.Services.Hsr.RealTimeNotes;
 using Mehrak.Bot.Builders;
+using Mehrak.Bot.Provider.Commands.Hsr;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
@@ -29,7 +30,8 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
+        AutocompleteProviderType = typeof(HsrCharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
