@@ -1,6 +1,9 @@
-﻿using NetCord;
+﻿using Mehrak.Domain.Models;
+using NetCord;
 using NetCord.Rest;
+using System.Text;
 using static Mehrak.Domain.Models.CommandResult;
+using static Mehrak.Domain.Models.CommandText;
 
 namespace Mehrak.Bot.Extensions;
 
@@ -11,56 +14,105 @@ internal static class CommandResultDataExtensions
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);
 
-        if (data.Title != null || data.Sections.Any() || data.Texts.Any())
+        if (data.IsContainer)
         {
             var container = new ComponentContainerProperties();
-            container.AddComponents(new TextDisplayProperties($"### {data.Title}"));
-            if (data.Content != null) container.AddComponents(new TextDisplayProperties(data.Content));
-            if (data.Sections.Any())
+
+            foreach (var component in data.Components)
             {
-                foreach (var section in data.Sections)
+                switch (component)
                 {
-                    properties.AddAttachments(new AttachmentProperties(section.Attachment.FileName, section.Attachment.Content));
-                    var sectionComponent = new ComponentSectionProperties(
-                        new ComponentSectionThumbnailProperties(new ComponentMediaProperties($"attachment://{section.Attachment.FileName}"))
-                    );
-                    if (section.Title != null) sectionComponent.AddComponents(new TextDisplayProperties($"### {section.Title}"));
-                    if (section.Content != null) sectionComponent.AddComponents(new TextDisplayProperties(section.Content));
-                    if (section.Footer != null) sectionComponent.AddComponents(new TextDisplayProperties($"-# {section.Footer}"));
-                    container.AddComponents([sectionComponent]);
+                    case CommandSection section:
+                        container.AddComponents(new ComponentSectionProperties(
+                            new ComponentSectionThumbnailProperties(new($"attachment://{section.Attachment.FileName}"))));
+                        break;
+
+                    case CommandAttachment attachment:
+                        if (container.Components.LastOrDefault() is not MediaGalleryProperties gallery)
+                        {
+                            gallery = new();
+                            container.AddComponents(gallery);
+                        }
+                        gallery.AddItems(new MediaGalleryItemProperties(new($"attachment://{attachment.FileName}")));
+                        break;
+
+                    case CommandText text:
+                        container.AddComponents(new TextDisplayProperties(text.ToFormattedString()));
+                        break;
+
+                    default:
+                        break;
                 }
             }
-
-            if (data.Texts.Any())
-            {
-                container.AddComponents(data.Texts.Select(x => new TextDisplayProperties(x.ToFormattedString())));
-            }
-
-            if (data.Attachments.Any())
-            {
-                var mediaGallery = new MediaGalleryProperties();
-                properties.AddAttachments(data.Attachments.Select(x => new AttachmentProperties(x.FileName, x.Content)));
-                mediaGallery.AddItems(data.Attachments.Select(x =>
-                    new MediaGalleryItemProperties(new ComponentMediaProperties($"attachment://{x.FileName}"))));
-                container.AddComponents(mediaGallery);
-            }
-            if (data.Footer != null) container.AddComponents(new TextDisplayProperties(data.Footer));
             properties.AddComponents([container]);
         }
         else
         {
-            if (data.Content != null) properties.AddComponents(new TextDisplayProperties(data.Content));
-            if (data.Attachments.Any())
+            foreach (var component in data.Components)
             {
-                var mediaGallery = new MediaGalleryProperties();
-                properties.AddAttachments(data.Attachments.Select(x => new AttachmentProperties(x.FileName, x.Content)));
-                mediaGallery.AddItems(data.Attachments.Select(x =>
-                    new MediaGalleryItemProperties(new ComponentMediaProperties($"attachment://{x.FileName}"))));
-                properties.AddComponents(mediaGallery);
+                switch (component)
+                {
+                    case CommandAttachment attachment:
+                        if (properties.Components?.LastOrDefault() is not MediaGalleryProperties gallery)
+                        {
+                            gallery = new();
+                            properties.AddComponents(gallery);
+                        }
+                        gallery.AddItems(new MediaGalleryItemProperties(new($"attachment://{attachment.FileName}")));
+                        break;
+
+                    case CommandText text:
+                        properties.AddComponents(new TextDisplayProperties(text.ToFormattedString()));
+                        break;
+
+                    default:
+                        break;
+                }
             }
-            if (data.Footer != null) properties.AddComponents(new TextDisplayProperties(data.Footer));
         }
 
+        properties.AddAttachments(data.Components.OfType<ICommandResultAttachment>()
+            .Select(x => x.GetAttachment()).Select(x => new AttachmentProperties(x.Item1, x.Item2)));
+
         return properties;
+    }
+
+    public static string ToFormattedString(this CommandText text)
+    {
+        StringBuilder sb = new();
+        if (text.Type.HasFlag(TextType.Header1))
+        {
+            sb.Append("# ");
+        }
+        else if (text.Type.HasFlag(TextType.Header2))
+        {
+            sb.Append("## ");
+        }
+        else if (text.Type.HasFlag(TextType.Header3))
+        {
+            sb.Append("### ");
+        }
+
+        if (text.Type.HasFlag(TextType.Bold))
+        {
+            sb.Append("**");
+        }
+        if (text.Type.HasFlag(TextType.Italic))
+        {
+            sb.Append('*');
+        }
+
+        sb.Append(text.Content);
+
+        if (text.Type.HasFlag(TextType.Italic))
+        {
+            sb.Append('*');
+        }
+        if (text.Type.HasFlag(TextType.Bold))
+        {
+            sb.Append("**");
+        }
+
+        return sb.ToString();
     }
 }

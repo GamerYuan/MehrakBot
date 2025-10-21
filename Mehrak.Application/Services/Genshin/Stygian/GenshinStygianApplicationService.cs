@@ -83,11 +83,14 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
             var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<StygianData>(context.UserId,
                 stygianInfo.Data.Data[0], context.Server, profile));
 
-            return CommandResult.Success(
-                 $"<@{context.UserId}>'s Stygian Onslaught Summary",
-                 $"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\nCycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>",
-                 $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                 [new("abyss_card.jpg", card)]);
+            return CommandResult.Success([
+                 new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),
+                 new CommandText($"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\n" +
+                    $"Cycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>"),
+                 new CommandAttachment("abyss_card.jpg", card),
+                 new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                    CommandText.TextType.Footer)],
+                 true);
         }
         catch (CommandException e)
         {

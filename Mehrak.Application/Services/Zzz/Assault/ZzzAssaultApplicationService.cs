@@ -96,11 +96,14 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
 
             TimeZoneInfo tz = context.Server.GetTimeZoneInfo();
 
-            return CommandResult.Success(
-                $"<@{context.UserId}>'s Deadly Assault Summary",
-                $"Cycle start: <t:{assaultData.StartTime.ToTimestamp(tz)}:f>\nCycle end: <t:{assaultData.EndTime.ToTimestamp(tz)}:f>",
-                $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                [new("da_card.jpg", card)]);
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
+                new CommandText($"Cycle start: <t:{assaultData.StartTime.ToTimestamp(tz)}:f>\n" +
+                    $"Cycle end: <t:{assaultData.EndTime.ToTimestamp(tz)}:f>"),
+                new CommandAttachment("da_card.jpg", card),
+                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                    CommandText.TextType.Footer)],
+                true);
         }
         catch (CommandException e)
         {

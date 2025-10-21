@@ -87,11 +87,13 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
             var card = await m_CardService.GetCardAsync(
                 new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, context.Server, profile));
 
-            return CommandResult.Success(
-                $"<@{context.UserId}>'s Shiyu Defense Summary",
-                $"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>",
-                $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                [new("shiyu_card.jpg", card)]);
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
+                new CommandText($"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
+                new CommandAttachment("shiyu_card.jpg", card),
+                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                    CommandText.TextType.Footer)],
+                true);
         }
         catch (CommandException e)
         {

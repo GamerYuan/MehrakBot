@@ -86,40 +86,41 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
 
         var weeklyReset = server.GetNextWeeklyResetUnix();
 
-        List<CommandSection> sections =
+        List<ICommandResultComponent> components =
         [
-            new(
-                "Trailblaze Power",
-                $"{data.CurrentStamina}/{data.MaxStamina}",
-                data.CurrentStamina == data.MaxStamina
+            new CommandText($"Honkai Star Rail Real-Time Notes (UID: {uid})", CommandText.TextType.Header2),
+            new CommandSection([
+                new("Trailblaze Power", CommandText.TextType.Header3),
+                new($"{data.CurrentStamina}/{data.MaxStamina}"),
+                new(data.CurrentStamina == data.MaxStamina
                             ? "-# Already Full!"
-                            : $"-# Recovers <t:{data.StaminaFullTs}:R>",
+                            : $"-# Recovers <t:{data.StaminaFullTs}:R>")],
                 new("hsr_tbp.png", await tbpImage)
             ),
-            new(
-                "Assignments",
-                $"{data.AcceptedExpeditionNum}/{data.MaxStamina}",
-                data.AcceptedExpeditionNum > 0
+            new CommandSection([
+                new("Assignments", CommandText.TextType.Header3),
+                new($"{data.AcceptedExpeditionNum}/{data.MaxStamina}"),
+                new(data.AcceptedExpeditionNum > 0
                            ? $"{data.AcceptedExpeditionNum}/{data.MaxStamina}"
-                           : "None Accepted!",
+                           : "None Accepted!", CommandText.TextType.Footer)],
                 new("hsr_assignment.png", await assignmentImage)
             ),
-            new(
-                "Echoes of War",
-                data.WeeklyCocoonCnt > 0
+            new CommandSection([
+                new("Echoes of War", CommandText.TextType.Header3),
+                new(data.WeeklyCocoonCnt > 0
                             ? $"Claimed {data.WeeklyCocoonLimit - data.WeeklyCocoonCnt}/{data.WeeklyCocoonLimit}"
-                            : "Fully Claimed!",
-                "Resets <t:{weeklyReset}:R>",
+                            : "Fully Claimed!"),
+                new("Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
                 new("hsr_weekly.png", await weeklyImage)
             ),
-            new(
-                "Simulated Universe",
-                $"{data.CurrentRogueScore}/{data.MaxRogueScore}",
-                $"-# Resets <t:{weeklyReset}:R>",
+            new CommandSection([
+                new("Simulated Universe", CommandText.TextType.Header3),
+                new($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
+                new($"-# Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
                 new("hsr_rogue.png", await rogueImage)
             )
         ];
 
-        return CommandResult.Success($"Honkai Star Rail Real-Time Notes (UID: {uid})", sections: sections);
+        return CommandResult.Success(components);
     }
 }

@@ -88,41 +88,42 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
         long currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         long weeklyReset = server.GetNextWeeklyResetUnix();
 
-        List<CommandSection> sections = [
-            new CommandSection(
-                "Original Resin",
-                $"{data.CurrentResin}/{data.MaxResin}",
-                data.CurrentResin == data.MaxResin
+        List<ICommandResultComponent> components = [
+            new CommandText($"Real Time Notes for UID: {uid}", CommandText.TextType.Header2),
+            new CommandSection([
+                new("Original Resin", CommandText.TextType.Header3),
+                new($"{data.CurrentResin}/{data.MaxResin}"),
+                new(data.CurrentResin == data.MaxResin
                         ? "Already Full!"
-                        : $"Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>",
+                        : $"Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>", CommandText.TextType.Footer)],
                 new("genshin_resin.png", await resinImage)
                 ),
-            new CommandSection(
-                "Expeditions",
-                data.CurrentExpeditionNum > 0
+            new CommandSection([
+                new("Expeditions", CommandText.TextType.Header3),
+                new(data.CurrentExpeditionNum > 0
                         ? $"{data.CurrentExpeditionNum}/{data.MaxExpeditionNum}"
-                        : "None Dispatched!",
-                data.CurrentExpeditionNum > 0
+                        : "None Dispatched!"),
+                new(data.CurrentExpeditionNum > 0
                         ? data.Expeditions!.Max(x => long.Parse(x.RemainedTime!)) > 0
                             ? $"Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
                             : "All Expeditions Completed"
-                        : "To be dispatched",
+                        : "To be dispatched", CommandText.TextType.Footer)],
                 new("genshin_expedition.png", await expeditionImage)
                 ),
-            new CommandSection(
-                    "Serenitea Pot",
-                    data.CurrentHomeCoin == data.MaxHomeCoin
+            new CommandSection([
+                    new("Serenitea Pot", CommandText.TextType.Header3),
+                    new(data.CurrentHomeCoin == data.MaxHomeCoin
                         ? "Already Full!"
-                        : $"{data.CurrentHomeCoin}/{data.MaxHomeCoin}",
-                    data.CurrentHomeCoin == data.MaxHomeCoin
+                        : $"{data.CurrentHomeCoin}/{data.MaxHomeCoin}"),
+                    new(data.CurrentHomeCoin == data.MaxHomeCoin
                         ? "To be collected"
-                        : $"Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>",
+                        : $"Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>", CommandText.TextType.Footer)],
                     new("genshin_teapot.png", await teapotImage)
                 ),
-            new CommandSection(
-                    "Weekly Bosses",
-                    $"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}",
-                    $"Resets <t:{weeklyReset}:R>",
+            new CommandSection([
+                    new("Weekly Bosses", CommandText.TextType.Header3),
+                    new($"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}"),
+                    new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
                     new("genshin_weekly.png", await weeklyImage)
                 )
 
@@ -130,17 +131,17 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
 
         if (data.Transformer?.Obtained == true)
         {
-            sections.Add(
-                new CommandSection(
-                    "Parametric Transformer",
-                    data.Transformer.RecoveryTime!.Reached
+            components.Add(
+                new CommandSection([
+                    new("Parametric Transformer", CommandText.TextType.Header3),
+                    new(data.Transformer.RecoveryTime!.Reached
                         ? "Not Claimed!"
-                        : "Claimed!",
-                    $"Resets <t:{weeklyReset}:R>",
+                        : "Claimed!"),
+                    new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
                     new("genshin_transformer.png", await transformerImage)
                 ));
         }
 
-        return CommandResult.Success($"Genshin Impact Real-Time Notes (UID: {uid})", sections: sections);
+        return CommandResult.Success(components, true);
     }
 }

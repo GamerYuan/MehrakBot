@@ -163,7 +163,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             var card = await m_CardService.GetCardAsync(
                 new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, context.Server, profile));
 
-            return CommandResult.Success(content: $"<@{context.UserId}>", attachments: [new("character_card.jpg", card)]);
+            return CommandResult.Success([new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)]);
         }
         catch (CommandException e)
         {

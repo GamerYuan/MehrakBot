@@ -59,7 +59,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
                 return CommandResult.Failure("No data found in real-time notes response");
             }
 
-            return await BuildRealTimeNotes(notesData, context.Server, gameUid);
+            return await BuildRealTimeNotes(notesData, gameUid);
         }
         catch (CommandException e)
         {
@@ -75,8 +75,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
         }
     }
 
-    private async Task<CommandResult> BuildRealTimeNotes(ZzzRealTimeNotesData data,
-        Server server, string uid)
+    private async Task<CommandResult> BuildRealTimeNotes(ZzzRealTimeNotesData data, string uid)
     {
         Stream stamImage = await m_ImageRepository.DownloadFileToStreamAsync("zzz_battery");
 
@@ -95,33 +94,31 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
             : $"{data.WeeklyTask!.CurPoint}/{data.WeeklyTask!.MaxPoint}\n" +
               $"-# Refreshes in <t:{currTime + data.WeeklyTask.RefreshTime}:F>";
 
-        List<CommandSection> sections =
+        List<ICommandResultComponent> components =
         [
-            new("Battery Charge",
-                $"{data.Energy.Progress.Current}/{data.Energy.Progress.Max}",
-                data.Energy.Restore == 0
+            new CommandText($"Zenless Zone Zero Real-Time Notes (UID: {uid})", CommandText.TextType.Header2),
+            new CommandSection([
+                new("Battery Charge", CommandText.TextType.Header3),
+                new($"{data.Energy.Progress.Current}/{data.Energy.Progress.Max}"),
+                new(data.Energy.Restore == 0
                     ? "Fully Recovered!"
-                    : $"-# Recovers <t:{currTime + data.Energy.Restore}:R>",
+                    : $"-# Recovers <t:{currTime + data.Energy.Restore}:R>")],
                 new("zzz_battery.png", stamImage)
-            )
+            ),
+            new CommandText("Daily Missions", CommandText.TextType.Header3),
+            new CommandText($"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}"),
+            new CommandText($"Scratch Card/Divination: {data.CardSign.ToReadableString()}"),
+            new CommandText($"Video Store Management: {data.VhsSale.SaleState.ToReadableString()}"),
+            new CommandText("Season Missions", CommandText.TextType.Header3),
+            new CommandText($"Bounty Commission: {bounty}"),
+            new CommandText($"Ridu Weekly Points: {weeklyTask}"),
+            new CommandText($"Omnicoins: {omnicoins}"),
+            new CommandText("Suibian Temple Management", CommandText.TextType.Header3),
+            new CommandText($"Adventure: {data.TempleManage.ExpeditionState.ToReadableString()}"),
+            new CommandText($"Crafting Workshop: {data.TempleManage.BenchState.ToReadableString()}"),
+            new CommandText($"Sales Stall: {data.TempleManage.ShelveState.ToReadableString()}")
         ];
 
-        List<CommandText> texts =
-        [
-            new("Daily Missions", CommandText.TextType.Header3),
-            new ($"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}"),
-            new ($"Scratch Card/Divination: {data.CardSign.ToReadableString()}"),
-            new ($"Video Store Management: {data.VhsSale.SaleState.ToReadableString()}"),
-            new("Season Missions", CommandText.TextType.Header3),
-            new ($"Bounty Commission: {bounty}"),
-            new ($"Ridu Weekly Points: {weeklyTask}"),
-            new ($"Omnicoins: {omnicoins}"),
-            new("Suibian Temple Management", CommandText.TextType.Header3),
-            new ($"Adventure: {data.TempleManage.ExpeditionState.ToReadableString()}"),
-            new ($"Crafting Workshop: {data.TempleManage.BenchState.ToReadableString()}"),
-            new ($"Sales Stall: {data.TempleManage.ShelveState.ToReadableString()}")
-        ];
-
-        return CommandResult.Success($"Zenless Zone Zero Real-Time Notes (UID: {uid})", sections: sections, texts: texts);
+        return CommandResult.Success(components);
     }
 }

@@ -1,7 +1,13 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace Mehrak.Domain.Models;
+
+public interface ICommandResultComponent;
+
+public interface ICommandResultAttachment
+{
+    public (string, Stream) GetAttachment();
+}
 
 public class CommandResult
 {
@@ -13,14 +19,12 @@ public class CommandResult
 
     public CommandResultData? Data { get; init; }
 
-    public static CommandResult Success(string? title = null, string? content = null,
-        string? footer = null, IEnumerable<CommandAttachment>? attachments = null,
-        IEnumerable<CommandSection>? sections = null, IEnumerable<CommandText>? texts = null)
+    public static CommandResult Success(IEnumerable<ICommandResultComponent>? components = null, bool isContainer = false)
     {
         return new CommandResult
         {
             IsSuccess = true,
-            Data = new CommandResultData(title, content, footer, attachments, sections, texts)
+            Data = new CommandResultData(components, isContainer)
         };
     }
 
@@ -35,44 +39,35 @@ public class CommandResult
 
     public class CommandResultData
     {
-        public string? Title { get; }
-        public string? Content { get; }
-        public string? Footer { get; }
-        public IEnumerable<CommandAttachment> Attachments { get; }
-        public IEnumerable<CommandSection> Sections { get; }
-        public IEnumerable<CommandText> Texts { get; }
+        public IEnumerable<ICommandResultComponent> Components { get; }
+        public bool IsContainer { get; }
 
-        public CommandResultData(string? title, string? content,
-            string? footer, IEnumerable<CommandAttachment>? attachments, IEnumerable<CommandSection>? sections,
-            IEnumerable<CommandText>? texts)
+        public CommandResultData(IEnumerable<ICommandResultComponent>? components, bool isContainer)
         {
-            Title = title;
-            Content = content;
-            Footer = footer;
-            Attachments = attachments ?? [];
-            Sections = sections ?? [];
-            Texts = texts ?? [];
+            Components = components ?? [];
+            IsContainer = isContainer;
         }
     }
 }
 
-public class CommandSection
+public class CommandSection : ICommandResultComponent, ICommandResultAttachment
 {
-    public string? Title { get; }
-    public string? Content { get; }
-    public string? Footer { get; }
+    public IEnumerable<CommandText> Components { get; }
     public CommandAttachment Attachment { get; }
 
-    public CommandSection(string? title, string? content, string? footer, CommandAttachment attachment)
+    public CommandSection(IEnumerable<CommandText> components, CommandAttachment attachment)
     {
-        Title = title;
-        Content = content;
-        Footer = footer;
+        Components = components;
         Attachment = attachment;
+    }
+
+    public (string, Stream) GetAttachment()
+    {
+        return Attachment.GetAttachment();
     }
 }
 
-public class CommandAttachment
+public class CommandAttachment : ICommandResultComponent, ICommandResultAttachment
 {
     public string FileName { get; }
     public Stream Content { get; }
@@ -82,9 +77,14 @@ public class CommandAttachment
         FileName = fileName;
         Content = content;
     }
+
+    public (string, Stream) GetAttachment()
+    {
+        return (FileName, Content);
+    }
 }
 
-public class CommandText
+public class CommandText : ICommandResultComponent
 {
     public string Content { get; }
     public TextType Type { get; }
@@ -95,45 +95,6 @@ public class CommandText
         Type = type;
     }
 
-    public string ToFormattedString()
-    {
-        StringBuilder sb = new();
-        if (Type.HasFlag(TextType.Header1))
-        {
-            sb.Append("# ");
-        }
-        else if (Type.HasFlag(TextType.Header2))
-        {
-            sb.Append("## ");
-        }
-        else if (Type.HasFlag(TextType.Header3))
-        {
-            sb.Append("### ");
-        }
-
-        if (Type.HasFlag(TextType.Bold))
-        {
-            sb.Append("**");
-        }
-        if (Type.HasFlag(TextType.Italic))
-        {
-            sb.Append('*');
-        }
-
-        sb.Append(Content);
-
-        if (Type.HasFlag(TextType.Italic))
-        {
-            sb.Append('*');
-        }
-        if (Type.HasFlag(TextType.Bold))
-        {
-            sb.Append("**");
-        }
-
-        return sb.ToString();
-    }
-
     [Flags]
     public enum TextType
     {
@@ -142,6 +103,7 @@ public class CommandText
         Header2 = 1 << 2,
         Header3 = 1 << 3,
         Bold = 1 << 4,
-        Italic = 1 << 5
+        Italic = 1 << 5,
+        Footer = 1 << 6
     }
 }

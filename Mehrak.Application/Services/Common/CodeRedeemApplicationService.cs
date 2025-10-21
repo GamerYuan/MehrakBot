@@ -92,7 +92,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
             if (successfulCodes.Count > 0)
                 await m_CodeRepository.AddCodesAsync(context.Game, successfulCodes).ConfigureAwait(false);
 
-            return CommandResult.Success(content: sb.ToString().TrimEnd());
+            return CommandResult.Success(components: [new CommandText(sb.ToString().TrimEnd())]);
         }
         catch (CommandException e)
         {

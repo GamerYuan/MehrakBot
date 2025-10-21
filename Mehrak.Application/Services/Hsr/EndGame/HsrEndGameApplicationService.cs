@@ -90,12 +90,14 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
             var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
 
-            return CommandResult.Success(
-                $"<@{context.UserId}>'s {context.Mode.GetString()} Summary",
-                $"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>",
-                $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                [new($"{context.Mode.GetString().ToLowerInvariant().Replace(' ', '_')}_card.jpg", card)]
-);
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary", CommandText.TextType.Header3),
+                new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                new CommandAttachment($"{context.Mode.GetString().ToLowerInvariant().Replace(' ', '_')}_card.jpg", card),
+                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                    CommandText.TextType.Footer)],
+                true
+            );
         }
         catch (CommandException e)
         {

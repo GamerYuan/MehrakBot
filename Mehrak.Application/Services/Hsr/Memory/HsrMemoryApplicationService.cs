@@ -81,10 +81,12 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 .ToUnixTimeSeconds();
 
             return CommandResult.Success(
-                $"<@{context.UserId}>'s Memory of Chaos Summary",
-                $"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>",
-                $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                [new("moc_card.jpg", card)]);
+                [new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
+                new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                new CommandAttachment("moc_card.jpg", card),
+                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                    CommandText.TextType.Footer)]
+                );
         }
         catch (CommandException e)
         {

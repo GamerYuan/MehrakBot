@@ -79,7 +79,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                 BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(
                 context.UserId, characterList, context.Server, profile));
 
-            return CommandResult.Success(content: $"<@{context.UserId}>", attachments: [new("charlist_card.jpg", card)]);
+            return CommandResult.Success([new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)]);
         }
         catch (CommandException e)
         {

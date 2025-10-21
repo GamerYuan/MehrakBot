@@ -79,7 +79,7 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
             }
             var resultContent = string.Join("\n", checkInResults);
             m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);
-            return CommandResult.Success(content: resultContent);
+            return CommandResult.Success(components: [new CommandText(resultContent)]);
         }
         catch (Exception ex)
         {

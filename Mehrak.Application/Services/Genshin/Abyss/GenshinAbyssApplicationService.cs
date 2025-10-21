@@ -107,11 +107,13 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
 
             var card = await m_CardService.GetCardAsync(new(context.UserId, floor, abyssData, context.Server, profile, constMap));
 
-            return CommandResult.Success(
-                $"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
-                $"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>",
-                $"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                [new("abyss_card.jpg", card)]
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})", CommandText.TextType.Header3),
+                new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
+                new CommandAttachment("abyss_card.jpg", card),
+                new CommandText($"-# Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
+                    CommandText.TextType.Footer)],
+                true
             );
         }
         catch (Exception e)
