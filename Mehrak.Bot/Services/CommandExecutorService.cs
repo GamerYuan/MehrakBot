@@ -91,9 +91,9 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
                 context.Server = server.Value;
             }
 
-            var notesCommandExecutor =
+            var service =
                 m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();
-            var commandResult = await notesCommandExecutor
+            var commandResult = await service
                 .ExecuteAsync(ApplicationContext)
                 .ConfigureAwait(false);
 

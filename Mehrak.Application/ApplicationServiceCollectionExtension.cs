@@ -12,6 +12,7 @@ public static class ApplicationServiceCollectionExtension
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddTransient<IApplicationService<CheckInApplicationContext>, DailyCheckInService>();
         services.AddTransient<IApplicationService<CodeRedeemApplicationContext>, CodeRedeemApplicationService>();
 
         services.AddGenshinApplicationServices();

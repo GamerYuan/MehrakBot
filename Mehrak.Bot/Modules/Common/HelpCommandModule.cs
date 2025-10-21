@@ -1,7 +1,11 @@
 ﻿#region
 
 #endregion
-/*
+
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
+
 namespace Mehrak.Bot.Modules.Common;
 
 public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandContext>
@@ -32,8 +36,6 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
                  "For example: `/help genshin` or `/help genshin character`"
         };
 
-        BotMetrics.TrackCommand(Context.Interaction.User, "help", true);
-
         return new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
             .AddComponents([
                 new ComponentContainerProperties().AddComponents(new TextDisplayProperties(helpMessage))
@@ -42,4 +44,3 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
             ]);
     }
 }
-*/

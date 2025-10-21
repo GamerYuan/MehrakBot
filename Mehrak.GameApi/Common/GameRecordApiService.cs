@@ -32,8 +32,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 Method = HttpMethod.Get
             };
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
-            request.Headers.Add("User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
+            request.Headers.Add("X-Rpc-Language", "en-us");
             request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{GameRecordApiPath}?uid={context.LtUid}");
 
             m_Logger.LogDebug("Sending request to game record API: {Url}", request.RequestUri);

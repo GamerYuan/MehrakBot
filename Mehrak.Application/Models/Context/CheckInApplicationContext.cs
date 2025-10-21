@@ -8,13 +8,11 @@ public class CheckInApplicationContext : IApplicationContext
 
     public ulong LtUid { get; set; }
 
-    public string LToken { get; set; }
+    public string LToken { get; set; } = string.Empty;
 
-    public CheckInApplicationContext(ulong userId, ulong ltuid, string ltoken)
+    public CheckInApplicationContext(ulong userId)
     {
         UserId = userId;
-        LtUid = ltuid;
-        LToken = ltoken;
     }
 
     public T? GetParameter<T>(string key)

@@ -1,22 +1,24 @@
 ﻿#region
 
 #endregion
-/*
+
+using Mehrak.Application.Models.Context;
+using Mehrak.Bot.Builders;
+using Microsoft.Extensions.Logging;
+using NetCord.Services.ApplicationCommands;
+
 namespace Mehrak.Bot.Modules.Common;
 
-public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>, ICommandModule
+public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly IDailyCheckInCommandExecutor m_Executor;
-    private readonly CommandRateLimitService m_CommandRateLimitService;
+    private readonly ICommandExecutorBuilder m_Builder;
     private readonly ILogger<DailyCheckInCommandModule> m_Logger;
 
     public DailyCheckInCommandModule(
-        IDailyCheckInCommandExecutor executor,
-        CommandRateLimitService commandRateLimitService,
+        ICommandExecutorBuilder builder,
         ILogger<DailyCheckInCommandModule> logger)
     {
-        m_Executor = executor;
-        m_CommandRateLimitService = commandRateLimitService;
+        m_Builder = builder;
         m_Logger = logger;
     }
 
@@ -25,39 +27,17 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
         [SlashCommandParameter(Name = "profile", Description = "Profile ID (Defaults to 1)")]
         uint profile = 1)
     {
-        try
-        {
-            // Check rate limit first
-            if (!await ValidateRateLimitAsync()) return;
+        m_Logger.LogInformation("Executing Daily Check-In command for user {UserId} with profile {ProfileId}",
+            Context.User.Id, profile);
 
-            // Set the context for the executor
-            m_Executor.Context = Context;
+        var executor = m_Builder.For<CheckInApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new(Context.User.Id))
+            .WithEphemeralResponse(true)
+            .WithCommandName("checkin")
+            .Build();
 
-            // Delegate to the executor with the profile parameter
-            await m_Executor.ExecuteAsync(profile);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogError(e, "Error in daily check-in command module for user {UserId}", Context.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties()
-                    .WithContent("An error occurred while processing your request. Please try again later.")
-                    .WithFlags(MessageFlags.Ephemeral)));
-        }
-    }
-
-    private async Task<bool> ValidateRateLimitAsync()
-    {
-        if (await m_CommandRateLimitService.IsRateLimitedAsync(Context.Interaction.User.Id))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return false;
-        }
-
-        await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
-        return true;
+        await executor.ExecuteAsync(null, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString()
@@ -73,4 +53,3 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
                "```/checkin\n/checkin 2```\n";
     }
 }
-*/

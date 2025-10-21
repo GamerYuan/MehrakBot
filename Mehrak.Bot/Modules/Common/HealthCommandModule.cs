@@ -2,12 +2,22 @@
 
 #endregion
 
+using Mehrak.GameApi;
+using Mehrak.Infrastructure.Metrics;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using NetCord;
+using NetCord.Gateway;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
+using StackExchange.Redis;
+using System.Net.NetworkInformation;
+
 namespace Mehrak.Bot.Modules.Common;
 
-/*
 public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly MongoDbService m_MongoDbService;
+    private readonly IMongoDatabase m_MongoClient;
     private readonly IConnectionMultiplexer m_RedisConnection;
     private readonly GatewayClient m_GatewayClient;
     private readonly PrometheusClientService m_PrometheusClientService;
@@ -35,10 +45,10 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         }
     }
 
-    public HealthCommandModule(MongoDbService mongoDbService, IConnectionMultiplexer redisConnection,
+    public HealthCommandModule(IMongoDatabase mongoClient, IConnectionMultiplexer redisConnection,
         GatewayClient gatewayClient, PrometheusClientService prometheusClientService)
     {
-        m_MongoDbService = mongoDbService;
+        m_MongoClient = mongoClient;
         m_RedisConnection = redisConnection;
         m_GatewayClient = gatewayClient;
         m_PrometheusClientService = prometheusClientService;
@@ -58,7 +68,8 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
 
         var systemUsageTask = m_PrometheusClientService.GetSystemResourceAsync();
 
-        var mongoDbStatus = await m_MongoDbService.IsConnected();
+        bool mongoDbStatus = await m_MongoClient.RunCommandAsync((Command<BsonDocument>)"{ping:1}") != null;
+
         var cacheStatus = m_RedisConnection.IsConnected;
 
         var pingTasks = HealthCheckComponents.Select(async x =>
@@ -139,4 +150,3 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
                "-# This command is only available to users with the `Manage Server` or `Administrator` permissions.\n";
     }
 }
-*/
