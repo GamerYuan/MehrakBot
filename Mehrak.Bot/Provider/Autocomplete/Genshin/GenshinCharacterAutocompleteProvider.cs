@@ -3,7 +3,7 @@ using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
-namespace Mehrak.Bot.Provider.Commands.Genshin;
+namespace Mehrak.Bot.Provider.Autocomplete.Genshin;
 
 public class GenshinCharacterAutocompleteProvider(
     ICharacterAutocompleteService<GenshinCommandModule> autocompleteService)

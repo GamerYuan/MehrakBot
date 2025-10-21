@@ -8,7 +8,7 @@ using Mehrak.Application.Services.Genshin.RealTimeNotes;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Provider.Commands.Genshin;
+using Mehrak.Bot.Provider.Autocomplete.Genshin;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;

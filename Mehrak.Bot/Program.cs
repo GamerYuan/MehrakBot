@@ -1,13 +1,9 @@
 ﻿using Mehrak.Application;
-using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Builders;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -102,8 +98,6 @@ public class Program
 
             builder.Services.AddApplicationServices();
 
-            builder.Services.AddHostedService<AsyncInitializationHostedService>();
-
             IConnectionMultiplexer multiplexer = await ConnectionMultiplexer.ConnectAsync(
                 builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
             builder.Services.AddSingleton(multiplexer);
@@ -113,12 +107,7 @@ public class Program
                 options.InstanceName = "MehrakBot_";
             });
 
-            builder.Services.AddCommandExecutorBuilder();
-
-            builder.Services.AddSingleton<CookieEncryptionService>();
-            builder.Services.AddSingleton<ICacheService, RedisCacheService>();
-            builder.Services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
-            builder.Services.AddSingleton<ICommandRateLimitService, CommandRateLimitService>();
+            builder.Services.AddBotServices();
 
             builder.Services.AddDiscordGateway().AddApplicationCommands()
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()

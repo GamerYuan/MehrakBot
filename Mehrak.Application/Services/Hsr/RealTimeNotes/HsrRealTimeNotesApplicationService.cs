@@ -121,6 +121,6 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
             )
         ];
 
-        return CommandResult.Success(components);
+        return CommandResult.Success(components, true);
     }
 }

@@ -23,8 +23,10 @@ internal static class CommandResultDataExtensions
                 switch (component)
                 {
                     case CommandSection section:
-                        container.AddComponents(new ComponentSectionProperties(
-                            new ComponentSectionThumbnailProperties(new($"attachment://{section.Attachment.FileName}"))));
+                        var sectionComponent = new ComponentSectionProperties(
+                            new ComponentSectionThumbnailProperties(new($"attachment://{section.Attachment.FileName}")))
+                            .AddComponents(section.Components.Select(x => new TextDisplayProperties(x.ToFormattedString())));
+                        container.AddComponents([sectionComponent]);
                         break;
 
                     case CommandAttachment attachment:
@@ -91,6 +93,10 @@ internal static class CommandResultDataExtensions
         else if (text.Type.HasFlag(TextType.Header3))
         {
             sb.Append("### ");
+        }
+        else if (text.Type.HasFlag(TextType.Footer))
+        {
+            sb.Append("-# ");
         }
 
         if (text.Type.HasFlag(TextType.Bold))

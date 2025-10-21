@@ -119,6 +119,6 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
             new CommandText($"Sales Stall: {data.TempleManage.ShelveState.ToReadableString()}")
         ];
 
-        return CommandResult.Success(components);
+        return CommandResult.Success(components, true);
     }
 }
