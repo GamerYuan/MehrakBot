@@ -117,7 +117,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
                 var url = JsonNode.Parse(wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray().FirstOrDefault(x => x?["name"]?
                     .GetValue<string>() == "Gallery")?["components"]?[0]?["data"]?.GetValue<string>() ?? "")
-                    ?["list"]?.AsArray().FirstOrDefault(x => x?["key"]?.GetValue<string>() == "Splash Art")?["img"]?.GetValue<string>();
+                    ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
 
                 if (string.IsNullOrEmpty(url))
                 {
