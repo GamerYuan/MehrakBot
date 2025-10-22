@@ -116,7 +116,7 @@ internal class ZzzImageUpdaterService : ImageUpdaterService<ZzzFullAvatarData>
             }
 
             string? imageUrl = gallery["list"]?.AsArray()
-                .FirstOrDefault(x => x?["key"]?.GetValue<string>() == "Splash Art")?["img"]?.GetValue<string>();
+                .FirstOrDefault()?["img"]?.GetValue<string>();
 
             if (string.IsNullOrEmpty(imageUrl))
             {
