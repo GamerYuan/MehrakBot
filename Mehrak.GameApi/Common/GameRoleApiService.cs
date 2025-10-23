@@ -15,7 +15,7 @@ namespace Mehrak.GameApi.Common;
 public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext>
 {
     private static readonly string GameUserRoleApiPath =
-    "/binding/api/getUserGameRolesByLtoken";
+        "/binding/api/getUserGameRolesByLtoken";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GameRoleApiService> m_Logger;
@@ -30,22 +30,25 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
     {
         try
         {
+            var requestUri =
+                $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}?game_biz={context.Game.ToGameBizString()}&region={context.Region}";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+
             var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
             {
-                Method = HttpMethod.Get
+                Method = HttpMethod.Get,
+                RequestUri = new Uri(requestUri)
             };
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
-            request.RequestUri = new Uri($"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}?" +
-                $"game_biz={context.Game.ToGameBizString()}&region={context.Region}");
 
-            m_Logger.LogDebug("Sending request to game roles API: {Url}", request.RequestUri);
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             var response = await httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogWarning("Game roles API returned non-success status code: {StatusCode}",
-                    response.StatusCode);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError, "API returned error status code");
             }
 
@@ -53,16 +56,15 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             if (node?["retcode"]?.GetValue<int>() == -100)
             {
-                m_Logger.LogWarning("Invalid ltoken or ltuid for user {Uid} on {Region}",
-                   context.UserId, context.Region);
+                m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.LtUid);
                 return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please re-authenticate");
             }
 
             if (node?["retcode"]?.GetValue<int>() != 0)
             {
-                m_Logger.LogWarning("Game roles API returned error code: {Retcode} - {Message}",
-                    node?["retcode"], node?["message"]);
+                m_Logger.LogError(LogMessages.UnknownRetcode, node?["retcode"]?.GetValue<int>() ?? -1,
+                    context.LtUid.ToString(), requestUri);
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
                     $"An error occurred while retrieving profile information");
             }
@@ -83,12 +85,15 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 Level = gameProfile?.Level ?? 0,
             };
 
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, dto.GameUid);
             return Result<GameProfileDto>.Success(dto);
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Error retrieving game UID for user {Uid} on {Region}", context.UserId, context.Region);
-            return Result<GameProfileDto>.Failure(StatusCode.BotError, "An error occurred while processing the request");
+            m_Logger.LogError(ex, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}", context.LtUid.ToString());
+            return Result<GameProfileDto>.Failure(StatusCode.BotError,
+                "An error occurred while processing the request");
         }
     }
 }

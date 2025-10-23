@@ -1,5 +1,6 @@
 ﻿using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
@@ -35,37 +36,45 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
-            m_Logger.LogError("Region or Game UID is missing for user {Uid}", context.LtUid);
+            m_Logger.LogError(LogMessages.InvalidRegionOrUid);
             return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
         try
         {
-            m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
-                context.UserId, context.Region, context.GameUid);
             string cacheKey = $"zzz_characters_{context.GameUid}";
             var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey);
 
             if (cachedEntry != null)
             {
-                m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", context.GameUid);
+                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.GameUid);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Success(cachedEntry)!;
             }
 
+            var requestUri =
+                $"{HoYoLabDomains.PublicApi}{BasePath}/basic?server={context.Region}&role_id={context.GameUid}";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+
             HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
 
-            HttpRequestMessage request = new();
+            HttpRequestMessage request = new()
+            {
+                RequestUri = new Uri(requestUri)
+            };
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}/basic?server={context.Region}&role_id={context.GameUid}");
 
-            m_Logger.LogDebug("Sending character list request to {Endpoint}", request.RequestUri);
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             HttpResponseMessage response = await httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
-                m_Logger.LogWarning("Character list API returned non-success status code: {StatusCode}",
-                    response.StatusCode);
+            {
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
+                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character list data");
+            }
 
             ApiResponse<ZzzBasicAvatarResponse>? json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBasicAvatarResponse>>(
@@ -73,27 +82,39 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
-                m_Logger.LogError("Failed to deserialize character list response for user {UserId}", context.UserId);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character list data");
             }
 
-            m_Logger.LogInformation("Successfully retrieved {CharacterCount} characters for user {UserId}",
-                json.Data.AvatarList.Count, context.UserId);
+            if (json.Retcode == 10001)
+            {
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+            }
+
+            if (json.Retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
 
             var cacheEntry = new CharacterListCacheEntry<ZzzBasicAvatarData>(cacheKey,
                 json.Data.AvatarList, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
             await m_Cache.SetAsync(cacheEntry);
-            m_Logger.LogInformation("Cached character data for game UID: {GameUid} for {Minutes} minutes",
-                context.GameUid, CacheExpirationMinutes);
+            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.GameUid, CacheExpirationMinutes);
 
             return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to retrieve character list for user {UserId} on {Region} server (game UID: {GameUid})",
-                context.UserId, context.Region, context.GameUid);
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.PublicApi}{BasePath}/basic", context.GameUid);
             return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character data");
         }
@@ -103,30 +124,33 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterId == 0)
         {
-            m_Logger.LogError("Region or Game UID is missing for user {Uid}", context.LtUid);
+            m_Logger.LogError(LogMessages.InvalidRegionOrUid);
             return Result<ZzzFullAvatarData>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
         try
         {
-            m_Logger.LogInformation(
-                "Retrieving character data for {CharacterId} for user {UserId} on {Region} server (game UID: {GameUid})",
-                context.CharacterId, context.UserId, context.Region, context.GameUid);
+            var requestUri =
+                $"{HoYoLabDomains.PublicApi}{BasePath}/info?id_list[]={context.CharacterId}&server={context.Region}&role_id={context.GameUid}&need_wiki=true";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
 
             HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
 
-            HttpRequestMessage request = new();
+            HttpRequestMessage request = new()
+            {
+                RequestUri = new Uri(requestUri)
+            };
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}" +
-                $"/info?id_list[]={context.CharacterId}&server={context.Region}&role_id={context.GameUid}&need_wiki=true");
+
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             HttpResponseMessage response = await httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
-                    response.StatusCode);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character data");
             }
@@ -137,18 +161,32 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
-                m_Logger.LogWarning("Failed to deserialize character detail response for user {UserId}", context.UserId);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character data");
             }
 
+            if (json.Retcode == 10001)
+            {
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                return Result<ZzzFullAvatarData>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+            }
+
+            if (json.Retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
             return Result<ZzzFullAvatarData>.Success(json.Data);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e,
-                "Failed to retrieve character data for user {Uid} on {Region} server (game UID: {GameUid})",
-                context.UserId, context.Region, context.GameUid);
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.PublicApi}{BasePath}/info", context.GameUid);
             return Result<ZzzFullAvatarData>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character data");
         }

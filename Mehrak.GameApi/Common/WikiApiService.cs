@@ -22,13 +22,18 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
     {
         try
         {
+            var endpoint = GetEndpoint(context.Game);
+            var requestUri = $"{HoYoLabDomains.WikiApi}{endpoint}?entry_page_id={context.EntryPage}";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
             {
-                Method = HttpMethod.Get
+                Method = HttpMethod.Get,
+                RequestUri = new Uri(requestUri)
             };
             request.Headers.Add("X-Rpc-Language", context.Game == Game.Genshin ? "zh-cn" : "en-us");
-            request.RequestUri = new Uri($"{HoYoLabDomains.WikiApi}{GetEndpoint(context.Game)}?entry_page_id={context.EntryPage}");
 
             if (context.Game == Game.ZenlessZoneZero)
             {
@@ -39,29 +44,41 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 request.Headers.Add("X-Rpc-Wiki_app", "hsr");
             }
 
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             var response = await client.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError("Failed to retrieve page {EntryPage} for Game {Game}. Status code: {StatusCode}",
-                    context.EntryPage, context.Game, response.StatusCode);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API");
             }
 
             JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+
             if (json == null)
             {
-                m_Logger.LogError("Failed to parse JSON response for page {EntryPage} and Game {Game}", context.EntryPage, context.Game);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.EntryPage);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API");
             }
 
+            var retcode = json["retcode"]?.GetValue<int>() ?? -1;
+
+            if (retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.EntryPage, requestUri);
+                return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
+                    "An error occurred while accessing HoYoWiki API");
+            }
+
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.EntryPage);
             return Result<JsonNode>.Success(json);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error occurred while fetching wiki data for user {UserId}, game {Game}", context.UserId, context.Game);
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.WikiApi}{GetEndpoint(context.Game)}", context.EntryPage);
             return Result<JsonNode>.Failure(StatusCode.BotError, "An error occurred while fetching wiki data.");
         }
     }

@@ -45,66 +45,82 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
     public async Task<Result<CheckInStatus>> GetAsync(CheckInApiContext context)
     {
-        if (!CheckInUrls.TryGetValue(context.Game, out string? url) || !CheckInActIds.TryGetValue(context.Game, out string? actId))
+        if (!CheckInUrls.TryGetValue(context.Game, out string? url) ||
+            !CheckInActIds.TryGetValue(context.Game, out string? actId))
         {
             m_Logger.LogError("Invalid check-in type: {Type}", context.Game);
             return Result<CheckInStatus>.Failure(StatusCode.BadParameter, "Invalid check-in type");
         }
 
-        HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
-        HttpRequestMessage request = new(HttpMethod.Post, url);
-        CheckInApiPayload requestBody = new() { ActId = actId };
-        request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-
-        if (context.Game == Game.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
-
-        request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        m_Logger.LogDebug("Sending check-in request to {Endpoint}", request.RequestUri);
-        HttpResponseMessage response = await httpClient.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            m_Logger.LogError("Check-in request failed with status code {StatusCode}", response.StatusCode);
-            return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError, "An unknown error occurred during check-in");
-        }
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, url);
 
-        JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
-        if (json == null)
-        {
-            m_Logger.LogError("Failed to parse JSON response from check-in request");
-            return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError, "An unknown error occurred during check-in");
-        }
+            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
+            HttpRequestMessage request = new(HttpMethod.Post, url);
+            CheckInApiPayload requestBody = new() { ActId = actId };
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-        int? retcode = json["retcode"]?.GetValue<int>();
+            if (context.Game == Game.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
 
-        switch (retcode)
-        {
-            case -5003:
-                m_Logger.LogInformation("User LtUid: {UserId} has already checked in today for game {Game}", context.LtUid,
-                    context.Game.ToString());
-                return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn);
+            request.Content =
+                new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-            case 0:
-                m_Logger.LogInformation("User LtUid: {UserId} check-in successful for game {Game}", context.LtUid,
-                    context.Game.ToString());
-                return Result<CheckInStatus>.Success(CheckInStatus.Success);
+            m_Logger.LogDebug(LogMessages.SendingRequest, url);
+            HttpResponseMessage response = await httpClient.SendAsync(request);
 
-            case -10002:
-                m_Logger.LogInformation("User LtUid: {UserId} does not have a valid account for game {Game}", context.LtUid,
-                    context.Game.ToString());
-                return Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile);
-
-            default:
-                m_Logger.LogError("Check-in failed for user LtUid: {UserId} for game {Game} with retcode {Retcode}", context.LtUid,
-                    context.Game.ToString(), retcode);
+            if (!response.IsSuccessStatusCode)
+            {
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, url);
                 return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
-                    $"An unknown error occurred during check-in");
+                    "An unknown error occurred during check-in");
+            }
+
+            JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+
+            if (json == null)
+            {
+                m_Logger.LogError(LogMessages.FailedToParseResponse, url, context.LtUid.ToString());
+                return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred during check-in");
+            }
+
+            int? retcode = json["retcode"]?.GetValue<int>();
+
+            switch (retcode)
+            {
+                case -5003:
+                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.LtUid, context.Game.ToString());
+                    return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn);
+
+                case 0:
+                    m_Logger.LogInformation("User LtUid: {LtUid} check-in successful for game {Game}", context.LtUid,
+                        context.Game.ToString());
+                    return Result<CheckInStatus>.Success(CheckInStatus.Success);
+
+                case -10002:
+                    m_Logger.LogInformation(LogMessages.NoValidProfile, context.LtUid, context.Game.ToString());
+                    return Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile);
+
+                default:
+                    m_Logger.LogError("Check-in failed for user LtUid: {LtUid} for game {Game} with retcode {Retcode}",
+                        context.LtUid,
+                        context.Game.ToString(), retcode);
+                    return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
+                        $"An unknown error occurred during check-in");
+            }
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                CheckInUrls.GetValueOrDefault(context.Game, "unknown"), context.LtUid.ToString());
+            return Result<CheckInStatus>.Failure(StatusCode.BotError,
+                "An error occurred during check-in");
         }
     }
 
     private sealed class CheckInApiPayload
     {
-        [JsonPropertyName("act_id")]
-        public string ActId { get; set; } = string.Empty;
+        [JsonPropertyName("act_id")] public string ActId { get; set; } = string.Empty;
     }
 }

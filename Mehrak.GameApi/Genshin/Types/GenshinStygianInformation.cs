@@ -29,7 +29,8 @@ public class StygianBestAvatar
 
     [JsonPropertyName("type")] public int Type { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId), SideIcon);
+    public IImageData ToImageData() =>
+        new ImageData(string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId), SideIcon);
 }
 
 public class Challenge

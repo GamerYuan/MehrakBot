@@ -28,20 +28,27 @@ public static class GameApiServiceCollectionExtension
 
         // Genshin services
         services.AddSingleton<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>, GenshinAbyssApiService>();
-        services.AddSingleton<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>, GenshinCharacterApiService>();
-        services.AddSingleton<IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext>, GenshinRealTimeNotesApiService>();
+        services
+            .AddSingleton<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>,
+                GenshinCharacterApiService>();
+        services
+            .AddSingleton<IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext>, GenshinRealTimeNotesApiService>();
         services.AddSingleton<IApiService<GenshinStygianInformation, BaseHoYoApiContext>, GenshinStygianApiService>();
         services.AddSingleton<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>, GenshinTheaterApiService>();
 
         // Honkai: Star Rail services
-        services.AddSingleton<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>, HsrCharacterApiService>();
+        services
+            .AddSingleton<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>,
+                HsrCharacterApiService>();
         services.AddSingleton<IApiService<HsrMemoryInformation, BaseHoYoApiContext>, HsrMemoryApiService>();
         services.AddSingleton<IApiService<HsrEndInformation, HsrEndGameApiContext>, HsrEndGameApiService>();
         services.AddSingleton<IApiService<HsrRealTimeNotesData, BaseHoYoApiContext>, HsrRealTimeNotesApiService>();
 
         // Zenless Zone Zero services
         services.AddSingleton<IApiService<ZzzAssaultData, BaseHoYoApiContext>, ZzzAssaultApiService>();
-        services.AddSingleton<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>, ZzzCharacterApiService>();
+        services
+            .AddSingleton<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>,
+                ZzzCharacterApiService>();
         services.AddSingleton<IApiService<ZzzDefenseData, BaseHoYoApiContext>, ZzzDefenseApiService>();
         services.AddSingleton<IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext>, ZzzRealTimeNotesApiService>();
 

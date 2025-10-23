@@ -2,6 +2,7 @@
 
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,8 @@ using System.Text.Json.Serialization;
 
 namespace Mehrak.GameApi.Genshin;
 
-public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail,
+    CharacterApiContext>
 {
     private static readonly string BasePath = "/event/game_record/genshin/api";
 
@@ -36,24 +38,25 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
-            m_Logger.LogError("Region or Game UID is missing for user {Uid}", context.LtUid);
+            m_Logger.LogError(LogMessages.InvalidRegionOrUid);
             return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
         try
         {
-            m_Logger.LogInformation("Retrieving character list for user {Uid} on {Region} server (game UID: {GameUid})",
-                context.UserId, context.Region, context.GameUid);
             string cacheKey = $"genshin_characters_{context.GameUid}";
-
             var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey);
 
             if (cachedEntry != null)
             {
-                m_Logger.LogInformation("Retrieved character data from cache for game UID: {GameUid}", context.GameUid);
+                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.GameUid);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Success(cachedEntry);
             }
+
+            var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/list";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
 
             var payload = new CharacterListPayload()
             {
@@ -65,45 +68,59 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             HttpRequestMessage request = new()
             {
-                Method = HttpMethod.Post
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(requestUri),
+                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
             };
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}/character/list");
-            request.Content =
-                new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            m_Logger.LogDebug("Sending character list request to {Endpoint}", request.RequestUri);
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             var response = await httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
-                m_Logger.LogWarning("Character list API returned non-success status code: {StatusCode}",
-                    response.StatusCode);
+            {
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
+                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character list data");
+            }
 
             var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>();
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
-                m_Logger.LogError("Failed to deserialize character list response for user {UserId}", context.UserId);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character list data");
             }
 
-            m_Logger.LogInformation("Successfully retrieved {CharacterCount} characters for user {Uid}",
-                json.Data.List.Count, context.LtUid);
+            if (json.Retcode == 10001)
+            {
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+            }
+
+            if (json.Retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
 
             await m_Cache.SetAsync(
-                new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes)));
-            m_Logger.LogInformation("Cached character data for game UID: {GameUid} for {Minutes} minutes",
-                context.GameUid, CacheExpirationMinutes);
+                new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List,
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)));
+            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.GameUid, CacheExpirationMinutes);
 
             return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e,
-                "Failed to retrieve character list for user {Uid} on {Region} server (game UID: {GameUid})",
-                context.UserId, context.Region, context.GameUid);
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.PublicApi}{BasePath}/character/list", context.GameUid);
             return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character list data");
         }
@@ -113,16 +130,16 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterId == 0)
         {
-            m_Logger.LogError("Region or Game UID is missing for user {Uid}", context.LtUid);
+            m_Logger.LogError(LogMessages.InvalidRegionOrUid);
             return Result<GenshinCharacterDetail>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
         try
         {
-            m_Logger.LogInformation(
-                "Retrieving character data for {CharacterId} for user {UserId} on {Region} server (game UID: {GameUid})",
-                context.CharacterId, context.UserId, context.Region, context.GameUid);
+            var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
 
             var payload = new CharacterDetailPayload()
             {
@@ -134,39 +151,54 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             HttpRequestMessage request = new()
             {
-                Method = HttpMethod.Post
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(requestUri),
+                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
             };
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{BasePath}/character/detail");
-            request.Content =
-                new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            m_Logger.LogDebug("Sending character detail request to {Endpoint}", request.RequestUri);
+
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             var response = await httpClient.SendAsync(request);
+
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogWarning("Character detail API returned non-success status code: {StatusCode}",
-                    response.StatusCode);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving character data");
             }
 
-            ApiResponse<GenshinCharacterDetail>? json = await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>();
+            ApiResponse<GenshinCharacterDetail>? json =
+                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>();
 
             if (json?.Data == null || json?.Data.List.Count == 0)
             {
-                m_Logger.LogWarning("Failed to deserialize character detail response for user {UserId}", context.UserId);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving character data");
             }
 
+            if (json?.Retcode == 10001)
+            {
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                return Result<GenshinCharacterDetail>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+            }
+
+            if (json.Retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
             return Result<GenshinCharacterDetail>.Success(json!.Data);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e,
-                "Failed to retrieve character data for user {UserId} on {Region} server (game UID: {GameUid})",
-                context.UserId, context.Region, context.GameUid);
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail", context.GameUid);
             return Result<GenshinCharacterDetail>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character data");
         }
@@ -174,23 +206,19 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
     private sealed class CharacterListPayload
     {
-        [JsonPropertyName("role_id")]
-        public string RoleId { get; set; } = string.Empty;
+        [JsonPropertyName("role_id")] public string RoleId { get; set; } = string.Empty;
 
         [JsonPropertyName("server")] public string Server { get; set; } = string.Empty;
 
-        [JsonPropertyName("sort_type")]
-        public int SortType { get; set; }
+        [JsonPropertyName("sort_type")] public int SortType { get; set; }
     }
 
     private sealed class CharacterDetailPayload
     {
-        [JsonPropertyName("role_id")]
-        public string RoleId { get; set; } = string.Empty;
+        [JsonPropertyName("role_id")] public string RoleId { get; set; } = string.Empty;
 
         [JsonPropertyName("server")] public string Server { get; set; } = string.Empty;
 
-        [JsonPropertyName("character_ids")]
-        public List<int> CharacterIds { get; set; } = [];
+        [JsonPropertyName("character_ids")] public List<int> CharacterIds { get; set; } = [];
     }
 }

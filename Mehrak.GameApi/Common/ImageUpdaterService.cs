@@ -38,7 +38,8 @@ public class ImageUpdaterService : IImageUpdaterService
 
         if (!response.IsSuccessStatusCode)
         {
-            m_Logger.LogError("Failed to download {Name} from {Url}: {StatusCode}", data.Name, data.Url, response.StatusCode);
+            m_Logger.LogError("Failed to download {Name} from {Url}: {StatusCode}", data.Name, data.Url,
+                response.StatusCode);
             return false;
         }
 
@@ -70,7 +71,8 @@ public class ImageUpdaterService : IImageUpdaterService
 
         var client = m_HttpClientFactory.CreateClient();
 
-        m_Logger.LogInformation("Downloading {Name} from supplied Urls: {Url}", data.Name, string.Join(", ", data.Url, data.AdditionalUrls));
+        m_Logger.LogInformation("Downloading {Name} from supplied Urls: {Url}", data.Name,
+            string.Join(", ", data.Url, data.AdditionalUrls));
 
         var images = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToAsyncEnumerable()
             .SelectAwait(async x => await client.GetAsync(x));

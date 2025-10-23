@@ -1,5 +1,6 @@
 ﻿using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
@@ -24,23 +25,28 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
-            m_Logger.LogError("Game UID or region is null or empty");
+            m_Logger.LogError(LogMessages.InvalidRegionOrUid);
             return Result<ZzzDefenseData>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
         try
         {
+            var requestUri =
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+
             HttpClient client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1");
+            HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
+
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             HttpResponseMessage response = await client.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError("Failed to fetch Zzz Defense data for gameUid: {GameUid}, Status Code: {StatusCode}",
-                    context.GameUid, response.StatusCode);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while fetching Shiyu Defense data");
             }
@@ -50,32 +56,32 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
 
             if (json == null)
             {
-                m_Logger.LogError("Failed to fetch Zzz Defense data for gameUid: {GameUid}, Status Code: {StatusCode}",
-                    context.GameUid, response.StatusCode);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while fetching Shiyu Defense data");
             }
 
             if (json.Retcode == 10001)
             {
-                m_Logger.LogError("Invalid cookies for gameUid: {GameUid}", context.GameUid);
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<ZzzDefenseData>.Failure(StatusCode.Unauthorized,
                     "Invalid cookies. Please re-authenticate.");
             }
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogWarning("Failed to fetch Zzz Defense data for {GameUid}, Retcode {Retcode}, Message: {Message}",
-                    context.GameUid, json?.Retcode, json?.Message);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
                     $"Failed to fetch Zzz Defense data: {json!.Message} (Retcode: {json.Retcode})");
             }
 
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
             return Result<ZzzDefenseData>.Success(json.Data!);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "An error occurred while fetching Zzz Defense data for gameUid: {GameUid}", context.GameUid);
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.GameUid);
             return Result<ZzzDefenseData>.Failure(StatusCode.BotError,
                 "An error occurred while fetching Shiyu Defense data");
         }

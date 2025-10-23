@@ -2,6 +2,7 @@
 
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Utilities;
@@ -29,51 +30,67 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
-            m_Logger.LogError("Game UID or region is null or empty");
+            m_Logger.LogError(LogMessages.InvalidRegionOrUid);
             return Result<HsrRealTimeNotesData>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
         try
         {
+            var requestUri =
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+
             var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}");
+            HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Client_type", "5");
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("DS", DSGenerator.GenerateDS());
 
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             var response = await client.SendAsync(request);
+
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError("Failed to fetch real-time notes: {StatusCode}", response.StatusCode);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}");
             }
 
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(await response.Content.ReadAsStreamAsync());
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(
+                await response.Content.ReadAsStreamAsync());
+
             if (json?.Data == null)
             {
-                m_Logger.LogError("Failed to parse JSON response from real-time notes API");
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     "Failed to parse JSON response from real-time notes API");
             }
 
             if (json.Retcode == 10001)
             {
-                m_Logger.LogError("Invalid ltuid or ltoken provided for real-time notes API");
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API");
             }
 
+            if (json.Retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
             return Result<HsrRealTimeNotesData>.Success(json.Data);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e,
-                "An error occurred while fetching real-time notes for roleId {RoleId} on server {Server}",
-                context.GameUid, context.Region);
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.GameUid);
             return Result<HsrRealTimeNotesData>.Failure(StatusCode.BotError,
                 "An error occurred while fetching real-time notes");
         }

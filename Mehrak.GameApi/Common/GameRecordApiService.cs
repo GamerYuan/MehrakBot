@@ -24,35 +24,51 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
     {
         try
         {
-            m_Logger.LogInformation("Retrieving game record data for user {Uid}", context.UserId);
+            var requestUri = $"{HoYoLabDomains.PublicApi}{GameRecordApiPath}?uid={context.LtUid}";
+
+            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
 
             var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
             {
-                Method = HttpMethod.Get
+                Method = HttpMethod.Get,
+                RequestUri = new Uri(requestUri)
             };
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
             request.Headers.Add("X-Rpc-Language", "en-us");
-            request.RequestUri = new Uri($"{HoYoLabDomains.PublicApi}{GameRecordApiPath}?uid={context.LtUid}");
 
-            m_Logger.LogDebug("Sending request to game record API: {Url}", request.RequestUri);
+            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             var response = await httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogWarning("Game record API returned non-success status code: {StatusCode}",
-                    response.StatusCode);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred");
             }
 
             var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>();
+
             if (json?.Data == null)
             {
-                m_Logger.LogWarning("Failed to retrieve user data for {Uid} - null response", context.UserId);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.LtUid.ToString());
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred");
             }
 
-            m_Logger.LogInformation("Successfully retrieved game record data for user {Uid}", context.UserId);
+            if (json.Retcode == -100)
+            {
+                m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.LtUid);
+                return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate");
+            }
+
+            if (json.Retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.LtUid.ToString(), requestUri);
+                return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.LtUid.ToString());
 
             var result = json.Data.List.Select(x => new GameRecordDto()
             {
@@ -76,7 +92,8 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Error retrieving game record data for user {Uid}", context.UserId);
+            m_Logger.LogError(ex, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.PublicApi}{GameRecordApiPath}", context.LtUid.ToString());
             return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.BotError, "An error occurred");
         }
     }

@@ -10,7 +10,10 @@ public class ZzzChallengeAvatar
     [JsonPropertyName("id")] public int Id { get; init; }
     [JsonPropertyName("level")] public int Level { get; init; }
     [JsonPropertyName("element_type")] public int ElementType { get; init; }
-    [JsonPropertyName("avatar_profession")] public int AvatarProfession { get; init; }
+
+    [JsonPropertyName("avatar_profession")]
+    public int AvatarProfession { get; init; }
+
     [JsonPropertyName("rarity")] public required string Rarity { get; init; }
     [JsonPropertyName("rank")] public int Rank { get; init; }
     [JsonPropertyName("role_square_url")] public required string RoleSquareUrl { get; init; }
@@ -24,9 +27,12 @@ public class ZzzBuddy
     [JsonPropertyName("id")] public int Id { get; init; }
     [JsonPropertyName("rarity")] public required string Rarity { get; init; }
     [JsonPropertyName("level")] public int Level { get; init; }
-    [JsonPropertyName("bangboo_rectangle_url")] public required string BangbooRectangleUrl { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Zzz.BuddyName, Id), BangbooRectangleUrl);
+    [JsonPropertyName("bangboo_rectangle_url")]
+    public required string BangbooRectangleUrl { get; init; }
+
+    public IImageData ToImageData() =>
+        new ImageData(string.Format(FileNameFormat.Zzz.BuddyName, Id), BangbooRectangleUrl);
 }
 
 public class ZzzDefenseData

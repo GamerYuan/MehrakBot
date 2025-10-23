@@ -7,9 +7,13 @@ public class ZzzRealTimeNotesData
     [JsonPropertyName("energy")] public required EnergyInfo Energy { get; init; }
     [JsonPropertyName("vitality")] public required RegenProgress Vitality { get; init; }
     [JsonPropertyName("vhs_sale")] public required VhsSale VhsSale { get; init; }
+
     [JsonPropertyName("card_sign"), JsonConverter(typeof(JsonStringEnumConverter<CardSignState>))]
     public CardSignState CardSign { get; init; }
-    [JsonPropertyName("bounty_commission")] public required BountyCommissionInfo BountyCommission { get; init; }
+
+    [JsonPropertyName("bounty_commission")]
+    public required BountyCommissionInfo BountyCommission { get; init; }
+
     [JsonPropertyName("weekly_task")] public WeeklyTaskInfo? WeeklyTask { get; init; }
     [JsonPropertyName("temple_running")] public required TempleManageInfo TempleManage { get; init; }
 }
@@ -61,8 +65,13 @@ public class TempleManageInfo
     public ShelveState ShelveState { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }
-    [JsonPropertyName("weekly_currency_max")] public int WeeklyCurrencyMax { get; init; }
-    [JsonPropertyName("currency_next_refresh_ts")] public int CurrencyNextRefreshTs { get; init; }
+
+    [JsonPropertyName("weekly_currency_max")]
+    public int WeeklyCurrencyMax { get; init; }
+
+    [JsonPropertyName("currency_next_refresh_ts")]
+    public int CurrencyNextRefreshTs { get; init; }
+
     [JsonPropertyName("current_currency")] public int CurrentCurrency { get; init; }
 }
 
