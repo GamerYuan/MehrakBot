@@ -53,7 +53,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
 
             if (!charResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
             }
 

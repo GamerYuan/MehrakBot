@@ -47,7 +47,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
 
             if (!notesResult.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
             }
 

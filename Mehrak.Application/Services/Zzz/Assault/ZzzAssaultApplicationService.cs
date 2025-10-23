@@ -59,7 +59,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
 
             if (!assaultResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
             }
 

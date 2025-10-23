@@ -51,7 +51,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
             var stygianInfo = await m_ApiService.GetAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
             if (!stygianInfo.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Stygian", context.UserId, gameUid, stygianInfo.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Stygian", context.UserId, gameUid, stygianInfo);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Stygian Onslaught data"));
             }
 

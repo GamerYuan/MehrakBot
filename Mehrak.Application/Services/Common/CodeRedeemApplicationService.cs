@@ -1,5 +1,5 @@
 ﻿using Mehrak.Application.Models.Context;
-using Mehrak.Domain.Common;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
@@ -34,16 +34,14 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
     {
         try
         {
-            Logger.LogInformation("Executing character list service for user {UserId}", context.UserId);
-
             var region = context.Server.ToRegion(context.Game);
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, context.Game, region);
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
@@ -60,7 +58,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 Logger.LogWarning(
                     "User {UserId} used the code command but no codes were provided or found in the cache",
                     context.UserId);
-                return CommandResult.Failure("No known codes found in database. Please provide a valid code");
+                return CommandResult.Success([new CommandText("No known codes found in database. Please provide a valid code")], isEphemeral: true);
             }
 
             StringBuilder sb = new();
@@ -81,9 +79,9 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 }
                 else
                 {
-                    Logger.LogError("Failed to redeem code {Code} for user {UserId}: {ErrorMessage}", trimmedCode,
-                        context.UserId, response.ErrorMessage);
-                    throw new CommandException(response.ErrorMessage);
+                    Logger.LogError("Failed to redeem code {Code} for user {UserId} Result {@Result}", trimmedCode,
+                        context.UserId, response);
+                    sb.Append($"{trimmedCode}: An error occurred while redeeming the code\n");
                 }
 
                 if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay);
@@ -94,17 +92,10 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
 
             return CommandResult.Success(components: [new CommandText(sb.ToString().TrimEnd())]);
         }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure(e.Message);
-        }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure("An unknown error occurred while generating character list card");
+            Logger.LogError(e, LogMessage.UnknownError, $"Codes {context.Game}", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

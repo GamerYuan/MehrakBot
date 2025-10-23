@@ -15,8 +15,6 @@ namespace Mehrak.Application.Services.Genshin.Abyss;
 
 public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbyssApplicationContext>
 {
-    private const string CharListEmpty = "No characters found in character list for User {UserId} with gameUid: {GameUid}";
-
     private readonly ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation> m_CardService;
     private readonly IApiService<GenshinAbyssInformation, BaseHoYoApiContext> m_ApiService;
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> m_CharacterApi;
@@ -55,7 +53,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             if (!abyssInfo.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError,
-                    "Abyss Data", context.UserId, profile.GameUid, abyssInfo.ErrorMessage);
+                    "Abyss Data", context.UserId, profile.GameUid, abyssInfo);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
                     string.Format(ResponseMessage.ApiError, "Spiral Abyss data"));
             }
@@ -96,7 +94,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             if (!charListResponse.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError,
-                    "Character List", context.UserId, profile.GameUid, charListResponse.ErrorMessage);
+                    "Character List", context.UserId, profile.GameUid, charListResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
                     string.Format(ResponseMessage.ApiError, "Character List"));
             }

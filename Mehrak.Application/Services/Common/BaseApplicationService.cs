@@ -25,8 +25,8 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
         var gameProfileResult = await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region));
         if (!gameProfileResult.IsSuccess)
         {
-            Logger.LogWarning("Failed to fetch game profile for userId: {UserId}, game: {Game}, region: {Region}, error: {Error}",
-                userId, game, region, gameProfileResult.ErrorMessage);
+            Logger.LogError("Failed to fetch game profile for User {UserId}, Game {Game}, Region {Region}, Result {@Result}",
+                userId, game, region, gameProfileResult);
             return null;
         }
 

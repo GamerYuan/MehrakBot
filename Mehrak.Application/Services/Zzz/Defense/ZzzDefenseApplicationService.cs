@@ -51,7 +51,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
 
             if (!defenseResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Defense", context.UserId, gameUid, defenseResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Defense", context.UserId, gameUid, defenseResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Shiyu Defense data"));
             }
 

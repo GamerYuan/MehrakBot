@@ -69,7 +69,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 m_CharacterApi.GetAllCharactersAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
             if (!charListResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid, charListResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid, charListResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
@@ -96,7 +96,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
 
             if (!characterInfo.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Character Detail", context.UserId, profile.GameUid, characterInfo.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Character Detail", context.UserId, profile.GameUid, characterInfo);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
@@ -112,7 +112,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
 
                 if (!charWiki.IsSuccess)
                 {
-                    Logger.LogError(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki.ErrorMessage);
+                    Logger.LogError(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
                     return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character Image"));
                 }
 

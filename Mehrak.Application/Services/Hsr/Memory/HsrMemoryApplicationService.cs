@@ -51,7 +51,7 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
             var memoryResult = await m_ApiService.GetAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
             if (!memoryResult.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Memory of Chaos", context.UserId, gameUid, memoryResult.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Memory of Chaos", context.UserId, gameUid, memoryResult);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Memory of Chaos data"));
             }
 

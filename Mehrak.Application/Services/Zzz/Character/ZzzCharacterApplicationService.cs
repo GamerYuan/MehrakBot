@@ -68,7 +68,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             if (!charResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
@@ -97,7 +97,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             if (!response.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, response.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, response);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
@@ -113,7 +113,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
                 if (!wikiResponse.IsSuccess)
                 {
-                    Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse.ErrorMessage);
+                    Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse);
                     return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character Image"));
                 }
 

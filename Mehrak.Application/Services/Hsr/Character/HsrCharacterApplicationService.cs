@@ -68,7 +68,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             if (!charResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
@@ -146,7 +146,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
                 if (!wikiResponse.IsSuccess)
                 {
-                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid, wikiResponse.ErrorMessage);
+                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid, wikiResponse);
                     return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 

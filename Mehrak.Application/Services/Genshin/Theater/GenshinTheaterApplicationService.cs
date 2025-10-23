@@ -59,7 +59,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                     return CommandResult.Success([new CommandText("Imaginarium Theater is not unlocked")]);
                 }
 
-                Logger.LogError(LogMessage.ApiError, "Theater", context.UserId, gameUid, theaterDataResult.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Theater", context.UserId, gameUid, theaterDataResult);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Imaginarium Theater data"));
             }
 
@@ -91,7 +91,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
 
             if (!charListResponse.IsSuccess || !charListResponse.Data.Any())
             {
-                Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charListResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charListResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "character list"));
             }
 

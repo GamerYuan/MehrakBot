@@ -50,7 +50,7 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 new(context.UserId, context.LtUid, context.LToken, profile.GameUid, region, context.Mode));
             if (!challengeResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, context.Mode.GetString(), context.UserId, profile.GameUid, challengeResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, context.Mode.GetString(), context.UserId, profile.GameUid, challengeResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
                     string.Format(ResponseMessage.ApiError, $"{context.Mode.GetString()} data"));
             }

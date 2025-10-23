@@ -4,7 +4,7 @@ internal static class LogMessage
 {
     public const string UnknownError = "Failed to process {Command} for User {UserId}. Error: {ErrorMessage}";
 
-    public const string ApiError = "Failed to fetch {DataType} for User {UserId}, UID {GameUid}. Error: {ErrorMessage}";
+    public const string ApiError = "Failed to fetch {DataType} for User {UserId}, UID {GameUid}. Result: {@Result}";
 
     public const string InvalidLogin = "Invalid Ltuid or LToken for User {UserId}";
 
