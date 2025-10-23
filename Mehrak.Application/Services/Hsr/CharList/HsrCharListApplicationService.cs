@@ -9,6 +9,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Mehrak.Application.Services.Hsr.CharList;
 
@@ -41,8 +42,8 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
@@ -52,28 +53,26 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 
             if (!charResponse.IsSuccess)
             {
-                Logger.LogInformation("No character data found for user {UserId} on {Region} server",
-                    context.UserId, region);
-                return CommandResult.Failure("Failed to fetch character list. Please try again later.");
+                Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
             var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
 
-            if (characterList.Count == 0)
-            {
-                Logger.LogInformation("No character data found for user {UserId} on {Region} server",
-                    context.UserId, region);
-                return CommandResult.Failure("Failed to fetch character list. Please try again later.");
-            }
-
-            IEnumerable<Task> avatarTask = characterList.Select(x => m_ImageUpdaterService
+            IEnumerable<Task<bool>> avatarTask = characterList.Select(x => m_ImageUpdaterService
                 .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor));
-            IEnumerable<Task> weaponTask =
+            IEnumerable<Task<bool>> weaponTask =
                 characterList.Where(x => x.Equip is not null).Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.Equip!.ToImageData(),
                         new ImageProcessorBuilder().Resize(150, 0).Build()));
 
-            await Task.WhenAll(avatarTask.Concat(weaponTask));
+            var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));
+
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId, JsonSerializer.Serialize(characterList));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(new
                 BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(
@@ -83,15 +82,13 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Character List"));
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure("An error occurred while processing your request");
+            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

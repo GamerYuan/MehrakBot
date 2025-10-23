@@ -9,6 +9,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Mehrak.Application.Services.Genshin.CharList;
 
@@ -35,16 +36,14 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
     {
         try
         {
-            Logger.LogInformation("Executing character list service for user {UserId}", context.UserId);
-
             string region = context.Server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             string gameUid = profile.GameUid;
@@ -54,28 +53,25 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
 
             if (!charResponse.IsSuccess)
             {
-                Logger.LogWarning(
-                    "Failed to fetch character list for gameUid: {GameUid}, region: {Region}, error: {Error}",
-                    gameUid, region, charResponse.ErrorMessage);
-                return CommandResult.Failure("Failed to fetch character list. Please try again later.");
+                Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
             var characterList = charResponse.Data.ToList();
 
-            if (characterList.Count == 0)
-            {
-                Logger.LogInformation("No characters found for user {UserId}", context.UserId);
-                return CommandResult.Failure("No characters found in the account");
-            }
-
-            IEnumerable<Task> avatarTask =
+            IEnumerable<Task<bool>> avatarTask =
                 characterList.Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            IEnumerable<Task> weaponTask =
+            IEnumerable<Task<bool>> weaponTask =
                 characterList.Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(), new ImageProcessorBuilder().Resize(200, 0).Build()));
 
-            await Task.WhenAll(avatarTask.Concat(weaponTask));
+            var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId, JsonSerializer.Serialize(characterList));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(context.UserId,
                 characterList, context.Server, profile));
@@ -84,15 +80,13 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Character List"));
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to get Character List card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure("An unknown error occurred while generating character list card");
+            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

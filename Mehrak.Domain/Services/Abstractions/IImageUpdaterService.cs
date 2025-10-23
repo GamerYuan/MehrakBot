@@ -4,7 +4,7 @@ namespace Mehrak.Domain.Services.Abstractions;
 
 public interface IImageUpdaterService
 {
-    public Task UpdateImageAsync(IImageData data, IImageProcessor processor);
+    public Task<bool> UpdateImageAsync(IImageData data, IImageProcessor processor);
 
-    public Task UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor);
+    public Task<bool> UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor);
 }

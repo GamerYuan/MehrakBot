@@ -9,31 +9,44 @@ public interface ICommandResultAttachment
     public (string, Stream) GetAttachment();
 }
 
+public enum CommandFailureReason
+{
+    Unknown,
+    AuthError,
+    ApiError,
+    BotError
+}
+
 public class CommandResult
 {
     [MemberNotNullWhen(true, nameof(Data))]
     [MemberNotNullWhen(false, nameof(ErrorMessage))]
+    [MemberNotNullWhen(false, nameof(FailureReason))]
     public bool IsSuccess { get; init; }
 
     public string? ErrorMessage { get; init; }
 
+    public CommandFailureReason FailureReason { get; init; }
+
     public CommandResultData? Data { get; init; }
 
-    public static CommandResult Success(IEnumerable<ICommandResultComponent>? components = null, bool isContainer = false)
+    public static CommandResult Success(IEnumerable<ICommandResultComponent>? components = null,
+        bool isContainer = false, bool isEphemeral = false)
     {
         return new CommandResult
         {
             IsSuccess = true,
-            Data = new CommandResultData(components, isContainer)
+            Data = new CommandResultData(components, isContainer, isEphemeral)
         };
     }
 
-    public static CommandResult Failure(string? errorMessage = null)
+    public static CommandResult Failure(CommandFailureReason failureReason, string errorMessage)
     {
         return new CommandResult
         {
             IsSuccess = false,
-            ErrorMessage = errorMessage
+            ErrorMessage = errorMessage,
+            FailureReason = failureReason
         };
     }
 
@@ -41,11 +54,13 @@ public class CommandResult
     {
         public IEnumerable<ICommandResultComponent> Components { get; }
         public bool IsContainer { get; }
+        public bool IsEphemeral { get; }
 
-        public CommandResultData(IEnumerable<ICommandResultComponent>? components, bool isContainer)
+        public CommandResultData(IEnumerable<ICommandResultComponent>? components, bool isContainer, bool isEphemeral)
         {
             Components = components ?? [];
             IsContainer = isContainer;
+            IsEphemeral = isEphemeral;
         }
     }
 }

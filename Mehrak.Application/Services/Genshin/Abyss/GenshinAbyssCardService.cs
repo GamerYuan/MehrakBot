@@ -16,7 +16,9 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
+using System.Text.Json;
 
 #endregion
 
@@ -67,6 +69,9 @@ internal class GenshinAbyssCardService :
 
     public async Task<Stream> GetCardAsync(GenshinEndGameGenerationContext<GenshinAbyssInformation> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Abyss", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         List<IDisposable> disposableResources = [];
         var abyssData = context.Data;
         var floor = context.Floor;
@@ -314,12 +319,15 @@ internal class GenshinAbyssCardService :
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Abyss", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            m_Logger.LogError(ex, "Failed to get abyss card for {GameUid}", context.GameProfile.GameUid!);
-            throw new CommandException("An error occurred while generating abyss card", ex);
+            m_Logger.LogError(e, LogMessage.CardGenError, "Abyss", context.UserId, JsonSerializer.Serialize(context.Data));
+            throw new CommandException("Failed to generate Abyss card", e);
         }
         finally
         {

@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -112,10 +113,15 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         m_ProfessionImages = (await Task.WhenAll(professionTasks)).ToDictionary();
         m_RarityImages = (await Task.WhenAll(rarityTasks)).ToDictionary(CaseInsensitiveCharComparer.Instance);
         m_WeaponStarImages = (await Task.WhenAll(weaponStarTasks)).ToDictionary();
+
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzCharacterApplicationContext));
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzFullAvatarData> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         List<IDisposable> disposables = [];
 
         var characterInformation = context.Data;
@@ -363,13 +369,15 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, m_JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate character card for {GameUid}, Data:{Data}\n",
-                context.GameProfile.GameUid, JsonSerializer.Serialize(characterInformation));
-            throw new CommandException("An error occurred while generating character card", e);
+            m_Logger.LogError(e, LogMessage.CardGenError, "Character", context.UserId, JsonSerializer.Serialize(characterInformation));
+            throw new CommandException("Failed to generate Character card", e);
         }
         finally
         {

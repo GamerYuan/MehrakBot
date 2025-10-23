@@ -41,8 +41,8 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
@@ -51,38 +51,41 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
 
             if (!defenseResponse.IsSuccess)
             {
-                Logger.LogWarning("Failed to fetch Zzz Assault data for user {UserId}: {Error}",
-                    context.UserId, defenseResponse.ErrorMessage);
-                return CommandResult.Failure(defenseResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Defense", context.UserId, gameUid, defenseResponse.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Shiyu Defense data"));
             }
 
             var defenseData = defenseResponse.Data!;
 
             if (!defenseData.HasData)
             {
-                Logger.LogInformation("No Shiyu Defense clear records found for user {UserId}",
-                    context.UserId);
-                return CommandResult.Failure("No Shiyu Defense clear records found");
+                Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
+                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))], isEphemeral: true);
             }
 
             FloorDetail[] nonNull = [.. defenseData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })];
             if (nonNull.Length == 0)
             {
-                Logger.LogInformation("No Shiyu Defense clear records found for user {UserId}",
-                    context.UserId);
-                return CommandResult.Failure("No Shiyu Defense clear records found");
+                Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
+                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))], isEphemeral: true);
             }
 
-            IEnumerable<Task> updateImageTask = nonNull.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            IEnumerable<Task<bool>> updateImageTask = nonNull.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x!.Id)
                 .Select(avatar => m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
-            IEnumerable<Task> updateBuddyTask = nonNull.SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
+            IEnumerable<Task<bool>> updateBuddyTask = nonNull.SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
                 .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
                     new ImageProcessorBuilder().Resize(300, 0).Build()));
 
-            await Task.WhenAll(updateImageTask.Concat(updateBuddyTask));
+            var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask));
+
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "Shiyu Defense", context.UserId, gameUid);
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(
                 new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, context.Server, profile));
@@ -91,19 +94,18 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                 new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
                 new CommandText($"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
                 new CommandAttachment("shiyu_card.jpg", card),
-                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                    CommandText.TextType.Footer)],
+                new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
                 true);
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error fetching Zzz Defense data for user {UserId}", context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "Defense", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Shiyu Defense"));
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Logger.LogError(ex, "Unexpected error fetching Zzz Defense data for user {UserId}", context.UserId);
-            return CommandResult.Failure("An unknown error occurred while processing your request");
+            Logger.LogError(e, LogMessage.UnknownError, "Defense", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

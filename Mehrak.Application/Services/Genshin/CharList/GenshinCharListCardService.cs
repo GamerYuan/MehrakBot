@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -102,6 +103,9 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
         try
@@ -232,13 +236,15 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "CharList", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to get character list card for uid {UserId}\n{CharData}", context.GameProfile.GameUid,
-                JsonSerializer.Serialize(charData));
-            throw;
+            m_Logger.LogError(ex, LogMessage.CardGenError, "CharList", context.UserId, JsonSerializer.Serialize(context.Data));
+            throw new CommandException("Failed to generate CharList card", ex);
         }
         finally
         {

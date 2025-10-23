@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -71,10 +72,15 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
         m_BaseBuddyImage = await Image.LoadAsync(await
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base")), cancellationToken);
         m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg"), cancellationToken);
+
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzDefenseCardService));
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzDefenseData> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Defense", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var data = context.Data;
         List<IDisposable> disposables = [];
         try
@@ -317,13 +323,14 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Defense", context.UserId, stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error generating Zzz Defense card for UID {GameUid}, Data:\n{Data}",
-                context.GameProfile.GameUid, JsonSerializer.Serialize(data));
-            throw new CommandException("An error occurred while generating Shiyu Defense summary card", e);
+            m_Logger.LogError(e, LogMessage.CardGenError, "Defense", context.UserId, JsonSerializer.Serialize(data));
+            throw new CommandException("Failed to generate Defense card", e);
         }
         finally
         {

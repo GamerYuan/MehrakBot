@@ -1,6 +1,7 @@
 ﻿using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -9,6 +10,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Mehrak.Application.Services.Zzz.Character;
@@ -21,6 +23,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
     private readonly ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
+    private readonly IMetricsService m_MetricsService;
 
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
@@ -29,6 +32,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
         ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> characterApi,
         ICharacterCacheService characterCacheService,
         IApiService<JsonNode, WikiApiContext> wikiApi,
+        IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         ILogger<ZzzCharacterApplicationService> logger)
         : base(gameRoleApi, logger)
@@ -39,6 +43,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
         m_CharacterApi = characterApi;
         m_CharacterCacheService = characterCacheService;
         m_WikiApi = wikiApi;
+        m_MetricsService = metricsService;
     }
 
     public override async Task<CommandResult> ExecuteAsync(ZzzCharacterApplicationContext context)
@@ -53,8 +58,8 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             string gameUid = profile.GameUid;
@@ -63,9 +68,8 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             if (!charResponse.IsSuccess)
             {
-                Logger.LogInformation("No character data found for user {UserId} on {Region} server",
-                    context.UserId, region);
-                return CommandResult.Failure("Failed to fetch character list. Please try again later.");
+                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
             var characters = charResponse.Data;
@@ -83,9 +87,8 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                         characters.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) ==
                     null)
                 {
-                    Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
-                        characterName, context.UserId, region);
-                    return CommandResult.Failure($"Character {characterName} not found. Please try again");
+                    Logger.LogInformation(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
+                    return CommandResult.Success([new CommandText(string.Format(ResponseMessage.CharacterNotFound, characterName))], isEphemeral: true);
                 }
             }
 
@@ -94,15 +97,14 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             if (!response.IsSuccess)
             {
-                Logger.LogInformation("Failed to fetch character detail for gameUid: {GameUid}, characterId: {CharacterId}, error: {Error}",
-                    profile.GameUid, character.Id, response.ErrorMessage);
-                return CommandResult.Failure("Failed to retrieve character detail. Please try again later");
+                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, response.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
             ZzzFullAvatarData characterData = response.Data;
             ZzzAvatarData charInfo = characterData.AvatarList[0];
 
-            List<Task> tasks = [];
+            List<Task<bool>> tasks = [];
 
             if (!await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Zzz.FileName, charInfo.Id)))
             {
@@ -111,8 +113,8 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
                 if (!wikiResponse.IsSuccess)
                 {
-                    Logger.LogInformation("Failed to fetch wiki information for character {Character}", charInfo.Name);
-                    return CommandResult.Failure("Unable to retrieve character image");
+                    Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse.ErrorMessage);
+                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character Image"));
                 }
 
                 var url = JsonNode.Parse(wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray().FirstOrDefault(x => x?["name"]?
@@ -121,8 +123,9 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
                 if (string.IsNullOrEmpty(url))
                 {
-                    Logger.LogInformation("Failed to fetch wiki information for character {Character}", charInfo.Name);
-                    return CommandResult.Failure("Unable to retrieve character image");
+                    Logger.LogError("Character wiki image URL is empty for characterId: {CharacterId}, Data:\n{Data}",
+                        charInfo.Id, wikiResponse.Data.ToJsonString());
+                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character Image"));
                 }
 
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(string.Format(FileNameFormat.Zzz.FileName, charInfo.Id),
@@ -138,25 +141,30 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             tasks.AddRange(charInfo.Equip.DistinctBy(x => x.EquipSuit)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(140, 0).Build())));
 
-            await Task.WhenAll(tasks);
+            var completed = await Task.WhenAll(tasks);
+
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId, JsonSerializer.Serialize(charInfo));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(
                 new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, context.Server, profile));
+
+            m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
 
             return CommandResult.Success([new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)]);
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error sending character card response with character {CharacterName} for user {UserId}",
-                characterName, context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Character"));
         }
         catch (Exception e)
         {
-            Logger.LogError(e,
-                "Error sending character card response with character {CharacterName} for user {UserId}",
-                characterName, context.UserId);
-            return CommandResult.Failure("An error occurred while processing your request");
+            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

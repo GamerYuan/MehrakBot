@@ -15,7 +15,9 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
+using System.Text.Json;
 
 #endregion
 
@@ -77,7 +79,6 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             try
             {
                 string path = string.Format(StatsPath, x);
-                m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
                 Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
                 image.Mutate(ctx => ctx.Resize(new Size(48, 0), KnownResamplers.Bicubic, true));
                 return new KeyValuePair<int, Image>(x, image);
@@ -85,7 +86,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             catch (Exception ex)
             {
                 m_Logger.LogError(ex, "Failed to load stat icon {StatId}", x);
-                throw;
+                return new KeyValuePair<int, Image>(x, new Image<Rgba32>(48, 48));
             }
         }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value, cancellationToken: cancellationToken);
 
@@ -93,14 +94,15 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             "Resources initialized successfully with {Count} icons.",
             m_StatImages.Count);
 
-        m_Logger.LogInformation("GenshinCharacterCardService initialized");
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(GenshinCharacterCardService));
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinCharacterInformation> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var charInfo = context.Data;
-        m_Logger.LogInformation("Generating character card for {CharacterName} (ID: {CharacterId})",
-            charInfo.Base.Name, charInfo.Base.Id);
 
         List<IDisposable> disposableResources = [];
 
@@ -220,8 +222,6 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 stats = [.. charInfo.BaseProperties.Take(4)
                     .Concat(charInfo.SelectedProperties.OrderBy(x => x.PropertyType))
                     .Take(7)];
-
-            m_Logger.LogTrace("Compositing character card image");
 
             background.Mutate(ctx =>
             {
@@ -397,19 +397,18 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 }
             });
 
-            m_Logger.LogDebug("Saving character card to stream");
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, m_JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation("Successfully generated character card for {CharacterName}", charInfo.Base.Name);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to generate character card for Character {CharacterInfo}",
-                charInfo.ToString());
-            throw new CommandException("An error occurred while generating the character card", ex);
+            m_Logger.LogError(ex, LogMessage.CardGenError, "Character", context.UserId, JsonSerializer.Serialize(context.Data));
+            throw new CommandException("Failed to generate Character card", ex);
         }
         finally
         {
@@ -419,103 +418,83 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 
     private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic)
     {
-        m_Logger.LogTrace("Creating relic slot image for {RelicId}", relic.Id);
-        try
+        string path = string.Format(BasePath, relic.Id);
+
+        Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
+            await m_ImageRepository.DownloadFileToStreamAsync(path));
+
+        Image<Rgba32> template = CreateRelicSlot();
+        template.Mutate(ctx =>
         {
-            string path = string.Format(BasePath, relic.Id);
-            m_Logger.LogTrace("Loading relic image from {Path}", path);
-
-            Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
-                await m_ImageRepository.DownloadFileToStreamAsync(path));
-
-            Image<Rgba32> template = CreateRelicSlot();
-            template.Mutate(ctx =>
+            ctx.DrawImage(relicImage, new Point(-40, -40), 1f);
+            ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(280, 20), 1f);
+            ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
-                ctx.DrawImage(relicImage, new Point(-40, -40), 1f);
-                ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(280, 20), 1f);
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    TextAlignment = TextAlignment.End,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Origin = new Vector2(320, 70)
-                }, relic.MainProperty.Value, Color.White);
-                ctx.DrawText(new RichTextOptions(m_SmallFont)
-                {
-                    TextAlignment = TextAlignment.End,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Origin = new Vector2(320, 130)
-                }, $"+{relic.Level!.Value}", Color.White);
-                Image<Rgba32> stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
-                stars.Mutate(x => x.Resize(0, 25));
-                ctx.DrawImage(stars, new Point(120, 130), 1f);
+                TextAlignment = TextAlignment.End,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Origin = new Vector2(320, 70)
+            }, relic.MainProperty.Value, Color.White);
+            ctx.DrawText(new RichTextOptions(m_SmallFont)
+            {
+                TextAlignment = TextAlignment.End,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Origin = new Vector2(320, 130)
+            }, $"+{relic.Level!.Value}", Color.White);
+            Image<Rgba32> stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
+            stars.Mutate(x => x.Resize(0, 25));
+            ctx.DrawImage(stars, new Point(120, 130), 1f);
 
-                for (int i = 0; i < relic.SubPropertyList.Count; i++)
+            for (int i = 0; i < relic.SubPropertyList.Count; i++)
+            {
+                RelicStatProperty subStat = relic.SubPropertyList[i];
+                Image subStatImage = m_StatImages[subStat.PropertyType!.Value];
+                int xOffset = i % 2 * 290;
+                int yOffset = i / 2 * 80;
+                Color color = Color.White;
+                if (subStat.PropertyType is 2 or 5 or 8)
                 {
-                    RelicStatProperty subStat = relic.SubPropertyList[i];
-                    Image subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                    int xOffset = i % 2 * 290;
-                    int yOffset = i / 2 * 80;
-                    Color color = Color.White;
-                    if (subStat.PropertyType is 2 or 5 or 8)
-                    {
-                        Image<Rgba32> dim = subStatImage.CloneAs<Rgba32>();
-                        dim.Mutate(x => x.Brightness(0.5f));
-                        ctx.DrawImage(dim, new Point(375 + xOffset, 26 + yOffset), 1f);
-                        color = Color.FromRgb(128, 128, 128);
-                    }
-                    else
-                    {
-                        ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
-                    }
-
-                    ctx.DrawText(subStat.Value, m_NormalFont, color, new PointF(439 + xOffset, 30 + yOffset));
-
-                    string rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
-                    ctx.DrawText(rolls, m_NormalFont, color, new PointF(575 + xOffset, 15 + yOffset));
+                    Image<Rgba32> dim = subStatImage.CloneAs<Rgba32>();
+                    dim.Mutate(x => x.Brightness(0.5f));
+                    ctx.DrawImage(dim, new Point(375 + xOffset, 26 + yOffset), 1f);
+                    color = Color.FromRgb(128, 128, 128);
+                }
+                else
+                {
+                    ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
                 }
 
-                relicImage.Dispose();
-            });
+                ctx.DrawText(subStat.Value, m_NormalFont, color, new PointF(439 + xOffset, 30 + yOffset));
 
-            return template;
-        }
-        catch (Exception ex)
-        {
-            m_Logger.LogError(ex, "Failed to create relic slot image for {RelicId}", relic.Id);
-            throw;
-        }
+                string rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
+                ctx.DrawText(rolls, m_NormalFont, color, new PointF(575 + xOffset, 15 + yOffset));
+            }
+
+            relicImage.Dispose();
+        });
+
+        return template;
     }
 
     private async Task<Image<Rgba32>> CreateTemplateRelicSlotImageAsync(int position)
     {
-        m_Logger.LogTrace("Creating template relic slot image for position {Position}", position);
-        try
-        {
-            string path = $"genshin_relic_template_{position}";
-            m_Logger.LogDebug("Loading template relic image from {Path}", path);
+        string path = $"genshin_relic_template_{position}";
 
-            Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
-                await m_ImageRepository.DownloadFileToStreamAsync(path));
-            relicImage.Mutate(x => x.Resize(new Size(0, 150), KnownResamplers.Bicubic, true));
-            Image<Rgba32> template = CreateRelicSlot();
-            template.Mutate(ctx =>
+        Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
+            await m_ImageRepository.DownloadFileToStreamAsync(path));
+        relicImage.Mutate(x => x.Resize(new Size(0, 150), KnownResamplers.Bicubic, true));
+        Image<Rgba32> template = CreateRelicSlot();
+        template.Mutate(ctx =>
+        {
+            ctx.DrawImage(relicImage, new Point(25, 5), 1f);
+            ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
-                ctx.DrawImage(relicImage, new Point(25, 5), 1f);
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(525, 95),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                }, "No Artifact", Color.White);
-            });
+                Origin = new Vector2(525, 95),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            }, "No Artifact", Color.White);
+        });
 
-            return template;
-        }
-        catch (Exception ex)
-        {
-            m_Logger.LogError(ex, "Failed to create template relic slot image for position {Position}", position);
-            throw;
-        }
+        return template;
     }
 
     private Image<Rgba32> CreateRelicSlot()

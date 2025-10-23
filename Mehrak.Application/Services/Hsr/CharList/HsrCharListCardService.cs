@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -93,6 +94,9 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<HsrCharacterInformation>> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
         try
@@ -222,13 +226,15 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "CharList", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate character list card for user {UserId}, Data:\n{CharData}", context.GameProfile.GameUid,
-                JsonSerializer.Serialize(charData));
-            throw new CommandException("An error occurred while generating character list card", e);
+            m_Logger.LogError(e, LogMessage.CardGenError, "CharList", context.UserId, JsonSerializer.Serialize(context.Data));
+            throw new CommandException("Failed to generate CharList card", e);
         }
         finally
         {

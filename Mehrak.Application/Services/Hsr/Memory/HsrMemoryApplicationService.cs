@@ -9,6 +9,7 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Mehrak.Application.Services.Hsr.Memory;
 
@@ -42,34 +43,37 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
             var memoryResult = await m_ApiService.GetAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
             if (!memoryResult.IsSuccess)
             {
-                Logger.LogWarning(
-                    "Failed to fetch Memory of Chaos information for gameUid: {GameUid}, region: {Region}, error: {Error}",
-                    gameUid, region, memoryResult.ErrorMessage);
-                return CommandResult.Failure(memoryResult.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Memory of Chaos", context.UserId, gameUid, memoryResult.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Memory of Chaos data"));
             }
 
             var memoryData = memoryResult.Data;
 
             if (!memoryData.HasData || memoryData.BattleNum == 0)
             {
-                Logger.LogInformation(
-                    "No Memory of Chaos data found for user {UserId} in region {Region}", context.UserId, region);
-                return CommandResult.Failure("No Memory of Chaos clear record found");
+                Logger.LogInformation(LogMessage.NoClearRecords, "Memory of Chaos", context.UserId, gameUid);
+                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, "Memory of Chaos"))], isEphemeral: true);
             }
 
             var tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            await Task.WhenAll(tasks);
+            var completed = await Task.WhenAll(tasks);
+
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "Memory of Chaos", context.UserId, JsonSerializer.Serialize(memoryData));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(
                 new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, context.Server, profile));
@@ -84,21 +88,18 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 [new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
                 new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
                 new CommandAttachment("moc_card.jpg", card),
-                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                    CommandText.TextType.Footer)],
+                new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
                 true);
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error processing Memory card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "Memory of Chaos", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Memory of Chaos"));
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error processing Memory card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure("An error occurred while generating Memory of Chaos card");
+            Logger.LogError(e, LogMessage.UnknownError, "Memory of Chaos", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

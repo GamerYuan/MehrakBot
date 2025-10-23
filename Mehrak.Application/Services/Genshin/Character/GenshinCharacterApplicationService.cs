@@ -5,12 +5,14 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Mehrak.Application.Services.Genshin.Character;
@@ -21,14 +23,18 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> m_CharacterApi;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
+    private readonly IImageRepository m_ImageRepository;
     private readonly IImageUpdaterService m_ImageUpdaterService;
+    private readonly IMetricsService m_MetricsService;
 
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
         ICharacterCacheService characterCacheService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
         IApiService<JsonNode, WikiApiContext> wikiApi,
+        IImageRepository imageRepository,
         IImageUpdaterService imageUpdaterService,
+        IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, logger)
@@ -37,15 +43,15 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
         m_CharacterCacheService = characterCacheService;
         m_CharacterApi = characterApi;
         m_WikiApi = wikiApi;
+        m_ImageRepository = imageRepository;
         m_ImageUpdaterService = imageUpdaterService;
+        m_MetricsService = metricsService;
     }
 
     public override async Task<CommandResult> ExecuteAsync(GenshinCharacterApplicationContext context)
     {
         try
         {
-            Logger.LogInformation("Executing character service for user {UserId}", context.UserId);
-
             var region = context.Server.ToRegion();
             var characterName = context.GetParameter<string>("character")!;
 
@@ -53,8 +59,8 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
@@ -63,10 +69,8 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 m_CharacterApi.GetAllCharactersAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
             if (!charListResponse.IsSuccess)
             {
-                Logger.LogWarning(
-                    "Failed to fetch character list for gameUid: {GameUid}, region: {Region}, error: {Error}",
-                    profile.GameUid, context.Server, charListResponse.ErrorMessage);
-                return CommandResult.Failure("Failed to fetch character list. Please try again later.");
+                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid, charListResponse.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
             var characters = charListResponse.Data;
@@ -82,9 +86,8 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                         characters.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) ==
                     null)
                 {
-                    Logger.LogWarning("Character {CharacterName} not found for user {UserId}", characterName,
-                        context.UserId);
-                    return CommandResult.Failure($"Character {characterName} not found. Please try again");
+                    Logger.LogInformation(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
+                    return CommandResult.Success([new CommandText(string.Format(ResponseMessage.CharacterNotFound, characterName))], isEphemeral: true);
                 }
             }
 
@@ -93,62 +96,74 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
 
             if (!characterInfo.IsSuccess)
             {
-                Logger.LogInformation("Failed to fetch character detail for gameUid: {GameUid}, characterId: {CharacterId}, error: {Error}",
-                    profile.GameUid, character.Id, characterInfo.ErrorMessage);
-                return CommandResult.Failure("Failed to retrieve character detail. Please try again later");
+                Logger.LogError(LogMessage.ApiError, "Character Detail", context.UserId, profile.GameUid, characterInfo.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
             var charData = characterInfo.Data.List[0];
             var wikiEntry = characterInfo.Data.AvatarWiki[charData.Base.Id.ToString()].Split('/')[^1];
 
-            var charWiki = await m_WikiApi.GetAsync(new(context.UserId, Game.Genshin, wikiEntry));
+            List<Task<bool>> tasks = [];
 
-            if (!charWiki.IsSuccess)
+            if (!await m_ImageRepository.FileExistsAsync(
+                    string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id)))
             {
-                Logger.LogInformation("Failed to fetch character wiki for characterId: {CharacterId}, error: {Error}",
-                    charData.Base.Id, charWiki.ErrorMessage);
-                return CommandResult.Failure("Failed to retrieve character wiki. Please try again later");
-            }
+                var charWiki = await m_WikiApi.GetAsync(new(context.UserId, Game.Genshin, wikiEntry));
 
-            var url = charWiki.Data["data"]?["page"]?["header_img_url"]?.ToString();
+                if (!charWiki.IsSuccess)
+                {
+                    Logger.LogError(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki.ErrorMessage);
+                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character Image"));
+                }
 
-            if (string.IsNullOrEmpty(url))
-            {
-                Logger.LogInformation("Character wiki image URL is empty for characterId: {CharacterId}",
-                    charData.Base.Id);
-                return CommandResult.Failure("Failed to retrieve character image url. Please try again later");
-            }
+                var url = charWiki.Data["data"]?["page"]?["header_img_url"]?.ToString();
 
-            var charTask = m_ImageUpdaterService.UpdateImageAsync(new ImageData(
+                if (string.IsNullOrEmpty(url))
+                {
+                    Logger.LogError("Character wiki image URL is empty for characterId: {CharacterId}, Data:\n{Data}",
+                        charData.Base.Id, charWiki.Data.ToJsonString());
+                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character Image"));
+                }
+
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(
                     string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id), url),
-                new ImageProcessorBuilder().AddOperation(GetCharacterImageProcessor()).Build());
-            var weapTask = m_ImageUpdaterService.UpdateImageAsync(charData.Weapon.ToImageData(),
-                new ImageProcessorBuilder().Resize(200, 0).Build());
-            var constTask = charData.Constellations.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(90, 0).Build()));
-            var skillTask = charData.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(charData.Base.Id),
-                new ImageProcessorBuilder().Resize(100, 0).Build()));
-            var relicTask = charData.Relics.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(300, 0).AddOperation(ctx => ctx.Pad(300, 300))
-                    .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build()));
+                    new ImageProcessorBuilder().AddOperation(GetCharacterImageProcessor()).Build()));
+            }
 
-            await Task.WhenAll(charTask, weapTask);
-            await Task.WhenAll(constTask.Concat(skillTask).Concat(relicTask));
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charData.Weapon.ToImageData(),
+                new ImageProcessorBuilder().Resize(200, 0).Build()));
+            tasks.AddRange(charData.Constellations.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(90, 0).Build())));
+            tasks.AddRange(charData.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(charData.Base.Id),
+                new ImageProcessorBuilder().Resize(100, 0).Build())));
+            tasks.AddRange(charData.Relics.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(300, 0).AddOperation(ctx => ctx.Pad(300, 300))
+                    .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build())));
+
+            await Task.WhenAll(tasks);
+
+            if (tasks.Any(x => !x.Result))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId, JsonSerializer.Serialize(charData));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<GenshinCharacterInformation>(context.UserId,
                 characterInfo.Data.List[0], context.Server, profile));
+
+            m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), character.Name.ToLowerInvariant());
 
             return CommandResult.Success([new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)]);
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Failed to get Character card for user {UserId}", context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Character"));
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to get Character card for user {UserId}", context.UserId);
-            return CommandResult.Failure("An unknown error occurred while generating character card");
+            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 

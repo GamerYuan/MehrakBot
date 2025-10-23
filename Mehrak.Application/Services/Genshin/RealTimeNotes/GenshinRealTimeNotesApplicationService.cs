@@ -1,5 +1,5 @@
 ﻿using Mehrak.Application.Services.Common;
-using Mehrak.Domain.Common;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
@@ -37,8 +37,8 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
@@ -48,31 +48,16 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
 
             if (!notesResult.IsSuccess)
             {
-                Logger.LogWarning("Failed to fetch Real Time Notes information for gameUid: {GameUid}, region: {Server}, error: {Error}",
-                    profile.GameUid, context.Server, notesResult.ErrorMessage);
-                return CommandResult.Failure(notesResult.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
             }
 
-            GenshinRealTimeNotesData notesData = notesResult.Data;
-            if (notesData == null)
-            {
-                Logger.LogWarning("No data found in real-time notes response");
-                return CommandResult.Failure("No data found in real-time notes response");
-            }
-
-            return await BuildRealTimeNotes(notesData, context.Server, gameUid);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, "Error fetching real-time notes for user {UserId} in region {Region}",
-                context.UserId, context.Server);
-            return CommandResult.Failure(e.Message);
+            return await BuildRealTimeNotes(notesResult.Data, context.Server, gameUid);
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error fetching real-time notes for user {UserId} in region {Region}",
-                context.UserId, context.Server);
-            return CommandResult.Failure("An error occurred while retrieving Real Time Notes data");
+            Logger.LogError(e, LogMessage.UnknownError, "Notes", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 
@@ -142,6 +127,6 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                 ));
         }
 
-        return CommandResult.Success(components, true);
+        return CommandResult.Success(components, true, true);
     }
 }

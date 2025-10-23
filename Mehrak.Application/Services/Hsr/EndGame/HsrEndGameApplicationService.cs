@@ -10,6 +10,7 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Mehrak.Application.Services.Hsr.EndGame;
 
@@ -41,33 +42,31 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var challengeResponse = await m_ApiService.GetAsync(
                 new(context.UserId, context.LtUid, context.LToken, profile.GameUid, region, context.Mode));
             if (!challengeResponse.IsSuccess)
             {
-                Logger.LogError("Failed to fetch {GameMode} data for user {UserId}: {ErrorMessage}",
-                    context.Mode.GetString(), context.UserId, challengeResponse.ErrorMessage);
-                return CommandResult.Failure(challengeResponse.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, context.Mode.GetString(), context.UserId, profile.GameUid, challengeResponse.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, $"{context.Mode.GetString()} data"));
             }
 
             var challengeData = challengeResponse.Data;
             if (!challengeData.HasData)
             {
-                Logger.LogInformation("No {GameMode} clear records found for user {UserId}",
-                    context.Mode.GetString(), context.UserId);
-                return CommandResult.Failure($"No {context.Mode.GetString()} clear records found!");
+                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId, profile.GameUid);
+                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))], isEphemeral: true);
             }
 
             var nonNull = challengeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null }).ToList();
             if (nonNull.Count == 0)
             {
-                Logger.LogInformation("No Apocalyptic Shadow clear records found for user {UserId}",
-                    context.UserId);
-                return CommandResult.Failure($"No {context.Mode.GetString()} clear records found!");
+                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId, profile.GameUid);
+                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))], isEphemeral: true);
             }
 
             var tasks = nonNull
@@ -79,7 +78,13 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 .DistinctBy(x => x.Id)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
 
-            await Task.WhenAll(tasks.Concat(buffTasks));
+            var completed = await Task.WhenAll(tasks.Concat(buffTasks));
+
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, context.Mode.GetString(), context.UserId, JsonSerializer.Serialize(challengeData));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(new(context.UserId, challengeData, context.Server, profile, context.Mode));
 
@@ -94,22 +99,19 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary", CommandText.TextType.Header3),
                 new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
                 new CommandAttachment($"{context.Mode.GetString().ToLowerInvariant().Replace(' ', '_')}_card.jpg", card),
-                new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                    CommandText.TextType.Footer)],
+                new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
                 true
             );
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error processing Apocalyptic Shadow card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, context.Mode.GetString(), context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, context.Mode.GetString()));
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error processing Apocalyptic Shadow card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure("An error occurred while generating Apocalyptic Shadow card");
+            Logger.LogError(e, LogMessage.UnknownError, context.Mode.GetString(), context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

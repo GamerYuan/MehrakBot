@@ -16,6 +16,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -60,11 +61,17 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
             await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}")))
             .ToArrayAsync(cancellationToken: cancellationToken);
         m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg"), cancellationToken);
+
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(GenshinStygianCardService));
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<StygianData> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Stygian", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var stygianInfo = context.Data;
+
         List<IDisposable> disposableResources = [];
         try
         {
@@ -179,13 +186,16 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Stygian", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to generate Stygian card image for uid {UserId}\n{Data}", context.GameProfile.GameUid,
+            m_Logger.LogError(ex, LogMessage.CardGenError, "Stygian", context.UserId,
                 JsonSerializer.Serialize(stygianInfo));
-            throw new CommandException("An error occurred while generating Stygian Onslaught card", ex);
+            throw new CommandException("Failed to generate Stygian card", ex);
         }
         finally
         {

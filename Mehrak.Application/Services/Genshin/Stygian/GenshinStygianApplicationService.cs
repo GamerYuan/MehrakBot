@@ -9,6 +9,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Mehrak.Application.Services.Genshin.Stygian;
 
@@ -41,8 +42,8 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
@@ -50,22 +51,20 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
             var stygianInfo = await m_ApiService.GetAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
             if (!stygianInfo.IsSuccess)
             {
-                Logger.LogWarning("Failed to fetch Stygian information for gameUid: {GameUid}, region: {Server}, error: {Error}",
-                    profile.GameUid, context.Server, stygianInfo.ErrorMessage);
-                return CommandResult.Failure(stygianInfo.ErrorMessage);
+                Logger.LogError(LogMessage.ApiError, "Stygian", context.UserId, gameUid, stygianInfo.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Stygian Onslaught data"));
             }
 
             if (!stygianInfo.Data.IsUnlock)
             {
-                Logger.LogWarning("Stygian Onslaught is not unlocked for user {UserId}", context.UserId);
-                return CommandResult.Failure("Stygian Onslaught is not unlocked");
+                Logger.LogInformation("Stygian Onslaught is not unlocked for User {UserId} UID {GameUid}", context.UserId, gameUid);
+                return CommandResult.Success([new CommandText("Stygian Onslaught is not unlocked")], isEphemeral: true);
             }
 
             if (!stygianInfo.Data.Data![0].Single.HasData)
             {
-                Logger.LogWarning("No Stygian Onslaught data found for this cycle for user {UserId}",
-                    context.UserId);
-                return CommandResult.Failure("No Stygian Onslaught data found for this cycle");
+                Logger.LogInformation(LogMessage.NoClearRecords, "Stygian", context.UserId, gameUid);
+                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, "Stygian Onslaught"))], isEphemeral: true);
             }
 
             var stygianData = stygianInfo.Data.Data[0].Single;
@@ -78,7 +77,14 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
             var monsterImageTask = stygianData.Challenge!.Select(x => x.Monster)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
 
-            await Task.WhenAll(avatarTasks.Concat(sideAvatarTasks).Concat(monsterImageTask));
+            var completed = await Task.WhenAll(avatarTasks.Concat(sideAvatarTasks).Concat(monsterImageTask));
+
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "Stygian", context.UserId,
+                    JsonSerializer.Serialize(stygianData));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<StygianData>(context.UserId,
                 stygianInfo.Data.Data[0], context.Server, profile));
@@ -87,22 +93,19 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                  new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),
                  new CommandText($"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\n" +
                     $"Cycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>"),
-                 new CommandAttachment("abyss_card.jpg", card),
-                 new CommandText($"Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.",
-                    CommandText.TextType.Footer)],
+                 new CommandAttachment("stygian_card.jpg", card),
+                 new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
                  true);
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Failed to get Stygian Onslaught card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "Stygian", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Stygian Onslaught"));
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to get Stygian Onslaught card for user {UserId}",
-                context.UserId);
-            return CommandResult.Failure("An error occurred while generating Stygian Onslaught card");
+            Logger.LogError(e, LogMessage.UnknownError, "Stygian", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }

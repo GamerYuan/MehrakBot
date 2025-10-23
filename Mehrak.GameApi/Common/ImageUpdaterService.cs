@@ -23,19 +23,24 @@ public class ImageUpdaterService : IImageUpdaterService
         m_Logger = logger;
     }
 
-    public async Task UpdateImageAsync(IImageData data, IImageProcessor processor)
+    public async Task<bool> UpdateImageAsync(IImageData data, IImageProcessor processor)
     {
         if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
             m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
-            return;
+            return true;
         }
 
         var client = m_HttpClientFactory.CreateClient();
 
         m_Logger.LogInformation("Downloading {Name} from {Url}", data.Name, data.Url);
         var response = await client.GetAsync(data.Url);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            m_Logger.LogError("Failed to download {Name} from {Url}: {StatusCode}", data.Name, data.Url, response.StatusCode);
+            return false;
+        }
 
         await using var stream = await response.Content.ReadAsStreamAsync();
 
@@ -51,22 +56,34 @@ public class ImageUpdaterService : IImageUpdaterService
             stream.Position = 0;
             await m_ImageRepository.UploadFileAsync(data.Name, stream);
         }
+
+        return true;
     }
 
-    public async Task UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor)
+    public async Task<bool> UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor)
     {
         if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
             m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
-            return;
+            return true;
         }
 
         var client = m_HttpClientFactory.CreateClient();
 
         m_Logger.LogInformation("Downloading {Name} from supplied Urls: {Url}", data.Name, string.Join(", ", data.Url, data.AdditionalUrls));
 
-        var streams = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToAsyncEnumerable()
-            .SelectAwait(async x => await (await client.GetAsync(x)).Content.ReadAsStreamAsync()).ToEnumerable();
+        var images = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToAsyncEnumerable()
+            .SelectAwait(async x => await client.GetAsync(x));
+
+        if (await images.AnyAsync(x => !x.IsSuccessStatusCode))
+        {
+            var failed = images.Where(x => !x.IsSuccessStatusCode);
+            m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
+                failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
+            return false;
+        }
+
+        var streams = images.SelectAwait(async x => await x.Content.ReadAsStreamAsync()).ToEnumerable();
 
         using var processedStream = processor.ProcessImage(streams);
         processedStream.Position = 0;
@@ -76,5 +93,7 @@ public class ImageUpdaterService : IImageUpdaterService
         {
             await item.DisposeAsync();
         }
+
+        return true;
     }
 }

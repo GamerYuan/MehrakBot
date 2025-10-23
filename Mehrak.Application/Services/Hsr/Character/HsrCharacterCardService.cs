@@ -16,7 +16,9 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
+using System.Text.Json;
 
 #endregion
 
@@ -81,20 +83,21 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
         m_StatImages = await statIds.ToAsyncEnumerable().Where(x => x != 8).SelectAwait(async x =>
         {
             string path = string.Format(StatsPath, x);
-            m_Logger.LogTrace("Downloading stat icon {StatId}: {Path}", x, path);
             Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
             return new KeyValuePair<int, Image>(x, image);
         }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
 
         m_Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);
 
-        m_Logger.LogInformation("HsrCharacterCardService initialized");
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(HsrCharacterCardService));
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrCharacterInformation> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         HsrCharacterInformation characterInformation = context.Data;
-        m_Logger.LogInformation("Generating character card for {CharacterName}", characterInformation.Name);
 
         List<IDisposable> disposableResources = [];
 
@@ -125,7 +128,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
                 return (Data: x, Image: image);
             }).ToArray();
-            Task<(Skill Data, Image Image)[]>[] skillTasks = skillChains.Select(async chain =>
+            Task<(Skill Data, Image Image)[]>[] skillTasks = [.. skillChains.Select(async chain =>
             {
                 (Skill Data, Image Image)[] chainImages = await Task.WhenAll(chain.Select(async x =>
                 {
@@ -137,9 +140,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     return (Data: x, Image: image);
                 }));
                 return chainImages;
-            }).ToArray();
+            })];
 
-            Task<Image>[] relicImageTasks = Enumerable.Range(0, 4).Select(async i =>
+            Task<Image>[] relicImageTasks = [.. Enumerable.Range(0, 4).Select(async i =>
             {
                 Relic? relic = characterInformation.Relics!.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic != null)
@@ -152,8 +155,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     Image templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
                     return templateRelicImage;
                 }
-            }).ToArray();
-            Task<Image>[] ornamentImageTasks = Enumerable.Range(0, 2).Select(async i =>
+            })];
+
+            Task<Image>[] ornamentImageTasks = [.. Enumerable.Range(0, 2).Select(async i =>
             {
                 Relic? ornament = characterInformation.Ornaments!.FirstOrDefault(x => x.Pos == i + 5);
                 if (ornament != null)
@@ -166,7 +170,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     Image templateOrnamentImage = await CreateTemplateRelicSlotImageAsync(i + 5);
                     return templateOrnamentImage;
                 }
-            }).ToArray();
+            })];
 
             Dictionary<string, int> activeRelicSet = [];
             foreach (int setId in characterInformation.Relics!.Select(x => x.GetSetId()))
@@ -192,12 +196,12 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 .Where(x => x.Value >= 2)
                 .ToDictionary(x => x.Key, x => x.Value);
 
-            Task<(Skill Data, Image Image)>[] servantTask = characterInformation.ServantDetail!.ServantSkills!.Select(async x =>
+            Task<(Skill Data, Image Image)>[] servantTask = [.. characterInformation.ServantDetail!.ServantSkills!.Select(async x =>
             {
                 Image image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
                 return (Data: x, Image: image);
-            }).ToArray();
+            })];
 
             Color accentColor = GetAccentColor(characterInformation.Element!);
 
@@ -463,15 +467,14 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             MemoryStream memoryStream = new();
             await backgroundImage.SaveAsJpegAsync(memoryStream, m_JpegEncoder);
             memoryStream.Position = 0;
-            m_Logger.LogInformation("Character card generated successfully for {CharacterName}",
-                characterInformation.Name);
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId, stopwatch.ElapsedMilliseconds);
             return memoryStream;
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to generate character card for Character {CharacterInfo}",
-                characterInformation.ToString());
-            throw new CommandException("An error occurred while generating the character card", ex);
+            m_Logger.LogError(ex, LogMessage.CardGenError, "Character", context.UserId, JsonSerializer.Serialize(context.Data));
+            throw new CommandException("Failed to generate Character card", ex);
         }
         finally
         {
@@ -556,11 +559,10 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
         HashSet<string> processed = [];
 
         // Find all skills that have point_type == 3 and can be roots
-        List<Skill> type3Skills = skills.Where(s => s.PointType == 3).ToList();
-        List<Skill> potentialRoots = type3Skills.Where(skill =>
+        List<Skill> type3Skills = [.. skills.Where(s => s.PointType == 3)];
+        List<Skill> potentialRoots = [.. type3Skills.Where(skill =>
                 string.IsNullOrEmpty(skill.PrePoint) || skill.PrePoint == "0" ||
-                !skillLookup.ContainsKey(skill.PrePoint))
-            .ToList();
+                !skillLookup.ContainsKey(skill.PrePoint))];
 
         // Check which type 3 skills can actually be roots (their pre_point
         // either doesn't exist in our filtered list or is "0")
@@ -576,10 +578,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
         }
 
         // Collect any remaining unprocessed skills
-        List<Skill> unprocessedSkills = skills
+        List<Skill> unprocessedSkills = [.. skills
             .Where(skill => !processed.Contains(skill.PointId!))
-            .OrderBy(skill => skill.Anchor) // Sort by anchor as required
-            .ToList();
+            .OrderBy(skill => skill.Anchor)];
 
         // If there are unprocessed skills, add them as the first chain
         if (unprocessedSkills.Count > 0) result.Insert(0, unprocessedSkills);
@@ -604,9 +605,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             processed.Add(current.PointId!);
 
             // Find all skills that have this skill as their pre_point
-            List<Skill> childSkills = allSkills
-                .Where(s => s.PrePoint == current.PointId && !processed.Contains(s.PointId!))
-                .ToList();
+            List<Skill> childSkills = [.. allSkills.Where(s => s.PrePoint == current.PointId && !processed.Contains(s.PointId!))];
 
             foreach (Skill? childSkill in childSkills) queue.Enqueue(childSkill);
         }

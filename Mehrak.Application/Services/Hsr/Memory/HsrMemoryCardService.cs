@@ -15,6 +15,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -77,6 +78,9 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrMemoryInformation> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Memory of Chaos", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var memoryData = context.Data;
         List<IDisposable> disposableResources = [];
         try
@@ -238,13 +242,15 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Memory of Chaos", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate memory card image for uid {UserId}\n{JsonString}",
-                context.UserId, JsonSerializer.Serialize(memoryData));
-            throw new CommandException("An error occurred while generating Memory of Chaos card image", e);
+            m_Logger.LogError(e, LogMessage.CardGenError, "Memory of Chaos", context.UserId, JsonSerializer.Serialize(memoryData));
+            throw new CommandException("Failed to generate Memory of Chaos card", e);
         }
         finally
         {

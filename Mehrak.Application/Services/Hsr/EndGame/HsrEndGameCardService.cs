@@ -16,6 +16,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -74,10 +75,15 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
         m_CycleIcon = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass"), cancellationToken);
 
         m_BossCheckmark = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_boss_check"), cancellationToken);
+
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(HsrEndGameCardService));
     }
 
     public async Task<Stream> GetCardAsync(HsrEndGameGenerationContext context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, context.GameMode.GetString(), context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var gameModeData = context.Data;
         List<IDisposable> disposables = [];
         try
@@ -339,13 +345,15 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, context.GameMode.GetString(),
+                context.UserId, stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate {GameMode} card image for uid {UserId}\n{JsonString}",
-                context.GameMode.GetString(), context.GameProfile, JsonSerializer.Serialize(gameModeData));
-            throw new CommandException($"An error occurred while generating {context.GameMode.GetString()} card image", e);
+            m_Logger.LogError(e, LogMessage.CardGenError, context.GameMode.GetString(), context.UserId, JsonSerializer.Serialize(context.Data));
+            throw new CommandException($"Failed to generate {context.GameMode.GetString()} card", e);
         }
         finally
         {

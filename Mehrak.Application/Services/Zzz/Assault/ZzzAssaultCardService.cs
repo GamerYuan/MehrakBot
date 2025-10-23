@@ -13,6 +13,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 
@@ -67,10 +68,14 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
 
         m_BaseBuddyImage = await Image.LoadAsync(await
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base")), cancellationToken);
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzAssaultCardService));
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzAssaultData> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Assault", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var data = context.Data;
         List<IDisposable> disposables = [];
         try
@@ -200,20 +205,18 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
             MemoryStream stream = new();
             await background.SaveAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Assault", context.UserId, stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error generating Zzz Assault card for GameUid: {GameUid}, Data:\n{AssaultData}",
-                context.GameProfile.GameUid, JsonSerializer.Serialize(data));
-            throw new CommandException("An error occurred while generating the Assault card image. Please try again later.", e);
+            m_Logger.LogError(e, LogMessage.CardGenError, "Assault", context.UserId, JsonSerializer.Serialize(data));
+            throw new CommandException("Failed to generate Assault card", e);
         }
         finally
         {
-            foreach (IDisposable disposable in disposables)
-            {
-                disposable.Dispose();
-            }
+            disposables.ForEach(disposable => disposable.Dispose());
         }
     }
 

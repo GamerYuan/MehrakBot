@@ -30,15 +30,17 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
     private readonly IUserRepository m_UserRepository;
     private readonly ICommandRateLimitService m_CommandRateLimitService;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly IMetricsService m_MetricsService;
     private readonly ILogger<CommandExecutorService<TContext>> m_Logger;
 
-    private readonly List<ParamValidator> validators = [];
+    private readonly List<ParamValidator> m_Validators = [];
 
     public CommandExecutorService(
         IServiceProvider serviceProvider,
         IUserRepository userRepository,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
+        IMetricsService metricsService,
         ILogger<CommandExecutorService<TContext>> logger
     )
     {
@@ -46,6 +48,7 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
         m_UserRepository = userRepository;
         m_CommandRateLimitService = commandRateLimitService;
         m_AuthenticationMiddleware = authenticationMiddleware;
+        m_MetricsService = metricsService;
         m_Logger = logger;
     }
 
@@ -55,7 +58,7 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
             "User {User} used command {Command}",
             Context.Interaction.User.Id, CommandName);
 
-        var invalid = validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
+        var invalid = m_Validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
         if (invalid.Any())
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
@@ -71,6 +74,7 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
 
         if (authResult.IsSuccess)
         {
+            using var observer = m_MetricsService.ObserveCommandDuration(CommandName);
             server ??= await GetLastUsedServerAsync(profile);
             if (server == null)
             {
@@ -97,9 +101,11 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
                 .ExecuteAsync(ApplicationContext)
                 .ConfigureAwait(false);
 
+            m_MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, commandResult.IsSuccess);
+
             if (commandResult.IsSuccess)
             {
-                if (!IsResponseEphemeral)
+                if (!IsResponseEphemeral || !commandResult.Data.IsEphemeral)
                     await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
                 await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
             }
@@ -118,7 +124,7 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
 
     public void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null)
     {
-        validators.Add(new ParamValidator<TParam>(paramName, pred, errorMessage));
+        m_Validators.Add(new ParamValidator<TParam>(paramName, pred, errorMessage));
     }
 
     private async Task<bool> ValidateRateLimitAsync()

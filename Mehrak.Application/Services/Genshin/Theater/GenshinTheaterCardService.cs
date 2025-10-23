@@ -15,7 +15,9 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Numerics;
+using System.Text.Json;
 
 #endregion
 
@@ -65,10 +67,15 @@ internal class GenshinTheaterCardService :
         m_TheaterBuff = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_buff"), cancellationToken);
         m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_theater_bg"), cancellationToken);
         m_Background.Mutate(x => x.Brightness(0.35f));
+
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(GenshinTheaterCardService));
     }
 
     public async Task<Stream> GetCardAsync(GenshinEndGameGenerationContext<GenshinTheaterInformation> context)
     {
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Stygian", context.UserId);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         var theaterData = context.Data;
         List<IDisposable> disposableResources = [];
         try
@@ -388,12 +395,15 @@ internal class GenshinTheaterCardService :
             MemoryStream stream = new();
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
+
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Theater", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Failed to generate theater card for uid {GameUid}", context.GameProfile.GameUid);
-            throw new CommandException("An error occurred while generating Imaginarium Theater card", e);
+            m_Logger.LogError(e, LogMessage.CardGenError, "Theater", context.UserId, JsonSerializer.Serialize(context.Data));
+            throw new CommandException("Failed to generate theater card", e);
         }
         finally
         {

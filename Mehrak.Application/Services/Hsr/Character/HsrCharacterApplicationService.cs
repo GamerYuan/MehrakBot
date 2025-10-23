@@ -11,6 +11,7 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Mehrak.Application.Services.Hsr.Character;
@@ -23,6 +24,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
     private readonly IImageRepository m_ImageRepository;
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> m_CharacterApi;
+    private readonly IMetricsService m_MetricsService;
 
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
@@ -31,6 +33,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         IImageRepository imageRepository,
         ICharacterCacheService characterCacheService,
         ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
+        IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, logger)
     {
@@ -40,6 +43,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         m_ImageRepository = imageRepository;
         m_CharacterCacheService = characterCacheService;
         m_CharacterApi = characterApi;
+        m_MetricsService = metricsService;
     }
 
     public override async Task<CommandResult> ExecuteAsync(HsrCharacterApplicationContext context)
@@ -54,8 +58,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             if (profile == null)
             {
-                Logger.LogWarning("No profile found for user {UserId}", context.UserId);
-                return CommandResult.Failure("Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
             var gameUid = profile.GameUid;
@@ -64,9 +68,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             if (!charResponse.IsSuccess)
             {
-                Logger.LogInformation("No character data found for user {UserId} on {Region} server",
-                    context.UserId, region);
-                return CommandResult.Failure("Failed to fetch character list. Please try again later.");
+                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse.ErrorMessage);
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
             var characterList = charResponse.Data.First();
@@ -81,9 +84,9 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                     (characterInfo = characterList.AvatarList?.FirstOrDefault(x =>
                         x.Name!.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
                 {
-                    Logger.LogInformation("Character {CharacterName} not found for user {UserId} on {Region} server",
-                        characterName, context.UserId, region);
-                    return CommandResult.Failure($"Character {characterName} not found. Please try again");
+                    Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
+                    return CommandResult.Success([new CommandText(
+                        string.Format(ResponseMessage.CharacterNotFound, characterName))], isEphemeral: true);
                 }
             }
 
@@ -106,7 +109,14 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                         return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
                     });
 
-            List<Task> tasks = [];
+            if (uniqueRelicSet.Count == 0 && characterInfo.Relics.Count + characterInfo.Ornaments.Count > 0)
+            {
+                Logger.LogError(LogMessage.ApiError, "Relic Wiki", context.UserId, gameUid,
+                    "Failed to fetch relic set data from wiki");
+                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Relic Data"));
+            }
+
+            List<Task<bool>> tasks = [];
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
                 new ImageProcessorBuilder().Resize(1000, 0).Build()));
@@ -136,16 +146,16 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
                 if (!wikiResponse.IsSuccess)
                 {
-                    Logger.LogWarning("Failed to fetch equip image from wiki. Equip: {EquipName}", characterInfo.Equip.Name);
-                    return CommandResult.Failure("Unable to retrieve Light Cone image");
+                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid, wikiResponse.ErrorMessage);
+                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 
                 string? iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
 
                 if (iconUrl == null)
                 {
-                    Logger.LogWarning("Failed to fetch equip image from wiki. Equip: {EquipName}", characterInfo.Equip.Name);
-                    return CommandResult.Failure("Unable to retrieve Light Cone image");
+                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid, "Failed to retrieve Icon Url");
+                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
@@ -158,25 +168,30 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                 new ImageProcessorBuilder().Resize(80, 0).Build())));
 
-            await Task.WhenAll(tasks);
+            var completed = await Task.WhenAll(tasks);
+
+            if (completed.Any(x => !x))
+            {
+                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId, JsonSerializer.Serialize(characterInfo));
+                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            }
 
             var card = await m_CardService.GetCardAsync(
                 new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, context.Server, profile));
+
+            m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail), characterInfo.Name.ToLowerInvariant());
 
             return CommandResult.Success([new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)]);
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, "Error sending character card response with character {CharacterName} for user {UserId}",
-                characterName, context.UserId);
-            return CommandResult.Failure(e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Character"));
         }
         catch (Exception e)
         {
-            Logger.LogError(e,
-                "Error sending character card response with character {CharacterName} for user {UserId}",
-                characterName, context.UserId);
-            return CommandResult.Failure("An unknown error occurred while processing your request");
+            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }
 }
