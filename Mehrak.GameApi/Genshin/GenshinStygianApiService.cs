@@ -75,7 +75,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
         catch (Exception e)
         {
             m_Logger.LogError(e, "An error occurred while fetching Stygian data for gameUid: {GameUid}", context.GameUid);
-            return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
+            return Result<GenshinStygianInformation>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving Stygian Onslaught data");
         }
     }

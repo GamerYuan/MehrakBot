@@ -85,15 +85,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
                     "No Imaginarium Theater data found");
             }
 
-            var theaterData = theaterInfo[0];
-            if (!theaterData.HasDetailData || theaterData.Schedule.ScheduleType != 1)
-            {
-                m_Logger.LogError("No Theater data found for this cycle for gameUid: {GameUid}", context.GameUid);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
-                    "No Imaginarium Theater data found for this cycle");
-            }
-
-            return Result<GenshinTheaterInformation>.Success(theaterData);
+            return Result<GenshinTheaterInformation>.Success(json.Data.Data[0]);
         }
         catch (Exception e)
         {
