@@ -39,12 +39,5 @@
   <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
-    
-  <ItemGroup>
-    <Folder Include="Services\Hsr\Character\" />
-    <Folder Include="Services\Hsr\CharList\" />
-    <Folder Include="Services\Hsr\EndGame\" />
-    <Folder Include="Services\Hsr\Memory\" />
-  </ItemGroup>
 
 </Project>
