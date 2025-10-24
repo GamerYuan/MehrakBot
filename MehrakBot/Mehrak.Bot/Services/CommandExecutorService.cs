@@ -62,6 +62,8 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
+            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
             var server = ApplicationContext.GetParameter<Server?>("server");
             var game = ApplicationContext.GetParameter<Game>("game");
 
@@ -77,10 +79,9 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
             await UpdateLastUsedServerAsync(authResult.User, profile, game, server.Value);
 
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;
+            ApplicationContext.Server = server.Value;
 
             var service =
                 m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();
