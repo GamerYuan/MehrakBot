@@ -92,7 +92,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user, authResponse.Context);
     }
 
-    public async Task<bool> NotifyAuthenticateAsync(AuthenticationResponse request)
+    public bool NotifyAuthenticate(AuthenticationResponse request)
     {
         if (!m_CurrentRequests.TryGetValue(request.Guid, out _))
         {

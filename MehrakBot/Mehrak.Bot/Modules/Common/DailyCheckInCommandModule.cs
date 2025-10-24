@@ -37,7 +37,7 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
             .WithCommandName("checkin")
             .Build();
 
-        await executor.ExecuteAsync(null, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Domain.Enums.Game.Unsupported, null, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString()

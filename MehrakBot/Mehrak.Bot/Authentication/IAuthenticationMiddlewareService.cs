@@ -8,7 +8,7 @@ public interface IAuthenticationMiddlewareService
 {
     Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request);
 
-    Task<bool> NotifyAuthenticateAsync(AuthenticationResponse request);
+    bool NotifyAuthenticate(AuthenticationResponse request);
 }
 
 public class AuthenticationResult

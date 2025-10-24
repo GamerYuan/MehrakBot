@@ -131,7 +131,7 @@ public class BotMetricsService : IMetricsService, IHostedService
 
         await metricServer.StartAsync(cancellationToken).ConfigureAwait(false);
 
-        await TrackGCMemoryTask(cancellationToken).ConfigureAwait(false);
+        _ = Task.Run(() => TrackGCMemoryTask(cancellationToken), cancellationToken);
 
         m_Logger.LogInformation("Metrics service started on {Host}:{Port} with endpoint {Endpoint}",
             metricsConfig.Host, metricsConfig.Port, metricsConfig.Endpoint);

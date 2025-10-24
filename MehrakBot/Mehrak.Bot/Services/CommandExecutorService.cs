@@ -77,7 +77,7 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
         {
             using var observer = m_MetricsService.ObserveCommandDuration(CommandName);
 
-            server ??= await GetLastUsedServerAsync(authResult.User, game, profile);
+            server ??= GetLastUsedServerAsync(authResult.User, game, profile);
             if (server == null)
             {
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -145,7 +145,7 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
         return true;
     }
 
-    private static async Task<Server?> GetLastUsedServerAsync(UserModel user, Game game, uint profileId)
+    private static Server? GetLastUsedServerAsync(UserModel user, Game game, uint profileId)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;

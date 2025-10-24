@@ -260,7 +260,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ceo47tv1387pce"
+        "uid": "beo6w7fwsvz7kc"
       },
       "description": "Discord Gateway client latency (ms)",
       "fieldConfig": {
@@ -358,7 +358,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ceo47tv1387pce"
+        "uid": "beo6w7fwsvz7kc"
       },
       "description": "Application Memory Usage",
       "fieldConfig": {
@@ -761,7 +761,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "discord_commands_by_name",
+          "expr": "sum by (command_name) (floor(increase(discord_commands_by_name[$__range])))",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -815,9 +815,7 @@
         },
         "pieType": "donut",
         "reduceOptions": {
-          "calcs": [
-            "max"
-          ],
+          "calcs": [],
           "fields": "",
           "values": false
         },
@@ -836,7 +834,7 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(10, sum by (user_id) (discord_commands_by_user))",
+          "expr": "topk(10, sum by (user_id) (floor(increase(discord_commands_by_user[$__range]))))",
           "format": "time_series",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -849,6 +847,19 @@
         }
       ],
       "title": "Top Users",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
       "type": "piechart"
     },
     {
@@ -867,13 +878,13 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ceo47tv1387pce"
+        "uid": "beo6w7fwsvz7kc"
       },
       "description": "Most popular character in Genshin among users",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic-by-name"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -909,7 +920,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 12,
         "x": 0,
         "y": 27
@@ -917,10 +928,10 @@
       "id": 20,
       "options": {
         "barRadius": 0,
-        "barWidth": 0.65,
-        "colorByField": "discord_character_selections_total",
+        "barWidth": 0.95,
+        "colorByField": "character",
         "fullHighlight": false,
-        "groupWidth": 0.15,
+        "groupWidth": 1,
         "legend": {
           "calcs": [],
           "displayMode": "list",
@@ -935,7 +946,7 @@
           "mode": "single",
           "sort": "none"
         },
-        "xField": "Time",
+        "xField": "character",
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
@@ -945,8 +956,10 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(10, sum by (character) (discord_character_selections_total{game=\"Genshin\"}))",
+          "expr": "topk(10, sum by (character) (increase(discord_character_selections_total{game=\"Genshin\"}[$__range])))",
+          "format": "time_series",
           "fullMetaSearch": false,
+          "hide": false,
           "includeNullMetadata": true,
           "instant": true,
           "legendFormat": "{{character}}",
@@ -956,24 +969,18 @@
         }
       ],
       "title": "Most popular character (Genshin)",
-      "transformations": [
-        {
-          "id": "sortBy",
-          "options": {}
-        }
-      ],
       "type": "barchart"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ceo47tv1387pce"
+        "uid": "beo6w7fwsvz7kc"
       },
       "description": "Most popular character in HSR among users",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic-by-name"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -1009,7 +1016,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 12,
         "x": 12,
         "y": 27
@@ -1017,10 +1024,9 @@
       "id": 18,
       "options": {
         "barRadius": 0,
-        "barWidth": 0.65,
-        "colorByField": "discord_character_selections_total",
+        "barWidth": 0.95,
         "fullHighlight": false,
-        "groupWidth": 0.15,
+        "groupWidth": 1,
         "legend": {
           "calcs": [],
           "displayMode": "list",
@@ -1035,7 +1041,6 @@
           "mode": "single",
           "sort": "none"
         },
-        "xField": "Time",
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
@@ -1045,7 +1050,7 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(10, sum by (character) (discord_character_selections_total{game=\"HonkaiStarRail\"}))",
+          "expr": "topk(10, sum by (character) (increase(discord_character_selections_total{game=\"HonkaiStarRail\"}[$__range])))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": true,
@@ -1063,6 +1068,63 @@
         }
       ],
       "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 22,
+      "panels": [],
+      "title": "Logs",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "cesa3vv9ht14we"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 23,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "pluginVersion": "12.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "cesa3vv9ht14we"
+          },
+          "direction": "backward",
+          "editorMode": "code",
+          "expr": "{app=\"MehrakBot\"} | json | level=~\"${log_level:regex}\" | line_format \"[{{.SourceContext}}]: {{.Message}}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Logs",
+      "type": "logs"
     }
   ],
   "preload": false,
@@ -1070,7 +1132,45 @@
   "schemaVersion": 41,
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "text": [
+            "warn",
+            "error",
+            "info"
+          ],
+          "value": [
+            "warn",
+            "error",
+            "info"
+          ]
+        },
+        "includeAll": false,
+        "label": "Log Level",
+        "multi": true,
+        "name": "log_level",
+        "options": [
+          {
+            "selected": true,
+            "text": "Information",
+            "value": "info"
+          },
+          {
+            "selected": true,
+            "text": "Warning",
+            "value": "warn"
+          },
+          {
+            "selected": true,
+            "text": "Error",
+            "value": "error"
+          }
+        ],
+        "query": "Information : info, Warning : warn, Error : error",
+        "type": "custom"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
@@ -1080,5 +1180,5 @@
   "timezone": "",
   "title": "Mehrak Dashboard",
   "uid": "mehrak",
-  "version": 36
+  "version": 38
 }

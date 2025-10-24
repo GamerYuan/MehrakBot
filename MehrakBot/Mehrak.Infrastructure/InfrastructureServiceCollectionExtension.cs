@@ -33,6 +33,7 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
 
         services.AddSingleton<IMetricsService, BotMetricsService>();
+        services.AddHostedService<BotMetricsService>();
 
         services.AddSingleton<CookieEncryptionService>();
 

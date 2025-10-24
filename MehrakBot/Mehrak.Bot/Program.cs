@@ -136,7 +136,7 @@ public class Program
                 logger.LogInformation("Uploaded {FileName} to Image Repository, file path {Image}", fileName, image);
             }
 
-            await host.RunAsync();
+            await host.StartAsync();
         }
         catch (Exception ex)
         {
