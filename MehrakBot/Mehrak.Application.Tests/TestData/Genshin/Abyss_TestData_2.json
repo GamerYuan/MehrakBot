@@ -1,0 +1,640 @@
+﻿{
+  "schedule_id": 108,
+  "start_time": "1750017600",
+  "end_time": "1752609599",
+  "total_battle_times": 6,
+  "total_win_times": 6,
+  "max_floor": "12-3",
+  "reveal_rank": [
+    {
+      "avatar_id": 10000106,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+      "value": 6,
+      "rarity": 5
+    },
+    {
+      "avatar_id": 10000107,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/abe2da348abe64c67d9c2763d2d8c4e7.png",
+      "value": 6,
+      "rarity": 5
+    },
+    {
+      "avatar_id": 10000063,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/d7f5dc584b2a9b02b8266084d96ad3cf.png",
+      "value": 6,
+      "rarity": 5
+    },
+    {
+      "avatar_id": 10000112,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+      "value": 6,
+      "rarity": 5
+    }
+  ],
+  "defeat_rank": [
+    {
+      "avatar_id": 10000106,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/decc41d08a4dd4053f3503924b40bbca.png",
+      "value": 20,
+      "rarity": 5
+    }
+  ],
+  "damage_rank": [
+    {
+      "avatar_id": 10000106,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/decc41d08a4dd4053f3503924b40bbca.png",
+      "value": 1426559,
+      "rarity": 5
+    }
+  ],
+  "take_damage_rank": [
+    {
+      "avatar_id": 10000037,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/c2b9da58f10e1829f981df5edc37c314.png",
+      "value": 54564,
+      "rarity": 5
+    }
+  ],
+  "normal_skill_rank": [
+    {
+      "avatar_id": 10000032,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/455ee1e4da29c15282faba8243bccdcc.png",
+      "value": 18,
+      "rarity": 4
+    }
+  ],
+  "energy_skill_rank": [
+    {
+      "avatar_id": 10000106,
+      "avatar_icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f727/decc41d08a4dd4053f3503924b40bbca.png",
+      "value": 15,
+      "rarity": 5
+    }
+  ],
+  "floors": [
+    {
+      "index": 11,
+      "icon": "",
+      "is_unlock": true,
+      "settle_time": "0",
+      "star": 9,
+      "max_star": 9,
+      "levels": [
+        {
+          "index": 1,
+          "star": 3,
+          "max_star": 3,
+          "battles": [
+            {
+              "index": 1,
+              "timestamp": "1750076979",
+              "avatars": [
+                {
+                  "id": 10000037,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/2977be100672154bb7f5fc0d1abe0eb2.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000063,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/d7f5dc584b2a9b02b8266084d96ad3cf.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000112,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 29,
+                "second": 39
+              }
+            },
+            {
+              "index": 2,
+              "timestamp": "1750077007",
+              "avatars": [
+                {
+                  "id": 10000106,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000103,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/7c047dce3a1be70baa30f28111222e38.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000107,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/abe2da348abe64c67d9c2763d2d8c4e7.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 30,
+                "second": 7
+              }
+            }
+          ],
+          "top_half_floor_monster": [
+            {
+              "name": "陆行岩本真蕈",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/e8d77b3d93a7c0338b1261ad03a1d017.png",
+              "level": 88
+            },
+            {
+              "name": "陆行水本真蕈",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/cbffb58a497e856f176b7ccf4a4f5a34.png",
+              "level": 88
+            },
+            {
+              "name": "有翼冰本真蕈",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/5fcd8d27628cb9da8c536bf8bb0d3add.png",
+              "level": 88
+            },
+            {
+              "name": "有翼草本真蕈",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/71473a48d3b5e306d3dfc5b372f5f5cb.png",
+              "level": 88
+            },
+            {
+              "name": "泡泡雄海马",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/7d544a059a31f007b1ad1e376d2b4639.png",
+              "level": 88
+            },
+            {
+              "name": "坚盾重甲蟹",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/7ff902574c86a3c475461b74acc84b9e.png",
+              "level": 88
+            },
+            {
+              "name": "丘丘雷兜王",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/b359256324d1d7ecca7dfe39627f5423.png",
+              "level": 88
+            }
+          ],
+          "bottom_half_floor_monster": [
+            {
+              "name": "浊水喷吐幻灵",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/6e5a0b2dfc9ae0095df3b36003f21c5f.png",
+              "level": 88
+            },
+            {
+              "name": "深海龙蜥·原种",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/fb36f91b64e3023ea6469abb37c431e0.png",
+              "level": 88
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "star": 3,
+          "max_star": 3,
+          "battles": [
+            {
+              "index": 1,
+              "timestamp": "1750077032",
+              "avatars": [
+                {
+                  "id": 10000037,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/2977be100672154bb7f5fc0d1abe0eb2.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000063,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/d7f5dc584b2a9b02b8266084d96ad3cf.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 30,
+                "second": 32
+              }
+            },
+            {
+              "index": 2,
+              "timestamp": "1750077061",
+              "avatars": [
+                {
+                  "id": 10000106,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000103,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/7c047dce3a1be70baa30f28111222e38.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 31,
+                "second": 1
+              }
+            }
+          ],
+          "top_half_floor_monster": [
+            {
+              "name": "黑蛇骑士·斩风之剑",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/0bb59dd3875fbedc62da91edaaf0f3c2.png",
+              "level": 90
+            },
+            {
+              "name": "黯色空壳·破阵",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/a51c5743e063a61d87646173f1fa0138.png",
+              "level": 90
+            },
+            {
+              "name": "黯色空壳·近卫",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/c2bbe6b3b87e24209ca16f1c94656934.png",
+              "level": 90
+            },
+            {
+              "name": "黯色空壳·旗令",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/f91fc32d3800cb418429c8a7f7c57818.png",
+              "level": 90
+            }
+          ],
+          "bottom_half_floor_monster": [
+            {
+              "name": "历经百战的愚人众先遣队·冰铳重卫士",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/4eea57f6657176a25e0cc05ef49f01c5.png",
+              "level": 90
+            },
+            {
+              "name": "历经百战的愚人众先遣队·雷锤前锋军",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/744a2669315d4bdeb10f158dd3500cf8.png",
+              "level": 90
+            },
+            {
+              "name": "凛冽·大灵显化身",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/a52c0df7c79c8e33b5802e17c1c4f87d.png",
+              "level": 90
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "star": 3,
+          "max_star": 3,
+          "battles": [
+            {
+              "index": 1,
+              "timestamp": "1750077109",
+              "avatars": [
+                {
+                  "id": 10000037,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/2977be100672154bb7f5fc0d1abe0eb2.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 31,
+                "second": 49
+              }
+            },
+            {
+              "index": 2,
+              "timestamp": "1750077158",
+              "avatars": [
+                {
+                  "id": 10000106,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 32,
+                "second": 38
+              }
+            }
+          ],
+          "top_half_floor_monster": [
+            {
+              "name": "深渊咏者·紫电",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/ee405496cc1cc35a1c4040e41da7fd8f.png",
+              "level": 92
+            },
+            {
+              "name": "焚燃·大灵显化身",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/10adc315ca9c838842b3729a6c37bfde.png",
+              "level": 92
+            }
+          ],
+          "bottom_half_floor_monster": [
+            {
+              "name": "历经百战的玳龟",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/4187dbfb95d10d318df7dcce6b03b0aa.png",
+              "level": 92
+            }
+          ]
+        }
+      ],
+      "settle_date_time": null,
+      "ley_line_disorder": [
+        "队伍中所有角色获得60%冰元素伤害加成。",
+        "队伍中所有角色获得60%火元素伤害加成。"
+      ]
+    },
+    {
+      "index": 12,
+      "icon": "",
+      "is_unlock": true,
+      "settle_time": "0",
+      "star": 3,
+      "max_star": 9,
+      "levels": [
+        {
+          "index": 1,
+          "star": 2,
+          "max_star": 3,
+          "battles": [
+            {
+              "index": 1,
+              "timestamp": "1750078273",
+              "avatars": [
+                {
+                  "id": 10000106,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000103,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/7c047dce3a1be70baa30f28111222e38.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000107,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/abe2da348abe64c67d9c2763d2d8c4e7.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 51,
+                "second": 13
+              }
+            },
+            {
+              "index": 2,
+              "timestamp": "1750078357",
+              "avatars": [
+                {
+                  "id": 10000037,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/2977be100672154bb7f5fc0d1abe0eb2.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000063,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/d7f5dc584b2a9b02b8266084d96ad3cf.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000112,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a947b/6c4f7f722b0226a1171ec265485de61c.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 52,
+                "second": 37
+              }
+            }
+          ],
+          "top_half_floor_monster": [
+            {
+              "name": "愚人众·冰萤术士",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/029032b29fbe48f1b3890c11f660f694.png",
+              "level": 95
+            },
+            {
+              "name": "灵觉隐修的迷者",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/32ae39c526c28205ce0106c72a4d1f83.png",
+              "level": 95
+            }
+          ],
+          "bottom_half_floor_monster": [
+            {
+              "name": "遗迹侦察者",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/31a3d1f703bec4f52c1630d718adf39f.png",
+              "level": 95
+            },
+            {
+              "name": "遗迹防卫者",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/e1986797c45347ebcabcdfe08749fda5.png",
+              "level": 95
+            },
+            {
+              "name": "恒常机关阵列",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/771f3b3636b1646f5a0d286da27405b8.png",
+              "level": 95
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "star": 1,
+          "max_star": 3,
+          "battles": [
+            {
+              "index": 1,
+              "timestamp": "1750078429",
+              "avatars": [
+                {
+                  "id": 10000106,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000103,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/7c047dce3a1be70baa30f28111222e38.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 53,
+                "second": 49
+              }
+            },
+            {
+              "index": 2,
+              "timestamp": "1750078518",
+              "avatars": [
+                {
+                  "id": 10000037,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/2977be100672154bb7f5fc0d1abe0eb2.png",
+                  "level": 90,
+                  "rarity": 5
+                },
+                {
+                  "id": 10000063,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/d7f5dc584b2a9b02b8266084d96ad3cf.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 55,
+                "second": 18
+              }
+            }
+          ],
+          "top_half_floor_monster": [
+            {
+              "name": "匿叶龙",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/1e126a0e006705e13b9d0a05c0f2ab89.png",
+              "level": 98
+            },
+            {
+              "name": "贪食匿叶龙山王",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/a509bb79c6c6ed232684bab3100fb3de.png",
+              "level": 98
+            }
+          ],
+          "bottom_half_floor_monster": [
+            {
+              "name": "深渊咏者·紫电",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/ee405496cc1cc35a1c4040e41da7fd8f.png",
+              "level": 98
+            },
+            {
+              "name": "千年珍珠骏麟",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/b514bc84073ef5ed372e6920870a3594.png",
+              "level": 98
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "star": 0,
+          "max_star": 3,
+          "battles": [
+            {
+              "index": 1,
+              "timestamp": "1750078592",
+              "avatars": [
+                {
+                  "id": 10000106,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c54cf9fe971d6226b78ad795ced9bee8.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 56,
+                "second": 32
+              }
+            },
+            {
+              "index": 2,
+              "timestamp": "1750078683",
+              "avatars": [
+                {
+                  "id": 10000037,
+                  "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/2977be100672154bb7f5fc0d1abe0eb2.png",
+                  "level": 90,
+                  "rarity": 5
+                }
+              ],
+              "settle_date_time": {
+                "year": 2025,
+                "month": 6,
+                "day": 16,
+                "hour": 20,
+                "minute": 58,
+                "second": 3
+              }
+            }
+          ],
+          "top_half_floor_monster": [
+            {
+              "name": "机关·灵活采集型·芒",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/d3df4b0407454fef71f82eb10f8d0ca1.png",
+              "level": 100
+            },
+            {
+              "name": "冰风组曲·科培琉司的劫罚",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f76f/234254c92a2d27f2bf894c47eb6a2a8e.png",
+              "level": 100
+            }
+          ],
+          "bottom_half_floor_monster": [
+            {
+              "name": "秘源机兵·统御械",
+              "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/681a94fd/72c0f71bae51917eda9cef6be0a54baa.png",
+              "level": 100
+            }
+          ]
+        }
+      ],
+      "settle_date_time": null,
+      "ley_line_disorder": []
+    }
+  ],
+  "total_star": 30,
+  "is_unlock": true,
+  "is_just_skipped_floor": false,
+  "skipped_floor": "10-3"
+}

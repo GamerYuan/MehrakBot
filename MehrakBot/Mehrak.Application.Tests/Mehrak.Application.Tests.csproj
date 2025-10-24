@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="TestData\**\*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+	<None Include="..\Assets\**\*.*" Exclude="..\Assets\.git\**\*;..\Assets\.gitattributes">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+	</None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="Mongo2Go" Version="4.1.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.4.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <ProjectReference Include="..\Mehrak.Application\Mehrak.Application.csproj" />
+    <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
+    <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
+    <ProjectReference Include="..\Mehrak.Infrastructure\Mehrak.Infrastructure.csproj" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <Folder Include="Services\Hsr\Character\" />
+    <Folder Include="Services\Hsr\CharList\" />
+    <Folder Include="Services\Hsr\EndGame\" />
+    <Folder Include="Services\Hsr\Memory\" />
+  </ItemGroup>
+
+</Project>
