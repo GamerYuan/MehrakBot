@@ -1,1 +1,0 @@
-﻿// Intentionally left empty. Regions enum moved to Mehrak.Domain.

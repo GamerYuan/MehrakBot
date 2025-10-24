@@ -1,1 +1,0 @@
-﻿// Intentionally left empty. UserRepository implementation moved to Mehrak.Infrastructure.

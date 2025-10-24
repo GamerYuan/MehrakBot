@@ -1,1 +1,0 @@
-﻿// Intentionally left empty. UserModel and UserProfile moved to Mehrak.Domain.Models.

@@ -12,7 +12,7 @@ appsettings.development.json
 **/Properties/launchSettings.json
 
 .env
-/MehrakCore/Config/nginx/
+/nginx/*
 
 logs/
 

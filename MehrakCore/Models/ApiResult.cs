@@ -1,1 +1,0 @@
-// Intentionally left empty. ApiResult has been moved to Mehrak.Domain.
