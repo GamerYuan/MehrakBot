@@ -93,9 +93,16 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
             if (commandResult.IsSuccess)
             {
-                if (!IsResponseEphemeral || !commandResult.Data.IsEphemeral)
+                if (IsResponseEphemeral || commandResult.Data.IsEphemeral)
+                {
+                    await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
+                }
+                else
+                {
                     await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
-                await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
+                    await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage()
+                        .AddComponents(new ActionRowProperties([new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)])));
+                }
             }
             else
             {
