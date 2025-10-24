@@ -63,6 +63,7 @@ public class BotMetricsService : IMetricsService, IHostedService
 
     private readonly IOptions<MetricsConfig> m_MetricsOptions;
     private readonly ILogger<BotMetricsService> m_Logger;
+    private IWebHost? m_MetricsServer;
 
     public BotMetricsService(IOptions<MetricsConfig> metricsOptions, ILogger<BotMetricsService> logger)
     {
@@ -116,11 +117,10 @@ public class BotMetricsService : IMetricsService, IHostedService
             return;
         }
 
-        var metricServer = new WebHostBuilder().UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
+        m_MetricsServer = new WebHostBuilder().UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
             .Configure(app =>
             {
                 app.UseMetricServer(metricsConfig.Endpoint);
-                app.UseHttpMetrics();
 
                 app.Map("/health", builder => builder.Run(async context =>
                 {
@@ -129,7 +129,7 @@ public class BotMetricsService : IMetricsService, IHostedService
                 }));
             }).Build();
 
-        await metricServer.StartAsync(cancellationToken).ConfigureAwait(false);
+        await m_MetricsServer.StartAsync(cancellationToken).ConfigureAwait(false);
 
         _ = Task.Run(() => TrackGCMemoryTask(cancellationToken), cancellationToken);
 
@@ -137,8 +137,12 @@ public class BotMetricsService : IMetricsService, IHostedService
             metricsConfig.Host, metricsConfig.Port, metricsConfig.Endpoint);
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        if (m_MetricsServer != null)
+        {
+            await m_MetricsServer.StopAsync(cancellationToken);
+            m_MetricsServer.Dispose();
+        }
     }
 }
