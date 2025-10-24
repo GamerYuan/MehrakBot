@@ -57,7 +57,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         if (token != null)
         {
             m_Logger.LogDebug("Cache hit for LToken. UserId={UserId}, LtUid={LtUid}", request.Context.Interaction.User.Id, profile.LtUid);
-            return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, request.Context);
+            return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user, request.Context);
         }
 
         var guid = Guid.NewGuid().ToString();
@@ -81,15 +81,15 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             token = m_CookieEncryptionService.DecryptCookie(profile.LToken, authResponse.Passphrase);
             m_Logger.LogDebug("Cookie decryption succeeded. Guid={Guid}, UserId={UserId}, LtUid={LtUid}", authResponse.Guid, request.Context.Interaction.User.Id, profile.LtUid);
         }
-        catch (AuthenticationTagMismatchException)
+        catch (AuthenticationTagMismatchException e)
         {
-            m_Logger.LogWarning("Incorrect passphrase provided. Guid={Guid}, UserId={UserId}", authResponse.Guid, request.Context.Interaction.User.Id);
+            m_Logger.LogWarning(e, "Incorrect passphrase provided. Guid={Guid}, UserId={UserId}", authResponse.Guid, request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context, "Incorrect passphrase. Please try again");
         }
 
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}", request.Context.Interaction.User.Id, profile.LtUid);
-        return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, authResponse.Context);
+        return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user, authResponse.Context);
     }
 
     public async Task<bool> NotifyAuthenticateAsync(AuthenticationResponse request)

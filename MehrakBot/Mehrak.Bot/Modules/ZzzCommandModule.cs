@@ -48,7 +48,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("character", "Get character card")]
@@ -70,7 +70,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithCommandName("zzz character")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
@@ -91,7 +91,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithCommandName("zzz shiyu")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("da", "Get Deadly Assault summary card")]
@@ -112,7 +112,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithCommandName("zzz da")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
@@ -133,7 +133,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")

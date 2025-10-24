@@ -48,7 +48,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
@@ -68,7 +68,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("codes", "Redeem Honkai: Star Rail codes")]
@@ -91,7 +91,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("moc", "Get Memory of Chaos card")]
@@ -111,7 +111,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithCommandName("hsr moc")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("pf", "Get Pure Fiction card")]
@@ -131,7 +131,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithCommandName("hsr pf")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("as", "Get Apocalyptic Shadow card")]
@@ -151,7 +151,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithCommandName("hsr as")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("charlist", "Get character list card")]
@@ -171,7 +171,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithCommandName("hsr charlist")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")

@@ -2,6 +2,7 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +15,7 @@ namespace Mehrak.Bot.Services;
 
 public interface ICommandExecutorService<TContext> where TContext : IApplicationContext
 {
-    Task ExecuteAsync(Server? server, uint profile);
+    Task ExecuteAsync(Game game, Server? server, uint profile);
 
     void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null);
 }
@@ -52,7 +53,7 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
         m_Logger = logger;
     }
 
-    public async Task ExecuteAsync(Server? server, uint profile)
+    public async Task ExecuteAsync(Game game, Server? server, uint profile)
     {
         m_Logger.LogInformation(
             "User {User} used command {Command}",
@@ -75,7 +76,8 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
         if (authResult.IsSuccess)
         {
             using var observer = m_MetricsService.ObserveCommandDuration(CommandName);
-            server ??= await GetLastUsedServerAsync(profile);
+
+            server ??= await GetLastUsedServerAsync(authResult.User, game, profile);
             if (server == null)
             {
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -84,6 +86,8 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
                         .WithFlags(MessageFlags.Ephemeral)));
                 return;
             }
+
+            await UpdateLastUsedServerAsync(authResult.User, profile, game, server.Value);
 
             await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
@@ -141,19 +145,31 @@ internal class CommandExecutorService<TContext> : ICommandExecutorService<TConte
         return true;
     }
 
-    private async Task<Server?> GetLastUsedServerAsync(uint profileId)
+    private static async Task<Server?> GetLastUsedServerAsync(UserModel user, Game game, uint profileId)
     {
-        var user = await m_UserRepository.GetUserAsync(Context.Interaction.User.Id);
-        if (user == null) return null;
-
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;
 
-        if (profile.LastUsedRegions?.TryGetValue(Game.Genshin, out var server) ?? false)
+        if (profile.LastUsedRegions?.TryGetValue(game, out var server) ?? false)
         {
             return server;
         }
 
         return null;
+    }
+
+    private async Task UpdateLastUsedServerAsync(UserModel user, uint profileId, Game game, Server server)
+    {
+        var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
+        if (profile == null) return;
+
+        profile.LastUsedRegions ??= [];
+        if (profile.LastUsedRegions.TryGetValue(game, out var stored) && stored == server)
+            return;
+
+        if (!profile.LastUsedRegions.TryAdd(game, server))
+            profile.LastUsedRegions[game] = server;
+
+        await m_UserRepository.CreateOrUpdateUserAsync(user);
     }
 }

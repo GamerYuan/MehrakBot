@@ -1,3 +1,4 @@
+using Mehrak.Domain.Models;
 using NetCord.Services;
 using System.Diagnostics.CodeAnalysis;
 
@@ -15,6 +16,7 @@ public class AuthenticationResult
     public AuthStatus Status { get; private init; }
 
     [MemberNotNullWhen(true, nameof(LToken))]
+    [MemberNotNullWhen(true, nameof(User))]
     [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool IsSuccess => Status == AuthStatus.Success;
 
@@ -22,12 +24,14 @@ public class AuthenticationResult
     public ulong UserId { get; private init; }
     public ulong LtUid { get; private init; }
     public string? LToken { get; private init; }
+    public UserModel? User { get; private init; }
     public IInteractionContext? Context { get; private init; }
 
     public static AuthenticationResult Success(
         ulong userId,
         ulong ltuid,
         string ltoken,
+        UserModel user,
         IInteractionContext context)
     {
         return new AuthenticationResult
@@ -36,6 +40,7 @@ public class AuthenticationResult
             UserId = userId,
             LtUid = ltuid,
             LToken = ltoken,
+            User = user,
             Context = context
         };
     }

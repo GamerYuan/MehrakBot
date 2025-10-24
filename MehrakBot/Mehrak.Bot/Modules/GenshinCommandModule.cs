@@ -56,7 +56,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.Genshin, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
@@ -77,7 +77,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.Genshin, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
@@ -100,7 +100,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.Genshin, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("abyss", "Get Spiral Abyss summary card")]
@@ -123,7 +123,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .AddValidator<uint>(nameof(floor), x => x is >= 9 and <= 12, "floor must be between 9 and 12")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.Genshin, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("theater", "Get Imaginarium Theater summary card")]
@@ -143,7 +143,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .WithCommandName("genshin theater")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.Genshin, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("stygian", "Get Stygian Onslaught summary card")]
@@ -163,7 +163,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .WithCommandName("genshin theater")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.Genshin, server, profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("charlist", "Get character list")]
@@ -183,7 +183,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .WithCommandName("genshin theater")
             .Build();
 
-        await executor.ExecuteAsync(server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(Game.Genshin, server, profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")
