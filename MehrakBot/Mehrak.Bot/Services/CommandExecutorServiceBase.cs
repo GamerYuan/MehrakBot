@@ -12,8 +12,8 @@ namespace Mehrak.Bot.Services;
 
 internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorService<TContext> where TContext : IApplicationContext
 {
-    internal IInteractionContext Context { get; set; } = default!;
-    internal TContext ApplicationContext { get; set; } = default!;
+    public IInteractionContext Context { get; set; } = default!;
+    public TContext ApplicationContext { get; set; } = default!;
     internal virtual string CommandName { get; set; } = string.Empty;
     internal bool IsResponseEphemeral { get; set; } = false;
 

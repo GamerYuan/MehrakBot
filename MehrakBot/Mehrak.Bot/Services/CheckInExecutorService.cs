@@ -63,8 +63,6 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
 
             if (commandResult.IsSuccess)
             {
-                if (!IsResponseEphemeral || !commandResult.Data.IsEphemeral)
-                    await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
                 await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
             }
             else

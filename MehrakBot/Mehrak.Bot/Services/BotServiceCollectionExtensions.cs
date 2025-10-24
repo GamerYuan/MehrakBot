@@ -1,4 +1,5 @@
-﻿using Mehrak.Bot.Authentication;
+﻿using Mehrak.Application.Models.Context;
+using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Modules;
 using Mehrak.Bot.Provider;
@@ -19,6 +20,8 @@ namespace Mehrak.Bot.Services
 
             services.AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>, GenshinCharacterAutocompleteService>();
             services.AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
+
+            services.AddTransient<ICommandExecutorService<CheckInApplicationContext>, CheckInExecutorService>();
 
             services.AddHostedService<AsyncInitializationHostedService>();
 

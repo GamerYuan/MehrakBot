@@ -1,5 +1,5 @@
-﻿using Mehrak.Bot.Services;
-using Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Application.Models.Context;
+using Mehrak.Bot.Services;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Services;
 
@@ -7,10 +7,10 @@ namespace Mehrak.Bot.Builders;
 
 public interface ICommandExecutorBuilder
 {
-    ICommandExecutorBuilder<TContext> For<TContext>() where TContext : IApplicationContext;
+    ICommandExecutorBuilder<TContext> For<TContext>() where TContext : ApplicationContextBase;
 }
 
-public interface ICommandExecutorBuilder<TContext> where TContext : IApplicationContext
+public interface ICommandExecutorBuilder<TContext> where TContext : ApplicationContextBase
 {
     ICommandExecutorBuilder<TContext> WithInteractionContext(IInteractionContext context);
 
@@ -34,12 +34,12 @@ internal class CommandExecutorBuilder : ICommandExecutorBuilder
         m_ServiceProvider = serviceProvider;
     }
 
-    public ICommandExecutorBuilder<TContext> For<TContext>() where TContext : IApplicationContext
+    public ICommandExecutorBuilder<TContext> For<TContext>() where TContext : ApplicationContextBase
         => ActivatorUtilities.CreateInstance<CommandExecutorBuilder<TContext>>(m_ServiceProvider);
 }
 
 internal class CommandExecutorBuilder<TContext> : ICommandExecutorBuilder<TContext>
-    where TContext : IApplicationContext
+    where TContext : ApplicationContextBase
 {
     private readonly IServiceProvider m_ServiceProvider;
     private readonly List<Action<CommandExecutorService<TContext>>> m_Configurators = [];

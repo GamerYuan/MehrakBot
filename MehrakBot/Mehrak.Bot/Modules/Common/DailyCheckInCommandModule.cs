@@ -30,6 +30,9 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
         m_Logger.LogInformation("Executing Daily Check-In command for user {UserId} with profile {ProfileId}",
             Context.User.Id, profile);
 
+        m_Executor.ApplicationContext = new(Context.User.Id);
+        m_Executor.Context = Context;
+
         await m_Executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 

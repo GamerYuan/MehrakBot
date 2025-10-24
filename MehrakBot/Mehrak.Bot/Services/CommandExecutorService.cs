@@ -8,11 +8,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
+using NetCord.Services;
 
 namespace Mehrak.Bot.Services;
 
 public interface ICommandExecutorService<TContext> where TContext : IApplicationContext
 {
+    IInteractionContext Context { get; set; }
+    TContext ApplicationContext { get; set; }
+
     Task ExecuteAsync(uint profile);
 
     void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null);
