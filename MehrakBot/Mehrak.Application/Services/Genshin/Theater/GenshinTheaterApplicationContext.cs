@@ -3,7 +3,7 @@
 namespace Mehrak.Application.Services.Genshin.Theater;
 
 public class GenshinTheaterApplicationContext(ulong userId,
-    params (string, object)[] parameters)
+    params IEnumerable<(string, object)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }

@@ -5,7 +5,7 @@ namespace Mehrak.Application.Services.Genshin.Abyss;
 public class GenshinAbyssApplicationContext : ApplicationContextBase
 {
     public GenshinAbyssApplicationContext(ulong userId,
-        params (string, object)[] parameters)
+        params IEnumerable<(string, object)> parameters)
         : base(userId, parameters)
     {
     }

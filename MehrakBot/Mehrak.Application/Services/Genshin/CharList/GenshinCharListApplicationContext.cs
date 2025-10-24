@@ -3,7 +3,7 @@
 namespace Mehrak.Application.Services.Genshin.CharList;
 
 public class GenshinCharListApplicationContext(ulong userId,
-    params (string, object)[] parameters) :
+    params IEnumerable<(string, object)> parameters) :
     ApplicationContextBase(userId, parameters)
 {
 }

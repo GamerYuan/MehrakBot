@@ -3,7 +3,7 @@
 namespace Mehrak.Application.Services.Genshin.Stygian;
 
 public class GenshinStygianApplicationContext(ulong userId,
-    params (string, object)[] parameters)
+    params IEnumerable<(string, object)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }

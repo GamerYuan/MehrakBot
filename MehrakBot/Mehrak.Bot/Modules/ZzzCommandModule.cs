@@ -41,14 +41,20 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
             Context.User.Id, code, server, profile);
 
+        List<(string, object)> parameters = [(nameof(code), code), ("game", Game.ZenlessZoneZero)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, Game.ZenlessZoneZero, (nameof(code), code)))
+            .WithApplicationContext(new(Context.User.Id, Game.ZenlessZoneZero, parameters))
             .WithCommandName("zzz codes")
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("character", "Get character card")]
@@ -64,13 +70,19 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the character command with character {CharacterName}, server {Server}, profile {ProfileId}",
             Context.User.Id, character, server, profile);
 
+        List<(string, object)> parameters = [(nameof(character), character), ("game", Game.ZenlessZoneZero)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<ZzzCharacterApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, (nameof(character), character)))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("zzz character")
             .Build();
 
-        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
@@ -85,13 +97,19 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the shiyu command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
+        List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<ZzzDefenseApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("zzz shiyu")
             .Build();
 
-        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("da", "Get Deadly Assault summary card")]
@@ -106,13 +124,19 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the da command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
+        List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<ZzzAssaultApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("zzz da")
             .Build();
 
-        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
@@ -126,14 +150,20 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the notes command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
+        List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<ZzzRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("zzz notes")
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(Game.ZenlessZoneZero, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")

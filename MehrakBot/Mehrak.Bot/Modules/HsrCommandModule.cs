@@ -41,14 +41,20 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         m_Logger.LogInformation("User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",
             Context.User.Id, character, server, profile);
 
+        List<(string, object)> parameters = [(nameof(character), character), ("game", Game.HonkaiStarRail)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<HsrCharacterApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, (nameof(character), character)))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("genshin character")
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 
-        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("notes", "Get real-time notes")]
@@ -61,14 +67,20 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         m_Logger.LogInformation("User {UserId} used the real-time notes command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<HsrRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("hsr notes")
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("codes", "Redeem Honkai: Star Rail codes")]
@@ -84,14 +96,20 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
             Context.User.Id, code, server, profile);
 
+        List<(string, object)> parameters = [(nameof(code), code), ("game", Game.HonkaiStarRail)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, Game.HonkaiStarRail, (nameof(code), code)))
+            .WithApplicationContext(new(Context.User.Id, Game.HonkaiStarRail, parameters))
             .WithCommandName("hsr codes")
             .WithEphemeralResponse(true)
             .Build();
 
-        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("moc", "Get Memory of Chaos card")]
@@ -104,14 +122,19 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         m_Logger.LogInformation(
             "User {User} used the Memory command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
 
         var executor = m_Builder.For<HsrMemoryApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("hsr moc")
             .Build();
 
-        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("pf", "Get Pure Fiction card")]
@@ -125,13 +148,19 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<HsrEndGameApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, HsrEndGameMode.PureFiction))
+            .WithApplicationContext(new(Context.User.Id, HsrEndGameMode.PureFiction, parameters))
             .WithCommandName("hsr pf")
             .Build();
 
-        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("as", "Get Apocalyptic Shadow card")]
@@ -145,13 +174,19 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<HsrEndGameApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, HsrEndGameMode.ApocalypticShadow))
+            .WithApplicationContext(new(Context.User.Id, HsrEndGameMode.ApocalypticShadow, parameters))
             .WithCommandName("hsr as")
             .Build();
 
-        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     [SubSlashCommand("charlist", "Get character list card")]
@@ -165,13 +200,19 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Character List command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        if (server is not null)
+        {
+            parameters.Add((nameof(server), server.Value));
+        }
+
         var executor = m_Builder.For<HsrCharListApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id))
+            .WithApplicationContext(new(Context.User.Id, parameters))
             .WithCommandName("hsr charlist")
             .Build();
 
-        await executor.ExecuteAsync(Game.HonkaiStarRail, server, profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString(string subcommand = "")

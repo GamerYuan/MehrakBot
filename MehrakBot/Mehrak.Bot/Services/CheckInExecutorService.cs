@@ -1,37 +1,29 @@
 ﻿using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 
 namespace Mehrak.Bot.Services;
 
-public interface ICommandExecutorService<TContext> where TContext : IApplicationContext
+internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplicationContext>
 {
-    Task ExecuteAsync(uint profile);
+    private readonly IApplicationService<CheckInApplicationContext> m_Service;
+    internal override string CommandName { get; set; } = "checkin";
 
-    void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null);
-}
-
-internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TContext> where TContext : ApplicationContextBase
-{
-    private readonly IServiceProvider m_ServiceProvider;
-
-    public CommandExecutorService(
-        IServiceProvider serviceProvider,
+    public CheckInExecutorService(
+        IApplicationService<CheckInApplicationContext> service,
         IUserRepository userRepository,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
-        ILogger<CommandExecutorService<TContext>> logger
-    ) : base(userRepository, commandRateLimitService, authenticationMiddleware, metricsService, logger)
+        ILogger<CheckInExecutorService> logger)
+        : base(userRepository, commandRateLimitService, authenticationMiddleware, metricsService, logger)
     {
-        m_ServiceProvider = serviceProvider;
+        m_Service = service;
     }
 
     public override async Task ExecuteAsync(uint profile)
@@ -46,7 +38,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties(
-                    $"Error when validating input:\n{string.Join("\n", invalid)}"))));
+                    $"Error when validating input:\n{string.Join('\n', invalid)}"))));
             return;
         }
 
@@ -58,29 +50,12 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
-            var server = ApplicationContext.GetParameter<Server?>("server");
-            var game = ApplicationContext.GetParameter<Game>("game");
-
-            server ??= GetLastUsedServerAsync(authResult.User, game, profile);
-            if (server == null)
-            {
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    new InteractionMessageProperties().WithContent(
-                            "Server is required for first time use. Please specify the server parameter.")
-                        .WithFlags(MessageFlags.Ephemeral)));
-                return;
-            }
-
-            await UpdateLastUsedServerAsync(authResult.User, profile, game, server.Value);
-
             await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;
 
-            var service =
-                m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();
-            var commandResult = await service
+            var commandResult = await m_Service
                 .ExecuteAsync(ApplicationContext)
                 .ConfigureAwait(false);
 

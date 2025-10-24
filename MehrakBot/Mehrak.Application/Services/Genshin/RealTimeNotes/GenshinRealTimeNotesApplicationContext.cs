@@ -2,7 +2,7 @@
 
 namespace Mehrak.Application.Services.Genshin.RealTimeNotes;
 
-public class GenshinRealTimeNotesApplicationContext(ulong userId, params (string, object)[] parameters)
+public class GenshinRealTimeNotesApplicationContext(ulong userId, params IEnumerable<(string, object)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }

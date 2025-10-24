@@ -2,7 +2,7 @@
 
 namespace Mehrak.Application.Services.Hsr.Memory;
 
-public class HsrMemoryApplicationContext(ulong userId, params (string, object)[] parameters)
+public class HsrMemoryApplicationContext(ulong userId, params IEnumerable<(string, object)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }

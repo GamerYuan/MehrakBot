@@ -2,7 +2,7 @@
 
 namespace Mehrak.Application.Services.Zzz.Character;
 
-public class ZzzCharacterApplicationContext(ulong userId, params (string, object)[] parameters)
+public class ZzzCharacterApplicationContext(ulong userId, params IEnumerable<(string, object)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }

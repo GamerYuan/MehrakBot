@@ -8,7 +8,7 @@ public class HsrEndGameApplicationContext : ApplicationContextBase
     public HsrEndGameMode Mode { get; }
 
     public HsrEndGameApplicationContext(ulong userId, HsrEndGameMode mode,
-        params (string, object)[] parameters) : base(userId, parameters)
+        params IEnumerable<(string, object)> parameters) : base(userId, parameters)
     {
         Mode = mode;
     }

@@ -12,7 +12,7 @@ public class ApplicationContextBase : IApplicationContext
 
     private Dictionary<string, object> Parameters { get; } = [];
 
-    public ApplicationContextBase(ulong userId, params (string, object)[] parameters)
+    public ApplicationContextBase(ulong userId, params IEnumerable<(string, object)> parameters)
     {
         UserId = userId;
         foreach (var (key, value) in parameters)
