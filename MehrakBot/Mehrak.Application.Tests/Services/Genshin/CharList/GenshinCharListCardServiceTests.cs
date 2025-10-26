@@ -29,8 +29,8 @@ public class GenshinCharListCardServiceTests
     public void Setup()
     {
         m_Service = new GenshinCharListCardService(
-            MongoTestHelper.Instance.ImageRepository, 
- Mock.Of<ILogger<GenshinCharListCardService>>());
+            MongoTestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<GenshinCharListCardService>>());
     }
 
     [Test]
@@ -39,51 +39,52 @@ public class GenshinCharListCardServiceTests
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
-    await JsonSerializer.DeserializeAsync<CharacterListData>(
-        File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
+            await JsonSerializer.DeserializeAsync<CharacterListData>(
+                File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-      var goldenImage =
-    await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-          "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
+        var goldenImage =
+            await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+                "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
         var userGameData = GetTestUserGameData();
 
         var stream = await m_Service.GetCardAsync(
-       new TestCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!, Server.Asia, userGameData));
+            new TestCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!,
+                Server.Asia, userGameData));
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
- memoryStream.Position = 0;
+        memoryStream.Position = 0;
 
         var bytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-     var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
-      Directory.CreateDirectory(outputDirectory);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
         var outputImagePath = Path.Combine(outputDirectory,
-  $"GenshinCharList_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
-  await File.WriteAllBytesAsync(outputImagePath, bytes);
+            $"GenshinCharList_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, bytes);
 
-  // Save golden image to output folder for comparison
-var outputGoldenImagePath = Path.Combine(outputDirectory,
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"GenshinCharList_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
-    await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
-    Assert.That(bytes, Is.Not.Empty);
+        Assert.That(bytes, Is.Not.Empty);
         Assert.That(bytes, Is.EqualTo(goldenImage));
     }
 
     private static GameProfileDto GetTestUserGameData()
     {
-   return new GameProfileDto
+        return new GameProfileDto
         {
-      GameUid = TestUid,
- Nickname = TestNickName,
-            Level = 60,
+            GameUid = TestUid,
+            Nickname = TestNickName,
+            Level = 60
         };
     }
 
-  private class TestCardGenerationContext<T> : ICardGenerationContext<T>
+    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
     {
         public ulong UserId { get; }
         public T Data { get; }
@@ -93,10 +94,10 @@ var outputGoldenImagePath = Path.Combine(outputDirectory,
         public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
         {
             UserId = userId;
-        Data = data;
+            Data = data;
             Server = server;
-GameProfile = gameProfile;
-     }
+            GameProfile = gameProfile;
+        }
     }
 
     // [Test]
@@ -113,13 +114,13 @@ GameProfile = gameProfile;
     //
     //     var image1 = await m_Service.GetCardAsync(
     //         new TestCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData1!.List!, Server.Asia, userGameData));
-  //     var image2 = await m_Service.GetCardAsync(
+    //     var image2 = await m_Service.GetCardAsync(
     //         new TestCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData2!.List!, Server.Asia, userGameData));
     //
     //     Assert.Multiple(() =>
     //     {
     // Assert.That(image1, Is.Not.Null);
-//         Assert.That(image2, Is.Not.Null);
+    //         Assert.That(image2, Is.Not.Null);
     //  });
     //
     //     await using var fileStream1 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",

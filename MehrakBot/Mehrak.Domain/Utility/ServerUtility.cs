@@ -1,4 +1,8 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using Mehrak.Domain.Enums;
+
+#endregion
 
 namespace Mehrak.Domain.Utility;
 

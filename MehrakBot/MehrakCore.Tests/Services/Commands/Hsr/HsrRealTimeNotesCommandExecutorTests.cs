@@ -3,24 +3,13 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Mehrak.Application.Services.Hsr.RealTimeNotes;
-using Mehrak.Bot.Executors.Hsr;
-using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi.Hsr.Types;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Models;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Hsr.RealTimeNotes;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
 
 #endregion
 

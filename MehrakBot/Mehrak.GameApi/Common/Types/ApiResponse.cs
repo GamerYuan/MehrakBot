@@ -1,4 +1,8 @@
-﻿using System.Text.Json.Serialization;
+﻿#region
+
+using System.Text.Json.Serialization;
+
+#endregion
 
 namespace Mehrak.GameApi.Common.Types;
 

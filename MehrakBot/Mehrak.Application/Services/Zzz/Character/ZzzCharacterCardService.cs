@@ -1,4 +1,9 @@
-﻿using Mehrak.Application.Utility;
+﻿#region
+
+using System.Diagnostics;
+using System.Numerics;
+using System.Text.Json;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
@@ -13,9 +18,8 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Diagnostics;
-using System.Numerics;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Zzz.Character;
 
@@ -81,31 +85,49 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         List<string> files = await m_ImageRepository.ListFilesAsync("zzz_stats");
-        List<Task<(string x, Image)>> tasks = [.. files.Select(async file =>
-            (file.Replace("zzz_stats_", "").TrimStart(),
-            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(file))))];
+        List<Task<(string x, Image)>> tasks =
+        [
+            .. files.Select(async file =>
+                (file.Replace("zzz_stats_", "").TrimStart(),
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(file))))
+        ];
 
         int[] skillIds = [0, 1, 2, 3, 5, 6];
-        List<Task<(int x, Image)>> skillTasks = [.. skillIds.Select(async id =>
-            (id, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format(FileNameFormat.Zzz.SkillName, id)))))];
+        List<Task<(int x, Image)>> skillTasks =
+        [
+            .. skillIds.Select(async id =>
+                (id, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+                    string.Format(FileNameFormat.Zzz.SkillName, id)))))
+        ];
 
-        List<Task<(string x, Image)>> attributeTasks = [.. (await m_ImageRepository.ListFilesAsync("zzz_attribute")).Select(async file =>
-            (file.Replace("zzz_attribute_", "").TrimStart(),
-                await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(file))))];
+        List<Task<(string x, Image)>> attributeTasks =
+        [
+            .. (await m_ImageRepository.ListFilesAsync("zzz_attribute")).Select(async file =>
+                (file.Replace("zzz_attribute_", "").TrimStart(),
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(file))))
+        ];
 
-        List<Task<(int x, Image)>> professionTasks = [.. Enumerable.Range(1, 6).Select(async i =>
-            (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format(FileNameFormat.Zzz.ProfessionName, i)))))];
+        List<Task<(int x, Image)>> professionTasks =
+        [
+            .. Enumerable.Range(1, 6).Select(async i =>
+                (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+                    string.Format(FileNameFormat.Zzz.ProfessionName, i)))))
+        ];
 
         char[] itemRarity = ['s', 'a', 'b'];
-        List<Task<(char x, Image)>> rarityTasks = [.. itemRarity.Select(async i =>
-            (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format("zzz_rarity_{0}", i)))))];
+        List<Task<(char x, Image)>> rarityTasks =
+        [
+            .. itemRarity.Select(async i =>
+                (i, await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+                    string.Format("zzz_rarity_{0}", i)))))
+        ];
 
-        List<Task<(int x, Image)>> weaponStarTasks = [.. Enumerable.Range(1, 5)
-            .Select(async i => (i, await Image.LoadAsync(
-                await m_ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}"))))];
+        List<Task<(int x, Image)>> weaponStarTasks =
+        [
+            .. Enumerable.Range(1, 5)
+                .Select(async i => (i, await Image.LoadAsync(
+                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}"))))
+        ];
 
         m_StatImages = (await Task.WhenAll(tasks)).ToDictionary(StringComparer.OrdinalIgnoreCase);
         m_SkillImages = (await Task.WhenAll(skillTasks)).ToDictionary();
@@ -141,13 +163,9 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
             {
                 DiskDrive? disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
                 if (disk == null)
-                {
                     return m_DiskTemplate.CloneAs<Rgba32>();
-                }
                 else
-                {
                     return await CreateDiskImageAsync(disk);
-                }
             }).ToListAsync();
 
             Color accentColor = Color.ParseHex(character.VerticalPaintingColor);
@@ -164,17 +182,17 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
                 // Character Overview
                 ctx.DrawFauxItalicText(new RichTextOptions(m_ExtraLargeFont)
-                {
-                    Origin = new Vector2(-500, 0),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top,
-                    WrappingLength = 1800,
-                    WordBreaking = WordBreaking.BreakAll
-                }, string.Join($"{character.FullName.ToUpperInvariant()} ", Enumerable.Range(0, 5).Select(_ => "")),
+                    {
+                        Origin = new Vector2(-500, 0),
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Top,
+                        WrappingLength = 1800,
+                        WordBreaking = WordBreaking.BreakAll
+                    }, string.Join($"{character.FullName.ToUpperInvariant()} ", Enumerable.Range(0, 5).Select(_ => "")),
                     Color.White.WithAlpha(0.25f));
 
                 ctx.DrawImage(portraitImage,
-                    new Point(350 - (portraitImage.Width / 2), 650 - (portraitImage.Height / 4)), 1f);
+                    new Point(350 - portraitImage.Width / 2, 650 - portraitImage.Height / 4), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
@@ -205,7 +223,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                     new PointF(70, bounds.Bottom + 20));
                 ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.White, new PointF(70, 1150));
 
-                ctx.FillPolygon(BackgroundColor, new PointF(900, 0), new PointF(688, 1200), new PointF(3000, 1200), new PointF(3000, 0));
+                ctx.FillPolygon(BackgroundColor, new PointF(900, 0), new PointF(688, 1200), new PointF(3000, 1200),
+                    new PointF(3000, 0));
 
                 foreach (Rank rank in character.Ranks)
                 {
@@ -214,12 +233,14 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                     ctx.DrawImage(rankImage, new Point(890 - (int)MathF.Round(yOffset * 0.1763f), yOffset), 1f);
                 }
 
-                using Image<Rgba32> professionImage = CreateRotatedIconImage(m_ProfessionImages[character.AvatarProfession], accentColor);
+                using Image<Rgba32> professionImage =
+                    CreateRotatedIconImage(m_ProfessionImages[character.AvatarProfession], accentColor);
                 ctx.DrawImage(professionImage, new Point(890 - (int)MathF.Round(1030 * 0.1763f), 1030), 1f);
 
                 using Image<Rgba32> elementImage =
                     CreateRotatedIconImage(
-                        m_AttributeImages[StatUtils.GetElementNameFromId(character.ElementType, character.SubElementType)],
+                        m_AttributeImages[
+                            StatUtils.GetElementNameFromId(character.ElementType, character.SubElementType)],
                         accentColor);
                 ctx.DrawImage(elementImage, new Point(890 - (int)MathF.Round(900 * 0.1763f), 900), 1f);
 
@@ -261,11 +282,14 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                         WrappingLength = 280,
                         VerticalAlignment = VerticalAlignment.Top
                     }, character.Weapon.Name, Color.White);
-                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(character.Weapon.MainProperties[0].PropertyName)],
+                    ctx.DrawImage(
+                        m_StatImages[StatUtils.GetStatAssetName(character.Weapon.MainProperties[0].PropertyName)],
                         new Point(980, 940), 1f);
-                    ctx.DrawText(character.Weapon.MainProperties[0].Base, m_MediumFont, Color.White, new PointF(1030, 955));
+                    ctx.DrawText(character.Weapon.MainProperties[0].Base, m_MediumFont, Color.White,
+                        new PointF(1030, 955));
 
-                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(character.Weapon.Properties[0].PropertyName)], new Point(1175, 940), 1f);
+                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(character.Weapon.Properties[0].PropertyName)],
+                        new Point(1175, 940), 1f);
                     ctx.DrawText(character.Weapon.Properties[0].Base, m_MediumFont, Color.White, new PointF(1225, 955));
                 }
                 else
@@ -292,26 +316,23 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 {
                     CharacterProperty stat = character.Properties[i];
 
-                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(stat.PropertyName)], new Point(1440, 75 + statsYOffset), 1f);
+                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(stat.PropertyName)],
+                        new Point(1440, 75 + statsYOffset), 1f);
 
                     if (stat.PropertyName.Length > 20)
-                    {
                         ctx.DrawText(new RichTextOptions(m_SmallFont)
                         {
                             Origin = new Vector2(1495, 103 + statsYOffset),
                             VerticalAlignment = VerticalAlignment.Center,
                             WrappingLength = 620
                         }, stat.PropertyName, Color.White);
-                    }
                     else
-                    {
                         ctx.DrawText(stat.PropertyName, m_MediumFont, Color.White, new PointF(1495, 90 + statsYOffset));
-                    }
 
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
                         Origin = new Vector2(2100, 90 + statsYOffset),
-                        HorizontalAlignment = HorizontalAlignment.Right,
+                        HorizontalAlignment = HorizontalAlignment.Right
                     }, stat.Final!, Color.White);
 
                     if (!string.IsNullOrEmpty(stat.Base))
@@ -331,30 +352,30 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                             HorizontalAlignment = HorizontalAlignment.Right
                         }, stat.Base, Color.LightSlateGrey);
                     }
+
                     statsYOffset += offsetInterval;
                 }
 
                 // Active Set
-                EquipSuit[] activeSets = [.. character.Equip.Select(x => x.EquipSuit).DistinctBy(x => x.SuitId).Where(x => x.Own >= 2)];
+                EquipSuit[] activeSets =
+                    [.. character.Equip.Select(x => x.EquipSuit).DistinctBy(x => x.SuitId).Where(x => x.Own >= 2)];
                 for (int i = 0; i < activeSets.Length; i++)
                 {
                     int yOffset = i * 50;
                     EquipSuit set = activeSets[i];
-                    ctx.DrawText(new(m_SmallFont)
-                    {
-                        Origin = new Vector2(2100, 1060 + yOffset),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{set.Name}\tx{set.Own}", Color.White);
+                    ctx.DrawText(new RichTextOptions(m_SmallFont)
+                        {
+                            Origin = new Vector2(2100, 1060 + yOffset),
+                            HorizontalAlignment = HorizontalAlignment.Right
+                        }, $"{set.Name}\tx{set.Own}", Color.White);
                 }
 
                 if (activeSets.Length == 0)
-                {
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
                         Origin = new Vector2(2100, 1060),
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, "No Active Set", Color.White);
-                }
 
                 for (int i = 0; i < diskImage.Count; i++)
                 {
@@ -373,7 +394,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessage.CardGenError, "Character", context.UserId, JsonSerializer.Serialize(characterInformation));
+            m_Logger.LogError(e, LogMessage.CardGenError, "Character", context.UserId,
+                JsonSerializer.Serialize(characterInformation));
             throw new CommandException("Failed to generate Character card", e);
         }
         finally
@@ -408,17 +430,18 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         {
             ctx.DrawImage(diskImage, new Point(10, 15), 1f);
             ctx.DrawImage(m_RarityImages[disk.Rarity[0]], new Point(20, 115), 1f);
-            ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)], new Point(215, 20), 1f);
+            ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)],
+                new Point(215, 20), 1f);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
                 Origin = new PointF(265, 80),
                 HorizontalAlignment = HorizontalAlignment.Right
             }, disk.MainProperties[0]!.Base!, Color.White);
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-            {
-                Origin = new PointF(265, 130),
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"Lv.{disk.Level}", Color.White);
+                {
+                    Origin = new PointF(265, 130),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"Lv.{disk.Level}", Color.White);
             // Draw properties
             for (int i = 0; i < disk.Properties!.Count; i++)
             {
@@ -483,7 +506,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
             IPath path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
             ctx.Fill(OverlayColor, path);
             ctx.Draw(accentColor, 4f, path);
-            ctx.DrawImage(icon, new Point(60 - (icon.Width / 2), 75 - (icon.Height / 2)), 1f);
+            ctx.DrawImage(icon, new Point(60 - icon.Width / 2, 75 - icon.Height / 2), 1f);
             ctx.Rotate(10, KnownResamplers.Bicubic);
         });
 

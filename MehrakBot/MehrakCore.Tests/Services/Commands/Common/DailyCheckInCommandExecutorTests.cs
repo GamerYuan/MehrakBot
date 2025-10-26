@@ -1,22 +1,12 @@
 #region
 
-using Mehrak.Application.Services.Common;
-using Mehrak.Bot.Executors.Common;
-using Mehrak.Domain.Interfaces;
-using MehrakCore.Models;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Common;
-using MehrakCore.Services.Common;
+using System.Text;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using NetCord;
-using NetCord.Rest.JsonModels;
-using NetCord.Services.ApplicationCommands;
-using System.Text;
 
 #endregion
 
@@ -181,7 +171,7 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 2, LtUid = TestLtUid }
+                new UserProfile { ProfileId = 2, LtUid = TestLtUid }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
@@ -214,11 +204,12 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user); // Setup token cache to return null (no cached token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
 
         m_AuthenticationMiddlewareMock.Setup(x =>
@@ -246,14 +237,15 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = null }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = null }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -277,14 +269,15 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return valid token (shouldn't be used)
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -314,14 +307,15 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -350,14 +344,15 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -378,14 +373,15 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = null }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = null }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -406,13 +402,14 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes); // Make CheckInAsync throw an exception
         m_DailyCheckInServiceMock.Setup(x =>
                 x.CheckInAsync(It.IsAny<ulong>(), It.IsAny<string>()))
@@ -467,11 +464,12 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
         m_AuthenticationMiddlewareMock.Setup(x =>
                 x.RegisterAuthenticationListener(m_TestUserId, It.IsAny<IAuthenticationListener>()))
@@ -497,16 +495,17 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid },
-                new() { ProfileId = 2, LtUid = TestLtUid + 1 },
-                new() { ProfileId = 3, LtUid = TestLtUid + 2 }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid },
+                new UserProfile { ProfileId = 2, LtUid = TestLtUid + 1 },
+                new UserProfile { ProfileId = 3, LtUid = TestLtUid + 2 }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache for profile 2
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid + 1}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid + 1}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -546,14 +545,15 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return valid token
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act
@@ -582,14 +582,15 @@ public class DailyCheckInCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new() { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
+                new UserProfile { ProfileId = 1, LtUid = TestLtUid, LastCheckIn = lastCheckInUtc }
             ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
         // Setup token cache to return valid token (shouldn't be used)
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
 
         // Act

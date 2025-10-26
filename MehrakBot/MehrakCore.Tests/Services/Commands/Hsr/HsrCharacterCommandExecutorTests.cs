@@ -1,30 +1,18 @@
 #region
 
-using Mehrak.Application.Services.Hsr.Character;
-using Mehrak.Bot.Executors.Hsr;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Hsr.Types;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Hsr.Character;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -159,7 +147,8 @@ public class HsrCharacterCommandExecutorTests
     public void ExecuteAsync_WhenParametersCountInvalid_ThrowsArgumentException()
     {
         // Arrange & Act & Assert
-        ArgumentException? ex = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync("param1", "param2").AsTask());
+        ArgumentException? ex =
+            Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync("param1", "param2").AsTask());
         Assert.That(ex.Message, Contains.Substring("Invalid parameters count"));
     }
 
@@ -192,7 +181,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -223,7 +212,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -254,7 +243,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -301,7 +290,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -335,7 +324,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -383,7 +372,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -401,7 +390,8 @@ public class HsrCharacterCommandExecutorTests
 
         // Setup token cache to return a token (user is authenticated)
         byte[] cachedToken = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(cachedToken);
 
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Server.Asia));
@@ -431,7 +421,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -463,7 +453,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -481,7 +471,8 @@ public class HsrCharacterCommandExecutorTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(testUser); // Set pending parameters
         await m_Executor.ExecuteAsync("Trailblazer", Server.Asia, 1u);
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup game record API
         SetupHttpMessageHandlerForGameRoleApi(HttpStatusCode.OK, CreateValidGameRecordResponse(Server.Asia));
@@ -516,7 +507,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -574,7 +565,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -624,7 +615,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -690,7 +681,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -736,6 +727,7 @@ public class HsrCharacterCommandExecutorTests
             Assert.That(updatedProfile?.GameUids?[Game.HonkaiStarRail][server.ToString()], Is.EqualTo(TestGameUid));
             Assert.That(bytes, Is.Not.Empty);
         }
+
         m_CharacterCardServiceMock.Verify(
             x => x.GenerateCharacterCardAsync(It.IsAny<HsrCharacterInformation>(), TestGameUid), Times.Once);
     }
@@ -753,7 +745,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -789,7 +781,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -846,7 +838,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -900,7 +892,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -972,7 +964,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1058,7 +1050,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1146,7 +1138,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1233,7 +1225,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1318,7 +1310,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1408,7 +1400,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1446,7 +1438,8 @@ public class HsrCharacterCommandExecutorTests
             .Returns(aliases);
 
         // Setup character API that doesn't include the searched character
-        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // Different from our search
+        HsrCharacterInformation
+            testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // Different from our search
         HsrBasicCharacterData characterList = new()
         {
             AvatarList = [testCharacterData],
@@ -1482,7 +1475,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1520,7 +1513,8 @@ public class HsrCharacterCommandExecutorTests
             .Returns(aliases);
 
         // Setup character API that only has Trailblazer (not Firefly)
-        HsrCharacterInformation testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // User doesn't own Firefly
+        HsrCharacterInformation
+            testCharacterData = CreateTestCharacterInfoWithName("Trailblazer"); // User doesn't own Firefly
         HsrBasicCharacterData characterList = new()
         {
             AvatarList = [testCharacterData],
@@ -1557,7 +1551,7 @@ public class HsrCharacterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1613,6 +1607,7 @@ public class HsrCharacterCommandExecutorTests
     }
 
     #endregion
+
     #region Helper Methods
 
     private static string CreateValidGameRecordResponse(Server region = Server.Asia)
@@ -1718,8 +1713,8 @@ public class HsrCharacterCommandExecutorTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri != null &&
-                        req.RequestUri.GetLeftPart(UriPartial.Path).ToString() ==
-                        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken"),
+                    req.RequestUri.GetLeftPart(UriPartial.Path).ToString() ==
+                    $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken"),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(response);
     }

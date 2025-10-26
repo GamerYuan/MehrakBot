@@ -1,6 +1,10 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
+
+#endregion
 
 namespace Mehrak.Application.Services.Genshin.Types;
 

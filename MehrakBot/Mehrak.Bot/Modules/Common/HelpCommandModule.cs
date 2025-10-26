@@ -2,9 +2,13 @@
 
 #endregion
 
+#region
+
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
+
+#endregion
 
 namespace Mehrak.Bot.Modules.Common;
 

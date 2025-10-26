@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Services.Common;
+﻿#region
+
+using Mehrak.Application.Services.Common;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -8,6 +10,8 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
+
+#endregion
 
 namespace Mehrak.Application.Services.Genshin.RealTimeNotes;
 
@@ -33,7 +37,8 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
         {
             string region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
+            var profile =
+                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
             {
@@ -44,12 +49,13 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
             var gameUid = profile.GameUid;
 
             var notesResult = await m_ApiService.GetAsync(
-                new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!notesResult.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
             }
 
             return await BuildRealTimeNotes(notesResult.Data, context.Server, gameUid);
@@ -73,59 +79,65 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
         long currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         long weeklyReset = server.GetNextWeeklyResetUnix();
 
-        List<ICommandResultComponent> components = [
+        List<ICommandResultComponent> components =
+        [
             new CommandText($"Real Time Notes for UID: {uid}", CommandText.TextType.Header2),
             new CommandSection([
-                new("Original Resin", CommandText.TextType.Header3),
-                new($"{data.CurrentResin}/{data.MaxResin}"),
-                new(data.CurrentResin == data.MaxResin
-                        ? "Already Full!"
-                        : $"Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>", CommandText.TextType.Footer)],
-                new("genshin_resin.png", await resinImage)
-                ),
+                    new CommandText("Original Resin", CommandText.TextType.Header3),
+                    new CommandText($"{data.CurrentResin}/{data.MaxResin}"),
+                    new CommandText(data.CurrentResin == data.MaxResin
+                            ? "Already Full!"
+                            : $"Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>",
+                        CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("genshin_resin.png", await resinImage)
+            ),
             new CommandSection([
-                new("Expeditions", CommandText.TextType.Header3),
-                new(data.CurrentExpeditionNum > 0
+                    new CommandText("Expeditions", CommandText.TextType.Header3),
+                    new CommandText(data.CurrentExpeditionNum > 0
                         ? $"{data.CurrentExpeditionNum}/{data.MaxExpeditionNum}"
                         : "None Dispatched!"),
-                new(data.CurrentExpeditionNum > 0
+                    new CommandText(data.CurrentExpeditionNum > 0
                         ? data.Expeditions!.Max(x => long.Parse(x.RemainedTime!)) > 0
                             ? $"Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
                             : "All Expeditions Completed"
-                        : "To be dispatched", CommandText.TextType.Footer)],
-                new("genshin_expedition.png", await expeditionImage)
-                ),
+                        : "To be dispatched", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("genshin_expedition.png", await expeditionImage)
+            ),
             new CommandSection([
-                    new("Serenitea Pot", CommandText.TextType.Header3),
-                    new(data.CurrentHomeCoin == data.MaxHomeCoin
+                    new CommandText("Serenitea Pot", CommandText.TextType.Header3),
+                    new CommandText(data.CurrentHomeCoin == data.MaxHomeCoin
                         ? "Already Full!"
                         : $"{data.CurrentHomeCoin}/{data.MaxHomeCoin}"),
-                    new(data.CurrentHomeCoin == data.MaxHomeCoin
-                        ? "To be collected"
-                        : $"Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>", CommandText.TextType.Footer)],
-                    new("genshin_teapot.png", await teapotImage)
-                ),
+                    new CommandText(data.CurrentHomeCoin == data.MaxHomeCoin
+                            ? "To be collected"
+                            : $"Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>",
+                        CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("genshin_teapot.png", await teapotImage)
+            ),
             new CommandSection([
-                    new("Weekly Bosses", CommandText.TextType.Header3),
-                    new($"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}"),
-                    new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
-                    new("genshin_weekly.png", await weeklyImage)
-                )
-
+                    new CommandText("Weekly Bosses", CommandText.TextType.Header3),
+                    new CommandText(
+                        $"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}"),
+                    new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("genshin_weekly.png", await weeklyImage)
+            )
         ];
 
         if (data.Transformer?.Obtained == true)
-        {
             components.Add(
                 new CommandSection([
-                    new("Parametric Transformer", CommandText.TextType.Header3),
-                    new(data.Transformer.RecoveryTime!.Reached
-                        ? "Not Claimed!"
-                        : "Claimed!"),
-                    new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
-                    new("genshin_transformer.png", await transformerImage)
+                        new CommandText("Parametric Transformer", CommandText.TextType.Header3),
+                        new CommandText(data.Transformer.RecoveryTime!.Reached
+                            ? "Not Claimed!"
+                            : "Claimed!"),
+                        new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
+                    ],
+                    new CommandAttachment("genshin_transformer.png", await transformerImage)
                 ));
-        }
 
         return CommandResult.Success(components, true, true);
     }

@@ -1,7 +1,11 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Services;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Services;
+
+#endregion
 
 namespace Mehrak.Bot.Builders;
 
@@ -20,7 +24,8 @@ public interface ICommandExecutorBuilder<TContext> where TContext : ApplicationC
 
     ICommandExecutorBuilder<TContext> WithEphemeralResponse(bool ephemeral = true);
 
-    ICommandExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate, string? errorMessage = null);
+    ICommandExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
+        string? errorMessage = null);
 
     ICommandExecutorService<TContext> Build();
 }
@@ -35,7 +40,9 @@ internal class CommandExecutorBuilder : ICommandExecutorBuilder
     }
 
     public ICommandExecutorBuilder<TContext> For<TContext>() where TContext : ApplicationContextBase
-        => ActivatorUtilities.CreateInstance<CommandExecutorBuilder<TContext>>(m_ServiceProvider);
+    {
+        return ActivatorUtilities.CreateInstance<CommandExecutorBuilder<TContext>>(m_ServiceProvider);
+    }
 }
 
 internal class CommandExecutorBuilder<TContext> : ICommandExecutorBuilder<TContext>
@@ -78,7 +85,8 @@ internal class CommandExecutorBuilder<TContext> : ICommandExecutorBuilder<TConte
         return this;
     }
 
-    public ICommandExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate, string? errorMessage = null)
+    public ICommandExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
+        string? errorMessage = null)
     {
         if (string.IsNullOrWhiteSpace(paramName))
             throw new ArgumentException("Parameter name cannot be null or whitespace.", nameof(paramName));

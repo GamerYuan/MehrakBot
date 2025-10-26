@@ -10,11 +10,13 @@ internal static class LogMessage
 
     public const string CardGenStartInfo = "Start generating {CardType} Card for User {UserId}";
 
-    public const string CardGenSuccess = "Successfully generated {CardType} Card for User {UserId} in {ElapsedMilliseconds} ms";
+    public const string CardGenSuccess =
+        "Successfully generated {CardType} Card for User {UserId} in {ElapsedMilliseconds} ms";
 
     public const string CardGenError = "Failed to generate {CardType} Card for User {UserId}, Data:\n{Data}";
 
-    public const string ImageUpdateError = "Failed to update images for Command {Command} for User {UserId}\nData:\n{Data}";
+    public const string ImageUpdateError =
+        "Failed to update images for Command {Command} for User {UserId}\nData:\n{Data}";
 
     public const string CharNotFoundInfo = "Character {CharacterName} not found for User {UserId} UID {GameUid}";
 

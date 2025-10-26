@@ -1,6 +1,10 @@
+#region
+
+using System.Diagnostics.CodeAnalysis;
 using Mehrak.Domain.Models;
 using NetCord.Services;
-using System.Diagnostics.CodeAnalysis;
+
+#endregion
 
 namespace Mehrak.Bot.Authentication;
 

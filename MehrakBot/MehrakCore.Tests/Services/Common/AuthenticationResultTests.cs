@@ -1,8 +1,6 @@
 #region
 
-using Mehrak.Domain.Interfaces;
 using Moq;
-using NetCord.Services;
 
 #endregion
 

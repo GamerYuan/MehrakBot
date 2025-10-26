@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Services.Common;
+﻿#region
+
+using Mehrak.Application.Services.Common;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -7,6 +9,8 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
+
+#endregion
 
 namespace Mehrak.Application.Services.Zzz.RealTimeNotes;
 
@@ -32,7 +36,8 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
         {
             string region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero, region);
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+                region);
 
             if (profile == null)
             {
@@ -43,12 +48,13 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
             var gameUid = profile.GameUid;
 
             var notesResult = await m_ApiService.GetAsync(
-                new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!notesResult.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
             }
 
             ZzzRealTimeNotesData notesData = notesResult.Data;
@@ -85,12 +91,13 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
         [
             new CommandText($"Zenless Zone Zero Real-Time Notes (UID: {uid})", CommandText.TextType.Header2),
             new CommandSection([
-                new("Battery Charge", CommandText.TextType.Header3),
-                new($"{data.Energy.Progress.Current}/{data.Energy.Progress.Max}"),
-                new(data.Energy.Restore == 0
-                    ? "Fully Recovered!"
-                    : $"Recovers <t:{currTime + data.Energy.Restore}:R>", CommandText.TextType.Footer)],
-                new("zzz_battery.png", stamImage)
+                    new CommandText("Battery Charge", CommandText.TextType.Header3),
+                    new CommandText($"{data.Energy.Progress.Current}/{data.Energy.Progress.Max}"),
+                    new CommandText(data.Energy.Restore == 0
+                        ? "Fully Recovered!"
+                        : $"Recovers <t:{currTime + data.Energy.Restore}:R>", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("zzz_battery.png", stamImage)
             ),
             new CommandText("Daily Missions", CommandText.TextType.Header3),
             new CommandText($"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}"),

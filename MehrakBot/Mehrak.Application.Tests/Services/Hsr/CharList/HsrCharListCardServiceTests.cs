@@ -1,12 +1,16 @@
-﻿using Mehrak.Application.Services.Hsr.CharList;
+﻿#region
+
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+
+#endregion
 
 namespace Mehrak.Application.Tests.Services.Hsr.CharList;
 
@@ -21,15 +25,15 @@ public class HsrCharListCardServiceTests
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
     [SetUp]
     public void Setup()
     {
         m_Service = new HsrCharListCardService(
-      MongoTestHelper.Instance.ImageRepository,
-         Mock.Of<ILogger<HsrCharListCardService>>());
+            MongoTestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<HsrCharListCardService>>());
     }
 
     [Test]
@@ -37,9 +41,9 @@ public class HsrCharListCardServiceTests
     public async Task GetCharListCardAsync_TestData_MatchesGoldenImage(string filename)
     {
         HsrBasicCharacterData? testData = await
-          JsonSerializer.DeserializeAsync<HsrBasicCharacterData>(
-           File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-       "Hsr", filename)), JsonOptions);
+            JsonSerializer.DeserializeAsync<HsrBasicCharacterData>(
+                File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
+                    "Hsr", filename)), JsonOptions);
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
         byte[] goldenImage =
@@ -49,7 +53,8 @@ public class HsrCharListCardServiceTests
         GameProfileDto userGameData = GetTestUserGameData();
 
         Stream image = await m_Service.GetCardAsync(
-            new TestCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!, Server.Asia, userGameData));
+            new TestCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!,
+                Server.Asia, userGameData));
 
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);
@@ -60,12 +65,12 @@ public class HsrCharListCardServiceTests
         string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
         string outputImagePath = Path.Combine(outputDirectory,
-              $"HsrCharList_Data{Path.GetFileNameWithoutExtension(filename).Last()}_Generated.jpg");
+            $"HsrCharList_Data{Path.GetFileNameWithoutExtension(filename).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
         string outputGoldenImagePath = Path.Combine(outputDirectory,
-          $"HsrCharList_Data{Path.GetFileNameWithoutExtension(filename).Last()}_Golden.jpg");
+            $"HsrCharList_Data{Path.GetFileNameWithoutExtension(filename).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
@@ -78,7 +83,7 @@ public class HsrCharListCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 60,
+            Level = 60
         };
     }
 

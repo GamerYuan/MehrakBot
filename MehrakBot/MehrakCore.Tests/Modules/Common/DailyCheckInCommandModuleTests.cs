@@ -1,27 +1,12 @@
 #region
 
-using Mehrak.Application.Services.Common;
-using Mehrak.Bot.Executors.Common;
-using Mehrak.Bot.Executors.Executor;
-using Mehrak.Bot.Modules.Common;
-using Mehrak.Domain.Interfaces;
-using MehrakCore.Models;
-using MehrakCore.Modules.Common;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Common;
-using MehrakCore.Services.Commands.Executor;
-using MehrakCore.Services.Common;
+using System.Text;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using NetCord;
-using NetCord.Rest.JsonModels;
-using NetCord.Services;
-using NetCord.Services.ApplicationCommands;
-using System.Text;
 
 #endregion
 
@@ -206,7 +191,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (no token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => null);
 
         // Create test user with a profile
@@ -215,7 +201,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -240,7 +226,8 @@ public class DailyCheckInCommandModuleTests
         // Verify cache was checked for rate limit and token
         m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(
+            x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
@@ -263,7 +250,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken)); // Set up check-in service to succeed
         m_CheckInServiceMock.Setup(x => x.CheckInAsync(TestLtUid, TestLToken))
             .Returns(Task.FromResult(Result<(bool, string)>.Success((true, "Check in success"))));
@@ -274,7 +262,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -299,7 +287,8 @@ public class DailyCheckInCommandModuleTests
         // Verify cache was checked for rate limit and token
         m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(
+            x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
@@ -323,7 +312,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{customLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{customLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken)); // Set up check-in service to succeed
         m_CheckInServiceMock.Setup(x => x.CheckInAsync(customLtUid, TestLToken))
             .Returns(Task.FromResult(Result<(bool, string)>.Success((true, "Check in success"))));
@@ -334,13 +324,13 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
                     GameUids = []
                 },
-                new()
+                new UserProfile
                 {
                     ProfileId = customProfileId,
                     LtUid = customLtUid,
@@ -364,7 +354,8 @@ public class DailyCheckInCommandModuleTests
         Assert.That(result, Is.Not.Null);
 
         // Verify cache was checked with the correct key
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{m_TestUserId}_{customLtUid}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(
+            x => x.GetAsync($"TokenCache_{m_TestUserId}_{customLtUid}", It.IsAny<CancellationToken>()),
             Times.Once); // Verify check-in service was called with the correct parameters
         m_CheckInServiceMock.Verify(
             x => x.CheckInAsync(customLtUid, TestLToken),
@@ -379,7 +370,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache to throw an exception when retrieving token
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Test exception"));
 
         // Create test user with a profile
@@ -388,7 +380,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -432,7 +424,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Create test user with a profile that was already checked in today
@@ -441,7 +434,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -499,7 +492,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set up check-in service to succeed
@@ -512,7 +506,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -538,7 +532,8 @@ public class DailyCheckInCommandModuleTests
         // Verify cache was checked for rate limit and token
         m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(
+            x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
@@ -560,7 +555,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set up check-in service to succeed
@@ -574,7 +570,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -600,7 +596,8 @@ public class DailyCheckInCommandModuleTests
         // Verify cache was checked for rate limit and token
         m_DistributedCacheMock.Verify(x => x.GetAsync($"RateLimit_{m_TestUserId}", It.IsAny<CancellationToken>()),
             Times.Once);
-        m_DistributedCacheMock.Verify(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
+        m_DistributedCacheMock.Verify(
+            x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Verify rate limit was set
@@ -629,7 +626,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Create test user with a profile that was checked in at midnight today
@@ -638,7 +636,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -688,7 +686,8 @@ public class DailyCheckInCommandModuleTests
             .ReturnsAsync(() => null);
 
         // Set up distributed cache for token check (has token)
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Set up check-in service to succeed
@@ -702,7 +701,7 @@ public class DailyCheckInCommandModuleTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,

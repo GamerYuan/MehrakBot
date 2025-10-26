@@ -1,9 +1,9 @@
 ﻿#region
 
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using System.Text.Json.Serialization;
 
 #endregion
 
@@ -19,9 +19,15 @@ public class AbyssAvatar
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Genshin.AvatarName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.AvatarName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public class Battle
@@ -108,11 +114,18 @@ public class AbyssRankAvatar
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public string ToImageName() =>
-        string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId);
+    }
 
-    public string ToAvatarImageName() => string.Format(FileNameFormat.Genshin.AvatarName, AvatarId);
+    public string ToAvatarImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.AvatarName, AvatarId);
+    }
 
-    public IImageData ToImageData() =>
-        new ImageData(ToImageName(), AvatarIcon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), AvatarIcon);
+    }
 }

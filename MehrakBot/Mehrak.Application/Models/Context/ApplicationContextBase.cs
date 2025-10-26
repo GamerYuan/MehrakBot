@@ -1,5 +1,9 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
+
+#endregion
 
 namespace Mehrak.Application.Models.Context;
 
@@ -15,10 +19,7 @@ public class ApplicationContextBase : IApplicationContext
     public ApplicationContextBase(ulong userId, params IEnumerable<(string, object)> parameters)
     {
         UserId = userId;
-        foreach (var (key, value) in parameters)
-        {
-            Parameters[key] = value;
-        }
+        foreach (var (key, value) in parameters) Parameters[key] = value;
     }
 
     public T? GetParameter<T>(string key)

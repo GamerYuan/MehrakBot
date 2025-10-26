@@ -64,6 +64,7 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
                 m_Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
             var gameRecords = gameRecordResult.Data.ToList();
             if (gameRecords.Count == 0)
             {
@@ -104,6 +105,7 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
                     checkInResults.Add((false, $"{game.ToFriendlyString()}: {checkInResponse.ErrorMessage}"));
                 }
             }
+
             var resultContent = string.Join("\n", checkInResults.Select(x => x.Item2));
 
             if (checkInResults.All(x => x.Item1) && profile != null)
@@ -113,7 +115,7 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
             }
 
             m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);
-            return CommandResult.Success(components: [new CommandText(resultContent)]);
+            return CommandResult.Success([new CommandText(resultContent)]);
         }
         catch (Exception e)
         {

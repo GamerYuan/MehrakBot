@@ -1,8 +1,12 @@
+#region
+
+using System.Text.Json;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -20,7 +24,7 @@ public class RedisCacheService : ICacheService
     public async Task SetAsync<T>(ICacheEntry<T> entry)
     {
         m_Logger.LogDebug("Storing object with {Key} into cache", entry.Key);
-        var options = new DistributedCacheEntryOptions()
+        var options = new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = entry.ExpirationTime
         };
@@ -31,10 +35,7 @@ public class RedisCacheService : ICacheService
     {
         m_Logger.LogDebug("Retrieving object with {Key} from cache", key);
         var val = await m_Cache.GetStringAsync(key);
-        if (string.IsNullOrEmpty(val))
-        {
-            return default;
-        }
+        if (string.IsNullOrEmpty(val)) return default;
 
         return JsonSerializer.Deserialize<T>(val);
     }

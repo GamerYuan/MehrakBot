@@ -1,11 +1,15 @@
-﻿using Mehrak.Application.Services.Zzz.Defense;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Tests.Services.Zzz.Defense;
 
@@ -24,8 +28,8 @@ public class ZzzDefenseCardServiceTests
     public async Task Setup()
     {
         m_Service = new ZzzDefenseCardService(
-     MongoTestHelper.Instance.ImageRepository,
-  Mock.Of<ILogger<ZzzDefenseCardService>>());
+            MongoTestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<ZzzDefenseCardService>>());
         await m_Service.InitializeAsync();
     }
 
@@ -39,7 +43,8 @@ public class ZzzDefenseCardServiceTests
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(defenseData, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
         GameProfileDto userGameData = GetTestUserGameData();
@@ -74,7 +79,7 @@ public class ZzzDefenseCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 60,
+            Level = 60
         };
     }
 

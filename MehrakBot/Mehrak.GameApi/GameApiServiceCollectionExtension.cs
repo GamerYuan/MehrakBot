@@ -1,4 +1,7 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using System.Text.Json.Nodes;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common;
@@ -10,7 +13,8 @@ using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Zzz;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json.Nodes;
+
+#endregion
 
 namespace Mehrak.GameApi;
 

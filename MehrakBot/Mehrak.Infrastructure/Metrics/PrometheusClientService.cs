@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Infrastructure.Models;
 using System.Text.Json;
+using Mehrak.Infrastructure.Models;
 
 #endregion
 

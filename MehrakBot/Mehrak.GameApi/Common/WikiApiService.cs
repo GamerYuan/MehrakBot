@@ -1,9 +1,13 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using System.Text.Json.Nodes;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json.Nodes;
+
+#endregion
 
 namespace Mehrak.GameApi.Common;
 
@@ -36,13 +40,8 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             request.Headers.Add("X-Rpc-Language", context.Game == Game.Genshin ? "zh-cn" : "en-us");
 
             if (context.Game == Game.ZenlessZoneZero)
-            {
                 request.Headers.Add("X-Rpc-Wiki_app", "zzz");
-            }
-            else if (context.Game == Game.HonkaiStarRail)
-            {
-                request.Headers.Add("X-Rpc-Wiki_app", "hsr");
-            }
+            else if (context.Game == Game.HonkaiStarRail) request.Headers.Add("X-Rpc-Wiki_app", "hsr");
 
             m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
             var response = await client.SendAsync(request);

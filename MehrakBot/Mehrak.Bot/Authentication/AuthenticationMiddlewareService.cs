@@ -1,3 +1,7 @@
+#region
+
+using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using Mehrak.Bot.Modules.Common;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
@@ -5,8 +9,8 @@ using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using NetCord.Rest;
-using System.Collections.Concurrent;
-using System.Security.Cryptography;
+
+#endregion
 
 namespace Mehrak.Bot.Authentication;
 
@@ -35,7 +39,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
     public async Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request)
     {
-        m_Logger.LogDebug("GetAuthenticationAsync started for UserId={UserId}, ProfileId={ProfileId}", request.Context.Interaction.User.Id, request.ProfileId);
+        m_Logger.LogDebug("GetAuthenticationAsync started for UserId={UserId}, ProfileId={ProfileId}",
+            request.Context.Interaction.User.Id, request.ProfileId);
         var user = await m_UserRepository.GetUserAsync(request.Context.Interaction.User.Id);
         if (user == null)
         {
@@ -46,50 +51,61 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == request.ProfileId);
         if (profile == null)
         {
-            m_Logger.LogWarning("Profile not found for UserId={UserId}, ProfileId={ProfileId}", request.Context.Interaction.User.Id, request.ProfileId);
+            m_Logger.LogWarning("Profile not found for UserId={UserId}, ProfileId={ProfileId}",
+                request.Context.Interaction.User.Id, request.ProfileId);
             return AuthenticationResult.Failure(request.Context, "No profiles found. Please add a profile first.");
         }
 
         var cacheKey = $"ltoken:{request.Context.Interaction.User.Id}:{profile.LtUid}";
-        m_Logger.LogDebug("Checking cache for LToken. UserId={UserId}, LtUid={LtUid}", request.Context.Interaction.User.Id, profile.LtUid);
+        m_Logger.LogDebug("Checking cache for LToken. UserId={UserId}, LtUid={LtUid}",
+            request.Context.Interaction.User.Id, profile.LtUid);
         var token = await m_CacheService.GetAsync<string>(cacheKey);
 
         if (token != null)
         {
-            m_Logger.LogDebug("Cache hit for LToken. UserId={UserId}, LtUid={LtUid}", request.Context.Interaction.User.Id, profile.LtUid);
-            return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user, request.Context);
+            m_Logger.LogDebug("Cache hit for LToken. UserId={UserId}, LtUid={LtUid}",
+                request.Context.Interaction.User.Id, profile.LtUid);
+            return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
+                request.Context);
         }
 
         var guid = Guid.NewGuid().ToString();
         m_CurrentRequests.TryAdd(guid, 1);
         await request.Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal(guid)));
-        m_Logger.LogDebug("Auth modal sent. Guid={Guid}, UserId={UserId}, LtUid={LtUid}", guid, request.Context.Interaction.User.Id, profile.LtUid);
+        m_Logger.LogDebug("Auth modal sent. Guid={Guid}, UserId={UserId}, LtUid={LtUid}", guid,
+            request.Context.Interaction.User.Id, profile.LtUid);
 
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMinutes(TimeoutMinutes));
-        m_Logger.LogDebug("Waiting for authentication response. Guid={Guid}, TimeoutMinutes={TimeoutMinutes}", guid, TimeoutMinutes);
+        m_Logger.LogDebug("Waiting for authentication response. Guid={Guid}, TimeoutMinutes={TimeoutMinutes}", guid,
+            TimeoutMinutes);
         var authResponse = await WaitForAuthenticationAsync(guid, cts.Token).ConfigureAwait(false);
 
         if (authResponse is null)
         {
-            m_Logger.LogInformation("Authentication timed out. Guid={Guid}, UserId={UserId}", guid, request.Context.Interaction.User.Id);
+            m_Logger.LogInformation("Authentication timed out. Guid={Guid}, UserId={UserId}", guid,
+                request.Context.Interaction.User.Id);
             return AuthenticationResult.Timeout();
         }
 
         try
         {
             token = m_CookieEncryptionService.DecryptCookie(profile.LToken, authResponse.Passphrase);
-            m_Logger.LogDebug("Cookie decryption succeeded. Guid={Guid}, UserId={UserId}, LtUid={LtUid}", authResponse.Guid, request.Context.Interaction.User.Id, profile.LtUid);
+            m_Logger.LogDebug("Cookie decryption succeeded. Guid={Guid}, UserId={UserId}, LtUid={LtUid}",
+                authResponse.Guid, request.Context.Interaction.User.Id, profile.LtUid);
         }
         catch (AuthenticationTagMismatchException e)
         {
-            m_Logger.LogWarning(e, "Incorrect passphrase provided. Guid={Guid}, UserId={UserId}", authResponse.Guid, request.Context.Interaction.User.Id);
+            m_Logger.LogWarning(e, "Incorrect passphrase provided. Guid={Guid}, UserId={UserId}", authResponse.Guid,
+                request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context, "Incorrect passphrase. Please try again");
         }
 
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
-        m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}", request.Context.Interaction.User.Id, profile.LtUid);
-        return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user, authResponse.Context);
+        m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}",
+            request.Context.Interaction.User.Id, profile.LtUid);
+        return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
+            authResponse.Context);
     }
 
     public bool NotifyAuthenticate(AuthenticationResponse request)
@@ -100,7 +116,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             return false;
         }
 
-        m_Logger.LogDebug("NotifyAuthenticateAsync received. Guid={Guid}, UserId={UserId}", request.Guid, request.UserId);
+        m_Logger.LogDebug("NotifyAuthenticateAsync received. Guid={Guid}, UserId={UserId}", request.Guid,
+            request.UserId);
         return m_NotifiedRequests.TryAdd(request.Guid, request);
     }
 

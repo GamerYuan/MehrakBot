@@ -1,32 +1,17 @@
 #region
 
-using Mehrak.Application.Services.Genshin;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Abyss;
-using Mehrak.Bot.Executors.Genshin;
-using Mehrak.Bot.Modules;
-using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Modules;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands.Genshin;
-using MehrakCore.Services.Commands.Genshin.Abyss;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -44,8 +29,10 @@ public class GenshinAbyssCommandExecutorTests
 
     private static readonly string AccountRolesUrl =
         $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+
     private static readonly string GameRecordCardUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+
     private static readonly string SpiralAbyssUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/spiralAbyss";
 
@@ -183,7 +170,8 @@ public class GenshinAbyssCommandExecutorTests
         object[] parameters = [TestFloor, Server.America]; // Missing profile parameter
 
         // Act & Assert
-        ArgumentException? exception = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync(parameters).AsTask());
+        ArgumentException? exception =
+            Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync(parameters).AsTask());
 
         Assert.That(exception.Message, Does.Contain("Invalid number of parameters"));
     }
@@ -303,7 +291,8 @@ public class GenshinAbyssCommandExecutorTests
         await CreateTestUserWithProfile();
         await SetupSuccessfulApiResponses();
 
-        AuthenticationResult successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult successResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(successResult);
@@ -395,7 +384,7 @@ public class GenshinAbyssCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
@@ -417,7 +406,7 @@ public class GenshinAbyssCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid
@@ -432,7 +421,8 @@ public class GenshinAbyssCommandExecutorTests
     private Task SetupCachedToken()
     {
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
         return Task.CompletedTask;
     }
@@ -626,7 +616,8 @@ public class GenshinAbyssCommandExecutorTests
 
     private string CreateAbyssDataWithoutTargetFloor()
     {
-        Dictionary<string, object> modifiedData = JsonSerializer.Deserialize<Dictionary<string, object>>(m_AbyssTestDataJson)!;
+        Dictionary<string, object> modifiedData =
+            JsonSerializer.Deserialize<Dictionary<string, object>>(m_AbyssTestDataJson)!;
 
         // Remove the target floor from floors array
         if (modifiedData.ContainsKey("floors")) modifiedData["floors"] = Array.Empty<object>(); // Empty floors array
@@ -668,7 +659,6 @@ public class GenshinAbyssCommandExecutorTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error generating Abyss card for floor")),
-
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -687,7 +677,7 @@ public class GenshinAbyssCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid, // This matches the TestLtUid used in AuthenticationResult
@@ -700,7 +690,8 @@ public class GenshinAbyssCommandExecutorTests
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
 
-        AuthenticationResult successResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult successResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup to throw exception during HTTP processing
         m_HttpMessageHandlerMock.Protected()
@@ -717,7 +708,6 @@ public class GenshinAbyssCommandExecutorTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) =>
                     v.ToString()!.Contains("Error generating Abyss card for floor")),
-
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

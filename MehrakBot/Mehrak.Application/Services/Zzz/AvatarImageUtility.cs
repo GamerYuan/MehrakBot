@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Models;
+﻿#region
+
+using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -7,11 +9,14 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
+#endregion
+
 namespace Mehrak.Application.Services.Zzz;
 
 internal static class AvatarImageUtility
 {
-    private static readonly Font NormalFont = new FontCollection().Add("Assets/Fonts/zzz.ttf").CreateFont(24, FontStyle.Bold);
+    private static readonly Font NormalFont =
+        new FontCollection().Add("Assets/Fonts/zzz.ttf").CreateFont(24, FontStyle.Bold);
 
     private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
     private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
@@ -49,11 +54,11 @@ internal static class AvatarImageUtility
             {
                 ctx.Fill(NormalConstColor, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(130, 130),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{avatar.Rank}", Color.White);
+                    {
+                        Origin = new PointF(130, 130),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{avatar.Rank}", Color.White);
             }
 
             IPath border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);

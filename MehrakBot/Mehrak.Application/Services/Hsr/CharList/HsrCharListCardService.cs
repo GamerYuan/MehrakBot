@@ -1,4 +1,9 @@
-﻿using Mehrak.Application.Utility;
+﻿#region
+
+using System.Diagnostics;
+using System.Numerics;
+using System.Text.Json;
+using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
@@ -12,9 +17,8 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Diagnostics;
-using System.Numerics;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.CharList;
 
@@ -55,7 +59,8 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
     private static readonly Color DarkOverlayColor = Color.FromRgba(0, 0, 0, 200);
 
-    private static readonly string[] Elements = ["physical", "fire", "ice", "lightning", "wind", "quantum", "imaginary"];
+    private static readonly string[] Elements =
+        ["physical", "fire", "ice", "lightning", "wind", "quantum", "imaginary"];
 
     private static readonly Dictionary<string, Color> ElementForeground = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -137,7 +142,8 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
             disposables.AddRange(avatarImages);
 
-            ImageUtility.GridLayout layout = ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
+            ImageUtility.GridLayout layout =
+                ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
             using Image<Rgba32> background = new(layout.OutputWidth, layout.OutputHeight + 50);
 
@@ -145,10 +151,10 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
             {
                 ctx.Clear(Color.FromRgb(69, 69, 69));
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new Vector2(50, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, $"{context.GameProfile.Nickname} · AR {context.GameProfile.Level}", Color.White);
+                    {
+                        Origin = new Vector2(50, 80),
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, $"{context.GameProfile.Nickname} · AR {context.GameProfile.Level}", Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -196,7 +202,8 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 {
                     FontRectangle countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
                         new TextOptions(m_NormalFont));
-                    FontRectangle elemSize = TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
+                    FontRectangle elemSize =
+                        TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
                     IPath overlay =
@@ -206,11 +213,11 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                     ctx.Fill(RarityColors[entry.Rarity - 2].WithAlpha(128), overlay);
                     ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 40, yOffset + 26),
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{entry.Rarity} Star", Color.White);
+                        {
+                            Origin = new Vector2(xOffset + 40, yOffset + 26),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, $"{entry.Rarity} Star", Color.White);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
@@ -233,7 +240,8 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessage.CardGenError, "CharList", context.UserId, JsonSerializer.Serialize(context.Data));
+            m_Logger.LogError(e, LogMessage.CardGenError, "CharList", context.UserId,
+                JsonSerializer.Serialize(context.Data));
             throw new CommandException("Failed to generate CharList card", e);
         }
         finally
@@ -249,23 +257,24 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
         background.Mutate(ctx =>
         {
             ctx.Fill(RarityColors[charData.Rarity!.Value - 2], new RectangleF(0, 0, 150, 180));
-            ctx.Fill(RarityColors[(charData.Equip?.Rarity - 2) ?? 0], new RectangleF(150, 0, 150, 180));
+            ctx.Fill(RarityColors[charData.Equip?.Rarity - 2 ?? 0], new RectangleF(150, 0, 150, 180));
 
             ctx.DrawImage(avatarImage, new Point(0, 0), 1f);
             if (weaponImage is not null)
                 ctx.DrawImage(weaponImage, new Point(150, 0), 1f);
 
-            FontRectangle charLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
+            FontRectangle charLevelRect =
+                TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
             IPath charLevel =
                 ImageUtility.CreateRoundedRectanglePath((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
                     10);
             ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 105));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-            {
-                Origin = new Vector2(5, 115 + (charLevelRect.Height / 2)),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"Lv. {charData.Level}", Color.White);
+                {
+                    Origin = new Vector2(5, 115 + charLevelRect.Height / 2),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"Lv. {charData.Level}", Color.White);
 
             IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
             switch (charData.Rank)
@@ -283,27 +292,29 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 case > 0:
                     ctx.Fill(NormalConstColor, constIcon);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(130, 125),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{charData.Rank}", Color.White);
+                        {
+                            Origin = new Vector2(130, 125),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, $"{charData.Rank}", Color.White);
                     break;
             }
 
             if (charData.Equip is not null)
             {
-                FontRectangle weapLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Equip.Level}", new TextOptions(m_SmallFont));
+                FontRectangle weapLevelRect =
+                    TextMeasurer.MeasureSize($"Lv. {charData.Equip.Level}", new TextOptions(m_SmallFont));
                 IPath weapLevel =
-                    ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40, (int)weapLevelRect.Height + 20,
+                    ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40,
+                        (int)weapLevelRect.Height + 20,
                         10);
                 ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 105));
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
-                {
-                    Origin = new PointF(295 - (weapLevelRect.Width / 2), 115 + (weapLevelRect.Height / 2)),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"Lv. {charData.Equip.Level}", Color.White);
+                    {
+                        Origin = new PointF(295 - weapLevelRect.Width / 2, 115 + weapLevelRect.Height / 2),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"Lv. {charData.Equip.Level}", Color.White);
 
                 IPath refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 110);
                 switch (charData.Equip.Rank)
@@ -321,11 +332,11 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                     case > 0:
                         ctx.Fill(NormalConstColor, refineIcon);
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(170, 125),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, $"{charData.Equip.Rank}", Color.White);
+                            {
+                                Origin = new Vector2(170, 125),
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }, $"{charData.Equip.Rank}", Color.White);
                         break;
                 }
             }
@@ -335,11 +346,11 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
             ctx.Fill(Color.Black, new RectangleF(0, 146, 300, 30));
             ctx.DrawText(new RichTextOptions(m_NormalFont)
-            {
-                Origin = new Vector2(150, 161),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{charData.Name}", Color.White);
+                {
+                    Origin = new Vector2(150, 161),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{charData.Name}", Color.White);
 
             ctx.ApplyRoundedCorners(15);
         });

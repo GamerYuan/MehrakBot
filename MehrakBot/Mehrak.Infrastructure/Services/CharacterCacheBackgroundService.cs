@@ -1,9 +1,13 @@
+#region
+
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
+#endregion
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -35,10 +39,7 @@ public class CharacterCacheBackgroundService : BackgroundService
             "Character cache background service started with update interval of {UpdateInterval}",
             m_Config.UpdateInterval);
 
-        if (m_Config.EnableInitialPopulation)
-        {
-            await PerformInitialUpdate(stoppingToken);
-        }
+        if (m_Config.EnableInitialPopulation) await PerformInitialUpdate(stoppingToken);
 
         await PeriodicUpdateLoop(stoppingToken);
     }
@@ -109,36 +110,23 @@ public class CharacterCacheBackgroundService : BackgroundService
         List<string> changes = [];
 
         foreach ((Game game, int afterCount) in afterStatus)
-        {
             if (beforeStatus.TryGetValue(game, out int beforeCount))
             {
-                if (beforeCount != afterCount)
-                {
-                    changes.Add($"{game}: {beforeCount} -> {afterCount}");
-                }
+                if (beforeCount != afterCount) changes.Add($"{game}: {beforeCount} -> {afterCount}");
             }
             else
             {
                 changes.Add($"{game}: new -> {afterCount}");
             }
-        }
 
         foreach ((Game game, int beforeCount) in beforeStatus)
-        {
             if (!afterStatus.ContainsKey(game))
-            {
                 changes.Add($"{game}: {beforeCount} -> removed");
-            }
-        }
 
         if (changes.Count > 0)
-        {
             m_Logger.LogInformation("Character cache changes detected: {Changes}", string.Join(", ", changes));
-        }
         else
-        {
             m_Logger.LogDebug("No character cache changes detected during periodic update");
-        }
     }
 
     public override async Task StopAsync(CancellationToken stoppingToken)

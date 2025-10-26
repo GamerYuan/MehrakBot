@@ -1,7 +1,11 @@
-﻿using Mehrak.Domain.Common;
+﻿#region
+
+using System.Text.Json.Serialization;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using System.Text.Json.Serialization;
+
+#endregion
 
 namespace Mehrak.GameApi.Zzz.Types;
 
@@ -19,9 +23,15 @@ public class ZzzChallengeAvatar
     [JsonPropertyName("role_square_url")] public required string RoleSquareUrl { get; init; }
     [JsonPropertyName("sub_element_type")] public int SubElementType { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Zzz.AvatarName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.AvatarName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), RoleSquareUrl);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), RoleSquareUrl);
+    }
 }
 
 public class ZzzBuddy
@@ -33,11 +43,15 @@ public class ZzzBuddy
     [JsonPropertyName("bangboo_rectangle_url")]
     public required string BangbooRectangleUrl { get; init; }
 
-    public string ToImageName() =>
-        string.Format(FileNameFormat.Zzz.BuddyName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.BuddyName, Id);
+    }
 
-    public IImageData ToImageData() =>
-        new ImageData(ToImageName(), BangbooRectangleUrl);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), BangbooRectangleUrl);
+    }
 }
 
 public class ZzzDefenseData
@@ -98,10 +112,16 @@ public class AssaultBoss
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("bg_icon")] public required string BgIcon { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Zzz.AssaultBossName,
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.AssaultBossName,
             string.Join('_', Name.Split(Path.GetInvalidFileNameChars())).Replace(" ", ""));
+    }
 
-    public IMultiImageData ToImageData() => new MultiImageData(ToImageName(), [BgIcon, Icon]);
+    public IMultiImageData ToImageData()
+    {
+        return new MultiImageData(ToImageName(), [BgIcon, Icon]);
+    }
 }
 
 public class AssaultBuff
@@ -109,10 +129,16 @@ public class AssaultBuff
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("icon")] public required string Icon { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Zzz.AssaultBuffName,
-        string.Join('_', Name.Split(Path.GetInvalidFileNameChars())).Replace(" ", ""));
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.AssaultBuffName,
+            string.Join('_', Name.Split(Path.GetInvalidFileNameChars())).Replace(" ", ""));
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public class ScheduleTime

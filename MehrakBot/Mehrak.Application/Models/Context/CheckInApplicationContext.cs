@@ -1,4 +1,8 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿#region
+
+using Mehrak.Domain.Services.Abstractions;
+
+#endregion
 
 namespace Mehrak.Application.Models.Context;
 

@@ -1,32 +1,17 @@
 #region
 
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Application.Services.Genshin.CharList;
-using Mehrak.Bot.Executors.Genshin;
-using Mehrak.Bot.Modules;
-using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
-using Mehrak.GameApi.Common.ApiResponseTypes;
 using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Modules;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands.Genshin;
-using MehrakCore.Services.Commands.Genshin.CharList;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -78,7 +63,6 @@ public class GenshinCharListCommandExecutorTests
             NullLogger<GenshinCharListCardService>.Instance);
 
         m_ImageUpdaterServiceMock = new Mock<GenshinImageUpdaterService>(
-
             imageRepository,
             m_HttpClientFactoryMock.Object,
             NullLogger<GenshinImageUpdaterService>.Instance);
@@ -143,7 +127,7 @@ public class GenshinCharListCommandExecutorTests
             Id = userId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = profileId,
                     LtUid = ltUid,
@@ -459,7 +443,6 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Failed to get Character List card")),
-
                 It.IsAny<CommandException>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -488,7 +471,6 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Failed to get Character List card")),
-
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -513,7 +495,6 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication failed")),
-
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -530,7 +511,7 @@ public class GenshinCharListCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -585,7 +566,6 @@ public class GenshinCharListCommandExecutorTests
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authentication completed successfully")),
-
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);

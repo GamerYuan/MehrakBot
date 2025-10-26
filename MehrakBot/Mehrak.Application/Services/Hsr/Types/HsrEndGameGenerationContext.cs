@@ -1,7 +1,11 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.Types;
 

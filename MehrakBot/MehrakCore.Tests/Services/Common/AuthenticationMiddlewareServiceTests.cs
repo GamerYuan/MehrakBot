@@ -1,11 +1,8 @@
 #region
 
 using System.Reflection;
-using Mehrak.Domain.Interfaces;
-using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NetCord.Services;
 
 #endregion
 

@@ -1,15 +1,9 @@
 ﻿#region
 
-using Mehrak.Bot.Modules.Common;
-using MehrakCore.Models;
-using MehrakCore.Modules.Common;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using NetCord;
-using NetCord.Rest.JsonModels;
-using NetCord.Services.ApplicationCommands;
 
 #endregion
 

@@ -1,13 +1,9 @@
 ﻿#region
 
-using Mehrak.GameApi.Common.ApiResponseTypes;
+using System.Text.Json;
 using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Services.Commands.Genshin.Theater;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Text.Json;
 
 #endregion
 

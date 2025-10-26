@@ -1,7 +1,11 @@
-﻿using Mehrak.Bot.Modules;
+﻿#region
+
+using Mehrak.Bot.Modules;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
+
+#endregion
 
 namespace Mehrak.Bot.Provider.Autocomplete.Genshin;
 

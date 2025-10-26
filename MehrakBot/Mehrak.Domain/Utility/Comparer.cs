@@ -1,10 +1,14 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿#region
+
+using System.Diagnostics.CodeAnalysis;
+
+#endregion
 
 namespace Mehrak.Domain.Utility;
 
 public class CaseInsensitiveCharComparer : IEqualityComparer<char>
 {
-    public static CaseInsensitiveCharComparer Instance { get; } = new CaseInsensitiveCharComparer();
+    public static CaseInsensitiveCharComparer Instance { get; } = new();
 
     public bool Equals(char x, char y)
     {

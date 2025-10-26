@@ -2,6 +2,7 @@
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
+using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -40,8 +41,8 @@ public sealed class MongoTestHelper : IDisposable
             .Build();
 
         MongoDbService = new MongoDbService(config, NullLogger<MongoDbService>.Instance);
-        ImageRepository = new Infrastructure.Repositories.ImageRepository(MongoDbService,
-            NullLogger<Infrastructure.Repositories.ImageRepository>.Instance);
+        ImageRepository = new ImageRepository(MongoDbService,
+            NullLogger<ImageRepository>.Instance);
 
         Instance = this;
     }

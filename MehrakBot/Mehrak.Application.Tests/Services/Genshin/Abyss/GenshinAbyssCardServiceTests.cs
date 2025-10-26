@@ -1,9 +1,15 @@
-﻿using Mehrak.Application.Services.Genshin.Abyss;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Services.Genshin.Abyss;
+using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Tests.Services.Genshin.Abyss;
 
@@ -22,7 +28,8 @@ public class GenshinAbyssCardServiceTests
     [SetUp]
     public async Task Setup()
     {
-        m_Service = new(MongoTestHelper.Instance.ImageRepository, Mock.Of<ILogger<GenshinAbyssCardService>>());
+        m_Service = new GenshinAbyssCardService(MongoTestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<GenshinAbyssCardService>>());
         await m_Service.InitializeAsync();
     }
 
@@ -44,7 +51,8 @@ public class GenshinAbyssCardServiceTests
         GameProfileDto profile = GetTestUserGameData();
 
         Stream stream =
-            await m_Service.GetCardAsync(new(TestUserId, 12, testData, Domain.Enums.Server.Asia, profile, GetConstMap()));
+            await m_Service.GetCardAsync(new GenshinEndGameGenerationContext<GenshinAbyssInformation>(TestUserId, 12,
+                testData, Server.Asia, profile, GetConstMap()));
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
@@ -73,7 +81,7 @@ public class GenshinAbyssCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 60,
+            Level = 60
         };
     }
 

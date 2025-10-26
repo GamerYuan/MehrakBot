@@ -1,5 +1,9 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
 using Mehrak.Domain.Enums;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.EndGame;
 

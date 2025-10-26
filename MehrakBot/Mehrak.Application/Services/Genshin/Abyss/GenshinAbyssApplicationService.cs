@@ -1,4 +1,7 @@
-﻿using Mehrak.Application.Builders;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
@@ -9,15 +12,21 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Genshin.Abyss;
 
 public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbyssApplicationContext>
 {
-    private readonly ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation> m_CardService;
+    private readonly ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>
+        m_CardService;
+
     private readonly IApiService<GenshinAbyssInformation, BaseHoYoApiContext> m_ApiService;
-    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> m_CharacterApi;
+
+    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+        m_CharacterApi;
+
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
     public GenshinAbyssApplicationService(
@@ -41,7 +50,8 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
         {
             var floor = context.GetParameter<uint>("floor");
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, context.Server.ToRegion());
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
+                context.Server.ToRegion());
             if (profile == null)
             {
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
@@ -49,7 +59,8 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             }
 
             var abyssInfo = await m_ApiService.GetAsync(
-                new(context.UserId, context.LtUid, context.LToken, profile.GameUid, context.Server.ToRegion()));
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
+                    context.Server.ToRegion()));
             if (!abyssInfo.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError,
@@ -63,9 +74,12 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
 
             if (floorData == null)
             {
-                Logger.LogInformation(LogMessage.NoClearRecords, $"Abyss (Floor {floor})", context.UserId, profile.GameUid);
-                return CommandResult.Success([new CommandText(
-                    string.Format(ResponseMessage.NoClearRecords, $"Spiral Abyss (Floor {floor})"))], isEphemeral: true);
+                Logger.LogInformation(LogMessage.NoClearRecords, $"Abyss (Floor {floor})", context.UserId,
+                    profile.GameUid);
+                return CommandResult.Success([
+                    new CommandText(
+                        string.Format(ResponseMessage.NoClearRecords, $"Spiral Abyss (Floor {floor})"))
+                ], isEphemeral: true);
             }
 
             List<Task<bool>> tasks = [];
@@ -89,7 +103,8 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                         new ImageProcessorBuilder().Resize(0, 150).Build())));
 
             var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
-                new(context.UserId, context.LtUid, context.LToken, profile.GameUid, context.Server.ToRegion()));
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
+                    context.Server.ToRegion()));
 
             if (!charListResponse.IsSuccess)
             {
@@ -98,6 +113,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                 return CommandResult.Failure(CommandFailureReason.ApiError,
                     string.Format(ResponseMessage.ApiError, "Character List"));
             }
+
             var charList = charListResponse.Data.ToList();
 
             var constMap = charList.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
@@ -105,25 +121,31 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             var completed = await Task.WhenAll(tasks);
             if (completed.Any(x => !x))
             {
-                Logger.LogError(LogMessage.ImageUpdateError, "Abyss", context.UserId, JsonSerializer.Serialize(abyssData));
+                Logger.LogError(LogMessage.ImageUpdateError, "Abyss", context.UserId,
+                    JsonSerializer.Serialize(abyssData));
                 return CommandResult.Failure(CommandFailureReason.BotError,
                     ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new(context.UserId, floor, abyssData, context.Server, profile, constMap));
+            var card = await m_CardService.GetCardAsync(
+                new GenshinEndGameGenerationContext<GenshinAbyssInformation>(context.UserId, floor, abyssData,
+                    context.Server, profile, constMap));
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})", CommandText.TextType.Header3),
-                new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
-                new CommandAttachment("abyss_card.jpg", card),
-                new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
+                    new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
+                        CommandText.TextType.Header3),
+                    new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
+                    new CommandAttachment("abyss_card.jpg", card),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                ],
                 true
             );
         }
         catch (CommandException e)
         {
             Logger.LogError(e, LogMessage.UnknownError, "Abyss", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Spiral Abyss"));
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                string.Format(ResponseMessage.CardGenError, "Spiral Abyss"));
         }
         catch (Exception e)
         {

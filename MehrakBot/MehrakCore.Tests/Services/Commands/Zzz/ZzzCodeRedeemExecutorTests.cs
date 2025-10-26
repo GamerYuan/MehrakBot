@@ -1,29 +1,16 @@
 #region
 
-using Mehrak.Application.Services.Zzz.CodeRedeem;
-using Mehrak.Bot.Executors.Executor;
-using Mehrak.Bot.Executors.Zzz;
-using Mehrak.Bot.Modules;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Domain.Repositories;
-using MehrakCore.Models;
-using MehrakCore.Modules;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Executor;
-using MehrakCore.Services.Commands.Zzz.CodeRedeem;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -298,7 +285,8 @@ public class ZzzCodeRedeemExecutorTests
         SetupTokenCacheEmpty();
         await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -418,7 +406,8 @@ public class ZzzCodeRedeemExecutorTests
 
         SetupHttpResponseForGameRecord(CreateTestGameRecord());
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -472,7 +461,8 @@ public class ZzzCodeRedeemExecutorTests
         SlashCommandInteraction newInteraction = m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId, "code");
         newContextMock.Setup(x => x.Interaction).Returns(newInteraction);
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -536,7 +526,8 @@ public class ZzzCodeRedeemExecutorTests
         // Setup HTTP response for game record failure
         SetupHttpResponseForGameRecordFailure();
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -578,7 +569,7 @@ public class ZzzCodeRedeemExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 2, // Different profile ID
                     LtUid = TestLtUid,
@@ -614,7 +605,8 @@ public class ZzzCodeRedeemExecutorTests
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -692,7 +684,8 @@ public class ZzzCodeRedeemExecutorTests
                 It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("Service unavailable"));
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -1026,7 +1019,7 @@ public class ZzzCodeRedeemExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1058,7 +1051,7 @@ public class ZzzCodeRedeemExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -1082,7 +1075,7 @@ public class ZzzCodeRedeemExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,

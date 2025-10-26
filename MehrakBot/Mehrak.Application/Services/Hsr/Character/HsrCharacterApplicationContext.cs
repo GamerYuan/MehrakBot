@@ -1,4 +1,8 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.Character;
 

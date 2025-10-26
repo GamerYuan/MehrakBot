@@ -1,10 +1,12 @@
-﻿using Mehrak.GameApi.Zzz.Types;
-using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Services.Commands.Zzz.Character;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.GameApi.Zzz.Types;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Text.Json;
+
+#endregion
 
 namespace MehrakCore.Tests.Services.Commands.Zzz;
 
@@ -41,11 +43,12 @@ public class ZzzCharacterCardServiceTests
     public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         ZzzFullAvatarData? characterDetail =
-                JsonSerializer.Deserialize<ZzzFullAvatarData>(
-                    await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
+            JsonSerializer.Deserialize<ZzzFullAvatarData>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(characterDetail, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
         Stream image = await m_Service.GenerateCharacterCardAsync(characterDetail, "Test");
@@ -60,9 +63,11 @@ public class ZzzCharacterCardServiceTests
         // Save generated image to output folder for comparison
         string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(testData)}_Generated.jpg");
+        string outputImagePath =
+            Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(testData)}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
-        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(testData)}_Golden.jpg");
+        string outputGoldenImagePath =
+            Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(testData)}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImage));

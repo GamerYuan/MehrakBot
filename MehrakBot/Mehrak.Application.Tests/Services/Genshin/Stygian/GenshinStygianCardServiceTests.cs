@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -7,7 +8,6 @@ using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
 
 #endregion
 
@@ -29,7 +29,7 @@ public class GenshinStygianCardServiceTests
     {
         m_Service = new GenshinStygianCardService(
             MongoTestHelper.Instance.ImageRepository,
- Mock.Of<ILogger<GenshinStygianCardService>>());
+            Mock.Of<ILogger<GenshinStygianCardService>>());
         await m_Service.InitializeAsync();
     }
 
@@ -51,7 +51,7 @@ public class GenshinStygianCardServiceTests
         GameProfileDto userGameData = GetTestUserGameData();
 
         Stream stream = await m_Service.GetCardAsync(
-      new TestCardGenerationContext<StygianData>(TestUserId, testData!, Server.Asia, userGameData));
+            new TestCardGenerationContext<StygianData>(TestUserId, testData!, Server.Asia, userGameData));
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
@@ -80,7 +80,7 @@ public class GenshinStygianCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 60,
+            Level = 60
         };
     }
 

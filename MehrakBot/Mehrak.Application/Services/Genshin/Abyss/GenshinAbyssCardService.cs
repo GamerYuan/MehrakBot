@@ -1,5 +1,8 @@
 ﻿#region
 
+using System.Diagnostics;
+using System.Numerics;
+using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
@@ -16,9 +19,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Diagnostics;
-using System.Numerics;
-using System.Text.Json;
 
 #endregion
 
@@ -60,11 +60,14 @@ internal class GenshinAbyssCardService :
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        m_AbyssStarIconLit = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars"), cancellationToken);
+        m_AbyssStarIconLit =
+            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars"),
+                cancellationToken);
         m_AbyssStarIconUnlit = m_AbyssStarIconLit.CloneAs<Rgba32>();
         m_AbyssStarIconUnlit.Mutate(ctx => ctx.Brightness(0.35f));
 
-        m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"), cancellationToken);
+        m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"),
+            cancellationToken);
     }
 
     public async Task<Stream> GetCardAsync(GenshinEndGameGenerationContext<GenshinAbyssInformation> context)
@@ -79,7 +82,8 @@ internal class GenshinAbyssCardService :
         {
             Floor floorData = abyssData.Floors!.First(x => x.Index == floor);
 
-            Dictionary<GenshinAvatar, Image<Rgba32>> portraitImages = await floorData.Levels!.SelectMany(y => y.Battles!)
+            Dictionary<GenshinAvatar, Image<Rgba32>> portraitImages = await floorData.Levels!
+                .SelectMany(y => y.Battles!)
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
                 .SelectAwait(async x =>
                     new GenshinAvatar(x.Id, x.Level,
@@ -89,7 +93,8 @@ internal class GenshinAbyssCardService :
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
 
-            Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = portraitImages.GetAlternateLookup<int>();
+            Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> lookup =
+                portraitImages.GetAlternateLookup<int>();
 
             Dictionary<int, Image> sideAvatarImages = await abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
                 .Concat(abyssData.EnergySkillRank!)
@@ -126,18 +131,19 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Spiral Abyss", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(750, 80),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Bottom
-                },
+                    {
+                        Origin = new Vector2(750, 80),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!))
                         .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!))
                         .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
                     Color.White);
 
-                ctx.DrawText($"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", m_NormalFont, Color.White,
+                ctx.DrawText($"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", m_NormalFont,
+                    Color.White,
                     new PointF(50, 110));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -158,18 +164,18 @@ internal class GenshinAbyssCardService :
 
                 ctx.DrawText("Battles Fought: ", m_NormalFont, Color.White, new PointF(80, 280));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(720, 280),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{abyssData.TotalWinTimes}/{abyssData.TotalBattleTimes}", Color.White);
+                    {
+                        Origin = new Vector2(720, 280),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"{abyssData.TotalWinTimes}/{abyssData.TotalBattleTimes}", Color.White);
                 ctx.DrawLine(Color.White, 2f, new PointF(80, 330), new PointF(720, 330));
 
                 ctx.DrawText("Total Abyss Stars: ", m_NormalFont, Color.White, new PointF(80, 360));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(720, 360),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{abyssData.TotalStar}", Color.White);
+                    {
+                        Origin = new Vector2(720, 360),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"{abyssData.TotalStar}", Color.White);
 
                 IPath mostUsedBackground = ImageUtility.CreateRoundedRectanglePath(700, 260, 15).Translate(50, 440);
                 ctx.Fill(OverlayColor, mostUsedBackground);
@@ -195,11 +201,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Strongest Single Strike", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(720, 795),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{abyssData.DamageRank![0].Value}", Color.White);
+                    {
+                        Origin = new Vector2(720, 795),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{abyssData.DamageRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.DamageRank![0].AvatarId], new Point(50, 700), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -208,11 +214,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Defeats", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(720, 965),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{abyssData.DefeatRank![0].Value}", Color.White);
+                    {
+                        Origin = new Vector2(720, 965),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{abyssData.DefeatRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.DefeatRank![0].AvatarId], new Point(50, 870), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -221,11 +227,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Damage Taken", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(720, 1135),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{abyssData.TakeDamageRank![0].Value}", Color.White);
+                    {
+                        Origin = new Vector2(720, 1135),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{abyssData.TakeDamageRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.TakeDamageRank![0].AvatarId], new Point(50, 1040),
                     1f);
 
@@ -235,11 +241,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Elemental Skills Cast", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(720, 1305),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{abyssData.NormalSkillRank![0].Value}", Color.White);
+                    {
+                        Origin = new Vector2(720, 1305),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{abyssData.NormalSkillRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.NormalSkillRank![0].AvatarId], new Point(50, 1210),
                     1f);
 
@@ -249,29 +255,29 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Elemental Bursts Unleashed", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(720, 1475),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{abyssData.EnergySkillRank![0].Value}", Color.White);
+                    {
+                        Origin = new Vector2(720, 1475),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{abyssData.EnergySkillRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.EnergySkillRank![0].AvatarId], new Point(50, 1380),
                     1f);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new Vector2(795, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, $"Floor {floor}", Color.White);
+                    {
+                        Origin = new Vector2(795, 80),
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, $"Floor {floor}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(1385, 52),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{floorData.Star}/{floorData.MaxStar}", Color.White);
+                    {
+                        Origin = new Vector2(1385, 52),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"{floorData.Star}/{floorData.MaxStar}", Color.White);
 
                 ctx.DrawImage(m_AbyssStarIconLit, new Point(1395, 47), 1f);
                 for (int i = 0; i < 3; i++)
                 {
-                    int offset = (i * 490) + 160;
+                    int offset = i * 490 + 160;
                     IPath rosterBackground = ImageUtility.CreateRoundedRectanglePath(670, 470, 15)
                         .Translate(785, offset - 60);
                     ctx.Fill(OverlayColor, rosterBackground);
@@ -289,7 +295,7 @@ internal class GenshinAbyssCardService :
 
                         for (int j = 0; j < 3; j++)
                         {
-                            int xOffset = 1310 + (j * 40);
+                            int xOffset = 1310 + j * 40;
                             ctx.DrawImage(m_AbyssStarIconUnlit, new Point(xOffset, offset - 45), 1f);
                         }
 
@@ -299,7 +305,7 @@ internal class GenshinAbyssCardService :
                     Level level = floorData.Levels![i];
                     for (int j = 0; j < 3; j++)
                     {
-                        int xOffset = 1310 + (j * 40);
+                        int xOffset = 1310 + j * 40;
                         ctx.DrawImage(j < floorData.Levels[i].Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
                             new Point(xOffset, offset - 45), 1f);
                     }
@@ -310,7 +316,7 @@ internal class GenshinAbyssCardService :
                         Image<Rgba32> rosterImage =
                             GetRosterImage([.. battle.Avatars!.Select(x => x.Id)], lookup);
                         disposableResources.Add(rosterImage);
-                        int yOffset = offset + (j * 200);
+                        int yOffset = offset + j * 200;
                         ctx.DrawImage(rosterImage, new Point(795, yOffset), 1f);
                     }
                 }
@@ -326,7 +332,8 @@ internal class GenshinAbyssCardService :
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessage.CardGenError, "Abyss", context.UserId, JsonSerializer.Serialize(context.Data));
+            m_Logger.LogError(e, LogMessage.CardGenError, "Abyss", context.UserId,
+                JsonSerializer.Serialize(context.Data));
             throw new CommandException("Failed to generate Abyss card", e);
         }
         finally
@@ -340,7 +347,7 @@ internal class GenshinAbyssCardService :
     {
         const int avatarWidth = 150;
 
-        int offset = ((4 - avatarIds.Count) * avatarWidth / 2) + 10;
+        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -350,7 +357,7 @@ internal class GenshinAbyssCardService :
 
             for (int i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + (i * (avatarWidth + 10));
+                int x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

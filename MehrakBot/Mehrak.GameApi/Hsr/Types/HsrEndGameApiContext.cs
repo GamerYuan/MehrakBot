@@ -1,5 +1,9 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using Mehrak.Domain.Enums;
 using Mehrak.GameApi.Common.Types;
+
+#endregion
 
 namespace Mehrak.GameApi.Hsr.Types;
 

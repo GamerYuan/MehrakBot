@@ -1,6 +1,5 @@
 #region
 
-using MehrakCore.Models;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -36,6 +35,7 @@ public class UserRepositoryTests
         // Assert
         Assert.That(result, Is.Null);
     }
+
     [Test]
     public async Task GetUserAsync_ShouldReturnUser_WhenUserExists()
     {
@@ -66,6 +66,7 @@ public class UserRepositoryTests
         Assert.That(result.Profiles, Is.Not.Null);
         Assert.That(result.Profiles.First().ProfileId, Is.EqualTo(1));
     }
+
     [Test]
     public async Task CreateOrUpdateUserAsync_ShouldCreateNewUser_WhenUserDoesNotExist()
     {
@@ -96,6 +97,7 @@ public class UserRepositoryTests
         Assert.That(createdUser.Profiles, Is.Not.Null);
         Assert.That(createdUser.Profiles.First().LtUid, Is.EqualTo(54321));
     }
+
     [Test]
     public async Task CreateOrUpdateUserAsync_ShouldUpdateExistingUser()
     {
@@ -143,6 +145,7 @@ public class UserRepositoryTests
         Assert.That(result.Profiles.First().LtUid, Is.EqualTo(22222));
         Assert.That(result.Profiles.First().LToken, Is.EqualTo("updated-token"));
     }
+
     [Test]
     public async Task DeleteUserAsync_ShouldReturnTrue_WhenUserExists()
     {
@@ -172,6 +175,7 @@ public class UserRepositoryTests
         Assert.That(result, Is.True);
         Assert.That(deletedUser, Is.Null);
     }
+
     [Test]
     public async Task DeleteUserAsync_ShouldReturnFalse_WhenUserDoesNotExist()
     {

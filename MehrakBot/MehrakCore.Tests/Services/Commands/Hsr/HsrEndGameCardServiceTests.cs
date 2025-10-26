@@ -1,14 +1,10 @@
 ﻿#region
 
-using Mehrak.GameApi.Common.ApiResponseTypes;
-using Mehrak.GameApi.Hsr.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Services.Commands.Hsr.EndGame;
-using MehrakCore.Tests.TestHelpers;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mehrak.GameApi.Hsr.Types;
+using MehrakCore.Tests.TestHelpers;
+using Microsoft.Extensions.Logging.Abstractions;
 
 #endregion
 
@@ -158,29 +154,34 @@ public class HsrEndGameCardServiceTests
                 "Pf_TestData_3.json")));
 
         Stream image1 = await
-        m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction,
-        GetTestUserGameData(), testData1!, await GetBuffMapAsync()); Stream
-        image2 = await
-        m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction,
-        GetTestUserGameData(), testData2!, await GetBuffMapAsync()); Stream
-        image3 = await
-        m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction,
-        GetTestUserGameData(), testData3!, await GetBuffMapAsync());
+            m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction,
+                GetTestUserGameData(), testData1!, await GetBuffMapAsync());
+        Stream
+            image2 = await
+                m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction,
+                    GetTestUserGameData(), testData2!, await GetBuffMapAsync());
+        Stream
+            image3 = await
+                m_Service.GetEndGameCardImageAsync(EndGameMode.PureFiction,
+                    GetTestUserGameData(), testData3!, await GetBuffMapAsync());
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(image1, Is.Not.Null);
-            Assert.That(image2, Is.Not.Null); Assert.That(image3, Is.Not.Null);
+            Assert.That(image2, Is.Not.Null);
+            Assert.That(image3, Is.Not.Null);
         }
 
         await using FileStream fileStream1 =
-        File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-        "TestAssets", "Pf_GoldenImage_1.jpg")); await using FileStream
-        fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory,
-        "Assets", "Hsr", "TestAssets", "Pf_GoldenImage_2.jpg")); await using
-        FileStream fileStream3 =
-        File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-        "TestAssets", "Pf_GoldenImage_3.jpg"));
+            File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+                "TestAssets", "Pf_GoldenImage_1.jpg"));
+        await using FileStream
+            fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory,
+                "Assets", "Hsr", "TestAssets", "Pf_GoldenImage_2.jpg"));
+        await using
+            FileStream fileStream3 =
+                File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+                    "TestAssets", "Pf_GoldenImage_3.jpg"));
 
         await image1.CopyToAsync(fileStream1);
         await image2.CopyToAsync(fileStream2);
@@ -201,29 +202,34 @@ public class HsrEndGameCardServiceTests
                 "As_TestData_3.json")), JsonOptions);
 
         Stream image1 = await
-        m_Service.GetEndGameCardImageAsync(EndGameMode.ApocalypticShadow,
-        GetTestUserGameData(), testData1!, await GetBuffMapAsync()); Stream
-        image2 = await
-        m_Service.GetEndGameCardImageAsync(EndGameMode.ApocalypticShadow,
-        GetTestUserGameData(), testData2!, await GetBuffMapAsync()); Stream
-        image3 = await
-        m_Service.GetEndGameCardImageAsync(EndGameMode.ApocalypticShadow,
-        GetTestUserGameData(), testData3!, await GetBuffMapAsync());
+            m_Service.GetEndGameCardImageAsync(EndGameMode.ApocalypticShadow,
+                GetTestUserGameData(), testData1!, await GetBuffMapAsync());
+        Stream
+            image2 = await
+                m_Service.GetEndGameCardImageAsync(EndGameMode.ApocalypticShadow,
+                    GetTestUserGameData(), testData2!, await GetBuffMapAsync());
+        Stream
+            image3 = await
+                m_Service.GetEndGameCardImageAsync(EndGameMode.ApocalypticShadow,
+                    GetTestUserGameData(), testData3!, await GetBuffMapAsync());
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(image1, Is.Not.Null);
-            Assert.That(image2, Is.Not.Null); Assert.That(image3, Is.Not.Null);
+            Assert.That(image2, Is.Not.Null);
+            Assert.That(image3, Is.Not.Null);
         }
 
         await using FileStream fileStream1 =
-        File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-        "TestAssets", "As_GoldenImage_1.jpg")); await using FileStream
-        fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory,
-        "Assets", "Hsr", "TestAssets", "As_GoldenImage_2.jpg")); await using
-        FileStream fileStream3 =
-        File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-        "TestAssets", "As_GoldenImage_3.jpg"));
+            File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+                "TestAssets", "As_GoldenImage_1.jpg"));
+        await using FileStream
+            fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory,
+                "Assets", "Hsr", "TestAssets", "As_GoldenImage_2.jpg"));
+        await using
+            FileStream fileStream3 =
+                File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+                    "TestAssets", "As_GoldenImage_3.jpg"));
 
         await image1.CopyToAsync(fileStream1);
         await image2.CopyToAsync(fileStream2);

@@ -1,7 +1,11 @@
-﻿using SixLabors.Fonts;
+﻿#region
+
+using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
+
+#endregion
 
 namespace Mehrak.Application.Utility;
 
@@ -16,9 +20,9 @@ public static class TextExtensions
     {
         // Create affine transform builder for more complex transformations
         AffineTransformBuilder transformBuilder = new AffineTransformBuilder()
-            .AppendTranslation(new PointF(-location.X, -location.Y))  // Move to origin
-            .AppendSkewDegrees(-skewAngle, 0)              // Skew along X axis
-            .AppendTranslation(new PointF(location.X, location.Y));   // Move back
+            .AppendTranslation(new PointF(-location.X, -location.Y)) // Move to origin
+            .AppendSkewDegrees(-skewAngle, 0) // Skew along X axis
+            .AppendTranslation(new PointF(location.X, location.Y)); // Move back
 
         FontRectangle textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font)
         {
@@ -48,7 +52,7 @@ public static class TextExtensions
 
         DrawingOptions drawingOptions = new()
         {
-            Transform = transformBuilder.BuildMatrix(new Size((int)textSize.Width, (int)textSize.Height)),
+            Transform = transformBuilder.BuildMatrix(new Size((int)textSize.Width, (int)textSize.Height))
         };
 
         context.DrawText(drawingOptions, option, text, new SolidBrush(color), new SolidPen(Color.Transparent));

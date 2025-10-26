@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
 using System.Collections.ObjectModel;
+using Mehrak.Domain.Enums;
 
 #endregion
 

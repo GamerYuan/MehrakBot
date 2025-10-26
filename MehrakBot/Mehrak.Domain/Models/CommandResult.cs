@@ -1,4 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿#region
+
+using System.Diagnostics.CodeAnalysis;
+
+#endregion
 
 namespace Mehrak.Domain.Models;
 

@@ -2,7 +2,11 @@
 
 #endregion
 
+#region
+
 using Mehrak.Domain.Enums;
+
+#endregion
 
 namespace Mehrak.Application.Services.Genshin;
 

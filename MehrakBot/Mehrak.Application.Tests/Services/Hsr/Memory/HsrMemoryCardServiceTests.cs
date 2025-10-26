@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text.Json;
 using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -7,7 +8,6 @@ using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
 
 #endregion
 
@@ -82,7 +82,7 @@ public class HsrMemoryCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 70,
+            Level = 70
         };
     }
 

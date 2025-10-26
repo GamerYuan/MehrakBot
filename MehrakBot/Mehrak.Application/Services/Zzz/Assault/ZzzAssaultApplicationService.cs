@@ -1,4 +1,7 @@
-﻿using Mehrak.Application.Builders;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Builders;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin.Types;
@@ -16,7 +19,8 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Zzz.Assault;
 
@@ -45,7 +49,8 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
         {
             string region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero, region);
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+                region);
 
             if (profile == null)
             {
@@ -55,12 +60,15 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
 
             string gameUid = profile.GameUid;
 
-            var assaultResponse = await m_ApiService.GetAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            var assaultResponse =
+                await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+                    gameUid, region));
 
             if (!assaultResponse.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
             }
 
             ZzzAssaultData assaultData = assaultResponse.Data;
@@ -68,12 +76,15 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
             if (!assaultData.HasData || assaultData.List.Count == 0)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, "Assault", context.UserId, gameUid);
-                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, "Deadly Assault"))], isEphemeral: true);
+                return CommandResult.Success(
+                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Deadly Assault"))],
+                    isEphemeral: true);
             }
 
             IEnumerable<Task<bool>> avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
                 .DistinctBy(x => x.Id)
-                .Select(avatar => m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
+                .Select(avatar =>
+                    m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
             IEnumerable<Task<bool>> buddyImageTask = assaultData.List.Select(x => x.Buddy)
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
@@ -88,11 +99,13 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                     new ImageProcessorBuilder().Build()));
 
-            var completed = await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));
+            var completed =
+                await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));
 
             if (completed.Any(x => !x))
             {
-                Logger.LogError(LogMessage.ImageUpdateError, "Assault", context.UserId, JsonSerializer.Serialize(assaultData));
+                Logger.LogError(LogMessage.ImageUpdateError, "Assault", context.UserId,
+                    JsonSerializer.Serialize(assaultData));
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
@@ -102,17 +115,19 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
             TimeZoneInfo tz = context.Server.GetTimeZoneInfo();
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
-                new CommandText($"Cycle start: <t:{assaultData.StartTime.ToTimestamp(tz)}:f>\n" +
-                    $"Cycle end: <t:{assaultData.EndTime.ToTimestamp(tz)}:f>"),
-                new CommandAttachment("da_card.jpg", card),
-                new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
+                    new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
+                    new CommandText($"Cycle start: <t:{assaultData.StartTime.ToTimestamp(tz)}:f>\n" +
+                                    $"Cycle end: <t:{assaultData.EndTime.ToTimestamp(tz)}:f>"),
+                    new CommandAttachment("da_card.jpg", card),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                ],
                 true);
         }
         catch (CommandException e)
         {
             Logger.LogError(e, LogMessage.UnknownError, "Assault", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Deadly Assault"));
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                string.Format(ResponseMessage.CardGenError, "Deadly Assault"));
         }
         catch (Exception ex)
         {

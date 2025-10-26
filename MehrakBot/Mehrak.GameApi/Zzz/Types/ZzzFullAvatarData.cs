@@ -1,7 +1,11 @@
-﻿using Mehrak.Domain.Common;
+﻿#region
+
+using System.Text.Json.Serialization;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using System.Text.Json.Serialization;
+
+#endregion
 
 namespace Mehrak.GameApi.Zzz.Types;
 
@@ -55,7 +59,10 @@ public class ZzzAvatarData
 
     [JsonPropertyName("awaken_state")] public required string AwakenState { get; set; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.FileName, Id);
+    }
 }
 
 public class ZzzFullAvatarData
@@ -96,10 +103,15 @@ public class DiskDrive
 
     [JsonPropertyName("all_hit")] public bool AllHit { get; set; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, EquipSuit.SuitId);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.FileName, EquipSuit.SuitId);
+    }
 
-    public IImageData ToImageData() =>
-        new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 /// <summary>
@@ -124,7 +136,10 @@ public sealed class EquipSuit : IEquatable<EquipSuit>
         return SuitId == other.SuitId;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as EquipSuit);
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as EquipSuit);
+    }
 
     public override int GetHashCode()
     {
@@ -219,7 +234,13 @@ public class Weapon
 
     [JsonPropertyName("profession")] public int Profession { get; set; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.FileName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }

@@ -1,28 +1,21 @@
-﻿using Mehrak.Application.Services.Hsr.CharList;
-using Mehrak.Bot.Executors.Hsr;
-using Mehrak.Domain.Interfaces;
+﻿#region
+
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi;
-using Mehrak.GameApi.Hsr;
 using Mehrak.GameApi.Hsr.Types;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands.Hsr;
-using MehrakCore.Services.Commands.Hsr.CharList;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
+
+#endregion
 
 namespace MehrakCore.Tests.Services.Commands.Hsr;
 
@@ -127,7 +120,7 @@ public class HsrCharListCommandExecutorTests
             Id = userId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = profileId,
                     LtUid = ltUid,
@@ -171,7 +164,7 @@ public class HsrCharListCommandExecutorTests
         using FileStream fs = File.OpenRead(testDataPath);
         return JsonSerializer.Deserialize<HsrBasicCharacterData>(fs, new JsonSerializerOptions
         {
-            NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
         })!;
     }
 
@@ -183,8 +176,8 @@ public class HsrCharListCommandExecutorTests
     private void SetupTokenCache(string token)
     {
         m_DistributedCacheMock.Setup(x =>
-            x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-        .ReturnsAsync(Encoding.UTF8.GetBytes(token));
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(token));
     }
 
     private void SetupGameRecordApiSuccess()
@@ -241,7 +234,7 @@ public class HsrCharListCommandExecutorTests
     private void SetupCharacterApiNoData()
     {
         // Return an empty or null AvatarList effectively
-        IEnumerable<HsrBasicCharacterData> list = [new HsrBasicCharacterData()];
+        IEnumerable<HsrBasicCharacterData> list = [new()];
         m_CharacterApiMock
             .Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, It.IsAny<string>()))
             .ReturnsAsync(list);
@@ -312,7 +305,7 @@ public class HsrCharListCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
@@ -339,8 +332,8 @@ public class HsrCharListCommandExecutorTests
         UserModel user = CreateTestUser(m_TestUserId);
         await CreateUserAsync(user);
         m_DistributedCacheMock.Setup(x =>
-            x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-        .ReturnsAsync((byte[]?)null);
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
 
         string guid = Guid.NewGuid().ToString();
         m_AuthenticationMiddlewareMock
@@ -419,8 +412,8 @@ public class HsrCharListCommandExecutorTests
 
         // Initiate auth flow to set pending server
         m_DistributedCacheMock.Setup(x =>
-            x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-        .ReturnsAsync((byte[]?)null);
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
         await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Now complete auth
@@ -428,7 +421,8 @@ public class HsrCharListCommandExecutorTests
         SetupCharacterApiWithData();
         SetupImageUpdaterNoop();
 
-        AuthenticationResult auth = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult auth =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_CommandExecutor.OnAuthenticationCompletedAsync(auth);
@@ -449,15 +443,16 @@ public class HsrCharListCommandExecutorTests
 
         // Initiate auth flow to set pending server
         m_DistributedCacheMock.Setup(x =>
-           x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
-       .ReturnsAsync((byte[]?)null);
+                x.GetAsync(It.Is<string>(key => key.StartsWith("TokenCache_")), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
         await m_CommandExecutor.ExecuteAsync(Server.Asia, TestProfileId);
 
         // Complete auth with no characters
         SetupGameRecordApiSuccess();
         SetupCharacterApiNoData();
 
-        AuthenticationResult auth = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult auth =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_CommandExecutor.OnAuthenticationCompletedAsync(auth);

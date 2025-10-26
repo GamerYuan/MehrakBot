@@ -1,30 +1,17 @@
 #region
 
-using Mehrak.Application.Services.Genshin;
-using Mehrak.Application.Services.Genshin.Character;
-using Mehrak.Bot.Executors.Genshin;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Models;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Genshin;
-using MehrakCore.Services.Commands.Genshin.Character;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -159,7 +146,8 @@ public class GenshinCharacterCommandExecutorTests
     public void ExecuteAsync_WhenParametersCountInvalid_ThrowsArgumentException()
     {
         // Arrange & Act & Assert
-        ArgumentException? ex = Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync("param1", "param2").AsTask());
+        ArgumentException? ex =
+            Assert.ThrowsAsync<ArgumentException>(() => m_Executor.ExecuteAsync("param1", "param2").AsTask());
         Assert.That(ex.Message, Contains.Substring("Invalid parameters count"));
     }
 
@@ -264,10 +252,11 @@ public class GenshinCharacterCommandExecutorTests
         const uint profile = 1;
 
         // Set up token cache to return a token
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, "800800800"));
+        await CreateOrUpdateTestUserAsync(1, (server, "800800800"));
 
         // Mock character API
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, "800800800", "os_asia"))
@@ -392,7 +381,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Set pending parameters by calling ExecuteAsync first
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, "800800800"));
+        await CreateOrUpdateTestUserAsync(1, (server, "800800800"));
 
         // Mock character API
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, "800800800", "os_asia"))
@@ -428,7 +417,8 @@ public class GenshinCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync(characterName, server, 1u); // Clear the captured request from ExecuteAsync
         m_DiscordTestHelper.ClearCapturedRequests();
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult); // Assert
@@ -443,7 +433,8 @@ public class GenshinCharacterCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WhenExceptionOccurs_SendsErrorMessage()
     {
         // Arrange
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Create a user in the database
         await CreateOrUpdateTestUserAsync(1, lastUsedRegion: Server.Asia);
@@ -482,7 +473,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Mock character API to return empty list
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
@@ -505,7 +496,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Mock character API to return character
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
@@ -521,7 +512,8 @@ public class GenshinCharacterCommandExecutorTests
             ]);
 
         // Mock character detail API to return authentication error
-        m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
+        m_CharacterApiMock.Setup(x =>
+                x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
             .ReturnsAsync(new Result<GenshinCharacterDetail> { RetCode = 10001 });
 
         // Act
@@ -541,7 +533,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Mock character API to return character
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
@@ -557,12 +549,13 @@ public class GenshinCharacterCommandExecutorTests
             ]);
 
         // Mock character detail API to return empty list
-        m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
+        m_CharacterApiMock.Setup(x =>
+                x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
             .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
                 Data = new GenshinCharacterDetail
-                { List = [], AvatarWiki = [] }
+                    { List = [], AvatarWiki = [] }
             });
 
         // Act
@@ -582,7 +575,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Mock character API to return character
         m_CharacterApiMock.Setup(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"))
@@ -601,7 +594,8 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
 
         // Mock character detail API to return valid data
-        m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
+        m_CharacterApiMock.Setup(x =>
+                x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
             .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
@@ -673,7 +667,8 @@ public class GenshinCharacterCommandExecutorTests
         GenshinCharacterInformation characterInfo = CreateTestCharacterInfo();
 
         // Mock character detail API to return valid data
-        m_CharacterApiMock.Setup(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
+        m_CharacterApiMock.Setup(x =>
+                x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId))
             .ReturnsAsync(new Result<GenshinCharacterDetail>
             {
                 RetCode = 0,
@@ -718,7 +713,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Set up aliases where "Traveler" would resolve to "Diluc" but the
         // exact character "Traveler" should take precedence
@@ -780,7 +775,8 @@ public class GenshinCharacterCommandExecutorTests
             x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", travelerId), Times.Once);
 
         // Should NOT call for Diluc
-        m_CharacterApiMock.Verify(x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", dilucId),
+        m_CharacterApiMock.Verify(
+            x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", dilucId),
             Times.Never);
 
         // Verify character card was generated
@@ -796,7 +792,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Set up multiple aliases for the same character
         Dictionary<string, string> aliases = new()
@@ -850,7 +846,8 @@ public class GenshinCharacterCommandExecutorTests
         m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.Genshin), Times.Once);
 
         // Verify APIs were called correctly (character should be found via alias)
-        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"), Times.Once);
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"),
+            Times.Once);
         m_CharacterApiMock.Verify(
             x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId), Times.Once);
 
@@ -867,7 +864,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Set up aliases with special characters
         Dictionary<string, string> aliases = new()
@@ -920,7 +917,8 @@ public class GenshinCharacterCommandExecutorTests
         m_CharacterCacheServiceMock.Verify(x => x.GetAliases(Game.Genshin), Times.Once);
 
         // Verify APIs were called correctly (character should be found via alias)
-        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"), Times.Once);
+        m_CharacterApiMock.Verify(x => x.GetAllCharactersAsync(TestLtUid, TestLToken, TestGameUid, "os_asia"),
+            Times.Once);
         m_CharacterApiMock.Verify(
             x => x.GetCharacterDataFromIdAsync(TestLtUid, TestLToken, TestGameUid, "os_asia", characterId), Times.Once);
     }
@@ -933,7 +931,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Set up aliases
         Dictionary<string, string> aliases = new()
@@ -987,7 +985,7 @@ public class GenshinCharacterCommandExecutorTests
         const Server server = Server.Asia;
 
         // Create and save user with profile and game UID
-        await CreateOrUpdateTestUserAsync(1, gameProfile: (server, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (server, TestGameUid));
 
         // Set up aliases with mixed cases - all should resolve to Traveler
         Dictionary<string, string> aliases = new(StringComparer.OrdinalIgnoreCase)
@@ -1121,7 +1119,6 @@ public class GenshinCharacterCommandExecutorTests
     {
         Dictionary<Game, Dictionary<string, string>> gameUids = [];
         if (gameProfile is not null)
-        {
             gameUids = new Dictionary<Game, Dictionary<string, string>>
             {
                 {
@@ -1132,23 +1129,20 @@ public class GenshinCharacterCommandExecutorTests
                     }
                 }
             };
-        }
 
         Dictionary<Game, Server>? lastUsed = null;
         if (lastUsedRegion is not null)
-        {
             lastUsed = new Dictionary<Game, Server>
             {
                 { Game.Genshin, lastUsedRegion.Value }
             };
-        }
 
         UserModel testUser = new()
         {
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = profileId,
                     LtUid = TestLtUid,

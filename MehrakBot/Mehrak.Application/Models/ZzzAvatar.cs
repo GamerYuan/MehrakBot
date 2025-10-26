@@ -1,4 +1,8 @@
-﻿using SixLabors.ImageSharp;
+﻿#region
+
+using SixLabors.ImageSharp;
+
+#endregion
 
 namespace Mehrak.Application.Models;
 

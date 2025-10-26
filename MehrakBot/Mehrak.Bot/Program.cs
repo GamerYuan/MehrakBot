@@ -1,4 +1,7 @@
-﻿using Mehrak.Application;
+﻿#region
+
+using System.Globalization;
+using Mehrak.Application;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi;
@@ -17,7 +20,8 @@ using NetCord.Services.ComponentInteractions;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using StackExchange.Redis;
-using System.Globalization;
+
+#endregion
 
 namespace Mehrak.Bot;
 

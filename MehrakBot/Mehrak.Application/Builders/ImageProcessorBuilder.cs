@@ -1,8 +1,12 @@
-﻿using Mehrak.Application.Models;
+﻿#region
+
+using Mehrak.Application.Models;
 using Mehrak.Domain.Models.Abstractions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+
+#endregion
 
 namespace Mehrak.Application.Builders;
 
@@ -40,5 +44,8 @@ public class ImageProcessorBuilder
         return this;
     }
 
-    public IImageProcessor Build() => m_ImageProcessor;
+    public IImageProcessor Build()
+    {
+        return m_ImageProcessor;
+    }
 }

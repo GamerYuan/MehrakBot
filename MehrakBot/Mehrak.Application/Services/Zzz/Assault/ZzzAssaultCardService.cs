@@ -1,4 +1,9 @@
-﻿using Mehrak.Application.Models;
+﻿#region
+
+using System.Diagnostics;
+using System.Numerics;
+using System.Text.Json;
+using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -13,9 +18,8 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Diagnostics;
-using System.Numerics;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Zzz.Assault;
 
@@ -38,6 +42,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
         Quality = 90,
         Interleaved = false
     };
+
     private static readonly Color OverlayColor = Color.FromRgb(69, 69, 69);
     private static readonly Color BackgroundColor = Color.FromRgb(30, 30, 30);
 
@@ -67,7 +72,8 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
         });
 
         m_BaseBuddyImage = await Image.LoadAsync(await
-            m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base")), cancellationToken);
+                m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base")),
+            cancellationToken);
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzAssaultCardService));
     }
 
@@ -91,7 +97,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                     ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
                     return (Avatar: avatar, Image: avatar.GetStyledAvatarImage());
                 })
-                .ToDictionaryAsync(x => x.Avatar, x => x.Image, comparer: ZzzAvatarIdComparer.Instance);
+                .ToDictionaryAsync(x => x.Avatar, x => x.Image, ZzzAvatarIdComparer.Instance);
             disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);
 
@@ -130,7 +136,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
 
             Dictionary<ZzzAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
 
-            int height = (data.List.Count * 270) + 200;
+            int height = data.List.Count * 270 + 200;
             Image<Rgba32> background = new(1050, height);
 
             background.Mutate(ctx =>
@@ -143,56 +149,58 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Deadly Assault", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(50, 110),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                },
+                    {
+                        Origin = new Vector2(50, 110),
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    },
                     $"{data.StartTime.Day}/{data.StartTime.Month}/{data.StartTime.Year} - " +
                     $"{data.EndTime.Day}/{data.EndTime.Month}/{data.EndTime.Year}",
                     Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(1000, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
+                    {
+                        Origin = new Vector2(1000, 80),
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(1000, 110),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                },
+                    {
+                        Origin = new Vector2(1000, 110),
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    },
                     $"{context.GameProfile.GameUid}", Color.White);
 
                 string totalScoreText = $"Total Score: {data.TotalScore}";
-                FontRectangle totalScoreBounds = TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(m_TitleFont));
+                FontRectangle totalScoreBounds =
+                    TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(m_TitleFont));
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 160),
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, totalScoreText, Color.White);
-                IPath rankOverlay = ImageUtility.CreateRoundedRectanglePath(90, 40, 15).Translate(60 + totalScoreBounds.Width, 110);
+                IPath rankOverlay = ImageUtility.CreateRoundedRectanglePath(90, 40, 15)
+                    .Translate(60 + totalScoreBounds.Width, 110);
                 ctx.Fill(OverlayColor, rankOverlay);
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
-                {
-                    Origin = new Vector2(105 + (int)totalScoreBounds.Width, 145),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                }, $"{(float)data.RankPercent / 100:N2}%", Color.White);
+                    {
+                        Origin = new Vector2(105 + (int)totalScoreBounds.Width, 145),
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    }, $"{(float)data.RankPercent / 100:N2}%", Color.White);
 
                 ctx.DrawImage(m_StarLitImage, new Point(160 + (int)totalScoreBounds.Width, 100), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(210 + (int)totalScoreBounds.Width, 150),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, $"x{data.TotalStar}", Color.White);
+                    {
+                        Origin = new Vector2(210 + (int)totalScoreBounds.Width, 150),
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, $"x{data.TotalStar}", Color.White);
 
                 for (int i = 0; i < data.List.Count; i++)
                 {
                     AssaultFloorDetail floor = data.List[i];
-                    int yOffset = 180 + (i * 270);
+                    int yOffset = 180 + i * 270;
                     using Image bossImage = Image.Load(bossImages[floor.Boss[0].Name]);
                     using Image buffImage = Image.Load(buffImages[floor.Buff[0].Name]);
                     using Image<Rgba32> floorImage = GetFloorImage(floor, lookup, bossImage,
@@ -206,7 +214,8 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
             await background.SaveAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Assault", context.UserId, stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Assault", context.UserId,
+                stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
@@ -247,10 +256,12 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
             for (int i = 2; i >= 0; i--)
             {
                 Image starImage = i < floor.Star ? m_StarLitSmall : m_StarUnlitSmall;
-                ctx.DrawImage(starImage, new Point(885 - (int)scoreBounds.Width - (i * 35), 10), 1f);
+                ctx.DrawImage(starImage, new Point(885 - (int)scoreBounds.Width - i * 35, 10), 1f);
             }
+
             ctx.DrawImage(bossImage, new Point(25, 15), 1f);
-            using Image<Rgba32> rosterImage = GetRosterImage([.. floor.AvatarList.Select(x => avatarLookup[x.Id])], buddyImage);
+            using Image<Rgba32> rosterImage =
+                GetRosterImage([.. floor.AvatarList.Select(x => avatarLookup[x.Id])], buddyImage);
             ctx.DrawImage(rosterImage, new Point(190, 60), 1f);
             ctx.DrawImage(buffImage, new Point(850, 110), 1f);
 
@@ -263,7 +274,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
     {
         const int avatarWidth = 150;
 
-        int offset = ((3 - avatarImages.Count) * avatarWidth / 2) + 10;
+        int offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -274,7 +285,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
 
             for (int i = 0; i < avatarImages.Count; i++)
             {
-                x = offset + (i * (avatarWidth + 10));
+                x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(avatarImages[i], new Point(x, 0), 1f);
             }
 
@@ -287,7 +298,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 x.DrawImage(buddyImage ?? m_BaseBuddyImage, new Point(-45, 0), 1f);
                 x.ApplyRoundedCorners(15);
             });
-            x = offset + (avatarImages.Count * (avatarWidth + 10));
+            x = offset + avatarImages.Count * (avatarWidth + 10);
             ctx.DrawImage(buddyBorder, new Point(x, 0), 1f);
         });
 

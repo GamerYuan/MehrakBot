@@ -1,8 +1,12 @@
+#region
+
+using System.Text.Json;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -47,11 +51,13 @@ public class CharacterInitializationService : IHostedService
     {
         if (!Directory.Exists(m_AssetsPath))
         {
-            m_Logger.LogWarning("Assets directory not found at {AssetsPath}, skipping character initialization", m_AssetsPath);
+            m_Logger.LogWarning("Assets directory not found at {AssetsPath}, skipping character initialization",
+                m_AssetsPath);
             return;
         }
 
-        string[] characterJsonFiles = Directory.GetFiles(m_AssetsPath, "*characters*.json", SearchOption.AllDirectories);
+        string[] characterJsonFiles =
+            Directory.GetFiles(m_AssetsPath, "*characters*.json", SearchOption.AllDirectories);
 
         if (characterJsonFiles.Length == 0)
         {
@@ -61,10 +67,7 @@ public class CharacterInitializationService : IHostedService
 
         m_Logger.LogInformation("Found {Count} character JSON files", characterJsonFiles.Length);
 
-        foreach (string jsonFile in characterJsonFiles)
-        {
-            await ProcessCharacterJsonFile(jsonFile);
-        }
+        foreach (string jsonFile in characterJsonFiles) await ProcessCharacterJsonFile(jsonFile);
     }
 
     private async Task ProcessCharacterJsonFile(string jsonFilePath)
@@ -101,21 +104,15 @@ public class CharacterInitializationService : IHostedService
                 var mergedCharacters = new List<string>();
 
                 foreach (string character in newCharacters)
-                {
                     if (!mergedCharacters.Contains(character, StringComparer.OrdinalIgnoreCase))
-                    {
                         mergedCharacters.Add(character);
-                    }
-                }
 
                 foreach (string existingChar in existingCharacters)
-                {
                     if (!mergedCharacters.Contains(existingChar, StringComparer.OrdinalIgnoreCase))
                     {
                         mergedCharacters.Add(existingChar);
                         m_Logger.LogDebug("Preserving manually added character: {Character}", existingChar);
                     }
-                }
 
                 var updatedModel = new CharacterModel
                 {

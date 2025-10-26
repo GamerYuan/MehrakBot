@@ -1,29 +1,16 @@
 #region
 
-using Mehrak.Application.Services.Genshin.CodeRedeem;
-using Mehrak.Bot.Executors.Executor;
-using Mehrak.Bot.Executors.Genshin;
-using Mehrak.Bot.Modules;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Domain.Repositories;
-using MehrakCore.Models;
-using MehrakCore.Modules;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Executor;
-using MehrakCore.Services.Commands.Genshin.CodeRedeem;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -608,7 +595,8 @@ public class GenshinCodeRedeemExecutorTests
         // Set pending parameters by calling ExecuteAsync first
         await m_Executor.ExecuteAsync(TestCode, Server.Asia, 1u);
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -633,7 +621,7 @@ public class GenshinCodeRedeemExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -666,7 +654,7 @@ public class GenshinCodeRedeemExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,

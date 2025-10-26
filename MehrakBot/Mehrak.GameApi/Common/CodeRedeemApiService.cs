@@ -1,9 +1,13 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using System.Text.Json.Nodes;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json.Nodes;
+
+#endregion
 
 namespace Mehrak.GameApi.Common;
 
@@ -63,27 +67,31 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                 case 0:
                     m_Logger.LogInformation("Successfully redeemed code {Code} for gameUid: {GameUid}", context.Code,
                         context.GameUid);
-                    return Result<CodeRedeemResult>.Success(new("Redeemed Successfully!", CodeStatus.Valid));
+                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redeemed Successfully!",
+                        CodeStatus.Valid));
 
                 case -2001:
                     m_Logger.LogInformation("Code {Code} is expired for gameUid: {GameUid}", context.Code,
                         context.GameUid);
-                    return Result<CodeRedeemResult>.Success(new("Redemption Code Expired", CodeStatus.Invalid));
+                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Expired",
+                        CodeStatus.Invalid));
 
                 case -2003:
                     m_Logger.LogInformation("Invalid code {Code} for gameUid: {GameUid}", context.Code,
                         context.GameUid);
-                    return Result<CodeRedeemResult>.Success(new("Invalid Code", CodeStatus.Invalid));
+                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Invalid Code", CodeStatus.Invalid));
 
                 case -2016:
                     m_Logger.LogInformation("Redemption in cooldown for code {Code} and gameUid: {GameUid}",
                         context.Code, context.GameUid);
-                    return Result<CodeRedeemResult>.Success(new("Redemption in Cooldown", CodeStatus.Valid));
+                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption in Cooldown",
+                        CodeStatus.Valid));
 
                 case -2017:
                     m_Logger.LogInformation("Code {Code} already used for gameUid: {GameUid}", context.Code,
                         context.GameUid);
-                    return Result<CodeRedeemResult>.Success(new("Redemption Code Already Used", CodeStatus.Valid));
+                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Already Used",
+                        CodeStatus.Valid));
 
                 default:
                     m_Logger.LogError(LogMessages.UnknownRetcode, retCode, context.GameUid, requestUri);

@@ -1,11 +1,15 @@
-﻿using Mehrak.Application.Services.Zzz.Assault;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Services.Zzz.Assault;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Tests.Services.Zzz.Assault;
 
@@ -38,13 +42,14 @@ public class ZzzAssaultCardServiceTests
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(assaultData, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
         GameProfileDto userGameData = GetTestUserGameData();
 
         Stream image = await m_Service.GetCardAsync(
-          new TestCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData, Server.Asia, userGameData));
+            new TestCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData, Server.Asia, userGameData));
         Assert.That(image, Is.Not.Null);
 
         MemoryStream memoryStream = new();
@@ -61,7 +66,7 @@ public class ZzzAssaultCardServiceTests
 
         // Save golden image to output folder for comparison
         string outputGoldenImagePath = Path.Combine(outputDirectory,
-             $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
+            $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImage), "Generated image should match the golden image");
@@ -73,7 +78,7 @@ public class ZzzAssaultCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 60,
+            Level = 60
         };
     }
 

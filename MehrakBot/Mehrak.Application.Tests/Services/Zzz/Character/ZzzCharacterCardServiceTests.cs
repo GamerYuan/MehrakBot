@@ -1,11 +1,15 @@
-﻿using Mehrak.Application.Services.Zzz.Character;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Tests.Services.Zzz.Character;
 
@@ -33,14 +37,16 @@ public class ZzzCharacterCardServiceTests
     [TestCase("Jane_TestData.json", "Jane_GoldenImage.jpg", "Jane")]
     [TestCase("Miyabi_TestData.json", "Miyabi_GoldenImage.jpg", "Miyabi")]
     [TestCase("Yixuan_TestData.json", "Yixuan_GoldenImage.jpg", "Yixuan")]
-    public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string testDataFileName, string goldenImageFileName, string testName)
+    public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string testDataFileName,
+        string goldenImageFileName, string testName)
     {
         ZzzFullAvatarData? characterDetail =
             JsonSerializer.Deserialize<ZzzFullAvatarData>(
                 await File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
         Assert.That(characterDetail, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets",
             goldenImageFileName));
 
         GameProfileDto profile = GetTestUserGameData();
@@ -73,7 +79,7 @@ public class ZzzCharacterCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 60,
+            Level = 60
         };
     }
 

@@ -2,6 +2,8 @@
 
 #endregion
 
+#region
+
 using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Zzz.Assault;
 using Mehrak.Application.Services.Zzz.Character;
@@ -11,6 +13,8 @@ using Mehrak.Bot.Builders;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
+
+#endregion
 
 namespace Mehrak.Bot.Modules;
 
@@ -42,14 +46,11 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, code, server, profile);
 
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.ZenlessZoneZero)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, Game.ZenlessZoneZero, parameters))
+            .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.ZenlessZoneZero, parameters))
             .WithCommandName("zzz codes")
             .WithEphemeralResponse(true)
             .Build();
@@ -59,11 +60,11 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-     [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
         string character,
-     [SlashCommandParameter(Name = "server", Description = "Server")]
+        [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
-     [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
         m_Logger.LogInformation(
@@ -71,14 +72,11 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, character, server, profile);
 
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.ZenlessZoneZero)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<ZzzCharacterApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new ZzzCharacterApplicationContext(Context.User.Id, parameters))
             .WithCommandName("zzz character")
             .Build();
 
@@ -87,9 +85,9 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
     public async Task ShiyuCommand(
-     [SlashCommandParameter(Name = "server", Description = "Server")]
+        [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
-     [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
         uint profile = 1
     )
     {
@@ -98,14 +96,11 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<ZzzDefenseApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new ZzzDefenseApplicationContext(Context.User.Id, parameters))
             .WithCommandName("zzz shiyu")
             .Build();
 
@@ -114,25 +109,22 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("da", "Get Deadly Assault summary card")]
     public async Task AssaultCommand(
-    [SlashCommandParameter(Name = "server", Description = "Server")]
+        [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
-    [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
         uint profile = 1
-        )
+    )
     {
         m_Logger.LogInformation(
             "User {User} used the da command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<ZzzAssaultApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new ZzzAssaultApplicationContext(Context.User.Id, parameters))
             .WithCommandName("zzz da")
             .Build();
 
@@ -141,9 +133,9 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("notes", "Get real-time notes")]
     public async Task NotesCommand(
-    [SlashCommandParameter(Name = "server", Description = "Server")]
+        [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
-    [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
         m_Logger.LogInformation(
@@ -151,14 +143,11 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<ZzzRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new ZzzRealTimeNotesApplicationContext(Context.User.Id, parameters))
             .WithCommandName("zzz notes")
             .WithEphemeralResponse(true)
             .Build();
@@ -191,14 +180,14 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "### Examples\n" +
                        "```/zzz codes\n/zzz codes ZENLESS\n/zzz codes ZENLESS, ZENLESSCODE\n/zzz codes ZENLESS Asia 2```",
             "shiyu" => "## Shiyu Defense\n" +
-                        "Get Shiyu Defense summary card\n" +
-                        "### Usage\n" +
-                        "```/zzz shiyu [server] [profile]```\n" +
-                        "### Parameters\n" +
-                        "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                        "### Examples\n" +
-                        "```/zzz shiyu\n/zzz shiyu Asia\n/zzz shiyu America 3```",
+                       "Get Shiyu Defense summary card\n" +
+                       "### Usage\n" +
+                       "```/zzz shiyu [server] [profile]```\n" +
+                       "### Parameters\n" +
+                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                       "### Examples\n" +
+                       "```/zzz shiyu\n/zzz shiyu Asia\n/zzz shiyu America 3```",
             "da" => "## Deadly Assault\n" +
                     "Get Deadly Assault summary card\n" +
                     "### Usage\n" +

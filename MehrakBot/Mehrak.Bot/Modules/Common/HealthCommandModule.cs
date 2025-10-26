@@ -2,6 +2,9 @@
 
 #endregion
 
+#region
+
+using System.Net.NetworkInformation;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure.Metrics;
 using MongoDB.Bson;
@@ -11,7 +14,8 @@ using NetCord.Gateway;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using StackExchange.Redis;
-using System.Net.NetworkInformation;
+
+#endregion
 
 namespace Mehrak.Bot.Modules.Common;
 

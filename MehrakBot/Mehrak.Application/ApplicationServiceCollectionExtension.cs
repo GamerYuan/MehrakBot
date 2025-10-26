@@ -1,10 +1,14 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Zzz;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+
+#endregion
 
 namespace Mehrak.Application;
 

@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Services.Zzz.Assault;
+﻿#region
+
+using Mehrak.Application.Services.Zzz.Assault;
 using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Application.Services.Zzz.RealTimeNotes;
@@ -6,6 +8,8 @@ using Mehrak.Domain;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.DependencyInjection;
+
+#endregion
 
 namespace Mehrak.Application.Services.Zzz;
 
@@ -25,7 +29,9 @@ internal static class ZzzApplicationServiceExtensions
         services.AddSingleton<ICardService<ZzzDefenseData>, ZzzDefenseCardService>();
         services.RegisterAsyncInitializableFor<ICardService<ZzzDefenseData>, ZzzDefenseCardService>();
 
-        services.AddTransient<IApplicationService<ZzzRealTimeNotesApplicationContext>, ZzzRealTimeNotesApplicationService>();
+        services
+            .AddTransient<IApplicationService<ZzzRealTimeNotesApplicationContext>,
+                ZzzRealTimeNotesApplicationService>();
 
         return services;
     }

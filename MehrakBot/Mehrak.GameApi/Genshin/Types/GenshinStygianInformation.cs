@@ -1,10 +1,10 @@
 ﻿#region
 
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
 
 #endregion
 
@@ -29,10 +29,15 @@ public class StygianBestAvatar
 
     [JsonPropertyName("type")] public int Type { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId);
+    }
 
-    public IImageData ToImageData() =>
-        new ImageData(ToImageName(), SideIcon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), SideIcon);
+    }
 }
 
 public class Challenge
@@ -67,9 +72,15 @@ public class Monster
 
     [JsonPropertyName("monster_id")] public int MonsterId { get; init; }
 
-    public string ToImageName() => $"genshin_stygian_boss_{MonsterId}";
+    public string ToImageName()
+    {
+        return $"genshin_stygian_boss_{MonsterId}";
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public class StygianSchedule
@@ -119,7 +130,13 @@ public class StygianAvatar
 
     [JsonPropertyName("rank")] public int Rank { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Genshin.AvatarName, AvatarId);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.AvatarName, AvatarId);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Image);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Image);
+    }
 }

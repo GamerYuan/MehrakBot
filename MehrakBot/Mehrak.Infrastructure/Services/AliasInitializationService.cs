@@ -1,9 +1,13 @@
+#region
+
+using System.Text.Json;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -64,10 +68,7 @@ public class AliasInitializationService : IHostedService
 
         m_Logger.LogInformation("Found {Count} alias JSON files", aliasJsonFiles.Length);
 
-        foreach (string file in aliasJsonFiles)
-        {
-            await ProcessAliasJsonFileAsync(file);
-        }
+        foreach (string file in aliasJsonFiles) await ProcessAliasJsonFileAsync(file);
     }
 
     private async Task ProcessAliasJsonFileAsync(string filePath)
@@ -92,7 +93,8 @@ public class AliasInitializationService : IHostedService
 
             Dictionary<string, string> existingAlias = await m_AliasRepository.GetAliasesAsync(gameName);
 
-            List<KeyValuePair<string, string>> newAliases = aliases.Where(x => !existingAlias.ContainsKey(x.Key)).ToList();
+            List<KeyValuePair<string, string>> newAliases =
+                aliases.Where(x => !existingAlias.ContainsKey(x.Key)).ToList();
 
             if (newAliases.Count > 0)
             {
@@ -105,10 +107,8 @@ public class AliasInitializationService : IHostedService
                 Dictionary<string, string> merged = [];
 
                 foreach (KeyValuePair<string, string> alias in
-                    newAliases.Concat(existingAlias).Where(alias => !merged.ContainsKey(alias.Key)))
-                {
+                         newAliases.Concat(existingAlias).Where(alias => !merged.ContainsKey(alias.Key)))
                     merged.Add(alias.Key, alias.Value);
-                }
 
                 AliasModel updatedModel = new()
                 {

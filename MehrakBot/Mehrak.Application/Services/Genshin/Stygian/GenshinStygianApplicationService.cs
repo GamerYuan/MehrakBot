@@ -1,4 +1,7 @@
-﻿using Mehrak.Application.Builders;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
@@ -9,7 +12,8 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Genshin.Stygian;
 
@@ -38,7 +42,8 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
         {
             var region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
+            var profile =
+                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
             {
@@ -48,23 +53,29 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
 
             var gameUid = profile.GameUid;
 
-            var stygianInfo = await m_ApiService.GetAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            var stygianInfo =
+                await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+                    gameUid, region));
             if (!stygianInfo.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError, "Stygian", context.UserId, gameUid, stygianInfo);
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Stygian Onslaught data"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Stygian Onslaught data"));
             }
 
             if (!stygianInfo.Data.IsUnlock)
             {
-                Logger.LogInformation("Stygian Onslaught is not unlocked for User {UserId} UID {GameUid}", context.UserId, gameUid);
+                Logger.LogInformation("Stygian Onslaught is not unlocked for User {UserId} UID {GameUid}",
+                    context.UserId, gameUid);
                 return CommandResult.Success([new CommandText("Stygian Onslaught is not unlocked")], isEphemeral: true);
             }
 
             if (!stygianInfo.Data.Data![0].Single.HasData)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, "Stygian", context.UserId, gameUid);
-                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, "Stygian Onslaught"))], isEphemeral: true);
+                return CommandResult.Success(
+                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Stygian Onslaught"))],
+                    isEphemeral: true);
             }
 
             var stygianData = stygianInfo.Data.Data[0].Single;
@@ -75,7 +86,8 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                     new ImageProcessorBuilder().Resize(0, 150).Build()));
             var monsterImageTask = stygianData.Challenge!.Select(x => x.Monster)
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
+                .Select(x =>
+                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
 
             var completed = await Task.WhenAll(avatarTasks.Concat(sideAvatarTasks).Concat(monsterImageTask));
 
@@ -90,17 +102,19 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                 stygianInfo.Data.Data[0], context.Server, profile));
 
             return CommandResult.Success([
-                 new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),
-                 new CommandText($"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\n" +
-                    $"Cycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>"),
-                 new CommandAttachment("stygian_card.jpg", card),
-                 new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
-                 true);
+                    new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),
+                    new CommandText($"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\n" +
+                                    $"Cycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>"),
+                    new CommandAttachment("stygian_card.jpg", card),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                ],
+                true);
         }
         catch (CommandException e)
         {
             Logger.LogError(e, LogMessage.UnknownError, "Stygian", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Stygian Onslaught"));
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                string.Format(ResponseMessage.CardGenError, "Stygian Onslaught"));
         }
         catch (Exception e)
         {

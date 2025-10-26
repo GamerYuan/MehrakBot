@@ -30,7 +30,7 @@ public static class ImageUtility
             for (int x = fadeStartX; x < width; x++)
             {
                 // same fall‑off curve you had before
-                var alpha = 1.0f - ((float)(x - fadeStartX) / (width - fadeStartX));
+                var alpha = 1.0f - (float)(x - fadeStartX) / (width - fadeStartX);
                 alpha = MathF.Pow(alpha, 5);
                 alpha = Math.Clamp(alpha, 0, 1);
 
@@ -59,7 +59,7 @@ public static class ImageUtility
 
             for (int i = 0; i < starCount; i++)
             {
-                int centerX = offset + (i * starSize) + (starSize / 2);
+                int centerX = offset + i * starSize + starSize / 2;
 
                 // Create a star shape
                 var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
@@ -104,13 +104,13 @@ public static class ImageUtility
 
                 if (isHorizontal)
                 {
-                    centerX = (i * starSize) + 15; // Left-aligned horizontally
+                    centerX = i * starSize + 15; // Left-aligned horizontally
                     centerY = 15f;
                 }
                 else
                 {
                     centerX = 15f;
-                    centerY = (i * starSize) + 15; // Top-aligned vertically
+                    centerY = i * starSize + 15; // Top-aligned vertically
                 }
 
                 // Draw shadow only if requested
@@ -212,8 +212,8 @@ public static class ImageUtility
         {
             float radius = i % 2 == 0 ? outerRadius : innerRadius;
             result[i] = new PointF(
-                centerX + (radius * MathF.Cos(angle)),
-                centerY + (radius * MathF.Sin(angle))
+                centerX + radius * MathF.Cos(angle),
+                centerY + radius * MathF.Sin(angle)
             );
             angle += angleIncrement;
         }
@@ -312,12 +312,12 @@ public static class ImageUtility
 
         // Calculate output image dimensions
         layout.OutputWidth = layout.PaddingLeft + layout.PaddingRight +
-                             (layout.Columns * imageWidth) +
-                             ((layout.Columns - 1) * imageSpacing);
+                             layout.Columns * imageWidth +
+                             (layout.Columns - 1) * imageSpacing;
 
         layout.OutputHeight = layout.PaddingTop + layout.PaddingBottom +
-                              (layout.Rows * imageHeight) +
-                              ((layout.Rows - 1) * imageSpacing);
+                              layout.Rows * imageHeight +
+                              (layout.Rows - 1) * imageSpacing;
 
         // Calculate positions for each image
         layout.ImagePositions = CalculateImagePositions(layout.Columns, layout.Rows, imageCount,
@@ -343,15 +343,15 @@ public static class ImageUtility
 
             // Calculate what the aspect ratio would be with this grid
             int gridWidth = padding[3] + padding[1] + // left + right padding
-                            (columns * imageWidth) +
-                            ((columns - 1) * imageSpacing);
+                            columns * imageWidth +
+                            (columns - 1) * imageSpacing;
 
             int gridHeight = padding[0] + padding[2] + // top + bottom padding
-                             (rows * imageHeight) +
-                             ((rows - 1) * imageSpacing);
+                             rows * imageHeight +
+                             (rows - 1) * imageSpacing;
 
             double currentRatio = (double)gridWidth / gridHeight;
-            double ratioDifference = Math.Abs(currentRatio - (4.0 / 3.0));
+            double ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
 
             if (ratioDifference < bestRatioDifference)
             {
@@ -379,8 +379,8 @@ public static class ImageUtility
             int column = i % columns;
             int row = i / columns;
 
-            int x = padding[3] + (column * (imageWidth + imageSpacing)); // left padding + column offset
-            int y = padding[0] + (row * (imageHeight + imageSpacing)); // top padding + row offset
+            int x = padding[3] + column * (imageWidth + imageSpacing); // left padding + column offset
+            int y = padding[0] + row * (imageHeight + imageSpacing); // top padding + row offset
 
             positions.Add(new ImagePosition(x, y, i));
         }

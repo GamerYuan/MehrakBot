@@ -1,9 +1,13 @@
-﻿using Mehrak.Domain.Enums;
+﻿#region
+
+using System.Net.Http.Json;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
+
+#endregion
 
 namespace Mehrak.GameApi.Common;
 
@@ -70,7 +74,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.LtUid.ToString());
 
-            var result = json.Data.List.Select(x => new GameRecordDto()
+            var result = json.Data.List.Select(x => new GameRecordDto
             {
                 GameId = x.GameId ?? 0,
                 Game = x.GameName switch
@@ -85,7 +89,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 HasRole = x.HasRole ?? false,
                 Nickname = x.Nickname ?? string.Empty,
                 Region = x.Region ?? string.Empty,
-                Level = x.Level ?? 0,
+                Level = x.Level ?? 0
             });
 
             return Result<IEnumerable<GameRecordDto>>.Success(result ?? []);

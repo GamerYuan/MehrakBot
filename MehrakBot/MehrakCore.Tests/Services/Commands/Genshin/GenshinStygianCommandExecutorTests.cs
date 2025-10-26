@@ -1,32 +1,17 @@
 #region
 
-using Mehrak.Application.Services.Genshin.Stygian;
-using Mehrak.Bot.Executors.Genshin;
-using Mehrak.Bot.Modules;
-using Mehrak.Domain.Interfaces;
-using Mehrak.GameApi;
-using Mehrak.GameApi.Common.ApiResponseTypes;
-using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Modules;
-using MehrakCore.Services.Commands.Genshin;
-using MehrakCore.Services.Commands.Genshin.Stygian;
-using MehrakCore.Services.Common;
-using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Logging;
-using Moq;
-using Moq.Protected;
-using NetCord;
-using NetCord.Services;
 using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using Mehrak.Application.Services.Genshin.Stygian;
+using Mehrak.GameApi;
+using Mehrak.GameApi.Genshin.Types;
+using MehrakCore.Tests.TestHelpers;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Moq.Protected;
 
 #endregion
 
@@ -44,8 +29,10 @@ public class GenshinStygianCommandExecutorTests
 
     private static readonly string AccountRolesUrl =
         $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+
     private static readonly string HardChallengeUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/hard_challenge";
+
     private static readonly string GameRecordCardUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
 
@@ -675,7 +662,8 @@ public class GenshinStygianCommandExecutorTests
         await CreateTestUserWithProfile();
         SetupSuccessfulApiResponses();
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Set the pending server using reflection
         FieldInfo? pendingServerField = typeof(GenshinStygianCommandExecutor).GetField("m_PendingServer",
@@ -720,7 +708,8 @@ public class GenshinStygianCommandExecutorTests
     public async Task OnAuthenticationCompletedAsync_WithNullPendingServer_HandlesGracefully()
     {
         // Arrange
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Don't set pending server (should be null by default)
 
@@ -752,7 +741,7 @@ public class GenshinStygianCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
@@ -783,7 +772,7 @@ public class GenshinStygianCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid
@@ -798,7 +787,8 @@ public class GenshinStygianCommandExecutorTests
     private Task SetupCachedToken()
     {
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
         return Task.CompletedTask;
     }

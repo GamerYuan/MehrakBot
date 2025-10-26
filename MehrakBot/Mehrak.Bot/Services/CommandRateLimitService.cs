@@ -1,6 +1,10 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿#region
+
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Models;
 using Microsoft.Extensions.Logging;
+
+#endregion
 
 namespace Mehrak.Bot.Services;
 
@@ -22,10 +26,7 @@ internal class CommandRateLimitService : ICommandRateLimitService
         string cacheKey = $"cmd_rate_limit:{userId}";
         string? val = await m_CacheService.GetAsync<string>(cacheKey);
 
-        if (val == null)
-        {
-            return false;
-        }
+        if (val == null) return false;
 
         m_Logger.LogDebug("User {UserId} is rate limited", userId);
         return true;

@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Services.Hsr.Character;
+﻿#region
+
+using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Application.Services.Hsr.EndGame;
 using Mehrak.Application.Services.Hsr.Memory;
@@ -8,6 +10,8 @@ using Mehrak.Domain;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.DependencyInjection;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr;
 
@@ -32,7 +36,9 @@ internal static class HsrApplicationServiceExtensions
         services.AddSingleton<ICardService<HsrMemoryInformation>, HsrMemoryCardService>();
         services.RegisterAsyncInitializableFor<ICardService<HsrMemoryInformation>, HsrMemoryCardService>();
 
-        services.AddTransient<IApplicationService<HsrRealTimeNotesApplicationContext>, HsrRealTimeNotesApplicationService>();
+        services
+            .AddTransient<IApplicationService<HsrRealTimeNotesApplicationContext>,
+                HsrRealTimeNotesApplicationService>();
 
         return services;
     }

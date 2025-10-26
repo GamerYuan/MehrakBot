@@ -1,6 +1,10 @@
-using Microsoft.Extensions.Logging;
+#region
+
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
+
+#endregion
 
 namespace Mehrak.Infrastructure.Services;
 

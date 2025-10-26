@@ -122,7 +122,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         var passphrase = Context.Components.OfType<TextInput>()
             .First(x => x.CustomId == "passphrase").Value;
 
-        if (!m_AuthenticationMiddleware.NotifyAuthenticate(new(Context.User.Id, guid, passphrase, Context)))
+        if (!m_AuthenticationMiddleware.NotifyAuthenticate(new AuthenticationResponse(Context.User.Id, guid, passphrase,
+                Context)))
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
                 .WithFlags(

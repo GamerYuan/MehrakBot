@@ -1,5 +1,9 @@
-﻿using Mehrak.Domain.Models.Abstractions;
+﻿#region
+
+using Mehrak.Domain.Models.Abstractions;
 using SixLabors.ImageSharp;
+
+#endregion
 
 namespace Mehrak.Application.Models;
 
@@ -28,5 +32,8 @@ internal class MultiImageProcessorBase : IMultiImageProcessor
         throw new NotSupportedException();
     }
 
-    public void SetOperation(Action<List<Image>> operation) => Operation = operation;
+    public void SetOperation(Action<List<Image>> operation)
+    {
+        Operation = operation;
+    }
 }

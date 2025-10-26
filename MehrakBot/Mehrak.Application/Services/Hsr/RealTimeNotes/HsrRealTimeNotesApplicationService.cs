@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Services.Common;
+﻿#region
+
+using Mehrak.Application.Services.Common;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -8,6 +10,8 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.RealTimeNotes;
 
@@ -33,7 +37,8 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
         {
             string region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region);
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+                region);
 
             if (profile == null)
             {
@@ -44,12 +49,13 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
             var gameUid = profile.GameUid;
 
             var notesResult = await m_ApiService.GetAsync(
-                new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!notesResult.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
             }
 
             HsrRealTimeNotesData notesData = notesResult.Data;
@@ -77,34 +83,38 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
         [
             new CommandText($"Honkai Star Rail Real-Time Notes (UID: {uid})", CommandText.TextType.Header2),
             new CommandSection([
-                new("Trailblaze Power", CommandText.TextType.Header3),
-                new($"{data.CurrentStamina}/{data.MaxStamina}"),
-                new(data.CurrentStamina == data.MaxStamina
-                            ? "Already Full!"
-                            : $"Recovers <t:{data.StaminaFullTs}:R>", CommandText.TextType.Footer)],
-                new("hsr_tbp.png", await tbpImage)
+                    new CommandText("Trailblaze Power", CommandText.TextType.Header3),
+                    new CommandText($"{data.CurrentStamina}/{data.MaxStamina}"),
+                    new CommandText(data.CurrentStamina == data.MaxStamina
+                        ? "Already Full!"
+                        : $"Recovers <t:{data.StaminaFullTs}:R>", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("hsr_tbp.png", await tbpImage)
             ),
             new CommandSection([
-                new("Assignments", CommandText.TextType.Header3),
-                new($"{data.AcceptedExpeditionNum}/{data.MaxStamina}"),
-                new(data.AcceptedExpeditionNum > 0
-                           ? $"{data.AcceptedExpeditionNum}/{data.MaxStamina}"
-                           : "None Accepted!", CommandText.TextType.Footer)],
-                new("hsr_assignment.png", await assignmentImage)
+                    new CommandText("Assignments", CommandText.TextType.Header3),
+                    new CommandText($"{data.AcceptedExpeditionNum}/{data.MaxStamina}"),
+                    new CommandText(data.AcceptedExpeditionNum > 0
+                        ? $"{data.AcceptedExpeditionNum}/{data.MaxStamina}"
+                        : "None Accepted!", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("hsr_assignment.png", await assignmentImage)
             ),
             new CommandSection([
-                new("Echoes of War", CommandText.TextType.Header3),
-                new(data.WeeklyCocoonCnt > 0
-                            ? $"Claimed {data.WeeklyCocoonLimit - data.WeeklyCocoonCnt}/{data.WeeklyCocoonLimit}"
-                            : "Fully Claimed!"),
-                new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
-                new("hsr_weekly.png", await weeklyImage)
+                    new CommandText("Echoes of War", CommandText.TextType.Header3),
+                    new CommandText(data.WeeklyCocoonCnt > 0
+                        ? $"Claimed {data.WeeklyCocoonLimit - data.WeeklyCocoonCnt}/{data.WeeklyCocoonLimit}"
+                        : "Fully Claimed!"),
+                    new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("hsr_weekly.png", await weeklyImage)
             ),
             new CommandSection([
-                new("Simulated Universe", CommandText.TextType.Header3),
-                new($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
-                new($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)],
-                new("hsr_rogue.png", await rogueImage)
+                    new CommandText("Simulated Universe", CommandText.TextType.Header3),
+                    new CommandText($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
+                    new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("hsr_rogue.png", await rogueImage)
             )
         ];
 

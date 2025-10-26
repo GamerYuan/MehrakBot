@@ -1,14 +1,14 @@
-﻿using Mehrak.GameApi.Common.ApiResponseTypes;
+﻿#region
+
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Mehrak.GameApi.Hsr.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Services.Commands.Hsr.CharList;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+
+#endregion
 
 namespace MehrakCore.Tests.Services.Commands.Hsr;
 
@@ -26,7 +26,7 @@ public class HsrCharListCardServiceTests
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
     [SetUp]
@@ -50,7 +50,7 @@ public class HsrCharListCardServiceTests
         HsrBasicCharacterData? testData = await
             JsonSerializer.DeserializeAsync<HsrBasicCharacterData>(
                 File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-            "Hsr", filename)), JsonOptions);
+                    "Hsr", filename)), JsonOptions);
 
         Stream image = await m_Service.GetCharListCardAsync(GetTestUserGameData(),
             testData!.AvatarList!);

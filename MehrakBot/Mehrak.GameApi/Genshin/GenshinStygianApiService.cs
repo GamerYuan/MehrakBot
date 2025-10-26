@@ -1,12 +1,12 @@
 ﻿#region
 
+using System.Text.Json;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 #endregion
 

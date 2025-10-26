@@ -1,4 +1,8 @@
-﻿using Mehrak.Application.Builders;
+﻿#region
+
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
@@ -11,8 +15,8 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.Character;
 
@@ -23,7 +27,10 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IImageRepository m_ImageRepository;
     private readonly ICharacterCacheService m_CharacterCacheService;
-    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> m_CharacterApi;
+
+    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
+        m_CharacterApi;
+
     private readonly IMetricsService m_MetricsService;
 
     public HsrCharacterApplicationService(
@@ -54,7 +61,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         {
             var region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region);
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+                region);
 
             if (profile == null)
             {
@@ -64,12 +72,14 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             var gameUid = profile.GameUid;
 
-            var charResponse = await m_CharacterApi.GetAllCharactersAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            var charResponse = await m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!charResponse.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character data"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
             var characterList = charResponse.Data.First();
@@ -85,24 +95,31 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                         x.Name!.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
                 {
                     Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
-                    return CommandResult.Success([new CommandText(
-                        string.Format(ResponseMessage.CharacterNotFound, characterName))], isEphemeral: true);
+                    return CommandResult.Success([
+                        new CommandText(
+                            string.Format(ResponseMessage.CharacterNotFound, characterName))
+                    ], isEphemeral: true);
                 }
             }
 
-            var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments).DistinctBy(x => x.GetSetId())
+            var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
+                .DistinctBy(x => x.GetSetId())
                 .ToAsyncEnumerable()
                 .WhereAwait(async x => characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
-                    !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName, x.Id)))
+                                       !await m_ImageRepository.FileExistsAsync(
+                                           string.Format(FileNameFormat.Hsr.FileName, x.Id)))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.GetSetId()),
                     async x =>
                     {
                         var url = characterList.RelicWiki[x.Id.ToString()];
                         var entryPage = url.Split('/')[^1];
-                        var wikiResponse = await m_WikiApi.GetAsync(new(context.UserId, Game.HonkaiStarRail, entryPage));
+                        var wikiResponse =
+                            await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
+                                entryPage));
                         if (!wikiResponse.IsSuccess) return null;
 
-                        var jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray().FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set")?
+                        var jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
+                            .FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set")?
                             ["components"]?.AsArray()[0]?["data"]?.GetValue<string>();
                         if (jsonStr == null) return null;
 
@@ -113,7 +130,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             {
                 Logger.LogError(LogMessage.ApiError, "Relic Wiki", context.UserId, gameUid,
                     "Failed to fetch relic set data from wiki");
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Relic Data"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Relic Data"));
             }
 
             List<Task<bool>> tasks = [];
@@ -130,7 +148,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                             .Replace(x?["name"]?.GetValue<string>() ?? "", "'"), StringComparison.OrdinalIgnoreCase))
                         ?["icon_url"]?.GetValue<string>();
 
-                    if (iconUrl != null) return new ImageData(string.Format(FileNameFormat.Hsr.FileName, r.Id), iconUrl);
+                    if (iconUrl != null)
+                        return new ImageData(string.Format(FileNameFormat.Hsr.FileName, r.Id), iconUrl);
                 }
 
                 return new ImageData(string.Format(FileNameFormat.Hsr.FileName, r.Id), r.Icon);
@@ -139,28 +158,33 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             if (characterInfo.Equip != null &&
                 characterList.EquipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
-                !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName, characterInfo.Equip.Id)))
+                !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName,
+                    characterInfo.Equip.Id)))
             {
                 var entryPage = wikiEntry.Split('/')[^1];
-                var wikiResponse = await m_WikiApi.GetAsync(new(context.UserId, Game.HonkaiStarRail, entryPage));
+                var wikiResponse =
+                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage));
 
                 if (!wikiResponse.IsSuccess)
                 {
                     Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid, wikiResponse);
-                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                    return CommandResult.Failure(CommandFailureReason.ApiError,
+                        string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 
                 string? iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
 
                 if (iconUrl == null)
                 {
-                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid, "Failed to retrieve Icon Url");
-                    return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid,
+                        "Failed to retrieve Icon Url");
+                    return CommandResult.Failure(CommandFailureReason.ApiError,
+                        string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
                     new ImageData(string.Format(FileNameFormat.Hsr.FileName, characterInfo.Equip.Id), iconUrl),
-                        new ImageProcessorBuilder().Resize(300, 0).Build()));
+                    new ImageProcessorBuilder().Resize(300, 0).Build()));
             }
 
             tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
@@ -172,21 +196,27 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             if (completed.Any(x => !x))
             {
-                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId, JsonSerializer.Serialize(characterInfo));
+                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
+                    JsonSerializer.Serialize(characterInfo));
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
             var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, context.Server, profile));
+                new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, context.Server,
+                    profile));
 
-            m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail), characterInfo.Name.ToLowerInvariant());
+            m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
+                characterInfo.Name.ToLowerInvariant());
 
-            return CommandResult.Success([new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)]);
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)
+            ]);
         }
         catch (CommandException e)
         {
             Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Character"));
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                string.Format(ResponseMessage.CardGenError, "Character"));
         }
         catch (Exception e)
         {

@@ -1,6 +1,10 @@
-﻿using Mehrak.Domain.Models.Abstractions;
+﻿#region
+
+using Mehrak.Domain.Models.Abstractions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+
+#endregion
 
 namespace Mehrak.Application.Models;
 

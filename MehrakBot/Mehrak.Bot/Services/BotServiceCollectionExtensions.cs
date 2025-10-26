@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Modules;
@@ -7,25 +9,27 @@ using Mehrak.Bot.Services.Autocomplete;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Mehrak.Bot.Services
+#endregion
+
+namespace Mehrak.Bot.Services;
+
+internal static class BotServiceCollectionExtensions
 {
-    internal static class BotServiceCollectionExtensions
+    internal static IServiceCollection AddBotServices(this IServiceCollection services)
     {
-        internal static IServiceCollection AddBotServices(this IServiceCollection services)
-        {
-            services.AddCommandExecutorBuilder();
+        services.AddCommandExecutorBuilder();
 
-            services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
-            services.AddSingleton<ICommandRateLimitService, CommandRateLimitService>();
+        services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
+        services.AddSingleton<ICommandRateLimitService, CommandRateLimitService>();
 
-            services.AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>, GenshinCharacterAutocompleteService>();
-            services.AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
+        services
+            .AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>, GenshinCharacterAutocompleteService>();
+        services.AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
 
-            services.AddTransient<ICommandExecutorService<CheckInApplicationContext>, CheckInExecutorService>();
+        services.AddTransient<ICommandExecutorService<CheckInApplicationContext>, CheckInExecutorService>();
 
-            services.AddHostedService<AsyncInitializationHostedService>();
+        services.AddHostedService<AsyncInitializationHostedService>();
 
-            return services;
-        }
+        return services;
     }
 }

@@ -1,11 +1,11 @@
-﻿using Mehrak.GameApi.Common.ApiResponseTypes;
+﻿#region
+
+using System.Text.Json;
 using Mehrak.GameApi.Zzz.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Services.Commands.Zzz.Assault;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Text.Json;
+
+#endregion
 
 namespace MehrakCore.Tests.Services.Commands.Zzz;
 
@@ -60,7 +60,8 @@ public class ZzzAssaultCardServiceTests
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(assaultData, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
         Stream image = await m_Service.GetAssaultCardAsync(assaultData,
             GetUserGameData(), m_BossImage, m_BuffImage);
@@ -92,7 +93,7 @@ public class ZzzAssaultCardServiceTests
             GameBiz = "nap_global",
             Nickname = "Test",
             Region = "prod_gf_jp",
-            Level = 60,
+            Level = 60
         };
     }
 

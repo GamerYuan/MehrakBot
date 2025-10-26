@@ -1,32 +1,17 @@
 #region
 
-using Mehrak.Application.Services.Genshin;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Theater;
-using Mehrak.Bot.Executors.Genshin;
-using Mehrak.Bot.Modules;
-using Mehrak.Domain.Interfaces;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Modules;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands.Genshin;
-using MehrakCore.Services.Commands.Genshin.Theater;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -44,10 +29,13 @@ public class GenshinTheaterCommandExecutorTests
 
     private static readonly string GameRecordCardUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+
     private static readonly string AccountRolesUrl =
         $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+
     private static readonly string TheaterUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/roleCalendar";
+
     private static readonly string BuffUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/genshin/api/roleCalendar/buff";
 
@@ -170,7 +158,8 @@ public class GenshinTheaterCommandExecutorTests
     public void ExecuteAsync_InvalidParameters_ThrowsException()
     {
         // Act & Assert - The implementation casts parameters directly without validation
-        IndexOutOfRangeException? ex = Assert.ThrowsAsync<IndexOutOfRangeException>(() => m_Executor.ExecuteAsync().AsTask());
+        IndexOutOfRangeException? ex =
+            Assert.ThrowsAsync<IndexOutOfRangeException>(() => m_Executor.ExecuteAsync().AsTask());
 
         Assert.That(ex, Is.Not.Null);
     }
@@ -398,7 +387,8 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUser();
         SetupSuccessfulApiResponses();
 
-        AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult result =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Set pending server (this would be set by ExecuteAsync)
         await m_Executor.ExecuteAsync(Server.America, TestProfileId);
@@ -464,7 +454,8 @@ public class GenshinTheaterCommandExecutorTests
         await CreateTestUserWithToken();
 
         // Create theater data with duplicate avatar IDs
-        GenshinTheaterInformation theaterDataWithDuplicates = JsonSerializer.Deserialize<GenshinTheaterInformation>(m_TheaterTestDataJson)!;
+        GenshinTheaterInformation theaterDataWithDuplicates =
+            JsonSerializer.Deserialize<GenshinTheaterInformation>(m_TheaterTestDataJson)!;
         if (theaterDataWithDuplicates.Detail.RoundsData.Count > 0)
         {
             RoundsData firstRound = theaterDataWithDuplicates.Detail.RoundsData[0];
@@ -563,7 +554,8 @@ public class GenshinTheaterCommandExecutorTests
 
         SetupSuccessfulApiResponses();
 
-        AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
+        AuthenticationResult result =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, newContextMock.Object);
 
         // Set pending server
         await m_Executor.ExecuteAsync(Server.Europe, TestProfileId);
@@ -589,7 +581,8 @@ public class GenshinTheaterCommandExecutorTests
     public void ExecuteAsync_NullParameters_ThrowsCastException()
     {
         // Act & Assert
-        InvalidCastException? ex = Assert.ThrowsAsync<InvalidCastException>(() => m_Executor.ExecuteAsync(null, null).AsTask());
+        InvalidCastException? ex =
+            Assert.ThrowsAsync<InvalidCastException>(() => m_Executor.ExecuteAsync(null, null).AsTask());
 
         Assert.That(ex, Is.Not.Null);
     }
@@ -628,7 +621,7 @@ public class GenshinTheaterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = 0 // Not authenticated
@@ -645,7 +638,7 @@ public class GenshinTheaterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = 0 // Not authenticated
@@ -666,7 +659,7 @@ public class GenshinTheaterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
@@ -695,7 +688,7 @@ public class GenshinTheaterCommandExecutorTests
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
@@ -843,7 +836,7 @@ public class GenshinTheaterCommandExecutorTests
     {
         return
         [
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000089,
                 Icon = "test_icon_furina",
@@ -856,7 +849,7 @@ public class GenshinTheaterCommandExecutorTests
                     Name = "Test Weapon"
                 }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000037,
                 Icon = "test_icon_ganyu",
@@ -869,7 +862,7 @@ public class GenshinTheaterCommandExecutorTests
                     Name = "Test Weapon 2"
                 }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000032,
                 Icon = "test_icon_bennett",

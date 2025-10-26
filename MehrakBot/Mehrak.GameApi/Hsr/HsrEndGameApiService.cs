@@ -1,5 +1,7 @@
 ﻿#region
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
@@ -8,8 +10,6 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Utilities;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 #endregion
 
@@ -48,7 +48,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
             {
                 HsrEndGameMode.PureFiction => "challenge_story",
                 HsrEndGameMode.ApocalypticShadow => "challenge_boss",
-                _ => throw new NotImplementedException(),
+                _ => throw new NotImplementedException()
             };
 
             var requestUri =

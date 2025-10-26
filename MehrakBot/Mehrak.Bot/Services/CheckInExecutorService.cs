@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Repositories;
@@ -6,6 +8,8 @@ using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
+
+#endregion
 
 namespace Mehrak.Bot.Services;
 
@@ -44,13 +48,15 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
 
         if (!await ValidateRateLimitAsync()) return;
 
-        var authResult = await AuthenticationMiddleware.GetAuthenticationAsync(new(Context, profile));
+        var authResult =
+            await AuthenticationMiddleware.GetAuthenticationAsync(new AuthenticationRequest(Context, profile));
 
         if (authResult.IsSuccess)
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+            await authResult.Context!.Interaction.SendResponseAsync(
+                InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;
@@ -62,13 +68,9 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
             MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, commandResult.IsSuccess);
 
             if (commandResult.IsSuccess)
-            {
                 await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
-            }
             else
-            {
                 await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
-            }
         }
         else if (authResult.Status == AuthStatus.Failure)
         {

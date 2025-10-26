@@ -1,8 +1,12 @@
+#region
+
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+
+#endregion
 
 namespace Mehrak.Infrastructure.Repositories;
 
@@ -29,17 +33,11 @@ public class HsrRelicRepository : IRelicRepository
         UpdateResult result = await m_MongoCollection.UpdateOneAsync(filter, update, options);
 
         if (result.UpsertedId != null)
-        {
             m_Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
-        }
         else if (result.ModifiedCount > 0)
-        {
             m_Logger.LogInformation("Added relic set mapping for setId {SetId}", setId);
-        }
         else
-        {
             m_Logger.LogInformation("Relic set mapping for setId {SetId} already exists; skipping overwrite", setId);
-        }
     }
 
     public async Task<string> GetSetName(int setId)

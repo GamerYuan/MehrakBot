@@ -39,25 +39,23 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "character", Description = "Character Name or Alias (Case-insensitive)",
-        AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
+            AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         uint profile = 1)
     {
-        m_Logger.LogInformation("User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",
+        m_Logger.LogInformation(
+            "User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",
             Context.User.Id, character, server, profile);
 
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.Genshin)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<GenshinCharacterApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new GenshinCharacterApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin character")
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
@@ -77,14 +75,11 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<GenshinRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new GenshinRealTimeNotesApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin notes")
             .WithEphemeralResponse(true)
             .Build();
@@ -106,14 +101,11 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, code, server, profile);
 
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.Genshin)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, Game.Genshin, parameters))
+            .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.Genshin, parameters))
             .WithCommandName("genshin codes")
             .WithEphemeralResponse(true)
             .Build();
@@ -135,14 +127,11 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, floor, server, profile);
 
         List<(string, object)> parameters = [(nameof(floor), floor), ("game", Game.Genshin)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<GenshinAbyssApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new GenshinAbyssApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin abyss")
             .AddValidator<uint>(nameof(floor), x => x is >= 9 and <= 12, "floor must be between 9 and 12")
             .Build();
@@ -162,14 +151,11 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<GenshinTheaterApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new GenshinTheaterApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin theater")
             .Build();
 
@@ -188,14 +174,11 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<GenshinStygianApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new GenshinStygianApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin theater")
             .Build();
 
@@ -214,14 +197,11 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null)
-        {
-            parameters.Add((nameof(server), server.Value));
-        }
+        if (server is not null) parameters.Add((nameof(server), server.Value));
 
         var executor = m_Builder.For<GenshinCharListApplicationContext>()
             .WithInteractionContext(Context)
-            .WithApplicationContext(new(Context.User.Id, parameters))
+            .WithApplicationContext(new GenshinCharListApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin theater")
             .Build();
 

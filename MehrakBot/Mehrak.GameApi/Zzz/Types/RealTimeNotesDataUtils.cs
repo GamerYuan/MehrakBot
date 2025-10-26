@@ -2,41 +2,56 @@
 
 public static class RealTimeNotesDataUtils
 {
-    public static string ToReadableString(this VhsSaleState state) => state switch
+    public static string ToReadableString(this VhsSaleState state)
     {
-        VhsSaleState.SaleStateNo => "Waiting to Open",
-        VhsSaleState.SaleStateDoing => "Currently Open",
-        VhsSaleState.SaleStateDone => "Revenue Available",
-        _ => "Unknown"
-    };
+        return state switch
+        {
+            VhsSaleState.SaleStateNo => "Waiting to Open",
+            VhsSaleState.SaleStateDoing => "Currently Open",
+            VhsSaleState.SaleStateDone => "Revenue Available",
+            _ => "Unknown"
+        };
+    }
 
-    public static string ToReadableString(this CardSignState state) => state switch
+    public static string ToReadableString(this CardSignState state)
     {
-        CardSignState.CardSignNo => "Incomplete",
-        CardSignState.CardSignDone => "Completed",
-        _ => "Unknown"
-    };
+        return state switch
+        {
+            CardSignState.CardSignNo => "Incomplete",
+            CardSignState.CardSignDone => "Completed",
+            _ => "Unknown"
+        };
+    }
 
-    public static string ToReadableString(this ExpeditionState state) => state switch
+    public static string ToReadableString(this ExpeditionState state)
     {
-        ExpeditionState.ExpeditionStateInCanSend => "Dispatchable",
-        ExpeditionState.ExpeditionStateInProgress => "Adventuring",
-        ExpeditionState.ExpeditionStateEnd => "Completed",
-        _ => "Unknown"
-    };
+        return state switch
+        {
+            ExpeditionState.ExpeditionStateInCanSend => "Dispatchable",
+            ExpeditionState.ExpeditionStateInProgress => "Adventuring",
+            ExpeditionState.ExpeditionStateEnd => "Completed",
+            _ => "Unknown"
+        };
+    }
 
-    public static string ToReadableString(this BenchState state) => state switch
+    public static string ToReadableString(this BenchState state)
     {
-        BenchState.BenchStateProducing => "Crafting",
-        BenchState.BenchStateCanProduce => "Craftable",
-        _ => "Unknown"
-    };
+        return state switch
+        {
+            BenchState.BenchStateProducing => "Crafting",
+            BenchState.BenchStateCanProduce => "Craftable",
+            _ => "Unknown"
+        };
+    }
 
-    public static string ToReadableString(this ShelveState state) => state switch
+    public static string ToReadableString(this ShelveState state)
     {
-        ShelveState.ShelveStateCanSell => "Not Selling",
-        ShelveState.ShelveStateSelling => "Selling",
-        ShelveState.ShelveStateSoldOut => "Out of Stock",
-        _ => "Unknown"
-    };
+        return state switch
+        {
+            ShelveState.ShelveStateCanSell => "Not Selling",
+            ShelveState.ShelveStateSelling => "Selling",
+            ShelveState.ShelveStateSoldOut => "Out of Stock",
+            _ => "Unknown"
+        };
+    }
 }

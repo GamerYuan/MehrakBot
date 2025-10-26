@@ -1,4 +1,7 @@
-﻿using Mehrak.Application.Builders;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
@@ -9,7 +12,8 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.CharList;
 
@@ -17,7 +21,9 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 {
     private readonly ICardService<IEnumerable<HsrCharacterInformation>> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> m_CharacterApi;
+
+    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
+        m_CharacterApi;
 
     public HsrCharListApplicationService(
         ICardService<IEnumerable<HsrCharacterInformation>> cardService,
@@ -38,7 +44,8 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
         {
             string region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region);
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+                region);
 
             if (profile == null)
             {
@@ -49,12 +56,14 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
             var gameUid = profile.GameUid;
 
             var charResponse = await
-                m_CharacterApi.GetAllCharactersAsync(new(context.UserId, context.LtUid, context.LToken, gameUid, region));
+                m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
+                    context.LToken, gameUid, region));
 
             if (!charResponse.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character List"));
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
             var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
@@ -70,20 +79,24 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 
             if (completed.Any(x => !x))
             {
-                Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId, JsonSerializer.Serialize(characterList));
+                Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId,
+                    JsonSerializer.Serialize(characterList));
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
             var card = await m_CardService.GetCardAsync(new
                 BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(
-                context.UserId, characterList, context.Server, profile));
+                    context.UserId, characterList, context.Server, profile));
 
-            return CommandResult.Success([new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)]);
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)
+            ]);
         }
         catch (CommandException e)
         {
             Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, "Character List"));
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                string.Format(ResponseMessage.CardGenError, "Character List"));
         }
         catch (Exception e)
         {

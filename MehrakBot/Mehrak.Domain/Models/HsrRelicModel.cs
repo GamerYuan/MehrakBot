@@ -1,5 +1,9 @@
+#region
+
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+
+#endregion
 
 namespace Mehrak.Domain.Models;
 

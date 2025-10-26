@@ -1,32 +1,17 @@
 #region
 
-using Mehrak.Application.Services.Hsr.EndGame.PureFiction;
-using Mehrak.Bot.Executors.Hsr.PureFiction;
-using Mehrak.Bot.Modules;
-using Mehrak.Domain.Interfaces;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Hsr.Types;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Modules;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Hsr.EndGame;
-using MehrakCore.Services.Commands.Hsr.EndGame.PureFiction;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -43,7 +28,7 @@ public class HsrPureFictionCommandExecutorTests
     private HsrPureFictionCommandExecutor m_Executor = null!;
     private Mock<HsrEndGameCardService> m_CommandServiceMock = null!;
     private Mock<HsrEndGameApiService> m_ApiServiceMock = null!;
-    private Mock<ImageUpdaterService<HsrCharacterInformation>> m_ImageUpdaterServiceMock = null!;
+    private Mock<ImageUpdaterService> m_ImageUpdaterServiceMock = null!;
     private GameRecordApiService m_GameRecordApiService = null!;
     private Mock<ILogger<HsrCommandModule>> m_LoggerMock = null!;
     private DiscordTestHelper m_DiscordTestHelper = null!;
@@ -60,8 +45,10 @@ public class HsrPureFictionCommandExecutorTests
 
     private static readonly string GameRecordCardUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/card/wapi/getGameRecordCard";
+
     private static readonly string AccountRolesUrl =
         $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+
     private static readonly string PureFictionUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record/hkrpg/api/challenge_story";
 
@@ -281,7 +268,8 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheEmpty();
         await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -304,7 +292,8 @@ public class HsrPureFictionCommandExecutorTests
         // Delete user from database to simulate user being deleted during auth process
         await m_UserRepository.DeleteUserAsync(m_TestUserId);
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -346,7 +335,8 @@ public class HsrPureFictionCommandExecutorTests
         SetupTokenCacheEmpty();
         await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
 
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Act
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
@@ -493,7 +483,8 @@ public class HsrPureFictionCommandExecutorTests
         m_AuthMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
 
         // Complete authentication
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         // Assert
@@ -533,7 +524,7 @@ public class HsrPureFictionCommandExecutorTests
             Timestamp = DateTime.UtcNow,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
@@ -651,14 +642,16 @@ public class HsrPureFictionCommandExecutorTests
 
     private void SetupTokenCacheEmpty()
     {
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync((byte[]?)null);
     }
 
     private void SetupTokenCacheWithData()
     {
         byte[] tokenBytes = Encoding.UTF8.GetBytes(TestLToken);
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(tokenBytes);
     }
 

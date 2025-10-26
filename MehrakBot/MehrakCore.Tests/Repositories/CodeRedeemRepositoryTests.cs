@@ -1,6 +1,5 @@
 #region
 
-using MehrakCore.Models;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -194,7 +193,7 @@ public class CodeRedeemRepositoryTests
         var codes = new Dictionary<string, CodeStatus>
         {
             { "DUPLICATE123", CodeStatus.Valid }, // Duplicate
-            { "NEWCODE456", CodeStatus.Valid }     // New
+            { "NEWCODE456", CodeStatus.Valid } // New
         };
 
         // Act
@@ -443,8 +442,8 @@ public class CodeRedeemRepositoryTests
         {
             "KEEP123",
             "REMOVE456",
-            "keep789",      // lowercase version
-            "REMOVE999"     // to be removed
+            "keep789", // lowercase version
+            "REMOVE999" // to be removed
         };
 
         // Create existing entry
@@ -457,13 +456,13 @@ public class CodeRedeemRepositoryTests
 
         var codes = new Dictionary<string, CodeStatus>
         {
-            { "REMOVE456", CodeStatus.Invalid },        // Remove this
-            { "remove999", CodeStatus.Invalid },        // Remove this (case insensitive)
-            { "KEEP123", CodeStatus.Valid },            // Already exists, no change
-            { "KEEP789", CodeStatus.Valid },            // Already exists (case insensitive), no change
-            { "NEWNEW111", CodeStatus.Valid },          // Add this new one
-            { "NEWNEW222", CodeStatus.Valid },          // Add this new one
-            { "EXPIREDNEW333", CodeStatus.Invalid }     // Don't add this expired one
+            { "REMOVE456", CodeStatus.Invalid }, // Remove this
+            { "remove999", CodeStatus.Invalid }, // Remove this (case insensitive)
+            { "KEEP123", CodeStatus.Valid }, // Already exists, no change
+            { "KEEP789", CodeStatus.Valid }, // Already exists (case insensitive), no change
+            { "NEWNEW111", CodeStatus.Valid }, // Add this new one
+            { "NEWNEW222", CodeStatus.Valid }, // Add this new one
+            { "EXPIREDNEW333", CodeStatus.Invalid } // Don't add this expired one
         };
 
         // Act
@@ -577,7 +576,8 @@ public class CodeRedeemRepositoryTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Added 1 new codes, removed 1 expired codes for game")),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("Added 1 new codes, removed 1 expired codes for game")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -645,10 +645,7 @@ public class CodeRedeemRepositoryTests
         var codes = new Dictionary<string, CodeStatus>();
 
         // Add 1000 codes
-        for (int i = 0; i < 1000; i++)
-        {
-            codes.Add($"CODE{i:D4}", CodeStatus.Valid);
-        }
+        for (int i = 0; i < 1000; i++) codes.Add($"CODE{i:D4}", CodeStatus.Valid);
 
         // Act
         await m_Repository.AddCodesAsync(gameName, codes);

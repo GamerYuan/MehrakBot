@@ -1,5 +1,8 @@
 ﻿#region
 
+using System.Diagnostics;
+using System.Numerics;
+using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -15,9 +18,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Diagnostics;
-using System.Numerics;
-using System.Text.Json;
 
 #endregion
 
@@ -59,16 +59,19 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        m_StarLit = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star"), cancellationToken);
+        m_StarLit = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star"),
+            cancellationToken);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
         m_StarUnlit.Mutate(ctx =>
         {
             ctx.Grayscale();
             ctx.Brightness(0.7f);
         });
-        m_CycleIcon = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass"), cancellationToken);
+        m_CycleIcon = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass"),
+            cancellationToken);
 
-        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_bg"), cancellationToken);
+        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_bg"),
+            cancellationToken);
         m_Background.Mutate(ctx =>
         {
             ctx.Brightness(0.5f);
@@ -96,13 +99,16 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     HsrAvatarIdComparer.Instance);
 
             Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
-            List<(int FloorNumber, FloorDetail? Data)> floorDetails = [.. Enumerable.Range(0, 12)
-                .Select(floorIndex =>
-                {
-                    FloorDetail? floorData = memoryData.AllFloorDetail!
-                        .FirstOrDefault(x => HsrUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
-                    return (FloorNumber: floorIndex, Data: floorData);
-                })];
+            List<(int FloorNumber, FloorDetail? Data)> floorDetails =
+            [
+                .. Enumerable.Range(0, 12)
+                    .Select(floorIndex =>
+                    {
+                        FloorDetail? floorData = memoryData.AllFloorDetail!
+                            .FirstOrDefault(x => HsrUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
+                        return (FloorNumber: floorIndex, Data: floorData);
+                    })
+            ];
             int height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520).Sum();
 
@@ -123,10 +129,10 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Memory of Chaos", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(50, 110),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                },
+                    {
+                        Origin = new Vector2(50, 110),
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    },
                     $"{memoryData.StartTime.Day}/{memoryData.StartTime.Month}/{memoryData.StartTime.Year} - " +
                     $"{memoryData.EndTime.Day}/{memoryData.EndTime.Month}/{memoryData.EndTime.Year}",
                     Color.White);
@@ -141,11 +147,11 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                 ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(1500, 80),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Bottom
-                },
+                    {
+                        Origin = new Vector2(1500, 80),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    },
                     $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -157,7 +163,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                 int yOffset = 150;
                 foreach ((int floorNumber, FloorDetail? floorData) in floorDetails)
                 {
-                    int xOffset = (floorNumber % 2 * 750) + 50;
+                    int xOffset = floorNumber % 2 * 750 + 50;
 
                     IPath overlay;
 
@@ -202,7 +208,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
 
                         for (int i = 0; i < 3; i++)
                             ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
-                                new Point(xOffset + 530 + (i * 50), yOffset + 5), 1f);
+                                new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
 
                         if (floorNumber % 2 == 1) yOffset += 200;
                         continue;
@@ -226,7 +232,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     ctx.DrawImage(node2, new Point(xOffset + 25, yOffset + 295), 1f);
                     for (int i = 0; i < 3; i++)
                         ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
-                            new Point(xOffset + 530 + (i * 50), yOffset + 5), 1f);
+                            new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 520, yOffset + 10),
                         new PointF(xOffset + 520, yOffset + 55));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -250,7 +256,8 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessage.CardGenError, "Memory of Chaos", context.UserId, JsonSerializer.Serialize(memoryData));
+            m_Logger.LogError(e, LogMessage.CardGenError, "Memory of Chaos", context.UserId,
+                JsonSerializer.Serialize(memoryData));
             throw new CommandException("Failed to generate Memory of Chaos card", e);
         }
         finally
@@ -264,7 +271,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
     {
         const int avatarWidth = 150;
 
-        int offset = ((4 - avatarIds.Count) * avatarWidth / 2) + 10;
+        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -274,7 +281,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
 
             for (int i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + (i * (avatarWidth + 10));
+                int x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

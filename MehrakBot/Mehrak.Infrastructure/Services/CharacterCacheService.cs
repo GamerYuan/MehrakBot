@@ -1,8 +1,12 @@
+#region
+
+using System.Collections.Concurrent;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
+
+#endregion
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -86,7 +90,8 @@ public class CharacterCacheService : ICharacterCacheService
             if (characters.Count > 0)
             {
                 m_CharacterCache.AddOrUpdate(gameName, characters, (_, _) => characters);
-                m_Logger.LogDebug("Updated character cache for {Game} with {Count} characters", gameName, characters.Count);
+                m_Logger.LogDebug("Updated character cache for {Game} with {Count} characters", gameName,
+                    characters.Count);
             }
             else
             {
@@ -105,14 +110,12 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating alias cache for {Game}", gameName);
 
-            var aliases = new Dictionary<string, string>(await m_AliasRepository.GetAliasesAsync(gameName), StringComparer.OrdinalIgnoreCase);
+            var aliases = new Dictionary<string, string>(await m_AliasRepository.GetAliasesAsync(gameName),
+                StringComparer.OrdinalIgnoreCase);
 
             if (aliases.Count > 0)
             {
-                if (!m_AliasCache.TryAdd(gameName, aliases))
-                {
-                    m_AliasCache[gameName] = aliases;
-                }
+                if (!m_AliasCache.TryAdd(gameName, aliases)) m_AliasCache[gameName] = aliases;
 
                 m_Logger.LogDebug("Updated alias cache for {Game} with {Count} aliases", gameName, aliases.Count);
             }
@@ -143,8 +146,6 @@ public class CharacterCacheService : ICharacterCacheService
     public void ClearCache(Game gameName)
     {
         if (m_CharacterCache.TryRemove(gameName, out _))
-        {
             m_Logger.LogInformation("Cleared character cache for {Game}", gameName);
-        }
     }
 }

@@ -1,12 +1,12 @@
 ﻿#region
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -82,7 +82,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             {
                 GameUid = gameProfile?.GameUid ?? string.Empty,
                 Nickname = gameProfile?.Nickname ?? string.Empty,
-                Level = gameProfile?.Level ?? 0,
+                Level = gameProfile?.Level ?? 0
             };
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, dto.GameUid);

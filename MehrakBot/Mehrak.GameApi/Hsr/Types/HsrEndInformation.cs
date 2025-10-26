@@ -1,9 +1,9 @@
 ﻿#region
 
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using System.Text.Json.Serialization;
 
 #endregion
 
@@ -40,9 +40,15 @@ public class HsrEndAvatar
 
     [JsonPropertyName("rank")] public int Rank { get; set; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Hsr.AvatarName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Hsr.AvatarName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public class HsrEndBuff
@@ -55,9 +61,15 @@ public class HsrEndBuff
 
     [JsonPropertyName("icon")] public required string Icon { get; set; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Hsr.EndGameBuffName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Hsr.EndGameBuffName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public class HsrEndGroup

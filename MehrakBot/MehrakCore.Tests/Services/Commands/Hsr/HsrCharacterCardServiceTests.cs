@@ -1,14 +1,11 @@
 ﻿#region
 
-using Mehrak.Application.Services.Hsr;
+using System.Text.Json;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
-using MehrakCore.ApiResponseTypes.Hsr;
-using MehrakCore.Services.Commands.Hsr.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Text.Json;
 
 #endregion
 
@@ -35,7 +32,7 @@ public class HsrCharacterCardServiceTests
         m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(m_HttpClientMock.Object);
-    m_HsrRelicRepositoryMock = new Mock<IRelicRepository>();
+        m_HsrRelicRepositoryMock = new Mock<IRelicRepository>();
 
         m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(116)).ReturnsAsync("Prisoner in Deep Confinement");
         m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(118)).ReturnsAsync("Watchmaker, Master of Dream Machinations");
@@ -60,7 +57,8 @@ public class HsrCharacterCardServiceTests
         Assert.That(characterDetail, Is.Not.Null);
 
         // Act
-        Stream generatedImageStream = await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
+        Stream generatedImageStream =
+            await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, "Stelle");
@@ -78,7 +76,8 @@ public class HsrCharacterCardServiceTests
         Assert.That(characterDetail, Is.Not.Null);
 
         // Act
-        Stream generatedImageStream = await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
+        Stream generatedImageStream =
+            await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, "StelleNoEquipNoRelic");
@@ -96,7 +95,8 @@ public class HsrCharacterCardServiceTests
         Assert.That(characterDetail, Is.Not.Null);
 
         // Act
-        Stream generatedImageStream = await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
+        Stream generatedImageStream =
+            await m_HsrCharacterCardService.GenerateCharacterCardAsync(characterDetail, "Test");
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, "StelleRemembrance");

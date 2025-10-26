@@ -1,5 +1,9 @@
+#region
+
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+
+#endregion
 
 namespace Mehrak.Domain.Repositories;
 

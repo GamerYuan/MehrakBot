@@ -1,4 +1,7 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using System.Text;
+using Mehrak.Application.Models.Context;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -8,7 +11,8 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
-using System.Text;
+
+#endregion
 
 namespace Mehrak.Application.Services.Common;
 
@@ -36,7 +40,8 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
         {
             var region = context.Server.ToRegion(context.Game);
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, context.Game, region);
+            var profile =
+                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, context.Game, region);
 
             if (profile == null)
             {
@@ -58,7 +63,9 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 Logger.LogWarning(
                     "User {UserId} used the code command but no codes were provided or found in the cache",
                     context.UserId);
-                return CommandResult.Success([new CommandText("No known codes found in database. Please provide a valid code")], isEphemeral: true);
+                return CommandResult.Success(
+                    [new CommandText("No known codes found in database. Please provide a valid code")],
+                    isEphemeral: true);
             }
 
             StringBuilder sb = new();
@@ -69,7 +76,8 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 var code = codes[i];
                 var trimmedCode = code.ToUpperInvariant().Trim();
                 var response = await m_ApiService.GetAsync(
-                    new(context.UserId, context.LtUid, context.LToken, gameUid, region, context.Game, code.ToUpperInvariant().Trim()));
+                    new CodeRedeemApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
+                        context.Game, code.ToUpperInvariant().Trim()));
                 if (response.IsSuccess)
                 {
                     Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
@@ -90,7 +98,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
             if (successfulCodes.Count > 0)
                 await m_CodeRepository.AddCodesAsync(context.Game, successfulCodes).ConfigureAwait(false);
 
-            return CommandResult.Success(components: [new CommandText(sb.ToString().TrimEnd())]);
+            return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
         }
         catch (Exception e)
         {

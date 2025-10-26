@@ -1,28 +1,20 @@
-﻿using Mehrak.Application.Services.Zzz.Character;
-using Mehrak.Bot.Executors.Zzz;
+﻿#region
+
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Zzz.Types;
-using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Services;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Zzz.Character;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
+
+#endregion
 
 namespace MehrakCore.Tests.Services.Commands.Zzz;
 
@@ -188,15 +180,17 @@ public class ZzzCharacterCommandExecutorTests
         await m_Executor.ExecuteAsync("Jane", Server.Asia, 1u);
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Contains.Substring($"auth_modal:{TestGuid}:1"));
-        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
+        m_AuthenticationMiddlewareMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
+            Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_WhenAuthenticatedAndCharacterFound_SendsCharacterCard()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
+        await CreateOrUpdateTestUserAsync(1, (Server.Asia, TestGameUid));
         // Provide token in cache
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Mock character list and details
@@ -235,15 +229,19 @@ public class ZzzCharacterCommandExecutorTests
 
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
-        m_CharacterCardServiceMock.Verify(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid), Times.Once);
-        m_ImageUpdaterServiceMock.Verify(x => x.UpdateDataAsync(It.IsAny<ZzzFullAvatarData>(), It.IsAny<IEnumerable<Dictionary<string, string>>>()), Times.Once);
+        m_CharacterCardServiceMock.Verify(x => x.GenerateCharacterCardAsync(It.IsAny<ZzzFullAvatarData>(), TestGameUid),
+            Times.Once);
+        m_ImageUpdaterServiceMock.Verify(
+            x => x.UpdateDataAsync(It.IsAny<ZzzFullAvatarData>(), It.IsAny<IEnumerable<Dictionary<string, string>>>()),
+            Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_WhenAuthenticatedButCharacterNotFound_SendsError()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        await CreateOrUpdateTestUserAsync(1, (Server.Asia, TestGameUid));
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         m_CharacterApiMock
@@ -258,8 +256,9 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenAuthenticated_UsesAliasResolution()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        await CreateOrUpdateTestUserAsync(1, (Server.Asia, TestGameUid));
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Aliases: jd -> Jane
@@ -309,8 +308,9 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenCharacterDetailApiFails_SendsErrorMessage()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        await CreateOrUpdateTestUserAsync(1, (Server.Asia, TestGameUid));
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         m_CharacterApiMock
@@ -347,8 +347,9 @@ public class ZzzCharacterCommandExecutorTests
     [Test]
     public async Task ExecuteAsync_WhenCharacterDetailApiReturnsNullData_SendsErrorMessage()
     {
-        await CreateOrUpdateTestUserAsync(1, gameProfileForZzz: (Server.Asia, TestGameUid));
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        await CreateOrUpdateTestUserAsync(1, (Server.Asia, TestGameUid));
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         m_CharacterApiMock
@@ -387,7 +388,8 @@ public class ZzzCharacterCommandExecutorTests
     public async Task ExecuteAsync_WhenNoSavedGameUid_CallsGameRecordApi_AndSendsCard()
     {
         await CreateOrUpdateTestUserAsync(1); // No saved game uid
-        m_DistributedCacheMock.Setup(x => x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
+        m_DistributedCacheMock.Setup(x =>
+                x.GetAsync($"TokenCache_{m_TestUserId}_{TestLtUid}", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
 
         // Mock Game Role API
@@ -431,7 +433,8 @@ public class ZzzCharacterCommandExecutorTests
         UserModel? updatedUser = await m_UserRepository.GetUserAsync(m_TestUserId);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(updatedUser?.Profiles?.First().GameUids?[Game.ZenlessZoneZero][Server.Asia.ToString()], Is.EqualTo(TestGameUid));
+            Assert.That(updatedUser?.Profiles?.First().GameUids?[Game.ZenlessZoneZero][Server.Asia.ToString()],
+                Is.EqualTo(TestGameUid));
             Assert.That(updatedUser?.Profiles?.First().LastUsedRegions?[Game.ZenlessZoneZero], Is.EqualTo(Server.Asia));
             Assert.That(response, Does.Contain("character_card.jpg").Or.Contain("Command execution completed"));
         }
@@ -499,7 +502,8 @@ public class ZzzCharacterCommandExecutorTests
             .ReturnsAsync(new MemoryStream(new byte[64]));
 
         // Construct auth result with the same context
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         string response = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
@@ -564,8 +568,8 @@ public class ZzzCharacterCommandExecutorTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri != null &&
-                        req.RequestUri.GetLeftPart(UriPartial.Path).ToString() ==
-                        $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken"),
+                    req.RequestUri.GetLeftPart(UriPartial.Path).ToString() ==
+                    $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken"),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(response);
     }
@@ -577,31 +581,28 @@ public class ZzzCharacterCommandExecutorTests
     {
         Dictionary<Game, Dictionary<string, string>>? gameUids = null;
         if (gameProfileForZzz is not null)
-        {
             gameUids = new Dictionary<Game, Dictionary<string, string>>
             {
                 {
                     Game.ZenlessZoneZero,
-                    new Dictionary<string, string> { { gameProfileForZzz.Value.server.ToString(), gameProfileForZzz.Value.gameUid } }
+                    new Dictionary<string, string>
+                        { { gameProfileForZzz.Value.server.ToString(), gameProfileForZzz.Value.gameUid } }
                 }
             };
-        }
 
         Dictionary<Game, Server>? lastUsed = null;
         if (lastUsedRegionForHsr is not null)
-        {
             lastUsed = new Dictionary<Game, Server>
             {
                 { Game.HonkaiStarRail, lastUsedRegionForHsr.Value }
             };
-        }
 
         UserModel testUser = new()
         {
             Id = m_TestUserId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = profileId,
                     LtUid = TestLtUid,

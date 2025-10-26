@@ -1,9 +1,9 @@
 ﻿#region
 
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using System.Text.Json.Serialization;
 
 #endregion
 
@@ -42,9 +42,15 @@ public class BaseCharacterDetail
 
     [JsonPropertyName("weapon")] public required Weapon Weapon { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Genshin.FileName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.FileName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public class Constellation
@@ -58,10 +64,15 @@ public class Constellation
 
     [JsonPropertyName("pos")] public int? Pos { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Genshin.FileName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.FileName, Id);
+    }
 
-    public IImageData ToImageData() =>
-        new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public class StatProperty
@@ -111,10 +122,15 @@ public class Skill
 
     [JsonPropertyName("name")] public required string Name { get; init; }
 
-    public string ToImageName(int avatarId) => string.Format(FileNameFormat.Genshin.SkillName, avatarId, SkillId);
+    public string ToImageName(int avatarId)
+    {
+        return string.Format(FileNameFormat.Genshin.SkillName, avatarId, SkillId);
+    }
 
-    public IImageData ToImageData(int avatarId) =>
-        new ImageData(ToImageName(avatarId), Icon);
+    public IImageData ToImageData(int avatarId)
+    {
+        return new ImageData(ToImageName(avatarId), Icon);
+    }
 }
 
 public class RelicStatProperty
@@ -143,9 +159,15 @@ public class Relic
     [JsonPropertyName("sub_property_list")]
     public required List<RelicStatProperty> SubPropertyList { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Genshin.FileName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.FileName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }
 
 public sealed class RelicSet : IEquatable<RelicSet>
@@ -203,7 +225,13 @@ public class WeaponDetail
 
     [JsonPropertyName("sub_property")] public StatProperty? SubProperty { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Genshin.FileName, Id);
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.FileName, Id);
+    }
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }

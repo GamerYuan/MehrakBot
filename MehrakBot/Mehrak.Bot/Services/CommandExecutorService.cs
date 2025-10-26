@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
@@ -9,6 +11,8 @@ using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services;
+
+#endregion
 
 namespace Mehrak.Bot.Services;
 
@@ -22,7 +26,8 @@ public interface ICommandExecutorService<TContext> where TContext : IApplication
     void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null);
 }
 
-internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TContext> where TContext : ApplicationContextBase
+internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TContext>
+    where TContext : ApplicationContextBase
 {
     private readonly IServiceProvider m_ServiceProvider;
 
@@ -56,13 +61,15 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
         if (!await ValidateRateLimitAsync()) return;
 
-        var authResult = await AuthenticationMiddleware.GetAuthenticationAsync(new(Context, profile));
+        var authResult =
+            await AuthenticationMiddleware.GetAuthenticationAsync(new AuthenticationRequest(Context, profile));
 
         if (authResult.IsSuccess)
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+            await authResult.Context!.Interaction.SendResponseAsync(
+                InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
             var server = ApplicationContext.GetParameter<Server?>("server");
             var game = ApplicationContext.GetParameter<Game>("game");
@@ -101,7 +108,9 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                 {
                     await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
                     await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage()
-                        .AddComponents(new ActionRowProperties([new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)])));
+                        .AddComponents(new ActionRowProperties([
+                            new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
+                        ])));
                 }
             }
             else

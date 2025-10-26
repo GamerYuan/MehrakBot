@@ -91,10 +91,7 @@ public class ImageUpdaterService : IImageUpdaterService
         processedStream.Position = 0;
         await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
 
-        foreach (var item in streams)
-        {
-            await item.DisposeAsync();
-        }
+        foreach (var item in streams) await item.DisposeAsync();
 
         return true;
     }

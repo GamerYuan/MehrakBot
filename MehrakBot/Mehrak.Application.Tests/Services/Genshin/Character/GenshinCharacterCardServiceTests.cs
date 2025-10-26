@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -7,7 +8,6 @@ using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
 
 #endregion
 
@@ -29,26 +29,28 @@ public class GenshinCharacterCardServiceTests
     {
         m_GenshinCharacterCardService = new GenshinCharacterCardService(
             MongoTestHelper.Instance.ImageRepository,
-   Mock.Of<ILogger<GenshinCharacterCardService>>());
+            Mock.Of<ILogger<GenshinCharacterCardService>>());
         await m_GenshinCharacterCardService.InitializeAsync();
     }
 
     [Test]
     [TestCase("Aether_TestData.json", "GoldenImage.jpg", "GenshinCharacter")]
     [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg", "GenshinCharacterWithSet")]
-    public async Task GenerateCharacterCard_MatchesGoldenImage(string testDataFileName, string goldenImageFileName, string outputPrefix)
+    public async Task GenerateCharacterCard_MatchesGoldenImage(string testDataFileName, string goldenImageFileName,
+        string outputPrefix)
     {
         // Arrange
         GenshinCharacterDetail? characterDetail =
             JsonSerializer.Deserialize<GenshinCharacterDetail>(
-       await File.ReadAllTextAsync($"{TestDataPath}/Genshin/{testDataFileName}"));
+                await File.ReadAllTextAsync($"{TestDataPath}/Genshin/{testDataFileName}"));
         Assert.That(characterDetail, Is.Not.Null);
 
         GameProfileDto profile = GetTestUserGameData();
 
         // Act
         Stream image = await m_GenshinCharacterCardService.GetCardAsync(
-            new TestCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], Server.Asia, profile));
+            new TestCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], Server.Asia,
+                profile));
         using MemoryStream file = new();
         await image.CopyToAsync(file);
 
@@ -75,7 +77,7 @@ public class GenshinCharacterCardServiceTests
         {
             GameUid = TestUid,
             Nickname = TestNickName,
-            Level = 60,
+            Level = 60
         };
     }
 
@@ -112,10 +114,11 @@ public class GenshinCharacterCardServiceTests
         // Act
         var image = await m_GenshinCharacterCardService.GetCardAsync(
             new TestCardGenerationContext<GenshinCharacterInformation>(TestUserId,
-            characterDetail.List[0], Server.Asia, profile));
+                characterDetail.List[0], Server.Asia, profile));
         using var file = new MemoryStream();
-        await image.CopyToAsync(file); await
-        File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/{goldenImageFileName}", file.ToArray());
+        await image.CopyToAsync(file);
+        await
+            File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/{goldenImageFileName}", file.ToArray());
 
         Assert.That(image, Is.Not.Null);
     }

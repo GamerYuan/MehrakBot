@@ -1,13 +1,6 @@
 #region
 
-using Mehrak.Application.Services.Hsr.Character;
-using Mehrak.Bot.Executors.Hsr;
 using Mehrak.Domain.Services.Abstractions;
-using MehrakCore.Models;
-using MehrakCore.Services.Commands.Hsr.Character;
-using MehrakCore.Services.Common;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 #endregion
@@ -99,10 +92,7 @@ public class HsrCharacterAutocompleteServiceTests
     {
         // Arrange
         var testCharacters = new List<string>();
-        for (int i = 1; i <= 30; i++)
-        {
-            testCharacters.Add($"Character{i}");
-        }
+        for (int i = 1; i <= 30; i++) testCharacters.Add($"Character{i}");
 
         m_CharacterCacheServiceMock
             .Setup(cache => cache.GetCharacters(Game.HonkaiStarRail))

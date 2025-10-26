@@ -1,4 +1,8 @@
-﻿using System.Text.Json.Serialization;
+﻿#region
+
+using System.Text.Json.Serialization;
+
+#endregion
 
 namespace Mehrak.GameApi.Zzz.Types;
 
@@ -8,7 +12,8 @@ public class ZzzRealTimeNotesData
     [JsonPropertyName("vitality")] public required RegenProgress Vitality { get; init; }
     [JsonPropertyName("vhs_sale")] public required VhsSale VhsSale { get; init; }
 
-    [JsonPropertyName("card_sign"), JsonConverter(typeof(JsonStringEnumConverter<CardSignState>))]
+    [JsonPropertyName("card_sign")]
+    [JsonConverter(typeof(JsonStringEnumConverter<CardSignState>))]
     public CardSignState CardSign { get; init; }
 
     [JsonPropertyName("bounty_commission")]
@@ -35,7 +40,8 @@ public class RegenProgress
 
 public class VhsSale
 {
-    [JsonPropertyName("sale_state"), JsonConverter(typeof(JsonStringEnumConverter<VhsSaleState>))]
+    [JsonPropertyName("sale_state")]
+    [JsonConverter(typeof(JsonStringEnumConverter<VhsSaleState>))]
     public VhsSaleState SaleState { get; init; }
 }
 
@@ -55,13 +61,16 @@ public class WeeklyTaskInfo
 
 public class TempleManageInfo
 {
-    [JsonPropertyName("expedition_state"), JsonConverter(typeof(JsonStringEnumConverter<ExpeditionState>))]
+    [JsonPropertyName("expedition_state")]
+    [JsonConverter(typeof(JsonStringEnumConverter<ExpeditionState>))]
     public ExpeditionState ExpeditionState { get; init; }
 
-    [JsonPropertyName("bench_state"), JsonConverter(typeof(JsonStringEnumConverter<BenchState>))]
+    [JsonPropertyName("bench_state")]
+    [JsonConverter(typeof(JsonStringEnumConverter<BenchState>))]
     public BenchState BenchState { get; init; }
 
-    [JsonPropertyName("shelve_state"), JsonConverter(typeof(JsonStringEnumConverter<ShelveState>))]
+    [JsonPropertyName("shelve_state")]
+    [JsonConverter(typeof(JsonStringEnumConverter<ShelveState>))]
     public ShelveState ShelveState { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }

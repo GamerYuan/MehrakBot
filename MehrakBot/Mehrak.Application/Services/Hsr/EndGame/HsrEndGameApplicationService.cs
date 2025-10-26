@@ -1,4 +1,7 @@
-﻿using Mehrak.Application.Builders;
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Hsr.Types;
 using Mehrak.Application.Utility;
@@ -10,7 +13,8 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+
+#endregion
 
 namespace Mehrak.Application.Services.Hsr.EndGame;
 
@@ -38,7 +42,8 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
         {
             var region = context.Server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region);
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+                region);
 
             if (profile == null)
             {
@@ -47,10 +52,12 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
             }
 
             var challengeResponse = await m_ApiService.GetAsync(
-                new(context.UserId, context.LtUid, context.LToken, profile.GameUid, region, context.Mode));
+                new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
+                    context.Mode));
             if (!challengeResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, context.Mode.GetString(), context.UserId, profile.GameUid, challengeResponse);
+                Logger.LogError(LogMessage.ApiError, context.Mode.GetString(), context.UserId, profile.GameUid,
+                    challengeResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
                     string.Format(ResponseMessage.ApiError, $"{context.Mode.GetString()} data"));
             }
@@ -58,15 +65,21 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
             var challengeData = challengeResponse.Data;
             if (!challengeData.HasData)
             {
-                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId, profile.GameUid);
-                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))], isEphemeral: true);
+                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId,
+                    profile.GameUid);
+                return CommandResult.Success(
+                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))],
+                    isEphemeral: true);
             }
 
             var nonNull = challengeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null }).ToList();
             if (nonNull.Count == 0)
             {
-                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId, profile.GameUid);
-                return CommandResult.Success([new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))], isEphemeral: true);
+                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId,
+                    profile.GameUid);
+                return CommandResult.Success(
+                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))],
+                    isEphemeral: true);
             }
 
             var tasks = nonNull
@@ -76,17 +89,20 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
             var buffTasks = challengeData.AllFloorDetail.Where(x => !x.IsFast)
                 .SelectMany(x => new List<HsrEndBuff> { x.Node1!.Buff, x.Node2!.Buff })
                 .DistinctBy(x => x.Id)
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
+                .Select(x =>
+                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
 
             var completed = await Task.WhenAll(tasks.Concat(buffTasks));
 
             if (completed.Any(x => !x))
             {
-                Logger.LogError(LogMessage.ImageUpdateError, context.Mode.GetString(), context.UserId, JsonSerializer.Serialize(challengeData));
+                Logger.LogError(LogMessage.ImageUpdateError, context.Mode.GetString(), context.UserId,
+                    JsonSerializer.Serialize(challengeData));
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new(context.UserId, challengeData, context.Server, profile, context.Mode));
+            var card = await m_CardService.GetCardAsync(new HsrEndGameGenerationContext(context.UserId, challengeData,
+                context.Server, profile, context.Mode));
 
             var tz = context.Server.GetTimeZoneInfo();
             var group = challengeData.Groups[0];
@@ -96,17 +112,21 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 .ToUnixTimeSeconds();
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary", CommandText.TextType.Header3),
-                new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                new CommandAttachment($"{context.Mode.GetString().ToLowerInvariant().Replace(' ', '_')}_card.jpg", card),
-                new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)],
+                    new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary",
+                        CommandText.TextType.Header3),
+                    new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                    new CommandAttachment($"{context.Mode.GetString().ToLowerInvariant().Replace(' ', '_')}_card.jpg",
+                        card),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                ],
                 true
             );
         }
         catch (CommandException e)
         {
             Logger.LogError(e, LogMessage.UnknownError, context.Mode.GetString(), context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError, string.Format(ResponseMessage.CardGenError, context.Mode.GetString()));
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                string.Format(ResponseMessage.CardGenError, context.Mode.GetString()));
         }
         catch (Exception e)
         {

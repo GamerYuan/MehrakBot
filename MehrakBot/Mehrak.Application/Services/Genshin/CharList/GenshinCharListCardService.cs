@@ -1,5 +1,8 @@
 ﻿#region
 
+using System.Diagnostics;
+using System.Numerics;
+using System.Text.Json;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -14,9 +17,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Diagnostics;
-using System.Numerics;
-using System.Text.Json;
 
 #endregion
 
@@ -113,7 +113,8 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
                 context.GameProfile.GameUid, charData.Count);
 
-            Dictionary<int, Image> weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id).ToAsyncEnumerable()
+            Dictionary<int, Image> weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id)
+                .ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Id!.Value),
                     async x =>
                     {
@@ -147,7 +148,8 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
 
             disposables.AddRange(avatarImages);
 
-            ImageUtility.GridLayout layout = ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
+            ImageUtility.GridLayout layout =
+                ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
             Image<Rgba32> background = new(layout.OutputWidth, layout.OutputHeight + 50);
 
@@ -155,10 +157,10 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
             {
                 ctx.Clear(Color.FromRgb(69, 69, 69));
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new Vector2(50, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
+                    {
+                        Origin = new Vector2(50, 80),
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -206,7 +208,8 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 {
                     FontRectangle countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
                         new TextOptions(m_NormalFont));
-                    FontRectangle elemSize = TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
+                    FontRectangle elemSize =
+                        TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
                     IPath overlay =
@@ -216,11 +219,11 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                     ctx.Fill(RarityColors[entry.Rarity - 1].WithAlpha(128), overlay);
                     ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 40, yOffset + 26),
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{entry.Rarity} Star", Color.White);
+                        {
+                            Origin = new Vector2(xOffset + 40, yOffset + 26),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, $"{entry.Rarity} Star", Color.White);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
@@ -243,7 +246,8 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, LogMessage.CardGenError, "CharList", context.UserId, JsonSerializer.Serialize(context.Data));
+            m_Logger.LogError(ex, LogMessage.CardGenError, "CharList", context.UserId,
+                JsonSerializer.Serialize(context.Data));
             throw new CommandException("Failed to generate CharList card", ex);
         }
         finally
@@ -264,17 +268,18 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
             ctx.DrawImage(avatarImage, new Point(0, 0), 1f);
             ctx.DrawImage(weaponImage, new Point(150, 0), 1f);
 
-            FontRectangle charLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
+            FontRectangle charLevelRect =
+                TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
             IPath charLevel =
                 ImageUtility.CreateRoundedRectanglePath((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
                     10);
             ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 110));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-            {
-                Origin = new Vector2(5, 120 + (charLevelRect.Height / 2)),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"Lv. {charData.Level}", Color.White);
+                {
+                    Origin = new Vector2(5, 120 + charLevelRect.Height / 2),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"Lv. {charData.Level}", Color.White);
 
             IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
             switch (charData.ActivedConstellationNum)
@@ -292,25 +297,26 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 case > 0:
                     ctx.Fill(NormalConstColor, constIcon);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(130, 130),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{charData.ActivedConstellationNum}", Color.White);
+                        {
+                            Origin = new Vector2(130, 130),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, $"{charData.ActivedConstellationNum}", Color.White);
                     break;
             }
 
-            FontRectangle weapLevelRect = TextMeasurer.MeasureSize($"Lv. {charData.Weapon.Level}", new TextOptions(m_SmallFont));
+            FontRectangle weapLevelRect =
+                TextMeasurer.MeasureSize($"Lv. {charData.Weapon.Level}", new TextOptions(m_SmallFont));
             IPath weapLevel =
                 ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40, (int)weapLevelRect.Height + 20,
                     10);
             ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 110));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-            {
-                Origin = new PointF(295 - (weapLevelRect.Width / 2), 120 + (weapLevelRect.Height / 2)),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"Lv. {charData.Weapon.Level}", Color.White);
+                {
+                    Origin = new PointF(295 - weapLevelRect.Width / 2, 120 + weapLevelRect.Height / 2),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"Lv. {charData.Weapon.Level}", Color.White);
 
             IPath refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 115);
             switch (charData.Weapon.AffixLevel)
@@ -328,11 +334,11 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 case > 0:
                     ctx.Fill(NormalConstColor, refineIcon);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(170, 130),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{charData.Weapon.AffixLevel}", Color.White);
+                        {
+                            Origin = new Vector2(170, 130),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, $"{charData.Weapon.AffixLevel}", Color.White);
                     break;
             }
 
@@ -341,11 +347,11 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
 
             ctx.Fill(Color.PeachPuff, new RectangleF(0, 150, 300, 30));
             ctx.DrawText(new RichTextOptions(m_NormalFont)
-            {
-                Origin = new Vector2(150, 165),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{charData.Name}", Color.Black);
+                {
+                    Origin = new Vector2(150, 165),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{charData.Name}", Color.Black);
 
             ctx.ApplyRoundedCorners(15);
         });

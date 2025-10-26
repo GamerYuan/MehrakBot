@@ -1,13 +1,12 @@
-﻿using Mehrak.GameApi.Common.ApiResponseTypes;
+﻿#region
+
+using System.Text.Json;
 using Mehrak.GameApi.Zzz.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Zzz;
-using MehrakCore.Services.Commands.Zzz.Defense;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Text.Json;
+
+#endregion
 
 namespace MehrakCore.Tests.Services.Commands.Zzz;
 
@@ -47,7 +46,8 @@ public class ZzzDefenseCardServiceTests
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(defenseData, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
         Stream image = await m_Service.GetDefenseCardAsync(defenseData,
             GetUserGameData(), Server.Asia);

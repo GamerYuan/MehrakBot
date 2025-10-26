@@ -2,10 +2,14 @@
 
 #endregion
 
+#region
+
 using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Services;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
+
+#endregion
 
 namespace Mehrak.Bot.Modules.Common;
 
@@ -30,7 +34,7 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
         m_Logger.LogInformation("Executing Daily Check-In command for user {UserId} with profile {ProfileId}",
             Context.User.Id, profile);
 
-        m_Executor.ApplicationContext = new(Context.User.Id);
+        m_Executor.ApplicationContext = new CheckInApplicationContext(Context.User.Id);
         m_Executor.Context = Context;
 
         await m_Executor.ExecuteAsync(profile).ConfigureAwait(false);

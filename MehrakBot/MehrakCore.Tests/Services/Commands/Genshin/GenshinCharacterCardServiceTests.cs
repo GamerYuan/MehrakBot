@@ -1,12 +1,10 @@
 ﻿#region
 
+using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Services.Commands.Genshin.Character;
 using MehrakCore.Tests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Text.Json;
 
 #endregion
 
@@ -27,7 +25,8 @@ public class GenshinCharacterCardServiceTests
             new ImageRepository(MongoTestHelper.Instance.MongoDbService, new NullLogger<ImageRepository>());
 
         // Initialize GenshinCharacterCardService once per test setup
-        m_GenshinCharacterCardService = new GenshinCharacterCardService(m_ImageRepository, new NullLogger<GenshinCharacterCardService>());
+        m_GenshinCharacterCardService =
+            new GenshinCharacterCardService(m_ImageRepository, new NullLogger<GenshinCharacterCardService>());
         await m_GenshinCharacterCardService.InitializeAsync();
     }
 

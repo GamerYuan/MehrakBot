@@ -1,15 +1,10 @@
 ﻿#region
 
-using Mehrak.Application.Services.Genshin.Stygian;
-using Mehrak.GameApi.Common.ApiResponseTypes;
-using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Services.Commands.Genshin.Stygian;
-using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
+using Mehrak.Application.Services.Genshin.Stygian;
+using Mehrak.GameApi.Genshin.Types;
+using MehrakCore.Tests.TestHelpers;
+using Microsoft.Extensions.Logging.Abstractions;
 
 #endregion
 

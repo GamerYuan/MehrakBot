@@ -1,4 +1,6 @@
-﻿using Mehrak.Application.Services.Genshin.Abyss;
+﻿#region
+
+using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Application.Services.Genshin.CharList;
 using Mehrak.Application.Services.Genshin.RealTimeNotes;
@@ -10,36 +12,51 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.DependencyInjection;
 
+#endregion
+
 namespace Mehrak.Application.Services.Genshin;
 
 internal static class GenshinApplicationServiceExtensions
 {
     internal static IServiceCollection AddGenshinApplicationServices(this IServiceCollection services)
     {
-        services.AddSingleton<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>,
-            GenshinAbyssCardService>();
+        services
+            .AddSingleton<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>,
+                    GenshinAbyssInformation>,
+                GenshinAbyssCardService>();
         services.RegisterAsyncInitializableFor<
-            ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>, GenshinAbyssCardService>();
+            ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>,
+            GenshinAbyssCardService>();
         services.AddTransient<IApplicationService<GenshinAbyssApplicationContext>, GenshinAbyssApplicationService>();
 
         services.AddSingleton<ICardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
-        services.RegisterAsyncInitializableFor<ICardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
-        services.AddTransient<IApplicationService<GenshinCharacterApplicationContext>, GenshinCharacterApplicationService>();
+        services
+            .RegisterAsyncInitializableFor<ICardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
+        services
+            .AddTransient<IApplicationService<GenshinCharacterApplicationContext>,
+                GenshinCharacterApplicationService>();
 
         services.AddSingleton<ICardService<IEnumerable<GenshinBasicCharacterData>>, GenshinCharListCardService>();
-        services.AddTransient<IApplicationService<GenshinCharListApplicationContext>, GenshinCharListApplicationService>();
+        services
+            .AddTransient<IApplicationService<GenshinCharListApplicationContext>, GenshinCharListApplicationService>();
 
         services.AddSingleton<ICardService<StygianData>, GenshinStygianCardService>();
         services.RegisterAsyncInitializableFor<ICardService<StygianData>, GenshinStygianCardService>();
-        services.AddTransient<IApplicationService<GenshinStygianApplicationContext>, GenshinStygianApplicationService>();
+        services
+            .AddTransient<IApplicationService<GenshinStygianApplicationContext>, GenshinStygianApplicationService>();
 
-        services.AddSingleton<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation>,
-            GenshinTheaterCardService>();
+        services
+            .AddSingleton<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>,
+                    GenshinTheaterInformation>,
+                GenshinTheaterCardService>();
         services.RegisterAsyncInitializableFor<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>,
             GenshinTheaterInformation>, GenshinTheaterCardService>();
-        services.AddTransient<IApplicationService<GenshinTheaterApplicationContext>, GenshinTheaterApplicationService>();
+        services
+            .AddTransient<IApplicationService<GenshinTheaterApplicationContext>, GenshinTheaterApplicationService>();
 
-        services.AddTransient<IApplicationService<GenshinRealTimeNotesApplicationContext>, GenshinRealTimeNotesApplicationService>();
+        services
+            .AddTransient<IApplicationService<GenshinRealTimeNotesApplicationContext>,
+                GenshinRealTimeNotesApplicationService>();
 
         return services;
     }

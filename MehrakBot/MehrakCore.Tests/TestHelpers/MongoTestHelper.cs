@@ -1,7 +1,5 @@
 ﻿#region
 
-using MehrakCore.Models;
-using MehrakCore.Services.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mongo2Go;

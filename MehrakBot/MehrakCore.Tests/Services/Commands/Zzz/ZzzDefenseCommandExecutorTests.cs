@@ -1,22 +1,17 @@
-﻿using Mehrak.Application.Services.Zzz.Defense;
-using Mehrak.Bot.Executors.Zzz;
-using Mehrak.Domain.Interfaces;
+﻿#region
+
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.GameApi;
-using MehrakCore.Constants;
-using MehrakCore.Models;
-using MehrakCore.Services.Commands.Zzz;
-using MehrakCore.Services.Commands.Zzz.Defense;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
+
+#endregion
 
 namespace MehrakCore.Tests.Services.Commands.Zzz;
 
@@ -47,6 +42,7 @@ public class ZzzDefenseCommandExecutorTests
 
     private static readonly string AccountRolesUrl =
         $"{HoYoLabDomains.AccountApi}/binding/api/getUserGameRolesByLtoken";
+
     private static readonly string DefenseApiUrl =
         $"{HoYoLabDomains.PublicApi}/event/game_record_zzz/api/zzz/challenge";
 
@@ -58,24 +54,29 @@ public class ZzzDefenseCommandExecutorTests
 
         m_TestUserId = MongoTestHelper.Instance.GetUniqueUserId();
 
-        m_HttpMessageHandlerMock = new();
-        m_HttpClient = new(m_HttpMessageHandlerMock.Object);
-        m_HttpClientFactoryMock = new();
+        m_HttpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        m_HttpClient = new HttpClient(m_HttpMessageHandlerMock.Object);
+        m_HttpClientFactoryMock = new Mock<IHttpClientFactory>();
         m_HttpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(m_HttpClient);
 
-        m_DistributedCacheMock = new();
+        m_DistributedCacheMock = new Mock<IDistributedCache>();
         RedisCacheService tokenCacheService = new(m_DistributedCacheMock.Object, Mock.Of<ILogger<RedisCacheService>>());
-        m_AuthenticationMiddlewareServiceMock = new();
-        GameRecordApiService gameRecordApiService = new(m_HttpClientFactoryMock.Object, Mock.Of<ILogger<GameRecordApiService>>());
+        m_AuthenticationMiddlewareServiceMock = new Mock<IAuthenticationMiddlewareService>();
+        GameRecordApiService gameRecordApiService =
+            new(m_HttpClientFactoryMock.Object, Mock.Of<ILogger<GameRecordApiService>>());
 
-        m_ContextMock = new();
+        m_ContextMock = new Mock<IInteractionContext>();
         m_ContextMock.Setup(x => x.Interaction).Returns(m_DiscordTestHelper.CreateCommandInteraction(m_TestUserId));
 
-        ImageRepository imageRepository = new(MongoTestHelper.Instance.MongoDbService, Mock.Of<ILogger<ImageRepository>>());
-        m_UserRepository = new(MongoTestHelper.Instance.MongoDbService, Mock.Of<ILogger<UserRepository>>());
+        ImageRepository imageRepository =
+            new(MongoTestHelper.Instance.MongoDbService, Mock.Of<ILogger<ImageRepository>>());
+        m_UserRepository =
+            new UserRepository(MongoTestHelper.Instance.MongoDbService, Mock.Of<ILogger<UserRepository>>());
         m_CardService = new ZzzDefenseCardService(imageRepository, Mock.Of<ILogger<ZzzDefenseCardService>>());
-        m_ApiService = new ZzzDefenseApiService(m_HttpClientFactoryMock.Object, Mock.Of<ILogger<ZzzDefenseApiService>>());
-        m_ImageUpdaterMock = new(imageRepository, m_HttpClientFactoryMock.Object, Mock.Of<ILogger<ZzzImageUpdaterService>>());
+        m_ApiService =
+            new ZzzDefenseApiService(m_HttpClientFactoryMock.Object, Mock.Of<ILogger<ZzzDefenseApiService>>());
+        m_ImageUpdaterMock = new Mock<ZzzImageUpdaterService>(imageRepository, m_HttpClientFactoryMock.Object,
+            Mock.Of<ILogger<ZzzImageUpdaterService>>());
         m_Executor = new ZzzDefenseCommandExecutor(m_ApiService, m_CardService,
             m_ImageUpdaterMock.Object, m_UserRepository,
             tokenCacheService, m_AuthenticationMiddlewareServiceMock.Object,
@@ -87,7 +88,8 @@ public class ZzzDefenseCommandExecutorTests
         SetupImageUpdaterNoop();
         m_TestDataStr = LoadTestData();
         m_GoldenImage = await
-            File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets", "Shiyu_GoldenImage_1.jpg"));
+            File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+                "Shiyu_GoldenImage_1.jpg"));
     }
 
     [TearDown]
@@ -151,7 +153,8 @@ public class ZzzDefenseCommandExecutorTests
         await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
         string? message = await m_DiscordTestHelper.ExtractInteractionResponseDataAsync();
         Assert.That(message, Does.Contain("Authenticate"));
-        m_AuthenticationMiddlewareServiceMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor), Times.Once);
+        m_AuthenticationMiddlewareServiceMock.Verify(x => x.RegisterAuthenticationListener(m_TestUserId, m_Executor),
+            Times.Once);
     }
 
     [Test]
@@ -161,12 +164,15 @@ public class ZzzDefenseCommandExecutorTests
         UserModel user = new()
         {
             Id = m_TestUserId,
-            Profiles = [ new UserProfile
-            {
-                ProfileId = TestProfileId,
-                LtUid = TestLtUid,
-                GameUids = []
-            }]
+            Profiles =
+            [
+                new UserProfile
+                {
+                    ProfileId = TestProfileId,
+                    LtUid = TestLtUid,
+                    GameUids = []
+                }
+            ]
         };
         await m_UserRepository.CreateOrUpdateUserAsync(user);
         SetupBasicTokenCache();
@@ -204,7 +210,9 @@ public class ZzzDefenseCommandExecutorTests
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{\"retcode\":0,\"message\":\"OK\",\"data\":{\"has_data\":true,\"begin_time\":\"0\",\"end_time\":\"0\",\"rating_list\":[],\"all_floor_detail\":[]}}", Encoding.UTF8, "application/json")
+                Content = new StringContent(
+                    "{\"retcode\":0,\"message\":\"OK\",\"data\":{\"has_data\":true,\"begin_time\":\"0\",\"end_time\":\"0\",\"rating_list\":[],\"all_floor_detail\":[]}}",
+                    Encoding.UTF8, "application/json")
             });
 
         await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
@@ -227,7 +235,8 @@ public class ZzzDefenseCommandExecutorTests
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{\"retcode\":10001,\"message\":\"Invalid\",\"data\":null}", Encoding.UTF8, "application/json")
+                Content = new StringContent("{\"retcode\":10001,\"message\":\"Invalid\",\"data\":null}", Encoding.UTF8,
+                    "application/json")
             });
 
         await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
@@ -250,7 +259,8 @@ public class ZzzDefenseCommandExecutorTests
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{\"retcode\":-1,\"message\":\"Err\",\"data\":null}", Encoding.UTF8, "application/json")
+                Content = new StringContent("{\"retcode\":-1,\"message\":\"Err\",\"data\":null}", Encoding.UTF8,
+                    "application/json")
             });
 
         await m_Executor.ExecuteAsync(Server.Asia, TestProfileId);
@@ -296,7 +306,8 @@ public class ZzzDefenseCommandExecutorTests
         await m_Executor.ExecuteAsync(Server.Asia, TestProfileId); // sets pending server
 
         // simulate authentication completion
-        AuthenticationResult authResult = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult authResult =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
         await m_Executor.OnAuthenticationCompletedAsync(authResult);
 
         byte[]? bytes = await m_DiscordTestHelper.ExtractInteractionResponseAsBytesAsync();
@@ -331,7 +342,7 @@ public class ZzzDefenseCommandExecutorTests
             Id = userId,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = TestProfileId,
                     LtUid = TestLtUid,
@@ -384,15 +395,17 @@ public class ZzzDefenseCommandExecutorTests
     private void SetupBasicTokenCache()
     {
         m_DistributedCacheMock.Setup(x =>
-            x.GetAsync(It.Is<string>(key => key.Equals($"TokenCache_{m_TestUserId}_{TestLtUid}")), It.IsAny<CancellationToken>()))
-        .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
+                x.GetAsync(It.Is<string>(key => key.Equals($"TokenCache_{m_TestUserId}_{TestLtUid}")),
+                    It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Encoding.UTF8.GetBytes(TestLToken));
     }
 
     private void SetupNullTokenCache()
     {
         m_DistributedCacheMock.Setup(x =>
-            x.GetAsync(It.Is<string>(key => key.Equals($"TokenCache_{m_TestUserId}_{TestLtUid}")), It.IsAny<CancellationToken>()))
-        .ReturnsAsync((byte[]?)null);
+                x.GetAsync(It.Is<string>(key => key.Equals($"TokenCache_{m_TestUserId}_{TestLtUid}")),
+                    It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
     }
 
     private void SetupGameRoleApiSuccess()
@@ -454,7 +467,8 @@ public class ZzzDefenseCommandExecutorTests
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{\"retcode\":0,\"message\":\"OK\",\"data\":" + m_TestDataStr + "}", Encoding.UTF8, "application/json")
+                Content = new StringContent("{\"retcode\":0,\"message\":\"OK\",\"data\":" + m_TestDataStr + "}",
+                    Encoding.UTF8, "application/json")
             });
     }
 
@@ -469,7 +483,9 @@ public class ZzzDefenseCommandExecutorTests
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{\"retcode\":0,\"message\":\"OK\",\"data\":{\"has_data\":false,\"begin_time\":\"1756411200\",\"end_time\":\"1757620799\",\"all_floor_detail\":[],\"rating_list\":[]}}", Encoding.UTF8, "application/json")
+                Content = new StringContent(
+                    "{\"retcode\":0,\"message\":\"OK\",\"data\":{\"has_data\":false,\"begin_time\":\"1756411200\",\"end_time\":\"1757620799\",\"all_floor_detail\":[],\"rating_list\":[]}}",
+                    Encoding.UTF8, "application/json")
             });
     }
 

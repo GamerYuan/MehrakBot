@@ -1,4 +1,6 @@
-﻿using Mehrak.Bot.Authentication;
+﻿#region
+
+using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
@@ -8,9 +10,12 @@ using NetCord;
 using NetCord.Rest;
 using NetCord.Services;
 
+#endregion
+
 namespace Mehrak.Bot.Services;
 
-internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorService<TContext> where TContext : IApplicationContext
+internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorService<TContext>
+    where TContext : IApplicationContext
 {
     public IInteractionContext Context { get; set; } = default!;
     public TContext ApplicationContext { get; set; } = default!;
@@ -65,10 +70,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;
 
-        if (profile.LastUsedRegions?.TryGetValue(game, out var server) ?? false)
-        {
-            return server;
-        }
+        if (profile.LastUsedRegions?.TryGetValue(game, out var server) ?? false) return server;
 
         return null;
     }

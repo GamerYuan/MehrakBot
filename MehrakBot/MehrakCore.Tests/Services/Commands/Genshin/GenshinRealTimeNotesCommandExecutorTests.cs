@@ -1,26 +1,15 @@
 #region
 
-using Mehrak.Application.Services.Genshin.RealTimeNotes;
-using Mehrak.Bot.Executors.Genshin;
-using Mehrak.Domain.Interfaces;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Mehrak.GameApi.Genshin.Types;
-using MehrakCore.ApiResponseTypes.Genshin;
-using MehrakCore.Models;
-using MehrakCore.Services.Commands;
-using MehrakCore.Services.Commands.Genshin.RealTimeNotes;
-using MehrakCore.Services.Common;
 using MehrakCore.Tests.TestHelpers;
-using MehrakCore.Utility;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;
-using NetCord;
-using NetCord.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 #endregion
 
@@ -366,7 +355,8 @@ public class GenshinRealTimeNotesCommandExecutorTests
         // Execute first to set up pending state
         await m_Executor.ExecuteAsync(server, profile);
 
-        AuthenticationResult result = AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
+        AuthenticationResult result =
+            AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, m_ContextMock.Object);
 
         // Setup API service to return success
         GenshinRealTimeNotesData notesData = CreateTestNotesData();
@@ -402,7 +392,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
             Timestamp = DateTime.UtcNow,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -420,7 +410,7 @@ public class GenshinRealTimeNotesCommandExecutorTests
             Timestamp = DateTime.UtcNow,
             Profiles =
             [
-                new()
+                new UserProfile
                 {
                     ProfileId = 1,
                     LtUid = TestLtUid,
@@ -502,8 +492,8 @@ public class GenshinRealTimeNotesCommandExecutorTests
             MaxExpeditionNum = 5,
             Expeditions =
             [
-                new() { AvatarSideIcon = "icon1", Status = "Ongoing", RemainedTime = "10000" },
-                new() { AvatarSideIcon = "icon2", Status = "Finished", RemainedTime = "10000" }
+                new Expedition { AvatarSideIcon = "icon1", Status = "Ongoing", RemainedTime = "10000" },
+                new Expedition { AvatarSideIcon = "icon2", Status = "Finished", RemainedTime = "10000" }
             ],
             CurrentHomeCoin = 1200,
             MaxHomeCoin = 2400,
