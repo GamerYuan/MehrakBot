@@ -111,6 +111,8 @@ public class AbyssRankAvatar
     public string ToImageName() =>
         string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId);
 
+    public string ToAvatarImageName() => string.Format(FileNameFormat.Genshin.AvatarName, AvatarId);
+
     public IImageData ToImageData() =>
         new ImageData(ToImageName(), AvatarIcon);
 }

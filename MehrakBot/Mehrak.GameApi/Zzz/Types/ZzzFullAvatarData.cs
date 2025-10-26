@@ -96,7 +96,7 @@ public class DiskDrive
 
     [JsonPropertyName("all_hit")] public bool AllHit { get; set; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, Id);
+    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, EquipSuit.SuitId);
 
     public IImageData ToImageData() =>
         new ImageData(ToImageName(), Icon);

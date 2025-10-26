@@ -57,9 +57,11 @@ public class Equip
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Hsr.WeaponIconName, Id);
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.FileName, Id);
 
-    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
+    public string ToIconImageName() => string.Format(FileNameFormat.Hsr.WeaponIconName, Id);
+
+    public IImageData ToIconImageData() => new ImageData(ToIconImageName(), Icon);
 }
 
 public class ExclusiveSkill

@@ -41,6 +41,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
     private readonly JpegEncoder m_JpegEncoder;
 
     private readonly Image m_WeaponTemplate;
+    private readonly Image m_DiskBackground;
     private readonly Image<Rgba32> m_DiskTemplate;
 
     private static readonly Color BackgroundColor = Color.FromRgb(69, 69, 69);
@@ -68,6 +69,12 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
         m_WeaponTemplate = new Image<Rgba32>(100, 100);
 
+        m_DiskBackground = new Image<Rgba32>(800, 170);
+        m_DiskBackground.Mutate(ctx =>
+        {
+            ctx.Fill(OverlayColor);
+            ctx.ApplyRoundedCorners(30);
+        });
         m_DiskTemplate = CreateDiskTemplateImage();
     }
 
@@ -377,12 +384,10 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     private Image<Rgba32> CreateDiskTemplateImage()
     {
-        Image<Rgba32> diskTemplate = new(800, 170);
+        Image<Rgba32> diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
 
         diskTemplate.Mutate(ctx =>
         {
-            ctx.Fill(OverlayColor);
-            ctx.ApplyRoundedCorners(30);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
                 Origin = new Vector2(425, 88),
@@ -398,7 +403,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
     {
         Image diskImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
             disk.ToImageName()));
-        Image<Rgba32> diskTemplate = m_DiskTemplate.Clone();
+        Image<Rgba32> diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
         diskTemplate.Mutate(ctx =>
         {
             ctx.DrawImage(diskImage, new Point(10, 15), 1f);

@@ -63,7 +63,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                 .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor));
             IEnumerable<Task<bool>> weaponTask =
                 characterList.Where(x => x.Equip is not null).Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.Equip!.ToImageData(),
+                    m_ImageUpdaterService.UpdateImageAsync(x.Equip!.ToIconImageData(),
                         new ImageProcessorBuilder().Resize(150, 0).Build()));
 
             var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));

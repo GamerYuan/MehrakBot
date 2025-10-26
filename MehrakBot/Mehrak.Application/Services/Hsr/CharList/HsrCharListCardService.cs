@@ -109,7 +109,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 .SelectAwait(async x =>
                 {
                     Image image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x!.ToImageName()));
+                        await m_ImageRepository.DownloadFileToStreamAsync(x!.ToIconImageName()));
                     return (x!.Id, Image: image);
                 }).ToDictionaryAsync(x => x.Id, x => x.Image);
             disposables.AddRange(weaponImages.Values);
@@ -121,7 +121,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 .SelectAwait(async x =>
                 {
                     using Image avatarImage = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
+                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName()));
                     return GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id]);
                 })
                 .ToListAsync();

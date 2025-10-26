@@ -103,7 +103,7 @@ internal class GenshinAbyssCardService :
                 .SelectAwait(async x => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
                     context.ConstMap[x.AvatarId],
                     await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())))))
+                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName())))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Item2),
                     async x => await Task.FromResult(x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!)),
                     GenshinAvatarIdComparer.Instance);

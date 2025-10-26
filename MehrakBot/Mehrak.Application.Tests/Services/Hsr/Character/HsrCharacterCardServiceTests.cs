@@ -61,7 +61,7 @@ public class HsrCharacterCardServiceTests
 
         // Act
         Stream generatedImageStream = await m_HsrCharacterCardService.GetCardAsync(
-       new TestCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, Server.Asia, profile));
+            new TestCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, Server.Asia, profile));
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
