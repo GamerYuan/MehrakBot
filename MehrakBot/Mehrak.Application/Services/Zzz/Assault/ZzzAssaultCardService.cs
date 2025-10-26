@@ -87,7 +87,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 {
                     Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(
-                            string.Format(FileNameFormat.Zzz.AvatarName, x.Id)));
+                            x.ToImageName()));
                     ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
                     return (Avatar: avatar, Image: avatar.GetStyledAvatarImage());
                 })
@@ -103,7 +103,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 {
                     Image image = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(
-                            string.Format(FileNameFormat.Zzz.BuddyName, x!.Id)));
+                            x!.ToImageName()));
                     return (BuddyId: x!.Id, Image: image);
                 })
                 .ToDictionaryAsync(x => x.BuddyId, x => x.Image);
@@ -114,7 +114,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
                     async x =>
                     {
-                        Stream stream = await m_ImageRepository.DownloadFileToStreamAsync($"zzz_assault_boss_{x.Name}");
+                        Stream stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
                         return stream;
                     });
             Dictionary<string, Stream> buffImages = await data.List.SelectMany(x => x.Buff)
@@ -122,7 +122,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
                     async x =>
                     {
-                        Stream stream = await m_ImageRepository.DownloadFileToStreamAsync($"zzz_assault_buff_{x.Name}");
+                        Stream stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
                         return stream;
                     });
             disposables.AddRange(bossImages.Values);
