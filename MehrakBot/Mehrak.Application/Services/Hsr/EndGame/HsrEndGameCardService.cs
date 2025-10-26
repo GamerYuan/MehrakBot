@@ -88,12 +88,13 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
         List<IDisposable> disposables = [];
         try
         {
-            ValueTask<Dictionary<HsrAvatar, Image<Rgba32>>> avatarImageTask = gameModeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
+            ValueTask<Dictionary<HsrAvatar, Image<Rgba32>>> avatarImageTask = gameModeData.AllFloorDetail
+                .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id).ToAsyncEnumerable().SelectAwait(async x =>
                     await Task.FromResult(new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
                         await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hsr.AvatarName, x.Id))))))
+                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), HsrAvatarIdComparer.Instance);
             ValueTask<Dictionary<int, Image>> buffImageTask = gameModeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })
@@ -103,7 +104,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                 async x => await Task.FromResult(x.Id),
                 async x =>
                 {
-                    Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"hsr_endgame_buff_{x.Id}"));
+                    Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                     image.Mutate(ctx => ctx.Resize(110, 0));
                     return image;
                 });

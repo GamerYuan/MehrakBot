@@ -30,7 +30,6 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 
     private Dictionary<int, Image> m_StatImages = null!;
 
-    private const string BasePath = FileNameFormat.Genshin.FileName;
     private const string StatsPath = FileNameFormat.Genshin.StatsName;
 
     private readonly Font m_SmallFont;
@@ -115,17 +114,16 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 
             Task<Image<Rgba32>> characterPortraitTask =
                 Image.LoadAsync<Rgba32>(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, charInfo.Base.Id)));
+                    await m_ImageRepository.DownloadFileToStreamAsync(charInfo.Base.ToImageName()));
 
             Task<Image<Rgba32>> weaponImageTask =
                 Image.LoadAsync<Rgba32>(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath,
-                        charInfo.Base.Weapon.Id)));
+                    await m_ImageRepository.DownloadFileToStreamAsync(charInfo.Base.Weapon.ToImageName()));
 
             Task<(bool Active, Image Image)>[] constellationTasks = [.. charInfo.Constellations.Select(async x =>
             {
                 Image image = await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.Id)));
+                    await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                 return (Active: x.IsActived.GetValueOrDefault(false), Image: image);
             }).Reverse()];
 
@@ -134,8 +132,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 .Select(async x =>
                 {
                     Image image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(
-                            string.Format(FileNameFormat.Genshin.SkillName, charInfo.Base.Id, x.SkillId)));
+                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName(charInfo.Base.Id)));
                     return (Data: x, Image: image);
                 }).Reverse()];
 
@@ -418,7 +415,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 
     private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic)
     {
-        string path = string.Format(BasePath, relic.Id);
+        string path = relic.ToImageName();
 
         Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(
             await m_ImageRepository.DownloadFileToStreamAsync(path));

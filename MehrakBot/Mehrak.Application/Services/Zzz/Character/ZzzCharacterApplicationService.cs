@@ -128,7 +128,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                     return CommandResult.Failure(CommandFailureReason.ApiError, string.Format(ResponseMessage.ApiError, "Character Image"));
                 }
 
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(string.Format(FileNameFormat.Zzz.FileName, charInfo.Id),
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
                     url), new ImageProcessorBuilder().Resize(2000, 0).Build()));
             }
 

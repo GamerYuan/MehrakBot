@@ -84,7 +84,7 @@ internal class GenshinAbyssCardService :
                 .SelectAwait(async x =>
                     new GenshinAvatar(x.Id, x.Level,
                         x.Rarity, context.ConstMap[x.Id], await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.AvatarName, x.Id))),
+                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())),
                         0))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
@@ -97,13 +97,13 @@ internal class GenshinAbyssCardService :
                 .ToAsyncEnumerable().ToDictionaryAwaitAsync(
                     async x => await Task.FromResult(x.AvatarId),
                     async x => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.SideAvatarName, x.AvatarId))));
+                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())));
             Dictionary<GenshinAvatar, Image<Rgba32>> revealRankImages = await abyssData.RevealRank!
                 .ToAsyncEnumerable()
                 .SelectAwait(async x => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
                     context.ConstMap[x.AvatarId],
                     await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.AvatarName, x.AvatarId))))))
+                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Item2),
                     async x => await Task.FromResult(x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!)),
                     GenshinAvatarIdComparer.Instance);

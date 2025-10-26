@@ -90,7 +90,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
                 .SelectAwait(async x => new ZzzAvatar(x.Id, x.Level, x.Rarity[0], x.Rank, await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.AvatarName, x.Id)))))
+                    await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()))))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), ZzzAvatarIdComparer.Instance);
             Dictionary<int, Image> buddyImages = await data.AllFloorDetail
@@ -99,7 +99,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 .DistinctBy(x => x!.Id)
                 .ToAsyncEnumerable()
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x!.Id), async x =>
-                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, x!.Id))));
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x!.ToImageName())));
 
             disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);

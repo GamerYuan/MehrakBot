@@ -6,7 +6,6 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
-using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
@@ -31,8 +30,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
     private Dictionary<int, Image> m_StatImages = null!;
+    private Image m_Background = null!;
+    private Dictionary<int, Image> m_TemplateRelicSlots = null!;
 
-    private const string BasePath = FileNameFormat.Hsr.FileName;
     private const string StatsPath = FileNameFormat.Hsr.StatsName;
 
     private readonly Font m_SmallFont;
@@ -87,6 +87,12 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             return new KeyValuePair<int, Image>(x, image);
         }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
 
+        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_bg"), cancellationToken);
+
+        m_TemplateRelicSlots = await Enumerable.Range(1, 6).ToAsyncEnumerable()
+            .ToDictionaryAwaitAsync(async x => await Task.FromResult(x), async x => await CreateTemplateRelicSlotImageAsync(x),
+            cancellationToken: cancellationToken);
+
         m_Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);
 
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(HsrCharacterCardService));
@@ -103,40 +109,34 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
         try
         {
-            Task<Image> backgroundTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_bg"));
-
             Task<Image<Rgba32>> characterPortraitTask = Image.LoadAsync<Rgba32>(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format(BasePath, characterInformation.Id)));
+                characterInformation.ToImageName()));
             Task<Image> equipImageTask = characterInformation.Equip == null
                 ? Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template"))
                 : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                    string.Format(BasePath, characterInformation.Equip.Id)));
-            Task<(bool Active, Image Image)>[] rankTasks = characterInformation.Ranks!.Select(async x =>
+                    characterInformation.Equip.ToImageName()));
+            Task<(bool Active, Image Image)>[] rankTasks = [.. characterInformation.Ranks!.Select(async x =>
             {
                 Image image = await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.Id)));
+                    await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                 return (Active: x.IsUnlocked, Image: image);
-            }).ToArray();
+            })];
 
-            Skill[] baseSkill = characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")
-                .ToArray();
+            Skill[] baseSkill = [.. characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")];
             List<List<Skill>> skillChains = BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2)]);
 
-            Task<(Skill Data, Image Image)>[] baseSkillTasks = baseSkill.Select(async x =>
+            Task<(Skill Data, Image Image)>[] baseSkillTasks = [.. baseSkill.Select(async x =>
             {
                 Image image = await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
+                    await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                 return (Data: x, Image: image);
-            }).ToArray();
+            })];
             Task<(Skill Data, Image Image)[]>[] skillTasks = [.. skillChains.Select(async chain =>
             {
                 (Skill Data, Image Image)[] chainImages = await Task.WhenAll(chain.Select(async x =>
                 {
                     Image image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.PointType == 1
-                            ? string.Format(BasePath,
-                                RegexExpressions.HsrStatBonusRegex().Replace(x.SkillStages![0].Name!, ""))
-                            : string.Format(BasePath, x.PointId)));
+                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                     return (Data: x, Image: image);
                 }));
                 return chainImages;
@@ -152,7 +152,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 }
                 else
                 {
-                    Image templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1);
+                    Image templateRelicImage = m_TemplateRelicSlots[i + 1];
                     return templateRelicImage;
                 }
             })];
@@ -167,7 +167,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 }
                 else
                 {
-                    Image templateOrnamentImage = await CreateTemplateRelicSlotImageAsync(i + 5);
+                    Image templateOrnamentImage = m_TemplateRelicSlots[i + 5];
                     return templateOrnamentImage;
                 }
             })];
@@ -199,32 +199,27 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             Task<(Skill Data, Image Image)>[] servantTask = [.. characterInformation.ServantDetail!.ServantSkills!.Select(async x =>
             {
                 Image image = await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(string.Format(BasePath, x.PointId)));
+                    await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                 return (Data: x, Image: image);
             })];
 
             Color accentColor = GetAccentColor(characterInformation.Element!);
 
-            await Task.WhenAll(backgroundTask, characterPortraitTask, equipImageTask, Task.WhenAll(rankTasks),
-                Task.WhenAll(baseSkillTasks), Task.WhenAll(skillTasks), Task.WhenAll(relicImageTasks),
-                Task.WhenAll(ornamentImageTasks), Task.WhenAll(servantTask));
-
-            Image backgroundImage = backgroundTask.Result;
-            Image<Rgba32> characterPortrait = characterPortraitTask.Result;
-            Image equipImage = equipImageTask.Result;
-            (bool Active, Image Image)[] ranks = rankTasks.Select(x => x.Result).Reverse().ToArray();
-            (Skill Data, Image Image)[] baseSkillImages = baseSkillTasks.Select(x => x.Result).ToArray();
-            (Skill Data, Image Image)[][] skillImages = skillTasks.Select(x => x.Result).ToArray();
+            Image backgroundImage = m_Background.CloneAs<Rgba32>();
+            Image<Rgba32> characterPortrait = await characterPortraitTask;
+            Image equipImage = await equipImageTask;
+            (bool Active, Image Image)[] ranks = [.. (await Task.WhenAll(rankTasks)).Reverse()];
+            (Skill Data, Image Image)[] baseSkillImages = [.. await Task.WhenAll(baseSkillTasks)];
+            (Skill Data, Image Image)[][] skillImages = [.. await Task.WhenAll(skillTasks)];
             List<Property> stats = characterInformation.Properties!.Where(x =>
                 float.Parse(x.Final!.TrimEnd('%')) >
                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, Game.HonkaiStarRail)).ToList();
             if (stats.Count < 7)
                 stats = [.. stats.Concat(characterInformation.Properties!)
                     .DistinctBy(x => x.PropertyType!.Value).Take(7).OrderBy(x => x.PropertyType!.Value)];
-            Image[] relicImages = relicImageTasks.Select(x => x.Result).ToArray();
-            Image[] ornamentImages = ornamentImageTasks.Select(x => x.Result).ToArray();
-            (Skill Data, Image Image)[] servantImages = servantTask.Select(x => x.Result).ToArray();
-            m_Logger.LogInformation("All resources loaded successfully for character card generation");
+            Image[] relicImages = [.. await Task.WhenAll(relicImageTasks)];
+            Image[] ornamentImages = [.. await Task.WhenAll(ornamentImageTasks)];
+            (Skill Data, Image Image)[] servantImages = [.. await Task.WhenAll(servantTask)];
 
             disposableResources.AddRange(backgroundImage, characterPortrait, equipImage);
             disposableResources.AddRange(ranks.Select(x => x.Image));
@@ -485,7 +480,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
     private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic)
     {
         Image relicImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-            string.Format(BasePath, relic.Id)));
+            relic.ToImageName()));
         Image<Rgba32> relicSlotImage = m_RelicSlotTemplate.Clone();
         relicSlotImage.Mutate(ctx =>
         {

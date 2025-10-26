@@ -31,9 +31,13 @@ public class HsrCharacterInformation
     [JsonPropertyName("element_id")] public int? ElementId { get; init; }
     [JsonPropertyName("servant_detail")] public ServantDetail? ServantDetail { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.FileName, Id), Image);
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.FileName, Id);
 
-    public IImageData ToAvatarImageData() => new ImageData(string.Format(FileNameFormat.Hsr.AvatarName, Id), Icon);
+    public IImageData ToImageData() => new ImageData(ToImageName(), Image);
+
+    public string ToAvatarImageName() => string.Format(FileNameFormat.Hsr.AvatarName, Id);
+
+    public IImageData ToAvatarImageData() => new ImageData(ToAvatarImageName(), Icon);
 }
 
 public class HsrBasicCharacterData
@@ -53,7 +57,9 @@ public class Equip
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.WeaponIconName, Id), Icon);
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.WeaponIconName, Id);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }
 
 public class ExclusiveSkill
@@ -88,7 +94,9 @@ public class Rank
     [JsonPropertyName("desc")] public string? Desc { get; init; }
     [JsonPropertyName("is_unlocked")] public bool IsUnlocked { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.FileName, Id), Icon);
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.FileName, Id);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }
 
 public class Relic
@@ -103,10 +111,7 @@ public class Relic
     [JsonPropertyName("main_property")] public required MainProperty MainProperty { get; init; }
     [JsonPropertyName("properties")] public required List<Property> Properties { get; init; }
 
-    public override string ToString()
-    {
-        return $"{Name} (ID: {Id})";
-    }
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.FileName, Id);
 
     public int GetSetId()
     {
@@ -143,8 +148,10 @@ public class Skill
     [JsonPropertyName("special_point_type")]
     public string? SpecialPointType { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.FileName,
-        PointType == 1 ? RegexExpressions.HsrStatBonusRegex().Replace(SkillStages![0].Name!, "") : PointId), ItemUrl);
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.FileName,
+        PointType == 1 ? RegexExpressions.HsrStatBonusRegex().Replace(SkillStages![0].Name!, "") : PointId);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), ItemUrl);
 }
 
 public class SkillStage

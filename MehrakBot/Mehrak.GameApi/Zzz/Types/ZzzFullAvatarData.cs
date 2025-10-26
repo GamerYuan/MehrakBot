@@ -54,6 +54,8 @@ public class ZzzAvatarData
     [JsonPropertyName("role_square_url")] public required string RoleSquareUrl { get; set; }
 
     [JsonPropertyName("awaken_state")] public required string AwakenState { get; set; }
+
+    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, Id);
 }
 
 public class ZzzFullAvatarData
@@ -94,8 +96,10 @@ public class DiskDrive
 
     [JsonPropertyName("all_hit")] public bool AllHit { get; set; }
 
+    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, Id);
+
     public IImageData ToImageData() =>
-        new ImageData(string.Format(FileNameFormat.Zzz.FileName, EquipSuit.SuitId), Icon);
+        new ImageData(ToImageName(), Icon);
 }
 
 /// <summary>
@@ -215,5 +219,7 @@ public class Weapon
 
     [JsonPropertyName("profession")] public int Profession { get; set; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Zzz.FileName, Id), Icon);
+    public string ToImageName() => string.Format(FileNameFormat.Zzz.FileName, Id);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }

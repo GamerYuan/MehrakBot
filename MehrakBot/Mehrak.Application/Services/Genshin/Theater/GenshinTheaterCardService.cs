@@ -87,7 +87,7 @@ internal class GenshinTheaterCardService :
                 .SelectAwait(async y =>
                     new GenshinAvatar(y.AvatarId, y.Level, y.Rarity, y.AvatarType == 1 ? context.ConstMap[y.AvatarId] : 0,
                         await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.AvatarName, y.AvatarId))),
+                            await m_ImageRepository.DownloadFileToStreamAsync(y.ToImageName())),
                         y.AvatarType))
                 .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
                     async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
@@ -96,8 +96,7 @@ internal class GenshinTheaterCardService :
                     async x =>
                     {
                         Image image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(
-                                FileNameFormat.Genshin.BuffIconName, x.Name.Replace(" ", ""))));
+                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                         image.Mutate(ctx => ctx.Resize(50, 0));
                         return image;
                     });
@@ -112,7 +111,7 @@ internal class GenshinTheaterCardService :
                     async x =>
                     {
                         Image image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.SideAvatarName, x.AvatarId)));
+                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
                         image.Mutate(ctx => ctx.Resize(100, 0));
                         return image;
                     });

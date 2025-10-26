@@ -31,7 +31,9 @@ public class ItAvatar
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.AvatarName, AvatarId), Image);
+    public string ToImageName() => string.Format(FileNameFormat.Genshin.AvatarName, AvatarId);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Image);
 }
 
 public class Buff
@@ -42,8 +44,10 @@ public class Buff
 
     [JsonPropertyName("level")] public int Level { get; init; }
 
+    public string ToImageName() => string.Format(FileNameFormat.Genshin.BuffIconName, Name.Replace(" ", ""));
+
     public IImageData ToImageData() =>
-        new ImageData(string.Format(FileNameFormat.Genshin.BuffIconName, Name.Replace(" ", "")), Icon);
+        new ImageData(ToImageName(), Icon);
 }
 
 public class GenshinTheaterInformation
@@ -115,8 +119,10 @@ public class ItRankAvatar
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
+    public string ToImageName() => string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId);
+
     public IImageData ToImageData() =>
-        new ImageData(string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId), AvatarIcon!);
+        new ImageData(ToImageName(), AvatarIcon!);
 }
 
 public class FightStatistic

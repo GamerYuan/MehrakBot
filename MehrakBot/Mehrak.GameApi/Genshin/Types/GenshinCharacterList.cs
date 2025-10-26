@@ -39,7 +39,9 @@ public class GenshinBasicCharacterData
 
     [JsonPropertyName("weapon")] public required Weapon Weapon { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.AvatarName, Id), Icon);
+    public string ToImageName() => string.Format(FileNameFormat.Genshin.AvatarName, Id);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }
 
 public class Weapon
@@ -54,5 +56,7 @@ public class Weapon
 
     [JsonPropertyName("name")] public required string Name { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.FileName, Id), Icon);
+    public string ToImageName() => string.Format(FileNameFormat.Genshin.FileName, Id);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }

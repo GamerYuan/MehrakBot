@@ -40,8 +40,6 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     private readonly JpegEncoder m_JpegEncoder;
 
-    private static readonly string BasePath = FileNameFormat.Zzz.FileName;
-
     private readonly Image m_WeaponTemplate;
     private readonly Image<Rgba32> m_DiskTemplate;
 
@@ -70,12 +68,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
         m_WeaponTemplate = new Image<Rgba32>(100, 100);
 
-        m_DiskTemplate = new Image<Rgba32>(800, 170);
-        m_DiskTemplate.Mutate(x =>
-        {
-            x.Fill(OverlayColor);
-            x.ApplyRoundedCorners(30);
-        });
+        m_DiskTemplate = CreateDiskTemplateImage();
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -127,25 +120,22 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         var characterInformation = context.Data;
         try
         {
-            m_Logger.LogInformation("Generating character card for UID: {GameUid}, Character: {CharacterName}",
-                context.GameProfile.GameUid, characterInformation.AvatarList[0].Name);
-
             ZzzAvatarData character = characterInformation.AvatarList[0];
 
             Image<Rgba32> background = new(3000, 1200);
 
             Task<Image> portraitTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                string.Format(BasePath, character.Id)));
+                string.Format(character.ToImageName())));
             Task<Image> weaponTask = character.Weapon == null
                 ? Task.FromResult(m_WeaponTemplate.Clone(ctx => { }))
                 : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-                    string.Format(BasePath, character.Weapon?.Id)));
+                    string.Format(character.Weapon.ToImageName())));
             List<Image> diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable().SelectAwait(async i =>
             {
                 DiskDrive? disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
                 if (disk == null)
                 {
-                    return CreateDiskTemplateImage();
+                    return m_DiskTemplate.CloneAs<Rgba32>();
                 }
                 else
                 {
@@ -387,9 +377,12 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     private Image<Rgba32> CreateDiskTemplateImage()
     {
-        Image<Rgba32> diskTemplate = m_DiskTemplate.Clone();
+        Image<Rgba32> diskTemplate = new(800, 170);
+
         diskTemplate.Mutate(ctx =>
         {
+            ctx.Fill(OverlayColor);
+            ctx.ApplyRoundedCorners(30);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
                 Origin = new Vector2(425, 88),
@@ -404,7 +397,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
     private async ValueTask<Image> CreateDiskImageAsync(DiskDrive disk)
     {
         Image diskImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-            string.Format(BasePath, disk.EquipSuit.SuitId)));
+            disk.ToImageName()));
         Image<Rgba32> diskTemplate = m_DiskTemplate.Clone();
         diskTemplate.Mutate(ctx =>
         {

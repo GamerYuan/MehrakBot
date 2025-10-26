@@ -40,7 +40,9 @@ public class HsrEndAvatar
 
     [JsonPropertyName("rank")] public int Rank { get; set; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.AvatarName, Id), Icon);
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.AvatarName, Id);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }
 
 public class HsrEndBuff
@@ -53,7 +55,9 @@ public class HsrEndBuff
 
     [JsonPropertyName("icon")] public required string Icon { get; set; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Hsr.EndGameBuffName, Id), Icon);
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.EndGameBuffName, Id);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }
 
 public class HsrEndGroup

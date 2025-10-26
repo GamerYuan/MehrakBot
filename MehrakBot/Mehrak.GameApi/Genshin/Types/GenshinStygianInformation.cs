@@ -29,8 +29,10 @@ public class StygianBestAvatar
 
     [JsonPropertyName("type")] public int Type { get; init; }
 
+    public string ToImageName() => string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId);
+
     public IImageData ToImageData() =>
-        new ImageData(string.Format(FileNameFormat.Genshin.SideAvatarName, AvatarId), SideIcon);
+        new ImageData(ToImageName(), SideIcon);
 }
 
 public class Challenge
@@ -65,7 +67,9 @@ public class Monster
 
     [JsonPropertyName("monster_id")] public int MonsterId { get; init; }
 
-    public IImageData ToImageData() => new ImageData($"genshin_stygian_boss_{MonsterId}", Icon);
+    public string ToImageName() => $"genshin_stygian_boss_{MonsterId}";
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }
 
 public class StygianSchedule
@@ -115,5 +119,7 @@ public class StygianAvatar
 
     [JsonPropertyName("rank")] public int Rank { get; init; }
 
-    public IImageData ToImageData() => new ImageData(string.Format(FileNameFormat.Genshin.AvatarName, AvatarId), Image);
+    public string ToImageName() => string.Format(FileNameFormat.Genshin.AvatarName, AvatarId);
+
+    public IImageData ToImageData() => new ImageData(ToImageName(), Image);
 }
