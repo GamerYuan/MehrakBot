@@ -18,3 +18,4 @@ logs/
 
 *_key.pem
 *_token.txt
+/MehrakBot/Mehrak.Application.Tests/appsettings.test.json
