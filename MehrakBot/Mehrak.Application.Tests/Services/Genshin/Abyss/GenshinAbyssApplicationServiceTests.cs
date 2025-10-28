@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
@@ -13,7 +14,6 @@ using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
 
 #endregion
 
@@ -176,7 +176,7 @@ public class GenshinAbyssApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError()
+    public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
         var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, _) = SetupMocks();

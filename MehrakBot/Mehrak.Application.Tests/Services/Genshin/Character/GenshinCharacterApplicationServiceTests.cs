@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -330,7 +330,7 @@ public class GenshinCharacterApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError()
+    public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
         var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _) =

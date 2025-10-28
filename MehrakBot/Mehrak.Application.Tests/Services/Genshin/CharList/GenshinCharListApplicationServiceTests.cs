@@ -88,7 +88,7 @@ public class GenshinCharListApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError()
+    public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
         var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, _) = SetupMocks();
