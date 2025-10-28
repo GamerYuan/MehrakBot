@@ -37,10 +37,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -70,10 +72,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -104,10 +108,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "NonExistentCharacter"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "NonExistentCharacter"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -160,10 +166,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "MC"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "MC"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -197,10 +205,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -244,10 +254,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -297,10 +309,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -341,10 +355,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -394,10 +410,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -463,10 +481,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -512,10 +532,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             1,
-            ("character", "Traveler"));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", "Traveler"))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         await service.ExecuteAsync(context);
@@ -557,10 +579,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName));
-        context.LtUid = 1ul;
-        context.LToken = "test";
-        context.Server = Server.Asia;
+            ("character", characterName))
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -613,10 +637,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var context = new GenshinCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName));
-        context.LtUid = testLtUid;
-        context.LToken = testLToken;
-        context.Server = Server.Asia;
+            ("character", characterName))
+        {
+            LtUid = testLtUid,
+            LToken = testLToken,
+            Server = Server.Asia
+        };
 
         // Act
         var result = await service.ExecuteAsync(context);
