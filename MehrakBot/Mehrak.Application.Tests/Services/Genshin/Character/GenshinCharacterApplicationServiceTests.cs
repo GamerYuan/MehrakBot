@@ -1,5 +1,7 @@
 #region
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -8,12 +10,11 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
+using Mehrak.GameApi.Genshin;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -296,14 +297,14 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(false);
 
         var wikiResponse = JsonNode.Parse("""
-        {
-            "data": {
-                "page": {
-                    "header_img_url": ""
-                }
-            }
-        }
-        """);
+                                          {
+                                              "data": {
+                                                  "page": {
+                                                      "header_img_url": ""
+                                                  }
+                                              }
+                                          }
+                                          """);
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
 
@@ -333,11 +334,11 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _) =
-        SetupMocks();
+            SetupMocks();
 
         gameRoleApiMock
-                  .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-         .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
@@ -437,7 +438,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-           gameRoleApiMock, _) = SetupMocks();
+            gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -458,17 +459,17 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(false); // Force wiki download
 
         var wikiResponse = JsonNode.Parse("""
-        {
-            "data": {
-                "page": {
-                    "header_img_url": "https://example.com/character.png"
-                }
-            }
-        }
-        """);
+                                          {
+                                              "data": {
+                                                  "page": {
+                                                      "header_img_url": "https://example.com/character.png"
+                                                  }
+                                              }
+                                          }
+                                          """);
         wikiApiMock
-          .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
-          .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+            .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
 
         imageUpdaterMock
             .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
@@ -476,8 +477,8 @@ public class GenshinCharacterApplicationServiceTests
 
         var cardStream = new MemoryStream();
         cardServiceMock
-        .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
-        .ReturnsAsync(cardStream);
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(cardStream);
 
         var context = new GenshinCharacterApplicationContext(
             1,
@@ -547,8 +548,8 @@ public class GenshinCharacterApplicationServiceTests
         var expectedImageCount = 1 + charData.Constellations.Count + charData.Skills.Count + charData.Relics.Count;
 
         imageUpdaterMock.Verify(
-        x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
-           Times.Exactly(expectedImageCount));
+            x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
+            Times.Exactly(expectedImageCount));
     }
 
     #endregion
@@ -673,15 +674,16 @@ public class GenshinCharacterApplicationServiceTests
 
     private static (
         GenshinCharacterApplicationService Service,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> CharacterApiMock,
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        CharacterApiMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
         Mock<IImageRepository> ImageRepositoryMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICardService<GenshinCharacterInformation>> CardServiceMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-     Mock<IMetricsService> MetricsMock
-    ) SetupMocks()
+        Mock<IMetricsService> MetricsMock
+        ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<GenshinCharacterInformation>>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
@@ -711,18 +713,19 @@ public class GenshinCharacterApplicationServiceTests
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
-                cardServiceMock, gameRoleApiMock, metricsMock);
+            cardServiceMock, gameRoleApiMock, metricsMock);
     }
 
     private static (
         GenshinCharacterApplicationService Service,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> CharacterApiMock,
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        CharacterApiMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
         Mock<IImageRepository> ImageRepositoryMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IMetricsService> MetricsMock
-    ) SetupIntegrationTest()
+        ) SetupIntegrationTest()
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinCharacterCardService(
@@ -794,10 +797,10 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync((IEnumerable<GenshinBasicCharacterData>?)null);
 
         // Real character API service
-        var characterApiService = new GameApi.Genshin.GenshinCharacterApiService(
+        var characterApiService = new GenshinCharacterApiService(
             cacheServiceMock.Object,
             httpClientFactory.Object,
-            Mock.Of<ILogger<GameApi.Genshin.GenshinCharacterApiService>>());
+            Mock.Of<ILogger<GenshinCharacterApiService>>());
 
         // Mock character cache service (we don't need real character/alias data from DB)
         var characterCacheServiceMock = new Mock<ICharacterCacheService>();
@@ -852,8 +855,9 @@ public class GenshinCharacterApplicationServiceTests
 
     private static List<GenshinBasicCharacterData> CreateTestCharacterList()
     {
-        return [
-            new()
+        return
+        [
+            new GenshinBasicCharacterData
             {
                 Id = 10000005,
                 Icon = "",

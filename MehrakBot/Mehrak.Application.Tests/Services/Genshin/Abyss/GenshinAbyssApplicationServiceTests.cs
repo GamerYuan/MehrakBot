@@ -132,7 +132,7 @@ public class GenshinAbyssApplicationServiceTests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.IsEphemeral, Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                      Does.Contain("no clear records").IgnoreCase);
+                Does.Contain("no clear records").IgnoreCase);
         });
     }
 
@@ -152,9 +152,9 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
         characterApiMock
-           .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-           "Character API Error"));
+                "Character API Error"));
 
         var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
         {
@@ -259,7 +259,8 @@ public class GenshinAbyssApplicationServiceTests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
             Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().Any(x => x.Content.Contains("Spiral Abyss Summary")),
+            Assert.That(
+                result.Data.Components.OfType<CommandText>().Any(x => x.Content.Contains("Spiral Abyss Summary")),
                 Is.True);
         });
     }
@@ -268,7 +269,8 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, cardServiceMock) = SetupMocks();
+        var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, cardServiceMock) =
+            SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -300,8 +302,8 @@ public class GenshinAbyssApplicationServiceTests
 
         // Assert Verify avatar images were updated (for battles + rank avatars)
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(
-            It.Is<IImageData>(d => d != null),
-            It.IsAny<IImageProcessor>()),
+                It.Is<IImageData>(d => d != null),
+                It.IsAny<IImageProcessor>()),
             Times.AtLeastOnce);
     }
 
@@ -357,7 +359,7 @@ public class GenshinAbyssApplicationServiceTests
         string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
         string outputImagePath = Path.Combine(outputDirectory,
-        $"AbyssIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_Floor{floor}.jpg");
+            $"AbyssIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_Floor{floor}.jpg");
 
         attachment.Content.Position = 0;
         await using var fileStream = File.Create(outputImagePath);
@@ -427,9 +429,11 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>> AbyssApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> CharacterApiMock,
-        Mock<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>> CardServiceMock
-    ) SetupMocks()
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        CharacterApiMock,
+        Mock<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>>
+        CardServiceMock
+        ) SetupMocks()
     {
         var cardServiceMock =
             new Mock<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>>();
@@ -456,9 +460,10 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>> AbyssApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> CharacterApiMock,
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        CharacterApiMock,
         ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation> CardService
-    ) SetupIntegrationTest()
+        ) SetupIntegrationTest()
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinAbyssCardService(
@@ -525,8 +530,8 @@ public class GenshinAbyssApplicationServiceTests
 
         // Real game role API service
         var gameRoleApiService = new GameRoleApiService(
-        httpClientFactory.Object,
-        Mock.Of<ILogger<GameRoleApiService>>());
+            httpClientFactory.Object,
+            Mock.Of<ILogger<GameRoleApiService>>());
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
@@ -562,7 +567,7 @@ public class GenshinAbyssApplicationServiceTests
     {
         return
         [
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000032,
                 Icon = "",
@@ -573,7 +578,7 @@ public class GenshinAbyssApplicationServiceTests
                 ActivedConstellationNum = 6,
                 Weapon = new Weapon { Icon = "", Name = "Sword" }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000037,
                 Icon = "",
@@ -584,7 +589,7 @@ public class GenshinAbyssApplicationServiceTests
                 ActivedConstellationNum = 1,
                 Weapon = new Weapon { Icon = "", Name = "Bow" }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000063,
                 Icon = "",
@@ -595,7 +600,7 @@ public class GenshinAbyssApplicationServiceTests
                 ActivedConstellationNum = 2,
                 Weapon = new Weapon { Icon = "", Name = "Polearm" }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000089,
                 Icon = "",
@@ -606,7 +611,7 @@ public class GenshinAbyssApplicationServiceTests
                 ActivedConstellationNum = 6,
                 Weapon = new Weapon { Icon = "", Name = "Polearm" }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000103,
                 Icon = "",
@@ -617,7 +622,7 @@ public class GenshinAbyssApplicationServiceTests
                 ActivedConstellationNum = 3,
                 Weapon = new Weapon { Icon = "", Name = "Sword" }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000106,
                 Icon = "",
@@ -628,7 +633,7 @@ public class GenshinAbyssApplicationServiceTests
                 ActivedConstellationNum = 0,
                 Weapon = new Weapon { Icon = "", Name = "Sword" }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000107,
                 Icon = "",
@@ -639,7 +644,7 @@ public class GenshinAbyssApplicationServiceTests
                 ActivedConstellationNum = 4,
                 Weapon = new Weapon { Icon = "", Name = "Polearm" }
             },
-            new()
+            new GenshinBasicCharacterData
             {
                 Id = 10000112,
                 Icon = "",

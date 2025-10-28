@@ -7,8 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj"/>
-        <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj"/>
+        <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
+        <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
     </ItemGroup>
 
     <ItemGroup>
