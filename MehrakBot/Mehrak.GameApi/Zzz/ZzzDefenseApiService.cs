@@ -52,7 +52,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while fetching Shiyu Defense data");
+                    "An error occurred while fetching Shiyu Defense data", requestUri);
             }
 
             ApiResponse<ZzzDefenseData>? json =
@@ -62,25 +62,25 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while fetching Shiyu Defense data");
+                    "An error occurred while fetching Shiyu Defense data", requestUri);
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<ZzzDefenseData>.Failure(StatusCode.Unauthorized,
-                    "Invalid cookies. Please re-authenticate.");
+                    "Invalid cookies. Please re-authenticate.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
-                    $"Failed to fetch Zzz Defense data: {json!.Message} (Retcode: {json.Retcode})");
+                    $"Failed to fetch Zzz Defense data: {json!.Message} (Retcode: {json.Retcode})", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
-            return Result<ZzzDefenseData>.Success(json.Data!);
+            return Result<ZzzDefenseData>.Success(json.Data!, requestUri: requestUri);
         }
         catch (Exception e)
         {

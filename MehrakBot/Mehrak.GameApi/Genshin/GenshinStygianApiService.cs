@@ -52,7 +52,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving Stygian Onslaught data");
+                    "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinStygianInformation>>(
@@ -62,25 +62,25 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving Stygian Onslaught data");
+                    "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again");
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving Stygian Onslaught data");
+                    "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
-            return Result<GenshinStygianInformation>.Success(json.Data);
+            return Result<GenshinStygianInformation>.Success(json.Data, requestUri: requestUri);
         }
         catch (Exception e)
         {

@@ -50,7 +50,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while accessing HoYoWiki API");
+                    "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
             JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -59,7 +59,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.EntryPage);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while accessing HoYoWiki API");
+                    "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
             var retcode = json["retcode"]?.GetValue<int>() ?? -1;
@@ -68,11 +68,11 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.EntryPage, requestUri);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while accessing HoYoWiki API");
+                    "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.EntryPage);
-            return Result<JsonNode>.Success(json);
+            return Result<JsonNode>.Success(json, requestUri: requestUri);
         }
         catch (Exception e)
         {

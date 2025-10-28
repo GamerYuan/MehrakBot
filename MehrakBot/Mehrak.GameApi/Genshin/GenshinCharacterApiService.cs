@@ -82,7 +82,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data");
+                    "Failed to retrieve character list data", requestUri);
             }
 
             var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>();
@@ -91,21 +91,21 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data");
+                    "Failed to retrieve character list data", requestUri);
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
@@ -115,7 +115,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     TimeSpan.FromMinutes(CacheExpirationMinutes)));
             m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.GameUid, CacheExpirationMinutes);
 
-            return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List);
+            return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
         }
         catch (Exception e)
         {
@@ -165,7 +165,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving character data");
+                    "An error occurred while retrieving character data", requestUri);
             }
 
             ApiResponse<GenshinCharacterDetail>? json =
@@ -175,25 +175,25 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving character data");
+                    "An error occurred while retrieving character data", requestUri);
             }
 
             if (json?.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
-            if (json.Retcode != 0)
+            if (json?.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json?.Retcode, context.GameUid, requestUri);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
-            return Result<GenshinCharacterDetail>.Success(json!.Data);
+            return Result<GenshinCharacterDetail>.Success(json!.Data, requestUri: requestUri);
         }
         catch (Exception e)
         {

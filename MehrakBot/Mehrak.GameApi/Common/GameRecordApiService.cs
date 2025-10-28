@@ -47,7 +47,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred");
+                return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
 
             var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>();
@@ -55,21 +55,21 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             if (json?.Data == null)
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.LtUid.ToString());
-                return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred");
+                return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
 
             if (json.Retcode == -100)
             {
                 m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.LtUid);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate");
+                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.LtUid.ToString(), requestUri);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.LtUid.ToString());
@@ -92,7 +92,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 Level = x.Level ?? 0
             });
 
-            return Result<IEnumerable<GameRecordDto>>.Success(result ?? []);
+            return Result<IEnumerable<GameRecordDto>>.Success(result ?? [], requestUri: requestUri);
         }
         catch (Exception ex)
         {

@@ -60,7 +60,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    $"Failed to fetch real-time notes: {response.ReasonPhrase}");
+                    $"Failed to fetch real-time notes: {response.ReasonPhrase}", requestUri);
             }
 
             ApiResponse<ZzzRealTimeNotesData>? json = await
@@ -71,25 +71,25 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to parse JSON response from real-time notes API");
+                    "Failed to parse JSON response from real-time notes API", requestUri);
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Unauthorized,
-                    "Invalid ltuid or ltoken provided for real-time notes API");
+                    "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
-            return Result<ZzzRealTimeNotesData>.Success(json.Data);
+            return Result<ZzzRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
         }
         catch (Exception e)
         {

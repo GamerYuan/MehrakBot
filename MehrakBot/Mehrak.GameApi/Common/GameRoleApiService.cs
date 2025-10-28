@@ -49,7 +49,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError, "API returned error status code");
+                return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError, "API returned error status code", requestUri);
             }
 
             var node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -58,7 +58,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             {
                 m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.LtUid);
                 return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate");
+                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
             }
 
             if (node?["retcode"]?.GetValue<int>() != 0)
@@ -66,14 +66,14 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 m_Logger.LogError(LogMessages.UnknownRetcode, node?["retcode"]?.GetValue<int>() ?? -1,
                     context.LtUid.ToString(), requestUri);
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
-                    $"An error occurred while retrieving profile information");
+                    $"An error occurred while retrieving profile information", requestUri);
             }
 
             if (node["data"]?["list"] == null || node["data"]?["list"]?.AsArray().Count == 0)
             {
                 m_Logger.LogWarning("No game data found for user {Uid} on {Region}", context.UserId, context.Region);
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
-                    "No game information found. Please select the correct region");
+                    "No game information found. Please select the correct region", requestUri);
             }
 
             var gameProfile = node["data"]?["list"]?[0].Deserialize<GameProfile>();
@@ -86,7 +86,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             };
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, dto.GameUid);
-            return Result<GameProfileDto>.Success(dto);
+            return Result<GameProfileDto>.Success(dto, requestUri: requestUri);
         }
         catch (Exception ex)
         {

@@ -79,7 +79,7 @@ public class
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information");
+                    "Failed to retrieve character information", requestUri);
             }
 
             ApiResponse<HsrBasicCharacterData>? json =
@@ -90,21 +90,21 @@ public class
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information");
+                    "Failed to retrieve character information", requestUri);
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
@@ -116,7 +116,7 @@ public class
                     TimeSpan.FromMinutes(CacheExpirationMinutes)));
             m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.GameUid, CacheExpirationMinutes);
 
-            return Result<IEnumerable<HsrBasicCharacterData>>.Success(result);
+            return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
         }
         catch (Exception e)
         {

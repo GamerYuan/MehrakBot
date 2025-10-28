@@ -77,7 +77,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data");
+                    "Failed to retrieve character list data", requestUri);
             }
 
             ApiResponse<ZzzBasicAvatarResponse>? json =
@@ -88,21 +88,21 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data");
+                    "Failed to retrieve character list data", requestUri);
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
@@ -113,7 +113,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             await m_Cache.SetAsync(cacheEntry);
             m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.GameUid, CacheExpirationMinutes);
 
-            return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList);
+            return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList, requestUri: requestUri);
         }
         catch (Exception e)
         {

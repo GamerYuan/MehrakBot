@@ -56,7 +56,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrMemoryInformation>>(
@@ -66,25 +66,25 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<HsrMemoryInformation>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
-            return Result<HsrMemoryInformation>.Success(json.Data);
+            return Result<HsrMemoryInformation>.Success(json.Data, requestUri: requestUri);
         }
         catch (Exception e)
         {

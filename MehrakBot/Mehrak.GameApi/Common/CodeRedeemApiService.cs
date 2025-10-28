@@ -49,7 +49,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
                 return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while redeeming the code");
+                    "An error occurred while redeeming the code", requestUri);
             }
 
             JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -57,7 +57,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while redeeming the code");
+                    "An error occurred while redeeming the code", requestUri);
             }
 
             int retCode = json["retcode"]?.GetValue<int>() ?? -1;
@@ -68,35 +68,35 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     m_Logger.LogInformation("Successfully redeemed code {Code} for gameUid: {GameUid}", context.Code,
                         context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redeemed Successfully!",
-                        CodeStatus.Valid));
+                        CodeStatus.Valid), requestUri: requestUri);
 
                 case -2001:
                     m_Logger.LogInformation("Code {Code} is expired for gameUid: {GameUid}", context.Code,
                         context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Expired",
-                        CodeStatus.Invalid));
+                        CodeStatus.Invalid), requestUri: requestUri);
 
                 case -2003:
                     m_Logger.LogInformation("Invalid code {Code} for gameUid: {GameUid}", context.Code,
                         context.GameUid);
-                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Invalid Code", CodeStatus.Invalid));
+                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Invalid Code", CodeStatus.Invalid), requestUri: requestUri);
 
                 case -2016:
                     m_Logger.LogInformation("Redemption in cooldown for code {Code} and gameUid: {GameUid}",
                         context.Code, context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption in Cooldown",
-                        CodeStatus.Valid));
+                        CodeStatus.Valid), requestUri: requestUri);
 
                 case -2017:
                     m_Logger.LogInformation("Code {Code} already used for gameUid: {GameUid}", context.Code,
                         context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Already Used",
-                        CodeStatus.Valid));
+                        CodeStatus.Valid), requestUri: requestUri);
 
                 default:
                     m_Logger.LogError(LogMessages.UnknownRetcode, retCode, context.GameUid, requestUri);
                     return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
-                        "An error occurred while redeeming the code");
+                        "An error occurred while redeeming the code", requestUri);
             }
         }
         catch (Exception e)
