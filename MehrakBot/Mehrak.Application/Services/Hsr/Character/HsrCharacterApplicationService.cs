@@ -126,14 +126,6 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                         return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
                     });
 
-            if (uniqueRelicSet.Count == 0 && characterInfo.Relics.Count + characterInfo.Ornaments.Count > 0)
-            {
-                Logger.LogError(LogMessage.ApiError, "Relic Wiki", context.UserId, gameUid,
-                    "Failed to fetch relic set data from wiki");
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Relic Data"));
-            }
-
             List<Task<bool>> tasks = [];
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
