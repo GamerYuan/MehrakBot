@@ -272,7 +272,7 @@ public class AuthenticationMiddlewareServiceTests
     .Returns(Task.CompletedTask);
 
         // Start the authentication process
-        var authTask = Task.Run(() => m_Service.GetAuthenticationAsync(request));
+        _ = Task.Run(() => m_Service.GetAuthenticationAsync(request));
 
         // Wait a bit for the modal to be sent
         await Task.Delay(100);
