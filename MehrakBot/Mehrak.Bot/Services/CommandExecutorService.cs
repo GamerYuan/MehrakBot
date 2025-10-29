@@ -102,7 +102,8 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             {
                 if (IsResponseEphemeral || commandResult.Data.IsEphemeral)
                 {
-                    await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
+                    await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage()
+                        .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
                 }
                 else
                 {
