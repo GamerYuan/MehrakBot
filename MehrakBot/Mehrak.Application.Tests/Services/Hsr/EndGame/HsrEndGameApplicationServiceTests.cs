@@ -134,7 +134,7 @@ public class HsrEndGameApplicationServiceTests
     [Test]
     [TestCase(HsrEndGameMode.PureFiction)]
     [TestCase(HsrEndGameMode.ApocalypticShadow)]
-    public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError(HsrEndGameMode mode)
+    public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError(HsrEndGameMode mode)
     {
         // Arrange
         var (service, endGameApiMock, imageUpdaterMock, gameRoleApiMock, _) = SetupMocks();
