@@ -36,16 +36,6 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
             "User {User} used command {Command}",
             Context.Interaction.User.Id, CommandName);
 
-        var invalid = Validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
-        if (invalid.Any())
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
-                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties(
-                    $"Error when validating input:\n{string.Join('\n', invalid)}"))));
-            return;
-        }
-
         if (!await ValidateRateLimitAsync()) return;
 
         var authResult =
