@@ -1,14 +1,15 @@
-#region
+﻿#region
 
 using System.Security.Cryptography;
 using System.Text;
+using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Infrastructure.Services;
 
-public class CookieEncryptionService
+public class CookieEncryptionService : IEncryptionService
 {
     private readonly ILogger<CookieEncryptionService> m_Logger;
 
@@ -26,7 +27,7 @@ public class CookieEncryptionService
     private static readonly HashAlgorithmName Pbkdf2HashAlgorithm = HashAlgorithmName.SHA256;
     private const int MinCombinedDataLengthBytes = SaltSizeBytes + NonceSizeBytes + TagSizeBytes;
 
-    public string EncryptCookie(string cookie, string passphrase)
+    public string Encrypt(string plainText, string passphrase)
     {
         try
         {
@@ -34,7 +35,7 @@ public class CookieEncryptionService
 
             byte[] salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
             byte[] nonce = RandomNumberGenerator.GetBytes(NonceSizeBytes);
-            byte[] cookieBytes = Encoding.UTF8.GetBytes(cookie);
+            byte[] cookieBytes = Encoding.UTF8.GetBytes(plainText);
             byte[] encryptedCookie = new byte[cookieBytes.Length];
             byte[] tag = new byte[TagSizeBytes];
 
@@ -74,7 +75,7 @@ public class CookieEncryptionService
         }
     }
 
-    public string DecryptCookie(string encryptedCookie, string passphrase)
+    public string Decrypt(string cipherText, string passphrase)
     {
         try
         {
@@ -83,7 +84,7 @@ public class CookieEncryptionService
             byte[] payload;
             try
             {
-                payload = Convert.FromBase64String(encryptedCookie);
+                payload = Convert.FromBase64String(cipherText);
                 m_Logger.LogTrace("Successfully decoded Base64 encrypted cookie data");
             }
             catch (FormatException ex)

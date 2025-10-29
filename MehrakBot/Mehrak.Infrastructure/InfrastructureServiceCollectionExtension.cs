@@ -39,7 +39,7 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<IMetricsService, BotMetricsService>();
         services.AddHostedService<BotMetricsService>();
 
-        services.AddSingleton<CookieEncryptionService>();
+        services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 
         return services;
     }

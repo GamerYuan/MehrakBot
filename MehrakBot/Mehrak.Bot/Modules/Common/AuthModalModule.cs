@@ -90,7 +90,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 ProfileId = (uint)user.Profiles.Count() + 1,
                 LtUid = ltuid,
                 LToken = await Task.Run(() =>
-                    m_CookieService.EncryptCookie(inputs["ltoken"], inputs["passphrase"])),
+                    m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"])),
                 GameUids = []
             };
 

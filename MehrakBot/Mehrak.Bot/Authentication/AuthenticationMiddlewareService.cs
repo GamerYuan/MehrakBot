@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
@@ -6,7 +6,6 @@ using Mehrak.Bot.Modules.Common;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Models;
-using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using NetCord.Rest;
 
@@ -17,22 +16,22 @@ namespace Mehrak.Bot.Authentication;
 public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 {
     private readonly ICacheService m_CacheService;
-    private readonly CookieEncryptionService m_CookieEncryptionService;
+    private readonly IEncryptionService m_EncryptionService;
     private readonly IUserRepository m_UserRepository;
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
     private readonly ConcurrentDictionary<string, AuthenticationResponse> m_NotifiedRequests = [];
     private readonly ConcurrentDictionary<string, byte> m_CurrentRequests = [];
 
-    private const int TimeoutMinutes = 1;
+    private float TimeoutMinutes { get; set; } = 1;
 
     public AuthenticationMiddlewareService(
         ICacheService cacheService,
-        CookieEncryptionService cookieEncryptionService,
+        IEncryptionService encryptionService,
         IUserRepository userRepository,
         ILogger<AuthenticationMiddlewareService> logger)
     {
         m_CacheService = cacheService;
-        m_CookieEncryptionService = cookieEncryptionService;
+        m_EncryptionService = encryptionService;
         m_UserRepository = userRepository;
         m_Logger = logger;
     }
@@ -90,7 +89,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         try
         {
-            token = m_CookieEncryptionService.DecryptCookie(profile.LToken, authResponse.Passphrase);
+            token = m_EncryptionService.Decrypt(profile.LToken, authResponse.Passphrase);
             m_Logger.LogDebug("Cookie decryption succeeded. Guid={Guid}, UserId={UserId}, LtUid={LtUid}",
                 authResponse.Guid, request.Context.Interaction.User.Id, profile.LtUid);
         }
