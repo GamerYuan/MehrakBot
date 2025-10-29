@@ -135,16 +135,3 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
         }
     }
 }
-
-internal static class HsrEndGameModeExtensions
-{
-    public static string GetString(this HsrEndGameMode mode)
-    {
-        return mode switch
-        {
-            HsrEndGameMode.PureFiction => "Pure Fiction",
-            HsrEndGameMode.ApocalypticShadow => "Apocalyptic Shadow",
-            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-        };
-    }
-}
