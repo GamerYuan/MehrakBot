@@ -6,7 +6,7 @@ using Mehrak.Domain.Services.Abstractions;
 
 #endregion
 
-namespace Mehrak.Bot.Services.Autocomplete;
+namespace Mehrak.Bot.Services;
 
 internal class CharacterAutocompleteService : ICharacterAutocompleteService
 {

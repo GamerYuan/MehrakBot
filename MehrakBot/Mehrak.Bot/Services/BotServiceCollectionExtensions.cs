@@ -4,7 +4,6 @@ using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider;
-using Mehrak.Bot.Services.Autocomplete;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 

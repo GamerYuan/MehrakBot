@@ -1,9 +1,9 @@
-﻿using Mehrak.Bot.Services.Autocomplete;
+﻿using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Moq;
 
-namespace Mehrak.Bot.Tests.Services.Autocomplete;
+namespace Mehrak.Bot.Tests.Services;
 
 /// <summary>
 /// Unit tests for GenshinCharacterAutocompleteService validating character search,
