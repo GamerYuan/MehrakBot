@@ -7,15 +7,15 @@ namespace Mehrak.Bot.Tests.Services.Autocomplete;
 
 /// <summary>
 /// Unit tests for GenshinCharacterAutocompleteService validating character search,
-/// filtering, case-insensitive matching, and limit enforcement.
+/// filtering, case-insensitive matching, limit enforcement, and game parameter handling.
 /// </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-public class GenshinCharacterAutocompleteServiceTests
+public class CharacterAutocompleteServiceTests
 {
     private Mock<ICharacterCacheService> m_MockCacheService = null!;
-    private GenshinCharacterAutocompleteService m_Service = null!;
+    private CharacterAutocompleteService m_Service = null!;
 
     private const int ExpectedLimit = 25;
 
@@ -23,7 +23,7 @@ public class GenshinCharacterAutocompleteServiceTests
     public void Setup()
     {
         m_MockCacheService = new Mock<ICharacterCacheService>();
-        m_Service = new GenshinCharacterAutocompleteService(m_MockCacheService.Object);
+        m_Service = new CharacterAutocompleteService(m_MockCacheService.Object);
     }
 
     [TearDown]
@@ -40,15 +40,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Diluc", "Jean", "Klee", "Venti", "Zhongli"
-        };
+ "Diluc", "Jean", "Klee", "Venti", "Zhongli"
+     };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+    .Setup(x => x.GetCharacters(Game.Genshin))
+         .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("Di");
+        var result = m_Service.FindCharacter(Game.Genshin, "Di");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -60,16 +60,16 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
-            "Diluc", "Jean", "Klee", "Venti", "Zhongli"
-        };
+      {
+          "Diluc", "Jean", "Klee", "Venti", "Zhongli"
+     };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
+     .Setup(x => x.GetCharacters(Game.Genshin))
             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("XYZ");
+        var result = m_Service.FindCharacter(Game.Genshin, "XYZ");
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -85,11 +85,11 @@ public class GenshinCharacterAutocompleteServiceTests
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+   .Setup(x => x.GetCharacters(Game.Genshin))
+         .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("");
+        var result = m_Service.FindCharacter(Game.Genshin, "");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(3));
@@ -102,15 +102,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Hu Tao", "Zhongli", "Xiao", "Ganyu", "Hutao"
-        };
+     "Hu Tao", "Zhongli", "Xiao", "Ganyu", "Hutao"
+    };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+     .Setup(x => x.GetCharacters(Game.Genshin))
+     .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("Hu");
+        var result = m_Service.FindCharacter(Game.Genshin, "Hu");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
@@ -127,16 +127,16 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
+    {
             "Diluc", "Jean", "Klee", "Venti"
-        };
+      };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+      .Setup(x => x.GetCharacters(Game.Genshin))
+          .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("diluc");
+        var result = m_Service.FindCharacter(Game.Genshin, "diluc");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -148,16 +148,16 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
-            "Raiden Shogun", "Nahida", "Furina"
+     {
+"Raiden Shogun", "Nahida", "Furina"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
+ .Setup(x => x.GetCharacters(Game.Genshin))
             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("RAIDEN");
+        var result = m_Service.FindCharacter(Game.Genshin, "RAIDEN");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -170,15 +170,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Kamisato Ayaka", "Kamisato Ayato", "Kaedehara Kazuha"
-        };
+      "Kamisato Ayaka", "Kamisato Ayato", "Kaedehara Kazuha"
+ };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+       .Setup(x => x.GetCharacters(Game.Genshin))
+         .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("KaMiSaTo");
+        var result = m_Service.FindCharacter(Game.Genshin, "KaMiSaTo");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
@@ -195,15 +195,15 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = Enumerable.Range(1, 50)
-            .Select(i => $"Character{i}")
-            .ToList();
+        .Select(i => $"Character{i}")
+         .ToList();
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+                .Setup(x => x.GetCharacters(Game.Genshin))
+                .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("Character");
+        var result = m_Service.FindCharacter(Game.Genshin, "Character");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(ExpectedLimit));
@@ -215,14 +215,14 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = Enumerable.Range(1, 25)
             .Select(i => $"Character{i}")
-            .ToList();
+  .ToList();
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+        .Setup(x => x.GetCharacters(Game.Genshin))
+  .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("Character");
+        var result = m_Service.FindCharacter(Game.Genshin, "Character");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(25));
@@ -234,15 +234,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Albedo", "Alhaitham", "Aloy", "Amber", "Arataki Itto"
+          "Albedo", "Alhaitham", "Aloy", "Amber", "Arataki Itto"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
+         .Setup(x => x.GetCharacters(Game.Genshin))
             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("A");
+        var result = m_Service.FindCharacter(Game.Genshin, "A");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(5));
@@ -253,15 +253,15 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = Enumerable.Range(1, 30)
-            .Select(i => $"Character{i}")
-            .ToList();
+       .Select(i => $"Character{i}")
+         .ToList();
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
+          .Setup(x => x.GetCharacters(Game.Genshin))
             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("");
+        var result = m_Service.FindCharacter(Game.Genshin, "");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(ExpectedLimit));
@@ -276,16 +276,16 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
-            "Hu Tao", "Raiden Shogun", "Yae Miko", "Sangonomiya Kokomi"
-        };
+  {
+   "Hu Tao", "Raiden Shogun", "Yae Miko", "Sangonomiya Kokomi"
+ };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+               .Setup(x => x.GetCharacters(Game.Genshin))
+                    .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("Hu Tao");
+        var result = m_Service.FindCharacter(Game.Genshin, "Hu Tao");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -298,15 +298,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Kaedehara Kazuha", "Kamisato Ayaka", "Kamisato Ayato", "Kuki Shinobu"
+       "Kaedehara Kazuha", "Kamisato Ayaka", "Kamisato Ayato", "Kuki Shinobu"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+   .Setup(x => x.GetCharacters(Game.Genshin))
+        .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("Kamisato A");
+        var result = m_Service.FindCharacter(Game.Genshin, "Kamisato A");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
@@ -319,16 +319,16 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
-            "Zhongli", "Xiao", "Xinyan", "Xingqiu", "Xianyun"
+      {
+      "Zhongli", "Xiao", "Xinyan", "Xingqiu", "Xianyun"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+  .Setup(x => x.GetCharacters(Game.Genshin))
+          .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("X");
+        var result = m_Service.FindCharacter(Game.Genshin, "X");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(4));
@@ -345,15 +345,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "神里绫华", "雷电将军", "枫原万叶"
-        };
+   "神里绫华", "雷电将军", "枫原万叶"
+ };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+     .Setup(x => x.GetCharacters(Game.Genshin))
+      .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("神里");
+        var result = m_Service.FindCharacter(Game.Genshin, "神里");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -366,7 +366,7 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Tartaglia", "Childe", "Hu Tao"
+         "Tartaglia", "Childe", "Hu Tao"
         };
 
         m_MockCacheService
@@ -374,7 +374,7 @@ public class GenshinCharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("Hu-Tao");
+        var result = m_Service.FindCharacter(Game.Genshin, "Hu-Tao");
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -390,15 +390,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Hu Tao", "Jean", "Klee"
+       "Hu Tao", "Jean", "Klee"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+       .Setup(x => x.GetCharacters(Game.Genshin))
+        .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter(" ");
+        var result = m_Service.FindCharacter(Game.Genshin, " ");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -410,16 +410,16 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
-            "Diluc", "Jean", "Character123"
+    {
+  "Diluc", "Jean", "Character123"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+     .Setup(x => x.GetCharacters(Game.Genshin))
+             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("123");
+        var result = m_Service.FindCharacter(Game.Genshin, "123");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -432,10 +432,10 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(new List<string>());
+         .Returns(new List<string>());
 
         // Act
-        var result = m_Service.FindCharacter("Diluc");
+        var result = m_Service.FindCharacter(Game.Genshin, "Diluc");
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -450,11 +450,11 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(new List<string> { "Diluc" });
+          .Setup(x => x.GetCharacters(Game.Genshin))
+           .Returns(new List<string> { "Diluc" });
 
         // Act
-        m_Service.FindCharacter("Diluc");
+        m_Service.FindCharacter(Game.Genshin, "Diluc");
 
         // Assert
         m_MockCacheService.Verify(x => x.GetCharacters(Game.Genshin), Times.Once);
@@ -465,13 +465,13 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(["Diluc", "Jean"]);
+.Setup(x => x.GetCharacters(Game.Genshin))
+    .Returns(["Diluc", "Jean"]);
 
         // Act
-        m_Service.FindCharacter("Di");
-        m_Service.FindCharacter("Je");
-        m_Service.FindCharacter("K");
+        m_Service.FindCharacter(Game.Genshin, "Di");
+        m_Service.FindCharacter(Game.Genshin, "Je");
+        m_Service.FindCharacter(Game.Genshin, "K");
 
         // Assert
         m_MockCacheService.Verify(x => x.GetCharacters(Game.Genshin), Times.Exactly(3));
@@ -482,14 +482,129 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         m_MockCacheService
-                .Setup(x => x.GetCharacters(Game.Genshin))
-                .Returns(new List<string> { "Diluc", "Jean" });
+      .Setup(x => x.GetCharacters(Game.Genshin))
+        .Returns(new List<string> { "Diluc", "Jean" });
 
         // Act
-        var result = m_Service.FindCharacter("Di");
+        var result = m_Service.FindCharacter(Game.Genshin, "Di");
 
         // Assert
         Assert.That(result, Is.InstanceOf<IReadOnlyList<string>>());
+    }
+
+    #endregion
+
+    #region FindCharacter Tests - Game Parameter Validation
+
+    [Test]
+    public void FindCharacter_WithGenshinGame_CallsCacheWithGenshin()
+    {
+        // Arrange
+        m_MockCacheService
+                  .Setup(x => x.GetCharacters(Game.Genshin))
+               .Returns(["Diluc"]);
+
+        // Act
+        m_Service.FindCharacter(Game.Genshin, "Diluc");
+
+        // Assert
+        m_MockCacheService.Verify(x => x.GetCharacters(Game.Genshin), Times.Once);
+        m_MockCacheService.Verify(x => x.GetCharacters(It.Is<Game>(g => g != Game.Genshin)), Times.Never);
+    }
+
+    [Test]
+    public void FindCharacter_WithHonkaiStarRailGame_CallsCacheWithHSR()
+    {
+        // Arrange
+        m_MockCacheService
+ .Setup(x => x.GetCharacters(Game.HonkaiStarRail))
+          .Returns(["Acheron"]);
+
+        // Act
+        m_Service.FindCharacter(Game.HonkaiStarRail, "Acheron");
+
+        // Assert
+        m_MockCacheService.Verify(x => x.GetCharacters(Game.HonkaiStarRail), Times.Once);
+        m_MockCacheService.Verify(x => x.GetCharacters(It.Is<Game>(g => g != Game.HonkaiStarRail)), Times.Never);
+    }
+
+    [Test]
+    public void FindCharacter_WithZenlessZoneZeroGame_CallsCacheWithZZZ()
+    {
+        // Arrange
+        m_MockCacheService
+                   .Setup(x => x.GetCharacters(Game.ZenlessZoneZero))
+            .Returns(["Ellen"]);
+
+        // Act
+        m_Service.FindCharacter(Game.ZenlessZoneZero, "Ellen");
+
+        // Assert
+        m_MockCacheService.Verify(x => x.GetCharacters(Game.ZenlessZoneZero), Times.Once);
+        m_MockCacheService.Verify(x => x.GetCharacters(It.Is<Game>(g => g != Game.ZenlessZoneZero)), Times.Never);
+    }
+
+    [Test]
+    public void FindCharacter_WithDifferentGames_UsesCorrectCache()
+    {
+        // Arrange
+        var genshinCharacters = new List<string> { "Diluc", "Jean" };
+        var hsrCharacters = new List<string> { "Acheron", "Kafka" };
+
+        m_MockCacheService
+     .Setup(x => x.GetCharacters(Game.Genshin))
+  .Returns(genshinCharacters);
+
+        m_MockCacheService
+            .Setup(x => x.GetCharacters(Game.HonkaiStarRail))
+    .Returns(hsrCharacters);
+
+        // Act
+        var genshinResult = m_Service.FindCharacter(Game.Genshin, "Di");
+        var hsrResult = m_Service.FindCharacter(Game.HonkaiStarRail, "Ach");
+
+        // Assert
+        Assert.Multiple(() =>
+     {
+         Assert.That(genshinResult, Has.Count.EqualTo(1));
+         Assert.That(genshinResult[0], Is.EqualTo("Diluc"));
+
+         Assert.That(hsrResult, Has.Count.EqualTo(1));
+         Assert.That(hsrResult[0], Is.EqualTo("Acheron"));
+     });
+
+        m_MockCacheService.Verify(x => x.GetCharacters(Game.Genshin), Times.Once);
+        m_MockCacheService.Verify(x => x.GetCharacters(Game.HonkaiStarRail), Times.Once);
+    }
+
+    [Test]
+    public void FindCharacter_SameQueryDifferentGames_ReturnsDifferentResults()
+    {
+        // Arrange
+        var genshinCharacters = new List<string> { "Traveler (Anemo)", "Diluc", "Jean" };
+        var hsrCharacters = new List<string> { "Trailblazer (Destruction)", "Acheron", "Kafka" };
+
+        m_MockCacheService
+   .Setup(x => x.GetCharacters(Game.Genshin))
+      .Returns(genshinCharacters);
+
+        m_MockCacheService
+                  .Setup(x => x.GetCharacters(Game.HonkaiStarRail))
+                .Returns(hsrCharacters);
+
+        // Act
+        var genshinResult = m_Service.FindCharacter(Game.Genshin, "Tra");
+        var hsrResult = m_Service.FindCharacter(Game.HonkaiStarRail, "Tra");
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(genshinResult, Has.Count.EqualTo(1));
+            Assert.That(genshinResult[0], Is.EqualTo("Traveler (Anemo)"));
+
+            Assert.That(hsrResult, Has.Count.EqualTo(1));
+            Assert.That(hsrResult[0], Is.EqualTo("Trailblazer (Destruction)"));
+        });
     }
 
     #endregion
@@ -501,18 +616,18 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
+    {
             "Albedo", "Alhaitham", "Aloy", "Amber", "Arataki Itto", "Arlecchino", "Baizhu", "Barbara", "Beidou",
-            "Bennett", "Candace", "Charlotte", "Chevreuse", "Chiori", "Chongyun", "Clorinde", "Collei", "Cyno", "Dehya",
+         "Bennett", "Candace", "Charlotte", "Chevreuse", "Chiori", "Chongyun", "Clorinde", "Collei", "Cyno", "Dehya",
             "Diluc", "Diona", "Dori", "Emilie", "Eula", "Faruzan", "Fischl", "Freminet", "Furina", "Gaming", "Ganyu"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+      .Setup(x => x.GetCharacters(Game.Genshin))
+          .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("C");
+        var result = m_Service.FindCharacter(Game.Genshin, "C");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(11));
@@ -538,19 +653,49 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Kamisato Ayaka", "Kamisato Ayato", "Kaedehara Kazuha", "Kaeya", "Kaveh", "Keqing", "Kirara", "Klee",
-            "Kujou Sara", "Kuki Shinobu"
+"Kamisato Ayaka", "Kamisato Ayato", "Kaedehara Kazuha", "Kaeya", "Kaveh", "Keqing", "Kirara", "Klee",
+    "Kujou Sara", "Kuki Shinobu"
         };
 
         m_MockCacheService
-       .Setup(x => x.GetCharacters(Game.Genshin))
-          .Returns(allCharacters);
+     .Setup(x => x.GetCharacters(Game.Genshin))
+             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("K");
+        var result = m_Service.FindCharacter(Game.Genshin, "K");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(10));
+    }
+
+    [Test]
+    public void FindCharacter_WithHSRCharacterList_FiltersCorrectly()
+    {
+        // Arrange
+        var allCharacters = new List<string>
+        {
+   "Acheron", "Argenti", "Arlan", "Asta", "Aventurine",
+      "Bailu", "Black Swan", "Blade", "Boothill", "Bronya",
+            "Clara", "Dan Heng", "Dr. Ratio", "Firefly", "Fu Xuan"
+  };
+
+        m_MockCacheService
+            .Setup(x => x.GetCharacters(Game.HonkaiStarRail))
+.Returns(allCharacters);
+
+        // Act
+        var result = m_Service.FindCharacter(Game.HonkaiStarRail, "B");
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(5));
+        Assert.Multiple(() =>
+      {
+          Assert.That(result, Does.Contain("Bailu"));
+          Assert.That(result, Does.Contain("Black Swan"));
+          Assert.That(result, Does.Contain("Blade"));
+          Assert.That(result, Does.Contain("Boothill"));
+          Assert.That(result, Does.Contain("Bronya"));
+      });
     }
 
     #endregion
@@ -562,30 +707,30 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
+   {
             "Zhongli",
-            "Xiao",
+  "Xiao",
             "Ganyu",
-            "Hu Tao",
-            "Albedo"
-        };
+ "Hu Tao",
+      "Albedo"
+    };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-      .Returns(allCharacters);
+          .Setup(x => x.GetCharacters(Game.Genshin))
+ .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("");
+        var result = m_Service.FindCharacter(Game.Genshin, "");
 
         Assert.Multiple(() =>
-        {
-            // Assert
-            Assert.That(result[0], Is.EqualTo("Zhongli"));
-            Assert.That(result[1], Is.EqualTo("Xiao"));
-            Assert.That(result[2], Is.EqualTo("Ganyu"));
-            Assert.That(result[3], Is.EqualTo("Hu Tao"));
-            Assert.That(result[4], Is.EqualTo("Albedo"));
-        });
+     {
+         // Assert
+         Assert.That(result[0], Is.EqualTo("Zhongli"));
+         Assert.That(result[1], Is.EqualTo("Xiao"));
+         Assert.That(result[2], Is.EqualTo("Ganyu"));
+         Assert.That(result[3], Is.EqualTo("Hu Tao"));
+         Assert.That(result[4], Is.EqualTo("Albedo"));
+     });
     }
 
     [Test]
@@ -593,27 +738,27 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
-            "Diluc", "Diona", "Dori", "Dehya", "Albedo", "Bennett"
-        };
+      {
+     "Diluc", "Diona", "Dori", "Dehya", "Albedo", "Bennett"
+   };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+    .Setup(x => x.GetCharacters(Game.Genshin))
+        .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("D");
+        var result = m_Service.FindCharacter(Game.Genshin, "D");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(5));
         Assert.Multiple(() =>
-        {
-            Assert.That(result[0], Is.EqualTo("Diluc"));
-            Assert.That(result[1], Is.EqualTo("Diona"));
-            Assert.That(result[2], Is.EqualTo("Dori"));
-            Assert.That(result[3], Is.EqualTo("Dehya"));
-            Assert.That(result[4], Is.EqualTo("Albedo"));
-        });
+               {
+                   Assert.That(result[0], Is.EqualTo("Diluc"));
+                   Assert.That(result[1], Is.EqualTo("Diona"));
+                   Assert.That(result[2], Is.EqualTo("Dori"));
+                   Assert.That(result[3], Is.EqualTo("Dehya"));
+                   Assert.That(result[4], Is.EqualTo("Albedo"));
+               });
     }
 
     #endregion
@@ -626,15 +771,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Diluc", "Raiden Shogun", "Kamisato Ayaka"
+      "Diluc", "Raiden Shogun", "Kamisato Ayaka"
         };
 
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+  .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("den");
+        var result = m_Service.FindCharacter(Game.Genshin, "den");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -647,15 +792,15 @@ public class GenshinCharacterAutocompleteServiceTests
         // Arrange
         var allCharacters = new List<string>
         {
-            "Kaedehara Kazuha", "Kamisato Ayaka", "Sangonomiya Kokomi"
+      "Kaedehara Kazuha", "Kamisato Ayaka", "Sangonomiya Kokomi"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(allCharacters);
+   .Setup(x => x.GetCharacters(Game.Genshin))
+       .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("dehara");
+        var result = m_Service.FindCharacter(Game.Genshin, "dehara");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -667,16 +812,16 @@ public class GenshinCharacterAutocompleteServiceTests
     {
         // Arrange
         var allCharacters = new List<string>
-        {
-            "Kamisato Ayaka", "Kamisato Ayato", "Yoimiya"
+  {
+       "Kamisato Ayaka", "Kamisato Ayato", "Yoimiya"
         };
 
         m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
+      .Setup(x => x.GetCharacters(Game.Genshin))
             .Returns(allCharacters);
 
         // Act
-        var result = m_Service.FindCharacter("yaka");
+        var result = m_Service.FindCharacter(Game.Genshin, "yaka");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
