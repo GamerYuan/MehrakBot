@@ -9,14 +9,6 @@ public class TestSetup
     public async Task Setup()
     {
         m_MongoTestHelper = new MongoTestHelper();
-
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"),
-                     "*.png", SearchOption.AllDirectories))
-        {
-            var fileName = Path.GetFileNameWithoutExtension(image);
-            await using var stream = File.OpenRead(image);
-            await MongoTestHelper.Instance.ImageRepository.UploadFileAsync(fileName, stream);
-        }
     }
 
     [OneTimeTearDown]
