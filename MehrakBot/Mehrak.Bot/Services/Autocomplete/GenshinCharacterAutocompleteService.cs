@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Bot.Modules;
 using Mehrak.Bot.Provider;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
@@ -9,7 +8,7 @@ using Mehrak.Domain.Services.Abstractions;
 
 namespace Mehrak.Bot.Services.Autocomplete;
 
-internal class GenshinCharacterAutocompleteService : ICharacterAutocompleteService<GenshinCommandModule>
+internal class GenshinCharacterAutocompleteService : ICharacterAutocompleteService
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
     private const int Limit = 25;
@@ -19,9 +18,9 @@ internal class GenshinCharacterAutocompleteService : ICharacterAutocompleteServi
         m_CharacterCacheService = characterCacheService;
     }
 
-    public IReadOnlyList<string> FindCharacter(string query)
+    public IReadOnlyList<string> FindCharacter(Game game, string query)
     {
-        var characterNames = m_CharacterCacheService.GetCharacters(Game.Genshin);
+        var characterNames = m_CharacterCacheService.GetCharacters(game);
         return
         [
             .. characterNames

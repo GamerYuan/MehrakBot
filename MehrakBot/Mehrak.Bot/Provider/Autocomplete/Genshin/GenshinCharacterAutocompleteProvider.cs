@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Bot.Modules;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -10,13 +9,13 @@ using NetCord.Services.ApplicationCommands;
 namespace Mehrak.Bot.Provider.Autocomplete.Genshin;
 
 public class GenshinCharacterAutocompleteProvider(
-    ICharacterAutocompleteService<GenshinCommandModule> autocompleteService)
+    ICharacterAutocompleteService autocompleteService)
     : IAutocompleteProvider<AutocompleteInteractionContext>
 {
     public ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> GetChoicesAsync(
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
+            .FindCharacter(Domain.Enums.Game.Genshin, option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }

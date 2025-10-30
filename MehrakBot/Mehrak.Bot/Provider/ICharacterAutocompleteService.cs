@@ -4,13 +4,13 @@
 
 #region
 
-using NetCord.Services.ApplicationCommands;
-
 #endregion
+
+using Mehrak.Domain.Enums;
 
 namespace Mehrak.Bot.Provider;
 
-public interface ICharacterAutocompleteService<T> where T : ApplicationCommandModule<ApplicationCommandContext>
+public interface ICharacterAutocompleteService
 {
-    public IReadOnlyList<string> FindCharacter(string query);
+    IReadOnlyList<string> FindCharacter(Game game, string query);
 }
