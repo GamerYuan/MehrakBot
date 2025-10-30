@@ -6,5 +6,4 @@
     <Project Path="Mehrak.Domain/Mehrak.Domain.csproj" />
     <Project Path="Mehrak.GameApi/Mehrak.GameApi.csproj" />
     <Project Path="Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
-    <Project Path="MehrakCore.Tests/MehrakCore.Tests.csproj" />
 </Solution>
