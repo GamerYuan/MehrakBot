@@ -3,7 +3,6 @@
 using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Modules;
 using Mehrak.Bot.Provider;
 using Mehrak.Bot.Services.Autocomplete;
 using Mehrak.Domain.Services.Abstractions;
@@ -22,9 +21,7 @@ internal static class BotServiceCollectionExtensions
         services.AddSingleton<IAuthenticationMiddlewareService, AuthenticationMiddlewareService>();
         services.AddSingleton<ICommandRateLimitService, CommandRateLimitService>();
 
-        services
-            .AddSingleton<ICharacterAutocompleteService<GenshinCommandModule>, GenshinCharacterAutocompleteService>();
-        services.AddSingleton<ICharacterAutocompleteService<HsrCommandModule>, HsrCharacterAutocompleteService>();
+        services.AddSingleton<ICharacterAutocompleteService, CharacterAutocompleteService>();
 
         services.AddTransient<ICommandExecutorService<CheckInApplicationContext>, CheckInExecutorService>();
 

@@ -8,12 +8,12 @@ using Mehrak.Domain.Services.Abstractions;
 
 namespace Mehrak.Bot.Services.Autocomplete;
 
-internal class GenshinCharacterAutocompleteService : ICharacterAutocompleteService
+internal class CharacterAutocompleteService : ICharacterAutocompleteService
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
     private const int Limit = 25;
 
-    public GenshinCharacterAutocompleteService(ICharacterCacheService characterCacheService)
+    public CharacterAutocompleteService(ICharacterCacheService characterCacheService)
     {
         m_CharacterCacheService = characterCacheService;
     }

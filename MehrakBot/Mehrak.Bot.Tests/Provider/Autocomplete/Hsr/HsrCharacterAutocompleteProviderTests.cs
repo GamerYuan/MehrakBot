@@ -1,6 +1,6 @@
-﻿using Mehrak.Bot.Modules;
-using Mehrak.Bot.Provider;
+﻿using Mehrak.Bot.Provider;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
+using Mehrak.Domain.Enums;
 using Moq;
 using NetCord;
 using NetCord.JsonModels;
@@ -18,13 +18,13 @@ namespace Mehrak.Bot.Tests.Provider.Autocomplete.Hsr;
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class HsrCharacterAutocompleteProviderTests
 {
-    private Mock<ICharacterAutocompleteService<HsrCommandModule>> m_MockAutocompleteService = null!;
+    private Mock<ICharacterAutocompleteService> m_MockAutocompleteService = null!;
     private HsrCharacterAutocompleteProvider m_Provider = null!;
 
     [SetUp]
     public void Setup()
     {
-        m_MockAutocompleteService = new Mock<ICharacterAutocompleteService<HsrCommandModule>>();
+        m_MockAutocompleteService = new Mock<ICharacterAutocompleteService>();
         m_Provider = new HsrCharacterAutocompleteProvider(m_MockAutocompleteService.Object);
     }
 
@@ -45,7 +45,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Dan Heng", "Dan Heng • Imbibitor Lunae" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Dan"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Dan"))
             .Returns(expectedCharacters);
 
         // Act
@@ -73,7 +73,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Acheron" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Acheron"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Acheron"))
             .Returns(expectedCharacters);
 
         // Act
@@ -99,7 +99,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string>();
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("XYZ"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "XYZ"))
             .Returns(expectedCharacters);
 
         // Act
@@ -120,7 +120,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Acheron", "Argenti", "Asta", "Aventurine" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(""))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, ""))
             .Returns(expectedCharacters);
 
         // Act
@@ -141,7 +141,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Jing Yuan" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Jin"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Jin"))
             .Returns(expectedCharacters);
 
         // Act
@@ -163,14 +163,14 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Kafka" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("kafka"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "kafka"))
             .Returns(expectedCharacters);
 
         // Act
         var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter("kafka"), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, "kafka"), Times.Once);
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
@@ -185,7 +185,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Bailu", "Black Swan", "Blade", "Boothill", "Bronya" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("B"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "B"))
             .Returns(expectedCharacters);
 
         // Act
@@ -205,14 +205,14 @@ public class HsrCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs(query);
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(query))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, query))
             .Returns(["Firefly"]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(query), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, query), Times.Once);
     }
 
     [Test]
@@ -224,7 +224,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Ruan Mei" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Ruan Mei"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Ruan Mei"))
             .Returns(expectedCharacters);
 
         // Act
@@ -245,7 +245,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Dan Heng • Imbibitor Lunae" }; // Name with • character
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Dan Heng •"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Dan Heng •"))
             .Returns(expectedCharacters);
 
         // Act
@@ -268,7 +268,7 @@ public class HsrCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("Test");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Test"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Test"))
             .Returns([]);
 
         // Act
@@ -293,7 +293,7 @@ public class HsrCharacterAutocompleteProviderTests
         };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("S"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "S"))
             .Returns(expectedCharacters);
 
         // Act
@@ -317,7 +317,7 @@ public class HsrCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("Topaz");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Topaz"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Topaz"))
             .Returns(["Topaz & Numby"]);
 
         // Act
@@ -339,7 +339,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Lingsha", "Luka", "Luocha", "Lynx" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("L"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "L"))
             .Returns(expectedCharacters);
 
         // Act
@@ -366,7 +366,7 @@ public class HsrCharacterAutocompleteProviderTests
         IReadOnlyList<string> expectedCharacters = new List<string> { "Welt" }.AsReadOnly();
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Welt"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Welt"))
             .Returns(expectedCharacters);
 
         // Act
@@ -386,14 +386,14 @@ public class HsrCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("Yunli");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Yunli"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Yunli"))
             .Returns(new List<string> { "Yunli" });
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(It.IsAny<string>()), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, It.IsAny<string>()), Times.Once);
     }
 
     #endregion
@@ -407,14 +407,14 @@ public class HsrCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("   "))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "   "))
             .Returns([]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter("   "), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, "   "), Times.Once);
     }
 
     [Test]
@@ -424,7 +424,7 @@ public class HsrCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("123");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("123"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "123"))
             .Returns([]);
 
         // Act
@@ -444,7 +444,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "符玄" }; // Chinese character name (Fu Xuan)
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("符"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "符"))
             .Returns(expectedCharacters);
 
         // Act
@@ -471,7 +471,7 @@ public class HsrCharacterAutocompleteProviderTests
         };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Trailblazer"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Trailblazer"))
             .Returns(expectedCharacters);
 
         // Act
@@ -493,7 +493,7 @@ public class HsrCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Topaz & Numby" }; // Name with &
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Topaz"))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Topaz"))
             .Returns(expectedCharacters);
 
         // Act

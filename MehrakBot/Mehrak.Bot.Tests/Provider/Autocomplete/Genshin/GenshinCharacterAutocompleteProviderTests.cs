@@ -1,6 +1,6 @@
-﻿using Mehrak.Bot.Modules;
-using Mehrak.Bot.Provider;
+﻿using Mehrak.Bot.Provider;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
+using Mehrak.Domain.Enums;
 using Moq;
 using NetCord;
 using NetCord.JsonModels;
@@ -18,13 +18,13 @@ namespace Mehrak.Bot.Tests.Provider.Autocomplete.Genshin;
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class GenshinCharacterAutocompleteProviderTests
 {
-    private Mock<ICharacterAutocompleteService<GenshinCommandModule>> m_MockAutocompleteService = null!;
+    private Mock<ICharacterAutocompleteService> m_MockAutocompleteService = null!;
     private GenshinCharacterAutocompleteProvider m_Provider = null!;
 
     [SetUp]
     public void Setup()
     {
-        m_MockAutocompleteService = new Mock<ICharacterAutocompleteService<GenshinCommandModule>>();
+        m_MockAutocompleteService = new Mock<ICharacterAutocompleteService>();
         m_Provider = new GenshinCharacterAutocompleteProvider(m_MockAutocompleteService.Object);
     }
 
@@ -45,7 +45,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Hu Tao", "Huohuo" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Hu"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Hu"))
             .Returns(expectedCharacters);
 
         // Act
@@ -70,7 +70,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Diluc" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Diluc"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Diluc"))
             .Returns(expectedCharacters);
 
         // Act
@@ -93,7 +93,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string>();
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("XYZ"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "XYZ"))
             .Returns(expectedCharacters);
 
         // Act
@@ -114,7 +114,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Diluc", "Jean", "Klee", "Venti" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(""))
+            .Setup(x => x.FindCharacter(Game.Genshin, ""))
             .Returns(expectedCharacters);
 
         // Act
@@ -135,7 +135,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Zhongli" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Zho"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Zho"))
             .Returns(expectedCharacters);
 
         // Act
@@ -157,14 +157,14 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Raiden Shogun" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("raiden"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "raiden"))
             .Returns(expectedCharacters);
 
         // Act
         var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter("raiden"), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, "raiden"), Times.Once);
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
@@ -179,7 +179,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Tartaglia", "Childe" }; // Tartaglia's alias
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Tar"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Tar"))
             .Returns(expectedCharacters);
 
         // Act
@@ -199,14 +199,14 @@ public class GenshinCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs(query);
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(query))
+            .Setup(x => x.FindCharacter(Game.Genshin, query))
             .Returns(["Kamisato Ayaka"]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(query), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, query), Times.Once);
     }
 
     [Test]
@@ -218,7 +218,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Nahida" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Nahida"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Nahida"))
             .Returns(expectedCharacters);
 
         // Act
@@ -239,7 +239,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Hu Tao" }; // Name with space
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Hu"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Hu"))
             .Returns(expectedCharacters);
 
         // Act
@@ -262,7 +262,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("Test");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Test"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Test"))
             .Returns([]);
 
         // Act
@@ -287,7 +287,7 @@ public class GenshinCharacterAutocompleteProviderTests
         };
 
         m_MockAutocompleteService
-                   .Setup(x => x.FindCharacter("A"))
+                   .Setup(x => x.FindCharacter(Game.Genshin, "A"))
                .Returns(expectedCharacters);
 
         // Act
@@ -311,7 +311,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("Ganyu");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Ganyu"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Ganyu"))
             .Returns(["Ganyu"]);
 
         // Act
@@ -333,7 +333,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "Kaeya", "Kazuha", "Keqing", "Klee" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("K"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "K"))
             .Returns(expectedCharacters);
 
         // Act
@@ -363,7 +363,7 @@ public class GenshinCharacterAutocompleteProviderTests
         IReadOnlyList<string> expectedCharacters = new List<string> { "Xiao" }.AsReadOnly();
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Xiao"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Xiao"))
             .Returns(expectedCharacters);
 
         // Act
@@ -383,14 +383,14 @@ public class GenshinCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("Yelan");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("Yelan"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Yelan"))
             .Returns(new List<string> { "Yelan" });
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(It.IsAny<string>()), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, It.IsAny<string>()), Times.Once);
     }
 
     #endregion
@@ -404,14 +404,14 @@ public class GenshinCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("   "))
+            .Setup(x => x.FindCharacter(Game.Genshin, "   "))
             .Returns([]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter("   "), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, "   "), Times.Once);
     }
 
     [Test]
@@ -421,7 +421,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("123");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("123"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "123"))
             .Returns(new List<string>());
 
         // Act
@@ -441,7 +441,7 @@ public class GenshinCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string> { "神里绫华" }; // Chinese character name
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter("神"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "神"))
             .Returns(expectedCharacters);
 
         // Act
