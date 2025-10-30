@@ -18,6 +18,7 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
+using Serilog.Extensions;
 using Serilog.Sinks.Grafana.Loki;
 using StackExchange.Redis;
 
@@ -53,6 +54,8 @@ public class Program
         LoggerConfiguration loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
+            .Enrich.WithRequestQuery()
+            .Enrich.WithRequestBody()
             .WriteTo.Console(
                 outputTemplate:
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
