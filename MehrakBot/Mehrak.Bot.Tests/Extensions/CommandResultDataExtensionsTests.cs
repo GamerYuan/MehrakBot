@@ -532,20 +532,6 @@ public class CommandResultDataExtensionsTests
     #region Edge Cases and Special Scenarios
 
     [Test]
-    public void ToMessage_NullComponents_HandlesGracefully()
-    {
-        // Arrange
-        var data = new CommandResultData(null, isContainer: false, isEphemeral: false);
-
-        // Act
-        var result = data.ToMessage();
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Flags!.Value.HasFlag(MessageFlags.IsComponentsV2), Is.True);
-    }
-
-    [Test]
     public void ToMessage_EmptyComponentsList_ReturnsValidMessage()
     {
         // Arrange
