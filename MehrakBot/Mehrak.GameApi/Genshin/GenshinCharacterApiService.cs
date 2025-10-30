@@ -75,8 +75,12 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -93,6 +97,9 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character list data", requestUri);
             }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
 
             if (json.Retcode == 10001)
             {
@@ -158,8 +165,12 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -171,12 +182,15 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             ApiResponse<GenshinCharacterDetail>? json =
                 await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>();
 
-            if (json?.Data == null || json?.Data.List.Count == 0)
+            if (json == null || json.Data == null || json.Data.List.Count == 0)
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving character data", requestUri);
             }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
 
             if (json?.Retcode == 10001)
             {

@@ -45,8 +45,12 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             HttpResponseMessage response = await client.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -65,14 +69,17 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            if (json.Retcode == 10001)
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+
+            if (json.Retcode ==10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<ZzzAssaultData>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
 
-            if (json.Retcode != 0)
+            if (json.Retcode !=0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,

@@ -43,8 +43,12 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             };
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -75,6 +79,9 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
                     "No game information found. Please select the correct region", requestUri);
             }
+
+            // Info-level API retcode after parse (success path)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri,0, context.LtUid.ToString());
 
             var gameProfile = node["data"]?["list"]?[0].Deserialize<GameProfile>();
 

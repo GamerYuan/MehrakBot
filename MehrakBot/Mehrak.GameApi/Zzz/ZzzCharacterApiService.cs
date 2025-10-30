@@ -70,8 +70,12 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             HttpResponseMessage response = await httpClient.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -90,6 +94,9 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character list data", requestUri);
             }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
 
             if (json.Retcode == 10001)
             {
@@ -149,8 +156,12 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             HttpResponseMessage response = await httpClient.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -169,6 +180,9 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character data");
             }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
 
             if (json.Retcode == 10001)
             {

@@ -53,8 +53,12 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             HttpResponseMessage response = await client.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -74,14 +78,17 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
                     "Failed to parse JSON response from real-time notes API", requestUri);
             }
 
-            if (json.Retcode == 10001)
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+
+            if (json.Retcode ==10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
             }
 
-            if (json.Retcode != 0)
+            if (json.Retcode !=0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.ExternalServerError,

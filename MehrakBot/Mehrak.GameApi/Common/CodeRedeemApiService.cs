@@ -42,8 +42,12 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                 }
             };
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             HttpResponseMessage response = await client.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -61,6 +65,9 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
             }
 
             int retCode = json["retcode"]?.GetValue<int>() ?? -1;
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retCode, context.GameUid);
 
             switch (retCode)
             {

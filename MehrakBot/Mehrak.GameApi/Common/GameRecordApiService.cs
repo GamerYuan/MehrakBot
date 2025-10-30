@@ -41,8 +41,12 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -57,6 +61,9 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.LtUid.ToString());
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.LtUid.ToString());
 
             if (json.Retcode == -100)
             {

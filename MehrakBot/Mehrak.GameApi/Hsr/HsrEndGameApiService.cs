@@ -59,13 +59,17 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("Ds", DSGenerator.GenerateDS());
+            request.Headers.Add("DS", DSGenerator.GenerateDS());
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("X-Rpc-Client_type", "5");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -84,14 +88,17 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            if (json.Retcode == 10001)
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+
+            if (json.Retcode ==10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<HsrEndInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
-            if (json.Retcode != 0)
+            if (json.Retcode !=0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError,

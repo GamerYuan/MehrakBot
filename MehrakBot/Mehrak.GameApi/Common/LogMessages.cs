@@ -1,4 +1,4 @@
-namespace Mehrak.GameApi.Common;
+﻿namespace Mehrak.GameApi.Common;
 
 /// <summary>
 /// Centralized log messages for API services
@@ -9,6 +9,12 @@ internal static class LogMessages
     public const string SendingRequest = "Sending request to {Endpoint}";
     public const string ReceivedRequest = "Received request to {Endpoint}";
 
+    // HTTP wire logs (no headers)
+    public const string OutboundHttpRequest = "Sending HTTP {Method} to {Endpoint}";
+    public const string InboundHttpResponse = "Received HTTP {StatusCode} from {Endpoint}";
+    public const string InboundHttpResponseWithRetcode =
+        "Received HTTP {StatusCode} from {Endpoint} with API retcode {Retcode} for gameUid: {GameUid}";
+
     // Success logging
     public const string SuccessfullyRetrievedData =
         "Successfully retrieved data from {Endpoint} for gameUid: {GameUid}";
@@ -17,7 +23,7 @@ internal static class LogMessages
     public const string SuccessfullyRetrievedFromCache = "Retrieved data from cache for game UID: {GameUid}";
 
     // Error logging - Known retcodes
-    public const string InvalidCredentials = "Invalid credentials (retcode 10001) for gameUid: {GameUid}";
+    public const string InvalidCredentials = "Invalid credentials (retcode10001) for gameUid: {GameUid}";
     public const string AlreadyCheckedIn = "User LtUid: {LtUid} has already checked in today for game {Game}";
     public const string NoValidProfile = "User LtUid: {LtUid} does not have a valid account for game {Game}";
     public const string InvalidRegionOrUid = "Game UID or region is null or empty";

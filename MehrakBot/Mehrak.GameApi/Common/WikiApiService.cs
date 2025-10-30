@@ -43,8 +43,12 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 request.Headers.Add("X-Rpc-Wiki_app", "zzz");
             else if (context.Game == Game.HonkaiStarRail) request.Headers.Add("X-Rpc-Wiki_app", "hsr");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -63,6 +67,9 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             }
 
             var retcode = json["retcode"]?.GetValue<int>() ?? -1;
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode, context.EntryPage);
 
             if (retcode != 0)
             {

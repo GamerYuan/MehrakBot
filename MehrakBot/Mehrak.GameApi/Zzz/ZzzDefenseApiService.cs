@@ -45,8 +45,12 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             HttpResponseMessage response = await client.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -64,6 +68,9 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
                 return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while fetching Shiyu Defense data", requestUri);
             }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
 
             if (json.Retcode == 10001)
             {

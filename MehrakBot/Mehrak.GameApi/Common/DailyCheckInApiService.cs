@@ -66,8 +66,12 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             request.Content =
                 new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-            m_Logger.LogDebug(LogMessages.SendingRequest, requestUri);
+            // Info-level outbound request (no headers)
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             HttpResponseMessage response = await httpClient.SendAsync(request);
+
+            // Info-level inbound response (status only)
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -86,6 +90,9 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             }
 
             int? retcode = json["retcode"]?.GetValue<int>();
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode ?? -1, context.LtUid.ToString());
 
             switch (retcode)
             {
