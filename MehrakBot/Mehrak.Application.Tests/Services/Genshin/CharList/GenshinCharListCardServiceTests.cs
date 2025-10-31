@@ -24,7 +24,6 @@ public class GenshinCharListCardServiceTests
 
     private static readonly string TestDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
 
-
     [SetUp]
     public void Setup()
     {

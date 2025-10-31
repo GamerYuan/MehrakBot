@@ -5,6 +5,7 @@ using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
@@ -29,7 +30,7 @@ public class HsrMemoryApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, gameRoleApiMock, _) = SetupMocks();
+        var (service, _, _, gameRoleApiMock, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -56,7 +57,7 @@ public class HsrMemoryApplicationServiceTests
     public async Task ExecuteAsync_MemoryApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, memoryApiMock, _, gameRoleApiMock, _) = SetupMocks();
+        var (service, memoryApiMock, _, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -87,10 +88,10 @@ public class HsrMemoryApplicationServiceTests
     public async Task ExecuteAsync_NoData_ReturnsNoClearRecords()
     {
         // Arrange
-        var (service, memoryApiMock, _, gameRoleApiMock, _) = SetupMocks();
+        var (service, memoryApiMock, _, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-                  .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         var memoryData = new HsrMemoryInformation
         {
@@ -133,7 +134,7 @@ public class HsrMemoryApplicationServiceTests
     public async Task ExecuteAsync_BattleNumZero_ReturnsNoClearRecords()
     {
         // Arrange
-        var (service, memoryApiMock, _, gameRoleApiMock, _) = SetupMocks();
+        var (service, memoryApiMock, _, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -153,7 +154,7 @@ public class HsrMemoryApplicationServiceTests
         };
 
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-        .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
         var context = new HsrMemoryApplicationContext(1)
         {
@@ -179,7 +180,7 @@ public class HsrMemoryApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError()
     {
         // Arrange
-        var (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, _) = SetupMocks();
+        var (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -216,7 +217,7 @@ public class HsrMemoryApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(string testDataFile)
     {
         // Arrange
-        var (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock) = SetupMocks();
+        var (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -226,7 +227,7 @@ public class HsrMemoryApplicationServiceTests
             .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-                  .ReturnsAsync(true);
+            .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrMemoryInformation>>()))
@@ -249,7 +250,7 @@ public class HsrMemoryApplicationServiceTests
             Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
             Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>()
-                .Any(x => x.Content.Contains("Memory of Chaos Summary")),
+                    .Any(x => x.Content.Contains("Memory of Chaos Summary")),
                 Is.True);
         });
     }
@@ -259,7 +260,7 @@ public class HsrMemoryApplicationServiceTests
     public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly(string testDataFile)
     {
         // Arrange
-        var (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock) = SetupMocks();
+        var (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -291,6 +292,165 @@ public class HsrMemoryApplicationServiceTests
             Times.AtLeastOnce);
     }
 
+    [Test]
+    public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
+    {
+        // Arrange
+        var (service, memoryApiMock, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        // User exists with matching profile but no stored GameUids
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync(new UserModel
+            {
+                Id = 1ul,
+                Profiles = new List<UserProfile>
+                    {
+                        new()
+                        {
+                            LtUid = 1ul,
+                            LToken = "test",
+                            GameUids = null
+                        }
+                    }
+            }
+            );
+
+        // Force early exit after UpdateGameUid by making Memory API fail
+        memoryApiMock
+            .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
+
+        var context = new HsrMemoryApplicationContext(1)
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert: repository should persist updated user with stored game uid
+        userRepositoryMock.Verify(
+            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+                u.Id == 1ul
+                && u.Profiles != null
+                && u.Profiles.Any(p => p.LtUid == 1ul
+                                       && p.GameUids != null
+                                       && p.GameUids.ContainsKey(Game.HonkaiStarRail)
+                                       && p.GameUids[Game.HonkaiStarRail].ContainsKey(Server.Asia.ToString())
+                                       && p.GameUids[Game.HonkaiStarRail][Server.Asia.ToString()] == profile.GameUid)
+            )),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
+    {
+        // Arrange
+        var (service, memoryApiMock, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        // User exists with game uid already stored for this game/server
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync(new UserModel
+            {
+                Id = 1ul,
+                Profiles = new List<UserProfile>
+                    {
+                        new()
+                        {
+                            LtUid = 1ul,
+                            LToken = "test",
+                            GameUids = new Dictionary<Game, Dictionary<string, string>>
+                            {
+                                {
+                                    Game.HonkaiStarRail,
+                                    new Dictionary<string, string> { { Server.Asia.ToString(), profile.GameUid } }
+                                }
+                            }
+                        }
+                    }
+            }
+            );
+
+        memoryApiMock
+            .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
+
+        var context = new HsrMemoryApplicationContext(1)
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert: no persistence since it was already stored
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
+    {
+        // Arrange
+        var (service, memoryApiMock, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        // Case: user not found
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync((UserModel?)null);
+
+        memoryApiMock
+            .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
+
+        var context = new HsrMemoryApplicationContext(1)
+        {
+            LtUid = 1ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert: no persistence
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+
+        // Case: user exists but no matching profile
+        userRepositoryMock.Reset();
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync(new UserModel
+            {
+                Id = 1ul,
+                Profiles = new List<UserProfile>
+                    {
+                        new() { LtUid = 99999ul, LToken = "test" }
+                    }
+            }
+            );
+
+        await service.ExecuteAsync(context);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+    }
+
     #endregion
 
     #region Integration Tests
@@ -302,14 +462,14 @@ public class HsrMemoryApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile)
     {
         // Arrange
-        var (service, memoryApiMock, _, gameRoleApiMock) = SetupIntegrationTest();
+        var (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, userRepositoryMock) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         var memoryData = await LoadTestDataAsync(testDataFile);
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-             .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
         var context = new HsrMemoryApplicationContext(MongoTestHelper.Instance.GetUniqueUserId())
         {
@@ -405,13 +565,15 @@ public class HsrMemoryApplicationServiceTests
         Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>> MemoryApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<ICardService<HsrMemoryInformation>> CardServiceMock
+        Mock<ICardService<HsrMemoryInformation>> CardServiceMock,
+        Mock<IUserRepository> UserRepositoryMock
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrMemoryInformation>>();
         var memoryApiMock = new Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
+        var userRepositoryMock = new Mock<IUserRepository>();
         var loggerMock = new Mock<ILogger<HsrMemoryApplicationService>>();
 
         var service = new HsrMemoryApplicationService(
@@ -419,16 +581,18 @@ public class HsrMemoryApplicationServiceTests
             imageUpdaterMock.Object,
             memoryApiMock.Object,
             gameRoleApiMock.Object,
+            userRepositoryMock.Object,
             loggerMock.Object);
 
-        return (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock);
+        return (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, userRepositoryMock);
     }
 
     private static (
         HsrMemoryApplicationService Service,
         Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>> MemoryApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock
+        Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
+        Mock<IUserRepository> UserRepositoryMock
         ) SetupIntegrationTest()
     {
         // Use real card service with MongoTestHelper for image repository
@@ -448,6 +612,7 @@ public class HsrMemoryApplicationServiceTests
             Mock.Of<ILogger<ImageUpdaterService>>());
 
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
+        var userRepositoryMock = new Mock<IUserRepository>();
         var loggerMock = new Mock<ILogger<HsrMemoryApplicationService>>();
 
         // Initialize card service
@@ -458,10 +623,11 @@ public class HsrMemoryApplicationServiceTests
             imageUpdaterService,
             memoryApiMock.Object,
             gameRoleApiMock.Object,
+            userRepositoryMock.Object,
             loggerMock.Object);
 
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        return (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock);
+        return (service, memoryApiMock, imageUpdaterMock, gameRoleApiMock, userRepositoryMock);
     }
 
     private static HsrMemoryApplicationService SetupRealApiIntegrationTest()
@@ -494,11 +660,14 @@ public class HsrMemoryApplicationServiceTests
         // Initialize card service
         cardService.InitializeAsync().Wait();
 
+        var userRepositoryMock = new Mock<IUserRepository>();
+
         var service = new HsrMemoryApplicationService(
             cardService,
             imageUpdaterService,
             memoryApiService,
             gameRoleApiService,
+            userRepositoryMock.Object,
             Mock.Of<ILogger<HsrMemoryApplicationService>>());
 
         return service;

@@ -24,7 +24,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, gameRoleApiMock) = SetupMocks();
+        var (service, _, _, gameRoleApiMock, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -51,7 +51,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_SingleCode_RedeemsSuccessfully()
     {
         // Arrange
-        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -81,8 +81,9 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify code was saved to repository
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(
-                d => d.ContainsKey("TESTCODE123") && d["TESTCODE123"] == CodeStatus.Valid)),
+            x => x.AddCodesAsync(Game.Genshin,
+                It.Is<Dictionary<string, CodeStatus>>(d =>
+                    d.ContainsKey("TESTCODE123") && d["TESTCODE123"] == CodeStatus.Valid)),
             Times.Once);
     }
 
@@ -90,7 +91,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_MultipleCodes_RedeemsAll()
     {
         // Arrange
-        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -124,8 +125,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify codes were saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(
-                d => d.Count == 3)),
+            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 3)),
             Times.Once);
     }
 
@@ -133,7 +133,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_NoCodeProvided_UsesRepositoryCodes()
     {
         // Arrange
-        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -173,7 +173,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_NoCodeProvidedAndNoCachedCodes_ReturnsNoCodesMessage()
     {
         // Arrange
-        var (service, codeRepositoryMock, _, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, _, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -205,7 +205,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_CodeAlreadyRedeemed_ShowsInvalidStatus()
     {
         // Arrange
-        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -235,8 +235,9 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify invalid code is still saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(
-                d => d.ContainsKey("ALREADYUSED") && d["ALREADYUSED"] == CodeStatus.Invalid)),
+            x => x.AddCodesAsync(Game.Genshin,
+                It.Is<Dictionary<string, CodeStatus>>(d =>
+                    d.ContainsKey("ALREADYUSED") && d["ALREADYUSED"] == CodeStatus.Invalid)),
             Times.Once);
     }
 
@@ -244,7 +245,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_ApiError_ShowsErrorMessage()
     {
         // Arrange
-        var (service, _, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -277,7 +278,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_MixedResults_SavesOnlySuccessful()
     {
         // Arrange
-        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -309,8 +310,8 @@ public class CodeRedeemApplicationServiceTests
 
         // Only successful code should be saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(
-                d => d.Count == 1 && d.ContainsKey("SUCCESS"))),
+            x => x.AddCodesAsync(Game.Genshin,
+                It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 1 && d.ContainsKey("SUCCESS"))),
             Times.Once);
     }
 
@@ -318,7 +319,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_CodeNormalization_ConvertsToUppercaseAndTrims()
     {
         // Arrange
-        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -327,7 +328,7 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "  lowercase123  "))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", " lowercase123 "))
         {
             LtUid = 12345ul,
             LToken = "test_token",
@@ -347,14 +348,13 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify normalized code was saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(
-                d => d.ContainsKey("LOWERCASE123"))),
+            x => x.AddCodesAsync(Game.Genshin,
+                It.Is<Dictionary<string, CodeStatus>>(d => d.ContainsKey("LOWERCASE123"))),
             Times.Once);
 
         // Verify API was called with normalized code
         codeRedeemApiMock.Verify(
-            x => x.GetAsync(It.Is<CodeRedeemApiContext>(
-                c => c.Code == "LOWERCASE123")),
+            x => x.GetAsync(It.Is<CodeRedeemApiContext>(c => c.Code == "LOWERCASE123")),
             Times.Once);
     }
 
@@ -365,7 +365,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_DifferentGames_WorksCorrectly(Game game)
     {
         // Arrange
-        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -399,7 +399,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_EmptyCodeInList_IgnoresEmptyCode()
     {
         // Arrange
-        var (service, _, codeRedeemApiMock, gameRoleApiMock) = SetupMocks();
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -409,7 +409,7 @@ public class CodeRedeemApplicationServiceTests
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
         // Code list with empty entries
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1, , CODE2,  , CODE3"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1, , CODE2, , CODE3"))
         {
             LtUid = 12345ul,
             LToken = "test_token",
@@ -422,8 +422,170 @@ public class CodeRedeemApplicationServiceTests
         // Assert
         Assert.That(result.IsSuccess, Is.True);
 
-        // Only 3 codes should be redeemed (empty ones ignored)
+        // Only3 codes should be redeemed (empty ones ignored)
         codeRedeemApiMock.Verify(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()), Times.Exactly(3));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
+    {
+        // Arrange
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, userRepositoryMock) = SetupMocks();
+
+        // Game profile from API
+        var profile = CreateTestProfile();
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        // User exists with matching profile but no stored GameUids
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync(new UserModel
+            {
+                Id = 1ul,
+                Profiles = new List<UserProfile>
+                {
+                    new()
+                    {
+                        LtUid = 12345ul,
+                        LToken = "test",
+                        GameUids = null
+                    }
+                }
+            });
+
+        // Redeem API returns success to progress flow
+        codeRedeemApiMock
+            .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
+
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"))
+        {
+            LtUid = 12345ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert: repository should persist updated user with stored game uid
+        userRepositoryMock.Verify(
+            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+                u.Id == 1ul
+                && u.Profiles != null
+                && u.Profiles.Any(p => p.LtUid == 12345ul
+                                       && p.GameUids != null
+                                       && p.GameUids.ContainsKey(Game.Genshin)
+                                       && p.GameUids[Game.Genshin].ContainsKey(Server.Asia.ToString())
+                                       && p.GameUids[Game.Genshin][Server.Asia.ToString()] == profile.GameUid)
+            )),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
+    {
+        // Arrange
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, userRepositoryMock) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        // User exists with game uid already stored for this game/server
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync(new UserModel
+            {
+                Id = 1ul,
+                Profiles = new List<UserProfile>
+                {
+                    new()
+                    {
+                        LtUid = 12345ul,
+                        LToken = "test",
+                        GameUids = new Dictionary<Game, Dictionary<string, string>>
+                        {
+                            {
+                                Game.Genshin, new Dictionary<string, string>
+                                {
+                                    { Server.Asia.ToString(), profile.GameUid }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+        codeRedeemApiMock
+            .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
+
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"))
+        {
+            LtUid = 12345ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert: no persistence since it was already stored
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
+    {
+        // Arrange
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, userRepositoryMock) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        // Case: user not found
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync((UserModel?)null);
+
+        codeRedeemApiMock
+            .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
+
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"))
+        {
+            LtUid = 12345ul,
+            LToken = "test",
+            Server = Server.Asia
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert: no persistence
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+
+        // Case: user exists but no matching profile
+        userRepositoryMock.Reset();
+        userRepositoryMock
+            .Setup(x => x.GetUserAsync(1ul))
+            .ReturnsAsync(new UserModel
+            {
+                Id = 1ul,
+                Profiles = new List<UserProfile>
+                {
+                    new() { LtUid = 99999ul, LToken = "test" }
+                }
+            });
+
+        await service.ExecuteAsync(context);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
     }
 
     #endregion
@@ -434,20 +596,24 @@ public class CodeRedeemApplicationServiceTests
         CodeRedeemApplicationService Service,
         Mock<ICodeRedeemRepository> CodeRepositoryMock,
         Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>> CodeRedeemApiMock,
-        Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock
+        Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
+        Mock<IUserRepository> UserRepositoryMock
         ) SetupMocks()
     {
         var codeRepositoryMock = new Mock<ICodeRedeemRepository>();
         var codeRedeemApiMock = new Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
+        var userRepositoryMock = new Mock<IUserRepository>();
         var loggerMock = new Mock<ILogger<CodeRedeemApplicationService>>();
 
-        var service = new CodeRedeemApplicationService(codeRepositoryMock.Object,
-                                                       codeRedeemApiMock.Object,
-                                                       gameRoleApiMock.Object,
-                                                       loggerMock.Object);
+        var service = new CodeRedeemApplicationService(
+            codeRepositoryMock.Object,
+            codeRedeemApiMock.Object,
+            gameRoleApiMock.Object,
+            userRepositoryMock.Object,
+            loggerMock.Object);
 
-        return (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock);
+        return (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, userRepositoryMock);
     }
 
     private static GameProfileDto CreateTestProfile()

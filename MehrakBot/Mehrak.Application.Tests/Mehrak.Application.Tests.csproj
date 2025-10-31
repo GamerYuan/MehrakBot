@@ -9,9 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-		<Content Include="appsettings.test.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
+        <Content Include="appsettings.test.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <Content Include="TestData\**\*">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>

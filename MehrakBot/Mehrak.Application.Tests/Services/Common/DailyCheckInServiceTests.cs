@@ -25,7 +25,7 @@ public class DailyCheckInServiceTests
         // Arrange
         var (service, userRepositoryMock, _, _) = SetupMocks();
 
-        var user = CreateTestUser(hasCheckedInToday: true);
+        var user = CreateTestUser(true);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -57,7 +57,7 @@ public class DailyCheckInServiceTests
         // Arrange
         var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(hasCheckedInToday: false);
+        var user = CreateTestUser(false);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -97,8 +97,9 @@ public class DailyCheckInServiceTests
         });
 
         // Verify user was updated
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(
-            u => u.Profiles!.First().LastCheckIn.HasValue)), Times.Once);
+        userRepositoryMock.Verify(
+            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u => u.Profiles!.First().LastCheckIn.HasValue)),
+            Times.Once);
     }
 
     [Test]
@@ -213,7 +214,7 @@ public class DailyCheckInServiceTests
         // Arrange
         var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(hasCheckedInToday: false);
+        var user = CreateTestUser(false);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -362,7 +363,7 @@ public class DailyCheckInServiceTests
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-            Does.Contain("No valid account found"));
+                Does.Contain("No valid account found"));
         });
     }
 
@@ -391,7 +392,7 @@ public class DailyCheckInServiceTests
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success(gameRecords));
 
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
-       .ReturnsAsync(Result<CheckInStatus>.Failure(StatusCode.ExternalServerError, "API temporarily unavailable"));
+            .ReturnsAsync(Result<CheckInStatus>.Failure(StatusCode.ExternalServerError, "API temporarily unavailable"));
 
         var context = new CheckInApplicationContext(1)
         {
@@ -407,7 +408,7 @@ public class DailyCheckInServiceTests
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-            Does.Contain("API temporarily unavailable"));
+                Does.Contain("API temporarily unavailable"));
         });
     }
 
@@ -417,7 +418,7 @@ public class DailyCheckInServiceTests
         // Arrange
         var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(hasCheckedInToday: false);
+        var user = CreateTestUser(false);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -501,7 +502,7 @@ public class DailyCheckInServiceTests
         };
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-          .ReturnsAsync(user);
+            .ReturnsAsync(user);
 
         var gameRecords = new List<GameRecordDto>
         {
