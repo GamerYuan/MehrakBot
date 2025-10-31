@@ -50,8 +50,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, context.Server)
-                .ConfigureAwait(false);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, context.Server);
 
             var gameUid = profile.GameUid;
 

@@ -53,7 +53,7 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
         if (user != null && profile != null)
         {
             profile.GameUids ??= [];
-            profile.GameUids[game] ??= [];
+            profile.GameUids.TryAdd(game, []);
             if (profile.GameUids[game].TryAdd(server.ToString(), gameUid))
             {
                 await m_UserRepository.CreateOrUpdateUserAsync(user);

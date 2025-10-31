@@ -55,8 +55,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server)
-                .ConfigureAwait(false);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
 
             string gameUid = profile.GameUid;
 

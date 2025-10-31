@@ -60,8 +60,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server)
-                .ConfigureAwait(false);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server);
 
             string gameUid = profile.GameUid;
 
