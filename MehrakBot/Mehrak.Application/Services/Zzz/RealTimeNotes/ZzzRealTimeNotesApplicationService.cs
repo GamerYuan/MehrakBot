@@ -23,8 +23,9 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
         IImageRepository imageRepository,
         IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<ZzzRealTimeNotesApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_ImageRepository = imageRepository;
         m_ApiService = apiService;
@@ -44,6 +45,9 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
 

@@ -7,6 +7,7 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
@@ -28,8 +29,9 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
         IImageUpdaterService imageUpdaterService,
         IApiService<HsrMemoryInformation, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<HsrMemoryApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -50,6 +52,9 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
             var memoryResult =

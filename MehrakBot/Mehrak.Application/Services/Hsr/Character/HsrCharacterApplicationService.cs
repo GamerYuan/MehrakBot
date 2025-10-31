@@ -42,7 +42,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, logger)
+        IUserRepository userRepository,
+        ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_WikiApi = wikiApi;
@@ -69,6 +70,9 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
 

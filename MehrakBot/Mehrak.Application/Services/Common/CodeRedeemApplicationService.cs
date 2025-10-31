@@ -27,8 +27,9 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
         ICodeRedeemRepository codeRepository,
         IApiService<CodeRedeemResult, CodeRedeemApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<CodeRedeemApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_CodeRepository = codeRepository;
         m_ApiService = apiService;
@@ -48,6 +49,9 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
 

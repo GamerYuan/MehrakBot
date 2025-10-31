@@ -24,8 +24,9 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
         IImageRepository imageRepository,
         IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<HsrRealTimeNotesApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_ImageRepository = imageRepository;
         m_ApiService = apiService;
@@ -45,6 +46,9 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
 

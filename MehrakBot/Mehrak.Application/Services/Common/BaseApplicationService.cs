@@ -2,6 +2,7 @@
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
@@ -14,12 +15,15 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
     where TContext : IApplicationContext
 {
     private readonly IApiService<GameProfileDto, GameRoleApiContext> m_GameRoleApi;
+    private readonly IUserRepository m_UserRepository;
     protected readonly ILogger<BaseApplicationService<TContext>> Logger;
 
     protected BaseApplicationService(IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<BaseApplicationService<TContext>> logger)
     {
         m_GameRoleApi = gameRoleApi;
+        m_UserRepository = userRepository;
         Logger = logger;
     }
 
@@ -39,5 +43,21 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
         }
 
         return gameProfileResult.Data;
+    }
+
+    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, Server server)
+    {
+        var user = await m_UserRepository.GetUserAsync(userId);
+        var profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
+
+        if (user != null && profile != null)
+        {
+            profile.GameUids ??= [];
+            profile.GameUids[game] ??= [];
+            if (profile.GameUids[game].TryAdd(server.ToString(), gameUid))
+            {
+                await m_UserRepository.CreateOrUpdateUserAsync(user);
+            }
+        }
     }
 }

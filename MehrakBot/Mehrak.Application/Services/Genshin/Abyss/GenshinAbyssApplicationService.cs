@@ -8,6 +8,7 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
@@ -35,8 +36,9 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<GenshinAbyssApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_ApiService = apiService;
@@ -57,6 +59,9 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var abyssInfo = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,

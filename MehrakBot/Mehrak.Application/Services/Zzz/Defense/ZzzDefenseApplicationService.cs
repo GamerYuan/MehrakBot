@@ -7,6 +7,7 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
@@ -27,8 +28,9 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
         IImageUpdaterService imageUpdaterService,
         IApiService<ZzzDefenseData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<ZzzDefenseApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -49,6 +51,9 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
 

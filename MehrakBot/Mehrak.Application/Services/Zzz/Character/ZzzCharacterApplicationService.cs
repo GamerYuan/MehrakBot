@@ -38,8 +38,9 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
         IApiService<JsonNode, WikiApiContext> wikiApi,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<ZzzCharacterApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -66,6 +67,9 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             string gameUid = profile.GameUid;
 

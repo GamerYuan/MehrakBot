@@ -8,6 +8,7 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
@@ -36,7 +37,8 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
             characterApiService,
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        ILogger<GenshinTheaterApplicationService> logger) : base(gameRoleApi, logger)
+        IUserRepository userRepository,
+        ILogger<GenshinTheaterApplicationService> logger) : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_ApiService = apiService;
@@ -58,6 +60,9 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 Logger.LogInformation(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
 

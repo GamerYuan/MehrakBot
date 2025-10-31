@@ -1,5 +1,7 @@
 ﻿#region
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin.Types;
@@ -14,8 +16,6 @@ using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 
 #endregion
 
@@ -43,8 +43,9 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
         IImageUpdaterService imageUpdaterService,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
         ILogger<GenshinCharacterApplicationService> logger)
-        : base(gameRoleApi, logger)
+        : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_CharacterCacheService = characterCacheService;
@@ -70,6 +71,9 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var gameUid = profile.GameUid;
 

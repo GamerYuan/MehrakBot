@@ -8,6 +8,7 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
@@ -29,7 +30,8 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
         IImageUpdaterService imageUpdaterService,
         IApiService<HsrEndInformation, HsrEndGameApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        ILogger<HsrEndGameApplicationService> logger) : base(gameRoleApi, logger)
+        IUserRepository userRepository,
+        ILogger<HsrEndGameApplicationService> logger) : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -50,6 +52,9 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
+
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server)
+                .ConfigureAwait(false);
 
             var challengeResponse = await m_ApiService.GetAsync(
                 new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
