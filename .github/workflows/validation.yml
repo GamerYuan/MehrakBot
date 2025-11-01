@@ -48,7 +48,7 @@ jobs:
 
       - name: Run tests
         working-directory: ./MehrakBot
-        run: dotnet test MehrakCore.Tests/MehrakCore.Tests.csproj --configuration Release --verbosity normal
+        run: dotnet test
 
       - name: Upload test output artifacts
         uses: actions/upload-artifact@v4
