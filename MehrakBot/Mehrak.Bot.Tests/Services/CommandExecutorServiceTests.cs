@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Nodes;
+﻿#region
+
+using System.Text.Json.Nodes;
 using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
@@ -10,6 +12,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord;
 using NetCord.Services;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Services;
 
@@ -140,7 +144,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid, lastUsedServer: TestServer);
+        var user = CreateTestUser(TestProfileId, TestLtUid, TestServer);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -174,7 +178,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid, lastUsedServer: null);
+        var user = CreateTestUser(TestProfileId, TestLtUid, null);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -201,12 +205,14 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", Server.Europe)); // Different from current
+        var context =
+            new TestApplicationContext(m_TestUserId, ("game", TestGame),
+                ("server", Server.Europe)); // Different from current
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid, lastUsedServer: TestServer);
+        var user = CreateTestUser(TestProfileId, TestLtUid, TestServer);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -312,7 +318,7 @@ public class CommandExecutorServiceTests
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
-          .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
+            .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
 
         var result = CommandResult.Success(isEphemeral: true); // But result wants ephemeral
 

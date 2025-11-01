@@ -1,9 +1,13 @@
-﻿using Mehrak.Bot.Extensions;
+﻿#region
+
+using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Models;
 using NetCord;
 using NetCord.Rest;
 using static Mehrak.Domain.Models.CommandResult;
 using static Mehrak.Domain.Models.CommandText;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Extensions;
 
@@ -221,7 +225,7 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_EmptyComponents_ReturnsMessageWithFlags()
     {
         // Arrange
-        var data = new CommandResultData(null, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(null, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -239,7 +243,7 @@ public class CommandResultDataExtensionsTests
         {
             new CommandText("Test message", TextType.Plain)
         };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -260,7 +264,7 @@ public class CommandResultDataExtensionsTests
             new CommandText("Second", TextType.Plain),
             new CommandText("Third", TextType.Bold)
         };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -277,7 +281,7 @@ public class CommandResultDataExtensionsTests
         // Arrange
         var attachment = new TestCommandAttachment("test.png");
         var components = new List<ICommandResultComponent> { attachment };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -299,7 +303,7 @@ public class CommandResultDataExtensionsTests
             new TestCommandAttachment("image2.jpg"),
             new TestCommandAttachment("image3.gif")
         };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -322,7 +326,7 @@ public class CommandResultDataExtensionsTests
             new CommandText("Description", TextType.Plain),
             new TestCommandAttachment("image2.png")
         };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -345,11 +349,11 @@ public class CommandResultDataExtensionsTests
         var section = new TestCommandSection(
             "section.png",
             [
-                new("Section Title", TextType.Header2),
-                new("Section Content", TextType.Plain)
+                new CommandText("Section Title", TextType.Header2),
+                new CommandText("Section Content", TextType.Plain)
             ]);
         var components = new List<ICommandResultComponent> { section };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -368,11 +372,11 @@ public class CommandResultDataExtensionsTests
         // Arrange
         var components = new List<ICommandResultComponent>
         {
-            new TestCommandSection("section1.png", [new("Section 1", TextType.Header2)]),
-            new TestCommandSection("section2.png", [new("Section 2", TextType.Header2)]),
-            new TestCommandSection("section3.png", [new("Section 3", TextType.Header2)])
+            new TestCommandSection("section1.png", [new CommandText("Section 1", TextType.Header2)]),
+            new TestCommandSection("section2.png", [new CommandText("Section 2", TextType.Header2)]),
+            new TestCommandSection("section3.png", [new CommandText("Section 3", TextType.Header2)])
         };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -391,7 +395,7 @@ public class CommandResultDataExtensionsTests
             new TestCommandAttachment("image1.png"),
             new TestCommandAttachment("image2.png")
         };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -410,7 +414,7 @@ public class CommandResultDataExtensionsTests
         {
             new CommandText("Container Text", TextType.Bold)
         };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -426,11 +430,11 @@ public class CommandResultDataExtensionsTests
         // Arrange
         var components = new List<ICommandResultComponent>
         {
-            new TestCommandSection("section.png", [new("Section", TextType.Header2)]),
+            new TestCommandSection("section.png", [new CommandText("Section", TextType.Header2)]),
             new CommandText("Text", TextType.Plain),
             new TestCommandAttachment("image.png")
         };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -449,12 +453,12 @@ public class CommandResultDataExtensionsTests
         var components = new List<ICommandResultComponent>
         {
             new TestCommandSection("section.png",
-                [new("Title", TextType.Header1)]),
+                [new CommandText("Title", TextType.Header1)]),
             new TestCommandAttachment("image1.png"),
             new TestCommandAttachment("image2.png"),
             new TestCommandAttachment("image3.png")
         };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -476,7 +480,7 @@ public class CommandResultDataExtensionsTests
         // Arrange
         var attachment = new TestCommandAttachment("test-image.png");
         var components = new List<ICommandResultComponent> { attachment };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -497,7 +501,7 @@ public class CommandResultDataExtensionsTests
             new TestCommandAttachment("file2.jpg"),
             new TestCommandAttachment("file3.gif")
         };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -515,9 +519,9 @@ public class CommandResultDataExtensionsTests
         // Arrange
         var section = new TestCommandSection(
             "thumbnail.png",
-            [new("Test", TextType.Plain)]);
+            [new CommandText("Test", TextType.Plain)]);
         var components = new List<ICommandResultComponent> { section };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -535,7 +539,7 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_EmptyComponentsList_ReturnsValidMessage()
     {
         // Arrange
-        var data = new CommandResultData(new List<ICommandResultComponent>(), isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(new List<ICommandResultComponent>(), false, false);
 
         // Act
         var result = data.ToMessage();
@@ -553,7 +557,7 @@ public class CommandResultDataExtensionsTests
         {
             new TestUnknownComponent()
         };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -571,7 +575,7 @@ public class CommandResultDataExtensionsTests
         {
             new CommandText("Test", TextType.Plain)
         };
-        var data = new CommandResultData(components, isContainer: true, isEphemeral: false);
+        var data = new CommandResultData(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -589,7 +593,7 @@ public class CommandResultDataExtensionsTests
         {
             new CommandText("Test", TextType.Plain)
         };
-        var data = new CommandResultData(components, isContainer: false, isEphemeral: false);
+        var data = new CommandResultData(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -609,7 +613,7 @@ public class CommandResultDataExtensionsTests
     private class TestCommandAttachment : CommandAttachment
     {
         public TestCommandAttachment(string fileName)
-      : base(fileName, new MemoryStream(new byte[] { 1, 2, 3, 4, 5 }))
+            : base(fileName, new MemoryStream(new byte[] { 1, 2, 3, 4, 5 }))
         {
         }
     }

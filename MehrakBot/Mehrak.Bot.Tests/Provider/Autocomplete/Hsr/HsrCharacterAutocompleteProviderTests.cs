@@ -1,4 +1,6 @@
-﻿using Mehrak.Bot.Provider;
+﻿#region
+
+using Mehrak.Bot.Provider;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
 using Mehrak.Domain.Enums;
 using Moq;
@@ -6,6 +8,8 @@ using NetCord;
 using NetCord.JsonModels;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Provider.Autocomplete.Hsr;
 
@@ -522,17 +526,17 @@ public class HsrCharacterAutocompleteProviderTests
             Value = optionValue
         };
         ApplicationCommandInteractionDataOption option = new(jsonOption);
-        AutocompleteInteraction interaction = new(new JsonInteraction()
+        AutocompleteInteraction interaction = new(new JsonInteraction
         {
-            Data = new()
+            Data = new JsonInteractionData
             {
                 Options = []
             },
-            User = new()
+            User = new JsonUser
             {
                 Id = 1
             },
-            Channel = new()
+            Channel = new JsonChannel
             {
                 Id = 1
             },

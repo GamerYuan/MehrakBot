@@ -1,4 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿#region
+
+using System.Reflection;
+using System.Text.RegularExpressions;
 using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -8,6 +11,8 @@ using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord.Services;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Authentication;
 
@@ -103,15 +108,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             {
                 responseData = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
                 await Task.Delay(50);
-            }
-            while (string.IsNullOrEmpty(responseData));
+            } while (string.IsNullOrEmpty(responseData));
 
             var guidMatch = ModalGuidRegex().Match(responseData);
             Console.WriteLine(nameof(GetAuthenticationAsync_FullFlow_CorrectPassphrase_ReturnsSuccessAndCachesToken));
-            if (guidMatch.Success)
-            {
-                guidCaptured.SetResult(guidMatch.Groups[1].Value);
-            }
+            if (guidMatch.Success) guidCaptured.SetResult(guidMatch.Groups[1].Value);
         });
 
         m_MockCacheService
@@ -203,15 +204,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             {
                 responseData = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
                 await Task.Delay(50);
-            }
-            while (string.IsNullOrEmpty(responseData));
+            } while (string.IsNullOrEmpty(responseData));
 
             var guidMatch = ModalGuidRegex().Match(responseData);
             Console.WriteLine(nameof(GetAuthenticationAsync_FullFlow_WrongPassphrase_ReturnsFailure));
-            if (guidMatch.Success)
-            {
-                guidCaptured.SetResult(guidMatch.Groups[1].Value);
-            }
+            if (guidMatch.Success) guidCaptured.SetResult(guidMatch.Groups[1].Value);
         });
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
@@ -292,7 +289,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             NullLogger<AuthenticationMiddlewareService>.Instance);
 
         var prop = service.GetType()
-            .GetProperty("TimeoutMinutes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            .GetProperty("TimeoutMinutes", BindingFlags.NonPublic | BindingFlags.Instance);
         prop?.SetValue(service, 0.1f);
 
         // Act - Start authentication but don't notify (simulate user not responding)
@@ -349,22 +346,18 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var guidCaptured = new TaskCompletionSource<string>();
 
         _ = Task.Run(async () =>
+        {
+            var responseData = string.Empty;
+            do
             {
-                var responseData = string.Empty;
-                do
-                {
-                    responseData = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
-                    await Task.Delay(50);
-                }
-                while (string.IsNullOrEmpty(responseData));
+                responseData = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
+                await Task.Delay(50);
+            } while (string.IsNullOrEmpty(responseData));
 
-                var guidMatch = ModalGuidRegex().Match(responseData);
-                Console.WriteLine(nameof(GetAuthenticationAsync_FullFlow_MultiplePassphraseAttempts_OnlyFirstSucceeds));
-                if (guidMatch.Success)
-                {
-                    guidCaptured.SetResult(guidMatch.Groups[1].Value);
-                }
-            });
+            var guidMatch = ModalGuidRegex().Match(responseData);
+            Console.WriteLine(nameof(GetAuthenticationAsync_FullFlow_MultiplePassphraseAttempts_OnlyFirstSucceeds));
+            if (guidMatch.Success) guidCaptured.SetResult(guidMatch.Groups[1].Value);
+        });
 
         m_MockCacheService
             .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()))
@@ -442,11 +435,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 {
                     responseData = await helper1.ExtractInteractionResponseDataAsync();
                     await Task.Delay(50);
-                }
-                while (string.IsNullOrEmpty(responseData));
+                } while (string.IsNullOrEmpty(responseData));
 
                 var match1 = ModalGuidRegex().Match(responseData);
-                Console.WriteLine(nameof(GetAuthenticationAsync_MultipleConcurrentRequests_EachHandledIndependently) + " 1");
+                Console.WriteLine(nameof(GetAuthenticationAsync_MultipleConcurrentRequests_EachHandledIndependently) +
+                                  " 1");
                 if (match1.Success) guid1Captured.SetResult(match1.Groups[1].Value);
             });
 
@@ -457,8 +450,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 {
                     responseData = await helper2.ExtractInteractionResponseDataAsync();
                     await Task.Delay(50);
-                }
-                while (string.IsNullOrEmpty(responseData));
+                } while (string.IsNullOrEmpty(responseData));
 
                 var match2 = ModalGuidRegex().Match(responseData);
                 if (match2.Success) guid2Captured.SetResult(match2.Groups[1].Value);
@@ -534,8 +526,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             {
                 responseData = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
                 await Task.Delay(50);
-            }
-            while (string.IsNullOrEmpty(responseData));
+            } while (string.IsNullOrEmpty(responseData));
 
             var match = ModalGuidRegex().Match(responseData);
             if (match.Success) guidCaptured.SetResult(match.Groups[1].Value);
@@ -544,7 +535,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         // Act
         var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase, mockContext.Object));
+        m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase,
+            mockContext.Object));
         var result = await authTask;
 
         // Assert
@@ -591,8 +583,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             {
                 responseData = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
                 await Task.Delay(50);
-            }
-            while (string.IsNullOrEmpty(responseData));
+            } while (string.IsNullOrEmpty(responseData));
+
             var match = ModalGuidRegex().Match(responseData);
             if (match.Success) guidCaptured.SetResult(match.Groups[1].Value);
         });
@@ -600,7 +592,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         // Act
         var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase, mockContext.Object));
+        m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase,
+            mockContext.Object));
         var result = await authTask;
 
         // Assert
@@ -647,8 +640,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             {
                 responseData = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
                 await Task.Delay(50);
-            }
-            while (string.IsNullOrEmpty(responseData));
+            } while (string.IsNullOrEmpty(responseData));
 
             var match = ModalGuidRegex().Match(responseData);
             if (match.Success) guidCaptured.SetResult(match.Groups[1].Value);
@@ -657,7 +649,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         // Act
         var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase, mockContext.Object));
+        m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase,
+            mockContext.Object));
         var result = await authTask;
 
         // Assert

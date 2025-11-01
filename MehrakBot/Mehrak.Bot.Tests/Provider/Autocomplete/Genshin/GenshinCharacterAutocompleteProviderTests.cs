@@ -1,4 +1,6 @@
-﻿using Mehrak.Bot.Provider;
+﻿#region
+
+using Mehrak.Bot.Provider;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
 using Mehrak.Domain.Enums;
 using Moq;
@@ -6,6 +8,8 @@ using NetCord;
 using NetCord.JsonModels;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Provider.Autocomplete.Genshin;
 
@@ -287,8 +291,8 @@ public class GenshinCharacterAutocompleteProviderTests
         };
 
         m_MockAutocompleteService
-                   .Setup(x => x.FindCharacter(Game.Genshin, "A"))
-               .Returns(expectedCharacters);
+            .Setup(x => x.FindCharacter(Game.Genshin, "A"))
+            .Returns(expectedCharacters);
 
         // Act
         var result = await m_Provider.GetChoicesAsync(option, context);
@@ -466,17 +470,17 @@ public class GenshinCharacterAutocompleteProviderTests
             Value = optionValue
         };
         ApplicationCommandInteractionDataOption option = new(jsonOption);
-        AutocompleteInteraction interaction = new(new JsonInteraction()
+        AutocompleteInteraction interaction = new(new JsonInteraction
         {
-            Data = new()
+            Data = new JsonInteractionData
             {
                 Options = []
             },
-            User = new()
+            User = new JsonUser
             {
                 Id = 1
             },
-            Channel = new()
+            Channel = new JsonChannel
             {
                 Id = 1
             },

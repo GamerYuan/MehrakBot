@@ -7,6 +7,7 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Models;
 using Microsoft.Extensions.Logging;
+using NetCord;
 using NetCord.Rest;
 
 #endregion
@@ -64,6 +65,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         {
             m_Logger.LogDebug("Cache hit for LToken. UserId={UserId}, LtUid={LtUid}",
                 request.Context.Interaction.User.Id, profile.LtUid);
+            await request.Context.Interaction.SendResponseAsync(
+                InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
             return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
                 request.Context);
         }
@@ -103,6 +106,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}",
             request.Context.Interaction.User.Id, profile.LtUid);
+        await authResponse.Context.Interaction.SendResponseAsync(
+            InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
         return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
             authResponse.Context);
     }
