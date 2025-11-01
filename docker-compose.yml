@@ -3,7 +3,7 @@ services:
   bot:
     image: mehrak:latest
     build:
-      context: .
+      context: ./MehrakBot
       dockerfile: Dockerfile
     ports:
       - "5000:80"
@@ -40,7 +40,7 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - ./MehrakCore/Config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -77,9 +77,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./MehrakCore/Config/nginx/conf.d:/etc/nginx/conf.d
-      - ./MehrakCore/Config/nginx/ssl:/etc/nginx/ssl:ro
-      - ./MehrakCore/Config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - grafana
     networks:
@@ -104,7 +104,7 @@ services:
     image: grafana/loki:2.9.0
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
-      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - ./grafana/loki-config.yaml:/etc/loki/local-config.yaml
     networks:
       - mehrak-network
 
@@ -121,5 +121,5 @@ volumes:
       driver: local
       driver_opts:
         type: none
-        device: ./MehrakCore/logs
+        device: ./MehrakBot/logs
         o: bind
