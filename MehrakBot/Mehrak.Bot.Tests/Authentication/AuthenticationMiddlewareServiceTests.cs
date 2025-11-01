@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NetCord;
 using NetCord.JsonModels;
+using NetCord.Rest;
 using NetCord.Services;
 
 namespace Mehrak.Bot.Tests.Authentication;
@@ -167,7 +168,7 @@ public class AuthenticationMiddlewareServiceTests
                 Type = ChannelType.TextGuildChannel
             },
             Entitlements = []
-        }, null!, null!, new NetCord.Rest.RestClient());
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
