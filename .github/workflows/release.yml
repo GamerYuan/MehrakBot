@@ -16,6 +16,9 @@ jobs:
           lfs: true
           submodules: recursive
 
+      - name: Checkout LFS
+        run: git lfs pull
+
       - name: Create Assets Archive
         env:
           TAG_NAME: ${{ github.ref_name }}
