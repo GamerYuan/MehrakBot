@@ -45,6 +45,7 @@ jobs:
 
       # Manual build for C#
       - name: Build with dotnet (manual build for C#)
+        working-directory: ./MehrakBot
         if: matrix.language == 'csharp'
         run: |
           dotnet --version

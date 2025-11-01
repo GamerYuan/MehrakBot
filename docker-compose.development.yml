@@ -3,7 +3,7 @@ services:
   bot:
     image: mehrak:latest
     build:
-      context: .
+      context: ./MehrakBot
       args:
         DOTNET_ENVIRONMENT: Development
       dockerfile: Dockerfile
@@ -46,15 +46,15 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - ./MehrakCore/Config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     ports:
       - "9091:9090"
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.size=10GB'
-      - '--storage.tsdb.retention.time=2y'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.size=10GB"
+      - "--storage.tsdb.retention.time=2y"
     networks:
       - mehrak-network
 
@@ -77,9 +77,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./MehrakCore/Config/nginx/conf.d:/etc/nginx/conf.d
-      - ./MehrakCore/Config/nginx/ssl:/etc/nginx/ssl
-      - ./MehrakCore/Config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - grafana
     networks:
@@ -90,9 +90,9 @@ services:
     container_name: node-exporter
     restart: unless-stopped
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -106,7 +106,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - ./grafana/loki-config.yaml:/etc/loki/local-config.yaml
     networks:
       - mehrak-network
 
@@ -123,5 +123,5 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: ./MehrakCore/logs
+      device: ./MehrakBot/logs
       o: bind
