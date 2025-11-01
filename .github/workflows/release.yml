@@ -20,7 +20,7 @@ jobs:
         env:
           TAG_NAME: ${{ github.ref_name }}
         run: |
-          if [ -d "Assets" ]; then
+          if [ -d "MehrakBot/Assets" ]; then
             echo "Creating assets archive..."
             cd Assets
             zip -r "../assets-$TAG_NAME.zip" . -x "*.git*" ".gitattributes"
