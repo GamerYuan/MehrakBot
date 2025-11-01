@@ -96,9 +96,9 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
             ),
             new CommandSection([
                     new CommandText("Assignments", CommandText.TextType.Header3),
-                    new CommandText($"{data.AcceptedExpeditionNum}/{data.MaxStamina}"),
+                    new CommandText($"{data.AcceptedExpeditionNum}/{data.TotalExpeditionNum}"),
                     new CommandText(data.AcceptedExpeditionNum > 0
-                        ? $"{data.AcceptedExpeditionNum}/{data.MaxStamina}"
+                        ? $"{data.AcceptedExpeditionNum}/{data.TotalExpeditionNum}"
                         : "None Accepted!", CommandText.TextType.Footer)
                 ],
                 new CommandAttachment("hsr_assignment.png", await assignmentImage)
