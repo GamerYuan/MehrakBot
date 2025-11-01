@@ -136,7 +136,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         m_RarityImages = (await Task.WhenAll(rarityTasks)).ToDictionary(CaseInsensitiveCharComparer.Instance);
         m_WeaponStarImages = (await Task.WhenAll(weaponStarTasks)).ToDictionary();
 
-        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzCharacterApplicationContext));
+        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzCharacterCardService));
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzFullAvatarData> context)
@@ -182,13 +182,13 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
                 // Character Overview
                 ctx.DrawFauxItalicText(new RichTextOptions(m_ExtraLargeFont)
-                    {
-                        Origin = new Vector2(-500, 0),
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Top,
-                        WrappingLength = 1800,
-                        WordBreaking = WordBreaking.BreakAll
-                    }, string.Join($"{character.FullName.ToUpperInvariant()} ", Enumerable.Range(0, 5).Select(_ => "")),
+                {
+                    Origin = new Vector2(-500, 0),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    WrappingLength = 1800,
+                    WordBreaking = WordBreaking.BreakAll
+                }, string.Join($"{character.FullName.ToUpperInvariant()} ", Enumerable.Range(0, 5).Select(_ => "")),
                     Color.White.WithAlpha(0.25f));
 
                 ctx.DrawImage(portraitImage,
@@ -364,10 +364,10 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                     int yOffset = i * 50;
                     EquipSuit set = activeSets[i];
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
-                        {
-                            Origin = new Vector2(2100, 1060 + yOffset),
-                            HorizontalAlignment = HorizontalAlignment.Right
-                        }, $"{set.Name}\tx{set.Own}", Color.White);
+                    {
+                        Origin = new Vector2(2100, 1060 + yOffset),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"{set.Name}\tx{set.Own}", Color.White);
                 }
 
                 if (activeSets.Length == 0)
@@ -438,10 +438,10 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 HorizontalAlignment = HorizontalAlignment.Right
             }, disk.MainProperties[0]!.Base!, Color.White);
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-                {
-                    Origin = new PointF(265, 130),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"Lv.{disk.Level}", Color.White);
+            {
+                Origin = new PointF(265, 130),
+                HorizontalAlignment = HorizontalAlignment.Right
+            }, $"Lv.{disk.Level}", Color.White);
             // Draw properties
             for (int i = 0; i < disk.Properties!.Count; i++)
             {
