@@ -68,9 +68,6 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
-            await authResult.Context!.Interaction.SendResponseAsync(
-                InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-
             var server = ApplicationContext.GetParameter<Server?>("server");
             var game = ApplicationContext.GetParameter<Game>("game");
 

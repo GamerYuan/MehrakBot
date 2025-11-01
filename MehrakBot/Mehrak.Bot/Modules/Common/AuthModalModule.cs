@@ -3,7 +3,7 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -33,12 +33,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     }
 
     private readonly ILogger<AuthModalModule> m_Logger;
-    private readonly CookieEncryptionService m_CookieService;
+    private readonly IEncryptionService m_CookieService;
     private readonly IUserRepository m_UserRepository;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
 
     public AuthModalModule(
-        CookieEncryptionService cookieService,
+        IEncryptionService cookieService,
         IUserRepository userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
         ILogger<AuthModalModule> logger)
@@ -119,6 +119,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     [ComponentInteraction("auth_modal")]
     public async Task AuthModalCallback(string guid)
     {
+        await Context.Interaction.SendResponseAsync(
+            InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
         var passphrase = Context.Components.OfType<TextInput>()
             .First(x => x.CustomId == "passphrase").Value;
 
@@ -131,7 +134,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .AddComponents(
                     new TextDisplayProperties(
                         "This authentication request has expired or is invalid. Please try again"))));
-            return;
         }
     }
 }
