@@ -490,7 +490,7 @@ public class RedisCacheServiceTests
     #region Edge Cases
 
     [Test]
-    public async Task GetAsync_WithInvalidJson_ThrowsJsonException()
+    public void GetAsync_WithInvalidJson_ThrowsJsonException()
     {
         // Arrange
         const string key = "invalid-json-key";
@@ -505,7 +505,7 @@ public class RedisCacheServiceTests
     }
 
     [Test]
-    public async Task GetAsync_WithTypeMismatch_ThrowsJsonException()
+    public void GetAsync_WithTypeMismatch_ThrowsJsonException()
     {
         // Arrange
         const string key = "type-mismatch-key";

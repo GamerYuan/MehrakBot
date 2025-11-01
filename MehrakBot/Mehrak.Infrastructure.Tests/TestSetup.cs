@@ -6,7 +6,7 @@ public class TestSetup
     private MongoTestHelper m_MongoTestHelper;
 
     [OneTimeSetUp]
-    public async Task Setup()
+    public void Setup()
     {
         m_MongoTestHelper = new MongoTestHelper();
     }
