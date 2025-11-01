@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="appsettings.test.json">
+        <Content Condition="Exists('appsettings.test.json')" Include="appsettings.test.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Include="TestData\**\*">
