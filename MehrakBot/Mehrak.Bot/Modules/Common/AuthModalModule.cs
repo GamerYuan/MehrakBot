@@ -119,9 +119,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     [ComponentInteraction("auth_modal")]
     public async Task AuthModalCallback(string guid)
     {
-        await Context.Interaction.SendResponseAsync(
-            InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-
         var passphrase = Context.Components.OfType<TextInput>()
             .First(x => x.CustomId == "passphrase").Value;
 
