@@ -1,5 +1,8 @@
-﻿using Mehrak.Bot.Authentication;
+﻿#region
+
+using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -8,6 +11,8 @@ using NetCord;
 using NetCord.JsonModels;
 using NetCord.Rest;
 using NetCord.Services;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Authentication;
 
@@ -58,7 +63,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        var interaction = new ModalInteraction(new JsonInteraction()
+        var interaction = new ModalInteraction(new JsonInteraction
         {
             Token = "sample_token",
             Data = new JsonInteractionData
@@ -75,7 +80,7 @@ public class AuthenticationMiddlewareServiceTests
                 Type = ChannelType.TextGuildChannel
             },
             Entitlements = []
-        }, null!, null!, new NetCord.Rest.RestClient());
+        }, null!, null!, new RestClient());
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
@@ -103,7 +108,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        var interaction = new ModalInteraction(new JsonInteraction()
+        var interaction = new ModalInteraction(new JsonInteraction
         {
             Token = "sample_token",
             Data = new JsonInteractionData
@@ -120,7 +125,7 @@ public class AuthenticationMiddlewareServiceTests
                 Type = ChannelType.TextGuildChannel
             },
             Entitlements = []
-        }, null!, null!, new NetCord.Rest.RestClient());
+        }, null!, null!, new RestClient());
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
@@ -132,18 +137,18 @@ public class AuthenticationMiddlewareServiceTests
 
         m_MockUserRepository
             .Setup(x => x.GetUserAsync(TestUserId))
-      .ReturnsAsync(user);
+            .ReturnsAsync(user);
 
         // Act
         var result = await m_Service.GetAuthenticationAsync(request);
 
         // Assert
         Assert.Multiple(() =>
-             {
-                 Assert.That(result.IsSuccess, Is.False);
-                 Assert.That(result.ErrorMessage, Does.Contain("No profiles found"));
-                 Assert.That(result.Status, Is.EqualTo(AuthStatus.Failure));
-             });
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Does.Contain("No profiles found"));
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.Failure));
+        });
     }
 
     [Test]
@@ -151,7 +156,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        var interaction = new ModalInteraction(new JsonInteraction()
+        var interaction = new ModalInteraction(new JsonInteraction
         {
             Token = "sample_token",
             Data = new JsonInteractionData
@@ -190,25 +195,25 @@ public class AuthenticationMiddlewareServiceTests
 
         m_MockUserRepository
             .Setup(x => x.GetUserAsync(TestUserId))
-         .ReturnsAsync(user);
+            .ReturnsAsync(user);
 
         m_MockCacheService
-          .Setup(x => x.GetAsync<string>(cacheKey))
-          .ReturnsAsync(TestLToken);
+            .Setup(x => x.GetAsync<string>(cacheKey))
+            .ReturnsAsync(TestLToken);
 
         // Act
         var result = await m_Service.GetAuthenticationAsync(request);
 
         // Assert
         Assert.Multiple(() =>
-  {
-      Assert.That(result.IsSuccess, Is.True);
-      Assert.That(result.LToken, Is.EqualTo(TestLToken));
-      Assert.That(result.UserId, Is.EqualTo(TestUserId));
-      Assert.That(result.LtUid, Is.EqualTo(TestLtUid));
-      Assert.That(result.User, Is.EqualTo(user));
-      Assert.That(result.Status, Is.EqualTo(AuthStatus.Success));
-  });
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.LToken, Is.EqualTo(TestLToken));
+            Assert.That(result.UserId, Is.EqualTo(TestUserId));
+            Assert.That(result.LtUid, Is.EqualTo(TestLtUid));
+            Assert.That(result.User, Is.EqualTo(user));
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.Success));
+        });
 
         m_MockCacheService.Verify(x => x.GetAsync<string>(cacheKey), Times.Once);
         m_MockEncryptionService.Verify(x => x.Decrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -219,7 +224,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        var interaction = new ModalInteraction(new JsonInteraction()
+        var interaction = new ModalInteraction(new JsonInteraction
         {
             Token = "sample_token",
             Data = new JsonInteractionData
@@ -236,7 +241,7 @@ public class AuthenticationMiddlewareServiceTests
                 Type = ChannelType.TextGuildChannel
             },
             Entitlements = []
-        }, null!, null!, new NetCord.Rest.RestClient());
+        }, null!, null!, new RestClient());
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
@@ -257,20 +262,20 @@ public class AuthenticationMiddlewareServiceTests
         var cacheKey = $"ltoken:{TestUserId}:{TestLtUid}";
 
         m_MockUserRepository
-     .Setup(x => x.GetUserAsync(TestUserId))
-       .ReturnsAsync(user);
+            .Setup(x => x.GetUserAsync(TestUserId))
+            .ReturnsAsync(user);
 
         m_MockCacheService
-        .Setup(x => x.GetAsync<string>(cacheKey))
-       .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<string>(cacheKey))
+            .ReturnsAsync((string?)null);
 
         m_MockEncryptionService
-   .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
             .Returns(TestLToken);
 
         m_MockCacheService
-        .Setup(x => x.SetAsync(It.IsAny<Domain.Models.Abstractions.ICacheEntry<string>>()))
-    .Returns(Task.CompletedTask);
+            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()))
+            .Returns(Task.CompletedTask);
 
         // Start the authentication process
         _ = Task.Run(() => m_Service.GetAuthenticationAsync(request));
@@ -280,10 +285,10 @@ public class AuthenticationMiddlewareServiceTests
 
         // Simulate user providing passphrase through modal
         var authResponse = new AuthenticationResponse(
-    TestUserId,
+            TestUserId,
             Guid.NewGuid().ToString(), // We can't easily extract the real GUID in this test
             TestPassphrase,
-      mockContext.Object);
+            mockContext.Object);
 
         // Notify the service - this will fail since we don't have the real GUID
         // but the test is more about verifying the decryption logic would work
@@ -306,10 +311,10 @@ public class AuthenticationMiddlewareServiceTests
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
         var authResponse = new AuthenticationResponse(
-                TestUserId,
+            TestUserId,
             "invalid-guid-12345",
-                TestPassphrase,
-                    mockContext.Object);
+            TestPassphrase,
+            mockContext.Object);
 
         // Act
         var result = m_Service.NotifyAuthenticate(authResponse);
@@ -323,7 +328,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        var interaction = new ModalInteraction(new JsonInteraction()
+        var interaction = new ModalInteraction(new JsonInteraction
         {
             Token = "sample_token",
             Data = new JsonInteractionData
@@ -340,7 +345,7 @@ public class AuthenticationMiddlewareServiceTests
                 Type = ChannelType.TextGuildChannel
             },
             Entitlements = []
-        }, null!, null!, new NetCord.Rest.RestClient());
+        }, null!, null!, new RestClient());
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var profile = new UserProfile
@@ -357,12 +362,12 @@ public class AuthenticationMiddlewareServiceTests
         };
 
         m_MockUserRepository
-       .Setup(x => x.GetUserAsync(TestUserId))
+            .Setup(x => x.GetUserAsync(TestUserId))
             .ReturnsAsync(user);
 
         m_MockCacheService
             .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-      .ReturnsAsync((string?)null);
+            .ReturnsAsync((string?)null);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
@@ -376,9 +381,9 @@ public class AuthenticationMiddlewareServiceTests
         // This test demonstrates the pattern but would need adjustment for real use
         var authResponse = new AuthenticationResponse(
             TestUserId,
-         Guid.NewGuid().ToString(),
-     TestPassphrase,
- mockContext.Object);
+            Guid.NewGuid().ToString(),
+            TestPassphrase,
+            mockContext.Object);
 
         // Act
         var result = m_Service.NotifyAuthenticate(authResponse);
@@ -401,24 +406,24 @@ public class AuthenticationMiddlewareServiceTests
 
         // Act
         var result = AuthenticationResult.Success(
-       TestUserId,
-     TestLtUid,
-               TestLToken,
-           user,
-           mockContext.Object);
+            TestUserId,
+            TestLtUid,
+            TestLToken,
+            user,
+            mockContext.Object);
 
         // Assert
         Assert.Multiple(() =>
-               {
-                   Assert.That(result.IsSuccess, Is.True);
-                   Assert.That(result.Status, Is.EqualTo(AuthStatus.Success));
-                   Assert.That(result.UserId, Is.EqualTo(TestUserId));
-                   Assert.That(result.LtUid, Is.EqualTo(TestLtUid));
-                   Assert.That(result.LToken, Is.EqualTo(TestLToken));
-                   Assert.That(result.User, Is.EqualTo(user));
-                   Assert.That(result.Context, Is.EqualTo(mockContext.Object));
-                   Assert.That(result.ErrorMessage, Is.Null);
-               });
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.Success));
+            Assert.That(result.UserId, Is.EqualTo(TestUserId));
+            Assert.That(result.LtUid, Is.EqualTo(TestLtUid));
+            Assert.That(result.LToken, Is.EqualTo(TestLToken));
+            Assert.That(result.User, Is.EqualTo(user));
+            Assert.That(result.Context, Is.EqualTo(mockContext.Object));
+            Assert.That(result.ErrorMessage, Is.Null);
+        });
     }
 
     [Test]
@@ -495,19 +500,19 @@ public class AuthenticationMiddlewareServiceTests
 
         // Act
         var response = new AuthenticationResponse(
-        TestUserId,
-               guid,
-           TestPassphrase,
-       mockContext.Object);
+            TestUserId,
+            guid,
+            TestPassphrase,
+            mockContext.Object);
 
         // Assert
         Assert.Multiple(() =>
-     {
-         Assert.That(response.UserId, Is.EqualTo(TestUserId));
-         Assert.That(response.Guid, Is.EqualTo(guid));
-         Assert.That(response.Passphrase, Is.EqualTo(TestPassphrase));
-         Assert.That(response.Context, Is.EqualTo(mockContext.Object));
-     });
+        {
+            Assert.That(response.UserId, Is.EqualTo(TestUserId));
+            Assert.That(response.Guid, Is.EqualTo(guid));
+            Assert.That(response.Passphrase, Is.EqualTo(TestPassphrase));
+            Assert.That(response.Context, Is.EqualTo(mockContext.Object));
+        });
     }
 
     #endregion

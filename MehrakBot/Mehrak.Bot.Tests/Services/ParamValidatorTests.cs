@@ -1,6 +1,10 @@
-﻿using Mehrak.Application.Models.Context;
+﻿#region
+
+using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Services;
 
@@ -63,10 +67,10 @@ public class ParamValidatorTests
 
         // Assert
         Assert.Multiple(() =>
-      {
-          Assert.That(validator.ParamName, Is.EqualTo("name"));
-          Assert.That(validator.ErrorMessage, Is.EqualTo("Name is required"));
-      });
+        {
+            Assert.That(validator.ParamName, Is.EqualTo("name"));
+            Assert.That(validator.ErrorMessage, Is.EqualTo("Name is required"));
+        });
     }
 
     [Test]
@@ -350,7 +354,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("email",
-          x => !string.IsNullOrEmpty(x) && x.Contains("@") && x.Length > 5);
+            x => !string.IsNullOrEmpty(x) && x.Contains("@") && x.Length > 5);
         var context = CreateContext(("email", "test@example.com"));
 
         // Act
@@ -416,9 +420,9 @@ public class ParamValidatorTests
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
         var context = CreateContext(
-   ("name", "John"),
- ("age", 25),
-        ("email", "john@example.com"));
+            ("name", "John"),
+            ("age", 25),
+            ("email", "john@example.com"));
 
         // Act
         var result = validator.IsValid(context);
@@ -433,7 +437,7 @@ public class ParamValidatorTests
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
         var context = CreateContext(
-         ("name", ""),
+            ("name", ""),
             ("age", 25));
 
         // Act
@@ -552,10 +556,10 @@ public class ParamValidatorTests
 
         // Act & Assert
         Assert.Multiple(() =>
-           {
-               Assert.That(validator.IsValid(validContext), Is.True);
-               Assert.That(validator.IsValid(nullContext), Is.False);
-           });
+        {
+            Assert.That(validator.IsValid(validContext), Is.True);
+            Assert.That(validator.IsValid(nullContext), Is.False);
+        });
     }
 
     #endregion
@@ -567,7 +571,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("email",
-         x => !string.IsNullOrEmpty(x) && x.Contains("@") && x.Contains("."),
+            x => !string.IsNullOrEmpty(x) && x.Contains("@") && x.Contains("."),
             "Please enter a valid email address");
 
         var validContext = CreateContext(("email", "user@example.com"));
@@ -589,7 +593,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("age",
-              x => x is >= 18 and <= 120,
+            x => x is >= 18 and <= 120,
             "Age must be between 18 and 120");
 
         var validContext = CreateContext(("age", 25));
@@ -598,11 +602,11 @@ public class ParamValidatorTests
 
         // Act & Assert
         Assert.Multiple(() =>
-   {
-       Assert.That(validator.IsValid(validContext), Is.True);
-       Assert.That(validator.IsValid(tooYoungContext), Is.False);
-       Assert.That(validator.IsValid(tooOldContext), Is.False);
-   });
+        {
+            Assert.That(validator.IsValid(validContext), Is.True);
+            Assert.That(validator.IsValid(tooYoungContext), Is.False);
+            Assert.That(validator.IsValid(tooOldContext), Is.False);
+        });
     }
 
     [Test]
@@ -610,8 +614,8 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("username",
-      x => !string.IsNullOrEmpty(x) && x.Length >= 3 && x.Length <= 20,
-     "Username must be between 3 and 20 characters");
+            x => !string.IsNullOrEmpty(x) && x.Length >= 3 && x.Length <= 20,
+            "Username must be between 3 and 20 characters");
 
         var validContext = CreateContext(("username", "john_doe"));
         var tooShortContext = CreateContext(("username", "ab"));
@@ -631,8 +635,8 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("password",
-               x => !string.IsNullOrEmpty(x) && x.Length >= 8 && x.Any(char.IsDigit) && x.Any(char.IsUpper),
-       "Password must be at least 8 characters with a number and uppercase letter");
+            x => !string.IsNullOrEmpty(x) && x.Length >= 8 && x.Any(char.IsDigit) && x.Any(char.IsUpper),
+            "Password must be at least 8 characters with a number and uppercase letter");
 
         var validContext = CreateContext(("password", "SecurePass123"));
         var tooShortContext = CreateContext(("password", "Short1"));
@@ -641,12 +645,12 @@ public class ParamValidatorTests
 
         // Act & Assert
         Assert.Multiple(() =>
-{
-    Assert.That(validator.IsValid(validContext), Is.True);
-    Assert.That(validator.IsValid(tooShortContext), Is.False);
-    Assert.That(validator.IsValid(noNumberContext), Is.False);
-    Assert.That(validator.IsValid(noUpperContext), Is.False);
-});
+        {
+            Assert.That(validator.IsValid(validContext), Is.True);
+            Assert.That(validator.IsValid(tooShortContext), Is.False);
+            Assert.That(validator.IsValid(noNumberContext), Is.False);
+            Assert.That(validator.IsValid(noUpperContext), Is.False);
+        });
     }
 
     #endregion
@@ -665,7 +669,7 @@ public class ParamValidatorTests
     private class TestParamValidator : ParamValidator
     {
         public TestParamValidator(string paramName, string errorMessage)
-  : base(paramName, errorMessage)
+            : base(paramName, errorMessage)
         {
         }
 

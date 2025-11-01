@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿#region
+
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Mehrak.Bot.Authentication;
@@ -10,6 +12,8 @@ using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord.Services;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Authentication;
 
@@ -155,7 +159,11 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
                     if (guid == null)
                     {
-                        lock (timeoutLock) timeoutCount++;
+                        lock (timeoutLock)
+                        {
+                            timeoutCount++;
+                        }
+
                         await TestContext.Out.WriteLineAsync($"User {userId}: Failed to extract GUID");
                         return;
                     }
@@ -165,9 +173,10 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                     var passphrase = useWrongPassword ? WrongPassphrase : CorrectPassphrase;
 
                     if (useWrongPassword)
-                    {
-                        lock (wrongPasswordLock) wrongPasswordCount++;
-                    }
+                        lock (wrongPasswordLock)
+                        {
+                            wrongPasswordCount++;
+                        }
 
                     // Notify with passphrase
                     var authResponse = new AuthenticationResponse(
@@ -180,7 +189,11 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
                     if (!notifyResult)
                     {
-                        lock (failureLock) failureCount++;
+                        lock (failureLock)
+                        {
+                            failureCount++;
+                        }
+
                         await TestContext.Out.WriteLineAsync($"User {userId}: Notify failed (GUID not found)");
                         return;
                     }
@@ -191,35 +204,48 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                     // Track results
                     if (result.Status == AuthStatus.Success)
                     {
-                        lock (successLock) successCount++;
+                        lock (successLock)
+                        {
+                            successCount++;
+                        }
 
                         // Verify token matches expected value
                         var expectedToken = m_UserTokens[userId];
                         if (result.LToken != expectedToken)
-                        {
-                            await TestContext.Out.WriteLineAsync($"User {userId}: Token mismatch! Expected: {expectedToken}, Got: {result.LToken}");
-                        }
+                            await TestContext.Out.WriteLineAsync(
+                                $"User {userId}: Token mismatch! Expected: {expectedToken}, Got: {result.LToken}");
                     }
                     else if (result.Status == AuthStatus.Failure)
                     {
-                        lock (failureLock) failureCount++;
+                        lock (failureLock)
+                        {
+                            failureCount++;
+                        }
 
                         // Verify failure reason
                         if (useWrongPassword && !result.ErrorMessage!.Contains("Incorrect passphrase"))
-                        {
-                            await TestContext.Out.WriteLineAsync($"User {userId}: Expected 'Incorrect passphrase' error, got: {result.ErrorMessage}");
-                        }
+                            await TestContext.Out.WriteLineAsync(
+                                $"User {userId}: Expected 'Incorrect passphrase' error, got: {result.ErrorMessage}");
                     }
                     else if (result.Status == AuthStatus.Timeout)
                     {
-                        lock (timeoutLock) timeoutCount++;
+                        lock (timeoutLock)
+                        {
+                            timeoutCount++;
+                        }
+
                         await TestContext.Out.WriteLineAsync($"User {userId}: Authentication timed out");
                     }
                 }
                 catch (Exception ex)
                 {
-                    lock (exceptionLock) exceptionCount++;
-                    await TestContext.Out.WriteLineAsync($"User {userId}: Exception - {ex.GetType().Name}: {ex.Message}");
+                    lock (exceptionLock)
+                    {
+                        exceptionCount++;
+                    }
+
+                    await TestContext.Out.WriteLineAsync(
+                        $"User {userId}: Exception - {ex.GetType().Name}: {ex.Message}");
                 }
                 finally
                 {
@@ -233,7 +259,8 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         await TestContext.Out.WriteLineAsync("---");
         await TestContext.Out.WriteLineAsync("Test Results:");
         await TestContext.Out.WriteLineAsync($"Total time: {stopwatch.Elapsed.TotalSeconds:F2}s");
-        await TestContext.Out.WriteLineAsync($"Average time per user: {stopwatch.Elapsed.TotalMilliseconds / NumberOfConcurrentUsers:F2}ms");
+        await TestContext.Out.WriteLineAsync(
+            $"Average time per user: {stopwatch.Elapsed.TotalMilliseconds / NumberOfConcurrentUsers:F2}ms");
         await TestContext.Out.WriteLineAsync($"Total users: {NumberOfConcurrentUsers}");
         await TestContext.Out.WriteLineAsync($"Successful authentications: {successCount}");
         await TestContext.Out.WriteLineAsync($"Failed authentications (wrong password): {failureCount}");
@@ -331,10 +358,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         stopwatch.Stop();
 
         // Cleanup
-        foreach (var helper in helpers)
-        {
-            helper.Dispose();
-        }
+        foreach (var helper in helpers) helper.Dispose();
 
         // Assert
         var successfulNotifications = results.Count(r => r.NotifySuccess);
@@ -375,7 +399,8 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         var stopwatch = Stopwatch.StartNew();
         var allResults = new ConcurrentBag<(ulong UserId, int RequestNumber, bool Success, string? Token)>();
 
-        await TestContext.Out.WriteLineAsync($"Testing {requestsPerUser} successive requests for each of {numberOfUsers} users");
+        await TestContext.Out.WriteLineAsync(
+            $"Testing {requestsPerUser} successive requests for each of {numberOfUsers} users");
 
         // Act - Each user makes multiple requests in rapid succession
         await Parallel.ForEachAsync(userIds,
@@ -404,7 +429,8 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                             continue;
                         }
 
-                        var authResponse = new AuthenticationResponse(userId, guid, CorrectPassphrase, mockContext.Object);
+                        var authResponse =
+                            new AuthenticationResponse(userId, guid, CorrectPassphrase, mockContext.Object);
                         m_Service.NotifyAuthenticate(authResponse);
 
                         var result = await authTask;
@@ -445,7 +471,8 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             // Verify no token corruption - all successful requests for same user should get same token
             foreach (var userGroup in groupedByUser)
             {
-                var successfulTokens = userGroup.Where(r => r.Success && r.Token != null).Select(r => r.Token).Distinct().ToList();
+                var successfulTokens = userGroup.Where(r => r.Success && r.Token != null).Select(r => r.Token)
+                    .Distinct().ToList();
                 var expectedToken = m_UserTokens[userGroup.Key];
 
                 Assert.That(successfulTokens, Has.All.EqualTo(expectedToken),
@@ -456,7 +483,8 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
     #region Helper Methods
 
-    private static async Task<string?> ExtractGuidWithRetryAsync(DiscordTestHelper helper, CancellationToken cancellationToken)
+    private static async Task<string?> ExtractGuidWithRetryAsync(DiscordTestHelper helper,
+        CancellationToken cancellationToken)
     {
         const int maxRetries = 50; // 50 * 100ms = 5 seconds max wait
         const int delayMs = 100;
@@ -471,10 +499,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             if (!string.IsNullOrEmpty(responseData))
             {
                 var guidMatch = ModalGuidRegex().Match(responseData);
-                if (guidMatch.Success)
-                {
-                    return guidMatch.Groups[1].Value;
-                }
+                if (guidMatch.Success) return guidMatch.Groups[1].Value;
             }
 
             await Task.Delay(delayMs, cancellationToken);

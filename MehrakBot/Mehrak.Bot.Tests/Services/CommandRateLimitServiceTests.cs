@@ -1,9 +1,13 @@
-﻿using Mehrak.Bot.Services;
+﻿#region
+
+using Mehrak.Bot.Services;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+
+#endregion
 
 namespace Mehrak.Bot.Tests.Services;
 
@@ -131,7 +135,7 @@ public class CommandRateLimitServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-           .ReturnsAsync("");
+            .ReturnsAsync("");
 
         // Act
         var result = await m_Service.IsRateLimitedAsync(TestUserId);
@@ -155,7 +159,7 @@ public class CommandRateLimitServiceTests
 
         // Assert
         m_MockCacheService.Verify(
-             x => x.SetAsync(It.Is<ICacheEntry<string>>(e => e.Key == expectedKey)),
+            x => x.SetAsync(It.Is<ICacheEntry<string>>(e => e.Key == expectedKey)),
             Times.Once);
     }
 
