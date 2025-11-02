@@ -74,10 +74,10 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             server ??= GetLastUsedServerAsync(authResult.User, game, profile);
             if (server == null)
             {
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithContent(
                             "Server is required for first time use. Please specify the server parameter.")
-                        .WithFlags(MessageFlags.Ephemeral)));
+                        .WithFlags(MessageFlags.Ephemeral));
                 return;
             }
 
@@ -99,7 +99,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             {
                 if (IsResponseEphemeral || commandResult.Data.IsEphemeral)
                 {
-                    await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage()
+                    await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage()
                         .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
                 }
                 else
@@ -118,9 +118,9 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         }
         else if (authResult.Status == AuthStatus.Failure)
         {
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.Message(
+            await authResult.Context!.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithContent(authResult.ErrorMessage!)
-                    .WithFlags(MessageFlags.Ephemeral)));
+                    .WithFlags(MessageFlags.Ephemeral));
         }
     }
 }

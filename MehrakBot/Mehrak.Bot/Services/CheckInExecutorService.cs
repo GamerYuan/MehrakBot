@@ -45,9 +45,6 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
-            await authResult.Context!.Interaction.SendResponseAsync(
-                InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;
 
@@ -58,15 +55,15 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
             MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, commandResult.IsSuccess);
 
             if (commandResult.IsSuccess)
-                await authResult.Context.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
+                await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage());
             else
                 await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
         }
         else if (authResult.Status == AuthStatus.Failure)
         {
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.Message(
+            await authResult.Context!.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithContent(authResult.ErrorMessage!)
-                    .WithFlags(MessageFlags.Ephemeral)));
+                    .WithFlags(MessageFlags.Ephemeral));
         }
     }
 }
