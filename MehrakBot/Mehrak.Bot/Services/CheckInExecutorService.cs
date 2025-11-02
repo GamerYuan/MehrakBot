@@ -63,7 +63,7 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
         {
             await authResult.Context!.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithContent(authResult.ErrorMessage!)
-                    .WithFlags(MessageFlags.Ephemeral)));
+                    .WithFlags(MessageFlags.Ephemeral));
         }
     }
 }
