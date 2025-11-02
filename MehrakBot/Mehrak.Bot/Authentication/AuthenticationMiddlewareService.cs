@@ -90,6 +90,9 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             return AuthenticationResult.Timeout();
         }
 
+        await authResponse.Context.Interaction.SendResponseAsync(
+            InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
         try
         {
             token = m_EncryptionService.Decrypt(profile.LToken, authResponse.Passphrase);
@@ -106,8 +109,6 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}",
             request.Context.Interaction.User.Id, profile.LtUid);
-        await authResponse.Context.Interaction.SendResponseAsync(
-            InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
         return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
             authResponse.Context);
     }
