@@ -61,7 +61,7 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
         }
         else if (authResult.Status == AuthStatus.Failure)
         {
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.Message(
+            await authResult.Context!.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithContent(authResult.ErrorMessage!)
                     .WithFlags(MessageFlags.Ephemeral)));
         }
