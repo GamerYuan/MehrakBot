@@ -24,10 +24,17 @@ internal class BotLatencyService : IHostedService
     {
         _ = Task.Run(async () =>
         {
-            while (!m_Cts.Token.IsCancellationRequested)
+            try
             {
-                m_MetricsService.TrackDiscordLatency(m_Client.Latency.TotalMilliseconds);
-                await Task.Delay(TimeSpan.FromSeconds(30), m_Cts.Token);
+                while (!m_Cts.Token.IsCancellationRequested)
+                {
+                    m_MetricsService.TrackDiscordLatency(m_Client.Latency.TotalMilliseconds);
+                    await Task.Delay(TimeSpan.FromSeconds(30), m_Cts.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                m_Logger.LogInformation("BotLatencyService background task cancelled.");
             }
         }, m_Cts.Token);
         m_Logger.LogInformation("Service started");
