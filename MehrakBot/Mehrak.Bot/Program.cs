@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
 using NetCord;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
@@ -113,6 +114,11 @@ public class Program
                 options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
                 options.InstanceName = "MehrakBot_";
             });
+
+            MongoClient mongoClient = new(builder.Configuration["MongoDB:ConnectionString"]);
+            IMongoDatabase db = mongoClient.GetDatabase(builder.Configuration["MongoDB:DatabaseName"]);
+
+            builder.Services.AddSingleton(db);
 
             builder.Services.AddBotServices();
 
