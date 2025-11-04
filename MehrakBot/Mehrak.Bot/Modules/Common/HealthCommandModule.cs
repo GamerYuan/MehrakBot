@@ -103,6 +103,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
                 $"### __System Resources__\n" +
                 "```ansi\n" +
                 GetFormattedStatus("CPU", $"{systemUsage.CpuUsage:N2}%", systemUsage.CpuUsage <= 80) +
+                "\n" +
                 GetFormattedStatus("Memory",
                     $"{systemUsage.MemoryUsed / convert:N2}/{systemUsage.MemoryTotal / convert:N2} GB " +
                     $"{memoryPercentage * 100:N2}%",
