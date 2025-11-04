@@ -7,7 +7,12 @@ using Mehrak.Infrastructure.Models;
 
 namespace Mehrak.Infrastructure.Metrics;
 
-public class PrometheusClientService
+public interface ISystemResourceClientService
+{
+    ValueTask<SystemResource> GetSystemResourceAsync();
+}
+
+public class PrometheusClientService : ISystemResourceClientService
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
 

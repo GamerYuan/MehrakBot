@@ -39,6 +39,8 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<IMetricsService, BotMetricsService>();
         services.AddHostedService<BotMetricsService>();
 
+        services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
+
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 
         return services;

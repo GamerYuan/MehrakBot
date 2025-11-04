@@ -24,7 +24,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     private readonly IMongoDatabase m_MongoClient;
     private readonly IConnectionMultiplexer m_RedisConnection;
     private readonly GatewayClient m_GatewayClient;
-    private readonly PrometheusClientService m_PrometheusClientService;
+    private readonly ISystemResourceClientService m_PrometheusClientService;
 
     private static readonly Dictionary<string, string> HealthCheckComponents = new()
     {
@@ -50,7 +50,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     }
 
     public HealthCommandModule(IMongoDatabase mongoClient, IConnectionMultiplexer redisConnection,
-        GatewayClient gatewayClient, PrometheusClientService prometheusClientService)
+        GatewayClient gatewayClient, ISystemResourceClientService prometheusClientService)
     {
         m_MongoClient = mongoClient;
         m_RedisConnection = redisConnection;
