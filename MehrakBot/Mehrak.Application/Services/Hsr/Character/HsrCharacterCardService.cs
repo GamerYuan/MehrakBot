@@ -584,9 +584,6 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
         // Find all skills that have point_type == 3 and can be roots
         List<Skill> type3Skills = [.. skills.Where(s => s.PointType == 3)];
 
-        // Check which type 3 skills can actually be roots (their pre_point
-        // either doesn't exist in our filtered list or is "0")
-
         // Build chains from each root
         foreach (Skill? rootSkill in type3Skills)
         {
