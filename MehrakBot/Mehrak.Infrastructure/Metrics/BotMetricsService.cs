@@ -64,6 +64,7 @@ public class BotMetricsService : IMetricsService, IHostedService
     private readonly IOptions<MetricsConfig> m_MetricsOptions;
     private readonly ILogger<BotMetricsService> m_Logger;
     private IWebHost? m_MetricsServer;
+    private readonly CancellationTokenSource m_Cts = new();
 
     public BotMetricsService(IOptions<MetricsConfig> metricsOptions, ILogger<BotMetricsService> logger)
     {
@@ -131,7 +132,7 @@ public class BotMetricsService : IMetricsService, IHostedService
 
         await m_MetricsServer.StartAsync(cancellationToken).ConfigureAwait(false);
 
-        _ = Task.Run(() => TrackGCMemoryTask(cancellationToken), cancellationToken);
+        _ = Task.Run(() => TrackGCMemoryTask(m_Cts.Token), CancellationToken.None);
 
         m_Logger.LogInformation("Metrics service started on {Host}:{Port} with endpoint {Endpoint}",
             metricsConfig.Host, metricsConfig.Port, metricsConfig.Endpoint);
@@ -139,6 +140,8 @@ public class BotMetricsService : IMetricsService, IHostedService
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        await m_Cts.CancelAsync();
+        m_Cts.Dispose();
         if (m_MetricsServer != null)
         {
             await m_MetricsServer.StopAsync(cancellationToken);

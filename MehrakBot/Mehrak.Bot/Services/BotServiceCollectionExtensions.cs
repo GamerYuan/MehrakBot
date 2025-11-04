@@ -25,6 +25,7 @@ internal static class BotServiceCollectionExtensions
         services.AddTransient<ICommandExecutorService<CheckInApplicationContext>, CheckInExecutorService>();
 
         services.AddHostedService<AsyncInitializationHostedService>();
+        services.AddHostedService<BotLatencyService>();
 
         return services;
     }
