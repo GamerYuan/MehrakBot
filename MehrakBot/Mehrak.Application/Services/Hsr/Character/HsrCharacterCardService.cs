@@ -333,11 +333,11 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     EllipsePolygon levelEllipse = new(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
-                        {
-                            Origin = new PointF(864, 116 + offset),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, baseSkillImages[i].Data.Level!.ToString()!,
+                    {
+                        Origin = new PointF(864, 116 + offset),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, baseSkillImages[i].Data.Level!.ToString()!,
                         baseSkillImages[i].Data.IsRankWork ? Color.Aqua : Color.White);
                 }
 
@@ -380,11 +380,11 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     EllipsePolygon levelEllipse = new(new PointF(865 + offset, 515), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
-                        {
-                            Origin = new PointF(864 + offset, 516),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, servantImages[i].Data.Level!.ToString()!,
+                    {
+                        Origin = new PointF(864 + offset, 516),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, servantImages[i].Data.Level!.ToString()!,
                         servantImages[i].Data.IsRankWork ? Color.Aqua : Color.White);
                 }
 
@@ -579,23 +579,16 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
     private static List<List<Skill>> BuildSkillTree(List<Skill> skills)
     {
         List<List<Skill>> result = [];
-        Dictionary<string, Skill> skillLookup = skills.ToDictionary(s => s.PointId!, s => s);
         HashSet<string> processed = [];
 
         // Find all skills that have point_type == 3 and can be roots
         List<Skill> type3Skills = [.. skills.Where(s => s.PointType == 3)];
-        List<Skill> potentialRoots =
-        [
-            .. type3Skills.Where(skill =>
-                string.IsNullOrEmpty(skill.PrePoint) || skill.PrePoint == "0" ||
-                !skillLookup.ContainsKey(skill.PrePoint))
-        ];
 
         // Check which type 3 skills can actually be roots (their pre_point
         // either doesn't exist in our filtered list or is "0")
 
         // Build chains from each root
-        foreach (Skill? rootSkill in potentialRoots)
+        foreach (Skill? rootSkill in type3Skills)
         {
             if (processed.Contains(rootSkill.PointId!))
                 continue;
