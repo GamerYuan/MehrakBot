@@ -6,12 +6,12 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Mongo2Go;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
 
 namespace Mehrak.Infrastructure.Tests;
 
@@ -30,17 +30,10 @@ public sealed class MongoTestHelper : IDisposable
         BsonSerializer.RegisterSerializer(new EnumSerializer<Game>(BsonType.String));
         m_MongoRunner = MongoDbRunner.Start(logger: NullLogger<MongoDbRunner>.Instance);
 
-        Dictionary<string, string?> inMemorySettings = new()
-        {
-            ["MongoDB:ConnectionString"] = m_MongoRunner.ConnectionString,
-            ["MongoDB:DatabaseName"] = "TestDb"
-        };
+        MongoClient mongoClient = new(m_MongoRunner.ConnectionString);
+        IMongoDatabase database = mongoClient.GetDatabase("TestDb");
 
-        IConfigurationRoot config = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
-            .Build();
-
-        MongoDbService = new MongoDbService(config, NullLogger<MongoDbService>.Instance);
+        MongoDbService = new MongoDbService(database, NullLogger<MongoDbService>.Instance);
         ImageRepository = new ImageRepository(MongoDbService,
             NullLogger<ImageRepository>.Instance);
 

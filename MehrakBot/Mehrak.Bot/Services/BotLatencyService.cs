@@ -20,7 +20,7 @@ internal class BotLatencyService : IHostedService
         m_Logger = logger;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _ = Task.Run(async () =>
         {
@@ -38,6 +38,7 @@ internal class BotLatencyService : IHostedService
             }
         }, m_Cts.Token);
         m_Logger.LogInformation("Service started");
+        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
