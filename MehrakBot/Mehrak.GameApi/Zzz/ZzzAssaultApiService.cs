@@ -70,16 +70,16 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
             }
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
-            if (json.Retcode ==10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<ZzzAssaultData>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
 
-            if (json.Retcode !=0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<ZzzAssaultData>.Failure(StatusCode.ExternalServerError,

@@ -70,16 +70,16 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             }
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
-            if (json.Retcode ==10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
 
-            if (json.Retcode !=0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
@@ -94,7 +94,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             }
 
             var theaterInfo = json.Data.Data;
-            if (theaterInfo == null || theaterInfo.Count ==0)
+            if (theaterInfo == null || theaterInfo.Count == 0)
             {
                 m_Logger.LogError("No Theater data found for gameUid: {GameUid}", context.GameUid);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,

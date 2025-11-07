@@ -81,7 +81,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             }
 
             // Info-level API retcode after parse (success path)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri,0, context.LtUid.ToString());
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, 0, context.UserId);
 
             var gameProfile = node["data"]?["list"]?[0].Deserialize<GameProfile>();
 

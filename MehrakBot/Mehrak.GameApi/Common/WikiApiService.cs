@@ -69,7 +69,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             var retcode = json["retcode"]?.GetValue<int>() ?? -1;
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode, context.EntryPage);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode, context.UserId);
 
             if (retcode != 0)
             {

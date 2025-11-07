@@ -13,7 +13,7 @@ internal static class LogMessages
     public const string OutboundHttpRequest = "Sending HTTP {Method} to {Endpoint}";
     public const string InboundHttpResponse = "Received HTTP {StatusCode} from {Endpoint}";
     public const string InboundHttpResponseWithRetcode =
-        "Received HTTP {StatusCode} from {Endpoint} with API retcode {Retcode} for gameUid: {GameUid}";
+        "Received HTTP {StatusCode} from {Endpoint} with API retcode {Retcode} for User {GameUid}";
 
     // Success logging
     public const string SuccessfullyRetrievedData =

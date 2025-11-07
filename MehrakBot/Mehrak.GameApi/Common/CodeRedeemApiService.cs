@@ -67,7 +67,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
             int retCode = json["retcode"]?.GetValue<int>() ?? -1;
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retCode, context.GameUid);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retCode, context.UserId);
 
             switch (retCode)
             {

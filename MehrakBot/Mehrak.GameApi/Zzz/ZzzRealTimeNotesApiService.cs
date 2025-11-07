@@ -79,16 +79,16 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
             }
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
-            if (json.Retcode ==10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
             }
 
-            if (json.Retcode !=0)
+            if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.ExternalServerError,

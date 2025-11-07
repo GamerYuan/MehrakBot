@@ -70,7 +70,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
             }
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
             if (json.Retcode == 10001)
             {

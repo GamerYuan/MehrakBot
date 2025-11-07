@@ -63,7 +63,8 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             }
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.LtUid.ToString());
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode,
+                context.UserId);
 
             if (json.Retcode == -100)
             {

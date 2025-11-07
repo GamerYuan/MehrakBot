@@ -71,7 +71,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
 
             // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri,
-                json.Retcode, context.GameUid);
+                json.Retcode, context.UserId);
 
             if (json.Retcode == 10001)
             {

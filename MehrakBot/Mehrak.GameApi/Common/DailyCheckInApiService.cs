@@ -92,7 +92,8 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             int? retcode = json["retcode"]?.GetValue<int>();
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode ?? -1, context.LtUid.ToString());
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode ?? -1,
+                context.UserId);
 
             switch (retcode)
             {
