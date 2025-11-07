@@ -83,7 +83,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
                 return Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
@@ -93,25 +93,25 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             if (json.Retcode == 10001)
             {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<HsrEndInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
                 return Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrEndInformation>.Success(json.Data, requestUri: requestUri);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}{context.GameMode.GetString()}", context.GameUid);
+                $"{HoYoLabDomains.PublicApi}{BasePath}{context.GameMode.GetString()}", context.UserId);
             return Result<HsrEndInformation>.Failure(StatusCode.BotError,
                 $"An unknown error occurred while fetching {context.GameMode.GetString()} information");
         }

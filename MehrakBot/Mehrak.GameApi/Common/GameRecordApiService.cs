@@ -58,7 +58,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.LtUid.ToString());
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
 
@@ -68,19 +68,19 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             if (json.Retcode == -100)
             {
-                m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.LtUid);
+                m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.UserId);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
             }
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.LtUid.ToString(), requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.LtUid.ToString());
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
 
             var result = json.Data.List.Select(x => new GameRecordDto
             {
@@ -105,7 +105,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
         catch (Exception ex)
         {
             m_Logger.LogError(ex, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{GameRecordApiPath}", context.LtUid.ToString());
+                $"{HoYoLabDomains.PublicApi}{GameRecordApiPath}", context.UserId);
             return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.BotError, "An error occurred");
         }
     }

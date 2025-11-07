@@ -60,7 +60,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             if (node?["retcode"]?.GetValue<int>() == -100)
             {
-                m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.LtUid);
+                m_Logger.LogError("Invalid credentials (retcode -100) for User {UserId} profile LtUid {LtUid}", context.UserId, context.LtUid);
                 return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
             }
@@ -68,14 +68,15 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             if (node?["retcode"]?.GetValue<int>() != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, node?["retcode"]?.GetValue<int>() ?? -1,
-                    context.LtUid.ToString(), requestUri);
+                    context.UserId, requestUri);
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
                     $"An error occurred while retrieving profile information", requestUri);
             }
 
             if (node["data"]?["list"] == null || node["data"]?["list"]?.AsArray().Count == 0)
             {
-                m_Logger.LogWarning("No game data found for user {Uid} on {Region}", context.UserId, context.Region);
+                m_Logger.LogWarning("No game data found for User {UserId} profile LtUid {LtUid} on {Region}",
+                    context.UserId, context.LtUid, context.Region);
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
                     "No game information found. Please select the correct region", requestUri);
             }
@@ -92,13 +93,13 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 Level = gameProfile?.Level ?? 0
             };
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, dto.GameUid);
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<GameProfileDto>.Success(dto, requestUri: requestUri);
         }
         catch (Exception ex)
         {
             m_Logger.LogError(ex, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}", context.LtUid.ToString());
+                $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}", context.UserId);
             return Result<GameProfileDto>.Failure(StatusCode.BotError,
                 "An error occurred while processing the request");
         }

@@ -84,7 +84,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
             if (json == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.LtUid.ToString());
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
                 return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred during check-in", requestUri);
             }
@@ -98,20 +98,21 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             switch (retcode)
             {
                 case -5003:
-                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.LtUid, context.Game.ToString());
+                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.UserId, context.LtUid, context.Game.ToString());
                     return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn, requestUri: requestUri);
 
                 case 0:
-                    m_Logger.LogInformation("User LtUid: {LtUid} check-in successful for game {Game}", context.LtUid,
+                    m_Logger.LogInformation("User {UserId} profile LtUid {LtUid} check-in successful for game {Game}", context.UserId, context.LtUid,
                         context.Game.ToString());
                     return Result<CheckInStatus>.Success(CheckInStatus.Success, requestUri: requestUri);
 
                 case -10002:
-                    m_Logger.LogInformation(LogMessages.NoValidProfile, context.LtUid, context.Game.ToString());
+                    m_Logger.LogInformation(LogMessages.NoValidProfile, context.UserId, context.LtUid, context.Game.ToString());
                     return Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile, requestUri: requestUri);
 
                 default:
-                    m_Logger.LogError("Check-in failed for user LtUid: {LtUid} for game {Game} with retcode {Retcode}",
+                    m_Logger.LogError("Check-in failed for user {UserId} profile LtUid {LtUid} for game {Game} with retcode {Retcode}",
+                        context.UserId,
                         context.LtUid,
                         context.Game.ToString(), retcode);
                     return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
@@ -121,7 +122,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                CheckInUrls.GetValueOrDefault(context.Game, "unknown"), context.LtUid.ToString());
+                CheckInUrls.GetValueOrDefault(context.Game, "unknown"), context.UserId);
             return Result<CheckInStatus>.Failure(StatusCode.BotError,
                 "An error occurred during check-in");
         }

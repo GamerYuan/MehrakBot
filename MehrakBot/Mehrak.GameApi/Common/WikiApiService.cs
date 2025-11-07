@@ -61,7 +61,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             if (json == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.EntryPage);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
@@ -73,18 +73,18 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             if (retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.EntryPage, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.UserId, requestUri);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.EntryPage);
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<JsonNode>.Success(json, requestUri: requestUri);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.WikiApi}{GetEndpoint(context.Game)}", context.EntryPage);
+                $"{HoYoLabDomains.WikiApi}{GetEndpoint(context.Game)}", context.UserId);
             return Result<JsonNode>.Failure(StatusCode.BotError, "An error occurred while fetching wiki data.");
         }
     }
