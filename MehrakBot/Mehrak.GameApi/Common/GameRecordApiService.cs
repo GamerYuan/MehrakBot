@@ -30,7 +30,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
         {
             var requestUri = $"{HoYoLabDomains.PublicApi}{GameRecordApiPath}?uid={context.LtUid}";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
@@ -58,7 +58,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
 
@@ -68,7 +68,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             if (json.Retcode == -100)
             {
-                m_Logger.LogError("Invalid credentials (retcode -100) for ltuid: {LtUid}", context.UserId);
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
             }

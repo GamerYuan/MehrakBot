@@ -33,13 +33,14 @@ public class ImageUpdaterService : IImageUpdaterService
 
         var client = m_HttpClientFactory.CreateClient();
 
-        m_Logger.LogInformation("Downloading {Name} from {Url}", data.Name, data.Url);
+        m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
+        m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, data.Url);
         var response = await client.GetAsync(data.Url);
+        m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, data.Url);
 
         if (!response.IsSuccessStatusCode)
         {
-            m_Logger.LogError("Failed to download {Name} from {Url}: {StatusCode}", data.Name, data.Url,
-                response.StatusCode);
+            m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, data.Url);
             return false;
         }
 
@@ -71,11 +72,16 @@ public class ImageUpdaterService : IImageUpdaterService
 
         var client = m_HttpClientFactory.CreateClient();
 
-        m_Logger.LogInformation("Downloading {Name} from supplied Urls: {Url}", data.Name,
-            string.Join(", ", data.Url, data.AdditionalUrls));
+        var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
+        m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
 
-        var images = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToAsyncEnumerable()
-            .SelectAwait(async x => await client.GetAsync(x));
+        var images = allUrls.ToAsyncEnumerable().SelectAwait(async x =>
+        {
+            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);
+            var r = await client.GetAsync(x);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)r.StatusCode, x);
+            return r;
+        });
 
         if (await images.AnyAsync(x => !x.IsSuccessStatusCode))
         {

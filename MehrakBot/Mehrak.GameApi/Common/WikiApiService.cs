@@ -29,7 +29,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             var endpoint = GetEndpoint(context.Game);
             var requestUri = $"{HoYoLabDomains.WikiApi}{endpoint}?entry_page_id={context.EntryPage}";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
@@ -61,7 +61,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             if (json == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }

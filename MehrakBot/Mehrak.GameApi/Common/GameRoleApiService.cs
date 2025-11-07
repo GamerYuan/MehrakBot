@@ -33,7 +33,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             var requestUri =
                 $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}?game_biz={context.Game.ToGameBizString()}&region={context.Region}";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
@@ -60,7 +60,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             if (node?["retcode"]?.GetValue<int>() == -100)
             {
-                m_Logger.LogError("Invalid credentials (retcode -100) for User {UserId} profile LtUid {LtUid}", context.UserId, context.LtUid);
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
             }
