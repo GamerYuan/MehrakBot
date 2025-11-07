@@ -20,7 +20,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinRealTimeNotesApiService> m_Logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
@@ -46,7 +46,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
@@ -67,11 +67,11 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinRealTimeNotesData>>(
-                await response.Content.ReadAsStreamAsync(), JsonOptions);
+                await response.Content.ReadAsStreamAsync(), JsonSerializerOptions);
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<GenshinRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     "Failed to parse JSON response from real-time notes API", requestUri);
             }

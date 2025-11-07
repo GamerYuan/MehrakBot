@@ -52,10 +52,12 @@ public class
                 return Result<IEnumerable<HsrBasicCharacterData>>.Success(cachedData);
             }
 
+            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             HttpClient client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
@@ -92,7 +94,7 @@ public class
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character information", requestUri);
             }

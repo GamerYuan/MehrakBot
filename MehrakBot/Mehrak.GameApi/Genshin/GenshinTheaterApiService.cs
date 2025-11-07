@@ -39,7 +39,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&need_detail=true";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
@@ -64,7 +64,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data", requestUri);
             }
@@ -88,7 +88,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
 
             if (!json.Data.IsUnlock)
             {
-                m_Logger.LogInformation("Imaginarium Theater is not unlocked for gameUid: {GameUid}", context.UserId);
+                m_Logger.LogInformation(LogMessages.FeatureNotUnlocked, "Imaginarium Theater", context.UserId);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
                     "Imaginarium Theater is not unlocked yet", requestUri);
             }
@@ -96,7 +96,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             var theaterInfo = json.Data.Data;
             if (theaterInfo == null || theaterInfo.Count == 0)
             {
-                m_Logger.LogError("No Theater data found for gameUid: {GameUid}", context.UserId);
+                m_Logger.LogError(LogMessages.DataNotFoundForFeature, "Imaginarium Theater", context.UserId);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
                     "No Imaginarium Theater data found", requestUri);
             }

@@ -54,9 +54,11 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Success(cachedEntry);
             }
 
+            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
+
             var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/list";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var payload = new CharacterListPayload
             {
@@ -93,7 +95,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character list data", requestUri);
             }
@@ -127,7 +129,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}/character/list", context.GameUid);
+                $"{HoYoLabDomains.PublicApi}{BasePath}/character/list", context.UserId);
             return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character list data");
         }
@@ -146,7 +148,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         {
             var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var payload = new CharacterDetailPayload
             {
@@ -184,7 +186,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             if (json == null || json.Data == null || json.Data.List.Count == 0)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving character data", requestUri);
             }

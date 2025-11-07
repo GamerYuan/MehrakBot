@@ -39,7 +39,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&need_detail=true";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
@@ -64,7 +64,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
