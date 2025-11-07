@@ -48,14 +48,16 @@ public class
             // Try to get data from cache first
             if (cachedData != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.GameUid);
+                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Success(cachedData);
             }
+
+            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             HttpClient client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
@@ -92,43 +94,43 @@ public class
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "Failed to retrieve character information", requestUri);
             }
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
             if (json.Retcode == 10001)
             {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
 
             HsrBasicCharacterData[] result = [json.Data];
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result,
                     TimeSpan.FromMinutes(CacheExpirationMinutes)));
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.GameUid, CacheExpirationMinutes);
+            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
 
             return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.GameUid);
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
             return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character information");
         }

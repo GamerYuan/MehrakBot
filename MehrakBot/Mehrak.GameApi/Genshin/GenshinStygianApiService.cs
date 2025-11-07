@@ -39,7 +39,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&need_detail=true";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
@@ -64,36 +64,36 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
 
             // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri,
-                json.Retcode, context.GameUid);
+                json.Retcode, context.UserId);
 
             if (json.Retcode == 10001)
             {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<GenshinStygianInformation>.Success(json.Data, requestUri: requestUri);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.GameUid);
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
             return Result<GenshinStygianInformation>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving Stygian Onslaught data");
         }

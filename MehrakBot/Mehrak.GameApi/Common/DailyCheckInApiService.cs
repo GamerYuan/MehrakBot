@@ -54,7 +54,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
         try
         {
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Post, requestUri);
@@ -84,7 +84,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
             if (json == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.LtUid.ToString());
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred during check-in", requestUri);
             }
@@ -92,27 +92,30 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             int? retcode = json["retcode"]?.GetValue<int>();
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode ?? -1, context.LtUid.ToString());
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode ?? -1,
+                context.UserId);
 
             switch (retcode)
             {
                 case -5003:
-                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.LtUid, context.Game.ToString());
+                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.UserId, context.LtUid, context.Game.ToString());
                     return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn, requestUri: requestUri);
 
                 case 0:
-                    m_Logger.LogInformation("User LtUid: {LtUid} check-in successful for game {Game}", context.LtUid,
-                        context.Game.ToString());
+                    m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
                     return Result<CheckInStatus>.Success(CheckInStatus.Success, requestUri: requestUri);
 
                 case -10002:
-                    m_Logger.LogInformation(LogMessages.NoValidProfile, context.LtUid, context.Game.ToString());
+                    m_Logger.LogInformation(LogMessages.NoValidProfile, context.UserId, context.LtUid, context.Game.ToString());
                     return Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile, requestUri: requestUri);
 
+                case -100:
+                    m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
+                    return Result<CheckInStatus>.Failure(StatusCode.Unauthorized,
+                        "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+
                 default:
-                    m_Logger.LogError("Check-in failed for user LtUid: {LtUid} for game {Game} with retcode {Retcode}",
-                        context.LtUid,
-                        context.Game.ToString(), retcode);
+                    m_Logger.LogError(LogMessages.UnknownRetcode, retcode ?? -1, context.UserId, requestUri);
                     return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
                         $"An unknown error occurred during check-in", requestUri);
             }
@@ -120,7 +123,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                CheckInUrls.GetValueOrDefault(context.Game, "unknown"), context.LtUid.ToString());
+                CheckInUrls.GetValueOrDefault(context.Game, "unknown"), context.UserId);
             return Result<CheckInStatus>.Failure(StatusCode.BotError,
                 "An error occurred during check-in");
         }

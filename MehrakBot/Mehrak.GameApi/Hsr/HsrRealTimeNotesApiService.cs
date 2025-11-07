@@ -40,7 +40,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
 
-            m_Logger.LogInformation(LogMessages.ReceivedRequest, requestUri);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
@@ -69,35 +69,35 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
             if (json?.Data == null)
             {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.GameUid);
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     "Failed to parse JSON response from real-time notes API", requestUri);
             }
 
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.GameUid);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
             if (json.Retcode == 10001)
             {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.GameUid);
+                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
             }
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.GameUid, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
                 return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.GameUid);
+            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.GameUid);
+                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
             return Result<HsrRealTimeNotesData>.Failure(StatusCode.BotError,
                 "An error occurred while fetching real-time notes");
         }
