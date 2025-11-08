@@ -184,6 +184,14 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                 new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build())));
+
+            if (characterInfo.ServantDetail != null)
+            {
+                tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
+                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                        new ImageProcessorBuilder().Resize(80, 0).Build())) ?? []);
+            }
+
             tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                 new ImageProcessorBuilder().Resize(80, 0).Build())));
 
