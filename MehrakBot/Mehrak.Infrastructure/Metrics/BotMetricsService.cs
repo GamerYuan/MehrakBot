@@ -126,7 +126,7 @@ public class BotMetricsService : IMetricsService, IHostedService
                     app.Map("/health", builder => builder.Run(async context =>
                     {
                         context.Response.StatusCode = 200;
-                        await context.Response.WriteAsync("Healthy", cancellationToken);
+                        await context.Response.WriteAsync("Healthy", context.RequestAborted);
                     }));
                 })).Build();
 
