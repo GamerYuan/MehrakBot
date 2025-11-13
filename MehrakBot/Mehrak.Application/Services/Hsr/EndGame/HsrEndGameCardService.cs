@@ -93,25 +93,25 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
         List<IDisposable> disposables = [];
         try
         {
+            CancellationToken token = CancellationToken.None;
             ValueTask<Dictionary<HsrAvatar, Image<Rgba32>>> avatarImageTask = gameModeData.AllFloorDetail
                 .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
-                .DistinctBy(x => x.Id).ToAsyncEnumerable().SelectAwait(async x =>
+                .DistinctBy(x => x.Id).ToAsyncEnumerable().Select(async (x, token) =>
                     await Task.FromResult(new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                        await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())))))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
-                    async x => await Task.FromResult(x.GetStyledAvatarImage()), HsrAvatarIdComparer.Instance);
+                        await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token))))
+                .ToDictionaryAsync(x => x,
+                    x => x.GetStyledAvatarImage(), HsrAvatarIdComparer.Instance);
             ValueTask<Dictionary<int, Image>> buffImageTask = gameModeData.AllFloorDetail
                 .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => new HsrEndBuff[] { x.Node1!.Buff, x.Node2!.Buff })
                 .Where(x => x is not null)
-                .DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                    async x => await Task.FromResult(x.Id),
-                    async x =>
+                .DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAsync(
+                    async (x, token) => await Task.FromResult(x.Id),
+                    async (x, token) =>
                     {
                         Image image =
-                            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
+                            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
                         image.Mutate(ctx => ctx.Resize(110, 0));
                         return image;
                     });
@@ -180,10 +180,10 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                 FontRectangle modeTextBounds = TextMeasurer.MeasureBounds(modeString,
                     new TextOptions(m_TitleFont) { Origin = new Vector2(50, 80) });
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(50, 120),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(50, 120),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{group.BeginTime.Day}/{group.BeginTime.Month}/{group.BeginTime.Year} - " +
                     $"{group.EndTime.Day}/{group.EndTime.Month}/{group.EndTime.Year}",
                     Color.White);
@@ -199,11 +199,11 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                 ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1900, 80),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(1900, 80),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -259,11 +259,11 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         };
 
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 20, yOffset + 20),
-                                HorizontalAlignment = HorizontalAlignment.Left,
-                                VerticalAlignment = VerticalAlignment.Top
-                            },
+                        {
+                            Origin = new Vector2(xOffset + 20, yOffset + 20),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Top
+                        },
                             floorData?.Name ?? stageText,
                             Color.White);
 
@@ -291,10 +291,10 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         new PointF(xOffset + 880, yOffset + 65));
                     ctx.DrawText("Node 1", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 85));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 855, yOffset + 85),
-                            HorizontalAlignment = HorizontalAlignment.Right
-                        }, $"Score: {floorData.Node1.Score}", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 855, yOffset + 85),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"Score: {floorData.Node1.Score}", Color.White);
                     if (context.GameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node1.BossDefeated)
                         ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 83),
                             1f);
@@ -309,10 +309,10 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         new PointF(xOffset + 860, yOffset + 335));
                     ctx.DrawText("Node 2", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 350));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 855, yOffset + 350),
-                            HorizontalAlignment = HorizontalAlignment.Right
-                        }, $"Score: {floorData.Node2.Score}", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 855, yOffset + 350),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"Score: {floorData.Node2.Score}", Color.White);
                     if (context.GameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node2.BossDefeated)
                         ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 348),
                             1f);
@@ -331,11 +331,11 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         new PointF(xOffset + 720, yOffset + 55));
                     string scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 710, yOffset + 20),
-                            HorizontalAlignment = HorizontalAlignment.Right,
-                            VerticalAlignment = VerticalAlignment.Top
-                        }, scoreText,
+                    {
+                        Origin = new Vector2(xOffset + 710, yOffset + 20),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, scoreText,
                         Color.White);
 
                     // Draw cycle number

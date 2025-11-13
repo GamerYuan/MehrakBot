@@ -105,14 +105,16 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                 }
             }
 
+            CancellationToken token = CancellationToken.None;
+
             var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
                 .DistinctBy(x => x.GetSetId())
                 .ToAsyncEnumerable()
-                .WhereAwait(async x => characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
+                .Where(async (x, token) => characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
                                        !await m_ImageRepository.FileExistsAsync(
                                            string.Format(FileNameFormat.Hsr.FileName, x.Id)))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.GetSetId()),
-                    async x =>
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.GetSetId()),
+                    async (x, token) =>
                     {
                         var url = characterList.RelicWiki[x.Id.ToString()];
                         var entryPage = url.Split('/')[^1];

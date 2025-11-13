@@ -64,14 +64,14 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
     {
         char[] rating = ['S', 'A', 'B'];
         m_RatingImages = await rating.ToAsyncEnumerable()
-            .SelectAwait(async x =>
+            .Select(async (x, cancellationToken) =>
             {
                 Image image = await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}"));
+                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}"), cancellationToken);
                 image.Mutate(ctx => ctx.Resize(80, 0));
                 return (Rating: x, Image: image);
             })
-            .ToDictionaryAsync(x => x.Rating, x => x.Image, cancellationToken);
+            .ToDictionaryAsync(x => x.Rating, x => x.Image);
         m_SmallRatingImages = m_RatingImages.Select(x => (x.Key, x.Value.Clone(y => y.Resize(0, 50))))
             .ToDictionary();
         m_BaseBuddyImage = await Image.LoadAsync(await
@@ -92,21 +92,23 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
         List<IDisposable> disposables = [];
         try
         {
+            CancellationToken token = CancellationToken.None;
             Dictionary<ZzzAvatar, Image<Rgba32>> avatarImages = await data.AllFloorDetail
                 .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
-                .SelectAwait(async x => new ZzzAvatar(x.Id, x.Level, x.Rarity[0], x.Rank, await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()))))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
-                    async x => await Task.FromResult(x.GetStyledAvatarImage()), ZzzAvatarIdComparer.Instance);
+                .Select(async (x, token) => new ZzzAvatar(x.Id, x.Level, x.Rarity[0], x.Rank, await Image.LoadAsync(
+                    await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token)))
+                .ToDictionaryAsync(x => x,
+                    x => x.GetStyledAvatarImage(), ZzzAvatarIdComparer.Instance);
             Dictionary<int, Image> buddyImages = await data.AllFloorDetail
                 .SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
                 .ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x!.Id), async x =>
-                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x!.ToImageName())));
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x!.Id),
+                    async (x, token) =>
+                        await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x!.ToImageName()), token));
 
             disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);
@@ -149,10 +151,10 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Shiyu Defense", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(50, 120),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(50, 120),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(data.BeginTime))
                         .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(data.EndTime))
@@ -160,17 +162,17 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                     Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1500, 80),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
+                {
+                    Origin = new Vector2(1500, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1500, 110),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    },
+                {
+                    Origin = new Vector2(1500, 110),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                },
                     $"{context.GameProfile.GameUid}", Color.White);
 
                 IPath ratingModule = ImageUtility.CreateRoundedRectanglePath(500, 90, 15).Translate(450, 30);
@@ -198,11 +200,11 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                         overlay = ImageUtility.CreateRoundedRectanglePath(1450, 335, 15).Translate(xOffset, yOffset);
                         ctx.Fill(OverlayColor, overlay);
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 20, yOffset + 30),
-                                HorizontalAlignment = HorizontalAlignment.Left,
-                                VerticalAlignment = VerticalAlignment.Top
-                            }, $"{FrontierNames[floorNumber]} Frontier", Color.White);
+                        {
+                            Origin = new Vector2(xOffset + 20, yOffset + 30),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Top
+                        }, $"{FrontierNames[floorNumber]} Frontier", Color.White);
                         if (floorData == null)
                         {
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -285,11 +287,11 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                         }
 
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 20, yOffset + 30),
-                                HorizontalAlignment = HorizontalAlignment.Left,
-                                VerticalAlignment = VerticalAlignment.Top
-                            },
+                        {
+                            Origin = new Vector2(xOffset + 20, yOffset + 30),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Top
+                        },
                             $"{FrontierNames[floorNumber]} Frontier", Color.White);
 
                         if (floorNumber % 2 == 1) yOffset += isBigBlob ? 620 : 200;
@@ -299,11 +301,11 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                     overlay = ImageUtility.CreateRoundedRectanglePath(700, 600, 15).Translate(xOffset, yOffset);
                     ctx.Fill(OverlayColor, overlay);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 20, yOffset + 30),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Top
-                        }, $"{FrontierNames[floorNumber]} Frontier", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 20, yOffset + 30),
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, $"{FrontierNames[floorNumber]} Frontier", Color.White);
                     ctx.DrawImage(m_SmallRatingImages[floorData.Rating[0]], new Point(xOffset + 630, yOffset + 10), 1f);
 
                     using Image<Rgba32> node1 = GetRosterImage([.. floorData.Node1!.Avatars.Select(x => lookup[x.Id])],

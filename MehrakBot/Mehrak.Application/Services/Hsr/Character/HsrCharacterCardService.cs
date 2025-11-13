@@ -80,20 +80,19 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60
         ];
 
-        m_StatImages = await statIds.ToAsyncEnumerable().Where(x => x != 8).SelectAwait(async x =>
+        m_StatImages = await statIds.ToAsyncEnumerable().Where(x => x != 8).Select(async (x, cancellationToken) =>
         {
             string path = string.Format(StatsPath, x);
-            Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
+            Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path), cancellationToken);
             return new KeyValuePair<int, Image>(x, image);
-        }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken);
+        }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
 
         m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_bg"),
             cancellationToken);
 
         m_TemplateRelicSlots = await Enumerable.Range(1, 6).ToAsyncEnumerable()
-            .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
-                async x => await CreateTemplateRelicSlotImageAsync(x),
-                cancellationToken);
+            .ToDictionaryAsync(async (x, cancellationToken) => await Task.FromResult(x),
+                async (x, cancellationToken) => await CreateTemplateRelicSlotImageAsync(x));
 
         m_Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);
 

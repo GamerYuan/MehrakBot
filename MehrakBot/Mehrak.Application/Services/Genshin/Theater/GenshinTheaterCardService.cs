@@ -85,25 +85,24 @@ internal class GenshinTheaterCardService :
         List<IDisposable> disposableResources = [];
         try
         {
+            CancellationToken token = CancellationToken.None;
             Dictionary<GenshinAvatar, Image<Rgba32>> avatarImages = await theaterData.Detail.RoundsData.SelectMany(x =>
                     x.Avatars)
                 .DistinctBy(x => x.AvatarId)
                 .ToAsyncEnumerable()
-                .SelectAwait(async y =>
+                .Select(async (y, token) =>
                     new GenshinAvatar(y.AvatarId, y.Level, y.Rarity,
                         y.AvatarType == 1 ? context.ConstMap[y.AvatarId] : 0,
-                        await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(y.ToImageName())),
+                        await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(y.ToImageName()), token),
                         y.AvatarType))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
-                    async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
+                    async (x, token) => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
             Dictionary<string, Image> buffImages = await theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs
                 .ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
-                    async x =>
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
+                    async (x, token) =>
                     {
-                        Image image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
+                        Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
                         image.Mutate(ctx => ctx.Resize(50, 0));
                         return image;
                     });
@@ -114,11 +113,10 @@ internal class GenshinTheaterCardService :
             ];
 
             Dictionary<int, Image> sideAvatarImages = await fightStats.DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.AvatarId),
-                    async x =>
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.AvatarId),
+                    async (x, token) =>
                     {
-                        Image image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
+                        Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
                         image.Mutate(ctx => ctx.Resize(100, 0));
                         return image;
                     });
@@ -151,11 +149,11 @@ internal class GenshinTheaterCardService :
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Imaginarium Theater", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(905, 120),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(905, 120),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     DateTimeOffset.FromUnixTimeSeconds(long.Parse(theaterData.Schedule.StartTime)).ToString("yyyy/MM"),
                     Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -202,10 +200,10 @@ internal class GenshinTheaterCardService :
 
                 ctx.DrawText("Total Cast Time", m_NormalFont, Color.White, new PointF(70, 480));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(885, 480),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, TimeSpan.FromSeconds(theaterData.Detail.FightStatistic.TotalUseTime).ToString(@"mm\:ss"),
+                {
+                    Origin = new Vector2(885, 480),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, TimeSpan.FromSeconds(theaterData.Detail.FightStatistic.TotalUseTime).ToString(@"mm\:ss"),
                     Color.White);
 
                 IPath statBackground = ImageUtility.CreateRoundedRectanglePath(875, 360, 15).Translate(985, 50);
@@ -217,11 +215,11 @@ internal class GenshinTheaterCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Highest Damage Dealt", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1820, 105),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{theaterData.Detail.FightStatistic.MaxDamageAvatar.Value}", Color.White);
+                {
+                    Origin = new Vector2(1820, 105),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{theaterData.Detail.FightStatistic.MaxDamageAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDamageAvatar.AvatarId],
                     new Point(1005, 40), 1f);
                 ctx.DrawLine(Color.White, 2f, new PointF(1020, 165), new PointF(1820, 165));
@@ -232,11 +230,11 @@ internal class GenshinTheaterCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Damage Taken", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1820, 225),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.Value}", Color.White);
+                {
+                    Origin = new Vector2(1820, 225),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxTakeDamageAvatar.AvatarId],
                     new Point(1005, 160), 1f);
                 ctx.DrawLine(Color.White, 2f, new PointF(1020, 285), new PointF(1820, 285));
@@ -247,11 +245,11 @@ internal class GenshinTheaterCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Opponents Defeated", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1820, 345),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{theaterData.Detail.FightStatistic.MaxDefeatAvatar.Value}", Color.White);
+                {
+                    Origin = new Vector2(1820, 345),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{theaterData.Detail.FightStatistic.MaxDefeatAvatar.Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDefeatAvatar.AvatarId],
                     new Point(1005, 280), 1f);
 
@@ -346,9 +344,9 @@ internal class GenshinTheaterCardService :
                     }
 
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 15, yOffset - 45)
-                        },
+                    {
+                        Origin = new Vector2(xOffset + 15, yOffset - 45)
+                    },
                         GetActName(roundData.IsTarot ? roundData.TarotSerialNumber : roundData.RoundId,
                             roundData.IsTarot),
                         Color.White);
@@ -369,9 +367,9 @@ internal class GenshinTheaterCardService :
 
                     ctx.DrawImage(m_TheaterBuff, new Point(xOffset + 690, yOffset - 60), 1f);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 765, yOffset - 45)
-                        }, $"Lv. {roundData.SplendourBuff!.Summary.TotalLevel}", Color.White);
+                    {
+                        Origin = new Vector2(xOffset + 765, yOffset - 45)
+                    }, $"Lv. {roundData.SplendourBuff!.Summary.TotalLevel}", Color.White);
 
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 680, yOffset),
                         new PointF(xOffset + 850, yOffset));
@@ -384,9 +382,9 @@ internal class GenshinTheaterCardService :
                         ctx.DrawImage(buffImage, new Point(xOffset + 690, y), 1f);
 
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 765, y + 10)
-                            }, $"Lv. {buff.Level}", buff.Level > 0 ? Color.White : Color.Gray);
+                        {
+                            Origin = new Vector2(xOffset + 765, y + 10)
+                        }, $"Lv. {buff.Level}", buff.Level > 0 ? Color.White : Color.Gray);
                     }
 
                     if (!hasFastest && roundData.Avatars.Select(x => x.AvatarId).SequenceEqual(

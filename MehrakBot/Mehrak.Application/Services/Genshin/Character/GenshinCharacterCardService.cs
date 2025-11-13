@@ -73,7 +73,8 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 30, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
 
         m_Logger.LogDebug("Loading {Count} stat icons", statIds.Length);
-        m_StatImages = await statIds.ToAsyncEnumerable().SelectAwait(async x =>
+        CancellationToken token = CancellationToken.None;
+        m_StatImages = await statIds.ToAsyncEnumerable().Select(async (int x, CancellationToken token) =>
         {
             try
             {
@@ -87,7 +88,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 m_Logger.LogError(ex, "Failed to load stat icon {StatId}", x);
                 return new KeyValuePair<int, Image>(x, new Image<Rgba32>(48, 48));
             }
-        }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value, cancellationToken);
+        }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value);
 
         m_Logger.LogInformation(
             "Resources initialized successfully with {Count} icons.",
@@ -357,10 +358,10 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                         }
 
                         ctx.DrawText(new RichTextOptions(m_SmallFont)
-                            {
-                                HorizontalAlignment = HorizontalAlignment.Right,
-                                Origin = new Vector2(xPos, y + 25)
-                            }, $"{stat.Base}", Color.LightGray);
+                        {
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            Origin = new Vector2(xPos, y + 25)
+                        }, $"{stat.Base}", Color.LightGray);
                     }
                     else
                     {
@@ -451,11 +452,11 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 Origin = new Vector2(320, 70)
             }, relic.MainProperty.Value, Color.White);
             ctx.DrawText(new RichTextOptions(m_SmallFont)
-                {
-                    TextAlignment = TextAlignment.End,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Origin = new Vector2(320, 130)
-                }, $"+{relic.Level!.Value}", Color.White);
+            {
+                TextAlignment = TextAlignment.End,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Origin = new Vector2(320, 130)
+            }, $"+{relic.Level!.Value}", Color.White);
             Image<Rgba32> stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
             stars.Mutate(x => x.Resize(0, 25));
             ctx.DrawImage(stars, new Point(120, 130), 1f);

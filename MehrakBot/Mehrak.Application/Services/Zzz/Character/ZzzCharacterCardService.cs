@@ -149,6 +149,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         var characterInformation = context.Data;
         try
         {
+            CancellationToken token = CancellationToken.None;
+
             ZzzAvatarData character = characterInformation.AvatarList[0];
 
             Image<Rgba32> background = new(3000, 1200);
@@ -159,14 +161,15 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 ? Task.FromResult(m_WeaponTemplate.Clone(ctx => { }))
                 : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                     string.Format(character.Weapon.ToImageName())));
-            List<Image> diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable().SelectAwait(async i =>
-            {
-                DiskDrive? disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
-                if (disk == null)
-                    return m_DiskTemplate.CloneAs<Rgba32>();
-                else
-                    return await CreateDiskImageAsync(disk);
-            }).ToListAsync();
+            List<Image> diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable()
+                .Select(async (int i, CancellationToken token) =>
+                {
+                    DiskDrive? disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
+                    if (disk == null)
+                        return m_DiskTemplate.CloneAs<Rgba32>();
+                    else
+                        return await CreateDiskImageAsync(disk);
+                }).ToListAsync();
 
             Color accentColor = Color.ParseHex(character.VerticalPaintingColor);
 
