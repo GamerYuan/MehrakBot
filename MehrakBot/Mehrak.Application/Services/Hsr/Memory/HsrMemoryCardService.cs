@@ -92,10 +92,10 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                 .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
-                .SelectAwait(async x => new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()))))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
-                    async x => await Task.FromResult(x.GetStyledAvatarImage()),
+                .Select(async (x, token) => new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token)))
+                .ToDictionaryAsync(x => x,
+                    x => x.GetStyledAvatarImage(),
                     HsrAvatarIdComparer.Instance);
 
             Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
@@ -129,10 +129,10 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Memory of Chaos", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(50, 110),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(50, 110),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{memoryData.StartTime.Day}/{memoryData.StartTime.Month}/{memoryData.StartTime.Year} - " +
                     $"{memoryData.EndTime.Day}/{memoryData.EndTime.Month}/{memoryData.EndTime.Year}",
                     Color.White);
@@ -147,11 +147,11 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                 ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1500, 80),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(1500, 80),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {

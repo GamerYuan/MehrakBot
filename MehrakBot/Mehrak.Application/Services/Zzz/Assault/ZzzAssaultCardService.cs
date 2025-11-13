@@ -89,11 +89,10 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
             Dictionary<ZzzAvatar, Image<Rgba32>> avatarImages = await data.List.SelectMany(x => x.AvatarList)
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
-                .SelectAwait(async x =>
+                .Select(async (x, token) =>
                 {
-                    Image image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(
-                            x.ToImageName()));
+                    Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+                            x.ToImageName()), token);
                     ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
                     return (Avatar: avatar, Image: avatar.GetStyledAvatarImage());
                 })
@@ -105,11 +104,10 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
                 .ToAsyncEnumerable()
-                .SelectAwait(async x =>
+                .Select(async (x, token) =>
                 {
-                    Image image = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(
-                            x!.ToImageName()));
+                    Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+                            x!.ToImageName()), token);
                     return (BuddyId: x!.Id, Image: image);
                 })
                 .ToDictionaryAsync(x => x.BuddyId, x => x.Image);
@@ -117,16 +115,16 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
 
             Dictionary<string, Stream> bossImages = await data.List.SelectMany(x => x.Boss)
                 .ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
-                    async x =>
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
+                    async (x, token) =>
                     {
                         Stream stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
                         return stream;
                     });
             Dictionary<string, Stream> buffImages = await data.List.SelectMany(x => x.Buff)
                 .ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Name),
-                    async x =>
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
+                    async (x, token) =>
                     {
                         Stream stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
                         return stream;
@@ -149,26 +147,26 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Deadly Assault", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(50, 110),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(50, 110),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{data.StartTime.Day}/{data.StartTime.Month}/{data.StartTime.Year} - " +
                     $"{data.EndTime.Day}/{data.EndTime.Month}/{data.EndTime.Year}",
                     Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1000, 80),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
+                {
+                    Origin = new Vector2(1000, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1000, 110),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    },
+                {
+                    Origin = new Vector2(1000, 110),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                },
                     $"{context.GameProfile.GameUid}", Color.White);
 
                 string totalScoreText = $"Total Score: {data.TotalScore}";
@@ -184,18 +182,18 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                     .Translate(60 + totalScoreBounds.Width, 110);
                 ctx.Fill(OverlayColor, rankOverlay);
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
-                    {
-                        Origin = new Vector2(105 + (int)totalScoreBounds.Width, 145),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Center
-                    }, $"{(float)data.RankPercent / 100:N2}%", Color.White);
+                {
+                    Origin = new Vector2(105 + (int)totalScoreBounds.Width, 145),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                }, $"{(float)data.RankPercent / 100:N2}%", Color.White);
 
                 ctx.DrawImage(m_StarLitImage, new Point(160 + (int)totalScoreBounds.Width, 100), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(210 + (int)totalScoreBounds.Width, 150),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    }, $"x{data.TotalStar}", Color.White);
+                {
+                    Origin = new Vector2(210 + (int)totalScoreBounds.Width, 150),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, $"x{data.TotalStar}", Color.White);
 
                 for (int i = 0; i < data.List.Count; i++)
                 {

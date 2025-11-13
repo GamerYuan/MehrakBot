@@ -63,7 +63,7 @@ public class BotMetricsService : IMetricsService, IHostedService
 
     private readonly IOptions<MetricsConfig> m_MetricsOptions;
     private readonly ILogger<BotMetricsService> m_Logger;
-    private IWebHost? m_MetricsServer;
+    private IHost? m_MetricsServer;
     private readonly CancellationTokenSource m_Cts = new();
 
     public BotMetricsService(IOptions<MetricsConfig> metricsOptions, ILogger<BotMetricsService> logger)
@@ -118,17 +118,17 @@ public class BotMetricsService : IMetricsService, IHostedService
             return;
         }
 
-        m_MetricsServer = new WebHostBuilder().UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
-            .Configure(app =>
-            {
-                app.UseMetricServer(metricsConfig.Endpoint);
-
-                app.Map("/health", builder => builder.Run(async context =>
+        m_MetricsServer = Host.CreateDefaultBuilder()
+            .ConfigureWebHost(x => x.UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
+                .Configure(app =>
                 {
-                    context.Response.StatusCode = 200;
-                    await context.Response.WriteAsync("Healthy", cancellationToken);
-                }));
-            }).Build();
+                    app.UseMetricServer(metricsConfig.Endpoint);
+                    app.Map("/health", builder => builder.Run(async context =>
+                    {
+                        context.Response.StatusCode = 200;
+                        await context.Response.WriteAsync("Healthy", context.RequestAborted);
+                    }));
+                })).Build();
 
         await m_MetricsServer.StartAsync(cancellationToken).ConfigureAwait(false);
 

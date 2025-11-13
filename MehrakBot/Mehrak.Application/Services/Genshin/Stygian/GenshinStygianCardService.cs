@@ -57,8 +57,8 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().SelectAwait(async x =>
-                await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}")))
+        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, cancellationToken) =>
+                await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}"), cancellationToken))
             .ToArrayAsync(cancellationToken);
         m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg"),
             cancellationToken);
@@ -80,22 +80,19 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
             Dictionary<GenshinAvatar, Image<Rgba32>> avatarImages = await stygianData.Challenge!
                 .SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId)
                 .ToAsyncEnumerable()
-                .SelectAwait(async x =>
+                .Select(async (x, token) =>
                     new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank,
-                        await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()))))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
-                    async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
+                        await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token)))
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
+                    async (x, token) => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
             Dictionary<int, Image> bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
                 .DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.AvatarId),
-                    async x => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())));
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.AvatarId),
+                    async (x, token) => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
             Dictionary<int, Image> monsterImages = await stygianData.Challenge!.Select(x => x.Monster)
                 .ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.MonsterId),
-                    async x => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())));
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.MonsterId),
+                    async (x, token) => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
             disposableResources.AddRange(bestAvatarImages.Values);
@@ -116,10 +113,10 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Stygian Onslaught", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(50, 130),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(50, 130),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
                         .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.EndTime))
@@ -127,11 +124,11 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
                     Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
-                    {
-                        Origin = new Vector2(940, 130),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{stygianData.StygianBestRecord!.Second}s", Color.White);
+                {
+                    Origin = new Vector2(940, 130),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{stygianData.StygianBestRecord!.Second}s", Color.White);
 
                 ctx.DrawImage(
                     m_DifficultyLogo[
@@ -139,17 +136,17 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
                     new Point(960, 60), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1650, 80),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
+                {
+                    Origin = new Vector2(1650, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1650, 130),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    },
+                {
+                    Origin = new Vector2(1650, 130),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                },
                     $"{context.GameProfile.GameUid}", Color.White);
 
                 for (int i = 0; i < stygianData.Challenge!.Count; i++)
@@ -222,11 +219,11 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
             ctx.DrawImage(monsterImage, new Point(-100, -125), 1f);
             ctx.DrawImage(rosterImage, new Point(340, 100), 1f);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(970, 65),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{data.Second}s", Color.White);
+            {
+                Origin = new Vector2(970, 65),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Right
+            }, $"{data.Second}s", Color.White);
             ctx.ApplyRoundedCorners(15);
         });
 

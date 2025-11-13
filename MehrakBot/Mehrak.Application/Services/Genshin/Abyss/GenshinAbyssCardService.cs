@@ -85,13 +85,13 @@ internal class GenshinAbyssCardService :
             Dictionary<GenshinAvatar, Image<Rgba32>> portraitImages = await floorData.Levels!
                 .SelectMany(y => y.Battles!)
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
-                .SelectAwait(async x =>
+                .Select(async (x, token) =>
                     new GenshinAvatar(x.Id, x.Level,
                         x.Rarity, context.ConstMap[x.Id], await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())),
+                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token),
                         0))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x),
-                    async x => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
+                .ToDictionaryAsync(x => x,
+                    x => x.GetStyledAvatarImage(), GenshinAvatarIdComparer.Instance);
 
             Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> lookup =
                 portraitImages.GetAlternateLookup<int>();
@@ -99,18 +99,16 @@ internal class GenshinAbyssCardService :
             Dictionary<int, Image> sideAvatarImages = await abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
                 .Concat(abyssData.EnergySkillRank!)
                 .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
-                .ToAsyncEnumerable().ToDictionaryAwaitAsync(
-                    async x => await Task.FromResult(x.AvatarId),
-                    async x => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())));
+                .ToAsyncEnumerable().ToDictionaryAsync(
+                    async (x, token) => await Task.FromResult(x.AvatarId),
+                    async (x, token) => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
             Dictionary<GenshinAvatar, Image<Rgba32>> revealRankImages = await abyssData.RevealRank!
                 .ToAsyncEnumerable()
-                .SelectAwait(async x => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
+                .Select(async (x, token) => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
                     context.ConstMap[x.AvatarId],
-                    await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName())))))
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Item2),
-                    async x => await Task.FromResult(x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!)),
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName()), token))))
+                .ToDictionaryAsync(x => x.Item2,
+                    x => x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!),
                     GenshinAvatarIdComparer.Instance);
             disposableResources.AddRange(portraitImages.Keys);
             disposableResources.AddRange(portraitImages.Values);
@@ -131,11 +129,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Spiral Abyss", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(750, 80),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    },
+                {
+                    Origin = new Vector2(750, 80),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!))
                         .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!))
@@ -164,18 +162,18 @@ internal class GenshinAbyssCardService :
 
                 ctx.DrawText("Battles Fought: ", m_NormalFont, Color.White, new PointF(80, 280));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(720, 280),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{abyssData.TotalWinTimes}/{abyssData.TotalBattleTimes}", Color.White);
+                {
+                    Origin = new Vector2(720, 280),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{abyssData.TotalWinTimes}/{abyssData.TotalBattleTimes}", Color.White);
                 ctx.DrawLine(Color.White, 2f, new PointF(80, 330), new PointF(720, 330));
 
                 ctx.DrawText("Total Abyss Stars: ", m_NormalFont, Color.White, new PointF(80, 360));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(720, 360),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{abyssData.TotalStar}", Color.White);
+                {
+                    Origin = new Vector2(720, 360),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{abyssData.TotalStar}", Color.White);
 
                 IPath mostUsedBackground = ImageUtility.CreateRoundedRectanglePath(700, 260, 15).Translate(50, 440);
                 ctx.Fill(OverlayColor, mostUsedBackground);
@@ -201,11 +199,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Strongest Single Strike", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(720, 795),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{abyssData.DamageRank![0].Value}", Color.White);
+                {
+                    Origin = new Vector2(720, 795),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.DamageRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.DamageRank![0].AvatarId], new Point(50, 700), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -214,11 +212,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Defeats", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(720, 965),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{abyssData.DefeatRank![0].Value}", Color.White);
+                {
+                    Origin = new Vector2(720, 965),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.DefeatRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.DefeatRank![0].AvatarId], new Point(50, 870), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -227,11 +225,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Most Damage Taken", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(720, 1135),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{abyssData.TakeDamageRank![0].Value}", Color.White);
+                {
+                    Origin = new Vector2(720, 1135),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.TakeDamageRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.TakeDamageRank![0].AvatarId], new Point(50, 1040),
                     1f);
 
@@ -241,11 +239,11 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Elemental Skills Cast", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(720, 1305),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{abyssData.NormalSkillRank![0].Value}", Color.White);
+                {
+                    Origin = new Vector2(720, 1305),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.NormalSkillRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.NormalSkillRank![0].AvatarId], new Point(50, 1210),
                     1f);
 
@@ -255,24 +253,24 @@ internal class GenshinAbyssCardService :
                     VerticalAlignment = VerticalAlignment.Center
                 }, "Elemental Bursts Unleashed", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(720, 1475),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{abyssData.EnergySkillRank![0].Value}", Color.White);
+                {
+                    Origin = new Vector2(720, 1475),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.EnergySkillRank![0].Value}", Color.White);
                 ctx.DrawImage(sideAvatarImages[abyssData.EnergySkillRank![0].AvatarId], new Point(50, 1380),
                     1f);
 
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
-                    {
-                        Origin = new Vector2(795, 80),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    }, $"Floor {floor}", Color.White);
+                {
+                    Origin = new Vector2(795, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, $"Floor {floor}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(1385, 52),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{floorData.Star}/{floorData.MaxStar}", Color.White);
+                {
+                    Origin = new Vector2(1385, 52),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{floorData.Star}/{floorData.MaxStar}", Color.White);
 
                 ctx.DrawImage(m_AbyssStarIconLit, new Point(1395, 47), 1f);
                 for (int i = 0; i < 3; i++)

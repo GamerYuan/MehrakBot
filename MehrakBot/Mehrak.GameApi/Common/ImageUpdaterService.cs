@@ -75,13 +75,14 @@ public class ImageUpdaterService : IImageUpdaterService
         var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
         m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
 
-        var images = allUrls.ToAsyncEnumerable().SelectAwait(async x =>
+        var images = allUrls.ToAsyncEnumerable().Select(async (x, token) =>
         {
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);
-            var r = await client.GetAsync(x);
+            var r = await client.GetAsync(x, token);
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)r.StatusCode, x);
             return r;
         });
+
 
         if (await images.AnyAsync(x => !x.IsSuccessStatusCode))
         {
@@ -91,7 +92,8 @@ public class ImageUpdaterService : IImageUpdaterService
             return false;
         }
 
-        var streams = images.SelectAwait(async x => await x.Content.ReadAsStreamAsync()).ToEnumerable();
+        var streams = images.Select(async (x, token) =>
+            await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable();
 
         using var processedStream = processor.ProcessImage(streams);
         processedStream.Position = 0;

@@ -115,11 +115,10 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
 
             Dictionary<int, Image> weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
-                .ToDictionaryAwaitAsync(async x => await Task.FromResult(x.Id!.Value),
-                    async x =>
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Id!.Value),
+                    async (x, token) =>
                     {
-                        Image image = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
+                        Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
                         image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
                         return image;
                     });
@@ -129,10 +128,9 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 .ThenByDescending(x => x.Rarity)
                 .ThenBy(x => x.Name)
                 .ToAsyncEnumerable()
-                .SelectAwait(async x =>
+                .Select(async (x, token) =>
                 {
-                    using Image avatarImage = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()));
+                    using Image avatarImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
                     return GetStyledCharacterImage(x, avatarImage, weaponImages[x.Weapon.Id!.Value]);
                 })
                 .ToListAsync();
