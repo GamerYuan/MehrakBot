@@ -119,7 +119,7 @@ public class BotMetricsService : IMetricsService, IHostedService
         }
 
         m_MetricsServer = Host.CreateDefaultBuilder()
-            .ConfigureWebHost(x => x.UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
+            .ConfigureWebHost(x => x.UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
                 .Configure(app =>
                 {
                     app.UseMetricServer(metricsConfig.Endpoint);
