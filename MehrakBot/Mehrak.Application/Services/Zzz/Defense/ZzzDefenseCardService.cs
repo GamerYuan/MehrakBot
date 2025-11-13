@@ -64,14 +64,14 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
     {
         char[] rating = ['S', 'A', 'B'];
         m_RatingImages = await rating.ToAsyncEnumerable()
-            .Select(async (x, cancellationToken) =>
+            .Select(async (x, token) =>
             {
                 Image image = await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}"), cancellationToken);
+                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}"), token);
                 image.Mutate(ctx => ctx.Resize(80, 0));
                 return (Rating: x, Image: image);
             })
-            .ToDictionaryAsync(x => x.Rating, x => x.Image);
+            .ToDictionaryAsync(x => x.Rating, x => x.Image, cancellationToken: cancellationToken);
         m_SmallRatingImages = m_RatingImages.Select(x => (x.Key, x.Value.Clone(y => y.Resize(0, 50))))
             .ToDictionary();
         m_BaseBuddyImage = await Image.LoadAsync(await
@@ -92,7 +92,6 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
         List<IDisposable> disposables = [];
         try
         {
-            CancellationToken token = CancellationToken.None;
             Dictionary<ZzzAvatar, Image<Rgba32>> avatarImages = await data.AllFloorDetail
                 .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)

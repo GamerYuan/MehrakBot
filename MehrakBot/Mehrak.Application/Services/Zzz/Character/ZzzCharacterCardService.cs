@@ -149,8 +149,6 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         var characterInformation = context.Data;
         try
         {
-            CancellationToken token = CancellationToken.None;
-
             ZzzAvatarData character = characterInformation.AvatarList[0];
 
             Image<Rgba32> background = new(3000, 1200);
@@ -162,13 +160,13 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                     string.Format(character.Weapon.ToImageName())));
             List<Image> diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable()
-                .Select(async (int i, CancellationToken token) =>
+                .Select(async (i, token) =>
                 {
                     DiskDrive? disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
                     if (disk == null)
                         return m_DiskTemplate.CloneAs<Rgba32>();
                     else
-                        return await CreateDiskImageAsync(disk);
+                        return await CreateDiskImageAsync(disk, token);
                 }).ToListAsync();
 
             Color accentColor = Color.ParseHex(character.VerticalPaintingColor);
@@ -424,10 +422,10 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         return diskTemplate;
     }
 
-    private async ValueTask<Image> CreateDiskImageAsync(DiskDrive disk)
+    private async ValueTask<Image> CreateDiskImageAsync(DiskDrive disk, CancellationToken token = default)
     {
         Image diskImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
-            disk.ToImageName()));
+            disk.ToImageName()), token);
         Image<Rgba32> diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
         diskTemplate.Mutate(ctx =>
         {

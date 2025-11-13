@@ -93,8 +93,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
         List<IDisposable> disposables = [];
         try
         {
-            CancellationToken token = CancellationToken.None;
-            ValueTask<Dictionary<HsrAvatar, Image<Rgba32>>> avatarImageTask = gameModeData.AllFloorDetail
+            var avatarImages = await gameModeData.AllFloorDetail
                 .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id).ToAsyncEnumerable().Select(async (x, token) =>
@@ -102,7 +101,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token))))
                 .ToDictionaryAsync(x => x,
                     x => x.GetStyledAvatarImage(), HsrAvatarIdComparer.Instance);
-            ValueTask<Dictionary<int, Image>> buffImageTask = gameModeData.AllFloorDetail
+            var buffImages = await gameModeData.AllFloorDetail
                 .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => new HsrEndBuff[] { x.Node1!.Buff, x.Node2!.Buff })
                 .Where(x => x is not null)
@@ -115,9 +114,6 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         image.Mutate(ctx => ctx.Resize(110, 0));
                         return image;
                     });
-
-            Dictionary<HsrAvatar, Image<Rgba32>> avatarImages = await avatarImageTask;
-            Dictionary<int, Image> buffImages = await buffImageTask;
 
             disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);

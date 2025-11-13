@@ -105,8 +105,6 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                 }
             }
 
-            CancellationToken token = CancellationToken.None;
-
             var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
                 .DistinctBy(x => x.GetSetId())
                 .ToAsyncEnumerable()

@@ -106,7 +106,6 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
         List<IDisposable> disposables = [];
         try
         {
-            CancellationToken token = CancellationToken.None;
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
                 context.GameProfile.GameUid, charData.Count);
             Dictionary<int, Image> weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)

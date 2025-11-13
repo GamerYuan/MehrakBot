@@ -82,7 +82,6 @@ internal class GenshinAbyssCardService :
         {
             Floor floorData = abyssData.Floors!.First(x => x.Index == floor);
 
-            CancellationToken token = CancellationToken.None;
             Dictionary<GenshinAvatar, Image<Rgba32>> portraitImages = await floorData.Levels!
                 .SelectMany(y => y.Battles!)
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
@@ -91,8 +90,8 @@ internal class GenshinAbyssCardService :
                         x.Rarity, context.ConstMap[x.Id], await Image.LoadAsync(
                             await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token),
                         0))
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
-                    async (x, token) => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
+                .ToDictionaryAsync(x => x,
+                    x => x.GetStyledAvatarImage(), GenshinAvatarIdComparer.Instance);
 
             Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> lookup =
                 portraitImages.GetAlternateLookup<int>();
@@ -102,16 +101,14 @@ internal class GenshinAbyssCardService :
                 .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
                 .ToAsyncEnumerable().ToDictionaryAsync(
                     async (x, token) => await Task.FromResult(x.AvatarId),
-                    async (x, token) => await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName())));
+                    async (x, token) => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
             Dictionary<GenshinAvatar, Image<Rgba32>> revealRankImages = await abyssData.RevealRank!
                 .ToAsyncEnumerable()
-                .Select(async (AbyssRankAvatar x, CancellationToken token) => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
+                .Select(async (x, token) => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
                     context.ConstMap[x.AvatarId],
-                    await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName())))))
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Item2),
-                    async (x, token) => await Task.FromResult(x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!)),
+                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName()), token))))
+                .ToDictionaryAsync(x => x.Item2,
+                    x => x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!),
                     GenshinAvatarIdComparer.Instance);
             disposableResources.AddRange(portraitImages.Keys);
             disposableResources.AddRange(portraitImages.Values);

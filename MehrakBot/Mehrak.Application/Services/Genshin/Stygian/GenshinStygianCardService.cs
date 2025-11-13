@@ -57,7 +57,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (int x, CancellationToken cancellationToken) =>
+        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, cancellationToken) =>
                 await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}"), cancellationToken))
             .ToArrayAsync(cancellationToken);
         m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg"),
@@ -76,7 +76,6 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
         List<IDisposable> disposableResources = [];
         try
         {
-            CancellationToken token = CancellationToken.None;
             StygianChallengeData stygianData = stygianInfo.Single;
             Dictionary<GenshinAvatar, Image<Rgba32>> avatarImages = await stygianData.Challenge!
                 .SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId)

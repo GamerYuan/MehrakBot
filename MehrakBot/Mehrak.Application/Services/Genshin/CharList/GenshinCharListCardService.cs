@@ -113,7 +113,6 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
                 context.GameProfile.GameUid, charData.Count);
 
-            CancellationToken token = CancellationToken.None;
             Dictionary<int, Image> weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Id!.Value),
@@ -129,7 +128,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 .ThenByDescending(x => x.Rarity)
                 .ThenBy(x => x.Name)
                 .ToAsyncEnumerable()
-                .Select(async (GenshinBasicCharacterData x, CancellationToken token) =>
+                .Select(async (x, token) =>
                 {
                     using Image avatarImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
                     return GetStyledCharacterImage(x, avatarImage, weaponImages[x.Weapon.Id!.Value]);

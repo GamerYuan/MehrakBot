@@ -86,7 +86,6 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
         List<IDisposable> disposables = [];
         try
         {
-            CancellationToken token = CancellationToken.None;
             Dictionary<ZzzAvatar, Image<Rgba32>> avatarImages = await data.List.SelectMany(x => x.AvatarList)
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()

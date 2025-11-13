@@ -73,13 +73,12 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 22, 23, 26, 27, 28, 30, 40, 41, 42, 43, 44, 45, 46, 2000, 2001, 2002];
 
         m_Logger.LogDebug("Loading {Count} stat icons", statIds.Length);
-        CancellationToken token = CancellationToken.None;
-        m_StatImages = await statIds.ToAsyncEnumerable().Select(async (int x, CancellationToken token) =>
+        m_StatImages = await statIds.ToAsyncEnumerable().Select(async (x, token) =>
         {
             try
             {
                 string path = string.Format(StatsPath, x);
-                Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path));
+                Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path), token);
                 image.Mutate(ctx => ctx.Resize(new Size(48, 0), KnownResamplers.Bicubic, true));
                 return new KeyValuePair<int, Image>(x, image);
             }
@@ -88,7 +87,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 m_Logger.LogError(ex, "Failed to load stat icon {StatId}", x);
                 return new KeyValuePair<int, Image>(x, new Image<Rgba32>(48, 48));
             }
-        }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value);
+        }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value, cancellationToken: cancellationToken);
 
         m_Logger.LogInformation(
             "Resources initialized successfully with {Count} icons.",

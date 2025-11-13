@@ -75,7 +75,6 @@ public class ImageUpdaterService : IImageUpdaterService
         var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
         m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
 
-        var token = CancellationToken.None;
         var images = allUrls.ToAsyncEnumerable().Select(async (x, token) =>
         {
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);

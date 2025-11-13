@@ -85,9 +85,8 @@ internal class GenshinTheaterCardService :
         List<IDisposable> disposableResources = [];
         try
         {
-            CancellationToken token = CancellationToken.None;
-            Dictionary<GenshinAvatar, Image<Rgba32>> avatarImages = await theaterData.Detail.RoundsData.SelectMany(x =>
-                    x.Avatars)
+            Dictionary<GenshinAvatar, Image<Rgba32>> avatarImages = await theaterData.Detail.RoundsData
+                .SelectMany(x => x.Avatars)
                 .DistinctBy(x => x.AvatarId)
                 .ToAsyncEnumerable()
                 .Select(async (y, token) =>
@@ -95,8 +94,8 @@ internal class GenshinTheaterCardService :
                         y.AvatarType == 1 ? context.ConstMap[y.AvatarId] : 0,
                         await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(y.ToImageName()), token),
                         y.AvatarType))
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
-                    async (x, token) => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
+                .ToDictionaryAsync(x => x,
+                    x => x.GetStyledAvatarImage(), GenshinAvatarIdComparer.Instance);
             Dictionary<string, Image> buffImages = await theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs
                 .ToAsyncEnumerable()
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),

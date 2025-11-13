@@ -88,7 +88,6 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
         List<IDisposable> disposableResources = [];
         try
         {
-            CancellationToken token = CancellationToken.None;
             Dictionary<HsrAvatar, Image<Rgba32>> avatarImages = await memoryData.AllFloorDetail!
                 .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
