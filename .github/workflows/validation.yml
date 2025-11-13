@@ -55,5 +55,5 @@ jobs:
         if: always()
         with:
           name: test-output-images
-          path: MehrakBot/Mehrak.Application.Tests/bin/Release/net9.0/Output/
+          path: MehrakBot/Mehrak.Application.Tests/bin/Release/net10.0/Output/
           if-no-files-found: ignore
