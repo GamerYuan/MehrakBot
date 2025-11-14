@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 namespace Mehrak.GameApi;
 
@@ -43,7 +43,7 @@ public static class HoYoLabDomains
     /// <summary>
     /// HoYoLAB Posts/BBS API host
     /// </summary>
-    public const string PostsApi = "https://bbs-api-os.hoyolab.com";
+    public const string BbsApi = "https://bbs-api-os.hoyolab.com";
 
     /// <summary>
     /// HoYoWiki static API host
