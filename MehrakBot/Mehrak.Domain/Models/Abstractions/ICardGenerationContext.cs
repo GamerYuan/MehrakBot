@@ -6,10 +6,14 @@ using Mehrak.Domain.Enums;
 
 namespace Mehrak.Domain.Models.Abstractions;
 
-public interface ICardGenerationContext<out T>
+public interface ICardGenerationContext<out T, out TServer> where TServer : Enum
 {
-    public ulong UserId { get; }
-    public T Data { get; }
-    public Server Server { get; }
-    public GameProfileDto GameProfile { get; }
+    ulong UserId { get; }
+    T Data { get; }
+    TServer Server { get; }
+    GameProfileDto GameProfile { get; }
 }
+
+public interface ICardGenerationContext<out T> : ICardGenerationContext<T, Server>;
+
+
