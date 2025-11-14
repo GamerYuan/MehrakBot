@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Hi3;
 
-internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, BaseHoYoApiContext>
+internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ICacheService m_Cache;
@@ -28,7 +28,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<Hi3CharacterDetail>>> GetAllCharactersAsync(BaseHoYoApiContext context)
+    public async Task<Result<IEnumerable<Hi3CharacterDetail>>> GetAllCharactersAsync(CharacterApiContext context)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -136,7 +136,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
     /// <summary>
     /// Stub! DO NOT USE!
     /// </summary>
-    public Task<Result<Hi3CharacterDetail>> GetCharacterDetailAsync(BaseHoYoApiContext context)
+    public Task<Result<Hi3CharacterDetail>> GetCharacterDetailAsync(CharacterApiContext context)
     {
         throw new NotSupportedException();
     }
