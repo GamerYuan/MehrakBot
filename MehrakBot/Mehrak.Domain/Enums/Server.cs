@@ -1,4 +1,4 @@
-namespace Mehrak.Domain.Enums;
+﻿namespace Mehrak.Domain.Enums;
 
 public enum Server
 {
@@ -6,4 +6,14 @@ public enum Server
     Europe,
     Asia,
     Sar
+}
+
+public enum Hi3Server
+{
+    SEA,
+    JP,
+    KR,
+    America,
+    SAR,
+    Europe
 }
