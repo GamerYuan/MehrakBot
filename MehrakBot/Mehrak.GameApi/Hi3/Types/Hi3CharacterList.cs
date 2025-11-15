@@ -28,6 +28,7 @@ public class Hi3Avatar
     [JsonPropertyName("id")] public int Id { get; init; }
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("star")] public int Star { get; init; }
+    [JsonPropertyName("level")] public int Level { get; init; }
 }
 
 public class Hi3Weapon
