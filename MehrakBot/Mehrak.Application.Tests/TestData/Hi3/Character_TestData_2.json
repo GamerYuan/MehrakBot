@@ -1,0 +1,72 @@
+﻿{
+  "avatar": {
+    "id": "105",
+    "name": "Herrscher of Flamescion",
+    "star": 3,
+    "avatar_background_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardIcons/AttrYiNengSmall.png",
+    "icon_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardIcons/60105.png",
+    "background_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardFigures/60105@2.png",
+    "large_background_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardFigures/60105@1.png",
+    "figure_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarTachie/KianaC6.png",
+    "level": 80,
+    "oblique_avatar_background_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarIcon/AttrYiNeng.png",
+    "half_length_icon_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarIcon/105.png",
+    "image_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardFigures/60105.png",
+    "wiki_url": "",
+    "avatar_background_path_v2": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardIcons/2-0.png",
+    "attribute_id": 2,
+    "attribute_background_path": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardIcons/2-1.png",
+    "sec_part_icon": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarItemIcon/105.png"
+  },
+  "weapon": {
+    "id": 24264,
+    "name": "Domain of Incandescence",
+    "max_rarity": 6,
+    "rarity": 6,
+    "icon": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/WeaponIcons/Weapon_Pistol_K44_307_6.png",
+    "level": 65,
+    "wiki_url": "",
+    "homology_level": 0
+  },
+  "stigmatas": [
+    {
+      "id": 0,
+      "name": "",
+      "max_rarity": 0,
+      "rarity": 0,
+      "icon": "",
+      "level": 0,
+      "wiki_url": ""
+    },
+    {
+      "id": 0,
+      "name": "",
+      "max_rarity": 0,
+      "rarity": 0,
+      "icon": "",
+      "level": 0,
+      "wiki_url": ""
+    },
+    {
+      "id": 0,
+      "name": "",
+      "max_rarity": 0,
+      "rarity": 0,
+      "icon": "",
+      "level": 0,
+      "wiki_url": ""
+    }
+  ],
+  "costumes": [
+    {
+      "id": 50154,
+      "name": "时砾逐光",
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardFigures/60105_04_01.png"
+    },
+    {
+      "id": 59105,
+      "name": "薪炎之律者",
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/honkai3rd/global/SpriteOutput/AvatarCardFigures/60105.png"
+    }
+  ]
+}
