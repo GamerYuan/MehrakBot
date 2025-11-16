@@ -93,7 +93,8 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
 
             List<Task<bool>> tasks = [];
 
-            tasks.AddRange(characterInfo.Stigmatas.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None)));
+            tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None)));
             tasks.AddRange(characterInfo.Costumes.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None)));
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), ImageProcessors.None));
 
