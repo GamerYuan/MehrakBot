@@ -30,6 +30,36 @@ internal class Hi3CharacterCardServiceTests
         await m_CharacterCardService.InitializeAsync();
     }
 
+    [Test]
+    [TestCase("Character_TestData_1.json", "Character_GoldenImage_1.jpg", "Character_1")]
+    [TestCase("Character_TestData_2.json", "Character_GoldenImage_2.jpg", "Character_2")]
+    public async Task GenerateCharacterCardAsync_ShouldMatchGoldenImage(string testDataFileName,
+       string goldenImageFileName, string testName)
+    {
+        JsonSerializerOptions options = new()
+        {
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+
+
+        // Arrange
+        string testDataPath = Path.Combine(TestDataPath, testDataFileName);
+        string goldenImagePath =
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Hi3", "TestAssets", goldenImageFileName);
+        Hi3CharacterDetail? characterDetail = JsonSerializer.Deserialize<Hi3CharacterDetail>(
+            await File.ReadAllTextAsync(testDataPath), options);
+        Assert.That(characterDetail, Is.Not.Null);
+
+        GameProfileDto profile = GetTestUserGameData();
+
+        // Act
+        Stream generatedImageStream = await m_CharacterCardService.GetCardAsync(
+            new TestCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, Hi3Server.SEA, profile));
+
+        // Assert
+        await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto
@@ -56,6 +86,48 @@ internal class Hi3CharacterCardServiceTests
         }
     }
 
+
+    private static async Task AssertImageMatches(Stream generatedImageStream, string goldenImagePath, string testName)
+    {
+        Assert.That(generatedImageStream, Is.Not.Null, $"Generated image stream should not be null for {testName}");
+        Assert.That(generatedImageStream.Length, Is.GreaterThan(0),
+            $"Generated image should have content for {testName}");
+
+        // Read the generated image
+        using MemoryStream memoryStream = new();
+        await generatedImageStream.CopyToAsync(memoryStream);
+        byte[] generatedImageBytes = memoryStream.ToArray();
+
+        // Compare basic properties
+        Assert.That(generatedImageBytes, Is.Not.Empty,
+            $"Generated image should have content for {testName}");
+
+        // Save generated image to output folder for comparison
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        string outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
+
+        if (!File.Exists(goldenImagePath))
+        {
+            Console.WriteLine(
+                $"Golden image not found at {goldenImagePath} for test {testName}. Generated image saved to {outputImagePath}");
+            Assert.Fail($"Golden image not found at {goldenImagePath} for test {testName}. " +
+                        "Please run the GenerateGoldenImage test to create golden images.");
+        }
+
+        // Read the golden image
+        byte[] goldenImageBytes = await File.ReadAllBytesAsync(goldenImagePath);
+
+        // Save golden image to output folder for comparison
+        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImageBytes);
+
+        Assert.That(generatedImageBytes, Is.EqualTo(goldenImageBytes),
+            $"Generated image should match golden image for {testName}");
+    }
+
+    /*
     [Test]
     [TestCase("Character_TestData_1.json", "Character_GoldenImage_1.jpg")]
     [TestCase("Character_TestData_2.json", "Character_GoldenImage_2.jpg")]
@@ -83,5 +155,5 @@ internal class Hi3CharacterCardServiceTests
 
         Assert.That(image, Is.Not.Null);
     }
-
+    */
 }
