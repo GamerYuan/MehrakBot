@@ -1,9 +1,9 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Hi3.Character;
+using Mehrak.Application.Services.Hi3.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -54,7 +54,7 @@ internal class Hi3CharacterCardServiceTests
 
         // Act
         Stream generatedImageStream = await m_CharacterCardService.GetCardAsync(
-            new TestCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, Hi3Server.SEA, profile));
+            new Hi3CardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, Hi3Server.SEA, profile));
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
@@ -68,22 +68,6 @@ internal class Hi3CharacterCardServiceTests
             Nickname = TestNickName,
             Level = 88
         };
-    }
-
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T, Hi3Server>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Hi3Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Hi3Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
     }
 
 

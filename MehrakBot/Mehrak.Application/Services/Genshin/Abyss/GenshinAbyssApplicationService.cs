@@ -51,20 +51,22 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
         try
         {
             var floor = context.GetParameter<uint>("floor");
+            var server = context.GetParameter<Server>("server");
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
-                context.Server.ToRegion());
+                region);
             if (profile == null)
             {
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
             var abyssInfo = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                    context.Server.ToRegion()));
+                    region));
             if (!abyssInfo.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError,
@@ -108,7 +110,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
 
             var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                    context.Server.ToRegion()));
+                    region));
 
             if (!charListResponse.IsSuccess)
             {
@@ -133,7 +135,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
 
             var card = await m_CardService.GetCardAsync(
                 new GenshinEndGameGenerationContext<GenshinAbyssInformation>(context.UserId, floor, abyssData,
-                    context.Server, profile, constMap));
+                    server, profile, constMap));
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",

@@ -28,11 +28,10 @@ public class CodeRedeemApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "TESTCODE123"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "TESTCODE123"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "invalid_token",
-            Server = Server.Asia
+            LToken = "invalid_token"
         };
 
         // Act
@@ -60,11 +59,10 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "TESTCODE123"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "TESTCODE123"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -100,11 +98,10 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1, CODE2, CODE3"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1, CODE2, CODE3"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -146,11 +143,10 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", ""))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", ""), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -181,11 +177,10 @@ public class CodeRedeemApplicationServiceTests
         codeRepositoryMock.Setup(x => x.GetCodesAsync(Game.Genshin))
             .ReturnsAsync([]);
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", ""))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", ""), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -214,11 +209,10 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Code already redeemed", CodeStatus.Invalid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "ALREADYUSED"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "ALREADYUSED"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -254,11 +248,10 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                 "API temporarily unavailable"));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "ERRORCODE"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "ERRORCODE"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -289,11 +282,10 @@ public class CodeRedeemApplicationServiceTests
                 new CodeRedeemResult("Success", CodeStatus.Valid)))
             .ReturnsAsync(Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError, "Error"));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "SUCCESS, FAIL"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "SUCCESS, FAIL"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -328,11 +320,10 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", " lowercase123 "))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", " lowercase123 "), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -374,11 +365,10 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, game, ("code", "GAMECODE"))
+        var context = new CodeRedeemApplicationContext(1, game, ("code", "GAMECODE"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -409,11 +399,10 @@ public class CodeRedeemApplicationServiceTests
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
         // Code list with empty entries
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1, , CODE2, , CODE3"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1, , CODE2, , CODE3"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test_token",
-            Server = Server.Asia
+            LToken = "test_token"
         };
 
         // Act
@@ -460,11 +449,10 @@ public class CodeRedeemApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -524,11 +512,10 @@ public class CodeRedeemApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -558,11 +545,10 @@ public class CodeRedeemApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"))
+        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"), ("server", Server.Asia))
         {
             LtUid = 12345ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act

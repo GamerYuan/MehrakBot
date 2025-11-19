@@ -35,7 +35,8 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -46,7 +47,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 

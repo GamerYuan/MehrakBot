@@ -35,11 +35,10 @@ public class HsrCharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -67,11 +66,10 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -99,11 +97,10 @@ public class HsrCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "NonExistentCharacter"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "NonExistentCharacter"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -147,11 +144,10 @@ public class HsrCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "TB"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "TB"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -186,11 +182,10 @@ public class HsrCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -226,11 +221,10 @@ public class HsrCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Game == Game.HonkaiStarRail)))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -272,11 +266,10 @@ public class HsrCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -321,11 +314,10 @@ public class HsrCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -376,11 +368,10 @@ public class HsrCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -432,11 +423,10 @@ public class HsrCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -493,11 +483,10 @@ public class HsrCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -527,11 +516,10 @@ public class HsrCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"))
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -577,11 +565,10 @@ public class HsrCharacterApplicationServiceTests
 
         var context = new HsrCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName))
+            ("character", characterName), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -635,11 +622,10 @@ public class HsrCharacterApplicationServiceTests
 
         var context = new HsrCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName))
+            ("character", characterName), ("server", Server.Asia))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act

@@ -14,15 +14,21 @@ public class BaseCardGenerationContext<T> : ICardGenerationContext<T>
 
     public T Data { get; }
 
-    public Server Server { get; }
-
     public GameProfileDto GameProfile { get; }
+
+    private readonly Dictionary<string, object> m_Params = [];
 
     public BaseCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
     {
         UserId = userId;
         Data = data;
-        Server = server;
         GameProfile = gameProfile;
+
+        m_Params.Add("server", server);
+    }
+
+    public TParam? GetParameter<TParam>(string key)
+    {
+        return m_Params.TryGetValue(key, out var value) && value is TParam param ? param : default;
     }
 }

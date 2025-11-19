@@ -26,4 +26,9 @@ public class HsrEndGameGenerationContext : ICardGenerationContext<HsrEndInformat
         GameProfile = gameProfile;
         GameMode = gameMode;
     }
+
+    public TParam? GetParameter<TParam>(string key)
+    {
+        return default;
+    }
 }

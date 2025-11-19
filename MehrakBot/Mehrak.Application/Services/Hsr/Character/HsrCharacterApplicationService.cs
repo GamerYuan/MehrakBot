@@ -60,7 +60,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
         try
         {
-            var region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -71,7 +72,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -205,7 +206,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             }
 
             var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, context.Server,
+                new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, server,
                     profile));
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),

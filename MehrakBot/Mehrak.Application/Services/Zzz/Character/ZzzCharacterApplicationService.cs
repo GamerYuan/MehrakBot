@@ -57,7 +57,8 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
         try
         {
-            string region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -68,7 +69,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
             string gameUid = profile.GameUid;
 
@@ -169,7 +170,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             }
 
             var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, context.Server,
+                new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, server,
                     profile));
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());

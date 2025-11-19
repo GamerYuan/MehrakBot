@@ -42,7 +42,8 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
                 Game.HonkaiStarRail, region);
@@ -53,7 +54,7 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
             var memoryResult =
@@ -90,10 +91,10 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
             }
 
             var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, context.Server,
+                new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, server,
                     profile));
 
-            var tz = context.Server.GetTimeZoneInfo();
+            var tz = server.GetTimeZoneInfo();
             var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
             var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)

@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Hi3.Character;
+using Mehrak.Application.Services.Hi3.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -137,7 +138,7 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(cardStream);
 
         var context = new Hi3CharacterApplicationContext(1, ("character", "AliasName"))
@@ -179,7 +180,7 @@ public class Hi3CharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
         var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name))
@@ -221,7 +222,7 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(cardStream);
 
         var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name))
@@ -263,7 +264,7 @@ public class Hi3CharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
         var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name))
@@ -491,7 +492,7 @@ public class Hi3CharacterApplicationServiceTests
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<ICardService<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>, Hi3CharacterDetail, Hi3Server>> CardServiceMock,
+        Mock<ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail>> CardServiceMock,
         Mock<IMetricsService> MetricsServiceMock,
         Mock<IUserRepository> UserRepositoryMock
     ) SetupMocks()
@@ -501,12 +502,12 @@ public class Hi3CharacterApplicationServiceTests
         characterCacheMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        var cardServiceMock = new Mock<ICardService<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>, Hi3CharacterDetail, Hi3Server>>();
+        var cardServiceMock = new Mock<ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail>>();
         var metricsMock = new Mock<IMetricsService>();
         var userRepositoryMock = new Mock<IUserRepository>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();
 
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
         var service = new Hi3CharacterApplicationService(

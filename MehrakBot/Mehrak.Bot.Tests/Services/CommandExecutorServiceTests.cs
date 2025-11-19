@@ -120,7 +120,7 @@ public class CommandExecutorServiceTests
         // Assert
         m_MockApplicationService.Verify(
             x => x.ExecuteAsync(It.Is<TestApplicationContext>(ctx =>
-                ctx.Server == TestServer)),
+                ctx.GetParameter<Server>("server") == TestServer)),
             Times.Once);
 
         // Verify server was updated in user model
@@ -160,7 +160,7 @@ public class CommandExecutorServiceTests
         // Assert
         m_MockApplicationService.Verify(
             x => x.ExecuteAsync(It.Is<TestApplicationContext>(ctx =>
-                ctx.Server == TestServer)),
+                ctx.GetParameter<Server>("server") == TestServer)),
             Times.Once);
     }
 
@@ -437,7 +437,7 @@ public class CommandExecutorServiceTests
             x => x.ExecuteAsync(It.Is<TestApplicationContext>(ctx =>
                 ctx.LToken == TestLToken &&
                 ctx.LtUid == TestLtUid &&
-                ctx.Server == TestServer)),
+                ctx.GetParameter<Server>("server") == TestServer)),
             Times.Once);
     }
 
@@ -718,7 +718,7 @@ public class CommandExecutorServiceTests
         return new UserModel
         {
             Id = m_TestUserId,
-            Profiles = new List<UserProfile> { profile }
+            Profiles = [profile]
         };
     }
 

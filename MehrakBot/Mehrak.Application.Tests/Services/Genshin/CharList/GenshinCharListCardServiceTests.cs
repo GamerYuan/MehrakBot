@@ -2,9 +2,9 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Genshin.CharList;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -49,7 +49,7 @@ public class GenshinCharListCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var stream = await m_Service.GetCardAsync(
-            new TestCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!,
+            new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!,
                 Server.Asia, userGameData));
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
@@ -81,22 +81,6 @@ public class GenshinCharListCardServiceTests
             Nickname = TestNickName,
             Level = 60
         };
-    }
-
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
     }
 
     // [Test]

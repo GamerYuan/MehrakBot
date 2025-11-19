@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
+using Mehrak.Application.Services.Hi3.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
@@ -19,7 +18,7 @@ using SixLabors.ImageSharp.Processing;
 namespace Mehrak.Application.Services.Hi3.Character;
 
 internal class Hi3CharacterCardService :
-    ICardService<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>, Hi3CharacterDetail, Hi3Server>,
+    ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail>,
     IAsyncInitializable
 {
     private readonly IImageRepository m_ImageRepository;
@@ -82,7 +81,7 @@ internal class Hi3CharacterCardService :
             .ToListAsync(cancellationToken: cancellationToken);
     }
 
-    public async Task<Stream> GetCardAsync(ICardGenerationContext<Hi3CharacterDetail, Hi3Server> context)
+    public async Task<Stream> GetCardAsync(Hi3CardGenerationContext<Hi3CharacterDetail> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
         Stopwatch stopwatch = Stopwatch.StartNew();

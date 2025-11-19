@@ -2,10 +2,10 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -53,7 +53,7 @@ public class HsrCharListCardServiceTests
         GameProfileDto userGameData = GetTestUserGameData();
 
         Stream image = await m_Service.GetCardAsync(
-            new TestCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!,
+            new BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!,
                 Server.Asia, userGameData));
 
         MemoryStream memoryStream = new();
@@ -85,22 +85,6 @@ public class HsrCharListCardServiceTests
             Nickname = TestNickName,
             Level = 60
         };
-    }
-
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
     }
 
     // [Test] [TestCase("CharList_TestData_1.json",

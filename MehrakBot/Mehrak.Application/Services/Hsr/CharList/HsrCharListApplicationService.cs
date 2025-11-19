@@ -44,7 +44,8 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -55,7 +56,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -90,7 +91,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 
             var card = await m_CardService.GetCardAsync(new
                 BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(
-                    context.UserId, characterList, context.Server, profile));
+                    context.UserId, characterList, server, profile));
 
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)

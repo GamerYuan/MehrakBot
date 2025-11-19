@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 
 #endregion
@@ -12,7 +11,6 @@ public class ApplicationContextBase : IApplicationContext
     public ulong UserId { get; }
     public ulong LtUid { get; set; }
     public string LToken { get; set; } = string.Empty;
-    public Server Server { get; set; }
 
     private Dictionary<string, object> Parameters { get; } = [];
 

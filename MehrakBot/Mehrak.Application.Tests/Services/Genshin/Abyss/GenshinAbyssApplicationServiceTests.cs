@@ -35,11 +35,10 @@ public class GenshinAbyssApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -66,11 +65,10 @@ public class GenshinAbyssApplicationServiceTests
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -117,11 +115,10 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -157,11 +154,10 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "Character API Error"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -200,11 +196,10 @@ public class GenshinAbyssApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -244,11 +239,10 @@ public class GenshinAbyssApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -291,11 +285,10 @@ public class GenshinAbyssApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -340,11 +333,10 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -401,11 +393,10 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -435,11 +426,10 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         await service.ExecuteAsync(context);
@@ -485,11 +475,10 @@ public class GenshinAbyssApplicationServiceTests
 
         var context = new GenshinAbyssApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("floor", (object)floor))
+            ("floor", (object)floor), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -542,12 +531,10 @@ public class GenshinAbyssApplicationServiceTests
 
         var context = new GenshinAbyssApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("floor", (object)floor))
+            ("floor", (object)floor), ("server", Server.Asia))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act

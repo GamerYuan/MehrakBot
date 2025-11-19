@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
@@ -27,7 +26,7 @@ public interface ICommandExecutorService<TContext> where TContext : IApplication
 }
 
 internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TContext>
-    where TContext : ApplicationContextBase
+    where TContext : IApplicationContext
 {
     private readonly IServiceProvider m_ServiceProvider;
 
@@ -85,7 +84,6 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;
-            ApplicationContext.Server = server.Value;
 
             var service =
                 m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();

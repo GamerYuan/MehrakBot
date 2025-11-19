@@ -42,7 +42,8 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -53,7 +54,7 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var challengeResponse = await m_ApiService.GetAsync(
                 new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
@@ -106,9 +107,9 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
             }
 
             var card = await m_CardService.GetCardAsync(new HsrEndGameGenerationContext(context.UserId, challengeData,
-                context.Server, profile, context.Mode));
+                server, profile, context.Mode));
 
-            var tz = context.Server.GetTimeZoneInfo();
+            var tz = server.GetTimeZoneInfo();
             var group = challengeData.Groups[0];
             var startTime = new DateTimeOffset(group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();

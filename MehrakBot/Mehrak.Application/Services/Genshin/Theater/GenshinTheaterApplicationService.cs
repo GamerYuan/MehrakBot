@@ -50,7 +50,8 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            var region = server.ToRegion();
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
@@ -61,7 +62,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -137,7 +138,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 context.UserId,
                 0,
                 theaterData,
-                context.Server,
+                server,
                 profile,
                 constMap));
 

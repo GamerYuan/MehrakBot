@@ -36,7 +36,8 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            string region = server.ToRegion();
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
@@ -47,7 +48,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -61,7 +62,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                     string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
             }
 
-            return await BuildRealTimeNotes(notesResult.Data, context.Server, gameUid);
+            return await BuildRealTimeNotes(notesResult.Data, server, gameUid);
         }
         catch (Exception e)
         {

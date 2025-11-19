@@ -5,7 +5,6 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
@@ -16,14 +15,14 @@ namespace Mehrak.Application.Services.Hi3.Character;
 
 internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3CharacterApplicationContext>
 {
-    private readonly ICardService<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>, Hi3CharacterDetail, Hi3Server> m_CardService;
+    private readonly ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail> m_CardService;
     private readonly ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> m_CharacterApi;
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly IMetricsService m_MetricsService;
 
     public Hi3CharacterApplicationService(
-        ICardService<ICardGenerationContext<Hi3CharacterDetail, Hi3Server>, Hi3CharacterDetail, Hi3Server> cardService,
+        ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         ICharacterCacheService characterCacheService,
@@ -46,7 +45,8 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
 
         try
         {
-            var region = context.Server.ToRegion();
+            var server = context.GetParameter<Hi3Server>("server");
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
                 region);
@@ -57,7 +57,7 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, profile.GameUid, context.Server.ToString());
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, profile.GameUid, server.ToString());
 
             var gameUid = profile.GameUid;
 

@@ -41,7 +41,8 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -52,7 +53,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -107,7 +108,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
             }
 
             var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, context.Server, profile));
+                new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, server, profile));
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),

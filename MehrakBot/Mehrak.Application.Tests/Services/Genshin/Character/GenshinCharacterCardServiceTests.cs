@@ -2,9 +2,9 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Character;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -49,7 +49,7 @@ public class GenshinCharacterCardServiceTests
 
         // Act
         Stream image = await m_GenshinCharacterCardService.GetCardAsync(
-            new TestCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], Server.Asia,
+            new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], Server.Asia,
                 profile));
         using MemoryStream file = new();
         await image.CopyToAsync(file);
@@ -81,22 +81,7 @@ public class GenshinCharacterCardServiceTests
         };
     }
 
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
-    }
-
+    /*
     // To be used to generate golden image should the generation algorithm be updated
     [Test]
     [TestCase("Aether_TestData.json", "GoldenImage.jpg")]
@@ -113,7 +98,7 @@ public class GenshinCharacterCardServiceTests
 
         // Act
         var image = await m_GenshinCharacterCardService.GetCardAsync(
-            new TestCardGenerationContext<GenshinCharacterInformation>(TestUserId,
+            new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId,
                 characterDetail.List[0], Server.Asia, profile));
         using var file = new MemoryStream();
         await image.CopyToAsync(file);
@@ -122,4 +107,5 @@ public class GenshinCharacterCardServiceTests
 
         Assert.That(image, Is.Not.Null);
     }
+    */
 }

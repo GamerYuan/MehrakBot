@@ -42,7 +42,8 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = context.GetParameter<Server>("server");
+            var region = server.ToRegion();
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
@@ -53,7 +54,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -103,7 +104,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
             }
 
             var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<StygianData>(context.UserId,
-                stygianInfo.Data.Data[0], context.Server, profile));
+                stygianInfo.Data.Data[0], server, profile));
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),

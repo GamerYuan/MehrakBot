@@ -35,11 +35,10 @@ public class ZzzCharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -67,11 +66,10 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -99,11 +97,10 @@ public class ZzzCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "NonExistentCharacter"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "NonExistentCharacter"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -152,11 +149,10 @@ public class ZzzCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "JD"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "JD"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -194,11 +190,10 @@ public class ZzzCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -238,11 +233,10 @@ public class ZzzCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -286,11 +280,10 @@ public class ZzzCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", characterName))
+        var context = new ZzzCharacterApplicationContext(1, ("character", characterName), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -342,11 +335,10 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -403,11 +395,10 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -436,11 +427,10 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -491,11 +481,11 @@ public class ZzzCharacterApplicationServiceTests
 
         var context = new ZzzCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName))
+            ("character", characterName),
+            ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -549,11 +539,11 @@ public class ZzzCharacterApplicationServiceTests
 
         var context = new ZzzCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName))
+            ("character", characterName),
+            ("server", Server.Asia))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act

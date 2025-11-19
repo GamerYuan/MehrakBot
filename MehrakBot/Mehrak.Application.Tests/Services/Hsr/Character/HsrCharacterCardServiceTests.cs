@@ -1,10 +1,10 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
@@ -63,7 +63,7 @@ public class HsrCharacterCardServiceTests
 
         // Act
         Stream generatedImageStream = await m_HsrCharacterCardService.GetCardAsync(
-            new TestCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, Server.Asia, profile));
+            new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, Server.Asia, profile));
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
@@ -77,22 +77,6 @@ public class HsrCharacterCardServiceTests
             Nickname = TestNickName,
             Level = 70
         };
-    }
-
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
     }
 
     private static async Task AssertImageMatches(Stream generatedImageStream, string goldenImagePath, string testName)

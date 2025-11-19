@@ -36,11 +36,10 @@ public class HsrEndGameApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -69,11 +68,10 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -113,11 +111,10 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -153,11 +150,10 @@ public class HsrEndGameApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -194,11 +190,10 @@ public class HsrEndGameApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<HsrEndGameGenerationContext>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -238,11 +233,10 @@ public class HsrEndGameApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<HsrEndGameGenerationContext>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -286,11 +280,10 @@ public class HsrEndGameApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -347,11 +340,10 @@ public class HsrEndGameApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -380,11 +372,10 @@ public class HsrEndGameApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -431,11 +422,10 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode)
+        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -488,11 +478,10 @@ public class HsrEndGameApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode)
+        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act

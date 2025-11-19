@@ -1,10 +1,10 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Services.Zzz.Assault;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -49,7 +49,7 @@ public class ZzzAssaultCardServiceTests
         GameProfileDto userGameData = GetTestUserGameData();
 
         Stream image = await m_Service.GetCardAsync(
-            new TestCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData, Server.Asia, userGameData));
+            new BaseCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData, Server.Asia, userGameData));
         Assert.That(image, Is.Not.Null);
 
         MemoryStream memoryStream = new();
@@ -80,22 +80,6 @@ public class ZzzAssaultCardServiceTests
             Nickname = TestNickName,
             Level = 60
         };
-    }
-
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
     }
 
     // [Test] [TestCase("Da_TestData_1.json", "Da_GoldenImage_1.jpg")]
