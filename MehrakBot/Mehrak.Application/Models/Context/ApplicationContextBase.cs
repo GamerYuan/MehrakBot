@@ -24,4 +24,10 @@ public class ApplicationContextBase : IApplicationContext
     {
         return Parameters.TryGetValue(key, out var value) && value is T tValue ? tValue : default;
     }
+
+    public void SetParameter<T>(string key, T value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        Parameters.TryAdd(key, value);
+    }
 }

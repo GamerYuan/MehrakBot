@@ -68,20 +68,28 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
-            var server = ApplicationContext.GetParameter<string?>("server");
-            var game = ApplicationContext.GetParameter<Game>("game");
-
-            server ??= GetLastUsedServerAsync(authResult.User, game, profile);
-            if (server == null)
+            if (ValidateServer)
             {
-                await Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithContent(
-                            "Server is required for first time use. Please specify the server parameter.")
-                        .WithFlags(MessageFlags.Ephemeral));
-                return;
-            }
+                var server = ApplicationContext.GetParameter<string?>("server");
+                var game = ApplicationContext.GetParameter<Game>("game");
 
-            await UpdateLastUsedServerAsync(authResult.User, profile, game, server);
+                if (server == null)
+                {
+                    server = GetLastUsedServerAsync(authResult.User, game, profile);
+                    if (server == null)
+                    {
+                        await Context.Interaction.SendFollowupMessageAsync(
+                            new InteractionMessageProperties().WithContent(
+                                    "Server is required for first time use. Please specify the server parameter.")
+                                .WithFlags(MessageFlags.Ephemeral));
+                        return;
+                    }
+
+                    ApplicationContext.SetParameter("server", server);
+                }
+
+                await UpdateLastUsedServerAsync(authResult.User, profile, game, server);
+            }
 
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;

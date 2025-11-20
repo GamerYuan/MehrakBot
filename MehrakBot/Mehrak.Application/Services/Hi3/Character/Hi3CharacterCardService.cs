@@ -164,11 +164,11 @@ internal class Hi3CharacterCardService :
 
                 int starSize = 15;
                 int totalWidth = characterInformation.Weapon.MaxRarity * (starSize + 2) - 2;
-                int startX = (128 - totalWidth) / 2 + 750;
+                int startX = (128 - totalWidth) / 2 + 745;
                 for (int i = characterInformation.Weapon.MaxRarity - 1; i >= 0; i--)
                 {
                     Image starToDraw = i < characterInformation.Weapon.Rarity ? m_StarIcon : m_StarUnlit;
-                    ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 163), 1f);
+                    ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 168), 1f);
                 }
 
                 ctx.DrawText(characterInformation.Weapon.Name, m_NormalFont, Color.White, new PointF(900, 90));
@@ -220,11 +220,11 @@ internal class Hi3CharacterCardService :
 
             int starSize = 15;
             int totalWidth = info.MaxRarity * (starSize + 2) - 2;
-            int startX = (128 - totalWidth) / 2;
+            int startX = (128 - totalWidth) / 2 - 5;
             for (int i = info.MaxRarity - 1; i >= 0; i--)
             {
                 Image starToDraw = i < info.Rarity ? m_StarIcon : m_StarUnlit;
-                ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 113), 1f);
+                ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 118), 1f);
             }
 
             ctx.ApplyRoundedCorners(10);
