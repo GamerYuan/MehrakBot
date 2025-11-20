@@ -130,7 +130,7 @@ internal class Hi3CharacterCardServiceTests
         GameProfileDto profile = GetTestUserGameData();
 
         var image = await m_CharacterCardService.GetCardAsync(new
-            TestCardGenerationContext<Hi3CharacterDetail>(TestUserId,
+            Hi3CardGenerationContext<Hi3CharacterDetail>(TestUserId,
             characterDetail, Hi3Server.SEA, profile));
         using var stream = new MemoryStream();
         await image.CopyToAsync(stream);
