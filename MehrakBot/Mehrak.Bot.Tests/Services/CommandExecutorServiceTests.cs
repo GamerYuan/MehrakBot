@@ -126,7 +126,7 @@ public class CommandExecutorServiceTests
         // Verify server was updated in user model
         m_MockUserRepository.Verify(
             x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
-                u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == TestServer)),
+                u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == TestServer.ToString())),
             Times.Once);
     }
 
@@ -228,7 +228,7 @@ public class CommandExecutorServiceTests
         // Assert
         m_MockUserRepository.Verify(
             x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
-                u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == Server.Europe)),
+                u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == Server.Europe.ToString())),
             Times.Once);
     }
 
@@ -711,7 +711,7 @@ public class CommandExecutorServiceTests
             ProfileId = profileId,
             LtUid = ltUid,
             LastUsedRegions = lastUsedServer.HasValue
-                ? new Dictionary<Game, Server> { { TestGame, lastUsedServer.Value } }
+                ? new Dictionary<Game, string> { { TestGame, lastUsedServer.Value.ToString() } }
                 : null
         };
 
