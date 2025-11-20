@@ -47,7 +47,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, character, server, profile);
 
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.HonkaiStarRail)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<HsrCharacterApplicationContext>()
             .WithInteractionContext(Context)
@@ -71,7 +71,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<HsrRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
@@ -97,7 +97,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, code, server, profile);
 
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.HonkaiStarRail)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
@@ -120,7 +120,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Memory command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<HsrMemoryApplicationContext>()
             .WithInteractionContext(Context)
@@ -143,7 +143,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<HsrEndGameApplicationContext>()
             .WithInteractionContext(Context)
@@ -167,7 +167,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<HsrEndGameApplicationContext>()
             .WithInteractionContext(Context)
@@ -191,7 +191,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<HsrCharListApplicationContext>()
             .WithInteractionContext(Context)
