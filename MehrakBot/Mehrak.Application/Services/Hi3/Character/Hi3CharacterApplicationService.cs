@@ -45,7 +45,7 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
 
         try
         {
-            var server = context.GetParameter<Hi3Server>("server");
+            var server = Enum.Parse<Hi3Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,

@@ -51,7 +51,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
         try
         {
             var floor = context.GetParameter<uint>("floor");
-            var server = context.GetParameter<Server>("server");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,

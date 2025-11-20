@@ -42,7 +42,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
     {
         try
         {
-            var server = context.GetParameter<Server>("server");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
             var profile =

@@ -60,7 +60,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
     {
         try
         {
-            var server = context.GetParameter<Server>("server");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
             var characterName = context.GetParameter<string>("character")!;
 

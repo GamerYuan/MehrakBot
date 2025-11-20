@@ -27,6 +27,8 @@ public interface ICommandExecutorBuilder<TContext> where TContext : IApplication
     ICommandExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
         string? errorMessage = null);
 
+    ICommandExecutorBuilder<TContext> ValidateServer(bool validate);
+
     ICommandExecutorService<TContext> Build();
 }
 
@@ -94,6 +96,12 @@ internal class CommandExecutorBuilder<TContext> : ICommandExecutorBuilder<TConte
             throw new ArgumentNullException(nameof(predicate));
 
         m_Configurators.Add(svc => svc.AddValidator(paramName, predicate, errorMessage));
+        return this;
+    }
+
+    public ICommandExecutorBuilder<TContext> ValidateServer(bool validate)
+    {
+        m_Configurators.Add(svc => svc.ValidateServer = validate);
         return this;
     }
 

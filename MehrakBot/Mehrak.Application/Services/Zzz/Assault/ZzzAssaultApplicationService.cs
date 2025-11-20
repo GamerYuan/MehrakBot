@@ -49,7 +49,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
     {
         try
         {
-            var server = context.GetParameter<Server>("server");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,

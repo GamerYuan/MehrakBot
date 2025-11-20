@@ -19,6 +19,7 @@ public interface ICommandExecutorService<TContext> where TContext : IApplication
 {
     IInteractionContext Context { get; set; }
     TContext ApplicationContext { get; set; }
+    bool ValidateServer { get; set; }
 
     Task ExecuteAsync(uint profile);
 
@@ -67,7 +68,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         {
             using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
-            var server = ApplicationContext.GetParameter<Server?>("server");
+            var server = ApplicationContext.GetParameter<string?>("server");
             var game = ApplicationContext.GetParameter<Game>("game");
 
             server ??= GetLastUsedServerAsync(authResult.User, game, profile);
@@ -80,7 +81,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                 return;
             }
 
-            await UpdateLastUsedServerAsync(authResult.User, profile, game, server.Value);
+            await UpdateLastUsedServerAsync(authResult.User, profile, game, server);
 
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;

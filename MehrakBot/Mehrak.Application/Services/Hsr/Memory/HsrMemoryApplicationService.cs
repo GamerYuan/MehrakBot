@@ -42,7 +42,7 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
     {
         try
         {
-            var server = context.GetParameter<Server>("server");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,

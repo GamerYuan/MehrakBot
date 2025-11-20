@@ -36,7 +36,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
     {
         try
         {
-            var server = context.GetParameter<Server>("server");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             string region = server.ToRegion();
 
             var profile =
