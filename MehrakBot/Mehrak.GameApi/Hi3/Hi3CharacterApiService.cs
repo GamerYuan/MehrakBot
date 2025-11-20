@@ -18,6 +18,11 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
     private static readonly string ApiEndpoint = "/game_record/honkai3rd/api/characters";
     private const int CacheExpirationMinutes = 10;
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString
+    };
+
     public Hi3CharacterApiService(
         IHttpClientFactory httpClientFactory,
         ICacheService cache,
@@ -87,7 +92,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             ApiResponse<Hi3CharacterList>? json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<Hi3CharacterList>>(
-                    await response.Content.ReadAsStreamAsync());
+                    await response.Content.ReadAsStreamAsync(), JsonOptions);
 
             if (json?.Data == null || json.Data.Characters.Count == 0)
             {
