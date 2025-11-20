@@ -2,9 +2,11 @@
 
 public interface IApplicationContext
 {
-    public ulong UserId { get; }
-    public ulong LtUid { get; set; }
-    public string LToken { get; set; }
+    ulong UserId { get; }
+    ulong LtUid { get; set; }
+    string LToken { get; set; }
 
-    public T? GetParameter<T>(string key);
+    T? GetParameter<T>(string key);
+
+    void SetParameter<T>(string key, T value);
 }
