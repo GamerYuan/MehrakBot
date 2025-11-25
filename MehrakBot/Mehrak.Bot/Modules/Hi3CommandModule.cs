@@ -1,5 +1,6 @@
 ﻿using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Bot.Builders;
+using Mehrak.Bot.Provider.Autocomplete.Hi3;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -25,7 +26,8 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
+            AutocompleteProviderType = typeof(Hi3CharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Hi3Server? server = null,

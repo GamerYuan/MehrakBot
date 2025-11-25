@@ -72,6 +72,7 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
             }
 
             var characterList = charResponse.Data.ToList();
+            _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiImpact3, characterList.Select(x => x.Avatar.Name));
 
             var characterInfo = characterList.FirstOrDefault(x =>
                 x.Avatar.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
