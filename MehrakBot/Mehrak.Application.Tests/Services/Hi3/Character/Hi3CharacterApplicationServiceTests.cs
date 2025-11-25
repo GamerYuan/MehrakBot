@@ -34,11 +34,10 @@ public class Hi3CharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "Kiana"))
+        var context = new Hi3CharacterApplicationContext(1, ("character", "Kiana"), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "bad",
-            Server = Hi3Server.SEA
+            LToken = "bad"
         };
 
         // Act
@@ -65,11 +64,10 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "Kiana"))
+        var context = new Hi3CharacterApplicationContext(1, ("character", "Kiana"), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -97,11 +95,10 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "NonExistent"))
+        var context = new Hi3CharacterApplicationContext(1, ("character", "NonExistent"), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -141,11 +138,10 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "AliasName"))
+        var context = new Hi3CharacterApplicationContext(1, ("character", "AliasName"), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -183,11 +179,10 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name))
+        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -210,9 +205,8 @@ public class Hi3CharacterApplicationServiceTests
         // Arrange
         var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, _) = SetupMocks();
 
-        var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         var character = await LoadTestCharacterAsync(testDataFile);
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
@@ -225,11 +219,10 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name))
+        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -267,11 +260,10 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<Hi3CardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name))
+        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -293,7 +285,6 @@ public class Hi3CharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User without stored game uid
         userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
             .ReturnsAsync(new UserModel
             {
@@ -313,11 +304,10 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "any"))
+        var context = new Hi3CharacterApplicationContext(1, ("character", "any"), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -367,11 +357,10 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "any"))
+        var context = new Hi3CharacterApplicationContext(1, ("character", "any"), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -398,11 +387,10 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "any"))
+        var context = new Hi3CharacterApplicationContext(1, ("character", "any"), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act
@@ -444,11 +432,10 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
         var context = new Hi3CharacterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(),
-            ("character", character.Avatar.Name))
+            ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Hi3Server.SEA
+            LToken = "test"
         };
 
         // Act

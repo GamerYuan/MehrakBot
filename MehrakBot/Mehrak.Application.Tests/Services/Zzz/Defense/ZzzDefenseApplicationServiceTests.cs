@@ -34,7 +34,7 @@ public class ZzzDefenseApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -64,7 +64,7 @@ public class ZzzDefenseApplicationServiceTests
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -103,7 +103,7 @@ public class ZzzDefenseApplicationServiceTests
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Success(defenseData));
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -143,7 +143,7 @@ public class ZzzDefenseApplicationServiceTests
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Success(defenseData));
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -175,11 +175,10 @@ public class ZzzDefenseApplicationServiceTests
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Success(defenseData));
 
-        // Make image update fail
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -218,7 +217,7 @@ public class ZzzDefenseApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzDefenseData>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -260,7 +259,7 @@ public class ZzzDefenseApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzDefenseData>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -307,7 +306,7 @@ public class ZzzDefenseApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -367,7 +366,7 @@ public class ZzzDefenseApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -399,7 +398,7 @@ public class ZzzDefenseApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -448,7 +447,7 @@ public class ZzzDefenseApplicationServiceTests
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Success(defenseData));
 
-        var context = new ZzzDefenseApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -502,7 +501,7 @@ public class ZzzDefenseApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new ZzzDefenseApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia))
+        var context = new ZzzDefenseApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!

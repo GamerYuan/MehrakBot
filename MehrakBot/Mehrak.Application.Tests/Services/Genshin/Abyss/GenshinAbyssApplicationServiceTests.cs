@@ -35,7 +35,7 @@ public class GenshinAbyssApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -65,7 +65,7 @@ public class GenshinAbyssApplicationServiceTests
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -115,7 +115,7 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -154,7 +154,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "Character API Error"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -196,7 +196,7 @@ public class GenshinAbyssApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -239,7 +239,7 @@ public class GenshinAbyssApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -285,7 +285,7 @@ public class GenshinAbyssApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -333,7 +333,7 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -393,7 +393,7 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -426,7 +426,7 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -475,7 +475,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var context = new GenshinAbyssApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("floor", (object)floor), ("server", Server.Asia))
+            ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -531,7 +531,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var context = new GenshinAbyssApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("floor", (object)floor), ("server", Server.Asia))
+            ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!

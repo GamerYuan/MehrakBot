@@ -35,7 +35,7 @@ public class GenshinTheaterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -65,7 +65,7 @@ public class GenshinTheaterApplicationServiceTests
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -96,7 +96,7 @@ public class GenshinTheaterApplicationServiceTests
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
                 "Imaginarium Theater is not unlocked yet"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -135,7 +135,7 @@ public class GenshinTheaterApplicationServiceTests
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -171,7 +171,7 @@ public class GenshinTheaterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "Character API Error"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -210,7 +210,7 @@ public class GenshinTheaterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -248,7 +248,7 @@ public class GenshinTheaterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -289,7 +289,7 @@ public class GenshinTheaterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -336,7 +336,7 @@ public class GenshinTheaterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -396,7 +396,7 @@ public class GenshinTheaterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -428,7 +428,7 @@ public class GenshinTheaterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -481,7 +481,7 @@ public class GenshinTheaterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
-        var context = new GenshinTheaterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -534,7 +534,7 @@ public class GenshinTheaterApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new GenshinTheaterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia))
+        var context = new GenshinTheaterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -578,8 +578,7 @@ public class GenshinTheaterApplicationServiceTests
         ) SetupMocks()
     {
         var cardServiceMock =
-            new Mock<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>,
-                GenshinTheaterInformation>>();
+            new Mock<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation>>();
         var theaterApiMock = new Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>();
         var characterApiMock =
             new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>();

@@ -35,7 +35,7 @@ public class ZzzCharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -66,7 +66,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -97,7 +97,7 @@ public class ZzzCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "NonExistentCharacter"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "NonExistentCharacter"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -149,7 +149,7 @@ public class ZzzCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "JD"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "JD"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -190,7 +190,7 @@ public class ZzzCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -233,7 +233,7 @@ public class ZzzCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -280,7 +280,7 @@ public class ZzzCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", characterName), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", characterName), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -335,7 +335,7 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -395,7 +395,7 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -427,7 +427,7 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia))
+        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -482,7 +482,7 @@ public class ZzzCharacterApplicationServiceTests
         var context = new ZzzCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
-            ("server", Server.Asia))
+            ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -540,7 +540,7 @@ public class ZzzCharacterApplicationServiceTests
         var context = new ZzzCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
-            ("server", Server.Asia))
+            ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -588,8 +588,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         var cardServiceMock = new Mock<ICardService<ZzzFullAvatarData>>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
-        var characterApiMock = new Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData,
-            CharacterApiContext>>();
+        var characterApiMock = new Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
@@ -639,7 +638,7 @@ public class ZzzCharacterApplicationServiceTests
 
         // Setup default empty aliases
         characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
-            .Returns(new Dictionary<string, string>());
+            .Returns([]);
 
         // Mock image repository to always return true for FileExists (images are in MongoDB)
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))

@@ -99,7 +99,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -120,7 +120,7 @@ public class CommandExecutorServiceTests
         // Assert
         m_MockApplicationService.Verify(
             x => x.ExecuteAsync(It.Is<TestApplicationContext>(ctx =>
-                ctx.GetParameter<Server>("server") == TestServer)),
+                ctx.GetParameter<string>("server") == TestServer.ToString())),
             Times.Once);
 
         // Verify server was updated in user model
@@ -160,7 +160,7 @@ public class CommandExecutorServiceTests
         // Assert
         m_MockApplicationService.Verify(
             x => x.ExecuteAsync(It.Is<TestApplicationContext>(ctx =>
-                ctx.GetParameter<Server>("server") == TestServer)),
+                ctx.GetParameter<string>("server") == TestServer.ToString())),
             Times.Once);
     }
 
@@ -207,7 +207,7 @@ public class CommandExecutorServiceTests
 
         var context =
             new TestApplicationContext(m_TestUserId, ("game", TestGame),
-                ("server", Server.Europe)); // Different from current
+                ("server", Server.Europe.ToString())); // Different from current
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -244,7 +244,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -275,7 +275,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -308,7 +308,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -414,7 +414,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -437,7 +437,7 @@ public class CommandExecutorServiceTests
             x => x.ExecuteAsync(It.Is<TestApplicationContext>(ctx =>
                 ctx.LToken == TestLToken &&
                 ctx.LtUid == TestLtUid &&
-                ctx.GetParameter<Server>("server") == TestServer)),
+                ctx.GetParameter<string>("server") == TestServer.ToString())),
             Times.Once);
     }
 
@@ -504,7 +504,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -541,7 +541,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -574,7 +574,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -610,7 +610,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
@@ -646,7 +646,7 @@ public class CommandExecutorServiceTests
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
-        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer));
+        var context = new TestApplicationContext(m_TestUserId, ("game", TestGame), ("server", TestServer.ToString()));
 
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;

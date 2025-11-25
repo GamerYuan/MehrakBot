@@ -35,7 +35,7 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -68,7 +68,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -106,7 +106,7 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -148,7 +148,7 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>() ))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -190,7 +190,7 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>() ))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -242,7 +242,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -304,7 +304,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -338,7 +338,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia))
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -389,7 +389,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         var context = new GenshinCharListApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia))
+            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -444,7 +444,7 @@ public class GenshinCharListApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new GenshinCharListApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia))
+            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
