@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Collections.Concurrent;
 using Mehrak.Domain.Enums;
@@ -42,14 +42,22 @@ public class CharacterCacheService : ICharacterCacheService
 
         m_Logger.LogWarning("No cached characters found for {Game}, returning empty list", gameName);
 
-        _ = Task.Run(async () => await UpdateCharactersAsync(gameName));
-
         return [];
     }
 
     public Dictionary<string, string> GetAliases(Game gameName)
     {
         return m_AliasCache.TryGetValue(gameName, out Dictionary<string, string>? dict) ? dict : [];
+    }
+
+    public async Task UpsertCharacters(Game gameName, IEnumerable<string> characters)
+    {
+        var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, []));
+
+        if (!toAdd.Any()) return;
+
+        await m_CharacterRepository.UpsertCharactersAsync(gameName, toAdd);
+        await UpdateCharactersAsync(gameName);
     }
 
     public async Task UpdateAllCharactersAsync()

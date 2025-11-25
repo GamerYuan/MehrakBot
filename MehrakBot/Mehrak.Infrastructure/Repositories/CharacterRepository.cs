@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -36,26 +36,17 @@ public class CharacterRepository : ICharacterRepository
         return await m_Characters.Find(filter).FirstOrDefaultAsync();
     }
 
-    public async Task UpsertCharactersAsync(CharacterModel characterModel)
+    public async Task UpsertCharactersAsync(Game gameName, IEnumerable<string> characters)
     {
+        var charList = characters.ToList();
+
         m_Logger.LogInformation("Upserting characters for game {Game} with {Count} characters",
-            characterModel.Game, characterModel.Characters.Count);
+            gameName, charList);
 
-        var existing = await m_Characters.Find(c => c.Game == characterModel.Game).FirstOrDefaultAsync();
+        var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
+        var update = Builders<CharacterModel>.Update
+            .AddToSetEach(x => x.Characters, charList);
 
-        if (existing != null)
-        {
-            characterModel.Id = existing.Id;
-            await m_Characters.ReplaceOneAsync(
-                c => c.Game == characterModel.Game,
-                characterModel);
-        }
-        else
-        {
-            characterModel.Id = null;
-            await m_Characters.InsertOneAsync(characterModel);
-        }
-
-        m_Logger.LogInformation("Successfully upserted characters for game {Game}", characterModel.Game);
+        await m_Characters.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
     }
 }

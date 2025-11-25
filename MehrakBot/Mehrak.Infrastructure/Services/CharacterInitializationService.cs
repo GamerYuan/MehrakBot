@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Domain.Models;
@@ -101,31 +101,11 @@ public class CharacterInitializationService : IHostedService
                     gameName,
                     string.Join(", ", missingCharacters));
 
-                var mergedCharacters = new List<string>();
-
-                foreach (string character in newCharacters)
-                    if (!mergedCharacters.Contains(character, StringComparer.OrdinalIgnoreCase))
-                        mergedCharacters.Add(character);
-
-                foreach (string existingChar in existingCharacters)
-                    if (!mergedCharacters.Contains(existingChar, StringComparer.OrdinalIgnoreCase))
-                    {
-                        mergedCharacters.Add(existingChar);
-                        m_Logger.LogDebug("Preserving manually added character: {Character}", existingChar);
-                    }
-
-                var updatedModel = new CharacterModel
-                {
-                    Game = gameName,
-                    Characters = mergedCharacters
-                };
-
-                await m_CharacterRepository.UpsertCharactersAsync(updatedModel);
+                await m_CharacterRepository.UpsertCharactersAsync(gameName, missingCharacters);
 
                 m_Logger.LogInformation(
-                    "Successfully updated character database for {Game} with {TotalCount} characters",
-                    gameName,
-                    mergedCharacters.Count);
+                    "Successfully updated character database for {Game}",
+                    gameName);
             }
             else
             {
