@@ -8,7 +8,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace Mehrak.Bot.Modules;
 
-[SlashCommand("honkai", "Honkai Impact 3rd Toolbox", Contexts =
+[SlashCommand("hi3", "Honkai Impact 3rd Toolbox", Contexts =
     [
         InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
     ])]
@@ -24,9 +24,9 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
         m_Logger = logger;
     }
 
-    [SubSlashCommand("character", "Get character card")]
+    [SubSlashCommand("battlesuit", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
+        [SlashCommandParameter(Name = "battlesuit", Description = "Character Name (Case-insensitive)",
             AutocompleteProviderType = typeof(Hi3CharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
@@ -44,7 +44,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<Hi3CharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new Hi3CharacterApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("hi3 character")
+            .WithCommandName("hi3 battlesuit")
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 
