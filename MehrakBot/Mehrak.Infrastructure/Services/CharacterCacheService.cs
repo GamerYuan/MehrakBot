@@ -52,9 +52,9 @@ public class CharacterCacheService : ICharacterCacheService
 
     public async Task UpsertCharacters(Game gameName, IEnumerable<string> characters)
     {
-        var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, []));
+        var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, [])).ToList();
 
-        if (!toAdd.Any()) return;
+        if (toAdd.Count == 0) return;
 
         await m_CharacterRepository.UpsertCharactersAsync(gameName, toAdd);
         await UpdateCharactersAsync(gameName);
