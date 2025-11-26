@@ -15,6 +15,7 @@ public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService auto
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(Domain.Enums.Game.HonkaiStarRail, option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
+            .FindCharacter(Domain.Enums.Game.HonkaiStarRail, option.Value ?? string.Empty
+            .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }

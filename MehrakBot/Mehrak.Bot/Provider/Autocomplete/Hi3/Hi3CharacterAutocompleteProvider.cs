@@ -12,6 +12,7 @@ public class Hi3CharacterAutocompleteProvider(
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(Domain.Enums.Game.HonkaiImpact3, option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
+            .FindCharacter(Domain.Enums.Game.HonkaiImpact3, option.Value ?? string.Empty)
+            .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }

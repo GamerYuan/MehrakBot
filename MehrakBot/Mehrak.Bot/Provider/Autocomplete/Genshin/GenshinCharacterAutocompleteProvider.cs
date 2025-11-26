@@ -16,6 +16,7 @@ public class GenshinCharacterAutocompleteProvider(
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(Domain.Enums.Game.Genshin, option.Value!).Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
+            .FindCharacter(Domain.Enums.Game.Genshin, option.Value ?? string.Empty)
+            .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }
