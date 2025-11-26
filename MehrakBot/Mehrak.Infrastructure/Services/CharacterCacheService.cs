@@ -52,12 +52,19 @@ public class CharacterCacheService : ICharacterCacheService
 
     public async Task UpsertCharacters(Game gameName, IEnumerable<string> characters)
     {
-        var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, [])).ToList();
+        try
+        {
+            var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, [])).ToList();
 
-        if (toAdd.Count == 0) return;
+            if (toAdd.Count == 0) return;
 
-        await m_CharacterRepository.UpsertCharactersAsync(gameName, toAdd);
-        await UpdateCharactersAsync(gameName);
+            await m_CharacterRepository.UpsertCharactersAsync(gameName, toAdd);
+            await UpdateCharactersAsync(gameName);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "An error occurred while upserting characters for {Game}", gameName);
+        }
     }
 
     public async Task UpdateAllCharactersAsync()
