@@ -17,8 +17,6 @@ public class GenshinEndGameGenerationContext<T> : ICardGenerationContext<T>
     public Dictionary<int, int> ConstMap { get; }
     public uint Floor { get; }
 
-    GameProfileDto ICardGenerationContext<T>.GameProfile => throw new NotImplementedException();
-
     public GenshinEndGameGenerationContext(ulong userId, uint floor, T data,
         Server server, GameProfileDto gameProfile, Dictionary<int, int> constMap)
     {
