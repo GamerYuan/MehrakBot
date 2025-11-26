@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -103,8 +103,11 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<StygianData>(context.UserId,
-                stygianInfo.Data.Data[0], server, profile));
+            var cardContext = new BaseCardGenerationContext<StygianData>(context.UserId,
+                stygianInfo.Data.Data[0], profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),

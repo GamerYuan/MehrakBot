@@ -4,9 +4,10 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
@@ -24,8 +25,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.Abyss;
 
-internal class GenshinAbyssCardService :
-    ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>, IAsyncInitializable
+internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, IAsyncInitializable
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinAbyssCardService> m_Logger;
@@ -70,14 +70,20 @@ internal class GenshinAbyssCardService :
             cancellationToken);
     }
 
-    public async Task<Stream> GetCardAsync(GenshinEndGameGenerationContext<GenshinAbyssInformation> context)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinAbyssInformation> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Abyss", context.UserId);
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         List<IDisposable> disposableResources = [];
         var abyssData = context.Data;
-        var floor = context.Floor;
+        var constMap = context.GetParameter<Dictionary<int, int>>("constMap");
+        var floor = context.GetParameter<uint>("floor");
+        var server = context.GetParameter<Server>("server");
+
+        if (constMap == null)
+            throw new CommandException("constMap parameter is missing for Abyss card generation");
+
         try
         {
             Floor floorData = abyssData.Floors!.First(x => x.Index == floor);
@@ -87,7 +93,7 @@ internal class GenshinAbyssCardService :
                 .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
                 .Select(async (x, token) =>
                     new GenshinAvatar(x.Id, x.Level,
-                        x.Rarity, context.ConstMap[x.Id], await Image.LoadAsync(
+                        x.Rarity, constMap[x.Id], await Image.LoadAsync(
                             await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token),
                         0))
                 .ToDictionaryAsync(x => x,
@@ -105,7 +111,7 @@ internal class GenshinAbyssCardService :
             Dictionary<GenshinAvatar, Image<Rgba32>> revealRankImages = await abyssData.RevealRank!
                 .ToAsyncEnumerable()
                 .Select(async (x, token) => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
-                    context.ConstMap[x.AvatarId],
+                    constMap[x.AvatarId],
                     await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName()), token))))
                 .ToDictionaryAsync(x => x.Item2,
                     x => x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!),
@@ -119,7 +125,7 @@ internal class GenshinAbyssCardService :
             Image<Rgba32> background = m_BackgroundImage.CloneAs<Rgba32>();
             disposableResources.Add(background);
 
-            var tzi = context.Server.GetTimeZoneInfo();
+            var tzi = server.GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {

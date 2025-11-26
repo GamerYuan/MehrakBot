@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Character;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Genshin.Types;
@@ -47,10 +47,11 @@ public class GenshinCharacterCardServiceTests
 
         GameProfileDto profile = GetTestUserGameData();
 
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
+
         // Act
-        Stream image = await m_GenshinCharacterCardService.GetCardAsync(
-            new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], Server.Asia,
-                profile));
+        Stream image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
         using MemoryStream file = new();
         await image.CopyToAsync(file);
 

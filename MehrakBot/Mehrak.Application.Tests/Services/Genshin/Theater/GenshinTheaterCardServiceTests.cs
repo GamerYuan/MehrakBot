@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Theater;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Genshin.Types;
@@ -56,9 +56,11 @@ public class GenshinTheaterCardServiceTests
 
         GameProfileDto userGameData = GetTestUserGameData();
 
-        Stream stream = await m_Service.GetCardAsync(
-            new GenshinEndGameGenerationContext<GenshinTheaterInformation>(
-                TestUserId, 12, testData!, Server.Asia, userGameData, GetTestConstDictionary()));
+        var cardContext = new BaseCardGenerationContext<GenshinTheaterInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("constMap", GetTestConstDictionary());
+
+        Stream stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

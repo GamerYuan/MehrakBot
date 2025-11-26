@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Hi3.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -15,14 +15,14 @@ namespace Mehrak.Application.Services.Hi3.Character;
 
 internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3CharacterApplicationContext>
 {
-    private readonly ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail> m_CardService;
+    private readonly ICardService<Hi3CharacterDetail> m_CardService;
     private readonly ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> m_CharacterApi;
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly IMetricsService m_MetricsService;
 
     public Hi3CharacterApplicationService(
-        ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail> cardService,
+        ICardService<Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         ICharacterCacheService characterCacheService,
@@ -108,9 +108,10 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new Hi3CardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, server,
-                    profile));
+            var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
                 characterInfo.Avatar.Name.ToLowerInvariant());

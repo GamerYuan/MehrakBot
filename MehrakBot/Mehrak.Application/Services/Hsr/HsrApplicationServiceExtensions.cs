@@ -5,7 +5,6 @@ using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Application.Services.Hsr.EndGame;
 using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Application.Services.Hsr.RealTimeNotes;
-using Mehrak.Application.Services.Hsr.Types;
 using Mehrak.Domain;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
@@ -27,9 +26,8 @@ internal static class HsrApplicationServiceExtensions
         services.AddSingleton<ICardService<IEnumerable<HsrCharacterInformation>>, HsrCharListCardService>();
 
         services.AddTransient<IApplicationService<HsrEndGameApplicationContext>, HsrEndGameApplicationService>();
-        services.AddSingleton<ICardService<HsrEndGameGenerationContext, HsrEndInformation>,
-            HsrEndGameCardService>();
-        services.RegisterAsyncInitializableFor<ICardService<HsrEndGameGenerationContext, HsrEndInformation>,
+        services.AddSingleton<ICardService<HsrEndInformation>, HsrEndGameCardService>();
+        services.RegisterAsyncInitializableFor<ICardService<HsrEndInformation>,
             HsrEndGameCardService>();
 
         services.AddTransient<IApplicationService<HsrMemoryApplicationContext>, HsrMemoryApplicationService>();

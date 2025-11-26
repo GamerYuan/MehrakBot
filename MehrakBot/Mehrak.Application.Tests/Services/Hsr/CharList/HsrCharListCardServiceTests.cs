@@ -2,7 +2,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -52,9 +52,10 @@ public class HsrCharListCardServiceTests
 
         GameProfileDto userGameData = GetTestUserGameData();
 
-        Stream image = await m_Service.GetCardAsync(
-            new BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!,
-                Server.Asia, userGameData));
+        var cardContext = new BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        Stream image = await m_Service.GetCardAsync(cardContext);
 
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);

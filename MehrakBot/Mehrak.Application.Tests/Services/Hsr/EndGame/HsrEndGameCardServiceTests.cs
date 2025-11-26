@@ -2,8 +2,8 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.EndGame;
-using Mehrak.Application.Services.Hsr.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Hsr.Types;
@@ -56,9 +56,11 @@ public class HsrEndGameCardServiceTests
 
         GameProfileDto userGameData = GetTestUserGameData();
 
-        Stream stream = await m_Service.GetCardAsync(
-            new HsrEndGameGenerationContext(TestUserId, testData!, Server.Asia, userGameData,
-                HsrEndGameMode.PureFiction));
+        var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("mode", HsrEndGameMode.PureFiction);
+
+        Stream stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
@@ -98,9 +100,11 @@ public class HsrEndGameCardServiceTests
 
         GameProfileDto userGameData = GetTestUserGameData();
 
-        Stream stream = await m_Service.GetCardAsync(
-            new HsrEndGameGenerationContext(TestUserId, testData!, Server.Asia, userGameData,
-                HsrEndGameMode.ApocalypticShadow));
+        var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("mode", HsrEndGameMode.ApocalypticShadow);
+
+        Stream stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

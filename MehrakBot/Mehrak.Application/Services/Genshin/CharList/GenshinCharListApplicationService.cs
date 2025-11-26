@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -89,9 +89,11 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(context.UserId,
-                    characterList, server, profile));
+            var cardContext = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(context.UserId,
+                    characterList, profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)

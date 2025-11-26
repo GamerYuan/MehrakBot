@@ -6,7 +6,6 @@ using Mehrak.Application.Services.Genshin.CharList;
 using Mehrak.Application.Services.Genshin.RealTimeNotes;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
@@ -21,11 +20,10 @@ internal static class GenshinApplicationServiceExtensions
     internal static IServiceCollection AddGenshinApplicationServices(this IServiceCollection services)
     {
         services
-            .AddSingleton<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>,
-                    GenshinAbyssInformation>,
+            .AddSingleton<ICardService<GenshinAbyssInformation>,
                 GenshinAbyssCardService>();
         services.RegisterAsyncInitializableFor<
-            ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>,
+            ICardService<GenshinAbyssInformation>,
             GenshinAbyssCardService>();
         services.AddTransient<IApplicationService<GenshinAbyssApplicationContext>, GenshinAbyssApplicationService>();
 
@@ -46,11 +44,9 @@ internal static class GenshinApplicationServiceExtensions
             .AddTransient<IApplicationService<GenshinStygianApplicationContext>, GenshinStygianApplicationService>();
 
         services
-            .AddSingleton<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>,
-                    GenshinTheaterInformation>,
+            .AddSingleton<ICardService<GenshinTheaterInformation>,
                 GenshinTheaterCardService>();
-        services.RegisterAsyncInitializableFor<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>,
-            GenshinTheaterInformation>, GenshinTheaterCardService>();
+        services.RegisterAsyncInitializableFor<ICardService<GenshinTheaterInformation>, GenshinTheaterCardService>();
         services
             .AddTransient<IApplicationService<GenshinTheaterApplicationContext>, GenshinTheaterApplicationService>();
 

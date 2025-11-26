@@ -1,7 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -51,8 +51,10 @@ public class ZzzCharacterCardServiceTests
 
         GameProfileDto profile = GetTestUserGameData();
 
-        Stream image = await m_Service.GetCardAsync(
-            new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, Server.Asia, profile));
+        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        Stream image = await m_Service.GetCardAsync(cardContext);
         Assert.That(image, Is.Not.Null);
 
         MemoryStream memoryStream = new();

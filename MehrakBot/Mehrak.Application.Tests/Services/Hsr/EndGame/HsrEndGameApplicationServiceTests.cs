@@ -3,7 +3,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Hsr.EndGame;
-using Mehrak.Application.Services.Hsr.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -187,7 +186,7 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<HsrEndGameGenerationContext>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>()))
             .ReturnsAsync(cardStream);
 
         var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
@@ -230,7 +229,7 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<HsrEndGameGenerationContext>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>()))
             .ReturnsAsync(cardStream);
 
         var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
@@ -264,15 +263,15 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making API fail
@@ -319,8 +318,8 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -333,7 +332,7 @@ public class HsrEndGameApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         endGameApiMock
@@ -391,10 +390,10 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new() { LtUid = 99999ul, LToken = "test" }
-                }
+                ]
             });
 
         await service.ExecuteAsync(context);
@@ -516,11 +515,11 @@ public class HsrEndGameApplicationServiceTests
         Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>> EndGameApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<ICardService<HsrEndGameGenerationContext, HsrEndInformation>> CardServiceMock,
+        Mock<ICardService<HsrEndInformation>> CardServiceMock,
         Mock<IUserRepository> UserRepositoryMock
         ) SetupMocks()
     {
-        var cardServiceMock = new Mock<ICardService<HsrEndGameGenerationContext, HsrEndInformation>>();
+        var cardServiceMock = new Mock<ICardService<HsrEndInformation>>();
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();

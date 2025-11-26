@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.CharList;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Genshin.Types;
@@ -48,9 +48,10 @@ public class GenshinCharListCardServiceTests
 
         var userGameData = GetTestUserGameData();
 
-        var stream = await m_Service.GetCardAsync(
-            new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!,
-                Server.Asia, userGameData));
+        var cardContext = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var stream = await m_Service.GetCardAsync(cardContext);
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

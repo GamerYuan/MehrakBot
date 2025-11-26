@@ -1,7 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -52,8 +52,10 @@ public class HsrMemoryCardServiceTests
 
         GameProfileDto userGameData = GetTestUserGameData();
 
-        Stream stream = await m_Service.GetCardAsync(
-            new BaseCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!, Server.Asia, userGameData));
+        var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        Stream stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

@@ -479,7 +479,7 @@ public class Hi3CharacterApplicationServiceTests
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail>> CardServiceMock,
+        Mock<ICardService<Hi3CharacterDetail>> CardServiceMock,
         Mock<IMetricsService> MetricsServiceMock,
         Mock<IUserRepository> UserRepositoryMock
     ) SetupMocks()
@@ -489,7 +489,7 @@ public class Hi3CharacterApplicationServiceTests
         characterCacheMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        var cardServiceMock = new Mock<ICardService<Hi3CardGenerationContext<Hi3CharacterDetail>, Hi3CharacterDetail>>();
+        var cardServiceMock = new Mock<ICardService<Hi3CharacterDetail>>();
         var metricsMock = new Mock<IMetricsService>();
         var userRepositoryMock = new Mock<IUserRepository>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();

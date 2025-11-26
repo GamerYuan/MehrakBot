@@ -1,7 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -61,9 +61,11 @@ public class HsrCharacterCardServiceTests
 
         GameProfileDto profile = GetTestUserGameData();
 
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
         // Act
-        Stream generatedImageStream = await m_HsrCharacterCardService.GetCardAsync(
-            new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, Server.Asia, profile));
+        Stream generatedImageStream = await m_HsrCharacterCardService.GetCardAsync(cardContext);
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);

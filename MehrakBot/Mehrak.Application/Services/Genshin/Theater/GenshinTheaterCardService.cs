@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
@@ -23,9 +23,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.Theater;
 
-internal class GenshinTheaterCardService :
-    ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation>,
-    IAsyncInitializable
+internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformation>, IAsyncInitializable
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinTheaterCardService> m_Logger;
@@ -76,12 +74,15 @@ internal class GenshinTheaterCardService :
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(GenshinTheaterCardService));
     }
 
-    public async Task<Stream> GetCardAsync(GenshinEndGameGenerationContext<GenshinTheaterInformation> context)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinTheaterInformation> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Stygian", context.UserId);
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         var theaterData = context.Data;
+
+        var constMap = context.GetParameter<Dictionary<int, int>>("constMap") ?? throw new CommandException("constMap parameter is missing for Abyss card generation");
+
         List<IDisposable> disposableResources = [];
         try
         {
@@ -91,7 +92,7 @@ internal class GenshinTheaterCardService :
                 .ToAsyncEnumerable()
                 .Select(async (y, token) =>
                     new GenshinAvatar(y.AvatarId, y.Level, y.Rarity,
-                        y.AvatarType == 1 ? context.ConstMap[y.AvatarId] : 0,
+                        y.AvatarType == 1 ? constMap[y.AvatarId] : 0,
                         await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(y.ToImageName()), token),
                         y.AvatarType))
                 .ToDictionaryAsync(x => x,

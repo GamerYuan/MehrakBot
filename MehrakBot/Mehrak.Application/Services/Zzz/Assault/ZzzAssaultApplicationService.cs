@@ -4,7 +4,7 @@ using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -114,8 +114,10 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, server, profile));
+            var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             TimeZoneInfo tz = server.GetTimeZoneInfo();
 

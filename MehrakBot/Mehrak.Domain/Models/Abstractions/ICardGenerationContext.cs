@@ -11,5 +11,7 @@ public interface ICardGenerationContext<out T>
     GameProfileDto GameProfile { get; }
 
     TParam? GetParameter<TParam>(string key);
+
+    void SetParameter(string key, object value);
 }
 

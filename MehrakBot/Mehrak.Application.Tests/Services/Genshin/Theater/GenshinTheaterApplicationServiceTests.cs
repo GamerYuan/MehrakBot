@@ -2,7 +2,6 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Theater;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -320,15 +319,15 @@ public class GenshinTheaterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making Theater API fail
@@ -375,8 +374,8 @@ public class GenshinTheaterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -389,7 +388,7 @@ public class GenshinTheaterApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         theaterApiMock
@@ -447,10 +446,10 @@ public class GenshinTheaterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new() { LtUid = 99999ul, LToken = "test" }
-                }
+                ]
             });
 
         await service.ExecuteAsync(context);
@@ -578,7 +577,7 @@ public class GenshinTheaterApplicationServiceTests
         ) SetupMocks()
     {
         var cardServiceMock =
-            new Mock<ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation>>();
+            new Mock<ICardService<GenshinTheaterInformation>>();
         var theaterApiMock = new Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>();
         var characterApiMock =
             new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>();
@@ -590,7 +589,7 @@ public class GenshinTheaterApplicationServiceTests
         // Setup card service to return a valid stream
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x =>
-                x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinTheaterInformation>>()))
+                x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinTheaterInformation>>()))
             .ReturnsAsync(cardStream);
 
         var service = new GenshinTheaterApplicationService(

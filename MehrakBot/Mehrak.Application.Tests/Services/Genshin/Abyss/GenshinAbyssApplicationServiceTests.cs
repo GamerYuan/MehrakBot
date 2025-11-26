@@ -2,7 +2,6 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Abyss;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -95,20 +94,20 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssData = new GenshinAbyssInformation
         {
-            Floors = new List<Floor>
-            {
+            Floors =
+            [
                 new()
                 {
                     Index = 11,
-                    Levels = new List<Level>()
+                    Levels = []
                 }
-            },
-            RevealRank = new List<AbyssRankAvatar>(),
-            DefeatRank = new List<AbyssRankAvatar>(),
-            DamageRank = new List<AbyssRankAvatar>(),
-            TakeDamageRank = new List<AbyssRankAvatar>(),
-            NormalSkillRank = new List<AbyssRankAvatar>(),
-            EnergySkillRank = new List<AbyssRankAvatar>()
+            ],
+            RevealRank = [],
+            DefeatRank = [],
+            DamageRank = [],
+            TakeDamageRank = [],
+            NormalSkillRank = [],
+            EnergySkillRank = []
         };
 
         abyssApiMock
@@ -236,7 +235,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
         var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
@@ -282,7 +281,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
         var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
@@ -571,13 +570,13 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
         CharacterApiMock,
-        Mock<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>>
+        Mock<ICardService<GenshinAbyssInformation>>
         CardServiceMock,
         Mock<IUserRepository> UserRepositoryMock
         ) SetupMocks()
     {
         var cardServiceMock =
-            new Mock<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>>();
+            new Mock<ICardService<GenshinAbyssInformation>>();
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
         var characterApiMock =
             new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>();
@@ -606,7 +605,7 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
         CharacterApiMock,
-        ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation> CardService,
+        ICardService<GenshinAbyssInformation> CardService,
         Mock<IUserRepository> UserRepositoryMock
         ) SetupIntegrationTest()
     {

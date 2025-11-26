@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Hsr.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -21,12 +21,12 @@ namespace Mehrak.Application.Services.Hsr.EndGame;
 
 public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApplicationContext>
 {
-    private readonly ICardService<HsrEndGameGenerationContext, HsrEndInformation> m_CardService;
+    private readonly ICardService<HsrEndInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<HsrEndInformation, HsrEndGameApiContext> m_ApiService;
 
     public HsrEndGameApplicationService(
-        ICardService<HsrEndGameGenerationContext, HsrEndInformation> cardService,
+        ICardService<HsrEndInformation> cardService,
         IImageUpdaterService imageUpdaterService,
         IApiService<HsrEndInformation, HsrEndGameApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -106,8 +106,12 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new HsrEndGameGenerationContext(context.UserId, challengeData,
-                server, profile, context.Mode));
+            var cardContext = new BaseCardGenerationContext<HsrEndInformation>(
+                context.UserId, challengeData, profile);
+            cardContext.SetParameter("server", server);
+            cardContext.SetParameter("mode", context.Mode);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             var tz = server.GetTimeZoneInfo();
             var group = challengeData.Groups[0];

@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -205,9 +205,10 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, server,
-                    profile));
+            var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
                 characterInfo.Name.ToLowerInvariant());

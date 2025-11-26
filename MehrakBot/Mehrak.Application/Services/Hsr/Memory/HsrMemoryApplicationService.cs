@@ -2,7 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -90,9 +90,10 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, server,
-                    profile));
+            var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             var tz = server.GetTimeZoneInfo();
             var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
