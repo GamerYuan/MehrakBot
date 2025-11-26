@@ -76,7 +76,7 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinTheaterInformation> context)
     {
-        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Stygian", context.UserId);
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Theater", context.UserId);
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         var theaterData = context.Data;
