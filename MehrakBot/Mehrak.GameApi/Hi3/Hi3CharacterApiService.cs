@@ -62,7 +62,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             HttpClient client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new()
+            using HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
                 RequestUri = new Uri(requestUri),
@@ -78,7 +78,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await client.SendAsync(request);
+            using var response = await client.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
