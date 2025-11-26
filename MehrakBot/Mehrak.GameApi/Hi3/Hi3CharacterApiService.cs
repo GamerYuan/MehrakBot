@@ -44,7 +44,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
         try
         {
-            string cacheKey = $"hi3_characters_{context.GameUid}";
+            string cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
             var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey);
 
             // Try to get data from cache first
