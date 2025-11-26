@@ -60,4 +60,20 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
             }
         }
     }
+
+    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server)
+    {
+        var user = await m_UserRepository.GetUserAsync(userId);
+        var profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
+
+        if (user != null && profile != null)
+        {
+            profile.GameUids ??= [];
+            profile.GameUids.TryAdd(game, []);
+            if (profile.GameUids[game].TryAdd(server.ToString(), gameUid))
+            {
+                await m_UserRepository.CreateOrUpdateUserAsync(user);
+            }
+        }
+    }
 }

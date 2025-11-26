@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Genshin.Abyss;
@@ -51,7 +51,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, character, server, profile);
 
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.Genshin)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<GenshinCharacterApplicationContext>()
             .WithInteractionContext(Context)
@@ -75,7 +75,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<GenshinRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
@@ -101,7 +101,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, code, server, profile);
 
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.Genshin)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
@@ -127,7 +127,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, floor, server, profile);
 
         List<(string, object)> parameters = [(nameof(floor), floor), ("game", Game.Genshin)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<GenshinAbyssApplicationContext>()
             .WithInteractionContext(Context)
@@ -151,7 +151,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<GenshinTheaterApplicationContext>()
             .WithInteractionContext(Context)
@@ -174,7 +174,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<GenshinStygianApplicationContext>()
             .WithInteractionContext(Context)
@@ -197,7 +197,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.Genshin)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<GenshinCharListApplicationContext>()
             .WithInteractionContext(Context)

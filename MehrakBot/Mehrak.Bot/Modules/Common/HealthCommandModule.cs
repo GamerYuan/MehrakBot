@@ -33,7 +33,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         { "HoYoLAB Genshin Operations API", new Uri(HoYoLabDomains.GenshinOpsApi).Host },
         { "HoYoLAB HSR Operations API", new Uri(HoYoLabDomains.HsrOpsApi).Host },
         { "HoYoLAB ZZZ Operations API", new Uri(HoYoLabDomains.ZzzOpsApi).Host },
-        { "HoYoLAB Posts API", new Uri(HoYoLabDomains.PostsApi).Host },
+        { "HoYoLAB Posts API", new Uri(HoYoLabDomains.BbsApi).Host },
         { "HoYoLAB Account API", new Uri(HoYoLabDomains.AccountApi).Host },
         { "HoYoWiki API", new Uri(HoYoLabDomains.WikiApi).Host }
     };

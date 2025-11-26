@@ -3,6 +3,7 @@
 using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Genshin;
+using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Zzz;
 using Mehrak.Domain.Services.Abstractions;
@@ -22,6 +23,7 @@ public static class ApplicationServiceCollectionExtension
         services.AddGenshinApplicationServices();
         services.AddHsrApplicationServices();
         services.AddZzzApplicationServices();
+        services.AddHi3ApplicationServices();
 
         return services;
     }

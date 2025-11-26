@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -44,7 +44,8 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -55,7 +56,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -88,9 +89,11 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new
-                BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(
-                    context.UserId, characterList, context.Server, profile));
+            var cardContext = new BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(
+                    context.UserId, characterList, profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)

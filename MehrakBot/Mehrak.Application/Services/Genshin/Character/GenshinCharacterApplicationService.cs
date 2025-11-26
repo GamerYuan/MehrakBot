@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -60,7 +60,8 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
             var characterName = context.GetParameter<string>("character")!;
 
             var profile =
@@ -72,7 +73,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -171,9 +172,11 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new BaseCardGenerationContext<GenshinCharacterInformation>(
-                context.UserId,
-                characterInfo.Data.List[0], context.Server, profile));
+            var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(context.UserId,
+                characterInfo.Data.List[0], profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), character.Name.ToLowerInvariant());
 

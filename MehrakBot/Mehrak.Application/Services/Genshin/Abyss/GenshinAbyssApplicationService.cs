@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -20,8 +20,7 @@ namespace Mehrak.Application.Services.Genshin.Abyss;
 
 public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbyssApplicationContext>
 {
-    private readonly ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>
-        m_CardService;
+    private readonly ICardService<GenshinAbyssInformation> m_CardService;
 
     private readonly IApiService<GenshinAbyssInformation, BaseHoYoApiContext> m_ApiService;
 
@@ -31,7 +30,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
     public GenshinAbyssApplicationService(
-        ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation> cardService,
+        ICardService<GenshinAbyssInformation> cardService,
         IApiService<GenshinAbyssInformation, BaseHoYoApiContext> apiService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
@@ -51,20 +50,22 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
         try
         {
             var floor = context.GetParameter<uint>("floor");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
-                context.Server.ToRegion());
+                region);
             if (profile == null)
             {
                 Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
             var abyssInfo = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                    context.Server.ToRegion()));
+                    region));
             if (!abyssInfo.IsSuccess)
             {
                 Logger.LogError(LogMessage.ApiError,
@@ -108,7 +109,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
 
             var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                    context.Server.ToRegion()));
+                    region));
 
             if (!charListResponse.IsSuccess)
             {
@@ -131,9 +132,13 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                     ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new GenshinEndGameGenerationContext<GenshinAbyssInformation>(context.UserId, floor, abyssData,
-                    context.Server, profile, constMap));
+            var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(context.UserId, abyssData, profile);
+
+            cardContext.SetParameter("constMap", constMap);
+            cardContext.SetParameter("server", server);
+            cardContext.SetParameter("floor", floor);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",

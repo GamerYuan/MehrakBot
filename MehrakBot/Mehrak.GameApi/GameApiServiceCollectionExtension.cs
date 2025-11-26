@@ -8,6 +8,8 @@ using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin;
 using Mehrak.GameApi.Genshin.Types;
+using Mehrak.GameApi.Hi3;
+using Mehrak.GameApi.Hi3.Types;
 using Mehrak.GameApi.Hsr;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Zzz;
@@ -55,6 +57,10 @@ public static class GameApiServiceCollectionExtension
                 ZzzCharacterApiService>();
         services.AddSingleton<IApiService<ZzzDefenseData, BaseHoYoApiContext>, ZzzDefenseApiService>();
         services.AddSingleton<IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext>, ZzzRealTimeNotesApiService>();
+
+        // HI3 services
+        services.AddSingleton<
+            ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>, Hi3CharacterApiService>();
 
         return services;
     }

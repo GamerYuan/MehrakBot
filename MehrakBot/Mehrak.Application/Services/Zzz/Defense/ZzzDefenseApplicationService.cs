@@ -2,7 +2,7 @@
 
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -41,7 +41,8 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -52,7 +53,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -106,8 +107,10 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, context.Server, profile));
+            var cardContext = new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, profile);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),

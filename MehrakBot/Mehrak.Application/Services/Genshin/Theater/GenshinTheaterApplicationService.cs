@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -20,7 +20,7 @@ namespace Mehrak.Application.Services.Genshin.Theater;
 
 public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTheaterApplicationContext>
 {
-    private readonly ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation>
+    private readonly ICardService<GenshinTheaterInformation>
         m_CardService;
 
     private readonly IApiService<GenshinTheaterInformation, BaseHoYoApiContext> m_ApiService;
@@ -31,7 +31,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
     public GenshinTheaterApplicationService(
-        ICardService<GenshinEndGameGenerationContext<GenshinTheaterInformation>, GenshinTheaterInformation> cardService,
+        ICardService<GenshinTheaterInformation> cardService,
         IApiService<GenshinTheaterInformation, BaseHoYoApiContext> apiService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
             characterApiService,
@@ -50,7 +50,8 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
@@ -61,7 +62,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -133,13 +134,12 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new GenshinEndGameGenerationContext<GenshinTheaterInformation>(
-                context.UserId,
-                0,
-                theaterData,
-                context.Server,
-                profile,
-                constMap));
+            var cardContext = new BaseCardGenerationContext<GenshinTheaterInformation>(
+                context.UserId, theaterData, profile);
+            cardContext.SetParameter("constMap", constMap);
+            cardContext.SetParameter("server", server);
+
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),

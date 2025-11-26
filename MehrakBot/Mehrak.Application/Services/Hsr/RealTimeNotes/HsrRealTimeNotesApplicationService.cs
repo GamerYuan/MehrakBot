@@ -36,7 +36,8 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -47,7 +48,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 
@@ -63,7 +64,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
 
             HsrRealTimeNotesData notesData = notesResult.Data;
 
-            return await BuildRealTimeNotes(notesData, context.Server, gameUid);
+            return await BuildRealTimeNotes(notesData, server, gameUid);
         }
         catch (Exception e)
         {

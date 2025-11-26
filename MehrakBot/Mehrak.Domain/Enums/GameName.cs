@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json.Serialization;
 
@@ -39,6 +39,7 @@ public static class GameEnumExtensions
             Game.Genshin => "hk4e_global",
             Game.HonkaiStarRail => "hkrpg_global",
             Game.ZenlessZoneZero => "nap_global",
+            Game.HonkaiImpact3 => "bh3_global",
             _ => throw new ArgumentOutOfRangeException(nameof(gameName), gameName, null)
         };
     }

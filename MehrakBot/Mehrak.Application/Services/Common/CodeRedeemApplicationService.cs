@@ -39,7 +39,8 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
     {
         try
         {
-            var region = context.Server.ToRegion(context.Game);
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion(context.Game);
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, context.Game, region);
@@ -50,7 +51,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
 

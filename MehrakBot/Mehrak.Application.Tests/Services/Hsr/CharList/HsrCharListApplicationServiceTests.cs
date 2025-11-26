@@ -34,11 +34,10 @@ public class HsrCharListApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -66,11 +65,10 @@ public class HsrCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -102,11 +100,10 @@ public class HsrCharListApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -139,14 +136,13 @@ public class HsrCharListApplicationServiceTests
 
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x =>
-                x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<HsrCharacterInformation>>>()))
+                x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<HsrCharacterInformation>>>() ))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -179,14 +175,13 @@ public class HsrCharListApplicationServiceTests
 
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x =>
-                x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<HsrCharacterInformation>>>()))
+                x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<HsrCharacterInformation>>>() ))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -233,13 +228,13 @@ public class HsrCharListApplicationServiceTests
         // Force early exit after UpdateGameUid by making char API fail
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
-            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(
+                Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -294,13 +289,13 @@ public class HsrCharListApplicationServiceTests
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
-            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(
+                Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -328,13 +323,13 @@ public class HsrCharListApplicationServiceTests
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
-            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(
+                Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharListApplicationContext(1)
+        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -378,11 +373,10 @@ public class HsrCharListApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId())
+        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -433,11 +427,10 @@ public class HsrCharListApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId())
+        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act

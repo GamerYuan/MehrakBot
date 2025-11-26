@@ -23,4 +23,8 @@ public class CheckInApplicationContext : IApplicationContext
     {
         return default;
     }
+
+    public void SetParameter<T>(string key, T value)
+    {
+    }
 }

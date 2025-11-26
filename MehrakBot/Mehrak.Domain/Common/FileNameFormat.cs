@@ -109,4 +109,17 @@ public static class FileNameFormat
         /// </summary>
         public const string AssaultBuffName = "zzz_assault_buff_{0}";
     }
+
+    public static class Hi3
+    {
+        /// <summary>
+        /// HI3 file name format, where {0} is the character ID or other identifier
+        /// </summary>
+        public const string FileName = "hi3_{0}";
+
+        /// <summary>
+        /// HI3 costume name, where {0} is the costume ID
+        /// </summary>
+        public const string CostumeName = "hi3_costume_{0}";
+    }
 }

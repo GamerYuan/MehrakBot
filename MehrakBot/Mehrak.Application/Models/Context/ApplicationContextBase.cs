@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 
 #endregion
@@ -12,7 +11,6 @@ public class ApplicationContextBase : IApplicationContext
     public ulong UserId { get; }
     public ulong LtUid { get; set; }
     public string LToken { get; set; } = string.Empty;
-    public Server Server { get; set; }
 
     private Dictionary<string, object> Parameters { get; } = [];
 
@@ -25,5 +23,11 @@ public class ApplicationContextBase : IApplicationContext
     public T? GetParameter<T>(string key)
     {
         return Parameters.TryGetValue(key, out var value) && value is T tValue ? tValue : default;
+    }
+
+    public void SetParameter<T>(string key, T value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        Parameters.TryAdd(key, value);
     }
 }

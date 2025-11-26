@@ -46,7 +46,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, code, server, profile);
 
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.ZenlessZoneZero)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
@@ -72,7 +72,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, character, server, profile);
 
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.ZenlessZoneZero)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<ZzzCharacterApplicationContext>()
             .WithInteractionContext(Context)
@@ -96,7 +96,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<ZzzDefenseApplicationContext>()
             .WithInteractionContext(Context)
@@ -120,7 +120,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<ZzzAssaultApplicationContext>()
             .WithInteractionContext(Context)
@@ -143,7 +143,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
-        if (server is not null) parameters.Add((nameof(server), server.Value));
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
         var executor = m_Builder.For<ZzzRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)

@@ -1,10 +1,10 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -50,8 +50,10 @@ public class GenshinStygianCardServiceTests
 
         GameProfileDto userGameData = GetTestUserGameData();
 
-        Stream stream = await m_Service.GetCardAsync(
-            new TestCardGenerationContext<StygianData>(TestUserId, testData!, Server.Asia, userGameData));
+        var cardContext = new BaseCardGenerationContext<StygianData>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        Stream stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
@@ -82,22 +84,6 @@ public class GenshinStygianCardServiceTests
             Nickname = TestNickName,
             Level = 60
         };
-    }
-
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
     }
 
     // [Test]

@@ -35,11 +35,10 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -69,11 +68,10 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -108,11 +106,10 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -148,14 +145,13 @@ public class GenshinCharListApplicationServiceTests
 
         var cardStream = new MemoryStream();
         cardServiceMock
-            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>()))
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>() ))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -191,14 +187,13 @@ public class GenshinCharListApplicationServiceTests
 
         var cardStream = new MemoryStream();
         cardServiceMock
-            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>()))
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>() ))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -247,11 +242,10 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -310,11 +304,10 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -345,11 +338,10 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharListApplicationContext(1)
+        var context = new GenshinCharListApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -397,11 +389,10 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         var context = new GenshinCharListApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId())
+            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -453,11 +444,10 @@ public class GenshinCharListApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new GenshinCharListApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId())
+            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act

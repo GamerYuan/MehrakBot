@@ -2,7 +2,6 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Genshin.Abyss;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -35,11 +34,10 @@ public class GenshinAbyssApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -66,11 +64,10 @@ public class GenshinAbyssApplicationServiceTests
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -97,31 +94,30 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssData = new GenshinAbyssInformation
         {
-            Floors = new List<Floor>
-            {
+            Floors =
+            [
                 new()
                 {
                     Index = 11,
-                    Levels = new List<Level>()
+                    Levels = []
                 }
-            },
-            RevealRank = new List<AbyssRankAvatar>(),
-            DefeatRank = new List<AbyssRankAvatar>(),
-            DamageRank = new List<AbyssRankAvatar>(),
-            TakeDamageRank = new List<AbyssRankAvatar>(),
-            NormalSkillRank = new List<AbyssRankAvatar>(),
-            EnergySkillRank = new List<AbyssRankAvatar>()
+            ],
+            RevealRank = [],
+            DefeatRank = [],
+            DamageRank = [],
+            TakeDamageRank = [],
+            NormalSkillRank = [],
+            EnergySkillRank = []
         };
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -157,11 +153,10 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "Character API Error"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -200,11 +195,10 @@ public class GenshinAbyssApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -241,14 +235,13 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -288,14 +281,13 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<GenshinEndGameGenerationContext<GenshinAbyssInformation>>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinAbyssInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -340,11 +332,10 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -401,11 +392,10 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -435,11 +425,10 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u))
+        var context = new GenshinAbyssApplicationContext(1, ("floor", (object)12u), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         await service.ExecuteAsync(context);
@@ -485,11 +474,10 @@ public class GenshinAbyssApplicationServiceTests
 
         var context = new GenshinAbyssApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("floor", (object)floor))
+            ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -542,12 +530,10 @@ public class GenshinAbyssApplicationServiceTests
 
         var context = new GenshinAbyssApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
-            ("floor", (object)floor))
+            ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act
@@ -584,13 +570,13 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
         CharacterApiMock,
-        Mock<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>>
+        Mock<ICardService<GenshinAbyssInformation>>
         CardServiceMock,
         Mock<IUserRepository> UserRepositoryMock
         ) SetupMocks()
     {
         var cardServiceMock =
-            new Mock<ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation>>();
+            new Mock<ICardService<GenshinAbyssInformation>>();
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
         var characterApiMock =
             new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>();
@@ -619,7 +605,7 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
         CharacterApiMock,
-        ICardService<GenshinEndGameGenerationContext<GenshinAbyssInformation>, GenshinAbyssInformation> CardService,
+        ICardService<GenshinAbyssInformation> CardService,
         Mock<IUserRepository> UserRepositoryMock
         ) SetupIntegrationTest()
     {

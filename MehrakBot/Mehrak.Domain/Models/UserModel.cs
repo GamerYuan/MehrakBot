@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using MongoDB.Bson;
@@ -31,5 +31,5 @@ public class UserProfile
     [BsonRepresentation(BsonType.String)]
     public Dictionary<Game, Dictionary<string, string>>? GameUids { get; set; } = null;
 
-    [BsonElement("last_used_regions")] public Dictionary<Game, Server>? LastUsedRegions { get; set; } = null;
+    [BsonElement("last_used_regions")] public Dictionary<Game, string>? LastUsedRegions { get; set; } = null;
 }

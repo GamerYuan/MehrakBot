@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Abyss;
-using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Genshin.Types;
@@ -50,9 +50,13 @@ public class GenshinAbyssCardServiceTests
 
         GameProfileDto profile = GetTestUserGameData();
 
+        var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(TestUserId, testData, profile);
+        cardContext.SetParameter("floor", 12u);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("constMap", GetConstMap());
+
         Stream stream =
-            await m_Service.GetCardAsync(new GenshinEndGameGenerationContext<GenshinAbyssInformation>(TestUserId, 12,
-                testData, Server.Asia, profile, GetConstMap()));
+            await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

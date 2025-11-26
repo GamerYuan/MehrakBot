@@ -19,6 +19,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
 {
     public IInteractionContext Context { get; set; } = default!;
     public TContext ApplicationContext { get; set; } = default!;
+    public bool ValidateServer { get; set; } = true;
     internal virtual string CommandName { get; set; } = string.Empty;
     internal bool IsResponseEphemeral { get; set; } = false;
 
@@ -65,7 +66,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         return true;
     }
 
-    protected static Server? GetLastUsedServerAsync(UserModel user, Game game, uint profileId)
+    protected static string? GetLastUsedServerAsync(UserModel user, Game game, uint profileId)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;
@@ -75,7 +76,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         return null;
     }
 
-    protected async Task UpdateLastUsedServerAsync(UserModel user, uint profileId, Game game, Server server)
+    protected async Task UpdateLastUsedServerAsync(UserModel user, uint profileId, Game game, string server)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return;

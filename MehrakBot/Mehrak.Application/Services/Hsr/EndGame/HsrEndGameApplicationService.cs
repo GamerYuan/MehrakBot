@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Hsr.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -21,12 +21,12 @@ namespace Mehrak.Application.Services.Hsr.EndGame;
 
 public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApplicationContext>
 {
-    private readonly ICardService<HsrEndGameGenerationContext, HsrEndInformation> m_CardService;
+    private readonly ICardService<HsrEndInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<HsrEndInformation, HsrEndGameApiContext> m_ApiService;
 
     public HsrEndGameApplicationService(
-        ICardService<HsrEndGameGenerationContext, HsrEndInformation> cardService,
+        ICardService<HsrEndInformation> cardService,
         IImageUpdaterService imageUpdaterService,
         IApiService<HsrEndInformation, HsrEndGameApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -42,7 +42,8 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -53,7 +54,7 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var challengeResponse = await m_ApiService.GetAsync(
                 new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
@@ -105,10 +106,14 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(new HsrEndGameGenerationContext(context.UserId, challengeData,
-                context.Server, profile, context.Mode));
+            var cardContext = new BaseCardGenerationContext<HsrEndInformation>(
+                context.UserId, challengeData, profile);
+            cardContext.SetParameter("server", server);
+            cardContext.SetParameter("mode", context.Mode);
 
-            var tz = context.Server.GetTimeZoneInfo();
+            var card = await m_CardService.GetCardAsync(cardContext);
+
+            var tz = server.GetTimeZoneInfo();
             var group = challengeData.Groups[0];
             var startTime = new DateTimeOffset(group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();

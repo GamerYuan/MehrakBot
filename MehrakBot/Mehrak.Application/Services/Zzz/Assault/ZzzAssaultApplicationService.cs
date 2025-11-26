@@ -4,7 +4,7 @@ using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -49,7 +49,8 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
     {
         try
         {
-            string region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -60,7 +61,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
             string gameUid = profile.GameUid;
 
@@ -113,10 +114,12 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, context.Server, profile));
+            var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
+            cardContext.SetParameter("server", server);
 
-            TimeZoneInfo tz = context.Server.GetTimeZoneInfo();
+            var card = await m_CardService.GetCardAsync(cardContext);
+
+            TimeZoneInfo tz = server.GetTimeZoneInfo();
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),

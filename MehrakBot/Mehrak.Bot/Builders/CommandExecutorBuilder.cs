@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Services;
+using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Services;
 
@@ -11,10 +11,10 @@ namespace Mehrak.Bot.Builders;
 
 public interface ICommandExecutorBuilder
 {
-    ICommandExecutorBuilder<TContext> For<TContext>() where TContext : ApplicationContextBase;
+    ICommandExecutorBuilder<TContext> For<TContext>() where TContext : IApplicationContext;
 }
 
-public interface ICommandExecutorBuilder<TContext> where TContext : ApplicationContextBase
+public interface ICommandExecutorBuilder<TContext> where TContext : IApplicationContext
 {
     ICommandExecutorBuilder<TContext> WithInteractionContext(IInteractionContext context);
 
@@ -26,6 +26,8 @@ public interface ICommandExecutorBuilder<TContext> where TContext : ApplicationC
 
     ICommandExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
         string? errorMessage = null);
+
+    ICommandExecutorBuilder<TContext> ValidateServer(bool validate);
 
     ICommandExecutorService<TContext> Build();
 }
@@ -39,14 +41,14 @@ internal class CommandExecutorBuilder : ICommandExecutorBuilder
         m_ServiceProvider = serviceProvider;
     }
 
-    public ICommandExecutorBuilder<TContext> For<TContext>() where TContext : ApplicationContextBase
+    public ICommandExecutorBuilder<TContext> For<TContext>() where TContext : IApplicationContext
     {
         return ActivatorUtilities.CreateInstance<CommandExecutorBuilder<TContext>>(m_ServiceProvider);
     }
 }
 
 internal class CommandExecutorBuilder<TContext> : ICommandExecutorBuilder<TContext>
-    where TContext : ApplicationContextBase
+    where TContext : IApplicationContext
 {
     private readonly IServiceProvider m_ServiceProvider;
     private readonly List<Action<CommandExecutorService<TContext>>> m_Configurators = [];
@@ -94,6 +96,12 @@ internal class CommandExecutorBuilder<TContext> : ICommandExecutorBuilder<TConte
             throw new ArgumentNullException(nameof(predicate));
 
         m_Configurators.Add(svc => svc.AddValidator(paramName, predicate, errorMessage));
+        return this;
+    }
+
+    public ICommandExecutorBuilder<TContext> ValidateServer(bool validate)
+    {
+        m_Configurators.Add(svc => svc.ValidateServer = validate);
         return this;
     }
 

@@ -6,6 +6,7 @@ using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
@@ -103,7 +104,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
 
             Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
 
-            var tzi = context.Server.GetTimeZoneInfo();
+            var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {

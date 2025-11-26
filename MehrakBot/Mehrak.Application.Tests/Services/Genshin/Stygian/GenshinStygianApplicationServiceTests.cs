@@ -34,11 +34,10 @@ public class GenshinStygianApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -65,11 +64,10 @@ public class GenshinStygianApplicationServiceTests
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -102,11 +100,10 @@ public class GenshinStygianApplicationServiceTests
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -157,11 +154,10 @@ public class GenshinStygianApplicationServiceTests
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -194,11 +190,10 @@ public class GenshinStygianApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -229,11 +224,10 @@ public class GenshinStygianApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -267,11 +261,10 @@ public class GenshinStygianApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -316,11 +309,10 @@ public class GenshinStygianApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -377,11 +369,10 @@ public class GenshinStygianApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -410,11 +401,10 @@ public class GenshinStygianApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinStygianApplicationContext(1)
+        var context = new GenshinStygianApplicationContext(1, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -460,11 +450,10 @@ public class GenshinStygianApplicationServiceTests
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
 
-        var context = new GenshinStygianApplicationContext(MongoTestHelper.Instance.GetUniqueUserId())
+        var context = new GenshinStygianApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -514,11 +503,10 @@ public class GenshinStygianApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new GenshinStygianApplicationContext(MongoTestHelper.Instance.GetUniqueUserId())
+        var context = new GenshinStygianApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act

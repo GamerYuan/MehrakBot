@@ -1,10 +1,10 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -52,8 +52,10 @@ public class HsrMemoryCardServiceTests
 
         GameProfileDto userGameData = GetTestUserGameData();
 
-        Stream stream = await m_Service.GetCardAsync(
-            new TestCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!, Server.Asia, userGameData));
+        var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        Stream stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
@@ -84,22 +86,6 @@ public class HsrMemoryCardServiceTests
             Nickname = TestNickName,
             Level = 70
         };
-    }
-
-    private class TestCardGenerationContext<T> : ICardGenerationContext<T>
-    {
-        public ulong UserId { get; }
-        public T Data { get; }
-        public Server Server { get; }
-        public GameProfileDto GameProfile { get; }
-
-        public TestCardGenerationContext(ulong userId, T data, Server server, GameProfileDto gameProfile)
-        {
-            UserId = userId;
-            Data = data;
-            Server = server;
-            GameProfile = gameProfile;
-        }
     }
 
     // [Test] [TestCase("Moc_TestData_1.json", "Moc_GoldenImage_1.jpg")]

@@ -6,6 +6,7 @@ using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
@@ -140,7 +141,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 }));
             disposables.Add(background);
 
-            var tzi = context.Server.GetTimeZoneInfo();
+            var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {

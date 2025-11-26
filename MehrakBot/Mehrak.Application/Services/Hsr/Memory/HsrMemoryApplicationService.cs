@@ -2,7 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin.Types;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -42,7 +42,8 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
     {
         try
         {
-            var region = context.Server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
                 Game.HonkaiStarRail, region);
@@ -53,7 +54,7 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, context.Server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
             var memoryResult =
@@ -89,11 +90,12 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var card = await m_CardService.GetCardAsync(
-                new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, context.Server,
-                    profile));
+            var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, profile);
+            cardContext.SetParameter("server", server);
 
-            var tz = context.Server.GetTimeZoneInfo();
+            var card = await m_CardService.GetCardAsync(cardContext);
+
+            var tz = server.GetTimeZoneInfo();
             var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
             var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)

@@ -3,7 +3,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Hsr.EndGame;
-using Mehrak.Application.Services.Hsr.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -36,11 +35,10 @@ public class HsrEndGameApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -69,11 +67,10 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -113,11 +110,10 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -153,11 +149,10 @@ public class HsrEndGameApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -191,14 +186,13 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<HsrEndGameGenerationContext>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -235,14 +229,13 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<HsrEndGameGenerationContext>()))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrEndGameApplicationContext(1, mode)
+        var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -270,15 +263,15 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making API fail
@@ -286,11 +279,10 @@ public class HsrEndGameApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -326,8 +318,8 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -340,18 +332,17 @@ public class HsrEndGameApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -380,11 +371,10 @@ public class HsrEndGameApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction)
+        var context = new HsrEndGameApplicationContext(1, HsrEndGameMode.PureFiction, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -400,10 +390,10 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new() { LtUid = 99999ul, LToken = "test" }
-                }
+                ]
             });
 
         await service.ExecuteAsync(context);
@@ -431,11 +421,10 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode)
+        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
-            LToken = "test",
-            Server = Server.Asia
+            LToken = "test"
         };
 
         // Act
@@ -488,11 +477,10 @@ public class HsrEndGameApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode)
+        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
-            LToken = testLToken!,
-            Server = Server.Asia
+            LToken = testLToken!
         };
 
         // Act
@@ -527,11 +515,11 @@ public class HsrEndGameApplicationServiceTests
         Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>> EndGameApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<ICardService<HsrEndGameGenerationContext, HsrEndInformation>> CardServiceMock,
+        Mock<ICardService<HsrEndInformation>> CardServiceMock,
         Mock<IUserRepository> UserRepositoryMock
         ) SetupMocks()
     {
-        var cardServiceMock = new Mock<ICardService<HsrEndGameGenerationContext, HsrEndInformation>>();
+        var cardServiceMock = new Mock<ICardService<HsrEndInformation>>();
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();

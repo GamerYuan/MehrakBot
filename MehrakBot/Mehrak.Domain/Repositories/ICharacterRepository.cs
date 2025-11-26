@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -13,5 +13,5 @@ public interface ICharacterRepository
 
     Task<CharacterModel?> GetCharacterModelAsync(Game gameName);
 
-    Task UpsertCharactersAsync(CharacterModel characterModel);
+    Task UpsertCharactersAsync(Game gameName, IEnumerable<string> characters);
 }

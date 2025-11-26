@@ -4,10 +4,10 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
-using Mehrak.Application.Services.Hsr.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
@@ -24,7 +24,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Hsr.EndGame;
 
-internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext, HsrEndInformation>, IAsyncInitializable
+internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncInitializable
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<HsrEndGameCardService> m_Logger;
@@ -84,9 +84,11 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(HsrEndGameCardService));
     }
 
-    public async Task<Stream> GetCardAsync(HsrEndGameGenerationContext context)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrEndInformation> context)
     {
-        m_Logger.LogInformation(LogMessage.CardGenStartInfo, context.GameMode.GetString(), context.UserId);
+        var gameMode = context.GetParameter<HsrEndGameMode>("mode");
+
+        m_Logger.LogInformation(LogMessage.CardGenStartInfo, gameMode.GetString(), context.UserId);
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         var gameModeData = context.Data;
@@ -120,7 +122,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
             disposables.AddRange(buffImages.Values);
 
             Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
-            List<(int FloorNumber, HsrEndFloorDetail? Data)> floorDetails = context.GameMode switch
+            List<(int FloorNumber, HsrEndFloorDetail? Data)> floorDetails = gameMode switch
             {
                 HsrEndGameMode.PureFiction =>
                 [
@@ -147,7 +149,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
             int height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
-            Image<Rgba32> background = context.GameMode switch
+            Image<Rgba32> background = gameMode switch
             {
                 HsrEndGameMode.PureFiction => m_PfBackground.CloneAs<Rgba32>(),
                 HsrEndGameMode.ApocalypticShadow => m_AsBackground.CloneAs<Rgba32>(),
@@ -167,7 +169,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                 });
 
                 HsrEndGroup group = gameModeData.Groups[0];
-                string modeString = context.GameMode.GetString();
+                string modeString = gameMode.GetString();
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
@@ -245,7 +247,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                             }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
-                        string stageText = context.GameMode switch
+                        string stageText = gameMode switch
                         {
                             HsrEndGameMode.PureFiction =>
                                 $"{gameModeData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})",
@@ -291,7 +293,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         Origin = new Vector2(xOffset + 855, yOffset + 85),
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, $"Score: {floorData.Node1.Score}", Color.White);
-                    if (context.GameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node1.BossDefeated)
+                    if (gameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node1.BossDefeated)
                         ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 83),
                             1f);
 
@@ -309,7 +311,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         Origin = new Vector2(xOffset + 855, yOffset + 350),
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, $"Score: {floorData.Node2.Score}", Color.White);
-                    if (context.GameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node2.BossDefeated)
+                    if (gameMode == HsrEndGameMode.ApocalypticShadow && floorData.Node2.BossDefeated)
                         ctx.DrawImage(m_BossCheckmark, new Point(xOffset + 650, yOffset + 348),
                             1f);
 
@@ -335,7 +337,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
                         Color.White);
 
                     // Draw cycle number
-                    if (context.GameMode == HsrEndGameMode.PureFiction)
+                    if (gameMode == HsrEndGameMode.PureFiction)
                     {
                         FontRectangle size = TextMeasurer.MeasureSize(scoreText, new TextOptions(m_NormalFont));
                         ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 695 - (int)size.Width, yOffset + 10),
@@ -358,15 +360,15 @@ internal class HsrEndGameCardService : ICardService<HsrEndGameGenerationContext,
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, context.GameMode.GetString(),
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, gameMode.GetString(),
                 context.UserId, stopwatch.ElapsedMilliseconds);
             return stream;
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessage.CardGenError, context.GameMode.GetString(), context.UserId,
+            m_Logger.LogError(e, LogMessage.CardGenError, gameMode.GetString(), context.UserId,
                 JsonSerializer.Serialize(context.Data));
-            throw new CommandException($"Failed to generate {context.GameMode.GetString()} card", e);
+            throw new CommandException($"Failed to generate {gameMode.GetString()} card", e);
         }
         finally
         {
