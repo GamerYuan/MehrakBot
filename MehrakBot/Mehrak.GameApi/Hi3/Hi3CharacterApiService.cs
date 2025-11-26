@@ -94,15 +94,12 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                 await JsonSerializer.DeserializeAsync<ApiResponse<Hi3CharacterList>>(
                     await response.Content.ReadAsStreamAsync(), JsonOptions);
 
-            if (json?.Data == null || json.Data.Characters.Count == 0)
+            if (json == null)
             {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
                 return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
             if (json.Retcode == 10001)
             {
@@ -117,6 +114,16 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                 return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
+
+            if (json.Data == null || json.Data.Characters.Count == 0)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character information", requestUri);
+            }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
 
