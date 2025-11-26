@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hi3.Character;
-using Mehrak.Application.Services.Hi3.Types;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Hi3.Types;
@@ -52,9 +52,11 @@ internal class Hi3CharacterCardServiceTests
 
         GameProfileDto profile = GetTestUserGameData();
 
+        var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Hi3Server.SEA);
+
         // Act
-        Stream generatedImageStream = await m_CharacterCardService.GetCardAsync(
-            new Hi3CardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, Hi3Server.SEA, profile));
+        Stream generatedImageStream = await m_CharacterCardService.GetCardAsync(cardContext);
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
