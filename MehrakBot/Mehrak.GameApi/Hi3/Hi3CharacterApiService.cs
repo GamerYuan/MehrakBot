@@ -132,7 +132,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
+                $"{HoYoLabDomains.BbsApi}{ApiEndpoint}", context.UserId);
             return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character information");
         }
