@@ -109,7 +109,7 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
             }
 
             var card = await m_CardService.GetCardAsync(
-                new Hi3CardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, context.Server,
+                new Hi3CardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, server,
                     profile));
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
