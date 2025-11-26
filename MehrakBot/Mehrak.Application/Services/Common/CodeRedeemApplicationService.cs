@@ -39,7 +39,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
     {
         try
         {
-            var server = context.GetParameter<Server>("server");
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion(context.Game);
 
             var profile =
