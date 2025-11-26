@@ -81,7 +81,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
 
         var theaterData = context.Data;
 
-        var constMap = context.GetParameter<Dictionary<int, int>>("constMap") ?? throw new CommandException("constMap parameter is missing for Abyss card generation");
+        var constMap = context.GetParameter<Dictionary<int, int>>("constMap")
+            ?? throw new CommandException("constMap parameter is missing for Theater card generation");
 
         List<IDisposable> disposableResources = [];
         try
