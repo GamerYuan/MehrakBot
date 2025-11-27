@@ -23,12 +23,6 @@ public class HsrCharacterCardServiceTests
     private const string TestUid = "800000000";
     private const ulong TestUserId = 1;
 
-    [SetUp]
-    public async Task Setup()
-    {
-
-    }
-
     [Test]
     [TestCase("Stelle_TestData.json", "Stelle_GoldenImage.jpg", "Stelle")]
     [TestCase("Stelle_NoEquip_NoRelic_TestData.json", "Stelle_NoEquip_NoRelic_GoldenImage.jpg", "StelleNoEquipNoRelic")]
