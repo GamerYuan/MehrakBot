@@ -101,6 +101,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                     GetBossImageProcessor()));
             IEnumerable<Task<bool>> buffImageTask = assaultData.List
                 .SelectMany(x => x.Buff)
+                .DistinctBy(x => x.Name)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                     new ImageProcessorBuilder().Build()));
 
