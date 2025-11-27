@@ -247,6 +247,44 @@ public class ZzzAssaultApplicationServiceTests
     }
 
     [Test]
+    [TestCase("Da_TestData_3.json")]
+    public async Task ExecuteAsync_DuplicateBuff_InvokesBuffImageUpdateOnce(string testDataFile)
+    {
+        // Arrange
+        var (service, assaultApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var assaultData = await LoadTestDataAsync(testDataFile);
+        assaultApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<ZzzAssaultData>.Success(assaultData));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        imageUpdaterMock.Setup(x =>
+                x.UpdateMultiImageAsync(It.IsAny<IMultiImageData>(), It.IsAny<IMultiImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzAssaultData>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = new ZzzAssaultApplicationContext(1, ("server", Server.Asia.ToString()))
+        {
+            LtUid = 1ul,
+            LToken = "test"
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(x => x.Name == assaultData.List[0].Buff[0].ToImageName()),
+                It.IsAny<IImageProcessor>()), Times.Once);
+    }
+
+    [Test]
     [TestCase("Da_TestData_1.json")]
     public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly(string testDataFile)
     {
@@ -303,15 +341,15 @@ public class ZzzAssaultApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         assaultApiMock
@@ -355,8 +393,8 @@ public class ZzzAssaultApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -369,7 +407,7 @@ public class ZzzAssaultApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         assaultApiMock
@@ -422,10 +460,10 @@ public class ZzzAssaultApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new() { LtUid = 99999ul, LToken = "test" }
-                }
+                ]
             });
 
         await service.ExecuteAsync(context);
