@@ -11,7 +11,6 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
-using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
@@ -32,6 +31,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         m_CharacterApi;
 
     private readonly IMetricsService m_MetricsService;
+    private readonly IRelicRepository m_RelicRepository;
 
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
@@ -43,6 +43,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IRelicRepository relicRepository,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
@@ -52,6 +53,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         m_CharacterCacheService = characterCacheService;
         m_CharacterApi = characterApi;
         m_MetricsService = metricsService;
+        m_RelicRepository = relicRepository;
     }
 
     public override async Task<CommandResult> ExecuteAsync(HsrCharacterApplicationContext context)
@@ -109,48 +111,85 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
                 .DistinctBy(x => x.GetSetId())
                 .ToAsyncEnumerable()
-                .Where(async (x, token) => characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
-                                       !await m_ImageRepository.FileExistsAsync(
-                                           string.Format(FileNameFormat.Hsr.FileName, x.Id)))
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.GetSetId()),
+                .Where(async (x, token) =>
+                {
+                    int start = 1, end = 4;
+                    if (x.Pos >= 5)
+                    {
+                        start = 5;
+                        end = 6;
+                    }
+
+                    var setId = x.GetSetId();
+
+                    for (int i = start; i <= end; i++)
+                    {
+                        if (characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
+                            !await m_ImageRepository.FileExistsAsync(
+                                string.Format(FileNameFormat.Hsr.FileName, $"{setId}{i}")))
+                            return true;
+                    }
+
+                    return false;
+                })
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
                     async (x, token) =>
                     {
                         var url = characterList.RelicWiki[x.Id.ToString()];
                         var entryPage = url.Split('/')[^1];
-                        var wikiResponse =
-                            await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
-                                entryPage));
-                        if (!wikiResponse.IsSuccess) return null;
+                        string? jsonStr = null;
 
-                        var jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
-                            .FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set")?
-                            ["components"]?.AsArray()[0]?["data"]?.GetValue<string>();
-                        if (jsonStr == null) return null;
+                        var setId = x.GetSetId();
+
+                        foreach (var locale in Enum.GetValues<WikiLocales>())
+                        {
+                            var wikiResponse =
+                                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
+                                    entryPage, locale));
+                            if (!wikiResponse.IsSuccess)
+                            {
+                                Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
+                                continue;
+                            }
+
+                            if (locale == WikiLocales.EN)
+                            {
+                                var setName = wikiResponse.Data["data"]?["page"]?["name"]?.GetValue<string>();
+                                if (setName != null) await m_RelicRepository.AddSetName(setId, setName);
+                            }
+
+                            jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
+                                .FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set")?
+                                ["components"]?.AsArray()[0]?["data"]?.GetValue<string>();
+
+                            if (!string.IsNullOrEmpty(jsonStr)) break;
+
+                            Logger.LogWarning("Character wiki image URL is empty for RelicId: {RelicId}, Locale: {Locale}, Data:\n{Data}",
+                                setId, locale, wikiResponse.Data.ToJsonString());
+                        }
+
+                        if (string.IsNullOrEmpty(jsonStr)) return null;
 
                         return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
                     });
 
+            var uniqueRelicSetId = uniqueRelicSet.Where(x => x.Value != null).Select(x => x.Key.GetSetId()).ToHashSet();
+
             List<Task<bool>> tasks = [];
+
+            var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
                 new ImageProcessorBuilder().Resize(1000, 0).Build()));
-            tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments).Select(r =>
-            {
-                var setId = r.GetSetId();
-                if (uniqueRelicSet.TryGetValue(setId, out var jsonArray) && jsonArray != null)
-                {
-                    string? iconUrl = jsonArray
-                        .FirstOrDefault(x => r.Name.Equals(RegexExpressions.QuotationMarkRegex()
-                            .Replace(x?["name"]?.GetValue<string>() ?? "", "'"), StringComparison.OrdinalIgnoreCase))
-                        ?["icon_url"]?.GetValue<string>();
-
-                    if (iconUrl != null)
-                        return new ImageData(string.Format(FileNameFormat.Hsr.FileName, r.Id), iconUrl);
-                }
-
-                return new ImageData(string.Format(FileNameFormat.Hsr.FileName, r.Id), r.Icon);
-            }).Select(x => m_ImageUpdaterService.UpdateImageAsync(x,
-                new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build())));
+            tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null).SelectMany(x => x.Value!.Select((e, i) =>
+                    new ImageData(
+                        string.Format(FileNameFormat.Hsr.FileName, $"{x.Key.GetSetId()}{(x.Key.Pos < 5 ? i + 1 : i + 5)}"),
+                        e?["icon_url"]?.GetValue<string>() ?? string.Empty))
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor))));
+            tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments)
+                .Where(x => !uniqueRelicSetId.Contains(x.GetSetId()))
+                .Select(r => new ImageData(r.ToImageName(), r.Icon))
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor)));
 
             if (characterInfo.Equip != null &&
                 characterList.EquipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&

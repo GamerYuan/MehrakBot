@@ -713,6 +713,134 @@ public class GenshinCharacterApplicationServiceTests
         userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
     }
 
+    [Test]
+    public async Task ExecuteAsync_WikiFallback_WhenCnFails_UsesAlternateLocale()
+    {
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        // Force wiki path by marking image absent
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        // CN fails, EN succeeds
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "CN down"));
+        var enResponse = JsonNode.Parse("""
+                                       {
+                                         "data": { "page": { "header_img_url": "https://example.com/en_character.png" } }
+                                       }
+                                       """);
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)))
+            .ReturnsAsync(Result<JsonNode>.Success(enResponse!));
+        // All other locales fail
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale != WikiLocales.CN && c.Locale != WikiLocales.EN)))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "not used"));
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = new GenshinCharacterApplicationContext(
+            7,
+            ("character", "Traveler"),
+            ("server", Server.Asia.ToString()))
+        {
+            LtUid = 7ul,
+            LToken = "test"
+        };
+
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WikiFallback_WhenCnReturnsEmpty_UsesAlternateLocale()
+    {
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        var cnEmpty = JsonNode.Parse("""
+                                    { "data": { "page": { "header_img_url": "" } } }
+                                    """);
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)))
+            .ReturnsAsync(Result<JsonNode>.Success(cnEmpty!));
+
+        var enResponse = JsonNode.Parse("""
+                                       { "data": { "page": { "header_img_url": "https://example.com/en_character.png" } } }
+                                       """);
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)))
+            .ReturnsAsync(Result<JsonNode>.Success(enResponse!));
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = new GenshinCharacterApplicationContext(
+            8,
+            ("character", "Traveler"),
+            ("server", Server.Asia.ToString()))
+        {
+            LtUid = 8ul,
+            LToken = "test"
+        };
+
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
+    }
+
     #endregion
 
     #region Integration Tests

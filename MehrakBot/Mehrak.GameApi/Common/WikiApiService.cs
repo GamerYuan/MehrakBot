@@ -37,7 +37,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 Method = HttpMethod.Get,
                 RequestUri = new Uri(requestUri)
             };
-            request.Headers.Add("X-Rpc-Language", context.Game == Game.Genshin ? "zh-cn" : "en-us");
+            request.Headers.Add("X-Rpc-Language", context.Locale.ToLocaleString());
 
             if (context.Game == Game.ZenlessZoneZero)
                 request.Headers.Add("X-Rpc-Wiki_app", "zzz");
