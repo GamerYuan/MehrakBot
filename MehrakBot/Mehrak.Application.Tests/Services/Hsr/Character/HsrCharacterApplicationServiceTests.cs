@@ -31,7 +31,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, _, _, _, _, gameRoleApiMock, _, _) = SetupMocks();
+        var (service, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -57,7 +57,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -88,7 +88,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -121,7 +121,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, _, imageRepositoryMock,
-            imageUpdaterMock, cardMock, gameRoleApiMock, _, _) = SetupMocks();
+            imageUpdaterMock, cardMock, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -165,7 +165,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiApiError_ForRelics_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _) =
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -203,7 +203,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiApiError_ForLightCone_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _) =
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -243,7 +243,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _
                 ) =
             SetupMocks();
 
@@ -285,11 +285,121 @@ public class HsrCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_RelicImagesMissing_FetchesFromWikiAndAddsSetName()
+    {
+        // Arrange
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, relicRepositoryMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.Is<string>(x => x.Contains("1181")))).ReturnsAsync(false);
+
+        var charList = await LoadTestDataAsync();
+
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        var relicJson = JsonSerializer.Serialize(new
+        {
+            list = new List<object> {
+                new
+                {
+                    icon_url = "https://example.com/relic_icon_1.png",
+                },
+                new
+                {
+                    icon_url = "https://example.com/relic_icon_2.png",
+                },
+                new
+                {
+                    icon_url = "https://example.com/relic_icon_3.png",
+                },
+                new
+                {
+                    icon_url = "https://example.com/relic_icon_4.png",
+                }
+            }
+        });
+
+        // Escape quotes for JSON string inside JSON
+        var escapedRelicJson = relicJson.Replace("\"", "\\\"");
+
+        var wikiResponseEn = JsonNode.Parse($@"
+        {{
+            ""data"": {{
+                ""page"": {{
+                    ""name"": ""Test Relic Set"",
+                    ""modules"": [
+                        {{
+                            ""name"": ""Set"",
+                            ""components"": [
+                                {{
+                                    ""data"": ""{escapedRelicJson}""
+                                }}
+                            ]
+                        }}
+                    ]
+                }}
+            }}
+        }}");
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync((WikiApiContext c) =>
+            {
+                if (c.Locale == WikiLocales.EN)
+                    return Result<JsonNode>.Success(wikiResponseEn!);
+                return Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not Found");
+            });
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
+        {
+            LtUid = 1ul,
+            LToken = "test"
+        };
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        Assert.Multiple(() =>
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+
+            // Verify Set Name was added
+            relicRepositoryMock.Verify(x => x.AddSetName(118, "Test Relic Set"), Times.Once);
+
+            // Verify Image Update was called for the relic
+            imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(img => img.Url == "https://example.com/relic_icon_1.png"),
+                It.IsAny<IImageProcessor>()), Times.Once);
+            imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(img => img.Url == "https://example.com/relic_icon_2.png"),
+                It.IsAny<IImageProcessor>()), Times.Once);
+            imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(img => img.Url == "https://example.com/relic_icon_3.png"),
+                It.IsAny<IImageProcessor>()), Times.Once);
+            imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(img => img.Url == "https://example.com/relic_icon_4.png"),
+                It.IsAny<IImageProcessor>()), Times.Once);
+        });
+    }
+
+    [Test]
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
     {
         // Arrange
         var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, metricsMock, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -341,7 +451,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _) = SetupMocks();
+            gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -394,7 +504,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -407,15 +517,15 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making char API fail
@@ -450,7 +560,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -462,8 +572,8 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -476,7 +586,7 @@ public class HsrCharacterApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         characterApiMock
@@ -500,7 +610,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -535,14 +645,236 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new() { LtUid = 99999ul, LToken = "test" }
-                }
+                ]
             });
 
         await service.ExecuteAsync(context);
         userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_RelicWiki_FallbackLocale_UsesAlternateLocaleWhenENMissingModule()
+    {
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, relicRepositoryMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        // Force relic set missing images (setId 118 expected file names hsr_1181..hsr_1184)
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync((string name) => !name.Contains("118"));
+
+        // EN locale returns page without Set module
+        var enResponse = JsonNode.Parse("{\"data\":{\"page\":{\"name\":\"Missing Set Module\",\"modules\":[]}}}");
+        // CN locale returns Set module with list
+        var relicJson = JsonSerializer.Serialize(new
+        {
+            list = new[]
+            {
+                new { icon_url = "https://example.com/relic_cn_1.png" },
+                new { icon_url = "https://example.com/relic_cn_2.png" },
+                new { icon_url = "https://example.com/relic_cn_3.png" },
+                new { icon_url = "https://example.com/relic_cn_4.png" }
+            }
+        });
+        var escapedRelicJson = relicJson.Replace("\"", "\\\"");
+        var cnResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"CN Relic Set\",\"modules\":[{{\"name\":\"Set\",\"components\":[{{\"data\":\"{escapedRelicJson}\"}}]}}]}}}}}}");
+
+        wikiApiMock.Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)))
+            .ReturnsAsync(Result<JsonNode>.Success(enResponse!));
+        wikiApiMock.Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)))
+            .ReturnsAsync(Result<JsonNode>.Success(cnResponse!));
+        wikiApiMock.Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale != WikiLocales.EN && c.Locale != WikiLocales.CN)))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not Found"));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
+        {
+            LtUid = 1ul,
+            LToken = "test"
+        };
+
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        // CN provided list, images updated
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url.Contains("relic_cn_1")), It.IsAny<IImageProcessor>()), Times.Once);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url.Contains("relic_cn_4")), It.IsAny<IImageProcessor>()), Times.Once);
+        // EN set name not added (since module missing)
+        relicRepositoryMock.Verify(x => x.AddSetName(It.Is<int>(x => x == 118), It.Is<string>(x => x.Equals("Missing Set Module"))), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_RelicWiki_ENSetName_StopsLocaleIteration()
+    {
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, relicRepositoryMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync((string name) => !name.Contains("118"));
+
+        var relicJson = JsonSerializer.Serialize(new
+        {
+            list = new[]
+            {
+                new { icon_url = "https://example.com/relic_en_1.png" },
+                new { icon_url = "https://example.com/relic_en_2.png" },
+                new { icon_url = "https://example.com/relic_en_3.png" },
+                new { icon_url = "https://example.com/relic_en_4.png" }
+            }
+        });
+        var escapedRelicJson = relicJson.Replace("\"", "\\\"");
+        var enResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"EN Relic Set\",\"modules\":[{{\"name\":\"Set\",\"components\":[{{\"data\":\"{escapedRelicJson}\"}}]}}]}}}}}}");
+
+        List<WikiLocales> calledLocales = [];
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync((WikiApiContext c) =>
+            {
+                calledLocales.Add(c.Locale);
+                if (c.Locale == WikiLocales.EN)
+                    return Result<JsonNode>.Success(enResponse!);
+                return Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not Needed");
+            });
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = new HsrCharacterApplicationContext(2, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
+        {
+            LtUid = 2ul,
+            LToken = "test"
+        };
+
+        var result = await service.ExecuteAsync(context);
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+
+        // Locale iteration should stop at EN for each needed set (no other locales)
+        Assert.That(calledLocales.All(l => l == WikiLocales.EN), Is.True, $"Unexpected locales: {string.Join(',', calledLocales)}");
+        relicRepositoryMock.Verify(x => x.AddSetName(118, "EN Relic Set"), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_RelicWiki_PartialThenCompleteJson_CompletesMissingPieces()
+    {
+        var (service1, characterApiMock1, _, wikiApiMock1, imageRepositoryMock1, imageUpdaterMock1, cardServiceMock1,
+            gameRoleApiMock1, _, _, relicRepositoryMock1) = SetupMocks();
+
+        gameRoleApiMock1.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock1.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        // Simulate repository state for file existence
+        HashSet<string> existingFiles = [];
+        imageRepositoryMock1.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync((string name) => existingFiles.Contains(name));
+        imageRepositoryMock1.Setup(x => x.FileExistsAsync(It.Is<string>(x => x.Contains("21004"))))
+            .ReturnsAsync(true); // Light cone ID
+        imageUpdaterMock1.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .Returns((IImageData data, IImageProcessor _) =>
+            {
+                existingFiles.Add(data.Name);
+                return Task.FromResult(true);
+            });
+        cardServiceMock1.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        // First run returns partial list (2 icons)
+        var partialJson = JsonSerializer.Serialize(new
+        {
+            list = new[]
+            {
+                new { icon_url = "https://example.com/relic_partial_1.png" },
+                new { icon_url = "https://example.com/relic_partial_2.png" }
+            }
+        });
+        var escapedPartial = partialJson.Replace("\"", "\\\"");
+        var partialResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"Partial Relic Set\",\"modules\":[{{\"name\":\"Set\",\"components\":[{{\"data\":\"{escapedPartial}\"}}]}}]}}}}}}");
+        wikiApiMock1.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(partialResponse!));
+
+        var context1 = new HsrCharacterApplicationContext(3, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
+        {
+            LtUid = 3ul,
+            LToken = "test"
+        };
+
+        var firstResult = await service1.ExecuteAsync(context1);
+        Assert.That(firstResult.IsSuccess, Is.True, firstResult.ErrorMessage);
+        // After first run only two images should exist
+        Assert.That(existingFiles.Count(f => f.StartsWith("hsr_118")), Is.EqualTo(2));
+
+        // Second run with complete list
+        var (service2, characterApiMock2, _, wikiApiMock2, imageRepositoryMock2, imageUpdaterMock2, cardServiceMock2,
+            gameRoleApiMock2, _, _, relicRepositoryMock2) = SetupMocks();
+
+        gameRoleApiMock2.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        characterApiMock2.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+        // Inject existingFiles state into second set of mocks
+        imageRepositoryMock2.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync((string name) => existingFiles.Contains(name));
+        imageUpdaterMock2.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .Returns((IImageData data, IImageProcessor _) =>
+            {
+                existingFiles.Add(data.Name);
+                return Task.FromResult(true);
+            });
+        cardServiceMock2.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        imageRepositoryMock2.Setup(x => x.FileExistsAsync(It.Is<string>(x => x.Contains("21004"))))
+            .ReturnsAsync(true); // Light cone ID
+
+        var fullJson = JsonSerializer.Serialize(new
+        {
+            list = new[]
+            {
+                new { icon_url = "https://example.com/relic_full_1.png" },
+                new { icon_url = "https://example.com/relic_full_2.png" },
+                new { icon_url = "https://example.com/relic_full_3.png" },
+                new { icon_url = "https://example.com/relic_full_4.png" }
+            }
+        });
+        var escapedFull = fullJson.Replace("\"", "\\\"");
+        var fullResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"Full Relic Set\",\"modules\":[{{\"name\":\"Set\",\"components\":[{{\"data\":\"{escapedFull}\"}}]}}]}}}}}}");
+        wikiApiMock2.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(fullResponse!));
+
+        var context2 = new HsrCharacterApplicationContext(3, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
+        {
+            LtUid = 3ul,
+            LToken = "test"
+        };
+        var secondResult = await service2.ExecuteAsync(context2);
+        Assert.That(secondResult.IsSuccess, Is.True, secondResult.ErrorMessage);
+
+        // All four relic piece images should now exist (hsr_1181..hsr_1184)
+        Assert.That(existingFiles.Count(f => f.StartsWith("hsr_118")), Is.EqualTo(4));
     }
 
     #endregion
@@ -666,7 +998,8 @@ public class HsrCharacterApplicationServiceTests
         Mock<ICardService<HsrCharacterInformation>> CardServiceMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IMetricsService> MetricsMock,
-        Mock<IUserRepository> UserRepositoryMock
+        Mock<IUserRepository> UserRepositoryMock,
+        Mock<IRelicRepository> RelicRepositoryMock
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrCharacterInformation>>();
@@ -679,6 +1012,7 @@ public class HsrCharacterApplicationServiceTests
         var metricsMock = new Mock<IMetricsService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var userRepositoryMock = new Mock<IUserRepository>();
+        var relicRepositoryMock = new Mock<IRelicRepository>();
         var loggerMock = new Mock<ILogger<HsrCharacterApplicationService>>();
 
         // Setup default empty aliases
@@ -695,10 +1029,11 @@ public class HsrCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
+            relicRepositoryMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
-            cardServiceMock, gameRoleApiMock, metricsMock, userRepositoryMock);
+            cardServiceMock, gameRoleApiMock, metricsMock, userRepositoryMock, relicRepositoryMock);
     }
 
     private static (
@@ -770,6 +1105,7 @@ public class HsrCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
+            relicRepositoryMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, gameRoleApiMock,
@@ -843,6 +1179,7 @@ public class HsrCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiService,
             userRepositoryMock.Object,
+            relicRepositoryMock.Object,
             Mock.Of<ILogger<HsrCharacterApplicationService>>());
 
         return service;

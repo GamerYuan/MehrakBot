@@ -126,29 +126,37 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             List<Task<bool>> tasks = [];
 
             if (!await m_ImageRepository.FileExistsAsync(
-                    string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id)))
+                string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id)))
             {
-                var charWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry));
+                string? url = null;
 
-                if (!charWiki.IsSuccess)
+                // Prio to CN locale
+                foreach (var locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
                 {
-                    Logger.LogError(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Character Image"));
-                }
+                    var charWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
 
-                var url = charWiki.Data["data"]?["page"]?["header_img_url"]?.ToString();
+                    if (!charWiki.IsSuccess)
+                    {
+                        Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
+                        continue;
+                    }
+
+                    url = charWiki.Data["data"]?["page"]?["header_img_url"]?.ToString();
+
+                    if (!string.IsNullOrEmpty(url)) break;
+
+                    Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
+                        charData.Base.Id, locale, charWiki.Data.ToJsonString());
+                }
 
                 if (string.IsNullOrEmpty(url))
                 {
-                    Logger.LogError("Character wiki image URL is empty for characterId: {CharacterId}, Data:\n{Data}",
-                        charData.Base.Id, charWiki.Data.ToJsonString());
                     return CommandResult.Failure(CommandFailureReason.ApiError,
                         string.Format(ResponseMessage.ApiError, "Character Image"));
                 }
 
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(
-                        string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id), url),
+                    string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id), url),
                     new ImageProcessorBuilder().AddOperation(GetCharacterImageProcessor()).Build()));
             }
 

@@ -195,6 +195,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             foreach (int setId in characterInformation.Relics!.Select(x => x.GetSetId()))
             {
                 string setName = await m_RelicRepository.GetSetName(setId);
+
+                if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
+
                 if (!activeRelicSet.TryAdd(setName, 1))
                     activeRelicSet[setName]++;
             }
@@ -207,6 +210,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             foreach (int setId in characterInformation.Ornaments!.Select(x => x.GetSetId()))
             {
                 string setName = await m_RelicRepository.GetSetName(setId);
+
+                if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
+
                 if (!activeOrnamentSet.TryAdd(setName, 1))
                     activeOrnamentSet[setName]++;
             }
@@ -455,7 +461,8 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     int offset = k * 30;
                     ctx.DrawText(relicSet.Value.ToString(), m_SmallFont, Color.White,
                         new PointF(2200, 720 + offset));
-                    ctx.DrawText(relicSet.Key, m_SmallFont, Color.White, new PointF(2230, 720 + offset));
+                    ctx.DrawText(int.TryParse(relicSet.Key, out _) ? $"Unknown Relic Set {k + 1}" : relicSet.Key,
+                        m_SmallFont, Color.White, new PointF(2230, 720 + offset));
                     k++;
                 }
 
@@ -480,7 +487,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         Origin = new PointF(2910, 820 - offset),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Bottom
-                    }, ornamentSet.Key, Color.White);
+                    }, int.TryParse(ornamentSet.Key, out _) ? $"Unknown Ornament Set {k + 1}" : ornamentSet.Key, Color.White);
                     k++;
                 }
             });
