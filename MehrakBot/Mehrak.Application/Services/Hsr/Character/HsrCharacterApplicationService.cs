@@ -144,7 +144,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                             var wikiResponse =
                             await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
                                 entryPage, locale));
-                            if (!wikiResponse.IsSuccess) return null;
+                            if (!wikiResponse.IsSuccess) continue;
 
                             if (locale == WikiLocales.EN)
                             {
