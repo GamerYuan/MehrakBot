@@ -139,17 +139,23 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                         var entryPage = url.Split('/')[^1];
                         string? jsonStr = null;
 
+                        var setId = x.GetSetId();
+
                         foreach (var locale in Enum.GetValues<WikiLocales>())
                         {
                             var wikiResponse =
-                            await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
-                                entryPage, locale));
-                            if (!wikiResponse.IsSuccess) continue;
+                                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
+                                    entryPage, locale));
+                            if (!wikiResponse.IsSuccess)
+                            {
+                                Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
+                                continue;
+                            }
 
                             if (locale == WikiLocales.EN)
                             {
                                 var setName = wikiResponse.Data["data"]?["page"]?["name"]?.GetValue<string>();
-                                if (setName != null) await m_RelicRepository.AddSetName(x.GetSetId(), setName);
+                                if (setName != null) await m_RelicRepository.AddSetName(setId, setName);
                             }
 
                             jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
@@ -157,6 +163,9 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                                 ["components"]?.AsArray()[0]?["data"]?.GetValue<string>();
 
                             if (!string.IsNullOrEmpty(jsonStr)) break;
+
+                            Logger.LogWarning("Character wiki image URL is empty for RelicId: {RelicId}, Locale: {Locale}, Data:\n{Data}",
+                                setId, locale, wikiResponse.Data.ToJsonString());
                         }
 
                         if (string.IsNullOrEmpty(jsonStr)) return null;
