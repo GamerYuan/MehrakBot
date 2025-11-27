@@ -19,9 +19,6 @@ public class HsrCharacterCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr");
 
-    private Mock<IRelicRepository> m_HsrRelicRepositoryMock;
-    private HsrCharacterCardService m_HsrCharacterCardService;
-
     private const string TestNickName = "Test";
     private const string TestUid = "800000000";
     private const ulong TestUserId = 1;
@@ -29,19 +26,7 @@ public class HsrCharacterCardServiceTests
     [SetUp]
     public async Task Setup()
     {
-        m_HsrRelicRepositoryMock = new Mock<IRelicRepository>();
 
-        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(116)).ReturnsAsync("Prisoner in Deep Confinement");
-        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(118)).ReturnsAsync("Watchmaker, Master of Dream Machinations");
-        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(119)).ReturnsAsync("Iron Cavalry Against the Scourge");
-        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(307)).ReturnsAsync("Talia: Kingdom of Banditry");
-        m_HsrRelicRepositoryMock.Setup(x => x.GetSetName(310)).ReturnsAsync("Broken Keel");
-
-        m_HsrCharacterCardService = new HsrCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
-            m_HsrRelicRepositoryMock.Object,
-            Mock.Of<ILogger<HsrCharacterCardService>>());
-        await m_HsrCharacterCardService.InitializeAsync();
     }
 
     [Test]
@@ -52,6 +37,9 @@ public class HsrCharacterCardServiceTests
         string goldenImageFileName, string testName)
     {
         // Arrange
+        var (relicRepositoryMock, characterCardService) = await SetupTest();
+        SetupRelicRepository(relicRepositoryMock);
+
         string testDataPath = Path.Combine(TestDataPath, testDataFileName);
         string goldenImagePath =
             Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName);
@@ -65,7 +53,35 @@ public class HsrCharacterCardServiceTests
         cardContext.SetParameter("server", Server.Asia);
 
         // Act
-        Stream generatedImageStream = await m_HsrCharacterCardService.GetCardAsync(cardContext);
+        Stream generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+
+        // Assert
+        await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
+    }
+
+    [Test]
+    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg", "Stelle")]
+    public async Task GenerateCharacterCardAsync_WithUnknownSet_ShouldMatchGoldenImage(string testDataFileName,
+        string goldenImageFileName, string testName)
+    {
+        // Arrange
+        var (relicRepositoryMock, characterCardService) = await SetupTest();
+        relicRepositoryMock.Setup(x => x.GetSetName(It.IsAny<int>())).ReturnsAsync(string.Empty);
+
+        string testDataPath = Path.Combine(TestDataPath, testDataFileName);
+        string goldenImagePath =
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName);
+        HsrCharacterInformation? characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+            await File.ReadAllTextAsync(testDataPath));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        GameProfileDto profile = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        // Act
+        Stream generatedImageStream = await characterCardService.GetCardAsync(cardContext);
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
@@ -121,6 +137,28 @@ public class HsrCharacterCardServiceTests
             $"Generated image should match golden image for {testName}");
     }
 
+    private static async Task<(Mock<IRelicRepository>, HsrCharacterCardService)> SetupTest()
+    {
+        var relicRepositoryMock = new Mock<IRelicRepository>();
+
+        var characterCardService = new HsrCharacterCardService(
+            MongoTestHelper.Instance.ImageRepository,
+            relicRepositoryMock.Object,
+            Mock.Of<ILogger<HsrCharacterCardService>>());
+        await characterCardService.InitializeAsync();
+
+        return (relicRepositoryMock, characterCardService);
+    }
+
+    private static void SetupRelicRepository(Mock<IRelicRepository> relicRepositoryMock)
+    {
+        relicRepositoryMock.Setup(x => x.GetSetName(116)).ReturnsAsync("Prisoner in Deep Confinement");
+        relicRepositoryMock.Setup(x => x.GetSetName(118)).ReturnsAsync("Watchmaker, Master of Dream Machinations");
+        relicRepositoryMock.Setup(x => x.GetSetName(119)).ReturnsAsync("Iron Cavalry Against the Scourge");
+        relicRepositoryMock.Setup(x => x.GetSetName(307)).ReturnsAsync("Talia: Kingdom of Banditry");
+        relicRepositoryMock.Setup(x => x.GetSetName(310)).ReturnsAsync("Broken Keel");
+    }
+
     // To be used to generate golden image should the generation algorithm be updated
     /*
     [Test]
@@ -129,6 +167,9 @@ public class HsrCharacterCardServiceTests
     [TestCase("Stelle_Remembrance_TestData.json", "Stelle_Remembrance_GoldenImage.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
+        var (relicRepositoryMock, characterCardService) = await SetupTest();
+        SetupRelicRepository(relicRepositoryMock);
+
         var characterDetail =
             JsonSerializer.Deserialize<HsrCharacterInformation>(await
                 File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
@@ -136,9 +177,36 @@ public class HsrCharacterCardServiceTests
 
         GameProfileDto profile = GetTestUserGameData();
 
-        var image = await m_HsrCharacterCardService.GetCardAsync(new
-            TestCardGenerationContext<HsrCharacterInformation>(TestUserId,
-            characterDetail, Server.Asia, profile));
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await characterCardService.GetCardAsync(cardContext);
+        using var stream = new MemoryStream();
+        await image.CopyToAsync(stream);
+        await File.WriteAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets",
+            "Hsr", "TestAssets", goldenImageFileName), stream.ToArray());
+
+        Assert.That(image, Is.Not.Null);
+    }
+
+    [Test]
+    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg")]
+    public async Task GenerateGoldenImage_WithUnknownSet(string testDataFileName, string goldenImageFileName)
+    {
+        var (relicRepositoryMock, characterCardService) = await SetupTest();
+        relicRepositoryMock.Setup(x => x.GetSetName(It.IsAny<int>())).ReturnsAsync(string.Empty);
+
+        var characterDetail =
+            JsonSerializer.Deserialize<HsrCharacterInformation>(await
+                File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        GameProfileDto profile = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await characterCardService.GetCardAsync(cardContext);
         using var stream = new MemoryStream();
         await image.CopyToAsync(stream);
         await File.WriteAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets",
