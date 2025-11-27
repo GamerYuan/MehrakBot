@@ -121,14 +121,14 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                         Stream stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
                         return stream;
                     });
-            Dictionary<string, Stream> buffImages = await data.List.SelectMany(x => x.Buff)
+            Dictionary<string, Image> buffImages = await data.List.SelectMany(x => x.Buff)
                 .DistinctBy(x => x.Name)
                 .ToAsyncEnumerable()
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
                     async (x, token) =>
                     {
-                        Stream stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
-                        return stream;
+                        await using var stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
+                        return await Image.LoadAsync(stream, token);
                     });
             disposables.AddRange(bossImages.Values);
             disposables.AddRange(buffImages.Values);
@@ -201,9 +201,8 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                     AssaultFloorDetail floor = data.List[i];
                     int yOffset = 180 + i * 270;
                     using Image bossImage = Image.Load(bossImages[floor.Boss[0].Name]);
-                    using Image buffImage = Image.Load(buffImages[floor.Buff[0].Name]);
                     using Image<Rgba32> floorImage = GetFloorImage(floor, lookup, bossImage,
-                        buffImage,
+                        buffImages[floor.Buff[0].Name],
                         floor.Buddy == null ? null : buddyImages[floor.Buddy.Id]);
                     ctx.DrawImage(floorImage, new Point(50, yOffset), 1f);
                 }
