@@ -36,6 +36,7 @@ public class ZzzAssaultCardServiceTests
     [Test]
     [TestCase("Da_TestData_1.json")]
     [TestCase("Da_TestData_2.json")]
+    [TestCase("Da_TestData_3.json")]
     public async Task GetAssaultCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         ZzzAssaultData? assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(
@@ -84,23 +85,30 @@ public class ZzzAssaultCardServiceTests
         };
     }
 
-    // [Test] [TestCase("Da_TestData_1.json", "Da_GoldenImage_1.jpg")]
-    // [TestCase("Da_TestData_2.json", "Da_GoldenImage_2.jpg")] public async
-    // Task GenerateGoldenImage(string testDataFileName, string
-    // goldenImageFileName) { ZzzAssaultData? assaultData =
-    // JsonSerializer.Deserialize<ZzzAssaultData>( await
-    // File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
-    // Assert.That(assaultData, Is.Not.Null);
-    //
-    // GameProfileDto userGameData = GetTestUserGameData();
-    //
-    // Stream image = await m_Service.GetCardAsync( new
-    // TestCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData,
-    // Server.Asia, userGameData));
-    //
-    // FileStream fileStream = File.OpenWrite(
-    // Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
-    // goldenImageFileName)); await image.CopyToAsync(fileStream); await fileStream.FlushAsync();
-    //
-    // Assert.That(image, Is.Not.Null); }
+    /*
+    [Test]
+    [TestCase("Da_TestData_1.json", "Da_GoldenImage_1.jpg")]
+    [TestCase("Da_TestData_2.json", "Da_GoldenImage_2.jpg")]
+    [TestCase("Da_TestData_3.json", "Da_GoldenImage_3.jpg")]
+    public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        ZzzAssaultData? assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(await
+            File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
+        Assert.That(assaultData, Is.Not.Null);
+
+        GameProfileDto userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        Stream image = await m_Service.GetCardAsync(cardContext);
+
+        FileStream fileStream = File.OpenWrite(
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets", goldenImageFileName));
+        await image.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+
+        Assert.That(image, Is.Not.Null);
+    }
+    */
 }
