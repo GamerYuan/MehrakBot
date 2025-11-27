@@ -122,6 +122,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                         return stream;
                     });
             Dictionary<string, Stream> buffImages = await data.List.SelectMany(x => x.Buff)
+                .DistinctBy(x => x.Name)
                 .ToAsyncEnumerable()
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
                     async (x, token) =>
