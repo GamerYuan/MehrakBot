@@ -207,6 +207,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             foreach (int setId in characterInformation.Ornaments!.Select(x => x.GetSetId()))
             {
                 string setName = await m_RelicRepository.GetSetName(setId);
+
+                if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
+
                 if (!activeOrnamentSet.TryAdd(setName, 1))
                     activeOrnamentSet[setName]++;
             }
@@ -480,7 +483,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         Origin = new PointF(2910, 820 - offset),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Bottom
-                    }, ornamentSet.Key, Color.White);
+                    }, int.TryParse(ornamentSet.Key, out _) ? $"Unknown Set {k}" : ornamentSet.Key, Color.White);
                     k++;
                 }
             });
