@@ -85,10 +85,39 @@ public class ZzzCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_UpdatesCharacterCache_WhenCharacterListFetched()
+    {
+        // Arrange
+        var (service, characterApiMock, characterCacheMock, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
+        {
+            LtUid = 1ul,
+            LToken = "test"
+        };
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert
+        characterCacheMock.Verify(x => x.UpsertCharacters(
+                Game.ZenlessZoneZero,
+                It.Is<IEnumerable<string>>(names => names.Contains("Jane"))),
+            Times.Once);
+    }
+
+    [Test]
     public async Task ExecuteAsync_CharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -114,6 +143,9 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
                 Does.Contain("NonExistentCharacter"));
         });
+
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+            Times.Once);
     }
 
     [Test]
@@ -164,13 +196,16 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
         });
+
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+            Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_WikiApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, imageRepositoryMock, _, gameRoleApiMock, wikiApiMock, _, _, _) =
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, _, gameRoleApiMock, wikiApiMock, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -206,13 +241,16 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("Character Image"));
         });
+
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+            Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError()
     {
         // Arrange
-        var (service, characterApiMock, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _, _, _, _) =
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -249,6 +287,9 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("image"));
         });
+
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+            Times.Once);
     }
 
     [Test]
@@ -256,7 +297,7 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(string testDataFile, string characterName)
     {
         // Arrange
-        var (service, characterApiMock, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _,
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _,
             cardServiceMock, metricsMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -300,6 +341,9 @@ public class ZzzCharacterApplicationServiceTests
         // Verify metrics tracked
         metricsMock.Verify(
             x => x.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), characterName.ToLowerInvariant()),
+            Times.Once);
+
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
             Times.Once);
     }
 
@@ -466,7 +510,7 @@ public class ZzzCharacterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile, string characterName)
     {
         // Arrange
-        var (service, characterApiMock, _, imageRepositoryMock, gameRoleApiMock, _) = SetupIntegrationTest();
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, gameRoleApiMock, _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -513,6 +557,9 @@ public class ZzzCharacterApplicationServiceTests
         attachment.Content.Position = 0;
         await using var fileStream = File.Create(outputImagePath);
         await attachment.Content.CopyToAsync(fileStream);
+
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+            Times.Once);
     }
 
     [Test]
