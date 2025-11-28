@@ -10,6 +10,7 @@ using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Application.Services.Zzz.RealTimeNotes;
 using Mehrak.Bot.Builders;
+using Mehrak.Bot.Provider.Autocomplete.Hsr;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
@@ -60,7 +61,8 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)")]
+        [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
+            AutocompleteProviderType = typeof(ZzzCharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
