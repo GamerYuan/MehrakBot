@@ -89,6 +89,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             }
 
             var characterList = charResponse.Data.First();
+            _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiStarRail,
+                characterList.AvatarList.Select(x => x.Name));
 
             var characterInfo = characterList.AvatarList.FirstOrDefault(x =>
                 x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
