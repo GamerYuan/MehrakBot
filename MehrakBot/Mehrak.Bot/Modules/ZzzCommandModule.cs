@@ -10,7 +10,7 @@ using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Application.Services.Zzz.RealTimeNotes;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Provider.Autocomplete.Hsr;
+using Mehrak.Bot.Provider.Autocomplete.Zzz;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;

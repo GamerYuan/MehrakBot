@@ -363,15 +363,15 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making char API fail
@@ -418,8 +418,8 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -432,7 +432,7 @@ public class ZzzCharacterApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         characterApiMock
@@ -490,10 +490,10 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new() { LtUid = 99999ul, LToken = "test" }
-                }
+                ]
             });
 
         await service.ExecuteAsync(context);
@@ -510,7 +510,7 @@ public class ZzzCharacterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile, string characterName)
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, gameRoleApiMock, _) = SetupIntegrationTest();
+        var (service, characterApiMock, characterCacheMock, _, gameRoleApiMock, _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));

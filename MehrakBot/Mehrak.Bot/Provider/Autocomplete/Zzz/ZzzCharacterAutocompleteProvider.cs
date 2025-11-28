@@ -6,7 +6,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace Mehrak.Bot.Provider.Autocomplete.Hsr;
+namespace Mehrak.Bot.Provider.Autocomplete.Zzz;
 
 public class ZzzCharacterAutocompleteProvider(ICharacterAutocompleteService autocompleteService)
     : IAutocompleteProvider<AutocompleteInteractionContext>
