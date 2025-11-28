@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Bot.Provider;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
@@ -24,6 +24,7 @@ public class Hi3CharacterAutocompleteProviderTests
 {
     private Mock<ICharacterAutocompleteService> m_MockAutocompleteService = null!;
     private Hi3CharacterAutocompleteProvider m_Provider = null!;
+    private DiscordTestHelper? m_TestHelper;
 
     [SetUp]
     public void Setup()
@@ -35,7 +36,7 @@ public class Hi3CharacterAutocompleteProviderTests
     [TearDown]
     public void TearDown()
     {
-        m_MockAutocompleteService.Reset();
+        m_TestHelper?.Dispose();
     }
 
     #region GetChoicesAsync Tests
@@ -389,7 +390,7 @@ public class Hi3CharacterAutocompleteProviderTests
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "Vill-V"))
-            .Returns(new List<string> { "Vill-V" });
+            .Returns(["Vill-V"]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
@@ -464,10 +465,10 @@ public class Hi3CharacterAutocompleteProviderTests
 
     #region Helpers
 
-    private static (ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
+    private (ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
         CreateTestInputs(string optionValue)
     {
-        DiscordTestHelper testHelper = new();
+        m_TestHelper = new DiscordTestHelper();
         JsonApplicationCommandInteractionDataOption jsonOption = new()
         {
             Value = optionValue
@@ -488,8 +489,8 @@ public class Hi3CharacterAutocompleteProviderTests
                 Id = 1
             },
             Entitlements = []
-        }, null, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), testHelper.DiscordClient.Rest);
-        AutocompleteInteractionContext context = new(interaction, testHelper.DiscordClient);
+        }, null, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), m_TestHelper.DiscordClient.Rest);
+        AutocompleteInteractionContext context = new(interaction, m_TestHelper.DiscordClient);
         return (option, context);
     }
 
