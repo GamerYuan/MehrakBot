@@ -84,6 +84,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             }
 
             var characters = charResponse.Data;
+            _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero, characters.Select(x => x.Name));
 
             ZzzBasicAvatarData? character = characters.FirstOrDefault(x =>
                 x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase) ||

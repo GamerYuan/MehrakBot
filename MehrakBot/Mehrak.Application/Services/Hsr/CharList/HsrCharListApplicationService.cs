@@ -25,6 +25,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 
     private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
         m_CharacterApi;
+    private readonly ICharacterCacheService m_CharacterCache;
 
     public HsrCharListApplicationService(
         ICardService<IEnumerable<HsrCharacterInformation>> cardService,
@@ -32,12 +33,14 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
         ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        ICharacterCacheService characterCache,
         ILogger<HsrCharListApplicationService> logger)
         : base(gameRoleApi, userRepository, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
         m_CharacterApi = characterApi;
+        m_CharacterCache = characterCache;
     }
 
     public override async Task<CommandResult> ExecuteAsync(HsrCharListApplicationContext context)
@@ -72,6 +75,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
             }
 
             var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
+            _ = m_CharacterCache.UpsertCharacters(Game.HonkaiStarRail, characterList.Select(x => x.Name));
 
             IEnumerable<Task<bool>> avatarTask = characterList.Select(x => m_ImageUpdaterService
                 .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor));

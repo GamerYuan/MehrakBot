@@ -89,6 +89,8 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             }
 
             var characters = charListResponse.Data;
+            _ = m_CharacterCacheService.UpsertCharacters(Game.Genshin,
+                characters.Select(x => x.Name));
 
             var character =
                 characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));

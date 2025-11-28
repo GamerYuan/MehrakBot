@@ -25,6 +25,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
 
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
         m_CharacterApi;
+    private readonly ICharacterCacheService m_CharacterCache;
 
     public GenshinCharListApplicationService(
         IImageUpdaterService imageUpdaterService,
@@ -32,12 +33,14 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        ICharacterCacheService characterCache,
         ILogger<GenshinCharListApplicationService> logger)
         : base(gameRoleApi, userRepository, logger)
     {
         m_ImageUpdaterService = imageUpdaterService;
         m_CardService = cardService;
         m_CharacterApi = characterApi;
+        m_CharacterCache = characterCache;
     }
 
     public override async Task<CommandResult> ExecuteAsync(GenshinCharListApplicationContext context)
@@ -72,6 +75,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
             }
 
             var characterList = charResponse.Data.ToList();
+            _ = m_CharacterCache.UpsertCharacters(Game.Genshin, characterList.Select(x => x.Name));
 
             IEnumerable<Task<bool>> avatarTask =
                 characterList.Select(x =>
