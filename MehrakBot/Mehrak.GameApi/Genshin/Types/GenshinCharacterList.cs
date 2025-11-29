@@ -11,14 +11,14 @@ namespace Mehrak.GameApi.Genshin.Types;
 
 public class CharacterListData
 {
-    [JsonPropertyName("list")] public List<GenshinBasicCharacterData> List { get; init; }
+    [JsonPropertyName("list")] public required List<GenshinBasicCharacterData> List { get; init; }
 }
 
 public class GenshinBasicCharacterData
 {
     [JsonPropertyName("id")] public int? Id { get; init; }
-    [JsonPropertyName("icon")] public string Icon { get; init; }
-    [JsonPropertyName("name")] public string Name { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
     [JsonPropertyName("element")] public string? Element { get; init; }
 
@@ -37,7 +37,7 @@ public class GenshinBasicCharacterData
 
     [JsonPropertyName("weapon_type")] public int? WeaponType { get; init; }
 
-    [JsonPropertyName("weapon")] public Weapon Weapon { get; init; }
+    [JsonPropertyName("weapon")] public required Weapon Weapon { get; init; }
 
     public string ToImageName()
     {
@@ -53,14 +53,14 @@ public class GenshinBasicCharacterData
 public class Weapon
 {
     [JsonPropertyName("id")] public int? Id { get; init; }
-    [JsonPropertyName("icon")] public string Icon { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("type")] public int? Type { get; init; }
     [JsonPropertyName("rarity")] public int? Rarity { get; init; }
     [JsonPropertyName("level")] public int? Level { get; init; }
 
     [JsonPropertyName("affix_level")] public int? AffixLevel { get; init; }
 
-    [JsonPropertyName("name")] public string Name { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
     public string ToImageName()
     {

@@ -2,5 +2,5 @@
 
 public interface IMultiImageData : IImageData
 {
-    IEnumerable<string> AdditionalUrls { get; }
+    public IEnumerable<string> AdditionalUrls { get; }
 }

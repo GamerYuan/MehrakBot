@@ -301,15 +301,15 @@ public class HsrMemoryApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles =
-                    [
+                Profiles = new List<UserProfile>
+                    {
                         new()
                         {
                             LtUid = 1ul,
                             LToken = "test",
                             GameUids = null
                         }
-                    ]
+                    }
             }
             );
 
@@ -357,8 +357,8 @@ public class HsrMemoryApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles =
-                    [
+                Profiles = new List<UserProfile>
+                    {
                         new()
                         {
                             LtUid = 1ul,
@@ -371,7 +371,7 @@ public class HsrMemoryApplicationServiceTests
                                 }
                             }
                         }
-                    ]
+                    }
             }
             );
 
@@ -430,10 +430,10 @@ public class HsrMemoryApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles =
-                    [
+                Profiles = new List<UserProfile>
+                    {
                         new() { LtUid = 99999ul, LToken = "test" }
-                    ]
+                    }
             }
             );
 

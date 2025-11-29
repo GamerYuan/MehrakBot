@@ -2,5 +2,5 @@
 
 public interface IApiContext
 {
-    ulong UserId { get; }
+    public ulong UserId { get; }
 }

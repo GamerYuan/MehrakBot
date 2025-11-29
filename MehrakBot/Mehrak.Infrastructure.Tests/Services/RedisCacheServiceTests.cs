@@ -202,7 +202,7 @@ public class RedisCacheServiceTests
             Times.Once);
     }
 
-    #endregion SetAsync Tests
+    #endregion
 
     #region GetAsync Tests
 
@@ -364,7 +364,7 @@ public class RedisCacheServiceTests
             Times.Once);
     }
 
-    #endregion GetAsync Tests
+    #endregion
 
     #region RemoveAsync Tests
 
@@ -423,7 +423,7 @@ public class RedisCacheServiceTests
             Times.Once);
     }
 
-    #endregion RemoveAsync Tests
+    #endregion
 
     #region Integration Scenarios
 
@@ -485,7 +485,7 @@ public class RedisCacheServiceTests
         Assert.That(result, Is.Null);
     }
 
-    #endregion Integration Scenarios
+    #endregion
 
     #region Edge Cases
 
@@ -574,7 +574,7 @@ public class RedisCacheServiceTests
         m_MockCache.Verify(c => c.GetAsync(key, It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 
-    #endregion Edge Cases
+    #endregion
 
     #region Collection Types
 
@@ -674,7 +674,7 @@ public class RedisCacheServiceTests
         });
     }
 
-    #endregion Collection Types
+    #endregion
 
     #region Helper Classes
 
@@ -699,5 +699,5 @@ public class RedisCacheServiceTests
         public bool IsActive { get; set; }
     }
 
-    #endregion Helper Classes
+    #endregion
 }

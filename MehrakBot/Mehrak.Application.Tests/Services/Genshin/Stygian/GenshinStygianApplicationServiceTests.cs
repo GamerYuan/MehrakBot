@@ -293,15 +293,15 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles =
-                [
+                Profiles = new List<UserProfile>
+                {
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                ]
+                }
             });
 
         // Force early exit after UpdateGameUid by making stygian API fail
@@ -348,8 +348,8 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles =
-                [
+                Profiles = new List<UserProfile>
+                {
                     new()
                     {
                         LtUid = 1ul,
@@ -362,7 +362,7 @@ public class GenshinStygianApplicationServiceTests
                             }
                         }
                     }
-                ]
+                }
             });
 
         stygianApiMock
@@ -420,10 +420,10 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles =
-                [
+                Profiles = new List<UserProfile>
+                {
                     new() { LtUid = 99999ul, LToken = "test" }
-                ]
+                }
             });
 
         await service.ExecuteAsync(context);

@@ -99,7 +99,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                 return new UserModel
                 {
                     Id = userId,
-                    Profiles = [profile]
+                    Profiles = new List<UserProfile> { profile }
                 };
             });
     }

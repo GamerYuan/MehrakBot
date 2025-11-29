@@ -150,7 +150,7 @@ public class CheckInExecutorServiceTests
             .ReturnsAsync(false);
 
         var user = new UserModel
-        { Id = m_TestUserId, Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }] };
+            { Id = m_TestUserId, Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }] };
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))

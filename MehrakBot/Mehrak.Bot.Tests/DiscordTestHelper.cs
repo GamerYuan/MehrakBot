@@ -108,23 +108,23 @@ public sealed partial class DiscordTestHelper : IDisposable
         SetupRequestCapture();
 
         var interaction = new ModalInteraction(new JsonInteraction
-        {
-            Token = $"sample_token_{userId}",
-            Data = new JsonInteractionData
             {
-                Components = []
+                Token = $"sample_token_{userId}",
+                Data = new JsonInteractionData
+                {
+                    Components = []
+                },
+                User = new JsonUser
+                {
+                    Id = userId
+                },
+                Channel = new JsonChannel
+                {
+                    Id = 987654321UL,
+                    Type = ChannelType.TextGuildChannel
+                },
+                Entitlements = []
             },
-            User = new JsonUser
-            {
-                Id = userId
-            },
-            Channel = new JsonChannel
-            {
-                Id = 987654321UL,
-                Type = ChannelType.TextGuildChannel
-            },
-            Entitlements = []
-        },
             null,
             async (interaction, callback, _, _, cancellationToken) =>
                 await DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id, interaction.Token, callback,

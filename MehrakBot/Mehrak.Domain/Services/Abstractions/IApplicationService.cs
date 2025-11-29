@@ -8,5 +8,5 @@ namespace Mehrak.Domain.Services.Abstractions;
 
 public interface IApplicationService<TContext> where TContext : IApplicationContext
 {
-    Task<CommandResult> ExecuteAsync(TContext context);
+    public Task<CommandResult> ExecuteAsync(TContext context);
 }

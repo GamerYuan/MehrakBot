@@ -182,7 +182,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         var cacheKey = $"ltoken:{m_TestUserId}:{TestLtUid}";
@@ -267,7 +267,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         var cacheKey = $"ltoken:{m_TestUserId}:{TestLtUid}";
@@ -330,7 +330,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         var cacheKey = $"ltoken:{m_TestUserId}:{TestLtUid}";
@@ -415,8 +415,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             var profile1 = new UserProfile { ProfileId = 1, LtUid = 111, LToken = encryptedToken1 };
             var profile2 = new UserProfile { ProfileId = 2, LtUid = 222, LToken = encryptedToken2 };
 
-            var user1 = new UserModel { Id = m_TestUserId, Profiles = [profile1] };
-            var user2 = new UserModel { Id = m_TestUserId + 1, Profiles = [profile2] };
+            var user1 = new UserModel { Id = m_TestUserId, Profiles = new List<UserProfile> { profile1 } };
+            var user2 = new UserModel { Id = m_TestUserId + 1, Profiles = new List<UserProfile> { profile2 } };
 
             m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user1);
             m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId + 1)).ReturnsAsync(user2);
@@ -568,7 +568,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user);
@@ -625,7 +625,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user);

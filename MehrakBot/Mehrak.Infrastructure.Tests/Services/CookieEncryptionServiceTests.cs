@@ -163,7 +163,7 @@ public class CookieEncryptionServiceTests
             Times.Once);
     }
 
-    #endregion Encrypt Tests
+    #endregion
 
     #region Decrypt Tests
 
@@ -395,7 +395,7 @@ public class CookieEncryptionServiceTests
             Times.Once);
     }
 
-    #endregion Decrypt Tests
+    #endregion
 
     #region Round-Trip Tests
 
@@ -476,7 +476,7 @@ public class CookieEncryptionServiceTests
         }
     }
 
-    #endregion Round-Trip Tests
+    #endregion
 
     #region Edge Cases
 
@@ -575,7 +575,7 @@ public class CookieEncryptionServiceTests
             m_EncryptionService.Decrypt(payload, passphrase));
     }
 
-    #endregion Edge Cases
+    #endregion
 
     #region Security Tests
 
@@ -644,7 +644,7 @@ public class CookieEncryptionServiceTests
             "Encrypted result should not contain passphrase");
     }
 
-    #endregion Security Tests
+    #endregion
 
     #region Real-World Scenarios
 
@@ -693,5 +693,5 @@ public class CookieEncryptionServiceTests
         Assert.That(decrypted, Is.EqualTo(base64Data));
     }
 
-    #endregion Real-World Scenarios
+    #endregion
 }

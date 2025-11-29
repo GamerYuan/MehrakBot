@@ -25,7 +25,6 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
 
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
         m_CharacterApi;
-
     private readonly ICharacterCacheService m_CharacterCache;
 
     public GenshinCharListApplicationService(

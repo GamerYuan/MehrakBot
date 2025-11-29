@@ -2,13 +2,13 @@
 
 public interface IImageRepository
 {
-    Task<bool> UploadFileAsync(string fileNameInDb, Stream sourceStream, string? contentType = null);
+    public Task<bool> UploadFileAsync(string fileNameInDb, Stream sourceStream, string? contentType = null);
 
-    Task<Stream> DownloadFileToStreamAsync(string fileNameInDb);
+    public Task<Stream> DownloadFileToStreamAsync(string fileNameInDb);
 
-    Task DeleteFileAsync(string fileNameInDb);
+    public Task DeleteFileAsync(string fileNameInDb);
 
-    Task<bool> FileExistsAsync(string fileNameInDb);
+    public Task<bool> FileExistsAsync(string fileNameInDb);
 
-    Task<List<string>> ListFilesAsync(string prefix = "");
+    public Task<List<string>> ListFilesAsync(string prefix = "");
 }

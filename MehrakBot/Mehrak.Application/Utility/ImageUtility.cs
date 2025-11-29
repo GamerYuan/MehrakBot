@@ -271,7 +271,6 @@ public static class ImageUtility
 
         // Helper properties for easier access to padding values
         public int PaddingTop => Padding[0];
-
         public int PaddingRight => Padding[1];
         public int PaddingBottom => Padding[2];
         public int PaddingLeft => Padding[3];

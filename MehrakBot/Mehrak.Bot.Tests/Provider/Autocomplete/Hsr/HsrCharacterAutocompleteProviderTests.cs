@@ -391,7 +391,7 @@ public class HsrCharacterAutocompleteProviderTests
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Yunli"))
-            .Returns(["Yunli"]);
+            .Returns(new List<string> { "Yunli" });
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);

@@ -11,7 +11,7 @@ namespace Mehrak.GameApi.Genshin.Types;
 
 public class GenshinTheaterResponseData
 {
-    [JsonPropertyName("data")] public List<GenshinTheaterInformation> Data { get; init; }
+    [JsonPropertyName("data")] public required List<GenshinTheaterInformation> Data { get; init; }
     [JsonPropertyName("is_unlock")] public bool IsUnlock { get; init; }
 }
 
@@ -21,11 +21,11 @@ public class ItAvatar
 
     [JsonPropertyName("avatar_type")] public int AvatarType { get; init; }
 
-    [JsonPropertyName("name")] public string Name { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
     [JsonPropertyName("element")] public string? Element { get; init; }
 
-    [JsonPropertyName("image")] public string Image { get; init; }
+    [JsonPropertyName("image")] public required string Image { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }
 
@@ -44,9 +44,9 @@ public class ItAvatar
 
 public class Buff
 {
-    [JsonPropertyName("name")] public string Name { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
-    [JsonPropertyName("icon")] public string Icon { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }
 
@@ -63,11 +63,11 @@ public class Buff
 
 public class GenshinTheaterInformation
 {
-    [JsonPropertyName("detail")] public Detail Detail { get; init; }
+    [JsonPropertyName("detail")] public required Detail Detail { get; init; }
 
-    [JsonPropertyName("stat")] public Stat Stat { get; init; }
+    [JsonPropertyName("stat")] public required Stat Stat { get; init; }
 
-    [JsonPropertyName("schedule")] public Schedule Schedule { get; init; }
+    [JsonPropertyName("schedule")] public required Schedule Schedule { get; init; }
 
     [JsonPropertyName("has_data")] public bool HasData { get; init; }
 
@@ -76,13 +76,13 @@ public class GenshinTheaterInformation
 
 public class Detail
 {
-    [JsonPropertyName("rounds_data")] public List<RoundsData> RoundsData { get; init; }
+    [JsonPropertyName("rounds_data")] public required List<RoundsData> RoundsData { get; init; }
 
-    [JsonPropertyName("detail_stat")] public DetailStat DetailStat { get; init; }
+    [JsonPropertyName("detail_stat")] public required DetailStat DetailStat { get; init; }
 
-    [JsonPropertyName("backup_avatars")] public List<ItAvatar> BackupAvatars { get; init; }
+    [JsonPropertyName("backup_avatars")] public required List<ItAvatar> BackupAvatars { get; init; }
 
-    [JsonPropertyName("fight_statisic")] public FightStatistic FightStatistic { get; init; }
+    [JsonPropertyName("fight_statisic")] public required FightStatistic FightStatistic { get; init; }
 }
 
 public class DetailStat
@@ -94,7 +94,7 @@ public class DetailStat
     [JsonPropertyName("heraldry")] public int Heraldry { get; init; }
 
     [JsonPropertyName("get_medal_round_list")]
-    public List<int> GetMedalRoundList { get; init; }
+    public required List<int> GetMedalRoundList { get; init; }
 
     [JsonPropertyName("medal_num")] public int MedalNum { get; init; }
 
@@ -126,7 +126,7 @@ public class ItRankAvatar
 
     [JsonPropertyName("avatar_icon")] public string? AvatarIcon { get; init; }
 
-    [JsonPropertyName("value")] public string Value { get; init; }
+    [JsonPropertyName("value")] public required string Value { get; init; }
 
     [JsonPropertyName("rarity")] public int Rarity { get; init; }
 
@@ -144,19 +144,19 @@ public class ItRankAvatar
 public class FightStatistic
 {
     [JsonPropertyName("max_defeat_avatar")]
-    public ItRankAvatar MaxDefeatAvatar { get; init; }
+    public required ItRankAvatar MaxDefeatAvatar { get; init; }
 
     [JsonPropertyName("max_damage_avatar")]
-    public ItRankAvatar MaxDamageAvatar { get; init; }
+    public required ItRankAvatar MaxDamageAvatar { get; init; }
 
     [JsonPropertyName("max_take_damage_avatar")]
-    public ItRankAvatar MaxTakeDamageAvatar { get; init; }
+    public required ItRankAvatar MaxTakeDamageAvatar { get; init; }
 
     [JsonPropertyName("total_coin_consumed")]
-    public ItRankAvatar TotalCoinConsumed { get; init; }
+    public required ItRankAvatar TotalCoinConsumed { get; init; }
 
     [JsonPropertyName("shortest_avatar_list")]
-    public List<ItRankAvatar> ShortestAvatarList { get; init; }
+    public required List<ItRankAvatar> ShortestAvatarList { get; init; }
 
     [JsonPropertyName("total_use_time")] public int TotalUseTime { get; init; }
 
@@ -181,24 +181,24 @@ public class FinishDateTime
 
 public class LevelEffect
 {
-    [JsonPropertyName("icon")] public string Icon { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
 
-    [JsonPropertyName("name")] public string Name { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
-    [JsonPropertyName("desc")] public string Desc { get; init; }
+    [JsonPropertyName("desc")] public required string Desc { get; init; }
 }
 
 public class RoundsData
 {
-    [JsonPropertyName("avatars")] public List<ItAvatar> Avatars { get; init; }
+    [JsonPropertyName("avatars")] public required List<ItAvatar> Avatars { get; init; }
 
     [JsonPropertyName("is_get_medal")] public bool IsGetMedal { get; init; }
 
     [JsonPropertyName("round_id")] public int RoundId { get; init; }
 
-    [JsonPropertyName("finish_time")] public string FinishTime { get; init; }
+    [JsonPropertyName("finish_time")] public required string FinishTime { get; init; }
 
-    [JsonPropertyName("finish_date_time")] public FinishDateTime FinishDateTime { get; init; }
+    [JsonPropertyName("finish_date_time")] public required FinishDateTime FinishDateTime { get; init; }
 
     [JsonPropertyName("splendour_buff")] public SplendourBuff? SplendourBuff { get; init; }
 
@@ -208,24 +208,24 @@ public class RoundsData
 
 public class Schedule
 {
-    [JsonPropertyName("start_time")] public string StartTime { get; init; }
+    [JsonPropertyName("start_time")] public required string StartTime { get; init; }
 
-    [JsonPropertyName("end_time")] public string EndTime { get; init; }
+    [JsonPropertyName("end_time")] public required string EndTime { get; init; }
 
     [JsonPropertyName("schedule_type")] public int ScheduleType { get; init; }
 
     [JsonPropertyName("schedule_id")] public int ScheduleId { get; init; }
 
-    [JsonPropertyName("start_date_time")] public StartDateTime StartDateTime { get; init; }
+    [JsonPropertyName("start_date_time")] public required StartDateTime StartDateTime { get; init; }
 
-    [JsonPropertyName("end_date_time")] public EndDateTime EndDateTime { get; init; }
+    [JsonPropertyName("end_date_time")] public required EndDateTime EndDateTime { get; init; }
 }
 
 public class SplendourBuff
 {
-    [JsonPropertyName("summary")] public Summary Summary { get; init; }
+    [JsonPropertyName("summary")] public required Summary Summary { get; init; }
 
-    [JsonPropertyName("buffs")] public List<Buff> Buffs { get; init; }
+    [JsonPropertyName("buffs")] public required List<Buff> Buffs { get; init; }
 }
 
 public class StartDateTime
@@ -252,7 +252,7 @@ public class Stat
     [JsonPropertyName("heraldry")] public int Heraldry { get; init; }
 
     [JsonPropertyName("get_medal_round_list")]
-    public List<int> GetMedalRoundList { get; init; }
+    public required List<int> GetMedalRoundList { get; init; }
 
     [JsonPropertyName("medal_num")] public int MedalNum { get; init; }
 

@@ -2,7 +2,7 @@
 
 public interface ICommandRateLimitService
 {
-    Task<bool> IsRateLimitedAsync(ulong userId);
+    public Task<bool> IsRateLimitedAsync(ulong userId);
 
-    Task SetRateLimitAsync(ulong userId);
+    public Task SetRateLimitAsync(ulong userId);
 }

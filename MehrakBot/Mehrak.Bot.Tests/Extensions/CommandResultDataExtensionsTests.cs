@@ -539,7 +539,7 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_EmptyComponentsList_ReturnsValidMessage()
     {
         // Arrange
-        var data = new CommandResultData([], false, false);
+        var data = new CommandResultData(new List<ICommandResultComponent>(), false, false);
 
         // Act
         var result = data.ToMessage();
