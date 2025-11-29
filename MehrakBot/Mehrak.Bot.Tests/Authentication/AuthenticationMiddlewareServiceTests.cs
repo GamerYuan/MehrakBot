@@ -188,7 +188,7 @@ public class AuthenticationMiddlewareServiceTests
         var user = new UserModel
         {
             Id = TestUserId,
-            Profiles = new List<UserProfile> { profile }
+            Profiles = [profile]
         };
 
         var cacheKey = $"ltoken:{TestUserId}:{TestLtUid}";
@@ -256,7 +256,7 @@ public class AuthenticationMiddlewareServiceTests
         var user = new UserModel
         {
             Id = TestUserId,
-            Profiles = new List<UserProfile> { profile }
+            Profiles = [profile]
         };
 
         var cacheKey = $"ltoken:{TestUserId}:{TestLtUid}";
@@ -358,7 +358,7 @@ public class AuthenticationMiddlewareServiceTests
         var user = new UserModel
         {
             Id = TestUserId,
-            Profiles = new List<UserProfile> { profile }
+            Profiles = [profile]
         };
 
         m_MockUserRepository

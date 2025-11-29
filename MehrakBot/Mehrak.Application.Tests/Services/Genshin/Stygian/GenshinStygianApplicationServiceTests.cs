@@ -293,15 +293,15 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making stygian API fail
@@ -348,8 +348,8 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -362,7 +362,7 @@ public class GenshinStygianApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         stygianApiMock
@@ -420,10 +420,10 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new() { LtUid = 99999ul, LToken = "test" }
-                }
+                ]
             });
 
         await service.ExecuteAsync(context);
@@ -472,9 +472,9 @@ public class GenshinStygianApplicationServiceTests
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"StygianIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}.jpg");
 
         attachment.Content.Position = 0;
@@ -492,8 +492,8 @@ public class GenshinStygianApplicationServiceTests
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        string? testLToken = config["LToken"];
+        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        var testLToken = config["LToken"];
 
         Assert.Multiple(() =>
         {
@@ -522,9 +522,9 @@ public class GenshinStygianApplicationServiceTests
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            string outputImagePath = Path.Combine(outputDirectory, "StygianRealApi.jpg");
+            var outputImagePath = Path.Combine(outputDirectory, "StygianRealApi.jpg");
 
             attachment.Content.Position = 0;
             await using var fileStream = File.Create(outputImagePath);
@@ -665,8 +665,8 @@ public class GenshinStygianApplicationServiceTests
 
     private static async Task<GenshinStygianInformation> LoadTestDataAsync(string filename)
     {
-        string filePath = Path.Combine(TestDataPath, filename);
-        string json = await File.ReadAllTextAsync(filePath);
+        var filePath = Path.Combine(TestDataPath, filename);
+        var json = await File.ReadAllTextAsync(filePath);
         var data = JsonSerializer.Deserialize<StygianData>(json);
 
         Assert.That(data, Is.Not.Null);

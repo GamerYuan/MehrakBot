@@ -51,7 +51,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
         m_Logger = logger;
 
         FontCollection collection = new();
-        FontFamily fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
+        var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
@@ -82,13 +82,13 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrMemoryInformation> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Memory of Chaos", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         var memoryData = context.Data;
         List<IDisposable> disposableResources = [];
         try
         {
-            Dictionary<HsrAvatar, Image<Rgba32>> avatarImages = await memoryData.AllFloorDetail!
+            var avatarImages = await memoryData.AllFloorDetail!
                 .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
@@ -98,24 +98,24 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     x => x.GetStyledAvatarImage(),
                     HsrAvatarIdComparer.Instance);
 
-            Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
+            var lookup = avatarImages.GetAlternateLookup<int>();
             List<(int FloorNumber, FloorDetail? Data)> floorDetails =
             [
                 .. Enumerable.Range(0, 12)
                     .Select(floorIndex =>
                     {
-                        FloorDetail? floorData = memoryData.AllFloorDetail!
+                        var floorData = memoryData.AllFloorDetail!
                             .FirstOrDefault(x => HsrUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
                         return (FloorNumber: floorIndex, Data: floorData);
                     })
             ];
-            int height = 180 + floorDetails.Chunk(2)
+            var height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520).Sum();
 
             disposableResources.AddRange(avatarImages.Keys);
             disposableResources.AddRange(avatarImages.Values);
 
-            Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
+            var background = m_Background.CloneAs<Rgba32>();
             disposableResources.Add(background);
 
             background.Mutate(ctx =>
@@ -142,7 +142,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     Origin = new Vector2(435, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
                 };
-                FontRectangle bounds = TextMeasurer.MeasureBounds(memoryData.StarNum.ToString(), textOptions);
+                var bounds = TextMeasurer.MeasureBounds(memoryData.StarNum.ToString(), textOptions);
                 ctx.DrawText(textOptions, memoryData.StarNum.ToString(), Color.White);
                 ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
 
@@ -160,10 +160,10 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, context.GameProfile.GameUid!, Color.White);
 
-                int yOffset = 150;
-                foreach ((int floorNumber, FloorDetail? floorData) in floorDetails)
+                var yOffset = 150;
+                foreach ((var floorNumber, var floorData) in floorDetails)
                 {
-                    int xOffset = floorNumber % 2 * 750 + 50;
+                    var xOffset = floorNumber % 2 * 750 + 50;
 
                     IPath overlay;
 
@@ -197,7 +197,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                             }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
-                        string stageText =
+                        var stageText =
                             $"{memoryData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})";
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
@@ -206,7 +206,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                             VerticalAlignment = VerticalAlignment.Top
                         }, floorData?.Name ?? stageText, Color.White);
 
-                        for (int i = 0; i < 3; i++)
+                        for (var i = 0; i < 3; i++)
                             ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
                                 new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
 
@@ -223,14 +223,14 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Color.White);
 
-                    using Image<Rgba32> node1 = GetRosterImage([.. floorData.Node1.Avatars.Select(x => x.Id)], lookup);
-                    using Image<Rgba32> node2 = GetRosterImage([.. floorData.Node2.Avatars.Select(x => x.Id)], lookup);
+                    using var node1 = GetRosterImage([.. floorData.Node1.Avatars.Select(x => x.Id)], lookup);
+                    using var node2 = GetRosterImage([.. floorData.Node2.Avatars.Select(x => x.Id)], lookup);
                     disposableResources.AddRange(node1, node2);
                     ctx.DrawImage(node1, new Point(xOffset + 25, yOffset + 65), 1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 270),
                         new PointF(xOffset + 680, yOffset + 270));
                     ctx.DrawImage(node2, new Point(xOffset + 25, yOffset + 295), 1f);
-                    for (int i = 0; i < 3; i++)
+                    for (var i = 0; i < 3; i++)
                         ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
                             new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 520, yOffset + 10),
@@ -271,7 +271,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
     {
         const int avatarWidth = 150;
 
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -279,9 +279,9 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
         {
             ctx.Clear(Color.Transparent);
 
-            for (int i = 0; i < avatarIds.Count; i++)
+            for (var i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                var x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

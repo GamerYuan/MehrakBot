@@ -57,7 +57,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
-            JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
 
             if (json == null)
             {

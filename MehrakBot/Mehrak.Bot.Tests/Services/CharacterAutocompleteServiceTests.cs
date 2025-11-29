@@ -436,7 +436,7 @@ public class CharacterAutocompleteServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(new List<string>());
+            .Returns([]);
 
         // Act
         var result = m_Service.FindCharacter(Game.Genshin, "Diluc");
@@ -455,7 +455,7 @@ public class CharacterAutocompleteServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(new List<string> { "Diluc" });
+            .Returns(["Diluc"]);
 
         // Act
         m_Service.FindCharacter(Game.Genshin, "Diluc");
@@ -487,7 +487,7 @@ public class CharacterAutocompleteServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(new List<string> { "Diluc", "Jean" });
+            .Returns(["Diluc", "Jean"]);
 
         // Act
         var result = m_Service.FindCharacter(Game.Genshin, "Di");

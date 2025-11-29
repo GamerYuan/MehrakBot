@@ -56,7 +56,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         m_ImageRepository = imageRepository;
         m_Logger = logger;
 
-        FontFamily fontFamily = new FontCollection().Add("Assets/Fonts/zzz.ttf");
+        var fontFamily = new FontCollection().Add("Assets/Fonts/zzz.ttf");
 
         m_ExtraLargeFont = new FontCollection().Add("Assets/Fonts/anton.ttf").CreateFont(400);
         m_TitleFont = fontFamily.CreateFont(64);
@@ -84,7 +84,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        List<string> files = await m_ImageRepository.ListFilesAsync("zzz_stats");
+        var files = await m_ImageRepository.ListFilesAsync("zzz_stats");
         List<Task<(string x, Image)>> tasks =
         [
             .. files.Select(async file =>
@@ -142,37 +142,37 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzFullAvatarData> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         List<IDisposable> disposables = [];
 
         var characterInformation = context.Data;
         try
         {
-            ZzzAvatarData character = characterInformation.AvatarList[0];
+            var character = characterInformation.AvatarList[0];
 
             Image<Rgba32> background = new(3000, 1200);
 
-            Task<Image> portraitTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+            var portraitTask = Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                 string.Format(character.ToImageName())));
-            Task<Image> weaponTask = character.Weapon == null
+            var weaponTask = character.Weapon == null
                 ? Task.FromResult(m_WeaponTemplate.Clone(ctx => { }))
                 : Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
                     string.Format(character.Weapon.ToImageName())));
-            List<Image> diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable()
+            var diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable()
                 .Select(async (i, token) =>
                 {
-                    DiskDrive? disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
+                    var disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
                     if (disk == null)
                         return m_DiskTemplate.CloneAs<Rgba32>();
                     else
                         return await CreateDiskImageAsync(disk, token);
                 }).ToListAsync();
 
-            Color accentColor = Color.ParseHex(character.VerticalPaintingColor);
+            var accentColor = Color.ParseHex(character.VerticalPaintingColor);
 
-            Image portraitImage = await portraitTask;
-            Image weaponImage = await weaponTask;
+            var portraitImage = await portraitTask;
+            var weaponImage = await weaponTask;
             disposables.Add(portraitImage);
             disposables.Add(weaponImage);
             disposables.AddRange(diskImage);
@@ -210,7 +210,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                     VerticalAlignment = VerticalAlignment.Top
                 }, character.Name!, Color.White);
 
-                FontRectangle bounds = TextMeasurer.MeasureBounds(character.Name!, new RichTextOptions(m_TitleFont)
+                var bounds = TextMeasurer.MeasureBounds(character.Name!, new RichTextOptions(m_TitleFont)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 700,
@@ -227,18 +227,18 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 ctx.FillPolygon(BackgroundColor, new PointF(900, 0), new PointF(688, 1200), new PointF(3000, 1200),
                     new PointF(3000, 0));
 
-                foreach (Rank rank in character.Ranks)
+                foreach (var rank in character.Ranks)
                 {
-                    using Image<Rgba32> rankImage = CreateRankTemplateImage(rank.Id, rank.IsUnlocked, accentColor);
-                    int yOffset = 130 * (rank.Id - 1);
+                    using var rankImage = CreateRankTemplateImage(rank.Id, rank.IsUnlocked, accentColor);
+                    var yOffset = 130 * (rank.Id - 1);
                     ctx.DrawImage(rankImage, new Point(890 - (int)MathF.Round(yOffset * 0.1763f), yOffset), 1f);
                 }
 
-                using Image<Rgba32> professionImage =
+                using var professionImage =
                     CreateRotatedIconImage(m_ProfessionImages[character.AvatarProfession], accentColor);
                 ctx.DrawImage(professionImage, new Point(890 - (int)MathF.Round(1030 * 0.1763f), 1030), 1f);
 
-                using Image<Rgba32> elementImage =
+                using var elementImage =
                     CreateRotatedIconImage(
                         m_AttributeImages[
                             StatUtils.GetElementNameFromId(character.ElementType, character.SubElementType)],
@@ -246,11 +246,11 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 ctx.DrawImage(elementImage, new Point(890 - (int)MathF.Round(900 * 0.1763f), 900), 1f);
 
                 // Skill
-                foreach (Skill skill in character.Skills)
+                foreach (var skill in character.Skills)
                 {
-                    int skillIndex = skill.SkillType == 6 ? 4 : skill.SkillType;
-                    int yOffset = skillIndex >= 3 ? 130 : 0;
-                    int xOffset = skillIndex % 3 * 120;
+                    var skillIndex = skill.SkillType == 6 ? 4 : skill.SkillType;
+                    var yOffset = skillIndex >= 3 ? 130 : 0;
+                    var xOffset = skillIndex % 3 * 120;
                     ctx.DrawImage(m_SkillImages[skill.SkillType],
                         new Point(1030 + xOffset, 70 + yOffset), 1f);
                     EllipsePolygon skillEllipse = new(new PointF(1110 + xOffset, 150 + yOffset), 25);
@@ -264,7 +264,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                     ctx.Draw(accentColor, 4f, skillEllipse.AsClosedPath());
                 }
 
-                IPath weaponModule = ImageUtility.CreateRoundedRectanglePath(450, 330, 30).Translate(950, 690);
+                var weaponModule = ImageUtility.CreateRoundedRectanglePath(450, 330, 30).Translate(950, 690);
                 ctx.Fill(OverlayColor, weaponModule);
                 ctx.Draw(accentColor, 4f, weaponModule);
 
@@ -306,16 +306,16 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 }
 
                 // Stats
-                IPath statsModule = ImageUtility.CreateRoundedRectanglePath(700, 970, 30).Translate(1420, 50);
+                var statsModule = ImageUtility.CreateRoundedRectanglePath(700, 970, 30).Translate(1420, 50);
                 ctx.Fill(OverlayColor, statsModule);
                 ctx.Draw(accentColor, 4f, statsModule);
 
-                int offsetInterval = 880 / (character.Properties.Count - 1);
-                int statsYOffset = 0;
+                var offsetInterval = 880 / (character.Properties.Count - 1);
+                var statsYOffset = 0;
 
-                for (int i = 0; i < character.Properties.Count; i++)
+                for (var i = 0; i < character.Properties.Count; i++)
                 {
-                    CharacterProperty stat = character.Properties[i];
+                    var stat = character.Properties[i];
 
                     ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(stat.PropertyName)],
                         new Point(1440, 75 + statsYOffset), 1f);
@@ -343,8 +343,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                             Origin = new Vector2(2100, 125 + statsYOffset),
                             HorizontalAlignment = HorizontalAlignment.Right
                         };
-                        string addText = $"+{stat.Add}";
-                        FontRectangle addBound = TextMeasurer.MeasureBounds(addText, option);
+                        var addText = $"+{stat.Add}";
+                        var addBound = TextMeasurer.MeasureBounds(addText, option);
                         ctx.DrawText(option, addText, Color.LightGreen);
 
                         ctx.DrawText(new RichTextOptions(m_VerySmallFont)
@@ -360,10 +360,10 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 // Active Set
                 EquipSuit[] activeSets =
                     [.. character.Equip.Select(x => x.EquipSuit).DistinctBy(x => x.SuitId).Where(x => x.Own >= 2)];
-                for (int i = 0; i < activeSets.Length; i++)
+                for (var i = 0; i < activeSets.Length; i++)
                 {
-                    int yOffset = i * 50;
-                    EquipSuit set = activeSets[i];
+                    var yOffset = i * 50;
+                    var set = activeSets[i];
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
                         Origin = new Vector2(2100, 1060 + yOffset),
@@ -378,9 +378,9 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, "No Active Set", Color.White);
 
-                for (int i = 0; i < diskImage.Count; i++)
+                for (var i = 0; i < diskImage.Count; i++)
                 {
-                    int offset = i * 186;
+                    var offset = i * 186;
                     ctx.DrawImage(diskImage[i], new Point(2150, 50 + offset), 1f);
                 }
             });
@@ -407,7 +407,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     private Image<Rgba32> CreateDiskTemplateImage()
     {
-        Image<Rgba32> diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
+        var diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
 
         diskTemplate.Mutate(ctx =>
         {
@@ -424,9 +424,9 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     private async ValueTask<Image> CreateDiskImageAsync(DiskDrive disk, CancellationToken token = default)
     {
-        Image diskImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
+        var diskImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(
             disk.ToImageName()), token);
-        Image<Rgba32> diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
+        var diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
         diskTemplate.Mutate(ctx =>
         {
             ctx.DrawImage(diskImage, new Point(10, 15), 1f);
@@ -444,16 +444,16 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 HorizontalAlignment = HorizontalAlignment.Right
             }, $"Lv.{disk.Level}", Color.White);
             // Draw properties
-            for (int i = 0; i < disk.Properties!.Count; i++)
+            for (var i = 0; i < disk.Properties!.Count; i++)
             {
-                EquipProperty subStat = disk.Properties[i];
-                Image subStatImage = m_StatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
-                int xOffset = i % 2 * 260;
-                int yOffset = i / 2 * 85;
-                Color color = Color.White;
+                var subStat = disk.Properties[i];
+                var subStatImage = m_StatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
+                var xOffset = i % 2 * 260;
+                var yOffset = i / 2 * 85;
+                var color = Color.White;
                 if (subStat is { PropertyName: "ATK" or "DEF" or "HP" } && !subStat.Base.EndsWith('%'))
                 {
-                    Image<Rgba32> dim = subStatImage.CloneAs<Rgba32>();
+                    var dim = subStatImage.CloneAs<Rgba32>();
                     dim.Mutate(x => x.Brightness(0.5f));
                     ctx.DrawImage(dim, new Point(280 + xOffset, 20 + yOffset), 1f);
                     color = Color.FromRgb(128, 128, 128);
@@ -464,7 +464,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 }
 
                 ctx.DrawText(subStat.Base!, m_NormalFont, color, new PointF(335 + xOffset, 33 + yOffset));
-                string rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
+                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
                 ctx.DrawText(rolls, m_NormalFont, color, new PointF(460 + xOffset, 18 + yOffset));
             }
         });
@@ -481,7 +481,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
             if (!activated) ctx.Brightness(2f);
 
-            IPath path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
+            var path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
             ctx.Fill(OverlayColor, path);
             ctx.Draw(accentColor, 4f, path);
             ctx.DrawText(new RichTextOptions(m_TitleFont)
@@ -504,7 +504,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         image.Mutate(ctx =>
         {
             ctx.Clear(Color.Transparent);
-            IPath path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
+            var path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
             ctx.Fill(OverlayColor, path);
             ctx.Draw(accentColor, 4f, path);
             ctx.DrawImage(icon, new Point(60 - icon.Width / 2, 75 - icon.Height / 2), 1f);

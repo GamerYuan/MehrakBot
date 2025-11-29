@@ -43,7 +43,7 @@ public class Program
             .AddEnvironmentVariables()
             .Build();
 
-        HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+        var builder = Host.CreateApplicationBuilder(args);
 
         if (builder.Environment.IsDevelopment())
         {
@@ -52,7 +52,7 @@ public class Program
         }
 
         // Configure Serilog
-        LoggerConfiguration loggerConfig = new LoggerConfiguration()
+        var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
             .Enrich.WithRequestQuery()
@@ -116,7 +116,7 @@ public class Program
             });
 
             MongoClient mongoClient = new(builder.Configuration["MongoDB:ConnectionString"]);
-            IMongoDatabase db = mongoClient.GetDatabase(builder.Configuration["MongoDB:DatabaseName"]);
+            var db = mongoClient.GetDatabase(builder.Configuration["MongoDB:DatabaseName"]);
 
             builder.Services.AddSingleton(db);
 
@@ -128,23 +128,23 @@ public class Program
 
             var host = builder.Build();
 
-            ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
+            var logger = host.Services.GetRequiredService<ILogger<Program>>();
 
             host.AddModules(typeof(Program).Assembly);
 
             host.UseGatewayHandlers();
             logger.LogInformation("Discord gateway initialized");
 
-            IImageRepository imageRepo = host.Services.GetRequiredService<IImageRepository>();
+            var imageRepo = host.Services.GetRequiredService<IImageRepository>();
 
-            foreach (string image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*.png",
+            foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*.png",
                          SearchOption.AllDirectories))
             {
                 if (Path.GetDirectoryName(image)?.Contains("Test") ?? false) continue;
-                string fileName = Path.GetFileName(image).Split('.')[0];
+                var fileName = Path.GetFileName(image).Split('.')[0];
                 if (await imageRepo.FileExistsAsync(fileName)) continue;
 
-                await using FileStream stream = File.OpenRead(image);
+                await using var stream = File.OpenRead(image);
                 await imageRepo.UploadFileAsync(fileName, stream);
                 logger.LogInformation("Uploaded {FileName} to Image Repository, file path {Image}", fileName, image);
             }

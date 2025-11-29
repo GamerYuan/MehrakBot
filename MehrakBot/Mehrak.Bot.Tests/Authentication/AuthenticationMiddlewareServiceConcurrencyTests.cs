@@ -62,7 +62,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         m_UserTokens = new ConcurrentDictionary<ulong, string>();
 
         var baseUserId = (ulong)(DateTime.UtcNow.Ticks % 1_000_000_000) * 1000;
-        for (int i = 0; i < NumberOfConcurrentUsers; i++)
+        for (var i = 0; i < NumberOfConcurrentUsers; i++)
         {
             var userId = baseUserId + (ulong)i;
             m_TestUserIds.Add(userId);
@@ -99,7 +99,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                 return new UserModel
                 {
                     Id = userId,
-                    Profiles = new List<UserProfile> { profile }
+                    Profiles = [profile]
                 };
             });
     }
@@ -320,7 +320,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         var helpers = new List<DiscordTestHelper>();
 
         // Act - Create multiple simultaneous authentication requests for same user
-        for (int i = 0; i < simultaneousRequests; i++)
+        for (var i = 0; i < simultaneousRequests; i++)
         {
             var helper = new DiscordTestHelper();
             helper.SetupRequestCapture();
@@ -407,7 +407,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             new ParallelOptions { MaxDegreeOfParallelism = MaxParallelism },
             async (userId, cancellationToken) =>
             {
-                for (int requestNum = 0; requestNum < requestsPerUser; requestNum++)
+                for (var requestNum = 0; requestNum < requestsPerUser; requestNum++)
                 {
                     using var helper = new DiscordTestHelper();
                     helper.SetupRequestCapture();
@@ -489,7 +489,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         const int maxRetries = 50; // 50 * 100ms = 5 seconds max wait
         const int delayMs = 100;
 
-        for (int i = 0; i < maxRetries; i++)
+        for (var i = 0; i < maxRetries; i++)
         {
             if (cancellationToken.IsCancellationRequested)
                 return null;

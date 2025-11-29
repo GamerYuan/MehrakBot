@@ -37,7 +37,9 @@ internal static class CommandResultDataExtensions
                     case CommandAttachment attachment:
                         if (container.Components.LastOrDefault() is not MediaGalleryProperties gallery)
                         {
+#pragma warning disable IDE0028 // Simplify collection initialization
                             gallery = new MediaGalleryProperties();
+#pragma warning restore IDE0028 // Simplify collection initialization
                             container.AddComponents(gallery);
                         }
 
@@ -64,7 +66,9 @@ internal static class CommandResultDataExtensions
                     case CommandAttachment attachment:
                         if (properties.Components?.LastOrDefault() is not MediaGalleryProperties gallery)
                         {
+#pragma warning disable IDE0028 // Simplify collection initialization
                             gallery = new MediaGalleryProperties();
+#pragma warning restore IDE0028 // Simplify collection initialization
                             properties.AddComponents(gallery);
                         }
 

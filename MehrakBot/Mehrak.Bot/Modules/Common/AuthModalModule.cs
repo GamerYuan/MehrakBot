@@ -56,16 +56,16 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         {
             m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
 
-            UserModel? user = await m_UserRepository.GetUserAsync(Context.User.Id);
+            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
             user ??= new UserModel
             {
                 Id = Context.User.Id
             };
 
-            Dictionary<string, string> inputs = Context.Components.OfType<TextInput>()
+            var inputs = Context.Components.OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            if (!ulong.TryParse(inputs["ltuid"], out ulong ltuid))
+            if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
             {
                 m_Logger.LogWarning("User {UserId} provided invalid UID format", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(

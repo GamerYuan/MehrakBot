@@ -212,10 +212,10 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
         return ctx =>
         {
             var size = ctx.GetCurrentSize();
-            int minX = size.Width;
-            int minY = size.Height;
-            int maxX = -1;
-            int maxY = -1;
+            var minX = size.Width;
+            var minY = size.Height;
+            var maxX = -1;
+            var maxY = -1;
             Lock @lock = new();
 
             ctx.ProcessPixelRowsAsVector4((row, point) =>

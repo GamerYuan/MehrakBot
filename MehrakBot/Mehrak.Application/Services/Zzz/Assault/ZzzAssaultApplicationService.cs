@@ -17,7 +17,6 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 
@@ -50,7 +49,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -63,7 +62,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
-            string gameUid = profile.GameUid;
+            var gameUid = profile.GameUid;
 
             var assaultResponse =
                 await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
@@ -76,7 +75,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                     string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
             }
 
-            ZzzAssaultData assaultData = assaultResponse.Data;
+            var assaultData = assaultResponse.Data;
 
             if (!assaultData.HasData || assaultData.List.Count == 0)
             {
@@ -86,20 +85,20 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                     isEphemeral: true);
             }
 
-            IEnumerable<Task<bool>> avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
+            var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
                 .DistinctBy(x => x.Id)
                 .Select(avatar =>
                     m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
-            IEnumerable<Task<bool>> buddyImageTask = assaultData.List.Select(x => x.Buddy)
+            var buddyImageTask = assaultData.List.Select(x => x.Buddy)
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
                 .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
                     new ImageProcessorBuilder().Resize(300, 0).Build()));
-            IEnumerable<Task<bool>> bossImageTask = assaultData.List
+            var bossImageTask = assaultData.List
                 .SelectMany(x => x.Boss)
                 .Select(x => m_ImageUpdaterService.UpdateMultiImageAsync(x.ToImageData(),
                     GetBossImageProcessor()));
-            IEnumerable<Task<bool>> buffImageTask = assaultData.List
+            var buffImageTask = assaultData.List
                 .SelectMany(x => x.Buff)
                 .DistinctBy(x => x.Name)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
@@ -120,7 +119,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
 
             var card = await m_CardService.GetCardAsync(cardContext);
 
-            TimeZoneInfo tz = server.GetTimeZoneInfo();
+            var tz = server.GetTimeZoneInfo();
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
@@ -150,14 +149,14 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
         processor.SetOperation(images =>
         {
             const int BossImageHeight = 230;
-            Image background = images[0];
-            Image icon = images[1];
+            var background = images[0];
+            var icon = images[1];
             background.Mutate(ctx =>
             {
                 ctx.DrawImage(icon, new Point(0, 0), 1f);
                 ctx.Resize(0, BossImageHeight);
-                Size size = ctx.GetCurrentSize();
-                IPath border = ImageUtility.CreateRoundedRectanglePath(size.Width, BossImageHeight, 15);
+                var size = ctx.GetCurrentSize();
+                var border = ImageUtility.CreateRoundedRectanglePath(size.Width, BossImageHeight, 15);
                 ctx.Draw(Color.Black, 4f, border);
                 ctx.ApplyRoundedCorners(15);
             });

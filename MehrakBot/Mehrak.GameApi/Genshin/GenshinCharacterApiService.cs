@@ -45,7 +45,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
         try
         {
-            string cacheKey = $"genshin_characters_{context.GameUid}";
+            var cacheKey = $"genshin_characters_{context.GameUid}";
             var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey);
 
             if (cachedEntry != null)
@@ -181,7 +181,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "An error occurred while retrieving character data", requestUri);
             }
 
-            ApiResponse<GenshinCharacterDetail>? json =
+            var json =
                 await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>();
 
             if (json == null || json.Data == null || json.Data.List.Count == 0)

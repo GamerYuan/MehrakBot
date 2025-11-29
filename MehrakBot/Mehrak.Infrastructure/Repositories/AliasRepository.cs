@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -36,7 +36,7 @@ public class AliasRepository : IAliasRepository
         m_Logger.LogInformation("Upserting aliases for game {Game} with {Count} aliases", aliasModel.Game,
             aliasModel.Alias.Count);
 
-        AliasModel existing = await m_AliasesCollection.Find(x => x.Game == aliasModel.Game).FirstOrDefaultAsync();
+        var existing = await m_AliasesCollection.Find(x => x.Game == aliasModel.Game).FirstOrDefaultAsync();
         if (existing != null)
         {
             m_Logger.LogInformation("Updating existing aliases for game {Game}", aliasModel.Game);

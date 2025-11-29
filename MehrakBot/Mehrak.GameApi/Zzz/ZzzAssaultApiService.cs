@@ -41,13 +41,13 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient client = m_HttpClientFactory.CreateClient("Default");
+            var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await client.SendAsync(request);
+            var response = await client.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -59,7 +59,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            ApiResponse<ZzzAssaultData>? json =
+            var json =
                 await response.Content.ReadFromJsonAsync<ApiResponse<ZzzAssaultData>>();
 
             if (json?.Data == null)

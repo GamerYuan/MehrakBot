@@ -34,20 +34,20 @@ public class HsrCharacterCardServiceTests
         var (relicRepositoryMock, characterCardService) = await SetupTest();
         SetupRelicRepository(relicRepositoryMock);
 
-        string testDataPath = Path.Combine(TestDataPath, testDataFileName);
-        string goldenImagePath =
+        var testDataPath = Path.Combine(TestDataPath, testDataFileName);
+        var goldenImagePath =
             Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName);
-        HsrCharacterInformation? characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
         cardContext.SetParameter("server", Server.Asia);
 
         // Act
-        Stream generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
@@ -62,20 +62,20 @@ public class HsrCharacterCardServiceTests
         var (relicRepositoryMock, characterCardService) = await SetupTest();
         relicRepositoryMock.Setup(x => x.GetSetName(It.IsAny<int>())).ReturnsAsync(string.Empty);
 
-        string testDataPath = Path.Combine(TestDataPath, testDataFileName);
-        string goldenImagePath =
+        var testDataPath = Path.Combine(TestDataPath, testDataFileName);
+        var goldenImagePath =
             Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName);
-        HsrCharacterInformation? characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
             await File.ReadAllTextAsync(testDataPath));
         Assert.That(characterDetail, Is.Not.Null);
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
         cardContext.SetParameter("server", Server.Asia);
 
         // Act
-        Stream generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
@@ -100,16 +100,16 @@ public class HsrCharacterCardServiceTests
         // Read the generated image
         using MemoryStream memoryStream = new();
         await generatedImageStream.CopyToAsync(memoryStream);
-        byte[] generatedImageBytes = memoryStream.ToArray();
+        var generatedImageBytes = memoryStream.ToArray();
 
         // Compare basic properties
         Assert.That(generatedImageBytes, Is.Not.Empty,
             $"Generated image should have content for {testName}");
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
+        var outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
 
         if (!File.Exists(goldenImagePath))
@@ -121,10 +121,10 @@ public class HsrCharacterCardServiceTests
         }
 
         // Read the golden image
-        byte[] goldenImageBytes = await File.ReadAllBytesAsync(goldenImagePath);
+        var goldenImageBytes = await File.ReadAllBytesAsync(goldenImagePath);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
+        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImageBytes);
 
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImageBytes),

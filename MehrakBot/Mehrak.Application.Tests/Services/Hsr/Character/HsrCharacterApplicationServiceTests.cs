@@ -972,9 +972,9 @@ public class HsrCharacterApplicationServiceTests
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(
+        var outputImagePath = Path.Combine(
             outputDirectory,
             $"HsrCharacterIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_{characterName}.jpg");
 
@@ -993,9 +993,9 @@ public class HsrCharacterApplicationServiceTests
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        string? testLToken = config["LToken"];
-        string characterName = "Trailblazer"; // Replace with a character you own
+        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        var testLToken = config["LToken"];
+        var characterName = "Trailblazer"; // Replace with a character you own
 
         Assert.Multiple(() =>
         {
@@ -1026,9 +1026,9 @@ public class HsrCharacterApplicationServiceTests
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            string outputImagePath = Path.Combine(outputDirectory, $"HsrCharacterRealApi_{characterName}.jpg");
+            var outputImagePath = Path.Combine(outputDirectory, $"HsrCharacterRealApi_{characterName}.jpg");
 
             attachment.Content.Position = 0;
             await using var fileStream = File.Create(outputImagePath);
@@ -1250,8 +1250,8 @@ public class HsrCharacterApplicationServiceTests
 
     private static async Task<HsrBasicCharacterData> LoadTestDataAsync(string filename = "Stelle_TestData.json")
     {
-        string filePath = Path.Combine(TestDataPath, filename);
-        string json = await File.ReadAllTextAsync(filePath);
+        var filePath = Path.Combine(TestDataPath, filename);
+        var json = await File.ReadAllTextAsync(filePath);
         var result = JsonSerializer.Deserialize<HsrCharacterInformation>(json);
 
         if (result == null) throw new InvalidOperationException($"Failed to deserialize {filename}");

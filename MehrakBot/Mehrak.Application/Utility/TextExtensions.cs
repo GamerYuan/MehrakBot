@@ -19,12 +19,12 @@ public static class TextExtensions
         float skewAngle = 15f)
     {
         // Create affine transform builder for more complex transformations
-        AffineTransformBuilder transformBuilder = new AffineTransformBuilder()
+        var transformBuilder = new AffineTransformBuilder()
             .AppendTranslation(new PointF(-location.X, -location.Y)) // Move to origin
             .AppendSkewDegrees(-skewAngle, 0) // Skew along X axis
             .AppendTranslation(new PointF(location.X, location.Y)); // Move back
 
-        FontRectangle textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font)
+        var textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font)
         {
             Origin = location
         });
@@ -43,12 +43,12 @@ public static class TextExtensions
         Color color,
         float skewAngle = 15f)
     {
-        AffineTransformBuilder transformBuilder = new AffineTransformBuilder()
+        var transformBuilder = new AffineTransformBuilder()
             .AppendTranslation(new PointF(-option.Origin.X, -option.Origin.Y))
             .AppendSkewDegrees(-skewAngle, 0)
             .AppendTranslation(new PointF(option.Origin.X, option.Origin.Y));
 
-        FontRectangle textSize = TextMeasurer.MeasureSize(text, option);
+        var textSize = TextMeasurer.MeasureSize(text, option);
 
         DrawingOptions drawingOptions = new()
         {

@@ -15,7 +15,7 @@ internal static class HsrUtility
 
         if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) return 0; // Or handle as an error
 
-        string roman = text.Substring(startIndex + 1, endIndex - startIndex - 1).ToUpper();
+        var roman = text.Substring(startIndex + 1, endIndex - startIndex - 1).ToUpper();
 
         if (string.IsNullOrEmpty(roman)) return 0;
 
@@ -30,10 +30,10 @@ internal static class HsrUtility
             { 'M', 1000 }
         };
 
-        int total = 0;
-        int prevValue = 0;
+        var total = 0;
+        var prevValue = 0;
 
-        for (int i = roman.Length - 1; i >= 0; i--)
+        for (var i = roman.Length - 1; i >= 0; i--)
         {
             if (!romanMap.TryGetValue(roman[i], out var currentValue)) return 0; // Invalid character
 

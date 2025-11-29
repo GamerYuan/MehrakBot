@@ -53,12 +53,12 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
     public override async Task<CommandResult> ExecuteAsync(ZzzCharacterApplicationContext context)
     {
-        string characterName = context.GetParameter<string>("character")!;
+        var characterName = context.GetParameter<string>("character")!;
 
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -71,7 +71,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
-            string gameUid = profile.GameUid;
+            var gameUid = profile.GameUid;
 
             var charResponse = await m_CharacterApi.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
@@ -86,13 +86,13 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             var characters = charResponse.Data;
             _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero, characters.Select(x => x.Name));
 
-            ZzzBasicAvatarData? character = characters.FirstOrDefault(x =>
+            var character = characters.FirstOrDefault(x =>
                 x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase) ||
                 x.FullName.Equals(characterName, StringComparison.OrdinalIgnoreCase));
 
             if (character == null)
             {
-                m_CharacterCacheService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out string? name);
+                m_CharacterCacheService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out var name);
 
                 if (name == null ||
                     (character =
@@ -106,7 +106,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                 }
             }
 
-            Result<ZzzFullAvatarData> response = await
+            var response = await
                 m_CharacterApi.GetCharacterDetailAsync(new CharacterApiContext(context.UserId, context.LtUid,
                     context.LToken, gameUid, region, character.Id!));
 
@@ -117,8 +117,8 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                     string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
-            ZzzFullAvatarData characterData = response.Data;
-            ZzzAvatarData charInfo = characterData.AvatarList[0];
+            var characterData = response.Data;
+            var charInfo = characterData.AvatarList[0];
 
             List<Task<bool>> tasks = [];
 

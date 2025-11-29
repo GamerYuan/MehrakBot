@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -25,14 +25,14 @@ public class CodeRedeemRepository : ICodeRedeemRepository
     public async Task<List<string>> GetCodesAsync(Game gameName)
     {
         m_Logger.LogDebug("Fetching codes for game: {Game}", gameName);
-        CodeRedeemModel entry = await m_Collection
+        var entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
         return entry?.Codes ?? [];
     }
 
     public async Task AddCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes)
     {
-        CodeRedeemModel entry = await m_Collection
+        var entry = await m_Collection
             .Find(x => x.Game == gameName).FirstOrDefaultAsync();
         if (entry == null)
         {

@@ -40,32 +40,32 @@ public class GenshinCharacterCardServiceTests
         string outputPrefix)
     {
         // Arrange
-        GenshinCharacterDetail? characterDetail =
+        var characterDetail =
             JsonSerializer.Deserialize<GenshinCharacterDetail>(
                 await File.ReadAllTextAsync($"{TestDataPath}/Genshin/{testDataFileName}"));
         Assert.That(characterDetail, Is.Not.Null);
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], profile);
         cardContext.SetParameter("server", Server.Asia);
 
         // Act
-        Stream image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
+        var image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
         using MemoryStream file = new();
         await image.CopyToAsync(file);
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Generated.jpg");
+        var outputImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, file.ToArray());
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
             "TestAssets", goldenImageFileName));
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Golden.jpg");
+        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert

@@ -40,37 +40,37 @@ public class HsrCharListCardServiceTests
     [TestCase("CharList_TestData_1.json")]
     public async Task GetCharListCardAsync_TestData_MatchesGoldenImage(string filename)
     {
-        HsrBasicCharacterData? testData = await
+        var testData = await
             JsonSerializer.DeserializeAsync<HsrBasicCharacterData>(
                 File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
                     "Hsr", filename)), JsonOptions);
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-        byte[] goldenImage =
+        var goldenImage =
             await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
                 "TestAssets", filename.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
-        GameProfileDto userGameData = GetTestUserGameData();
+        var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!, userGameData);
         cardContext.SetParameter("server", Server.Asia);
 
-        Stream image = await m_Service.GetCardAsync(cardContext);
+        var image = await m_Service.GetCardAsync(cardContext);
 
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
-        byte[] bytes = memoryStream.ToArray();
+        var bytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"HsrCharList_Data{Path.GetFileNameWithoutExtension(filename).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory,
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"HsrCharList_Data{Path.GetFileNameWithoutExtension(filename).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 

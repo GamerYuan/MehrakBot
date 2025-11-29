@@ -55,7 +55,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
         m_Logger = logger;
 
         FontCollection collection = new();
-        FontFamily fontFamily = collection.Add("Assets/Fonts/zzz.ttf");
+        var fontFamily = collection.Add("Assets/Fonts/zzz.ttf");
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
@@ -67,7 +67,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
         m_RatingImages = await rating.ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                Image image = await Image.LoadAsync(
+                var image = await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}"), token);
                 image.Mutate(ctx => ctx.Resize(80, 0));
                 return (Rating: x, Image: image);
@@ -87,13 +87,13 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzDefenseData> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Defense", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         var data = context.Data;
         List<IDisposable> disposables = [];
         try
         {
-            Dictionary<ZzzAvatar, Image<Rgba32>> avatarImages = await data.AllFloorDetail
+            var avatarImages = await data.AllFloorDetail
                 .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
@@ -101,7 +101,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                     await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token)))
                 .ToDictionaryAsync(x => x,
                     x => x.GetStyledAvatarImage(), ZzzAvatarIdComparer.Instance);
-            Dictionary<int, Image> buddyImages = await data.AllFloorDetail
+            var buddyImages = await data.AllFloorDetail
                 .SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
@@ -119,19 +119,19 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 .. Enumerable.Range(0, 7)
                     .Select(floorIndex =>
                     {
-                        FloorDetail? floorData = data.AllFloorDetail
+                        var floorData = data.AllFloorDetail
                             .FirstOrDefault(x => x.LayerIndex - 1 == floorIndex);
                         return (FloorNumber: floorIndex, Data: floorData);
                     })
             ];
 
-            Dictionary<ZzzAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
+            var lookup = avatarImages.GetAlternateLookup<int>();
 
-            int height = 515 + floorDetails.Where(x => x.FloorNumber != 6).Chunk(2)
+            var height = 515 + floorDetails.Where(x => x.FloorNumber != 6).Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
             // 1550 x height
-            Image background = m_BackgroundImage.Clone(ctx =>
+            var background = m_BackgroundImage.Clone(ctx =>
                 ctx.Resize(new ResizeOptions
                 {
                     CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
@@ -175,11 +175,11 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 },
                     $"{context.GameProfile.GameUid}", Color.White);
 
-                IPath ratingModule = ImageUtility.CreateRoundedRectanglePath(500, 90, 15).Translate(450, 30);
+                var ratingModule = ImageUtility.CreateRoundedRectanglePath(500, 90, 15).Translate(450, 30);
                 ctx.Fill(OverlayColor, ratingModule);
 
-                int ratingX = 470;
-                foreach (KeyValuePair<char, Image> entry in m_RatingImages)
+                var ratingX = 470;
+                foreach (var entry in m_RatingImages)
                 {
                     ctx.DrawImage(entry.Value, new Point(ratingX, 35), 1f);
                     ctx.DrawText("x", m_NormalFont, Color.Gray, new PointF(ratingX + 85, 65));
@@ -189,11 +189,11 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                     ratingX += 160;
                 }
 
-                int yOffset = 150;
+                var yOffset = 150;
                 IPath overlay;
-                foreach ((int floorNumber, FloorDetail? floorData) in floorDetails)
+                foreach ((var floorNumber, var floorData) in floorDetails)
                 {
-                    int xOffset = floorNumber % 2 * 750 + 50;
+                    var xOffset = floorNumber % 2 * 750 + 50;
 
                     if (floorNumber == 6)
                     {
@@ -218,10 +218,10 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                         {
                             ctx.DrawImage(m_SmallRatingImages[floorData.Rating[0]],
                                 new Point(xOffset + 1380, yOffset + 10), 1f);
-                            using Image<Rgba32> firstHalf = GetRosterImage(
+                            using var firstHalf = GetRosterImage(
                                 [.. floorData.Node1!.Avatars.Select(x => lookup[x.Id])],
                                 buddyImages.GetValueOrDefault(floorData.Node1.Buddy?.Id ?? -1));
-                            using Image<Rgba32> secondHalf = GetRosterImage(
+                            using var secondHalf = GetRosterImage(
                                 [.. floorData.Node2!.Avatars.Select(x => lookup[x.Id])],
                                 buddyImages.GetValueOrDefault(floorData.Node2.Buddy?.Id ?? -1));
 
@@ -253,10 +253,10 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
 
                     if (floorData == null)
                     {
-                        bool isFast =
+                        var isFast =
                             floorDetails.FirstOrDefault(x => x.FloorNumber > floorNumber && x.Data is not null)
                                 .Data is not null;
-                        bool isBigBlob = false;
+                        var isBigBlob = false;
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
                              !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
                             (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
@@ -308,9 +308,9 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                     }, $"{FrontierNames[floorNumber]} Frontier", Color.White);
                     ctx.DrawImage(m_SmallRatingImages[floorData.Rating[0]], new Point(xOffset + 630, yOffset + 10), 1f);
 
-                    using Image<Rgba32> node1 = GetRosterImage([.. floorData.Node1!.Avatars.Select(x => lookup[x.Id])],
+                    using var node1 = GetRosterImage([.. floorData.Node1!.Avatars.Select(x => lookup[x.Id])],
                         buddyImages.GetValueOrDefault(floorData.Node1.Buddy?.Id ?? -1));
-                    using Image<Rgba32> node2 = GetRosterImage([.. floorData.Node2!.Avatars.Select(x => lookup[x.Id])],
+                    using var node2 = GetRosterImage([.. floorData.Node2!.Avatars.Select(x => lookup[x.Id])],
                         buddyImages.GetValueOrDefault(floorData.Node2.Buddy?.Id ?? -1));
 
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 70),
@@ -361,16 +361,16 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
     {
         const int avatarWidth = 150;
 
-        int offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
+        var offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
         rosterImage.Mutate(ctx =>
         {
             ctx.Clear(Color.Transparent);
-            int x = 0;
+            var x = 0;
 
-            for (int i = 0; i < avatarImages.Count; i++)
+            for (var i = 0; i < avatarImages.Count; i++)
             {
                 x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(avatarImages[i], new Point(x, 0), 1f);
@@ -379,7 +379,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
             using Image<Rgba32> buddyBorder = new(150, 180);
             buddyBorder.Mutate(x =>
             {
-                IPath outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
+                var outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
                 x.Clear(Color.FromRgb(24, 24, 24));
                 x.Draw(Color.Black, 4f, outerPath);
                 x.DrawImage(buddyImage != null ? buddyImage : m_BaseBuddyImage, new Point(-45, 0), 1f);

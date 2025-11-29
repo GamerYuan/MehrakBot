@@ -31,7 +31,7 @@ public sealed class MongoTestHelper : IDisposable
         m_MongoRunner = MongoDbRunner.Start(logger: NullLogger<MongoDbRunner>.Instance);
 
         MongoClient mongoClient = new(m_MongoRunner.ConnectionString);
-        IMongoDatabase database = mongoClient.GetDatabase("TestDb");
+        var database = mongoClient.GetDatabase("TestDb");
 
         MongoDbService = new MongoDbService(database, NullLogger<MongoDbService>.Instance);
         ImageRepository = new ImageRepository(MongoDbService,

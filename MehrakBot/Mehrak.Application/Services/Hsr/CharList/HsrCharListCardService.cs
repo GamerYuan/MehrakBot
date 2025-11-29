@@ -90,7 +90,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
         m_Logger = logger;
 
         FontCollection collection = new();
-        FontFamily fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
+        var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
@@ -100,7 +100,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
     public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<HsrCharacterInformation>> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
@@ -108,23 +108,23 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
         {
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
                 context.GameProfile.GameUid, charData.Count);
-            Dictionary<int, Image> weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)
+            var weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)
                 .DistinctBy(x => x!.Id)
                 .ToAsyncEnumerable()
                 .Select(async (x, token) =>
                 {
-                    Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x!.ToIconImageName()), token);
+                    var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x!.ToIconImageName()), token);
                     return (x!.Id, Image: image);
                 }).ToDictionaryAsync(x => x.Id, x => x.Image);
             disposables.AddRange(weaponImages.Values);
 
-            ValueTask<List<Image<Rgba32>>> avatarImageTasks = charData.OrderByDescending(x => x.Level)
+            var avatarImageTasks = charData.OrderByDescending(x => x.Level)
                 .ThenByDescending(x => x.Rarity)
                 .ThenBy(x => x.Name)
                 .ToAsyncEnumerable()
                 .Select(async (x, token) =>
                 {
-                    using Image avatarImage = await Image.LoadAsync(
+                    using var avatarImage = await Image.LoadAsync(
                         await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName()), token);
                     return GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id]);
                 })
@@ -137,11 +137,11 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 .OrderBy(x => x.Key)
                 .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
-            List<Image<Rgba32>> avatarImages = await avatarImageTasks;
+            var avatarImages = await avatarImageTasks;
 
             disposables.AddRange(avatarImages);
 
-            ImageUtility.GridLayout layout =
+            var layout =
                 ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
             using Image<Rgba32> background = new(layout.OutputWidth, layout.OutputHeight + 50);
@@ -161,22 +161,22 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, context.GameProfile.GameUid!, Color.White);
 
-                foreach (ImageUtility.ImagePosition position in layout.ImagePositions)
+                foreach (var position in layout.ImagePositions)
                 {
-                    Image<Rgba32> image = avatarImages[position.ImageIndex];
+                    var image = avatarImages[position.ImageIndex];
                     ctx.DrawImage(image, new Point(position.X, position.Y), 1f);
                 }
 
-                int yOffset = layout.OutputHeight - 30;
-                int xOffset = 50;
+                var yOffset = layout.OutputHeight - 30;
+                var xOffset = 50;
                 foreach (var entry in charCountByElem)
                 {
-                    FontRectangle countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
                         new TextOptions(m_NormalFont));
-                    FontRectangle elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
+                    var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    IPath overlay =
+                    var overlay =
                         ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
                             .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
@@ -199,13 +199,13 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
                 foreach (var entry in charCountByRarity)
                 {
-                    FontRectangle countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
                         new TextOptions(m_NormalFont));
-                    FontRectangle elemSize =
+                    var elemSize =
                         TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    IPath overlay =
+                    var overlay =
                         ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
                             .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
@@ -262,9 +262,9 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
             if (weaponImage is not null)
                 ctx.DrawImage(weaponImage, new Point(150, 0), 1f);
 
-            FontRectangle charLevelRect =
+            var charLevelRect =
                 TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
-            IPath charLevel =
+            var charLevel =
                 ImageUtility.CreateRoundedRectanglePath((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
                     10);
             ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 105));
@@ -275,7 +275,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {charData.Level}", Color.White);
 
-            IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
+            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
             switch (charData.Rank)
             {
                 case 6:
@@ -301,9 +301,9 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
             if (charData.Equip is not null)
             {
-                FontRectangle weapLevelRect =
+                var weapLevelRect =
                     TextMeasurer.MeasureSize($"Lv. {charData.Equip.Level}", new TextOptions(m_SmallFont));
-                IPath weapLevel =
+                var weapLevel =
                     ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40,
                         (int)weapLevelRect.Height + 20,
                         10);
@@ -315,7 +315,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"Lv. {charData.Equip.Level}", Color.White);
 
-                IPath refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 110);
+                var refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 110);
                 switch (charData.Equip.Rank)
                 {
                     case 5:

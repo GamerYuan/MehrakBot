@@ -39,36 +39,36 @@ public class GenshinStygianCardServiceTests
     [TestCase("Stygian_TestData_3.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
-        StygianData? testData =
+        var testData =
             await JsonSerializer.DeserializeAsync<StygianData>(
                 File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-        byte[] goldenImage =
+        var goldenImage =
             await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
                 "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
-        GameProfileDto userGameData = GetTestUserGameData();
+        var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<StygianData>(TestUserId, testData!, userGameData);
         cardContext.SetParameter("server", Server.Asia);
 
-        Stream stream = await m_Service.GetCardAsync(cardContext);
+        var stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        byte[] bytes = memoryStream.ToArray();
+        var bytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"GenshinStygian_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory,
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"GenshinStygian_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 

@@ -124,7 +124,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
                     var setId = x.GetSetId();
 
-                    for (int i = start; i <= end; i++)
+                    for (var i = start; i <= end; i++)
                     {
                         if (characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
                             !await m_ImageRepository.FileExistsAsync(
@@ -209,7 +209,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                         string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 
-                string? iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+                var iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
 
                 if (iconUrl == null)
                 {

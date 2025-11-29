@@ -39,7 +39,7 @@ internal static class AvatarImageUtility
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, string.IsNullOrEmpty(text) ? $"Lv. {avatar.Level}" : text, Color.White);
-            IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
+            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
             if (avatar.Rank == 6)
             {
                 ctx.Fill(Color.Gold, constIcon);
@@ -54,14 +54,14 @@ internal static class AvatarImageUtility
             {
                 ctx.Fill(NormalConstColor, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
-                    {
-                        Origin = new PointF(130, 130),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{avatar.Rank}", Color.White);
+                {
+                    Origin = new PointF(130, 130),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{avatar.Rank}", Color.White);
             }
 
-            IPath border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
+            var border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
             ctx.Draw(Color.Black, 4, border);
 
             ctx.ApplyRoundedCorners(15);
