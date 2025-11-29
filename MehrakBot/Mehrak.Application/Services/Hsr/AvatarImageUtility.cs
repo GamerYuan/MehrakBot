@@ -26,7 +26,7 @@ internal static class AvatarImageUtility
     static AvatarImageUtility()
     {
         var collection = new FontCollection();
-        FontFamily fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
+        var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
         NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
         SmallFont = fontFamily.CreateFont(18, FontStyle.Regular);
     }
@@ -54,7 +54,7 @@ internal static class AvatarImageUtility
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
             }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.White);
-            IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
+            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
             if (rank == 6)
             {
                 ctx.Fill(Color.Gold, constIcon);
@@ -69,11 +69,11 @@ internal static class AvatarImageUtility
             {
                 ctx.Fill(NormalConstColor, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(130, 126),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{rank}", Color.White);
+                    {
+                        Origin = new PointF(130, 126),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, $"{rank}", Color.White);
             }
 
             ctx.ApplyRoundedCorners(15);

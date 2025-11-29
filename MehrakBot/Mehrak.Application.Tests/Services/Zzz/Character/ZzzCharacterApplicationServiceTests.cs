@@ -31,7 +31,7 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>> _, Mock<ICharacterCacheService> _, Mock<IImageRepository> _, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -42,7 +42,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -57,7 +57,7 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IImageRepository> _, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -73,7 +73,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -88,12 +88,12 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_UpdatesCharacterCache_WhenCharacterListFetched()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IImageRepository> _, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        List<ZzzBasicAvatarData> charList = CreateBasicCharacterList();
+        var charList = CreateBasicCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
@@ -117,12 +117,12 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IImageRepository> _, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        List<ZzzBasicAvatarData> charList = CreateBasicCharacterList();
+        var charList = CreateBasicCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
@@ -133,7 +133,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -152,13 +152,13 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterFoundByAlias_ReturnsSuccess()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IImageRepository>? imageRepositoryMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock,
-            Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>>? cardServiceMock, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock,
+            _, cardServiceMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        List<ZzzBasicAvatarData> charList = CreateBasicCharacterList();
+        var charList = CreateBasicCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
@@ -167,7 +167,7 @@ public class ZzzCharacterApplicationServiceTests
         characterCacheMock.Setup(x => x.GetAliases(Game.ZenlessZoneZero))
             .Returns(aliases);
 
-        ZzzFullAvatarData fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
         characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
@@ -188,7 +188,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -205,17 +205,17 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiApiError_ReturnsApiError()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IImageRepository>? imageRepositoryMock, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>>? wikiApiMock, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) =
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, _, gameRoleApiMock, wikiApiMock, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        List<ZzzBasicAvatarData> charList = CreateBasicCharacterList();
+        var charList = CreateBasicCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        ZzzFullAvatarData fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
         characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
@@ -232,7 +232,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -250,17 +250,17 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IImageRepository>? imageRepositoryMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) =
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        List<ZzzBasicAvatarData> charList = CreateBasicCharacterList();
+        var charList = CreateBasicCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        ZzzFullAvatarData fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
         characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
@@ -278,7 +278,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -297,17 +297,17 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(string testDataFile, string characterName)
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IImageRepository>? imageRepositoryMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _,
-            Mock<ICardService<ZzzFullAvatarData>>? cardServiceMock, Mock<IMetricsService>? metricsMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _,
+            cardServiceMock, metricsMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        List<ZzzBasicAvatarData> charList = CreateBasicCharacterList();
+        var charList = CreateBasicCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        ZzzFullAvatarData fullCharData = await LoadTestDataAsync(testDataFile);
+        var fullCharData = await LoadTestDataAsync(testDataFile);
         characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
@@ -328,7 +328,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -351,9 +351,9 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IImageRepository> _, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -406,9 +406,9 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IImageRepository> _, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -456,9 +456,9 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IImageRepository> _, Mock<IImageUpdaterService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IApiService<JsonNode, WikiApiContext>> _, Mock<ICardService<ZzzFullAvatarData>> _, Mock<IMetricsService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -510,16 +510,16 @@ public class ZzzCharacterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile, string characterName)
     {
         // Arrange
-        (ZzzCharacterApplicationService? service, Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IImageRepository> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupIntegrationTest();
+        var (service, characterApiMock, characterCacheMock, _, gameRoleApiMock, _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        List<ZzzBasicAvatarData> charList = CreateBasicCharacterList();
+        var charList = CreateBasicCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        ZzzFullAvatarData fullCharData = await LoadTestDataAsync(testDataFile);
+        var fullCharData = await LoadTestDataAsync(testDataFile);
         characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
@@ -533,7 +533,7 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -543,19 +543,19 @@ public class ZzzCharacterApplicationServiceTests
         });
         Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
 
-        CommandAttachment? attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(
+        string outputImagePath = Path.Combine(
             outputDirectory,
             $"ZzzCharacterIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_{characterName}.jpg");
 
         attachment.Content.Position = 0;
-        await using FileStream fileStream = File.Create(outputImagePath);
+        await using var fileStream = File.Create(outputImagePath);
         await attachment.Content.CopyToAsync(fileStream);
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
@@ -569,12 +569,12 @@ public class ZzzCharacterApplicationServiceTests
         // This test requires real credentials and should only be run manually
         // It demonstrates the full integration with the actual HoYoLab API
 
-        IConfigurationSection config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
+        var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        var testLToken = config["LToken"];
-        var characterName = "Jane"; // Replace with a character you own
+        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        string? testLToken = config["LToken"];
+        string characterName = "Jane"; // Replace with a character you own
 
         Assert.Multiple(() =>
         {
@@ -582,7 +582,7 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
         });
 
-        ZzzCharacterApplicationService service = SetupRealApiIntegrationTest();
+        var service = SetupRealApiIntegrationTest();
 
         var context = new ZzzCharacterApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
@@ -594,24 +594,24 @@ public class ZzzCharacterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
 
         if (result.IsSuccess)
         {
-            CommandAttachment? attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            var outputImagePath = Path.Combine(outputDirectory, $"ZzzCharacterRealApi_{characterName}.jpg");
+            string outputImagePath = Path.Combine(outputDirectory, $"ZzzCharacterRealApi_{characterName}.jpg");
 
             attachment.Content.Position = 0;
-            await using FileStream fileStream = File.Create(outputImagePath);
+            await using var fileStream = File.Create(outputImagePath);
             await attachment.Content.CopyToAsync(fileStream);
         }
     }
@@ -841,9 +841,9 @@ public class ZzzCharacterApplicationServiceTests
 
     private static async Task<ZzzFullAvatarData> LoadTestDataAsync(string filename)
     {
-        var filePath = Path.Combine(TestDataPath, filename);
-        var json = await File.ReadAllTextAsync(filePath);
-        ZzzFullAvatarData? result = JsonSerializer.Deserialize<ZzzFullAvatarData>(json);
+        string filePath = Path.Combine(TestDataPath, filename);
+        string json = await File.ReadAllTextAsync(filePath);
+        var result = JsonSerializer.Deserialize<ZzzFullAvatarData>(json);
 
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
     }

@@ -13,7 +13,7 @@ public class Hi3ApplicationContextBase : IApplicationContext
     public Hi3ApplicationContextBase(ulong userId, params IEnumerable<(string, object)> parameters)
     {
         UserId = userId;
-        foreach ((var key, var value) in parameters) Parameters[key] = value;
+        foreach (var (key, value) in parameters) Parameters[key] = value;
     }
 
     public T? GetParameter<T>(string key)

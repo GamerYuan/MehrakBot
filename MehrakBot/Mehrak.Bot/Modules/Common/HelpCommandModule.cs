@@ -21,8 +21,8 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         ])]
     public InteractionMessageProperties HelpCommand(string commandName = "")
     {
-        var commands = commandName.ToLowerInvariant().Split(' ');
-        var helpMessage = commands[0].TrimStart('/') switch
+        string[] commands = commandName.ToLowerInvariant().Split(' ');
+        string helpMessage = commands[0].TrimStart('/') switch
         {
             "genshin" => GenshinCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),

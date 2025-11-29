@@ -60,11 +60,11 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
     {
         try
         {
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
             var characterName = context.GetParameter<string>("character")!;
 
-            GameProfileDto? profile =
+            var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
@@ -77,7 +77,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
 
             var gameUid = profile.GameUid;
 
-            Result<IEnumerable<GenshinBasicCharacterData>> charListResponse = await
+            var charListResponse = await
                 m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
                     context.LToken, gameUid, region));
             if (!charListResponse.IsSuccess)
@@ -88,11 +88,11 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                     string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
-            IEnumerable<GenshinBasicCharacterData> characters = charListResponse.Data;
+            var characters = charListResponse.Data;
             _ = m_CharacterCacheService.UpsertCharacters(Game.Genshin,
                 characters.Select(x => x.Name));
 
-            GenshinBasicCharacterData? character =
+            var character =
                 characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
             if (character == null)
             {
@@ -110,7 +110,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 }
             }
 
-            Result<GenshinCharacterDetail> characterInfo = await m_CharacterApi.GetCharacterDetailAsync(
+            var characterInfo = await m_CharacterApi.GetCharacterDetailAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
                     character.Id!.Value));
 
@@ -122,7 +122,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                     string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
-            GenshinCharacterInformation charData = characterInfo.Data.List[0];
+            var charData = characterInfo.Data.List[0];
             var wikiEntry = characterInfo.Data.AvatarWiki[charData.Base.Id.ToString()].Split('/')[^1];
 
             List<Task<bool>> tasks = [];
@@ -133,9 +133,9 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 string? url = null;
 
                 // Prio to CN locale
-                foreach (WikiLocales locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
+                foreach (var locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
                 {
-                    Result<JsonNode> charWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
+                    var charWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
 
                     if (!charWiki.IsSuccess)
                     {
@@ -186,7 +186,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 characterInfo.Data.List[0], profile);
             cardContext.SetParameter("server", server);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), character.Name.ToLowerInvariant());
 
@@ -211,11 +211,11 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
     {
         return ctx =>
         {
-            Size size = ctx.GetCurrentSize();
-            var minX = size.Width;
-            var minY = size.Height;
-            var maxX = -1;
-            var maxY = -1;
+            var size = ctx.GetCurrentSize();
+            int minX = size.Width;
+            int minY = size.Height;
+            int maxX = -1;
+            int maxY = -1;
             Lock @lock = new();
 
             ctx.ProcessPixelRowsAsVector4((row, point) =>

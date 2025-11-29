@@ -9,7 +9,6 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
@@ -63,10 +62,10 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
         try
         {
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
-            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
 
             if (profile == null)
@@ -79,7 +78,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             var gameUid = profile.GameUid;
 
-            Result<IEnumerable<HsrBasicCharacterData>> charResponse = await m_CharacterApi.GetAllCharactersAsync(
+            var charResponse = await m_CharacterApi.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!charResponse.IsSuccess)
@@ -89,11 +88,11 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                     string.Format(ResponseMessage.ApiError, "Character data"));
             }
 
-            HsrBasicCharacterData characterList = charResponse.Data.First();
+            var characterList = charResponse.Data.First();
             _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiStarRail,
                 characterList.AvatarList.Select(x => x.Name));
 
-            HsrCharacterInformation? characterInfo = characterList.AvatarList.FirstOrDefault(x =>
+            var characterInfo = characterList.AvatarList.FirstOrDefault(x =>
                 x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
 
             if (characterInfo == null)
@@ -111,7 +110,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                 }
             }
 
-            Dictionary<Relic, JsonArray?> uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
+            var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
                 .DistinctBy(x => x.GetSetId())
                 .ToAsyncEnumerable()
                 .Where(async (x, token) =>
@@ -125,7 +124,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
                     var setId = x.GetSetId();
 
-                    for (var i = start; i <= end; i++)
+                    for (int i = start; i <= end; i++)
                     {
                         if (characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
                             !await m_ImageRepository.FileExistsAsync(
@@ -144,9 +143,9 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
                         var setId = x.GetSetId();
 
-                        foreach (WikiLocales locale in Enum.GetValues<WikiLocales>())
+                        foreach (var locale in Enum.GetValues<WikiLocales>())
                         {
-                            Result<JsonNode> wikiResponse =
+                            var wikiResponse =
                                 await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
                                     entryPage, locale));
                             if (!wikiResponse.IsSuccess)
@@ -180,7 +179,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             List<Task<bool>> tasks = [];
 
-            IImageProcessor relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
+            var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
                 new ImageProcessorBuilder().Resize(1000, 0).Build()));
@@ -200,7 +199,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                     characterInfo.Equip.Id)))
             {
                 var entryPage = wikiEntry.Split('/')[^1];
-                Result<JsonNode> wikiResponse =
+                var wikiResponse =
                     await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage));
 
                 if (!wikiResponse.IsSuccess)
@@ -210,7 +209,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                         string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 
-                var iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+                string? iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
 
                 if (iconUrl == null)
                 {
@@ -250,7 +249,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
             cardContext.SetParameter("server", server);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
                 characterInfo.Name.ToLowerInvariant());

@@ -80,9 +80,9 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzAssaultData> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Assault", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-        ZzzAssaultData data = context.Data;
+        var data = context.Data;
         List<IDisposable> disposables = [];
         try
         {
@@ -127,7 +127,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
                     async (x, token) =>
                     {
-                        await using Stream stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
+                        await using var stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName());
                         return await Image.LoadAsync(stream, token);
                     });
             disposables.AddRange(bossImages.Values);
@@ -135,7 +135,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
 
             Dictionary<ZzzAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
 
-            var height = data.List.Count * 270 + 200;
+            int height = data.List.Count * 270 + 200;
             Image<Rgba32> background = new(1050, height);
 
             background.Mutate(ctx =>
@@ -170,7 +170,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 },
                     $"{context.GameProfile.GameUid}", Color.White);
 
-                var totalScoreText = $"Total Score: {data.TotalScore}";
+                string totalScoreText = $"Total Score: {data.TotalScore}";
                 FontRectangle totalScoreBounds =
                     TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(m_TitleFont));
 
@@ -196,11 +196,11 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, $"x{data.TotalStar}", Color.White);
 
-                for (var i = 0; i < data.List.Count; i++)
+                for (int i = 0; i < data.List.Count; i++)
                 {
                     AssaultFloorDetail floor = data.List[i];
-                    var yOffset = 180 + i * 270;
-                    using var bossImage = Image.Load(bossImages[floor.Boss[0].Name]);
+                    int yOffset = 180 + i * 270;
+                    using Image bossImage = Image.Load(bossImages[floor.Boss[0].Name]);
                     using Image<Rgba32> floorImage = GetFloorImage(floor, lookup, bossImage,
                         buffImages[floor.Buff[0].Name],
                         floor.Buddy == null ? null : buddyImages[floor.Buddy.Id]);
@@ -243,7 +243,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 VerticalAlignment = VerticalAlignment.Center,
                 WrappingLength = 500
             }, floor.Boss[0].Name, Color.White);
-            var scoreText = floor.Score.ToString();
+            string scoreText = floor.Score.ToString();
             FontRectangle scoreBounds = TextMeasurer.MeasureBounds(scoreText, new TextOptions(m_NormalFont));
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
@@ -251,7 +251,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                 VerticalAlignment = VerticalAlignment.Top,
                 HorizontalAlignment = HorizontalAlignment.Right
             }, floor.Score.ToString(), Color.White);
-            for (var i = 2; i >= 0; i--)
+            for (int i = 2; i >= 0; i--)
             {
                 Image starImage = i < floor.Star ? m_StarLitSmall : m_StarUnlitSmall;
                 ctx.DrawImage(starImage, new Point(885 - (int)scoreBounds.Width - i * 35, 10), 1f);
@@ -272,16 +272,16 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
     {
         const int avatarWidth = 150;
 
-        var offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
+        int offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
         rosterImage.Mutate(ctx =>
         {
             ctx.Clear(Color.Transparent);
-            var x = 0;
+            int x = 0;
 
-            for (var i = 0; i < avatarImages.Count; i++)
+            for (int i = 0; i < avatarImages.Count; i++)
             {
                 x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(avatarImages[i], new Point(x, 0), 1f);

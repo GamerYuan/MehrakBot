@@ -45,7 +45,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMatchingCharacters_ReturnsChoices()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Kia");
+        var (option, context) = CreateTestInputs("Kia");
 
         var expectedCharacters = new List<string> { "Kiana Kaslana", "Kiana" };
 
@@ -54,7 +54,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -73,7 +73,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Elysia");
+        var (option, context) = CreateTestInputs("Elysia");
 
         var expectedCharacters = new List<string> { "Elysia" };
 
@@ -82,7 +82,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -99,7 +99,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNoMatches_ReturnsEmptyChoices()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("XYZ");
+        var (option, context) = CreateTestInputs("XYZ");
 
         var expectedCharacters = new List<string>();
 
@@ -108,7 +108,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -120,7 +120,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithEmptyQuery_ReturnsAllCharacters()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("");
+        var (option, context) = CreateTestInputs("");
 
         var expectedCharacters = new List<string> { "Kiana", "Mei", "Bronya", "Himeko" };
 
@@ -129,7 +129,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -141,7 +141,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Bro");
+        var (option, context) = CreateTestInputs("Bro");
 
         var expectedCharacters = new List<string> { "Bronya Zaychik" };
 
@@ -150,7 +150,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -163,7 +163,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("mei");
+        var (option, context) = CreateTestInputs("mei");
 
         var expectedCharacters = new List<string> { "Raiden Mei" };
 
@@ -172,7 +172,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiImpact3, "mei"), Times.Once);
@@ -185,7 +185,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("S");
+        var (option, context) = CreateTestInputs("S");
 
         var expectedCharacters = new List<string> { "Seele", "Senti", "Susannah" };
 
@@ -194,7 +194,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -207,7 +207,7 @@ public class Hi3CharacterAutocompleteProviderTests
     {
         // Arrange
         const string query = "Fu Hua";
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs(query);
+        var (option, context) = CreateTestInputs(query);
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiImpact3, query))
@@ -224,7 +224,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Durandal");
+        var (option, context) = CreateTestInputs("Durandal");
 
         var expectedCharacters = new List<string> { "Durandal" };
 
@@ -233,10 +233,10 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
         Assert.That(choice.Name, Is.EqualTo("Durandal"));
     }
@@ -245,7 +245,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Herrscher");
+        var (option, context) = CreateTestInputs("Herrscher");
 
         var expectedCharacters = new List<string> { "Herrscher of Human: Ego" }; // Name with colon
 
@@ -254,11 +254,11 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.Multiple(() =>
         {
             Assert.That(choice.Name, Is.EqualTo("Herrscher of Human: Ego"));
@@ -270,18 +270,18 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ReturnsValueTask_CompletesSuccessfully()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Test");
+        var (option, context) = CreateTestInputs("Test");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "Test"))
             .Returns([]);
 
         // Act
-        ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> resultTask = m_Provider.GetChoicesAsync(option, context);
+        var resultTask = m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(resultTask.IsCompleted, Is.True);
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await resultTask;
+        var result = await resultTask;
         Assert.That(result, Is.Not.Null);
     }
 
@@ -289,7 +289,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLongCharacterList_ReturnsAllChoices()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("R");
+        var (option, context) = CreateTestInputs("R");
 
         var expectedCharacters = new List<string>
         {
@@ -301,7 +301,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -318,19 +318,19 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoicesHaveCorrectType()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Theresa");
+        var (option, context) = CreateTestInputs("Theresa");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "Theresa"))
             .Returns(["Theresa Apocalypse"]);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.InstanceOf<IEnumerable<ApplicationCommandOptionChoiceProperties>>());
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.That(choice, Is.InstanceOf<ApplicationCommandOptionChoiceProperties>());
     }
 
@@ -338,7 +338,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_PreservesCharacterOrder()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("M");
+        var (option, context) = CreateTestInputs("M");
 
         var expectedCharacters = new List<string> { "Mei", "Mobius", "Murata Himeko" };
 
@@ -347,7 +347,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         var choices = result!.ToList();
@@ -364,7 +364,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceReturnsReadOnlyList_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Aponia");
+        var (option, context) = CreateTestInputs("Aponia");
 
         IReadOnlyList<string> expectedCharacters = new List<string> { "Aponia" }.AsReadOnly();
 
@@ -373,7 +373,7 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -386,7 +386,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceCalledOnlyOnce()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Vill-V");
+        var (option, context) = CreateTestInputs("Vill-V");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "Vill-V"))
@@ -407,7 +407,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithWhitespaceQuery_PassesToService()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("   ");
+        var (option, context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "   "))
@@ -424,14 +424,14 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNumericQuery_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("13");
+        var (option, context) = CreateTestInputs("13");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "13"))
             .Returns(["The 13 Flame-Chasers"]); // Hypothetical match
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -444,7 +444,7 @@ public class Hi3CharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithUnicodeCharacters_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("琪");
+        var (option, context) = CreateTestInputs("琪");
 
         var expectedCharacters = new List<string> { "琪亚娜" }; // Kiana
 
@@ -453,11 +453,11 @@ public class Hi3CharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo("琪亚娜"));
     }
 

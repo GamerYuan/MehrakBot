@@ -16,20 +16,20 @@ public static class DSGenerator
     public static string GenerateDS()
     {
         // Get current Unix timestamp
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         // Generate 6 random characters
         StringBuilder randomStr = new();
-        for (var i = 0; i < 6; i++) randomStr.Append(Characters[Random.Next(Characters.Length)]);
+        for (int i = 0; i < 6; i++) randomStr.Append(Characters[Random.Next(Characters.Length)]);
 
         // Create hash input
-        var hashInput = $"salt={Salt}&t={timestamp}&r={randomStr}";
+        string hashInput = $"salt={Salt}&t={timestamp}&r={randomStr}";
 
         // Generate MD5 hash
-        var hashBytes = MD5.HashData(Encoding.UTF8.GetBytes(hashInput));
+        byte[] hashBytes = MD5.HashData(Encoding.UTF8.GetBytes(hashInput));
         StringBuilder hashHex = new();
 
-        foreach (var b in hashBytes) hashHex.Append(b.ToString("x2"));
+        foreach (byte b in hashBytes) hashHex.Append(b.ToString("x2"));
 
         return $"{timestamp},{randomStr},{hashHex}";
     }

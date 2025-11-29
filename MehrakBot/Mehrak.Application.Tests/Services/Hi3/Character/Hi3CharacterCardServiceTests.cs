@@ -43,8 +43,8 @@ internal class Hi3CharacterCardServiceTests
 
 
         // Arrange
-        var testDataPath = Path.Combine(TestDataPath, testDataFileName);
-        var goldenImagePath =
+        string testDataPath = Path.Combine(TestDataPath, testDataFileName);
+        string goldenImagePath =
             Path.Combine(AppContext.BaseDirectory, "Assets", "Hi3", "TestAssets", goldenImageFileName);
         Hi3CharacterDetail? characterDetail = JsonSerializer.Deserialize<Hi3CharacterDetail>(
             await File.ReadAllTextAsync(testDataPath), options);
@@ -82,16 +82,16 @@ internal class Hi3CharacterCardServiceTests
         // Read the generated image
         using MemoryStream memoryStream = new();
         await generatedImageStream.CopyToAsync(memoryStream);
-        var generatedImageBytes = memoryStream.ToArray();
+        byte[] generatedImageBytes = memoryStream.ToArray();
 
         // Compare basic properties
         Assert.That(generatedImageBytes, Is.Not.Empty,
             $"Generated image should have content for {testName}");
 
         // Save generated image to output folder for comparison
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
+        string outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
 
         if (!File.Exists(goldenImagePath))
@@ -103,10 +103,10 @@ internal class Hi3CharacterCardServiceTests
         }
 
         // Read the golden image
-        var goldenImageBytes = await File.ReadAllBytesAsync(goldenImagePath);
+        byte[] goldenImageBytes = await File.ReadAllBytesAsync(goldenImagePath);
 
         // Save golden image to output folder for comparison
-        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
+        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImageBytes);
 
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImageBytes),

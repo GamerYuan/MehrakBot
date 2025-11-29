@@ -24,10 +24,10 @@ public static class ImageUtility
     {
         return context.ProcessPixelRowsAsVector4(row =>
         {
-            var width = row.Length;
-            var fadeStartX = (int)(width * fadeStart);
+            int width = row.Length;
+            int fadeStartX = (int)(width * fadeStart);
             // fade only columns from fadeStartX → width
-            for (var x = fadeStartX; x < width; x++)
+            for (int x = fadeStartX; x < width; x++)
             {
                 // same fall‑off curve you had before
                 var alpha = 1.0f - (float)(x - fadeStartX) / (width - fadeStartX);
@@ -45,10 +45,10 @@ public static class ImageUtility
         starCount = Math.Clamp(starCount, 1, 5);
 
         const int starSize = 30;
-        var width = 5 * starSize;
-        var height = starSize;
+        int width = 5 * starSize;
+        int height = starSize;
 
-        var centerY = starSize / 2;
+        int centerY = starSize / 2;
         var offset = (5 - starCount) * starSize / 2;
 
         var image = new Image<Rgba32>(width, height);
@@ -57,12 +57,12 @@ public static class ImageUtility
         {
             ctx.Clear(Color.Transparent);
 
-            for (var i = 0; i < starCount; i++)
+            for (int i = 0; i < starCount; i++)
             {
-                var centerX = offset + i * starSize + starSize / 2;
+                int centerX = offset + i * starSize + starSize / 2;
 
                 // Create a star shape
-                PointF[] points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
+                var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
                 var starPolygon = new Polygon(points);
 
                 ctx.Fill(StarColor, starPolygon);
@@ -98,7 +98,7 @@ public static class ImageUtility
         {
             ctx.Clear(Color.Transparent);
 
-            for (var i = 0; i < starCount; i++)
+            for (int i = 0; i < starCount; i++)
             {
                 float centerX, centerY;
 
@@ -117,7 +117,7 @@ public static class ImageUtility
                 if (drawShadow)
                 {
                     // Create shadow first (expanded on all sides)
-                    PointF[] shadowPoints = CreateStarPoints(
+                    var shadowPoints = CreateStarPoints(
                         centerX,
                         centerY,
                         (float)starSize / 2 * shadowExpansion, // Larger outer radius
@@ -128,7 +128,7 @@ public static class ImageUtility
                 }
 
                 // Then create the actual star on top
-                PointF[] starPoints = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 4);
+                var starPoints = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 4);
                 var starPolygon = new Polygon(starPoints);
                 ctx.Fill(StarColor, starPolygon);
             }
@@ -205,12 +205,12 @@ public static class ImageUtility
         int points)
     {
         var result = new PointF[points * 2];
-        var angle = -MathF.PI / 2;
-        var angleIncrement = MathF.PI / points;
+        float angle = -MathF.PI / 2;
+        float angleIncrement = MathF.PI / points;
 
-        for (var i = 0; i < points * 2; i++)
+        for (int i = 0; i < points * 2; i++)
         {
-            var radius = i % 2 == 0 ? outerRadius : innerRadius;
+            float radius = i % 2 == 0 ? outerRadius : innerRadius;
             result[i] = new PointF(
                 centerX + radius * MathF.Cos(angle),
                 centerY + radius * MathF.Sin(angle)
@@ -233,8 +233,8 @@ public static class ImageUtility
         // positioned correctly, we can do that by translating the original
         // around the center of the image.
 
-        var rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
-        var bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
+        float rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
+        float bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
 
         // Move it across the width of the image - the width of the shape
         IPath cornerTopRight = cornerTopLeft.RotateDegree(90).Translate(rightPos, 0);
@@ -306,7 +306,7 @@ public static class ImageUtility
 
         // Find the best grid dimensions (columns x rows) that gives us closest
         // to 16:9 ratio
-        (int columns, int rows) bestLayout = FindOptimalGridDimensions(imageCount, imageWidth, imageHeight, padding, imageSpacing);
+        var bestLayout = FindOptimalGridDimensions(imageCount, imageWidth, imageHeight, padding, imageSpacing);
         layout.Columns = bestLayout.columns;
         layout.Rows = bestLayout.rows;
 
@@ -332,26 +332,26 @@ public static class ImageUtility
         int[] padding,
         int imageSpacing)
     {
-        var bestColumns = 1;
-        var bestRows = imageCount;
-        var bestRatioDifference = double.MaxValue;
+        int bestColumns = 1;
+        int bestRows = imageCount;
+        double bestRatioDifference = double.MaxValue;
 
         // Try different column configurations
-        for (var columns = 1; columns <= imageCount; columns++)
+        for (int columns = 1; columns <= imageCount; columns++)
         {
-            var rows = (int)Math.Ceiling((double)imageCount / columns);
+            int rows = (int)Math.Ceiling((double)imageCount / columns);
 
             // Calculate what the aspect ratio would be with this grid
-            var gridWidth = padding[3] + padding[1] + // left + right padding
+            int gridWidth = padding[3] + padding[1] + // left + right padding
                             columns * imageWidth +
                             (columns - 1) * imageSpacing;
 
-            var gridHeight = padding[0] + padding[2] + // top + bottom padding
+            int gridHeight = padding[0] + padding[2] + // top + bottom padding
                              rows * imageHeight +
                              (rows - 1) * imageSpacing;
 
-            var currentRatio = (double)gridWidth / gridHeight;
-            var ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
+            double currentRatio = (double)gridWidth / gridHeight;
+            double ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
 
             if (ratioDifference < bestRatioDifference)
             {
@@ -374,13 +374,13 @@ public static class ImageUtility
     {
         var positions = new List<ImagePosition>();
 
-        for (var i = 0; i < imageCount; i++)
+        for (int i = 0; i < imageCount; i++)
         {
-            var column = i % columns;
-            var row = i / columns;
+            int column = i % columns;
+            int row = i / columns;
 
-            var x = padding[3] + column * (imageWidth + imageSpacing); // left padding + column offset
-            var y = padding[0] + row * (imageHeight + imageSpacing); // top padding + row offset
+            int x = padding[3] + column * (imageWidth + imageSpacing); // left padding + column offset
+            int y = padding[0] + row * (imageHeight + imageSpacing); // top padding + row offset
 
             positions.Add(new ImagePosition(x, y, i));
         }

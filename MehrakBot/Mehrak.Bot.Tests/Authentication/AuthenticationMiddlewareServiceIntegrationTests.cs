@@ -10,7 +10,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using NetCord;
 using NetCord.Services;
 
 #endregion
@@ -70,7 +69,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        ModalInteraction interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         // Encrypt the token with the test passphrase
@@ -111,7 +110,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 await Task.Delay(50);
             } while (string.IsNullOrEmpty(responseData));
 
-            System.Text.RegularExpressions.Match guidMatch = ModalGuidRegex().Match(responseData);
+            var guidMatch = ModalGuidRegex().Match(responseData);
             Console.WriteLine(nameof(GetAuthenticationAsync_FullFlow_CorrectPassphrase_ReturnsSuccessAndCachesToken));
             if (guidMatch.Success) guidCaptured.SetResult(guidMatch.Groups[1].Value);
         });
@@ -123,7 +122,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
         // Act - Start the authentication process
-        Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(request);
+        var authTask = m_Service.GetAuthenticationAsync(request);
 
         // Wait for the GUID to be captured
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -138,7 +137,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var notifyResult = m_Service.NotifyAuthenticate(authResponse);
 
         // Wait for authentication to complete
-        AuthenticationResult result = await authTask;
+        var result = await authTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -167,7 +166,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        ModalInteraction interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         // Encrypt the token with the correct passphrase
@@ -183,7 +182,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         var cacheKey = $"ltoken:{m_TestUserId}:{TestLtUid}";
@@ -207,7 +206,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 await Task.Delay(50);
             } while (string.IsNullOrEmpty(responseData));
 
-            System.Text.RegularExpressions.Match guidMatch = ModalGuidRegex().Match(responseData);
+            var guidMatch = ModalGuidRegex().Match(responseData);
             Console.WriteLine(nameof(GetAuthenticationAsync_FullFlow_WrongPassphrase_ReturnsFailure));
             if (guidMatch.Success) guidCaptured.SetResult(guidMatch.Groups[1].Value);
         });
@@ -215,7 +214,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
         // Act - Start the authentication process
-        Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(request);
+        var authTask = m_Service.GetAuthenticationAsync(request);
 
         // Wait for the GUID to be captured
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -230,7 +229,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var notifyResult = m_Service.NotifyAuthenticate(authResponse);
 
         // Wait for authentication to complete
-        AuthenticationResult result = await authTask;
+        var result = await authTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -253,7 +252,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        ModalInteraction interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
@@ -268,7 +267,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         var cacheKey = $"ltoken:{m_TestUserId}:{TestLtUid}";
@@ -289,12 +288,12 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             m_MockUserRepository.Object,
             NullLogger<AuthenticationMiddlewareService>.Instance);
 
-        PropertyInfo? prop = service.GetType()
+        var prop = service.GetType()
             .GetProperty("TimeoutMinutes", BindingFlags.NonPublic | BindingFlags.Instance);
         prop?.SetValue(service, 0.1f);
 
         // Act - Start authentication but don't notify (simulate user not responding)
-        AuthenticationResult result = await service.GetAuthenticationAsync(request);
+        var result = await service.GetAuthenticationAsync(request);
 
         // Assert
         Assert.Multiple(() =>
@@ -316,7 +315,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        ModalInteraction interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
@@ -331,7 +330,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         var cacheKey = $"ltoken:{m_TestUserId}:{TestLtUid}";
@@ -355,7 +354,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 await Task.Delay(50);
             } while (string.IsNullOrEmpty(responseData));
 
-            System.Text.RegularExpressions.Match guidMatch = ModalGuidRegex().Match(responseData);
+            var guidMatch = ModalGuidRegex().Match(responseData);
             Console.WriteLine(nameof(GetAuthenticationAsync_FullFlow_MultiplePassphraseAttempts_OnlyFirstSucceeds));
             if (guidMatch.Success) guidCaptured.SetResult(guidMatch.Groups[1].Value);
         });
@@ -367,7 +366,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
         // Act
-        Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(request);
+        var authTask = m_Service.GetAuthenticationAsync(request);
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         // Try to notify twice with the same GUID
@@ -377,7 +376,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var notify1 = m_Service.NotifyAuthenticate(authResponse1);
         var notify2 = m_Service.NotifyAuthenticate(authResponse2);
 
-        AuthenticationResult result = await authTask;
+        var result = await authTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -403,11 +402,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         try
         {
             var context1 = new Mock<IInteractionContext>();
-            ModalInteraction interaction1 = helper1.CreateModalInteraction(m_TestUserId);
+            var interaction1 = helper1.CreateModalInteraction(m_TestUserId);
             context1.SetupGet(x => x.Interaction).Returns(() => interaction1);
 
             var context2 = new Mock<IInteractionContext>();
-            ModalInteraction interaction2 = helper2.CreateModalInteraction(m_TestUserId + 1);
+            var interaction2 = helper2.CreateModalInteraction(m_TestUserId + 1);
             context2.SetupGet(x => x.Interaction).Returns(() => interaction2);
 
             var encryptedToken1 = m_EncryptionService.Encrypt("token1", "pass1");
@@ -416,8 +415,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             var profile1 = new UserProfile { ProfileId = 1, LtUid = 111, LToken = encryptedToken1 };
             var profile2 = new UserProfile { ProfileId = 2, LtUid = 222, LToken = encryptedToken2 };
 
-            var user1 = new UserModel { Id = m_TestUserId, Profiles = [profile1] };
-            var user2 = new UserModel { Id = m_TestUserId + 1, Profiles = [profile2] };
+            var user1 = new UserModel { Id = m_TestUserId, Profiles = new List<UserProfile> { profile1 } };
+            var user2 = new UserModel { Id = m_TestUserId + 1, Profiles = new List<UserProfile> { profile2 } };
 
             m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user1);
             m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId + 1)).ReturnsAsync(user2);
@@ -438,7 +437,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                     await Task.Delay(50);
                 } while (string.IsNullOrEmpty(responseData));
 
-                System.Text.RegularExpressions.Match match1 = ModalGuidRegex().Match(responseData);
+                var match1 = ModalGuidRegex().Match(responseData);
                 Console.WriteLine(nameof(GetAuthenticationAsync_MultipleConcurrentRequests_EachHandledIndependently) +
                                   " 1");
                 if (match1.Success) guid1Captured.SetResult(match1.Groups[1].Value);
@@ -453,13 +452,13 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                     await Task.Delay(50);
                 } while (string.IsNullOrEmpty(responseData));
 
-                System.Text.RegularExpressions.Match match2 = ModalGuidRegex().Match(responseData);
+                var match2 = ModalGuidRegex().Match(responseData);
                 if (match2.Success) guid2Captured.SetResult(match2.Groups[1].Value);
             });
 
             // Act - Start both authentication flows concurrently
-            Task<AuthenticationResult> authTask1 = m_Service.GetAuthenticationAsync(new AuthenticationRequest(context1.Object, 1));
-            Task<AuthenticationResult> authTask2 = m_Service.GetAuthenticationAsync(new AuthenticationRequest(context2.Object, 2));
+            var authTask1 = m_Service.GetAuthenticationAsync(new AuthenticationRequest(context1.Object, 1));
+            var authTask2 = m_Service.GetAuthenticationAsync(new AuthenticationRequest(context2.Object, 2));
 
             var guid1 = await guid1Captured.Task.WaitAsync(TimeSpan.FromSeconds(5));
             var guid2 = await guid2Captured.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -468,8 +467,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid1, "pass1", context1.Object));
             m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId + 1, guid2, "pass2", context2.Object));
 
-            AuthenticationResult result1 = await authTask1;
-            AuthenticationResult result2 = await authTask2;
+            var result1 = await authTask1;
+            var result2 = await authTask2;
 
             // Assert
             Assert.Multiple(() =>
@@ -496,7 +495,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        ModalInteraction interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var emptyToken = "";
@@ -529,16 +528,16 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 await Task.Delay(50);
             } while (string.IsNullOrEmpty(responseData));
 
-            System.Text.RegularExpressions.Match match = ModalGuidRegex().Match(responseData);
+            var match = ModalGuidRegex().Match(responseData);
             if (match.Success) guidCaptured.SetResult(match.Groups[1].Value);
         });
 
         // Act
-        Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
+        var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
         m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase,
             mockContext.Object));
-        AuthenticationResult result = await authTask;
+        var result = await authTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -553,7 +552,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        ModalInteraction interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var longToken = new string('x', 10000);
@@ -569,7 +568,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user);
@@ -586,16 +585,16 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 await Task.Delay(50);
             } while (string.IsNullOrEmpty(responseData));
 
-            System.Text.RegularExpressions.Match match = ModalGuidRegex().Match(responseData);
+            var match = ModalGuidRegex().Match(responseData);
             if (match.Success) guidCaptured.SetResult(match.Groups[1].Value);
         });
 
         // Act
-        Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
+        var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
         m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase,
             mockContext.Object));
-        AuthenticationResult result = await authTask;
+        var result = await authTask;
 
         // Assert
         Assert.Multiple(() =>
@@ -610,7 +609,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        ModalInteraction interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateModalInteraction(m_TestUserId);
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
         var unicodeToken = "测试数据🎮🎯🎲";
@@ -626,7 +625,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var user = new UserModel
         {
             Id = m_TestUserId,
-            Profiles = [profile]
+            Profiles = new List<UserProfile> { profile }
         };
 
         m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user);
@@ -643,16 +642,16 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 await Task.Delay(50);
             } while (string.IsNullOrEmpty(responseData));
 
-            System.Text.RegularExpressions.Match match = ModalGuidRegex().Match(responseData);
+            var match = ModalGuidRegex().Match(responseData);
             if (match.Success) guidCaptured.SetResult(match.Groups[1].Value);
         });
 
         // Act
-        Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
+        var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
         var guid = await guidCaptured.Task.WaitAsync(TimeSpan.FromSeconds(5));
         m_Service.NotifyAuthenticate(new AuthenticationResponse(m_TestUserId, guid, TestPassphrase,
             mockContext.Object));
-        AuthenticationResult result = await authTask;
+        var result = await authTask;
 
         // Assert
         Assert.Multiple(() =>

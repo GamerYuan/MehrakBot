@@ -56,7 +56,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient client = m_HttpClientFactory.CreateClient("Default");
+            var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("DS", DSGenerator.GenerateDS());
@@ -66,7 +66,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await client.SendAsync(request);
+            var response = await client.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -78,7 +78,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            ApiResponse<HsrEndInformation>? json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(
                 await response.Content.ReadAsStreamAsync(), JsonOptions);
 
             if (json?.Data == null)

@@ -53,14 +53,14 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
     public override async Task<CommandResult> ExecuteAsync(ZzzCharacterApplicationContext context)
     {
-        var characterName = context.GetParameter<string>("character")!;
+        string characterName = context.GetParameter<string>("character")!;
 
         try
         {
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            var region = server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
-            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
 
             if (profile == null)
@@ -71,9 +71,9 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
-            var gameUid = profile.GameUid;
+            string gameUid = profile.GameUid;
 
-            Result<IEnumerable<ZzzBasicAvatarData>> charResponse = await m_CharacterApi.GetAllCharactersAsync(
+            var charResponse = await m_CharacterApi.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!charResponse.IsSuccess)
@@ -83,7 +83,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                     string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
-            IEnumerable<ZzzBasicAvatarData> characters = charResponse.Data;
+            var characters = charResponse.Data;
             _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero, characters.Select(x => x.Name));
 
             ZzzBasicAvatarData? character = characters.FirstOrDefault(x =>
@@ -92,7 +92,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
 
             if (character == null)
             {
-                m_CharacterCacheService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out var name);
+                m_CharacterCacheService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out string? name);
 
                 if (name == null ||
                     (character =
@@ -125,7 +125,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             if (!await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Zzz.FileName, charInfo.Id)))
             {
                 var entryPage = characterData.AvatarWiki[charInfo.Id.ToString()].Split('/')[^1];
-                Result<JsonNode> wikiResponse =
+                var wikiResponse =
                     await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage));
 
                 if (!wikiResponse.IsSuccess)
@@ -173,7 +173,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
             cardContext.SetParameter("server", server);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
 

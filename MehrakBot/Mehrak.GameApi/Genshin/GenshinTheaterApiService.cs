@@ -41,13 +41,13 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient client = m_HttpClientFactory.CreateClient("Default");
+            var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await client.SendAsync(request);
+            var response = await client.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -59,7 +59,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
                     "An error occurred while retrieving Imaginarium Theater data", requestUri);
             }
 
-            ApiResponse<GenshinTheaterResponseData>? json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinTheaterResponseData>>(
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinTheaterResponseData>>(
                 await response.Content.ReadAsStreamAsync());
 
             if (json?.Data == null)
@@ -93,7 +93,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
                     "Imaginarium Theater is not unlocked yet", requestUri);
             }
 
-            List<GenshinTheaterInformation> theaterInfo = json.Data.Data;
+            var theaterInfo = json.Data.Data;
             if (theaterInfo == null || theaterInfo.Count == 0)
             {
                 m_Logger.LogError(LogMessages.DataNotFoundForFeature, "Imaginarium Theater", context.UserId);

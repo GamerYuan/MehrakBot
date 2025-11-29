@@ -20,7 +20,7 @@ internal class CharacterAutocompleteService : ICharacterAutocompleteService
 
     public IReadOnlyList<string> FindCharacter(Game game, string query)
     {
-        List<string> characterNames = m_CharacterCacheService.GetCharacters(game);
+        var characterNames = m_CharacterCacheService.GetCharacters(game);
         return
         [
             .. characterNames

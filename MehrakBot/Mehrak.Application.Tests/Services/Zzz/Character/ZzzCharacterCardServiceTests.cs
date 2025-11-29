@@ -45,7 +45,7 @@ public class ZzzCharacterCardServiceTests
                 await File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
         Assert.That(characterDetail, Is.Not.Null);
 
-        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
             "TestAssets",
             goldenImageFileName));
 
@@ -60,16 +60,16 @@ public class ZzzCharacterCardServiceTests
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
-        var generatedImageBytes = memoryStream.ToArray();
+        byte[] generatedImageBytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
+        string outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
 
         // Save golden image to output folder for comparison
-        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
+        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImage), "Generated image should match the golden image");

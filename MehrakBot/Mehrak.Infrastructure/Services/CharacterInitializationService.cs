@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Hosting;
@@ -57,7 +56,7 @@ public class CharacterInitializationService : IHostedService
             return;
         }
 
-        var characterJsonFiles =
+        string[] characterJsonFiles =
             Directory.GetFiles(m_AssetsPath, "*characters*.json", SearchOption.AllDirectories);
 
         if (characterJsonFiles.Length == 0)
@@ -68,7 +67,7 @@ public class CharacterInitializationService : IHostedService
 
         m_Logger.LogInformation("Found {Count} character JSON files", characterJsonFiles.Length);
 
-        foreach (var jsonFile in characterJsonFiles) await ProcessCharacterJsonFile(jsonFile);
+        foreach (string jsonFile in characterJsonFiles) await ProcessCharacterJsonFile(jsonFile);
     }
 
     private async Task ProcessCharacterJsonFile(string jsonFilePath)
@@ -77,8 +76,8 @@ public class CharacterInitializationService : IHostedService
         {
             m_Logger.LogDebug("Processing character JSON file: {FilePath}", jsonFilePath);
 
-            var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
-            CharacterJsonModel? characterJsonModel = JsonSerializer.Deserialize<CharacterJsonModel>(jsonContent);
+            string jsonContent = await File.ReadAllTextAsync(jsonFilePath);
+            var characterJsonModel = JsonSerializer.Deserialize<CharacterJsonModel>(jsonContent);
 
             if (characterJsonModel == null)
             {
@@ -86,11 +85,11 @@ public class CharacterInitializationService : IHostedService
                 return;
             }
 
-            Game gameName = characterJsonModel.GetGame();
-            List<string> newCharacters = characterJsonModel.Characters;
+            var gameName = characterJsonModel.GetGame();
+            var newCharacters = characterJsonModel.Characters;
 
-            CharacterModel? existingModel = await m_CharacterRepository.GetCharacterModelAsync(gameName);
-            List<string> existingCharacters = existingModel?.Characters ?? [];
+            var existingModel = await m_CharacterRepository.GetCharacterModelAsync(gameName);
+            var existingCharacters = existingModel?.Characters ?? [];
 
             var missingCharacters = newCharacters.Except(existingCharacters, StringComparer.OrdinalIgnoreCase).ToList();
 

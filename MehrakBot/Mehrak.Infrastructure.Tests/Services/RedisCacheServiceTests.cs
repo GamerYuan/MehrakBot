@@ -239,7 +239,7 @@ public class RedisCacheServiceTests
             .ReturnsAsync(bytes);
 
         // Act
-        TestObject? result = await m_CacheService.GetAsync<TestObject>(key);
+        var result = await m_CacheService.GetAsync<TestObject>(key);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -616,7 +616,7 @@ public class RedisCacheServiceTests
             .ReturnsAsync(bytes);
 
         // Act
-        List<string>? result = await m_CacheService.GetAsync<List<string>>(key);
+        var result = await m_CacheService.GetAsync<List<string>>(key);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -662,7 +662,7 @@ public class RedisCacheServiceTests
             .ReturnsAsync(bytes);
 
         // Act
-        Dictionary<string, int>? result = await m_CacheService.GetAsync<Dictionary<string, int>>(key);
+        var result = await m_CacheService.GetAsync<Dictionary<string, int>>(key);
 
         // Assert
         Assert.That(result, Is.Not.Null);

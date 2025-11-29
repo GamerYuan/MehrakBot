@@ -34,7 +34,7 @@ internal class ParamValidator<TParam> : ParamValidator
 
     public override bool IsValid(IApplicationContext context)
     {
-        TParam? param = context.GetParameter<TParam>(ParamName);
+        var param = context.GetParameter<TParam>(ParamName);
         if (param is not TParam typedParam) return false;
 
         return m_Predicate(typedParam);

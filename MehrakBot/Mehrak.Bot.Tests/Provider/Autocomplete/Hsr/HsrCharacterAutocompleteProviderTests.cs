@@ -44,7 +44,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMatchingCharacters_ReturnsChoices()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Dan");
+        var (option, context) = CreateTestInputs("Dan");
 
         var expectedCharacters = new List<string> { "Dan Heng", "Dan Heng • Imbibitor Lunae" };
 
@@ -53,7 +53,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -72,7 +72,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Acheron");
+        var (option, context) = CreateTestInputs("Acheron");
 
         var expectedCharacters = new List<string> { "Acheron" };
 
@@ -81,7 +81,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -98,7 +98,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNoMatches_ReturnsEmptyChoices()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("XYZ");
+        var (option, context) = CreateTestInputs("XYZ");
 
         var expectedCharacters = new List<string>();
 
@@ -107,7 +107,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -119,7 +119,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithEmptyQuery_ReturnsAllCharacters()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("");
+        var (option, context) = CreateTestInputs("");
 
         var expectedCharacters = new List<string> { "Acheron", "Argenti", "Asta", "Aventurine" };
 
@@ -128,7 +128,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -140,7 +140,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Jin");
+        var (option, context) = CreateTestInputs("Jin");
 
         var expectedCharacters = new List<string> { "Jing Yuan" };
 
@@ -149,7 +149,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -162,7 +162,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("kafka");
+        var (option, context) = CreateTestInputs("kafka");
 
         var expectedCharacters = new List<string> { "Kafka" };
 
@@ -171,7 +171,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, "kafka"), Times.Once);
@@ -184,7 +184,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("B");
+        var (option, context) = CreateTestInputs("B");
 
         var expectedCharacters = new List<string> { "Bailu", "Black Swan", "Blade", "Boothill", "Bronya" };
 
@@ -193,7 +193,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -206,7 +206,7 @@ public class HsrCharacterAutocompleteProviderTests
     {
         // Arrange
         const string query = "Firefly";
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs(query);
+        var (option, context) = CreateTestInputs(query);
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiStarRail, query))
@@ -223,7 +223,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Ruan Mei");
+        var (option, context) = CreateTestInputs("Ruan Mei");
 
         var expectedCharacters = new List<string> { "Ruan Mei" };
 
@@ -232,10 +232,10 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
         Assert.That(choice.Name, Is.EqualTo("Ruan Mei"));
     }
@@ -244,7 +244,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Dan Heng •");
+        var (option, context) = CreateTestInputs("Dan Heng •");
 
         var expectedCharacters = new List<string> { "Dan Heng • Imbibitor Lunae" }; // Name with • character
 
@@ -253,11 +253,11 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.Multiple(() =>
         {
             Assert.That(choice.Name, Is.EqualTo("Dan Heng • Imbibitor Lunae"));
@@ -269,18 +269,18 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ReturnsValueTask_CompletesSuccessfully()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Test");
+        var (option, context) = CreateTestInputs("Test");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Test"))
             .Returns([]);
 
         // Act
-        ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> resultTask = m_Provider.GetChoicesAsync(option, context);
+        var resultTask = m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(resultTask.IsCompleted, Is.True);
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await resultTask;
+        var result = await resultTask;
         Assert.That(result, Is.Not.Null);
     }
 
@@ -288,7 +288,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLongCharacterList_ReturnsAllChoices()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("S");
+        var (option, context) = CreateTestInputs("S");
 
         var expectedCharacters = new List<string>
         {
@@ -301,7 +301,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -318,19 +318,19 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoicesHaveCorrectType()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Topaz");
+        var (option, context) = CreateTestInputs("Topaz");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Topaz"))
             .Returns(["Topaz & Numby"]);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.InstanceOf<IEnumerable<ApplicationCommandOptionChoiceProperties>>());
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.That(choice, Is.InstanceOf<ApplicationCommandOptionChoiceProperties>());
     }
 
@@ -338,7 +338,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_PreservesCharacterOrder()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("L");
+        var (option, context) = CreateTestInputs("L");
 
         var expectedCharacters = new List<string> { "Lingsha", "Luka", "Luocha", "Lynx" };
 
@@ -347,7 +347,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         var choices = result!.ToList();
@@ -365,7 +365,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceReturnsReadOnlyList_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Welt");
+        var (option, context) = CreateTestInputs("Welt");
 
         IReadOnlyList<string> expectedCharacters = new List<string> { "Welt" }.AsReadOnly();
 
@@ -374,7 +374,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -387,11 +387,11 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceCalledOnlyOnce()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Yunli");
+        var (option, context) = CreateTestInputs("Yunli");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Yunli"))
-            .Returns(["Yunli"]);
+            .Returns(new List<string> { "Yunli" });
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
@@ -408,7 +408,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithWhitespaceQuery_PassesToService()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("   ");
+        var (option, context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "   "))
@@ -425,14 +425,14 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNumericQuery_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("123");
+        var (option, context) = CreateTestInputs("123");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "123"))
             .Returns([]);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -443,7 +443,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithUnicodeCharacters_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("符");
+        var (option, context) = CreateTestInputs("符");
 
         var expectedCharacters = new List<string> { "符玄" }; // Chinese character name (Fu Xuan)
 
@@ -452,11 +452,11 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo("符玄"));
     }
 
@@ -464,7 +464,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithTrailblazerVariants_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Trailblazer");
+        var (option, context) = CreateTestInputs("Trailblazer");
 
         var expectedCharacters = new List<string>
         {
@@ -479,7 +479,7 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -492,7 +492,7 @@ public class HsrCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithAmpersandInName_HandlesCorrectly()
     {
         // Arrange
-        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Topaz");
+        var (option, context) = CreateTestInputs("Topaz");
 
         var expectedCharacters = new List<string> { "Topaz & Numby" }; // Name with &
 
@@ -501,11 +501,11 @@ public class HsrCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
+        var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        ApplicationCommandOptionChoiceProperties choice = result!.First();
+        var choice = result!.First();
         Assert.Multiple(() =>
         {
             Assert.That(choice.Name, Is.EqualTo("Topaz & Numby"));

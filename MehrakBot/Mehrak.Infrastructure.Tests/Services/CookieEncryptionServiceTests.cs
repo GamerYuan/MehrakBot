@@ -466,7 +466,7 @@ public class CookieEncryptionServiceTests
         const int iterations = 10;
 
         // Act & Assert
-        for (var i = 0; i < iterations; i++)
+        for (int i = 0; i < iterations; i++)
         {
             var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
             var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);

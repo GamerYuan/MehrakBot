@@ -112,14 +112,14 @@ internal class CommandExecutorBuilder<TContext> : ICommandExecutorBuilder<TConte
         if (m_AppContext is null)
             throw new InvalidOperationException("Application context must be provided.");
 
-        CommandExecutorService<TContext> executor = ActivatorUtilities.CreateInstance<CommandExecutorService<TContext>>(m_ServiceProvider);
+        var executor = ActivatorUtilities.CreateInstance<CommandExecutorService<TContext>>(m_ServiceProvider);
 
         executor.Context = m_InteractionContext;
         executor.ApplicationContext = m_AppContext;
         executor.CommandName = m_CommandName ?? string.Empty;
         executor.IsResponseEphemeral = m_Ephemeral;
 
-        foreach (Action<CommandExecutorService<TContext>> configure in m_Configurators)
+        foreach (var configure in m_Configurators)
             configure(executor);
 
         return executor;

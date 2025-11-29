@@ -47,10 +47,10 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
     {
         try
         {
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            var region = server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
-            GameProfileDto? profile =
+            var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
@@ -61,9 +61,9 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
-            var gameUid = profile.GameUid;
+            string gameUid = profile.GameUid;
 
-            Result<IEnumerable<GenshinBasicCharacterData>> charResponse = await
+            var charResponse = await
                 m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
                     context.LToken, gameUid, region));
 
@@ -97,7 +97,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                     characterList, profile);
             cardContext.SetParameter("server", server);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)

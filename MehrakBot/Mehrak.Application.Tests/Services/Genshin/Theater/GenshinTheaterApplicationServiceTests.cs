@@ -30,7 +30,7 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, _, _, gameRoleApiMock, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -41,7 +41,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -56,7 +56,7 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_TheaterApiError_ReturnsApiError()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, theaterApiMock, _, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -71,7 +71,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -86,7 +86,7 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_TheaterNotUnlocked_ReturnsSuccessMessage()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, theaterApiMock, _, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -102,7 +102,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -117,7 +117,7 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_NoDetailData_ReturnsNoClearRecords()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, theaterApiMock, _, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -141,7 +141,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -157,12 +157,12 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository> _) = SetupMocks();
+        var (service, theaterApiMock, characterApiMock, gameRoleApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        GenshinTheaterInformation theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
+        var theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
 
@@ -177,7 +177,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -192,16 +192,16 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, theaterApiMock, characterApiMock, gameRoleApiMock, imageUpdaterMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        GenshinTheaterInformation theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
+        var theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
 
-        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
+        var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
@@ -216,7 +216,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -231,16 +231,16 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, theaterApiMock, characterApiMock, gameRoleApiMock, imageUpdaterMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        GenshinTheaterInformation theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
+        var theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
 
-        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
+        var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
@@ -254,7 +254,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -272,16 +272,16 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, theaterApiMock, characterApiMock, gameRoleApiMock, imageUpdaterMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        GenshinTheaterInformation theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
+        var theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
 
-        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
+        var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
@@ -307,9 +307,9 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, theaterApiMock, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -362,9 +362,9 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, theaterApiMock, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -412,9 +412,9 @@ public class GenshinTheaterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, theaterApiMock, _, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -467,16 +467,16 @@ public class GenshinTheaterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile)
     {
         // Arrange
-        (GenshinTheaterApplicationService? service, Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>? theaterApiMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<IUserRepository> _) = SetupIntegrationTest();
+        var (service, theaterApiMock, characterApiMock, gameRoleApiMock, _, _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        GenshinTheaterInformation theaterData = await LoadTestDataAsync(testDataFile);
+        var theaterData = await LoadTestDataAsync(testDataFile);
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
 
-        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
+        var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
@@ -487,7 +487,7 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -497,18 +497,18 @@ public class GenshinTheaterApplicationServiceTests
         });
         Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
 
-        CommandAttachment? attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory,
+        string outputImagePath = Path.Combine(outputDirectory,
             $"TheaterIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}.jpg");
 
         attachment.Content.Position = 0;
-        await using FileStream fileStream = File.Create(outputImagePath);
+        await using var fileStream = File.Create(outputImagePath);
         await attachment.Content.CopyToAsync(fileStream);
     }
 
@@ -519,11 +519,11 @@ public class GenshinTheaterApplicationServiceTests
         // This test requires real credentials and should only be run manually
         // It demonstrates the full integration with the actual HoYoLab API
 
-        IConfigurationSection config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
+        var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        var testLToken = config["LToken"];
+        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        string? testLToken = config["LToken"];
 
         Assert.Multiple(() =>
         {
@@ -531,7 +531,7 @@ public class GenshinTheaterApplicationServiceTests
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
         });
 
-        GenshinTheaterApplicationService service = SetupRealApiIntegrationTest();
+        var service = SetupRealApiIntegrationTest();
 
         var context = new GenshinTheaterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
@@ -540,24 +540,24 @@ public class GenshinTheaterApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
 
         if (result.IsSuccess)
         {
-            CommandAttachment? attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            var outputImagePath = Path.Combine(outputDirectory, "TheaterRealApi.jpg");
+            string outputImagePath = Path.Combine(outputDirectory, "TheaterRealApi.jpg");
 
             attachment.Content.Position = 0;
-            await using FileStream fileStream = File.Create(outputImagePath);
+            await using var fileStream = File.Create(outputImagePath);
             await attachment.Content.CopyToAsync(fileStream);
         }
     }
@@ -771,9 +771,9 @@ public class GenshinTheaterApplicationServiceTests
 
     private static async Task<GenshinTheaterInformation> LoadTestDataAsync(string filename)
     {
-        var filePath = Path.Combine(TestDataPath, filename);
-        var json = await File.ReadAllTextAsync(filePath);
-        GenshinTheaterInformation? result = JsonSerializer.Deserialize<GenshinTheaterInformation>(json);
+        string filePath = Path.Combine(TestDataPath, filename);
+        string json = await File.ReadAllTextAsync(filePath);
+        var result = JsonSerializer.Deserialize<GenshinTheaterInformation>(json);
 
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
     }

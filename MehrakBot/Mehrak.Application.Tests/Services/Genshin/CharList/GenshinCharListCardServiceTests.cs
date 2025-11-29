@@ -37,7 +37,7 @@ public class GenshinCharListCardServiceTests
     [TestCase("CharList_TestData_2.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
-        CharacterListData? testData =
+        var testData =
             await JsonSerializer.DeserializeAsync<CharacterListData>(
                 File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
@@ -46,12 +46,12 @@ public class GenshinCharListCardServiceTests
             await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
                 "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
-        GameProfileDto userGameData = GetTestUserGameData();
+        var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!, userGameData);
         cardContext.SetParameter("server", Server.Asia);
 
-        Stream stream = await m_Service.GetCardAsync(cardContext);
+        var stream = await m_Service.GetCardAsync(cardContext);
         var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

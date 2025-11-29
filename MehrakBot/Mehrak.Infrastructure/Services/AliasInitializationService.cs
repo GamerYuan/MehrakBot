@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using Mehrak.Domain.Enums;
@@ -58,7 +58,7 @@ public class AliasInitializationService : IHostedService
             return;
         }
 
-        var aliasJsonFiles = Directory.GetFiles(m_AssetsPath, "*aliases*.json", SearchOption.AllDirectories);
+        string[] aliasJsonFiles = Directory.GetFiles(m_AssetsPath, "*aliases*.json", SearchOption.AllDirectories);
 
         if (aliasJsonFiles.Length == 0)
         {
@@ -68,7 +68,7 @@ public class AliasInitializationService : IHostedService
 
         m_Logger.LogInformation("Found {Count} alias JSON files", aliasJsonFiles.Length);
 
-        foreach (var file in aliasJsonFiles) await ProcessAliasJsonFileAsync(file);
+        foreach (string file in aliasJsonFiles) await ProcessAliasJsonFileAsync(file);
     }
 
     private async Task ProcessAliasJsonFileAsync(string filePath)
@@ -77,7 +77,7 @@ public class AliasInitializationService : IHostedService
         {
             m_Logger.LogInformation("Processing alias JSON file {FilePath}", filePath);
 
-            var jsonContent = await File.ReadAllTextAsync(filePath);
+            string jsonContent = await File.ReadAllTextAsync(filePath);
             AliasJsonModel? aliasJsonModel = JsonSerializer.Deserialize<AliasJsonModel>(jsonContent);
 
             if (aliasJsonModel == null)
@@ -87,13 +87,13 @@ public class AliasInitializationService : IHostedService
             }
 
             Game gameName = aliasJsonModel.Game;
-            var aliases = aliasJsonModel.Aliases
+            Dictionary<string, string> aliases = aliasJsonModel.Aliases
                 .SelectMany(x => x.Alias.Select(alias => (alias, x.Name)))
                 .ToDictionary(x => x.alias, x => x.Name);
 
             Dictionary<string, string> existingAlias = await m_AliasRepository.GetAliasesAsync(gameName);
 
-            var newAliases =
+            List<KeyValuePair<string, string>> newAliases =
                 aliases.Where(x => !existingAlias.ContainsKey(x.Key)).ToList();
 
             if (newAliases.Count > 0)

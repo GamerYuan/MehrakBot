@@ -2,6 +2,6 @@
 
 public interface IImageData
 {
-    string Name { get; }
-    string Url { get; }
+    public string Name { get; }
+    public string Url { get; }
 }

@@ -31,11 +31,11 @@ public class ImageUpdaterService : IImageUpdaterService
             return true;
         }
 
-        HttpClient client = m_HttpClientFactory.CreateClient();
+        var client = m_HttpClientFactory.CreateClient();
 
         m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
         m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, data.Url);
-        HttpResponseMessage response = await client.GetAsync(data.Url);
+        var response = await client.GetAsync(data.Url);
         m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, data.Url);
 
         if (!response.IsSuccessStatusCode)
@@ -44,12 +44,12 @@ public class ImageUpdaterService : IImageUpdaterService
             return false;
         }
 
-        await using Stream stream = await response.Content.ReadAsStreamAsync();
+        await using var stream = await response.Content.ReadAsStreamAsync();
 
         if (processor.ShouldProcess)
         {
             m_Logger.LogInformation("Processing {Name}", data.Name);
-            using Stream processedStream = processor.ProcessImage(stream);
+            using var processedStream = processor.ProcessImage(stream);
             processedStream.Position = 0;
             await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
         }
@@ -70,15 +70,15 @@ public class ImageUpdaterService : IImageUpdaterService
             return true;
         }
 
-        HttpClient client = m_HttpClientFactory.CreateClient();
+        var client = m_HttpClientFactory.CreateClient();
 
         var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
         m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
 
-        IAsyncEnumerable<HttpResponseMessage> images = allUrls.ToAsyncEnumerable().Select(async (x, token) =>
+        var images = allUrls.ToAsyncEnumerable().Select(async (x, token) =>
         {
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);
-            HttpResponseMessage r = await client.GetAsync(x, token);
+            var r = await client.GetAsync(x, token);
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)r.StatusCode, x);
             return r;
         });
@@ -86,20 +86,20 @@ public class ImageUpdaterService : IImageUpdaterService
 
         if (await images.AnyAsync(x => !x.IsSuccessStatusCode))
         {
-            IAsyncEnumerable<HttpResponseMessage> failed = images.Where(x => !x.IsSuccessStatusCode);
+            var failed = images.Where(x => !x.IsSuccessStatusCode);
             m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
                 failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
             return false;
         }
 
-        IEnumerable<Stream> streams = images.Select(async (x, token) =>
+        var streams = images.Select(async (x, token) =>
             await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable();
 
-        using Stream processedStream = processor.ProcessImage(streams);
+        using var processedStream = processor.ProcessImage(streams);
         processedStream.Position = 0;
         await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
 
-        foreach (Stream? item in streams) await item.DisposeAsync();
+        foreach (var item in streams) await item.DisposeAsync();
 
         return true;
     }

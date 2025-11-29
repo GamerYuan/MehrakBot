@@ -3,7 +3,6 @@
 using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -39,17 +38,17 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
 
         if (!await ValidateRateLimitAsync()) return;
 
-        AuthenticationResult authResult =
+        var authResult =
             await AuthenticationMiddleware.GetAuthenticationAsync(new AuthenticationRequest(Context, profile));
 
         if (authResult.IsSuccess)
         {
-            using IDisposable observer = MetricsService.ObserveCommandDuration(CommandName);
+            using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;
 
-            CommandResult commandResult = await m_Service
+            var commandResult = await m_Service
                 .ExecuteAsync(ApplicationContext)
                 .ConfigureAwait(false);
 

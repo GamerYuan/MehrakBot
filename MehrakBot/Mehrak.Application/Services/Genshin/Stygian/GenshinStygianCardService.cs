@@ -70,9 +70,9 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
     public async Task<Stream> GetCardAsync(ICardGenerationContext<StygianData> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Stygian", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-        StygianData stygianInfo = context.Data;
+        var stygianInfo = context.Data;
 
         List<IDisposable> disposableResources = [];
         try
@@ -104,7 +104,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
 
             Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
 
-            TimeZoneInfo tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
+            var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {
@@ -150,7 +150,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
                 },
                     $"{context.GameProfile.GameUid}", Color.White);
 
-                for (var i = 0; i < stygianData.Challenge!.Count; i++)
+                for (int i = 0; i < stygianData.Challenge!.Count; i++)
                 {
                     Challenge challenge = stygianData.Challenge[i];
                     Image<Rgba32> rosterImage = GetRosterImage(challenge.Teams.Select(x => x.AvatarId), lookup);
@@ -158,10 +158,10 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
                     Image monsterImageStream = monsterImages[challenge.Monster.MonsterId];
                     Image<Rgba32> challengeImage = GetChallengeImage(challenge, rosterImage, monsterImageStream);
                     disposableResources.Add(challengeImage);
-                    var yOffset = 170 + i * 320;
+                    int yOffset = 170 + i * 320;
                     ctx.DrawImage(challengeImage, new Point(50, yOffset), 1f);
 
-                    for (var j = 0; j < challenge.BestAvatar.Count; j++)
+                    for (int j = 0; j < challenge.BestAvatar.Count; j++)
                     {
                         IPath overlay = ImageUtility.CreateRoundedRectanglePath(580, 145, 15)
                             .Translate(1070, yOffset + j * 155);
@@ -237,7 +237,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
         const int avatarWidth = 150;
 
         List<int> avatarIds = [.. ids];
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -245,9 +245,9 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
         {
             ctx.Clear(Color.Transparent);
 
-            for (var i = 0; i < avatarIds.Count; i++)
+            for (int i = 0; i < avatarIds.Count; i++)
             {
-                var x = offset + i * (avatarWidth + 10);
+                int x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

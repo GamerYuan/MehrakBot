@@ -52,7 +52,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Di");
+        var result = m_Service.FindCharacter(Game.Genshin, "Di");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -73,7 +73,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "XYZ");
+        var result = m_Service.FindCharacter(Game.Genshin, "XYZ");
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -93,7 +93,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "");
+        var result = m_Service.FindCharacter(Game.Genshin, "");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(3));
@@ -114,7 +114,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Hu");
+        var result = m_Service.FindCharacter(Game.Genshin, "Hu");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
@@ -140,7 +140,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "diluc");
+        var result = m_Service.FindCharacter(Game.Genshin, "diluc");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -161,7 +161,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "RAIDEN");
+        var result = m_Service.FindCharacter(Game.Genshin, "RAIDEN");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -182,7 +182,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "KaMiSaTo");
+        var result = m_Service.FindCharacter(Game.Genshin, "KaMiSaTo");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
@@ -207,7 +207,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Character");
+        var result = m_Service.FindCharacter(Game.Genshin, "Character");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(ExpectedLimit));
@@ -226,7 +226,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Character");
+        var result = m_Service.FindCharacter(Game.Genshin, "Character");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(25));
@@ -246,7 +246,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "A");
+        var result = m_Service.FindCharacter(Game.Genshin, "A");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(5));
@@ -265,7 +265,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "");
+        var result = m_Service.FindCharacter(Game.Genshin, "");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(ExpectedLimit));
@@ -289,7 +289,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Hu Tao");
+        var result = m_Service.FindCharacter(Game.Genshin, "Hu Tao");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -310,7 +310,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Kamisato A");
+        var result = m_Service.FindCharacter(Game.Genshin, "Kamisato A");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
@@ -332,7 +332,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "X");
+        var result = m_Service.FindCharacter(Game.Genshin, "X");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(4));
@@ -357,7 +357,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "神里");
+        var result = m_Service.FindCharacter(Game.Genshin, "神里");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -378,7 +378,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Hu-Tao");
+        var result = m_Service.FindCharacter(Game.Genshin, "Hu-Tao");
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -402,7 +402,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, " ");
+        var result = m_Service.FindCharacter(Game.Genshin, " ");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -423,7 +423,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "123");
+        var result = m_Service.FindCharacter(Game.Genshin, "123");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -436,10 +436,10 @@ public class CharacterAutocompleteServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns([]);
+            .Returns(new List<string>());
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Diluc");
+        var result = m_Service.FindCharacter(Game.Genshin, "Diluc");
 
         // Assert
         Assert.That(result, Is.Empty);
@@ -455,7 +455,7 @@ public class CharacterAutocompleteServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(["Diluc"]);
+            .Returns(new List<string> { "Diluc" });
 
         // Act
         m_Service.FindCharacter(Game.Genshin, "Diluc");
@@ -487,10 +487,10 @@ public class CharacterAutocompleteServiceTests
         // Arrange
         m_MockCacheService
             .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(["Diluc", "Jean"]);
+            .Returns(new List<string> { "Diluc", "Jean" });
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "Di");
+        var result = m_Service.FindCharacter(Game.Genshin, "Di");
 
         // Assert
         Assert.That(result, Is.InstanceOf<IReadOnlyList<string>>());
@@ -564,8 +564,8 @@ public class CharacterAutocompleteServiceTests
             .Returns(hsrCharacters);
 
         // Act
-        IReadOnlyList<string> genshinResult = m_Service.FindCharacter(Game.Genshin, "Di");
-        IReadOnlyList<string> hsrResult = m_Service.FindCharacter(Game.HonkaiStarRail, "Ach");
+        var genshinResult = m_Service.FindCharacter(Game.Genshin, "Di");
+        var hsrResult = m_Service.FindCharacter(Game.HonkaiStarRail, "Ach");
 
         // Assert
         Assert.Multiple(() =>
@@ -597,8 +597,8 @@ public class CharacterAutocompleteServiceTests
             .Returns(hsrCharacters);
 
         // Act
-        IReadOnlyList<string> genshinResult = m_Service.FindCharacter(Game.Genshin, "Tra");
-        IReadOnlyList<string> hsrResult = m_Service.FindCharacter(Game.HonkaiStarRail, "Tra");
+        var genshinResult = m_Service.FindCharacter(Game.Genshin, "Tra");
+        var hsrResult = m_Service.FindCharacter(Game.HonkaiStarRail, "Tra");
 
         // Assert
         Assert.Multiple(() =>
@@ -631,7 +631,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "C");
+        var result = m_Service.FindCharacter(Game.Genshin, "C");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(11));
@@ -666,7 +666,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "K");
+        var result = m_Service.FindCharacter(Game.Genshin, "K");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(10));
@@ -688,7 +688,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.HonkaiStarRail, "B");
+        var result = m_Service.FindCharacter(Game.HonkaiStarRail, "B");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(5));
@@ -724,7 +724,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "");
+        var result = m_Service.FindCharacter(Game.Genshin, "");
 
         Assert.Multiple(() =>
         {
@@ -751,7 +751,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "D");
+        var result = m_Service.FindCharacter(Game.Genshin, "D");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(5));
@@ -783,7 +783,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "den");
+        var result = m_Service.FindCharacter(Game.Genshin, "den");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -804,7 +804,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "dehara");
+        var result = m_Service.FindCharacter(Game.Genshin, "dehara");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
@@ -825,7 +825,7 @@ public class CharacterAutocompleteServiceTests
             .Returns(allCharacters);
 
         // Act
-        IReadOnlyList<string> result = m_Service.FindCharacter(Game.Genshin, "yaka");
+        var result = m_Service.FindCharacter(Game.Genshin, "yaka");
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));

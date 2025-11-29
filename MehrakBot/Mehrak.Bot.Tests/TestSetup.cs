@@ -24,7 +24,7 @@ public class TestSetup
                      "*.png", SearchOption.AllDirectories))
         {
             var fileName = Path.GetFileNameWithoutExtension(image);
-            await using FileStream stream = File.OpenRead(image);
+            await using var stream = File.OpenRead(image);
             await imageRepository.UploadFileAsync(fileName, stream);
         }
     }

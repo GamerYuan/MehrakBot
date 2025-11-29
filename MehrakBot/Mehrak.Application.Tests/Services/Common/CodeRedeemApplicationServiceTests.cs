@@ -24,7 +24,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository> _, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, _, _, gameRoleApiMock, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -35,7 +35,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -50,7 +50,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_SingleCode_RedeemsSuccessfully()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -66,7 +66,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -89,7 +89,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_MultipleCodes_RedeemsAll()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -105,7 +105,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -130,7 +130,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_NoCodeProvided_UsesRepositoryCodes()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -150,7 +150,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -169,7 +169,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_NoCodeProvidedAndNoCachedCodes_ReturnsNoCodesMessage()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, _, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -184,7 +184,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -200,7 +200,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_CodeAlreadyRedeemed_ShowsInvalidStatus()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -216,7 +216,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -239,7 +239,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_ApiError_ShowsErrorMessage()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository> _, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -255,7 +255,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -271,7 +271,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_MixedResults_SavesOnlySuccessful()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -289,7 +289,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -311,7 +311,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_CodeNormalization_ConvertsToUppercaseAndTrims()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -327,7 +327,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -356,7 +356,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_DifferentGames_WorksCorrectly(Game game)
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository>? codeRepositoryMock, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, codeRepositoryMock, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -372,7 +372,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.That(result.IsSuccess, Is.True);
@@ -389,7 +389,7 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_EmptyCodeInList_IgnoresEmptyCode()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository> _, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository> _) = SetupMocks();
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -406,7 +406,7 @@ public class CodeRedeemApplicationServiceTests
         };
 
         // Act
-        CommandResult result = await service.ExecuteAsync(context);
+        var result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.That(result.IsSuccess, Is.True);
@@ -419,10 +419,10 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository> _, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, userRepositoryMock) = SetupMocks();
 
         // Game profile from API
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
@@ -476,9 +476,9 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository> _, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
@@ -529,9 +529,9 @@ public class CodeRedeemApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        (CodeRedeemApplicationService? service, Mock<ICodeRedeemRepository> _, Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>? codeRedeemApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, userRepositoryMock) = SetupMocks();
 
-        GameProfileDto profile = CreateTestProfile();
+        var profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));

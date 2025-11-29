@@ -87,9 +87,9 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzDefenseData> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Defense", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-        ZzzDefenseData data = context.Data;
+        var data = context.Data;
         List<IDisposable> disposables = [];
         try
         {
@@ -127,7 +127,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
 
             Dictionary<ZzzAvatar, Image<Rgba32>>.AlternateLookup<int> lookup = avatarImages.GetAlternateLookup<int>();
 
-            var height = 515 + floorDetails.Where(x => x.FloorNumber != 6).Chunk(2)
+            int height = 515 + floorDetails.Where(x => x.FloorNumber != 6).Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
             // 1550 x height
@@ -141,7 +141,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 }));
             disposables.Add(background);
 
-            TimeZoneInfo tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
+            var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {
@@ -178,7 +178,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 IPath ratingModule = ImageUtility.CreateRoundedRectanglePath(500, 90, 15).Translate(450, 30);
                 ctx.Fill(OverlayColor, ratingModule);
 
-                var ratingX = 470;
+                int ratingX = 470;
                 foreach (KeyValuePair<char, Image> entry in m_RatingImages)
                 {
                     ctx.DrawImage(entry.Value, new Point(ratingX, 35), 1f);
@@ -189,11 +189,11 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                     ratingX += 160;
                 }
 
-                var yOffset = 150;
+                int yOffset = 150;
                 IPath overlay;
-                foreach ((var floorNumber, FloorDetail? floorData) in floorDetails)
+                foreach ((int floorNumber, FloorDetail? floorData) in floorDetails)
                 {
-                    var xOffset = floorNumber % 2 * 750 + 50;
+                    int xOffset = floorNumber % 2 * 750 + 50;
 
                     if (floorNumber == 6)
                     {
@@ -253,10 +253,10 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
 
                     if (floorData == null)
                     {
-                        var isFast =
+                        bool isFast =
                             floorDetails.FirstOrDefault(x => x.FloorNumber > floorNumber && x.Data is not null)
                                 .Data is not null;
-                        var isBigBlob = false;
+                        bool isBigBlob = false;
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
                              !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
                             (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
@@ -361,16 +361,16 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
     {
         const int avatarWidth = 150;
 
-        var offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
+        int offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
         rosterImage.Mutate(ctx =>
         {
             ctx.Clear(Color.Transparent);
-            var x = 0;
+            int x = 0;
 
-            for (var i = 0; i < avatarImages.Count; i++)
+            for (int i = 0; i < avatarImages.Count; i++)
             {
                 x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(avatarImages[i], new Point(x, 0), 1f);

@@ -41,10 +41,10 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
     {
         try
         {
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            var region = server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
-            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
 
             if (profile == null)
@@ -57,7 +57,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
 
             var gameUid = profile.GameUid;
 
-            Result<ZzzDefenseData> defenseResponse =
+            var defenseResponse =
                 await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
                     gameUid, region));
 
@@ -68,7 +68,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                     string.Format(ResponseMessage.ApiError, "Shiyu Defense data"));
             }
 
-            ZzzDefenseData defenseData = defenseResponse.Data!;
+            var defenseData = defenseResponse.Data!;
 
             if (!defenseData.HasData)
             {
@@ -110,7 +110,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
             var cardContext = new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, profile);
             cardContext.SetParameter("server", server);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),

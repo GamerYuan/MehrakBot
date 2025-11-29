@@ -2,7 +2,7 @@
 
 public interface ICacheEntry<out T>
 {
-    string Key { get; }
-    T Value { get; }
-    TimeSpan ExpirationTime { get; }
+    public string Key { get; }
+    public T Value { get; }
+    public TimeSpan ExpirationTime { get; }
 }

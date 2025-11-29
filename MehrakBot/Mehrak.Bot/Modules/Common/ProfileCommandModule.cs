@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -28,7 +27,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     public async Task AddProfileCommand()
     {
         m_Logger.LogInformation("User {UserId} is adding HoYoLAB profile", Context.User.Id);
-        UserModel? user = await m_UserRepository.GetUserAsync(Context.User.Id);
+        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
 
         if (user?.Profiles != null && user.Profiles.Count() >= 10)
         {
@@ -48,7 +47,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             Description = "The ID of the profile you want to delete. Leave blank if you wish to delete all profiles.")]
         uint profileId = 0)
     {
-        UserModel? user = await m_UserRepository.GetUserAsync(Context.User.Id);
+        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
         if (user?.Profiles == null)
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -76,7 +75,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        for (var i = profiles.Count - 1; i >= 0; i--)
+        for (int i = profiles.Count - 1; i >= 0; i--)
             if (profiles[i].ProfileId == profileId)
                 profiles.RemoveAt(i);
             else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
@@ -93,7 +92,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("list", "List your profiles")]
     public async Task ListProfileCommand()
     {
-        UserModel? user = await m_UserRepository.GetUserAsync(Context.User.Id);
+        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
         if (user?.Profiles == null || !user.Profiles.Any())
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -102,7 +101,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        IEnumerable<TextDisplayProperties> profileList = user.Profiles.Select(x => new TextDisplayProperties(
+        var profileList = user.Profiles.Select(x => new TextDisplayProperties(
             $"## Profile {x.ProfileId}:\n**HoYoLAB UID:** {x.LtUid}\n### Games:\n" +
             $"{string.Join('\n', x.GameUids?.Select(y =>
                                      $"{y.Key}\n{string.Join(", ", y.Value.Select(z =>

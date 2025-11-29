@@ -62,10 +62,10 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 Id = Context.User.Id
             };
 
-            var inputs = Context.Components.OfType<TextInput>()
+            Dictionary<string, string> inputs = Context.Components.OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
+            if (!ulong.TryParse(inputs["ltuid"], out ulong ltuid))
             {
                 m_Logger.LogWarning("User {UserId} provided invalid UID format", Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(

@@ -32,7 +32,7 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
     protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
         string region)
     {
-        Result<GameProfileDto> gameProfileResult =
+        var gameProfileResult =
             await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region));
         if (!gameProfileResult.IsSuccess)
         {
@@ -47,8 +47,8 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
 
     protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, Server server)
     {
-        UserModel? user = await m_UserRepository.GetUserAsync(userId);
-        UserProfile? profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
+        var user = await m_UserRepository.GetUserAsync(userId);
+        var profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
 
         if (user != null && profile != null)
         {
@@ -63,8 +63,8 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
 
     protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server)
     {
-        UserModel? user = await m_UserRepository.GetUserAsync(userId);
-        UserProfile? profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
+        var user = await m_UserRepository.GetUserAsync(userId);
+        var profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
 
         if (user != null && profile != null)
         {

@@ -25,14 +25,14 @@ public class CharacterRepository : ICharacterRepository
     public async Task<List<string>> GetCharactersAsync(Game gameName)
     {
         m_Logger.LogInformation("Retrieving characters for game {Game} from database", gameName);
-        CharacterModel? characterModel = await GetCharacterModelAsync(gameName);
+        var characterModel = await GetCharacterModelAsync(gameName);
         return characterModel?.Characters ?? [];
     }
 
     public async Task<CharacterModel?> GetCharacterModelAsync(Game gameName)
     {
         m_Logger.LogDebug("Retrieving character model for game {Game} from database", gameName);
-        FilterDefinition<CharacterModel> filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
+        var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
         return await m_Characters.Find(filter).FirstOrDefaultAsync();
     }
 
@@ -43,8 +43,8 @@ public class CharacterRepository : ICharacterRepository
         m_Logger.LogInformation("Upserting characters for game {Game} with {Count} characters",
             gameName, charList);
 
-        FilterDefinition<CharacterModel> filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
-        UpdateDefinition<CharacterModel> update = Builders<CharacterModel>.Update
+        var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
+        var update = Builders<CharacterModel>.Update
             .AddToSetEach(x => x.Characters, charList);
 
         await m_Characters.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });

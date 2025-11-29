@@ -3,7 +3,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Mehrak.Bot.Modules.Common;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Models;
@@ -42,14 +41,14 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
     {
         m_Logger.LogDebug("GetAuthenticationAsync started for UserId={UserId}, ProfileId={ProfileId}",
             request.Context.Interaction.User.Id, request.ProfileId);
-        UserModel? user = await m_UserRepository.GetUserAsync(request.Context.Interaction.User.Id);
+        var user = await m_UserRepository.GetUserAsync(request.Context.Interaction.User.Id);
         if (user == null)
         {
             m_Logger.LogWarning("User account not found for UserId={UserId}", request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(request.Context, "User account not found. Please add a profile first.");
         }
 
-        UserProfile? profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == request.ProfileId);
+        var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == request.ProfileId);
         if (profile == null)
         {
             m_Logger.LogWarning("Profile not found for UserId={UserId}, ProfileId={ProfileId}",
@@ -82,7 +81,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         cts.CancelAfter(TimeSpan.FromMinutes(TimeoutMinutes));
         m_Logger.LogDebug("Waiting for authentication response. Guid={Guid}, TimeoutMinutes={TimeoutMinutes}", guid,
             TimeoutMinutes);
-        AuthenticationResponse? authResponse = await WaitForAuthenticationAsync(guid, cts.Token).ConfigureAwait(false);
+        var authResponse = await WaitForAuthenticationAsync(guid, cts.Token).ConfigureAwait(false);
 
         if (authResponse is null)
         {

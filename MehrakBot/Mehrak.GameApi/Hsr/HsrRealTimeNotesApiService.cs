@@ -42,7 +42,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient client = m_HttpClientFactory.CreateClient("Default");
+            var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Client_type", "5");
@@ -52,7 +52,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await client.SendAsync(request);
+            var response = await client.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -64,7 +64,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
                     $"Failed to fetch real-time notes: {response.ReasonPhrase}", requestUri);
             }
 
-            ApiResponse<HsrRealTimeNotesData>? json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(
                 await response.Content.ReadAsStreamAsync());
 
             if (json?.Data == null)

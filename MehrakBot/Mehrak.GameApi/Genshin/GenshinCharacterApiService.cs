@@ -45,8 +45,8 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
         try
         {
-            var cacheKey = $"genshin_characters_{context.GameUid}";
-            IEnumerable<GenshinBasicCharacterData>? cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey);
+            string cacheKey = $"genshin_characters_{context.GameUid}";
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey);
 
             if (cachedEntry != null)
             {
@@ -66,7 +66,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 Server = context.Region,
                 SortType = 1
             };
-            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
 
             HttpRequestMessage request = new()
             {
@@ -79,7 +79,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -91,7 +91,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "Failed to retrieve character list data", requestUri);
             }
 
-            ApiResponse<CharacterListData>? json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>();
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
@@ -156,7 +156,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 Server = context.Region,
                 CharacterIds = [context.CharacterId]
             };
-            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
 
             HttpRequestMessage request = new()
             {
@@ -169,7 +169,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);

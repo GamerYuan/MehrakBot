@@ -56,16 +56,16 @@ public class GenshinCharacterCardServiceTests
         await image.CopyToAsync(file);
 
         // Save generated image to output folder for comparison
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Generated.jpg");
+        string outputImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, file.ToArray());
 
-        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
             "TestAssets", goldenImageFileName));
 
         // Save golden image to output folder for comparison
-        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Golden.jpg");
+        string outputGoldenImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert

@@ -100,7 +100,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
     public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<HsrCharacterInformation>> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
         var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
@@ -167,8 +167,8 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                     ctx.DrawImage(image, new Point(position.X, position.Y), 1f);
                 }
 
-                var yOffset = layout.OutputHeight - 30;
-                var xOffset = 50;
+                int yOffset = layout.OutputHeight - 30;
+                int xOffset = 50;
                 foreach (var entry in charCountByElem)
                 {
                     FontRectangle countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),

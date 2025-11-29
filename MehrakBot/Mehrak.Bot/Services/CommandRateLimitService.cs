@@ -23,8 +23,8 @@ internal class CommandRateLimitService : ICommandRateLimitService
 
     public async Task<bool> IsRateLimitedAsync(ulong userId)
     {
-        var cacheKey = $"cmd_rate_limit:{userId}";
-        var val = await m_CacheService.GetAsync<string>(cacheKey);
+        string cacheKey = $"cmd_rate_limit:{userId}";
+        string? val = await m_CacheService.GetAsync<string>(cacheKey);
 
         if (val == null) return false;
 
@@ -34,7 +34,7 @@ internal class CommandRateLimitService : ICommandRateLimitService
 
     public async Task SetRateLimitAsync(ulong userId)
     {
-        var cacheKey = $"cmd_rate_limit:{userId}";
+        string cacheKey = $"cmd_rate_limit:{userId}";
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, "1", DefaultExpirationTime));
         m_Logger.LogDebug("Set rate limit for user {UserId}", userId);
     }

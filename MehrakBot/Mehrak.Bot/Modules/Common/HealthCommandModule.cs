@@ -7,7 +7,6 @@
 using System.Net.NetworkInformation;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure.Metrics;
-using Mehrak.Infrastructure.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using NetCord;
@@ -71,22 +70,22 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         response.WithFlags(MessageFlags.IsComponentsV2);
         response.AddComponents([container]);
 
-        ValueTask<SystemResource> systemUsageTask = m_PrometheusClientService.GetSystemResourceAsync();
+        var systemUsageTask = m_PrometheusClientService.GetSystemResourceAsync();
 
-        var mongoDbStatus = await m_MongoClient.RunCommandAsync((Command<BsonDocument>)"{ping:1}") != null;
+        bool mongoDbStatus = await m_MongoClient.RunCommandAsync((Command<BsonDocument>)"{ping:1}") != null;
 
         var cacheStatus = m_RedisConnection.IsConnected;
 
         var pingTasks = HealthCheckComponents.Select(async x =>
         {
             Ping ping = new();
-            PingReply pingResult = await ping.SendPingAsync(x.Value);
+            var pingResult = await ping.SendPingAsync(x.Value);
             return GetFormattedStatus(x.Key, pingResult.Status == IPStatus.Success ? "Online" : "Offline",
                 pingResult.Status == IPStatus.Success);
         }).ToList();
 
         var apiStatus = string.Join('\n', await Task.WhenAll(pingTasks));
-        SystemResource systemUsage = await systemUsageTask;
+        var systemUsage = await systemUsageTask;
 
         var convert = Math.Pow(1024, 3);
         container.AddComponents(new TextDisplayProperties("## Health Report"));

@@ -32,7 +32,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
@@ -43,7 +43,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -54,7 +54,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
 
-            ApiResponse<UserData>? json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>();
 
             if (json?.Data == null)
             {
@@ -82,7 +82,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
 
-            IEnumerable<GameRecordDto> result = json.Data.List.Select(x => new GameRecordDto
+            var result = json.Data.List.Select(x => new GameRecordDto
             {
                 GameId = x.GameId ?? 0,
                 Game = x.GameName switch

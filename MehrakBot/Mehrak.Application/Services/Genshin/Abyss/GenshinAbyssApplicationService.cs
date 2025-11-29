@@ -50,10 +50,10 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
         try
         {
             var floor = context.GetParameter<uint>("floor");
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
-            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
                 region);
             if (profile == null)
             {
@@ -63,7 +63,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
-            Result<GenshinAbyssInformation> abyssInfo = await m_ApiService.GetAsync(
+            var abyssInfo = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
                     region));
             if (!abyssInfo.IsSuccess)
@@ -74,8 +74,8 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                     string.Format(ResponseMessage.ApiError, "Spiral Abyss data"));
             }
 
-            GenshinAbyssInformation abyssData = abyssInfo.Data;
-            Floor? floorData = abyssData.Floors!.FirstOrDefault(x => x.Index == floor);
+            var abyssData = abyssInfo.Data;
+            var floorData = abyssData.Floors!.FirstOrDefault(x => x.Index == floor);
 
             if (floorData == null)
             {
@@ -107,7 +107,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                     await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                         new ImageProcessorBuilder().Resize(0, 150).Build())));
 
-            Result<IEnumerable<GenshinBasicCharacterData>> charListResponse = await m_CharacterApi.GetAllCharactersAsync(
+            var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
                     region));
 
@@ -138,7 +138,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             cardContext.SetParameter("server", server);
             cardContext.SetParameter("floor", floor);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",

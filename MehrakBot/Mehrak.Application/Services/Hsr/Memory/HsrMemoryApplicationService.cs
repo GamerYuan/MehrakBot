@@ -42,10 +42,10 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
     {
         try
         {
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
-            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
                 Game.HonkaiStarRail, region);
 
             if (profile == null)
@@ -57,7 +57,7 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
             var gameUid = profile.GameUid;
-            Result<HsrMemoryInformation> memoryResult =
+            var memoryResult =
                 await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
                     gameUid, region));
             if (!memoryResult.IsSuccess)
@@ -67,7 +67,7 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                     string.Format(ResponseMessage.ApiError, "Memory of Chaos data"));
             }
 
-            HsrMemoryInformation memoryData = memoryResult.Data;
+            var memoryData = memoryResult.Data;
 
             if (!memoryData.HasData || memoryData.BattleNum == 0)
             {
@@ -77,7 +77,7 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                     isEphemeral: true);
             }
 
-            IEnumerable<Task<bool>> tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            var tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
@@ -93,9 +93,9 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
             var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, profile);
             cardContext.SetParameter("server", server);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
-            TimeZoneInfo tz = server.GetTimeZoneInfo();
+            var tz = server.GetTimeZoneInfo();
             var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
             var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)

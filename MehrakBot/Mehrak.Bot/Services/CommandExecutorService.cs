@@ -3,7 +3,6 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,7 +49,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             "User {User} used command {Command}",
             Context.Interaction.User.Id, CommandName);
 
-        IEnumerable<string> invalid = Validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
+        var invalid = Validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
         if (invalid.Any())
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
@@ -62,17 +61,17 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
         if (!await ValidateRateLimitAsync()) return;
 
-        AuthenticationResult authResult =
+        var authResult =
             await AuthenticationMiddleware.GetAuthenticationAsync(new AuthenticationRequest(Context, profile));
 
         if (authResult.IsSuccess)
         {
-            using IDisposable observer = MetricsService.ObserveCommandDuration(CommandName);
+            using var observer = MetricsService.ObserveCommandDuration(CommandName);
 
             if (ValidateServer)
             {
                 var server = ApplicationContext.GetParameter<string?>("server");
-                Game game = ApplicationContext.GetParameter<Game>("game");
+                var game = ApplicationContext.GetParameter<Game>("game");
 
                 if (server == null)
                 {
@@ -95,9 +94,9 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             ApplicationContext.LToken = authResult.LToken;
             ApplicationContext.LtUid = authResult.LtUid;
 
-            IApplicationService<TContext> service =
+            var service =
                 m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();
-            CommandResult commandResult = await service
+            var commandResult = await service
                 .ExecuteAsync(ApplicationContext)
                 .ConfigureAwait(false);
 

@@ -26,16 +26,16 @@ public static class ServerUtility
 
     public static long GetNextWeeklyResetUnix(this Server region)
     {
-        TimeZoneInfo tz = region.GetTimeZoneInfo();
-        DateTime nowUtc = DateTime.UtcNow;
-        DateTime nowLocal = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
+        var tz = region.GetTimeZoneInfo();
+        var nowUtc = DateTime.UtcNow;
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
 
         // Calculate days until next Monday
         var daysUntilMonday = ((int)DayOfWeek.Monday - (int)nowLocal.DayOfWeek + 7) % 7;
         if (daysUntilMonday == 0 && nowLocal.TimeOfDay >= TimeSpan.FromHours(4))
             daysUntilMonday = 7; // If it's already Monday after 4AM, go to next week
 
-        DateTime nextMondayLocal = nowLocal.Date.AddDays(daysUntilMonday).AddHours(4);
+        var nextMondayLocal = nowLocal.Date.AddDays(daysUntilMonday).AddHours(4);
 
         // Convert back to UTC
         return new DateTimeOffset(nextMondayLocal).ToUnixTimeSeconds();

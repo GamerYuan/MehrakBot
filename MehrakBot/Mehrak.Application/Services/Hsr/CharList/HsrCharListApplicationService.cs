@@ -47,10 +47,10 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
     {
         try
         {
-            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            var region = server.ToRegion();
+            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            string region = server.ToRegion();
 
-            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
 
             if (profile == null)
@@ -63,7 +63,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 
             var gameUid = profile.GameUid;
 
-            Result<IEnumerable<HsrBasicCharacterData>> charResponse = await
+            var charResponse = await
                 m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
                     context.LToken, gameUid, region));
 
@@ -74,7 +74,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                     string.Format(ResponseMessage.ApiError, "Character List"));
             }
 
-            List<HsrCharacterInformation> characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
+            var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
             _ = m_CharacterCache.UpsertCharacters(Game.HonkaiStarRail, characterList.Select(x => x.Name));
 
             IEnumerable<Task<bool>> avatarTask = characterList.Select(x => m_ImageUpdaterService
@@ -97,7 +97,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                     context.UserId, characterList, profile);
             cardContext.SetParameter("server", server);
 
-            Stream card = await m_CardService.GetCardAsync(cardContext);
+            var card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)

@@ -44,8 +44,8 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
         try
         {
-            var cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
-            IEnumerable<Hi3CharacterDetail>? cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey);
+            string cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
+            var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey);
 
             // Try to get data from cache first
             if (cachedData != null)
@@ -78,7 +78,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            using HttpResponseMessage response = await client.SendAsync(request);
+            using var response = await client.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
