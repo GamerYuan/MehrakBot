@@ -12,7 +12,6 @@ namespace Mehrak.Application.Tests.Services.Hi3.Character;
 
 internal class Hi3CharacterCardServiceTests
 {
-
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hi3");
 
     private Hi3CharacterCardService m_CharacterCardService;
@@ -40,7 +39,6 @@ internal class Hi3CharacterCardServiceTests
         {
             NumberHandling = JsonNumberHandling.AllowReadingFromString
         };
-
 
         // Arrange
         string testDataPath = Path.Combine(TestDataPath, testDataFileName);
@@ -71,7 +69,6 @@ internal class Hi3CharacterCardServiceTests
             Level = 88
         };
     }
-
 
     private static async Task AssertImageMatches(Stream generatedImageStream, string goldenImagePath, string testName)
     {

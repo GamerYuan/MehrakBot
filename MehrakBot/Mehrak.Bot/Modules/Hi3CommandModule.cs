@@ -17,7 +17,6 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
     private readonly ICommandExecutorBuilder m_Builder;
     private readonly ILogger<Hi3CommandModule> m_Logger;
 
-
     public Hi3CommandModule(ICommandExecutorBuilder builder, ILogger<Hi3CommandModule> logger)
     {
         m_Builder = builder;

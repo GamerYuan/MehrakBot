@@ -190,7 +190,6 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                 stopwatch.ElapsedMilliseconds);
 
             return stream;
-
         }
         catch (Exception e)
         {

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using MongoDB.Bson;
@@ -16,5 +16,5 @@ public class CharacterModel
 
     [BsonElement("game")] public Game Game { get; set; }
 
-    [BsonElement("characters")] public required List<string> Characters { get; set; }
+    [BsonElement("characters")] public List<string> Characters { get; set; }
 }

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -16,5 +16,5 @@ public class HsrRelicModel
     // Each document stores a single mapping: set_id -> set_name
     [BsonElement("set_id")] public int SetId { get; set; }
 
-    [BsonElement("set_name")] public required string SetName { get; set; }
+    [BsonElement("set_name")] public string SetName { get; set; }
 }

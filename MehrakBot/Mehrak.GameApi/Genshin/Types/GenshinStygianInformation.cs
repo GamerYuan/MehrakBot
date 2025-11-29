@@ -16,16 +16,16 @@ public class StygianBestRecord
 
     [JsonPropertyName("second")] public int Second { get; init; }
 
-    [JsonPropertyName("icon")] public required string Icon { get; init; }
+    [JsonPropertyName("icon")] public string Icon { get; init; }
 }
 
 public class StygianBestAvatar
 {
     [JsonPropertyName("avatar_id")] public int AvatarId { get; init; }
 
-    [JsonPropertyName("side_icon")] public required string SideIcon { get; init; }
+    [JsonPropertyName("side_icon")] public string SideIcon { get; init; }
 
-    [JsonPropertyName("dps")] public required string Dps { get; init; }
+    [JsonPropertyName("dps")] public string Dps { get; init; }
 
     [JsonPropertyName("type")] public int Type { get; init; }
 
@@ -42,15 +42,15 @@ public class StygianBestAvatar
 
 public class Challenge
 {
-    [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("name")] public string Name { get; init; }
 
     [JsonPropertyName("second")] public int Second { get; init; }
 
-    [JsonPropertyName("teams")] public required List<StygianAvatar> Teams { get; init; }
+    [JsonPropertyName("teams")] public List<StygianAvatar> Teams { get; init; }
 
-    [JsonPropertyName("best_avatar")] public required List<StygianBestAvatar> BestAvatar { get; init; }
+    [JsonPropertyName("best_avatar")] public List<StygianBestAvatar> BestAvatar { get; init; }
 
-    [JsonPropertyName("monster")] public required Monster Monster { get; init; }
+    [JsonPropertyName("monster")] public Monster Monster { get; init; }
 }
 
 public class GenshinStygianInformation
@@ -64,11 +64,11 @@ public class GenshinStygianInformation
 
 public class Monster
 {
-    [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("name")] public string Name { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }
 
-    [JsonPropertyName("icon")] public required string Icon { get; init; }
+    [JsonPropertyName("icon")] public string Icon { get; init; }
 
     [JsonPropertyName("monster_id")] public int MonsterId { get; init; }
 
@@ -85,15 +85,15 @@ public class Monster
 
 public class StygianSchedule
 {
-    [JsonPropertyName("schedule_id")] public required string ScheduleId { get; init; }
+    [JsonPropertyName("schedule_id")] public string ScheduleId { get; init; }
 
-    [JsonPropertyName("start_time")] public required string StartTime { get; init; }
+    [JsonPropertyName("start_time")] public string StartTime { get; init; }
 
-    [JsonPropertyName("end_time")] public required string EndTime { get; init; }
+    [JsonPropertyName("end_time")] public string EndTime { get; init; }
 
     [JsonPropertyName("is_valid")] public bool IsValid { get; init; }
 
-    [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("name")] public string Name { get; init; }
 }
 
 public class StygianChallengeData
@@ -110,8 +110,8 @@ public class StygianChallengeData
 public class StygianData
 {
     [JsonPropertyName("schedule")] public StygianSchedule? Schedule { get; init; }
-    [JsonPropertyName("single")] public required StygianChallengeData Single { get; init; }
-    [JsonPropertyName("mp")] public required StygianChallengeData Multi { get; init; }
+    [JsonPropertyName("single")] public StygianChallengeData Single { get; init; }
+    [JsonPropertyName("mp")] public StygianChallengeData Multi { get; init; }
 }
 
 public class StygianAvatar
@@ -122,7 +122,7 @@ public class StygianAvatar
 
     [JsonPropertyName("element")] public string? Element { get; init; }
 
-    [JsonPropertyName("image")] public required string Image { get; init; }
+    [JsonPropertyName("image")] public string Image { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }
 

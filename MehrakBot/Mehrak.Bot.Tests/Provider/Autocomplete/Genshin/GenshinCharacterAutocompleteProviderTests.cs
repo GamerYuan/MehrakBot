@@ -388,7 +388,7 @@ public class GenshinCharacterAutocompleteProviderTests
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, "Yelan"))
-            .Returns(new List<string> { "Yelan" });
+            .Returns(["Yelan"]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
@@ -426,7 +426,7 @@ public class GenshinCharacterAutocompleteProviderTests
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, "123"))
-            .Returns(new List<string>());
+            .Returns([]);
 
         // Act
         var result = await m_Provider.GetChoicesAsync(option, context);

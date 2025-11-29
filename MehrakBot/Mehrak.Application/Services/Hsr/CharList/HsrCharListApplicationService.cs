@@ -25,6 +25,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
 
     private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
         m_CharacterApi;
+
     private readonly ICharacterCacheService m_CharacterCache;
 
     public HsrCharListApplicationService(

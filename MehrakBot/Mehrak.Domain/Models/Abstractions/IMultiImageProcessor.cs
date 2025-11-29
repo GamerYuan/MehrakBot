@@ -2,5 +2,5 @@
 
 public interface IMultiImageProcessor : IImageProcessor
 {
-    public Stream ProcessImage(IEnumerable<Stream> images);
+    Stream ProcessImage(IEnumerable<Stream> images);
 }

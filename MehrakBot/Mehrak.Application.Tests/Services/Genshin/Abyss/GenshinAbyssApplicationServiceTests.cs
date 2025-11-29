@@ -316,15 +316,15 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making abyss API fail
@@ -371,8 +371,8 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -385,7 +385,7 @@ public class GenshinAbyssApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         abyssApiMock
@@ -441,7 +441,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile> { new() { LtUid = 99999ul, LToken = "x" } }
+                Profiles = [new() { LtUid = 99999ul, LToken = "x" }]
             });
 
         await service.ExecuteAsync(context);

@@ -13,7 +13,7 @@ public class AbyssAvatar
 {
     [JsonPropertyName("id")] public int Id { get; init; }
 
-    [JsonPropertyName("icon")] public required string Icon { get; init; }
+    [JsonPropertyName("icon")] public string Icon { get; init; }
 
     [JsonPropertyName("level")] public int Level { get; init; }
 
@@ -36,7 +36,7 @@ public class Battle
 
     [JsonPropertyName("timestamp")] public string? Timestamp { get; init; }
 
-    [JsonPropertyName("avatars")] public required List<AbyssAvatar> Avatars { get; init; }
+    [JsonPropertyName("avatars")] public List<AbyssAvatar> Avatars { get; init; }
 }
 
 public class GenshinAbyssInformation
@@ -101,14 +101,14 @@ public class Level
 
     [JsonPropertyName("max_star")] public int MaxStar { get; init; }
 
-    [JsonPropertyName("battles")] public required List<Battle> Battles { get; init; }
+    [JsonPropertyName("battles")] public List<Battle> Battles { get; init; }
 }
 
 public class AbyssRankAvatar
 {
     [JsonPropertyName("avatar_id")] public int AvatarId { get; init; }
 
-    [JsonPropertyName("avatar_icon")] public required string AvatarIcon { get; init; }
+    [JsonPropertyName("avatar_icon")] public string AvatarIcon { get; init; }
 
     [JsonPropertyName("value")] public int Value { get; init; }
 

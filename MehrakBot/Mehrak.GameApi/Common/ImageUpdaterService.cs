@@ -83,7 +83,6 @@ public class ImageUpdaterService : IImageUpdaterService
             return r;
         });
 
-
         if (await images.AnyAsync(x => !x.IsSuccessStatusCode))
         {
             var failed = images.Where(x => !x.IsSuccessStatusCode);

@@ -14,4 +14,3 @@ public interface ICardGenerationContext<out T>
 
     void SetParameter(string key, object value);
 }
-

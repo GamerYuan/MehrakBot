@@ -8,24 +8,24 @@ namespace Mehrak.GameApi.Zzz.Types;
 
 public class ZzzRealTimeNotesData
 {
-    [JsonPropertyName("energy")] public required EnergyInfo Energy { get; init; }
-    [JsonPropertyName("vitality")] public required RegenProgress Vitality { get; init; }
-    [JsonPropertyName("vhs_sale")] public required VhsSale VhsSale { get; init; }
+    [JsonPropertyName("energy")] public EnergyInfo Energy { get; init; }
+    [JsonPropertyName("vitality")] public RegenProgress Vitality { get; init; }
+    [JsonPropertyName("vhs_sale")] public VhsSale VhsSale { get; init; }
 
     [JsonPropertyName("card_sign")]
     [JsonConverter(typeof(JsonStringEnumConverter<CardSignState>))]
     public CardSignState CardSign { get; init; }
 
     [JsonPropertyName("bounty_commission")]
-    public required BountyCommissionInfo BountyCommission { get; init; }
+    public BountyCommissionInfo BountyCommission { get; init; }
 
     [JsonPropertyName("weekly_task")] public WeeklyTaskInfo? WeeklyTask { get; init; }
-    [JsonPropertyName("temple_running")] public required TempleManageInfo TempleManage { get; init; }
+    [JsonPropertyName("temple_running")] public TempleManageInfo TempleManage { get; init; }
 }
 
 public class EnergyInfo
 {
-    [JsonPropertyName("progress")] public required RegenProgress Progress { get; init; }
+    [JsonPropertyName("progress")] public RegenProgress Progress { get; init; }
     [JsonPropertyName("restore")] public int Restore { get; init; }
     [JsonPropertyName("day_type")] public int DayType { get; init; }
     [JsonPropertyName("hour")] public int Hour { get; init; }

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using MongoDB.Bson;
@@ -16,5 +16,5 @@ public class AliasModel
 
     [BsonElement("game")] public Game Game { get; set; }
 
-    [BsonElement("alias")] public required Dictionary<string, string> Alias { get; set; }
+    [BsonElement("alias")] public Dictionary<string, string> Alias { get; set; }
 }
