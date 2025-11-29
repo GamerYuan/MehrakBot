@@ -443,9 +443,9 @@ public class HsrEndGameApplicationServiceTests
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(
+        var outputImagePath = Path.Combine(
             outputDirectory,
             $"HsrEndGameIntegration_{mode}_{Path.GetFileNameWithoutExtension(testDataFile)}.jpg");
 
@@ -466,8 +466,8 @@ public class HsrEndGameApplicationServiceTests
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        string? testLToken = config["LToken"];
+        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        var testLToken = config["LToken"];
 
         Assert.Multiple(() =>
         {
@@ -496,9 +496,9 @@ public class HsrEndGameApplicationServiceTests
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            string outputImagePath = Path.Combine(outputDirectory, $"HsrEndGameRealApi_{mode}.jpg");
+            var outputImagePath = Path.Combine(outputDirectory, $"HsrEndGameRealApi_{mode}.jpg");
 
             attachment.Content.Position = 0;
             await using var fileStream = File.Create(outputImagePath);
@@ -639,8 +639,8 @@ public class HsrEndGameApplicationServiceTests
         {
             NumberHandling = JsonNumberHandling.AllowReadingFromString
         };
-        string filePath = Path.Combine(TestDataPath, filename);
-        string json = await File.ReadAllTextAsync(filePath);
+        var filePath = Path.Combine(TestDataPath, filename);
+        var json = await File.ReadAllTextAsync(filePath);
         var result = JsonSerializer.Deserialize<HsrEndInformation>(json, options);
         if (result == null) throw new InvalidOperationException($"Failed to deserialize {filename}");
 

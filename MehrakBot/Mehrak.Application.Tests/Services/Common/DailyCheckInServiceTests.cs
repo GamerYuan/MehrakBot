@@ -576,7 +576,7 @@ public class DailyCheckInServiceTests
         if (hasCheckedInToday)
         {
             // Set check-in to earlier today (UTC+8)
-            DateTime todayUtc8 = nowUtc8.Date.AddHours(10); // 10 AM today UTC+8
+            var todayUtc8 = nowUtc8.Date.AddHours(10); // 10 AM today UTC+8
             lastCheckIn = TimeZoneInfo.ConvertTimeToUtc(todayUtc8, cst);
         }
 

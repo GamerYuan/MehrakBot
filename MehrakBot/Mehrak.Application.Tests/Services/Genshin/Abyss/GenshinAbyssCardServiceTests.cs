@@ -39,39 +39,39 @@ public class GenshinAbyssCardServiceTests
     [TestCase("Abyss_TestData_3.json")]
     public async Task GetAbyssCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
-        GenshinAbyssInformation? testData =
+        var testData =
             await JsonSerializer.DeserializeAsync<GenshinAbyssInformation>(
                 File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-        byte[] goldenImage =
+        var goldenImage =
             await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
                 "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(TestUserId, testData, profile);
         cardContext.SetParameter("floor", 12u);
         cardContext.SetParameter("server", Server.Asia);
         cardContext.SetParameter("constMap", GetConstMap());
 
-        Stream stream =
+        var stream =
             await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        byte[] bytes = memoryStream.ToArray();
+        var bytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"GenshinAbyss_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory,
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"GenshinAbyss_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 

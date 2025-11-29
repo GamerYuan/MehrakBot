@@ -37,7 +37,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            var region = server.ToRegion();
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
@@ -74,14 +74,14 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
     private async Task<CommandResult> BuildRealTimeNotes(GenshinRealTimeNotesData data,
         Server server, string uid)
     {
-        Task<Stream> resinImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_resin");
-        Task<Stream> expeditionImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_expedition");
-        Task<Stream> teapotImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_teapot");
-        Task<Stream> weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
-        Task<Stream> transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
+        var resinImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_resin");
+        var expeditionImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_expedition");
+        var teapotImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_teapot");
+        var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
+        var transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
 
-        long currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        long weeklyReset = server.GetNextWeeklyResetUnix();
+        var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var weeklyReset = server.GetNextWeeklyResetUnix();
 
         List<ICommandResultComponent> components =
         [

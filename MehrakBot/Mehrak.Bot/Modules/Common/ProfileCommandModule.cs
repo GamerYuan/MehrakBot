@@ -75,7 +75,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        for (int i = profiles.Count - 1; i >= 0; i--)
+        for (var i = profiles.Count - 1; i >= 0; i--)
             if (profiles[i].ProfileId == profileId)
                 profiles.RemoveAt(i);
             else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;

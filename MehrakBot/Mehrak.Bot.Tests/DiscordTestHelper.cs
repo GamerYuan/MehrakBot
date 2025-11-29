@@ -108,23 +108,23 @@ public sealed partial class DiscordTestHelper : IDisposable
         SetupRequestCapture();
 
         var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = $"sample_token_{userId}",
+            Data = new JsonInteractionData
             {
-                Token = $"sample_token_{userId}",
-                Data = new JsonInteractionData
-                {
-                    Components = []
-                },
-                User = new JsonUser
-                {
-                    Id = userId
-                },
-                Channel = new JsonChannel
-                {
-                    Id = 987654321UL,
-                    Type = ChannelType.TextGuildChannel
-                },
-                Entitlements = []
+                Components = []
             },
+            User = new JsonUser
+            {
+                Id = userId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        },
             null,
             async (interaction, callback, _, _, cancellationToken) =>
                 await DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id, interaction.Token, callback,
@@ -156,7 +156,7 @@ public sealed partial class DiscordTestHelper : IDisposable
 
         // Add parameters if specified
         if (parameters.Length > 0)
-            for (int i = 0; i < parameters.Length; i++)
+            for (var i = 0; i < parameters.Length; i++)
                 option[i] = new JsonApplicationCommandInteractionDataOption
                 {
                     Name = parameters[i].Name,
@@ -262,34 +262,34 @@ public sealed partial class DiscordTestHelper : IDisposable
         var boundary = "--" + boundaryMatch.Groups[1].Value.Trim('"');
 
         // Find file boundary indices to properly extract binary data
-        int[] boundaryIndices = FindAllOccurrences(contentBytes, Encoding.ASCII.GetBytes(boundary));
+        var boundaryIndices = FindAllOccurrences(contentBytes, Encoding.ASCII.GetBytes(boundary));
 
-        for (int i = 0; i < boundaryIndices.Length - 1; i++)
+        for (var i = 0; i < boundaryIndices.Length - 1; i++)
         {
             // Get this part's content
-            int partStart = boundaryIndices[i];
-            int partEnd = boundaryIndices[i + 1];
-            byte[] partBytes = new byte[partEnd - partStart];
+            var partStart = boundaryIndices[i];
+            var partEnd = boundaryIndices[i + 1];
+            var partBytes = new byte[partEnd - partStart];
             Array.Copy(contentBytes, partStart, partBytes, 0, partBytes.Length);
 
             // Convert to string to check headers
-            string partText = Encoding.UTF8.GetString(partBytes);
+            var partText = Encoding.UTF8.GetString(partBytes);
 
             // Check if this is a file part
             if (partText.Contains("Content-Disposition: form-data") &&
                 partText.Contains("filename="))
             {
                 // Find the boundary between headers and file data
-                int headerEndIndex = partText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                var headerEndIndex = partText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
                 if (headerEndIndex > 0)
                 {
                     // Calculate the start position of file bytes in the overall content
-                    int fileStart = partStart + headerEndIndex + 4; // +4 for \r\n\r\n
-                    int fileEnd = partEnd - 2; // -2 for \r\n at end
+                    var fileStart = partStart + headerEndIndex + 4; // +4 for \r\n\r\n
+                    var fileEnd = partEnd - 2; // -2 for \r\n at end
 
                     // Extract file bytes
-                    int fileLength = fileEnd - fileStart;
-                    byte[] fileBytes = new byte[fileLength];
+                    var fileLength = fileEnd - fileStart;
+                    var fileBytes = new byte[fileLength];
                     Array.Copy(contentBytes, fileStart, fileBytes, 0, fileLength);
                     return fileBytes;
                 }
@@ -306,10 +306,10 @@ public sealed partial class DiscordTestHelper : IDisposable
     {
         var positions = new List<int>();
 
-        for (int i = 0; i <= source.Length - pattern.Length; i++)
+        for (var i = 0; i <= source.Length - pattern.Length; i++)
         {
-            bool found = true;
-            for (int j = 0; j < pattern.Length; j++)
+            var found = true;
+            for (var j = 0; j < pattern.Length; j++)
                 if (source[i + j] != pattern[j])
                 {
                     found = false;

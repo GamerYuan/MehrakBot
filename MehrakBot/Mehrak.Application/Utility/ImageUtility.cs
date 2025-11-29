@@ -24,10 +24,10 @@ public static class ImageUtility
     {
         return context.ProcessPixelRowsAsVector4(row =>
         {
-            int width = row.Length;
-            int fadeStartX = (int)(width * fadeStart);
+            var width = row.Length;
+            var fadeStartX = (int)(width * fadeStart);
             // fade only columns from fadeStartX → width
-            for (int x = fadeStartX; x < width; x++)
+            for (var x = fadeStartX; x < width; x++)
             {
                 // same fall‑off curve you had before
                 var alpha = 1.0f - (float)(x - fadeStartX) / (width - fadeStartX);
@@ -45,10 +45,10 @@ public static class ImageUtility
         starCount = Math.Clamp(starCount, 1, 5);
 
         const int starSize = 30;
-        int width = 5 * starSize;
-        int height = starSize;
+        var width = 5 * starSize;
+        var height = starSize;
 
-        int centerY = starSize / 2;
+        var centerY = starSize / 2;
         var offset = (5 - starCount) * starSize / 2;
 
         var image = new Image<Rgba32>(width, height);
@@ -57,9 +57,9 @@ public static class ImageUtility
         {
             ctx.Clear(Color.Transparent);
 
-            for (int i = 0; i < starCount; i++)
+            for (var i = 0; i < starCount; i++)
             {
-                int centerX = offset + i * starSize + starSize / 2;
+                var centerX = offset + i * starSize + starSize / 2;
 
                 // Create a star shape
                 var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
@@ -98,7 +98,7 @@ public static class ImageUtility
         {
             ctx.Clear(Color.Transparent);
 
-            for (int i = 0; i < starCount; i++)
+            for (var i = 0; i < starCount; i++)
             {
                 float centerX, centerY;
 
@@ -138,7 +138,7 @@ public static class ImageUtility
 
     public static IImageProcessingContext ApplyRoundedCorners(this IImageProcessingContext context, float cornerRadius)
     {
-        Size size = context.GetCurrentSize();
+        var size = context.GetCurrentSize();
         IPathCollection corners = BuildCorners(size.Width, size.Height, cornerRadius);
 
         context.SetGraphicsOptions(new GraphicsOptions
@@ -152,7 +152,7 @@ public static class ImageUtility
 
         // Mutating in here as we already have a cloned original use any color
         // (not Transparent), so the corners will be clipped
-        foreach (IPath path in corners) context = context.Fill(Color.Red, path);
+        foreach (var path in corners) context = context.Fill(Color.Red, path);
 
         return context;
     }
@@ -205,12 +205,12 @@ public static class ImageUtility
         int points)
     {
         var result = new PointF[points * 2];
-        float angle = -MathF.PI / 2;
-        float angleIncrement = MathF.PI / points;
+        var angle = -MathF.PI / 2;
+        var angleIncrement = MathF.PI / points;
 
-        for (int i = 0; i < points * 2; i++)
+        for (var i = 0; i < points * 2; i++)
         {
-            float radius = i % 2 == 0 ? outerRadius : innerRadius;
+            var radius = i % 2 == 0 ? outerRadius : innerRadius;
             result[i] = new PointF(
                 centerX + radius * MathF.Cos(angle),
                 centerY + radius * MathF.Sin(angle)
@@ -227,19 +227,19 @@ public static class ImageUtility
         var rect = new RectangularPolygon(-0.5f, -0.5f, cornerRadius, cornerRadius);
 
         // Then cut out of the square a circle so we are left with a corner
-        IPath cornerTopLeft = rect.Clip(new EllipsePolygon(cornerRadius - 0.5f, cornerRadius - 0.5f, cornerRadius));
+        var cornerTopLeft = rect.Clip(new EllipsePolygon(cornerRadius - 0.5f, cornerRadius - 0.5f, cornerRadius));
 
         // Corner is now a corner shape positions top left let's make 3 more
         // positioned correctly, we can do that by translating the original
         // around the center of the image.
 
-        float rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
-        float bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
+        var rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
+        var bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
 
         // Move it across the width of the image - the width of the shape
-        IPath cornerTopRight = cornerTopLeft.RotateDegree(90).Translate(rightPos, 0);
-        IPath cornerBottomLeft = cornerTopLeft.RotateDegree(-90).Translate(0, bottomPos);
-        IPath cornerBottomRight = cornerTopLeft.RotateDegree(180).Translate(rightPos, bottomPos);
+        var cornerTopRight = cornerTopLeft.RotateDegree(90).Translate(rightPos, 0);
+        var cornerBottomLeft = cornerTopLeft.RotateDegree(-90).Translate(0, bottomPos);
+        var cornerBottomRight = cornerTopLeft.RotateDegree(180).Translate(rightPos, bottomPos);
 
         return new PathCollection(cornerTopLeft, cornerBottomLeft, cornerTopRight, cornerBottomRight);
     }
@@ -332,26 +332,26 @@ public static class ImageUtility
         int[] padding,
         int imageSpacing)
     {
-        int bestColumns = 1;
-        int bestRows = imageCount;
-        double bestRatioDifference = double.MaxValue;
+        var bestColumns = 1;
+        var bestRows = imageCount;
+        var bestRatioDifference = double.MaxValue;
 
         // Try different column configurations
-        for (int columns = 1; columns <= imageCount; columns++)
+        for (var columns = 1; columns <= imageCount; columns++)
         {
-            int rows = (int)Math.Ceiling((double)imageCount / columns);
+            var rows = (int)Math.Ceiling((double)imageCount / columns);
 
             // Calculate what the aspect ratio would be with this grid
-            int gridWidth = padding[3] + padding[1] + // left + right padding
+            var gridWidth = padding[3] + padding[1] + // left + right padding
                             columns * imageWidth +
                             (columns - 1) * imageSpacing;
 
-            int gridHeight = padding[0] + padding[2] + // top + bottom padding
+            var gridHeight = padding[0] + padding[2] + // top + bottom padding
                              rows * imageHeight +
                              (rows - 1) * imageSpacing;
 
-            double currentRatio = (double)gridWidth / gridHeight;
-            double ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
+            var currentRatio = (double)gridWidth / gridHeight;
+            var ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
 
             if (ratioDifference < bestRatioDifference)
             {
@@ -374,13 +374,13 @@ public static class ImageUtility
     {
         var positions = new List<ImagePosition>();
 
-        for (int i = 0; i < imageCount; i++)
+        for (var i = 0; i < imageCount; i++)
         {
-            int column = i % columns;
-            int row = i / columns;
+            var column = i % columns;
+            var row = i / columns;
 
-            int x = padding[3] + column * (imageWidth + imageSpacing); // left padding + column offset
-            int y = padding[0] + row * (imageHeight + imageSpacing); // top padding + row offset
+            var x = padding[3] + column * (imageWidth + imageSpacing); // left padding + column offset
+            var y = padding[0] + row * (imageHeight + imageSpacing); // top padding + row offset
 
             positions.Add(new ImagePosition(x, y, i));
         }

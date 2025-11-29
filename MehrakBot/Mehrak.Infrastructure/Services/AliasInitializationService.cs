@@ -1,7 +1,6 @@
-#region
+﻿#region
 
 using System.Text.Json;
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.Hosting;
@@ -58,7 +57,7 @@ public class AliasInitializationService : IHostedService
             return;
         }
 
-        string[] aliasJsonFiles = Directory.GetFiles(m_AssetsPath, "*aliases*.json", SearchOption.AllDirectories);
+        var aliasJsonFiles = Directory.GetFiles(m_AssetsPath, "*aliases*.json", SearchOption.AllDirectories);
 
         if (aliasJsonFiles.Length == 0)
         {
@@ -68,7 +67,7 @@ public class AliasInitializationService : IHostedService
 
         m_Logger.LogInformation("Found {Count} alias JSON files", aliasJsonFiles.Length);
 
-        foreach (string file in aliasJsonFiles) await ProcessAliasJsonFileAsync(file);
+        foreach (var file in aliasJsonFiles) await ProcessAliasJsonFileAsync(file);
     }
 
     private async Task ProcessAliasJsonFileAsync(string filePath)
@@ -77,8 +76,8 @@ public class AliasInitializationService : IHostedService
         {
             m_Logger.LogInformation("Processing alias JSON file {FilePath}", filePath);
 
-            string jsonContent = await File.ReadAllTextAsync(filePath);
-            AliasJsonModel? aliasJsonModel = JsonSerializer.Deserialize<AliasJsonModel>(jsonContent);
+            var jsonContent = await File.ReadAllTextAsync(filePath);
+            var aliasJsonModel = JsonSerializer.Deserialize<AliasJsonModel>(jsonContent);
 
             if (aliasJsonModel == null)
             {
@@ -86,14 +85,14 @@ public class AliasInitializationService : IHostedService
                 return;
             }
 
-            Game gameName = aliasJsonModel.Game;
-            Dictionary<string, string> aliases = aliasJsonModel.Aliases
+            var gameName = aliasJsonModel.Game;
+            var aliases = aliasJsonModel.Aliases
                 .SelectMany(x => x.Alias.Select(alias => (alias, x.Name)))
                 .ToDictionary(x => x.alias, x => x.Name);
 
-            Dictionary<string, string> existingAlias = await m_AliasRepository.GetAliasesAsync(gameName);
+            var existingAlias = await m_AliasRepository.GetAliasesAsync(gameName);
 
-            List<KeyValuePair<string, string>> newAliases =
+            var newAliases =
                 aliases.Where(x => !existingAlias.ContainsKey(x.Key)).ToList();
 
             if (newAliases.Count > 0)
@@ -106,7 +105,7 @@ public class AliasInitializationService : IHostedService
 
                 Dictionary<string, string> merged = [];
 
-                foreach (KeyValuePair<string, string> alias in
+                foreach (var alias in
                          newAliases.Concat(existingAlias).Where(alias => !merged.ContainsKey(alias.Key)))
                     merged.Add(alias.Key, alias.Value);
 

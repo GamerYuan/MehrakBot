@@ -34,7 +34,7 @@ public class CharacterCacheService : ICharacterCacheService
 
     public List<string> GetCharacters(Game gameName)
     {
-        if (m_CharacterCache.TryGetValue(gameName, out List<string>? characters))
+        if (m_CharacterCache.TryGetValue(gameName, out var characters))
         {
             m_Logger.LogDebug("Retrieved {Count} characters for {Game} from cache", characters.Count, gameName);
             return characters;
@@ -47,7 +47,7 @@ public class CharacterCacheService : ICharacterCacheService
 
     public Dictionary<string, string> GetAliases(Game gameName)
     {
-        return m_AliasCache.TryGetValue(gameName, out Dictionary<string, string>? dict) ? dict : [];
+        return m_AliasCache.TryGetValue(gameName, out var dict) ? dict : [];
     }
 
     public async Task UpsertCharacters(Game gameName, IEnumerable<string> characters)
@@ -74,9 +74,9 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogInformation("Starting character cache update for all games");
 
-            Game[] games = Enum.GetValues<Game>();
-            IEnumerable<Task> updateTasks = games.Select(UpdateCharactersAsync);
-            IEnumerable<Task> aliasTasks = games.Select(UpdateAliasesAsync);
+            var games = Enum.GetValues<Game>();
+            var updateTasks = games.Select(UpdateCharactersAsync);
+            var aliasTasks = games.Select(UpdateAliasesAsync);
 
             await Task.WhenAll(updateTasks);
             await Task.WhenAll(aliasTasks);
@@ -99,7 +99,7 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating character cache for {Game}", gameName);
 
-            List<string> characters = await m_CharacterRepository.GetCharactersAsync(gameName);
+            var characters = await m_CharacterRepository.GetCharactersAsync(gameName);
             characters.Sort();
 
             if (characters.Count > 0)

@@ -111,7 +111,7 @@ public class BotMetricsService : IMetricsService, IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        MetricsConfig metricsConfig = m_MetricsOptions.Value;
+        var metricsConfig = m_MetricsOptions.Value;
         if (!metricsConfig.Enabled)
         {
             m_Logger.LogInformation("Metrics service disabled");

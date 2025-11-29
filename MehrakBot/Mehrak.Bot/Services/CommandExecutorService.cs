@@ -78,7 +78,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                     server = GetLastUsedServerAsync(authResult.User, game, profile);
                     if (server == null)
                     {
-                        await Context.Interaction.SendFollowupMessageAsync(
+                        await authResult.Context.Interaction.SendFollowupMessageAsync(
                             new InteractionMessageProperties().WithContent(
                                     "Server is required for first time use. Please specify the server parameter.")
                                 .WithFlags(MessageFlags.Ephemeral));

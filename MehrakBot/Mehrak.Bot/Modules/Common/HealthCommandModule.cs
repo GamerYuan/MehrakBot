@@ -72,7 +72,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
 
         var systemUsageTask = m_PrometheusClientService.GetSystemResourceAsync();
 
-        bool mongoDbStatus = await m_MongoClient.RunCommandAsync((Command<BsonDocument>)"{ping:1}") != null;
+        var mongoDbStatus = await m_MongoClient.RunCommandAsync((Command<BsonDocument>)"{ping:1}") != null;
 
         var cacheStatus = m_RedisConnection.IsConnected;
 

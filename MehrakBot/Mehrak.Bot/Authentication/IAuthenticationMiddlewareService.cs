@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Diagnostics.CodeAnalysis;
 using Mehrak.Domain.Models;
@@ -21,6 +21,7 @@ public class AuthenticationResult
 
     [MemberNotNullWhen(true, nameof(LToken))]
     [MemberNotNullWhen(true, nameof(User))]
+    [MemberNotNullWhen(true, nameof(Context))]
     [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool IsSuccess => Status == AuthStatus.Success;
 

@@ -37,7 +37,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -62,7 +62,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                     string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
             }
 
-            HsrRealTimeNotesData notesData = notesResult.Data;
+            var notesData = notesResult.Data;
 
             return await BuildRealTimeNotes(notesData, server, gameUid);
         }

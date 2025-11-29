@@ -269,7 +269,7 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        int expectedCalls = character.Stigmatas.Count + character.Costumes.Count + 1; // weapon
+        var expectedCalls = character.Stigmatas.Count + character.Costumes.Count + 1; // weapon
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
             Times.Exactly(expectedCalls));
     }
@@ -452,9 +452,9 @@ public class Hi3CharacterApplicationServiceTests
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
         // Save card image
-        string outputDir = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDir = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDir);
-        string outputPath = Path.Combine(outputDir, $"Hi3CharacterIntegration_{character.Avatar.Name}.jpg");
+        var outputPath = Path.Combine(outputDir, $"Hi3CharacterIntegration_{character.Avatar.Name}.jpg");
         attachment.Content.Position = 0;
         await using var fs = File.Create(outputPath);
         await attachment.Content.CopyToAsync(fs);

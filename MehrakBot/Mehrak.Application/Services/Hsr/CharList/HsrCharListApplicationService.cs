@@ -48,7 +48,7 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -77,9 +77,9 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
             var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
             _ = m_CharacterCache.UpsertCharacters(Game.HonkaiStarRail, characterList.Select(x => x.Name));
 
-            IEnumerable<Task<bool>> avatarTask = characterList.Select(x => m_ImageUpdaterService
+            var avatarTask = characterList.Select(x => m_ImageUpdaterService
                 .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor));
-            IEnumerable<Task<bool>> weaponTask =
+            var weaponTask =
                 characterList.Where(x => x.Equip is not null).Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.Equip!.ToIconImageData(),
                         new ImageProcessorBuilder().Resize(150, 0).Build()));

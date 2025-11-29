@@ -52,7 +52,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<HsrCharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrCharacterApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin character")
+            .WithCommandName("hsr character")
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 

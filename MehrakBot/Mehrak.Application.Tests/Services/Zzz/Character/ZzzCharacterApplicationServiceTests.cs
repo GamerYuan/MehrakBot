@@ -548,9 +548,9 @@ public class ZzzCharacterApplicationServiceTests
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(
+        var outputImagePath = Path.Combine(
             outputDirectory,
             $"ZzzCharacterIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_{characterName}.jpg");
 
@@ -572,9 +572,9 @@ public class ZzzCharacterApplicationServiceTests
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        string? testLToken = config["LToken"];
-        string characterName = "Jane"; // Replace with a character you own
+        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        var testLToken = config["LToken"];
+        var characterName = "Jane"; // Replace with a character you own
 
         Assert.Multiple(() =>
         {
@@ -606,9 +606,9 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            string outputImagePath = Path.Combine(outputDirectory, $"ZzzCharacterRealApi_{characterName}.jpg");
+            var outputImagePath = Path.Combine(outputDirectory, $"ZzzCharacterRealApi_{characterName}.jpg");
 
             attachment.Content.Position = 0;
             await using var fileStream = File.Create(outputImagePath);
@@ -841,8 +841,8 @@ public class ZzzCharacterApplicationServiceTests
 
     private static async Task<ZzzFullAvatarData> LoadTestDataAsync(string filename)
     {
-        string filePath = Path.Combine(TestDataPath, filename);
-        string json = await File.ReadAllTextAsync(filePath);
+        var filePath = Path.Combine(TestDataPath, filename);
+        var json = await File.ReadAllTextAsync(filePath);
         var result = JsonSerializer.Deserialize<ZzzFullAvatarData>(json);
 
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");

@@ -42,7 +42,7 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
@@ -88,11 +88,11 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                     isEphemeral: true);
             }
 
-            IEnumerable<Task<bool>> updateImageTask = nonNull.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            var updateImageTask = nonNull.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x!.Id)
                 .Select(avatar =>
                     m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
-            IEnumerable<Task<bool>> updateBuddyTask = nonNull
+            var updateBuddyTask = nonNull
                 .SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)

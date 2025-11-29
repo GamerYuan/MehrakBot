@@ -47,7 +47,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
         try
         {
-            string cacheKey = $"zzz_characters_{context.GameUid}";
+            var cacheKey = $"zzz_characters_{context.GameUid}";
             var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey);
 
             if (cachedEntry != null)
@@ -63,7 +63,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
 
             HttpRequestMessage request = new()
             {
@@ -74,7 +74,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -86,7 +86,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     "Failed to retrieve character list data", requestUri);
             }
 
-            ApiResponse<ZzzBasicAvatarResponse>? json =
+            var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBasicAvatarResponse>>(
                     await response.Content.ReadAsStreamAsync(), JsonOptions);
 
@@ -149,7 +149,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
 
             HttpRequestMessage request = new()
             {
@@ -160,7 +160,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -172,7 +172,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     "Failed to retrieve character data");
             }
 
-            ApiResponse<ZzzFullAvatarData>? json =
+            var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzFullAvatarData>>(
                     await response.Content.ReadAsStreamAsync(), JsonOptions);
 

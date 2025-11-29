@@ -39,36 +39,36 @@ public class ZzzAssaultCardServiceTests
     [TestCase("Da_TestData_3.json")]
     public async Task GetAssaultCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
-        ZzzAssaultData? assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(
+        var assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(assaultData, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
             "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
-        GameProfileDto userGameData = GetTestUserGameData();
+        var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData, userGameData);
         cardContext.SetParameter("server", Server.Asia);
 
-        Stream image = await m_Service.GetCardAsync(cardContext);
+        var image = await m_Service.GetCardAsync(cardContext);
         Assert.That(image, Is.Not.Null);
 
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
-        byte[] generatedImageBytes = memoryStream.ToArray();
+        var generatedImageBytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory,
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 

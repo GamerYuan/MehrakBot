@@ -56,7 +56,7 @@ public class CharacterInitializationService : IHostedService
             return;
         }
 
-        string[] characterJsonFiles =
+        var characterJsonFiles =
             Directory.GetFiles(m_AssetsPath, "*characters*.json", SearchOption.AllDirectories);
 
         if (characterJsonFiles.Length == 0)
@@ -67,7 +67,7 @@ public class CharacterInitializationService : IHostedService
 
         m_Logger.LogInformation("Found {Count} character JSON files", characterJsonFiles.Length);
 
-        foreach (string jsonFile in characterJsonFiles) await ProcessCharacterJsonFile(jsonFile);
+        foreach (var jsonFile in characterJsonFiles) await ProcessCharacterJsonFile(jsonFile);
     }
 
     private async Task ProcessCharacterJsonFile(string jsonFilePath)
@@ -76,7 +76,7 @@ public class CharacterInitializationService : IHostedService
         {
             m_Logger.LogDebug("Processing character JSON file: {FilePath}", jsonFilePath);
 
-            string jsonContent = await File.ReadAllTextAsync(jsonFilePath);
+            var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
             var characterJsonModel = JsonSerializer.Deserialize<CharacterJsonModel>(jsonContent);
 
             if (characterJsonModel == null)

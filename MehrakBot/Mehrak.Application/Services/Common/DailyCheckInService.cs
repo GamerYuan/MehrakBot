@@ -41,9 +41,9 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
 
             if (user != null && profile != null && profile.LastCheckIn.HasValue)
             {
-                TimeZoneInfo timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
-                DateTime nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
-                DateTime lastCheckInUtc8 = TimeZoneInfo.ConvertTimeFromUtc(profile.LastCheckIn.Value, timeZoneInfo);
+                var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+                var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
+                var lastCheckInUtc8 = TimeZoneInfo.ConvertTimeFromUtc(profile.LastCheckIn.Value, timeZoneInfo);
 
                 if (lastCheckInUtc8.Date == nowUtc8.Date)
                 {

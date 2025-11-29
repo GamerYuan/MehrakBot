@@ -10,7 +10,7 @@ public interface ICommandResultComponent;
 
 public interface ICommandResultAttachment
 {
-    public (string, Stream) GetAttachment();
+    (string, Stream) GetAttachment();
 }
 
 public enum CommandFailureReason

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
@@ -52,7 +52,7 @@ public class CharacterCacheBackgroundService : BackgroundService
             await m_CharacterCacheService.UpdateAllCharactersAsync();
             stoppingToken.ThrowIfCancellationRequested();
 
-            Dictionary<Game, int> cacheStatus = m_CharacterCacheService.GetCacheStatus();
+            var cacheStatus = m_CharacterCacheService.GetCacheStatus();
             m_Logger.LogInformation("Initial character cache populated: {CacheStatus}",
                 string.Join(", ", cacheStatus.Select(kvp => $"{kvp.Key}={kvp.Value}")));
         }
@@ -93,9 +93,9 @@ public class CharacterCacheBackgroundService : BackgroundService
         {
             m_Logger.LogDebug("Performing periodic character cache update");
 
-            Dictionary<Game, int> beforeStatus = m_CharacterCacheService.GetCacheStatus();
+            var beforeStatus = m_CharacterCacheService.GetCacheStatus();
             await m_CharacterCacheService.UpdateAllCharactersAsync();
-            Dictionary<Game, int> afterStatus = m_CharacterCacheService.GetCacheStatus();
+            var afterStatus = m_CharacterCacheService.GetCacheStatus();
 
             LogCacheChanges(beforeStatus, afterStatus);
         }
@@ -109,8 +109,8 @@ public class CharacterCacheBackgroundService : BackgroundService
     {
         List<string> changes = [];
 
-        foreach ((Game game, int afterCount) in afterStatus)
-            if (beforeStatus.TryGetValue(game, out int beforeCount))
+        foreach ((var game, var afterCount) in afterStatus)
+            if (beforeStatus.TryGetValue(game, out var beforeCount))
             {
                 if (beforeCount != afterCount) changes.Add($"{game}: {beforeCount} -> {afterCount}");
             }
@@ -119,7 +119,7 @@ public class CharacterCacheBackgroundService : BackgroundService
                 changes.Add($"{game}: new -> {afterCount}");
             }
 
-        foreach ((Game game, int beforeCount) in beforeStatus)
+        foreach ((var game, var beforeCount) in beforeStatus)
             if (!afterStatus.ContainsKey(game))
                 changes.Add($"{game}: {beforeCount} -> removed");
 

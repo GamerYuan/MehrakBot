@@ -31,7 +31,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient client = m_HttpClientFactory.CreateClient("Default");
+            var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
@@ -44,7 +44,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await client.SendAsync(request);
+            var response = await client.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -56,7 +56,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
             if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
@@ -64,7 +64,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            int retCode = json["retcode"]?.GetValue<int>() ?? -1;
+            var retCode = json["retcode"]?.GetValue<int>() ?? -1;
 
             // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retCode, context.UserId);

@@ -48,7 +48,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            var region = server.ToRegion();
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
@@ -61,7 +61,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
 
-            string gameUid = profile.GameUid;
+            var gameUid = profile.GameUid;
 
             var charResponse = await
                 m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
@@ -77,10 +77,10 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
             var characterList = charResponse.Data.ToList();
             _ = m_CharacterCache.UpsertCharacters(Game.Genshin, characterList.Select(x => x.Name));
 
-            IEnumerable<Task<bool>> avatarTask =
+            var avatarTask =
                 characterList.Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            IEnumerable<Task<bool>> weaponTask =
+            var weaponTask =
                 characterList.Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
                         new ImageProcessorBuilder().Resize(200, 0).Build()));

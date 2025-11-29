@@ -23,9 +23,9 @@ public class AsyncInitializationHostedService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using IServiceScope scope = m_ServiceProvider.CreateScope();
+        using var scope = m_ServiceProvider.CreateScope();
 
-        IEnumerable<IAsyncInitializable> services = scope.ServiceProvider.GetServices<IAsyncInitializable>();
+        var services = scope.ServiceProvider.GetServices<IAsyncInitializable>();
 
         await Task.WhenAll(services.Select(x => x.InitializeAsync(cancellationToken)));
 

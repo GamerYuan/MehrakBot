@@ -45,8 +45,8 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
     public async Task<Result<CheckInStatus>> GetAsync(CheckInApiContext context)
     {
-        if (!CheckInUrls.TryGetValue(context.Game, out string? requestUri) ||
-            !CheckInActIds.TryGetValue(context.Game, out string? actId))
+        if (!CheckInUrls.TryGetValue(context.Game, out var requestUri) ||
+            !CheckInActIds.TryGetValue(context.Game, out var actId))
         {
             m_Logger.LogError("Invalid check-in type: {Type}", context.Game);
             return Result<CheckInStatus>.Failure(StatusCode.BadParameter, "Invalid check-in type");
@@ -56,7 +56,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
         {
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Post, requestUri);
             CheckInApiPayload requestBody = new() { ActId = actId };
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
@@ -68,7 +68,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            HttpResponseMessage response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -80,7 +80,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     "An unknown error occurred during check-in", requestUri);
             }
 
-            JsonNode? json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
 
             if (json == null)
             {
@@ -89,7 +89,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     "An unknown error occurred during check-in", requestUri);
             }
 
-            int? retcode = json["retcode"]?.GetValue<int>();
+            var retcode = json["retcode"]?.GetValue<int>();
 
             // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode ?? -1,

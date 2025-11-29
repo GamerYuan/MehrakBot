@@ -316,15 +316,15 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making abyss API fail
@@ -371,8 +371,8 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -385,7 +385,7 @@ public class GenshinAbyssApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         abyssApiMock
@@ -441,7 +441,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile> { new() { LtUid = 99999ul, LToken = "x" } }
+                Profiles = [new() { LtUid = 99999ul, LToken = "x" }]
             });
 
         await service.ExecuteAsync(context);
@@ -496,9 +496,9 @@ public class GenshinAbyssApplicationServiceTests
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"AbyssIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_Floor{floor}.jpg");
 
         attachment.Content.Position = 0;
@@ -516,8 +516,8 @@ public class GenshinAbyssApplicationServiceTests
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        string? testLToken = config["LToken"];
+        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        var testLToken = config["LToken"];
         const uint floor = 12u;
 
         Assert.Multiple(() =>
@@ -549,9 +549,9 @@ public class GenshinAbyssApplicationServiceTests
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            string outputImagePath = Path.Combine(outputDirectory, $"AbyssRealApi_Floor{floor}.jpg");
+            var outputImagePath = Path.Combine(outputDirectory, $"AbyssRealApi_Floor{floor}.jpg");
 
             attachment.Content.Position = 0;
             await using var fileStream = File.Create(outputImagePath);
@@ -810,8 +810,8 @@ public class GenshinAbyssApplicationServiceTests
 
     private static async Task<T> LoadTestDataAsync<T>(string filename) where T : class
     {
-        string filePath = Path.Combine(TestDataPath, filename);
-        string json = await File.ReadAllTextAsync(filePath);
+        var filePath = Path.Combine(TestDataPath, filename);
+        var json = await File.ReadAllTextAsync(filePath);
         var result = JsonSerializer.Deserialize<T>(json);
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
     }

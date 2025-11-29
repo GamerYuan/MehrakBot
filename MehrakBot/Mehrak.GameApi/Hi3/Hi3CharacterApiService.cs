@@ -44,7 +44,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
         try
         {
-            string cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
+            var cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
             var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey);
 
             // Try to get data from cache first
@@ -61,7 +61,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            HttpClient client = m_HttpClientFactory.CreateClient("Default");
+            var client = m_HttpClientFactory.CreateClient("Default");
             using HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
@@ -90,7 +90,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                     "Failed to retrieve character information", requestUri);
             }
 
-            ApiResponse<Hi3CharacterList>? json =
+            var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<Hi3CharacterList>>(
                     await response.Content.ReadAsStreamAsync(), JsonOptions);
 

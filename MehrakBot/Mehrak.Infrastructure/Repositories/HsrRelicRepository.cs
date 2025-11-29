@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
@@ -24,13 +24,13 @@ public class HsrRelicRepository : IRelicRepository
 
     public async Task AddSetName(int setId, string setName)
     {
-        FilterDefinition<HsrRelicModel> filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
-        UpdateDefinition<HsrRelicModel> update = Builders<HsrRelicModel>.Update
+        var filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
+        var update = Builders<HsrRelicModel>.Update
             .SetOnInsert(x => x.SetId, setId)
             .SetOnInsert(x => x.SetName, setName);
 
         UpdateOptions options = new() { IsUpsert = true };
-        UpdateResult result = await m_MongoCollection.UpdateOneAsync(filter, update, options);
+        var result = await m_MongoCollection.UpdateOneAsync(filter, update, options);
 
         if (result.UpsertedId != null)
             m_Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
@@ -42,8 +42,8 @@ public class HsrRelicRepository : IRelicRepository
 
     public async Task<string> GetSetName(int setId)
     {
-        FilterDefinition<HsrRelicModel> filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
-        HsrRelicModel? doc = await m_MongoCollection.Find(filter).FirstOrDefaultAsync();
+        var filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
+        var doc = await m_MongoCollection.Find(filter).FirstOrDefaultAsync();
         if (doc == null)
         {
             m_Logger.LogWarning("Set name for setId {SetId} not found", setId);
