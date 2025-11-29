@@ -110,7 +110,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(("name", "ValidName"));
+        ApplicationContextBase context = CreateContext(("name", "ValidName"));
 
         // Act
         var result = validator.IsValid(context);
@@ -124,7 +124,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(("name", ""));
+        ApplicationContextBase context = CreateContext(("name", ""));
 
         // Act
         var result = validator.IsValid(context);
@@ -138,7 +138,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(); // No parameters
+        ApplicationContextBase context = CreateContext(); // No parameters
 
         // Act
         var result = validator.IsValid(context);
@@ -152,7 +152,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("name", x => x != null);
-        var context = CreateContext(("name", null!));
+        ApplicationContextBase context = CreateContext(("name", null!));
 
         // Act
         var result = validator.IsValid(context);
@@ -170,7 +170,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("age", x => x >= 18);
-        var context = CreateContext(("age", 25));
+        ApplicationContextBase context = CreateContext(("age", 25));
 
         // Act
         var result = validator.IsValid(context);
@@ -184,7 +184,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("age", x => x >= 18);
-        var context = CreateContext(("age", 15));
+        ApplicationContextBase context = CreateContext(("age", 15));
 
         // Act
         var result = validator.IsValid(context);
@@ -198,7 +198,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("count", x => x > 0);
-        var context = CreateContext(("count", 0));
+        ApplicationContextBase context = CreateContext(("count", 0));
 
         // Act
         var result = validator.IsValid(context);
@@ -212,7 +212,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("balance", x => x >= 0);
-        var context = CreateContext(("balance", -10));
+        ApplicationContextBase context = CreateContext(("balance", -10));
 
         // Act
         var result = validator.IsValid(context);
@@ -230,7 +230,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<bool>("isActive", x => x == true);
-        var context = CreateContext(("isActive", true));
+        ApplicationContextBase context = CreateContext(("isActive", true));
 
         // Act
         var result = validator.IsValid(context);
@@ -244,7 +244,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<bool>("isActive", x => x == true);
-        var context = CreateContext(("isActive", false));
+        ApplicationContextBase context = CreateContext(("isActive", false));
 
         // Act
         var result = validator.IsValid(context);
@@ -262,7 +262,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<TestEnum>("status", x => x != TestEnum.Invalid);
-        var context = CreateContext(("status", TestEnum.Active));
+        ApplicationContextBase context = CreateContext(("status", TestEnum.Active));
 
         // Act
         var result = validator.IsValid(context);
@@ -276,7 +276,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<TestEnum>("status", x => x != TestEnum.Invalid);
-        var context = CreateContext(("status", TestEnum.Invalid));
+        ApplicationContextBase context = CreateContext(("status", TestEnum.Invalid));
 
         // Act
         var result = validator.IsValid(context);
@@ -290,7 +290,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<TestObject>("data", x => x.Value > 0);
-        var context = CreateContext(("data", new TestObject { Value = 10 }));
+        ApplicationContextBase context = CreateContext(("data", new TestObject { Value = 10 }));
 
         // Act
         var result = validator.IsValid(context);
@@ -304,7 +304,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<TestObject>("data", x => x != null && x.Value > 0);
-        var context = CreateContext(("data", null!));
+        ApplicationContextBase context = CreateContext(("data", null!));
 
         // Act
         var result = validator.IsValid(context);
@@ -322,7 +322,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("age", x => x >= 18);
-        var context = CreateContext(("age", "25")); // String instead of int
+        ApplicationContextBase context = CreateContext(("age", "25")); // String instead of int
 
         // Act
         var result = validator.IsValid(context);
@@ -336,7 +336,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(("name", 123)); // int instead of string
+        ApplicationContextBase context = CreateContext(("name", 123)); // int instead of string
 
         // Act
         var result = validator.IsValid(context);
@@ -355,7 +355,7 @@ public class ParamValidatorTests
         // Arrange
         var validator = new ParamValidator<string>("email",
             x => !string.IsNullOrEmpty(x) && x.Contains("@") && x.Length > 5);
-        var context = CreateContext(("email", "test@example.com"));
+        ApplicationContextBase context = CreateContext(("email", "test@example.com"));
 
         // Act
         var result = validator.IsValid(context);
@@ -369,7 +369,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("param", x => true);
-        var context = CreateContext(("param", "any value"));
+        ApplicationContextBase context = CreateContext(("param", "any value"));
 
         // Act
         var result = validator.IsValid(context);
@@ -383,7 +383,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("param", x => false);
-        var context = CreateContext(("param", "any value"));
+        ApplicationContextBase context = CreateContext(("param", "any value"));
 
         // Act
         var result = validator.IsValid(context);
@@ -397,9 +397,9 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("score", x => x is >= 0 and <= 100);
-        var validContext = CreateContext(("score", 50));
-        var invalidContextLow = CreateContext(("score", -1));
-        var invalidContextHigh = CreateContext(("score", 101));
+        ApplicationContextBase validContext = CreateContext(("score", 50));
+        ApplicationContextBase invalidContextLow = CreateContext(("score", -1));
+        ApplicationContextBase invalidContextHigh = CreateContext(("score", 101));
 
         // Act & Assert
         Assert.Multiple(() =>
@@ -419,7 +419,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(
+        ApplicationContextBase context = CreateContext(
             ("name", "John"),
             ("age", 25),
             ("email", "john@example.com"));
@@ -436,7 +436,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(
+        ApplicationContextBase context = CreateContext(
             ("name", ""),
             ("age", 25));
 
@@ -514,7 +514,7 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("value", x => x > 10);
-        var context = CreateContext(("value", 15));
+        ApplicationContextBase context = CreateContext(("value", 15));
 
         // Act
         var result1 = validator.IsValid(context);
@@ -535,8 +535,8 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int>("value", x => x > 10);
-        var validContext = CreateContext(("value", 15));
-        var invalidContext = CreateContext(("value", 5));
+        ApplicationContextBase validContext = CreateContext(("value", 15));
+        ApplicationContextBase invalidContext = CreateContext(("value", 5));
 
         // Act & Assert
         Assert.Multiple(() =>
@@ -551,8 +551,8 @@ public class ParamValidatorTests
     {
         // Arrange
         var validator = new ParamValidator<int?>("nullableValue", x => x.HasValue && x.Value > 0);
-        var validContext = CreateContext(("nullableValue", (int?)10));
-        var nullContext = CreateContext(("nullableValue", null!));
+        ApplicationContextBase validContext = CreateContext(("nullableValue", (int?)10));
+        ApplicationContextBase nullContext = CreateContext(("nullableValue", null!));
 
         // Act & Assert
         Assert.Multiple(() =>
@@ -574,9 +574,9 @@ public class ParamValidatorTests
             x => !string.IsNullOrEmpty(x) && x.Contains("@") && x.Contains("."),
             "Please enter a valid email address");
 
-        var validContext = CreateContext(("email", "user@example.com"));
-        var invalidContext1 = CreateContext(("email", "invalid-email"));
-        var invalidContext2 = CreateContext(("email", ""));
+        ApplicationContextBase validContext = CreateContext(("email", "user@example.com"));
+        ApplicationContextBase invalidContext1 = CreateContext(("email", "invalid-email"));
+        ApplicationContextBase invalidContext2 = CreateContext(("email", ""));
 
         // Act & Assert
         Assert.Multiple(() =>
@@ -596,9 +596,9 @@ public class ParamValidatorTests
             x => x is >= 18 and <= 120,
             "Age must be between 18 and 120");
 
-        var validContext = CreateContext(("age", 25));
-        var tooYoungContext = CreateContext(("age", 17));
-        var tooOldContext = CreateContext(("age", 121));
+        ApplicationContextBase validContext = CreateContext(("age", 25));
+        ApplicationContextBase tooYoungContext = CreateContext(("age", 17));
+        ApplicationContextBase tooOldContext = CreateContext(("age", 121));
 
         // Act & Assert
         Assert.Multiple(() =>
@@ -617,9 +617,9 @@ public class ParamValidatorTests
             x => !string.IsNullOrEmpty(x) && x.Length >= 3 && x.Length <= 20,
             "Username must be between 3 and 20 characters");
 
-        var validContext = CreateContext(("username", "john_doe"));
-        var tooShortContext = CreateContext(("username", "ab"));
-        var tooLongContext = CreateContext(("username", "this_username_is_way_too_long"));
+        ApplicationContextBase validContext = CreateContext(("username", "john_doe"));
+        ApplicationContextBase tooShortContext = CreateContext(("username", "ab"));
+        ApplicationContextBase tooLongContext = CreateContext(("username", "this_username_is_way_too_long"));
 
         // Act & Assert
         Assert.Multiple(() =>
@@ -638,10 +638,10 @@ public class ParamValidatorTests
             x => !string.IsNullOrEmpty(x) && x.Length >= 8 && x.Any(char.IsDigit) && x.Any(char.IsUpper),
             "Password must be at least 8 characters with a number and uppercase letter");
 
-        var validContext = CreateContext(("password", "SecurePass123"));
-        var tooShortContext = CreateContext(("password", "Short1"));
-        var noNumberContext = CreateContext(("password", "NoNumberHere"));
-        var noUpperContext = CreateContext(("password", "nouppercase123"));
+        ApplicationContextBase validContext = CreateContext(("password", "SecurePass123"));
+        ApplicationContextBase tooShortContext = CreateContext(("password", "Short1"));
+        ApplicationContextBase noNumberContext = CreateContext(("password", "NoNumberHere"));
+        ApplicationContextBase noUpperContext = CreateContext(("password", "nouppercase123"));
 
         // Act & Assert
         Assert.Multiple(() =>

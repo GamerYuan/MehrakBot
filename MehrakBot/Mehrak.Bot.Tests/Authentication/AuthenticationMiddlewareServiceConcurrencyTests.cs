@@ -11,6 +11,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NetCord;
 using NetCord.Services;
 
 #endregion
@@ -62,7 +63,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         m_UserTokens = new ConcurrentDictionary<ulong, string>();
 
         var baseUserId = (ulong)(DateTime.UtcNow.Ticks % 1_000_000_000) * 1000;
-        for (int i = 0; i < NumberOfConcurrentUsers; i++)
+        for (var i = 0; i < NumberOfConcurrentUsers; i++)
         {
             var userId = baseUserId + (ulong)i;
             m_TestUserIds.Add(userId);
@@ -99,7 +100,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                 return new UserModel
                 {
                     Id = userId,
-                    Profiles = new List<UserProfile> { profile }
+                    Profiles = [profile]
                 };
             });
     }
@@ -146,13 +147,13 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                     helper.SetupRequestCapture();
 
                     var mockContext = new Mock<IInteractionContext>();
-                    var interaction = helper.CreateModalInteraction(userId);
+                    ModalInteraction interaction = helper.CreateModalInteraction(userId);
                     mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
                     var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
                     // Start authentication
-                    var authTask = m_Service.GetAuthenticationAsync(request);
+                    Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(request);
 
                     // Extract GUID from modal response
                     var guid = await ExtractGuidWithRetryAsync(helper, cancellationToken);
@@ -199,7 +200,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                     }
 
                     // Wait for authentication result
-                    var result = await authTask;
+                    AuthenticationResult result = await authTask;
 
                     // Track results
                     if (result.Status == AuthStatus.Success)
@@ -320,22 +321,22 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         var helpers = new List<DiscordTestHelper>();
 
         // Act - Create multiple simultaneous authentication requests for same user
-        for (int i = 0; i < simultaneousRequests; i++)
+        for (var i = 0; i < simultaneousRequests; i++)
         {
             var helper = new DiscordTestHelper();
             helper.SetupRequestCapture();
             helpers.Add(helper);
 
-            var task = Task.Run(async () =>
+            Task<(bool, AuthenticationResult, string)> task = Task.Run(async () =>
             {
                 var mockContext = new Mock<IInteractionContext>();
-                var interaction = helper.CreateModalInteraction(userId);
+                ModalInteraction interaction = helper.CreateModalInteraction(userId);
                 mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
                 var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
                 // Start authentication
-                var authTask = m_Service.GetAuthenticationAsync(request);
+                Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(request);
 
                 // Extract GUID
                 var guid = await ExtractGuidWithRetryAsync(helper, CancellationToken.None);
@@ -347,18 +348,18 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                 var authResponse = new AuthenticationResponse(userId, guid, CorrectPassphrase, mockContext.Object);
                 var notifyResult = m_Service.NotifyAuthenticate(authResponse);
 
-                var result = await authTask;
+                AuthenticationResult result = await authTask;
                 return (notifyResult, result, guid);
             });
 
             tasks.Add(task);
         }
 
-        var results = await Task.WhenAll(tasks);
+        (bool NotifySuccess, AuthenticationResult Result, string Guid)[] results = await Task.WhenAll(tasks);
         stopwatch.Stop();
 
         // Cleanup
-        foreach (var helper in helpers) helper.Dispose();
+        foreach (DiscordTestHelper helper in helpers) helper.Dispose();
 
         // Assert
         var successfulNotifications = results.Count(r => r.NotifySuccess);
@@ -407,7 +408,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             new ParallelOptions { MaxDegreeOfParallelism = MaxParallelism },
             async (userId, cancellationToken) =>
             {
-                for (int requestNum = 0; requestNum < requestsPerUser; requestNum++)
+                for (var requestNum = 0; requestNum < requestsPerUser; requestNum++)
                 {
                     using var helper = new DiscordTestHelper();
                     helper.SetupRequestCapture();
@@ -415,12 +416,12 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                     try
                     {
                         var mockContext = new Mock<IInteractionContext>();
-                        var interaction = helper.CreateModalInteraction(userId);
+                        ModalInteraction interaction = helper.CreateModalInteraction(userId);
                         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
                         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
-                        var authTask = m_Service.GetAuthenticationAsync(request);
+                        Task<AuthenticationResult> authTask = m_Service.GetAuthenticationAsync(request);
                         var guid = await ExtractGuidWithRetryAsync(helper, cancellationToken);
 
                         if (guid == null)
@@ -433,7 +434,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                             new AuthenticationResponse(userId, guid, CorrectPassphrase, mockContext.Object);
                         m_Service.NotifyAuthenticate(authResponse);
 
-                        var result = await authTask;
+                        AuthenticationResult result = await authTask;
 
                         allResults.Add((userId, requestNum, result.IsSuccess, result.LToken));
                     }
@@ -449,7 +450,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         // Assert
         var totalRequests = numberOfUsers * requestsPerUser;
         var successfulRequests = allResults.Count(r => r.Success);
-        var groupedByUser = allResults.GroupBy(r => r.UserId);
+        IEnumerable<IGrouping<ulong, (ulong UserId, int RequestNumber, bool Success, string? Token)>> groupedByUser = allResults.GroupBy(r => r.UserId);
 
         await TestContext.Out.WriteLineAsync("---");
         await TestContext.Out.WriteLineAsync($"Total time: {stopwatch.Elapsed.TotalSeconds:F2}s");
@@ -469,7 +470,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                 "At least 95% of requests should succeed");
 
             // Verify no token corruption - all successful requests for same user should get same token
-            foreach (var userGroup in groupedByUser)
+            foreach (IGrouping<ulong, (ulong UserId, int RequestNumber, bool Success, string? Token)> userGroup in groupedByUser)
             {
                 var successfulTokens = userGroup.Where(r => r.Success && r.Token != null).Select(r => r.Token)
                     .Distinct().ToList();
@@ -489,7 +490,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
         const int maxRetries = 50; // 50 * 100ms = 5 seconds max wait
         const int delayMs = 100;
 
-        for (int i = 0; i < maxRetries; i++)
+        for (var i = 0; i < maxRetries; i++)
         {
             if (cancellationToken.IsCancellationRequested)
                 return null;
@@ -498,7 +499,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
             if (!string.IsNullOrEmpty(responseData))
             {
-                var guidMatch = ModalGuidRegex().Match(responseData);
+                System.Text.RegularExpressions.Match guidMatch = ModalGuidRegex().Match(responseData);
                 if (guidMatch.Success) return guidMatch.Groups[1].Value;
             }
 

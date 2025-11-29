@@ -95,7 +95,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_WithServerParameter_UsesProvidedServer()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -104,7 +104,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -134,7 +134,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_WithoutServerParameter_UsesLastUsedServer()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -144,7 +144,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid, TestServer);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid, TestServer);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -168,7 +168,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_NoServerAndNoLastUsed_SendsErrorMessage()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -178,7 +178,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid, null);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid, null);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -201,7 +201,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_UpdatesLastUsedServer()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -212,7 +212,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid, TestServer);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid, TestServer);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -240,7 +240,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_SuccessWithEphemeralContext_SendsEphemeralFollowup()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -250,7 +250,7 @@ public class CommandExecutorServiceTests
         m_Service.ApplicationContext = context;
         m_Service.IsResponseEphemeral = true; // Set ephemeral
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -271,7 +271,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_SuccessWithNonEphemeralResult_SendsPublicFollowupWithButton()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -281,7 +281,7 @@ public class CommandExecutorServiceTests
         m_Service.ApplicationContext = context;
         m_Service.IsResponseEphemeral = false; // Public response
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -304,7 +304,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ResultWithEphemeralData_OverridesServiceEphemeralSetting()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -314,7 +314,7 @@ public class CommandExecutorServiceTests
         m_Service.ApplicationContext = context;
         m_Service.IsResponseEphemeral = false; // Service set to public
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -349,7 +349,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_WithInvalidValidation_SendsErrorAndStops()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -380,7 +380,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_WhenRateLimited_SendsRateLimitMessage()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -410,7 +410,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationSuccess_SetsContextProperties()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -419,7 +419,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -445,7 +445,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationFailure_SendsErrorMessage()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -473,7 +473,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationTimeout_DoesNotSendResponse()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -500,7 +500,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceSuccess_TracksMetrics()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -510,7 +510,7 @@ public class CommandExecutorServiceTests
         m_Service.ApplicationContext = context;
         m_Service.CommandName = "testcommand";
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -537,7 +537,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceFailure_TracksFailureMetrics()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -547,7 +547,7 @@ public class CommandExecutorServiceTests
         m_Service.ApplicationContext = context;
         m_Service.CommandName = "testcommand";
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -570,7 +570,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceFailure_SendsErrorFollowup()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -579,7 +579,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -606,7 +606,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ResolvesApplicationServiceFromServiceProvider()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -615,7 +615,7 @@ public class CommandExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = context;
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -642,7 +642,7 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_CompleteFlow_ExecutesInCorrectOrder()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -658,7 +658,7 @@ public class CommandExecutorServiceTests
             .ReturnsAsync(false)
             .Callback(() => callOrder.Add("RateLimit"));
 
-        var user = CreateTestUser(TestProfileId, TestLtUid);
+        UserModel user = CreateTestUser(TestProfileId, TestLtUid);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))

@@ -50,7 +50,7 @@ public class HsrEndGameCardServiceTests
                 File.OpenRead(Path.Combine(TestDataPath, "Hsr", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-        byte[] goldenImage =
+        var goldenImage =
             await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
                 "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
@@ -65,17 +65,17 @@ public class HsrEndGameCardServiceTests
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        byte[] bytes = memoryStream.ToArray();
+        var bytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"HsrPf_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory,
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"HsrPf_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
@@ -94,7 +94,7 @@ public class HsrEndGameCardServiceTests
                 File.OpenRead(Path.Combine(TestDataPath, "Hsr", testDataFileName)), JsonOptions);
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-        byte[] goldenImage =
+        var goldenImage =
             await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
                 "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
@@ -109,17 +109,17 @@ public class HsrEndGameCardServiceTests
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        byte[] bytes = memoryStream.ToArray();
+        var bytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"HsrAs_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory,
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"HsrAs_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 

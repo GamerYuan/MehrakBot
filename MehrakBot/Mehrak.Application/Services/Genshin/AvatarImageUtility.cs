@@ -26,7 +26,7 @@ internal static class AvatarImageUtility
     static AvatarImageUtility()
     {
         var collection = new FontCollection();
-        var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
+        FontFamily fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
         NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
         SmallFont = fontFamily.CreateFont(18, FontStyle.Regular);
     }
@@ -54,7 +54,7 @@ internal static class AvatarImageUtility
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
             }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.Black);
-            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
+            IPath constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
             if (constellation == 6)
             {
                 ctx.Fill(Color.Gold, constIcon);
@@ -69,17 +69,17 @@ internal static class AvatarImageUtility
             {
                 ctx.Fill(NormalConstColor, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
-                    {
-                        Origin = new PointF(130, 130),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{constellation}", Color.White);
+                {
+                    Origin = new PointF(130, 130),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{constellation}", Color.White);
             }
 
             switch (avatarType)
             {
                 case 2:
-                    var trialOverlay = ImageUtility.CreateRoundedRectanglePath(80, 35, 15);
+                    IPath trialOverlay = ImageUtility.CreateRoundedRectanglePath(80, 35, 15);
                     ctx.Fill(Color.FromRgb(225, 118, 128), trialOverlay.Translate(90, -10));
                     ctx.DrawText(new RichTextOptions(SmallFont)
                     {
@@ -89,7 +89,7 @@ internal static class AvatarImageUtility
                     break;
 
                 case 3:
-                    var supportOverlay = ImageUtility.CreateRoundedRectanglePath(130, 35, 15);
+                    IPath supportOverlay = ImageUtility.CreateRoundedRectanglePath(130, 35, 15);
                     ctx.Fill(Color.FromRgb(73, 128, 185), supportOverlay.Translate(50, -10));
                     ctx.DrawText(new RichTextOptions(SmallFont)
                     {

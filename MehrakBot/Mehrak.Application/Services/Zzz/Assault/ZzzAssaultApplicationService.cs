@@ -49,10 +49,10 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
 
             if (profile == null)
@@ -63,9 +63,9 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
 
-            string gameUid = profile.GameUid;
+            var gameUid = profile.GameUid;
 
-            var assaultResponse =
+            Result<ZzzAssaultData> assaultResponse =
                 await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
                     gameUid, region));
 
@@ -118,7 +118,7 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
             var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            Stream card = await m_CardService.GetCardAsync(cardContext);
 
             TimeZoneInfo tz = server.GetTimeZoneInfo();
 

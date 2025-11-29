@@ -228,7 +228,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(null, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -246,7 +246,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Components, Is.Not.Null);
@@ -267,7 +267,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Components, Is.Not.Null);
@@ -284,7 +284,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Components, Is.Not.Null);
@@ -306,7 +306,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Components, Is.Not.Null);
@@ -329,7 +329,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Components, Is.Not.Null);
@@ -356,11 +356,11 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Components, Is.Not.Null);
-        var container = result.Components!.OfType<ComponentContainerProperties>().FirstOrDefault();
+        ComponentContainerProperties? container = result.Components!.OfType<ComponentContainerProperties>().FirstOrDefault();
         Assert.That(container, Is.Not.Null);
         Assert.That(container!.Components, Is.Not.Null);
         Assert.That(container.Components!.OfType<ComponentSectionProperties>().Count(), Is.EqualTo(1));
@@ -379,10 +379,10 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
-        var container = result.Components!.OfType<ComponentContainerProperties>().First();
+        ComponentContainerProperties container = result.Components!.OfType<ComponentContainerProperties>().First();
         Assert.That(container.Components!.OfType<ComponentSectionProperties>().Count(), Is.EqualTo(3));
     }
 
@@ -398,10 +398,10 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
-        var container = result.Components!.OfType<ComponentContainerProperties>().First();
+        ComponentContainerProperties container = result.Components!.OfType<ComponentContainerProperties>().First();
         Assert.That(container.Components!.OfType<MediaGalleryProperties>().Count(), Is.EqualTo(1));
         Assert.That(result.Attachments!.Count(), Is.EqualTo(2));
     }
@@ -417,10 +417,10 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
-        var container = result.Components!.OfType<ComponentContainerProperties>().First();
+        ComponentContainerProperties container = result.Components!.OfType<ComponentContainerProperties>().First();
         Assert.That(container.Components!.OfType<TextDisplayProperties>().Count(), Is.EqualTo(1));
     }
 
@@ -437,10 +437,10 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
-        var container = result.Components!.OfType<ComponentContainerProperties>().First();
+        ComponentContainerProperties container = result.Components!.OfType<ComponentContainerProperties>().First();
         Assert.That(container.Components!.OfType<ComponentSectionProperties>().Count(), Is.EqualTo(1));
         Assert.That(container.Components!.OfType<TextDisplayProperties>().Count(), Is.EqualTo(1));
         Assert.That(container.Components!.OfType<MediaGalleryProperties>().Count(), Is.EqualTo(1));
@@ -461,10 +461,10 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
-        var container = result.Components!.OfType<ComponentContainerProperties>().First();
+        ComponentContainerProperties container = result.Components!.OfType<ComponentContainerProperties>().First();
         var galleries = container.Components!.OfType<MediaGalleryProperties>().ToList();
         Assert.That(galleries, Has.Count.EqualTo(1), "Attachments should be grouped in one gallery");
         Assert.That(result.Attachments!.Count(), Is.EqualTo(4), "Should have section thumbnail + 3 images");
@@ -483,11 +483,11 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Attachments, Is.Not.Null);
-        var attachmentProps = result.Attachments!.First();
+        AttachmentProperties attachmentProps = result.Attachments!.First();
         Assert.That(attachmentProps.FileName, Is.EqualTo("test-image.png"));
     }
 
@@ -504,7 +504,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         var fileNames = result.Attachments!.Select(a => a.FileName).ToList();
@@ -524,7 +524,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Attachments, Is.Not.Null);
@@ -539,10 +539,10 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_EmptyComponentsList_ReturnsValidMessage()
     {
         // Arrange
-        var data = new CommandResultData(new List<ICommandResultComponent>(), false, false);
+        var data = new CommandResultData([], false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -560,7 +560,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -578,7 +578,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, true, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         Assert.That(result.Components, Is.Not.Null);
@@ -596,7 +596,7 @@ public class CommandResultDataExtensionsTests
         var data = new CommandResultData(components, false, false);
 
         // Act
-        var result = data.ToMessage();
+        InteractionMessageProperties result = data.ToMessage();
 
         // Assert
         var containers = result.Components?.OfType<ComponentContainerProperties>().ToList();

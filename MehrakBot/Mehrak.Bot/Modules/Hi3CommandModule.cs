@@ -1,6 +1,7 @@
 ﻿using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
+using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -41,7 +42,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.HonkaiImpact3)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<Hi3CharacterApplicationContext>()
+        ICommandExecutorService<Hi3CharacterApplicationContext> executor = m_Builder.For<Hi3CharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new Hi3CharacterApplicationContext(Context.User.Id, parameters))
             .WithCommandName("hi3 battlesuit")

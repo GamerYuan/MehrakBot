@@ -77,11 +77,11 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
     public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinTheaterInformation> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Theater", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
-        var theaterData = context.Data;
+        GenshinTheaterInformation theaterData = context.Data;
 
-        var constMap = context.GetParameter<Dictionary<int, int>>("constMap")
+        Dictionary<int, int> constMap = context.GetParameter<Dictionary<int, int>>("constMap")
             ?? throw new CommandException("constMap parameter is missing for Theater card generation");
 
         List<IDisposable> disposableResources = [];
@@ -127,9 +127,9 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
             disposableResources.AddRange(buffImages.Values);
             disposableResources.AddRange(sideAvatarImages.Values);
 
-            int maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
+            var maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
 
-            int height = 590 +
+            var height = 590 +
                          (maxRound + 1) / 2 * 300;
             // 1900 x height
             Image<Rgba32> background = m_Background.CloneAs<Rgba32>();
@@ -258,11 +258,11 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                 ctx.Fill(OverlayColor, starBackground);
                 ctx.DrawText("Stellas", m_NormalFont, Color.White, new PointF(1005, 470));
 
-                int medalOffset = 0;
+                var medalOffset = 0;
 
                 if (theaterData.Stat.GetMedalRoundList.Count > 10)
                 {
-                    for (int i = theaterData.Stat.GetMedalRoundList.Count - 1; i >= 10; i--)
+                    for (var i = theaterData.Stat.GetMedalRoundList.Count - 1; i >= 10; i--)
                     {
                         ctx.DrawImage(theaterData.Stat.GetMedalRoundList[i] == 1
                                 ? m_TheaterStarLit
@@ -271,12 +271,12 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                         medalOffset += 45;
                     }
 
-                    int lineX = 1800 - medalOffset + 30;
+                    var lineX = 1800 - medalOffset + 30;
                     ctx.DrawLine(Color.FromRgba(69, 69, 69, 128), 2f, new PointF(lineX, 450), new PointF(lineX, 525));
                     medalOffset += 25;
                 }
 
-                for (int i = Math.Min(9, theaterData.Stat.GetMedalRoundList.Count - 1); i >= 0; i--)
+                for (var i = Math.Min(9, theaterData.Stat.GetMedalRoundList.Count - 1); i >= 0; i--)
                 {
                     ctx.DrawImage(theaterData.Stat.GetMedalRoundList[i] == 1
                             ? m_TheaterStarLit
@@ -285,21 +285,21 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                     medalOffset += 45;
                 }
 
-                bool hasFastest = false;
-                int levelIndex = 1;
-                int arcanaLeft = 2;
+                var hasFastest = false;
+                var levelIndex = 1;
+                var arcanaLeft = 2;
                 bool[] arcanaCleared = [false, false];
 
                 Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> alternateLookup =
                     avatarImages.GetAlternateLookup<int>();
 
-                for (int i = 0; i < maxRound; i++)
+                for (var i = 0; i < maxRound; i++)
                 {
-                    int xOffset = i == maxRound - 1 &&
+                    var xOffset = i == maxRound - 1 &&
                                   maxRound % 2 == 1
                         ? 512
                         : 50 + (i % 2 == 0 ? 0 : 945);
-                    int yOffset = 660 + i / 2 * 300;
+                    var yOffset = 660 + i / 2 * 300;
                     RoundsData? roundData = i < theaterData.Detail.RoundsData.Count
                         ? theaterData.Detail.RoundsData[i]
                         : null;
@@ -322,7 +322,7 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                         }
                         else
                         {
-                            int firstArcana = Array.IndexOf(arcanaCleared, false);
+                            var firstArcana = Array.IndexOf(arcanaCleared, false);
                             arcanaCleared[firstArcana] = true;
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
@@ -375,11 +375,11 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 680, yOffset),
                         new PointF(xOffset + 850, yOffset));
 
-                    for (int j = 0; j < roundData.SplendourBuff!.Buffs.Count; j++)
+                    for (var j = 0; j < roundData.SplendourBuff!.Buffs.Count; j++)
                     {
                         Buff buff = roundData.SplendourBuff.Buffs[j];
                         Image buffImage = buffImages[buff.Name];
-                        int y = yOffset + 20 + j * 55;
+                        var y = yOffset + 20 + j * 55;
                         ctx.DrawImage(buffImage, new Point(xOffset + 690, y), 1f);
 
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -430,7 +430,7 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
         const int avatarWidth = 150;
 
         List<int> avatarIds = [.. ids];
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -438,9 +438,9 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
         {
             ctx.Clear(Color.Transparent);
 
-            for (int i = 0; i < avatarIds.Count; i++)
+            for (var i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                var x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

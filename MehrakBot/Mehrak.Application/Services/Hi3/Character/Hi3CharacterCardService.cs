@@ -82,7 +82,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
     public async Task<Stream> GetCardAsync(ICardGenerationContext<Hi3CharacterDetail> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         Hi3CharacterDetail characterInformation = context.Data;
 
@@ -90,15 +90,15 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
 
         try
         {
-            var characterImage = await Image.LoadAsync(
+            Image characterImage = await Image.LoadAsync(
                 await m_ImageRepository.DownloadFileToStreamAsync(characterInformation.Costumes[0].ToImageName()));
             disposableResources.Add(characterImage);
 
-            var weaponImage = await Image.LoadAsync(
+            Image weaponImage = await Image.LoadAsync(
                 await m_ImageRepository.DownloadFileToStreamAsync(characterInformation.Weapon.ToImageName()));
             disposableResources.Add(weaponImage);
 
-            var stigmataImages = await characterInformation.Stigmatas
+            Dictionary<Hi3Stigmata, Image> stigmataImages = await characterInformation.Stigmatas
                 .ToAsyncEnumerable()
                 .ToDictionaryAsync(
                     async (stigmata, token) => await Task.FromResult(stigmata),
@@ -106,14 +106,14 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                     {
                         if (stigmata.Id == 0) return m_StigmataSlot.Clone(ctx => { });
 
-                        var img = await Image.LoadAsync(
+                        Image img = await Image.LoadAsync(
                             await m_ImageRepository.DownloadFileToStreamAsync(stigmata.ToImageName()), token);
-                        var stigmataIcon = GetStigmataIcon(img, stigmata);
+                        Image stigmataIcon = GetStigmataIcon(img, stigmata);
                         return stigmataIcon;
                     });
             disposableResources.AddRange(stigmataImages.Values);
 
-            var image = m_Background.CloneAs<Rgba32>();
+            Image<Rgba32> image = m_Background.CloneAs<Rgba32>();
             disposableResources.Add(image);
 
             image.Mutate(ctx =>
@@ -160,10 +160,10 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                 ctx.Fill(m_RarityColor[characterInformation.Weapon.Rarity], new RectangleF(750, 66, 132, 116));
                 ctx.DrawImage(weaponImage, new Point(750, 66), 1f);
 
-                int starSize = 15;
-                int totalWidth = characterInformation.Weapon.MaxRarity * (starSize + 2) - 2;
-                int startX = (128 - totalWidth) / 2 + 745;
-                for (int i = characterInformation.Weapon.MaxRarity - 1; i >= 0; i--)
+                var starSize = 15;
+                var totalWidth = characterInformation.Weapon.MaxRarity * (starSize + 2) - 2;
+                var startX = (128 - totalWidth) / 2 + 745;
+                for (var i = characterInformation.Weapon.MaxRarity - 1; i >= 0; i--)
                 {
                     Image starToDraw = i < characterInformation.Weapon.Rarity ? m_StarIcon : m_StarUnlit;
                     ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 168), 1f);
@@ -172,8 +172,8 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                 ctx.DrawText(characterInformation.Weapon.Name, m_NormalFont, Color.White, new PointF(900, 90));
                 ctx.DrawText($"Lv. {characterInformation.Weapon.Level}", m_NormalFont, Color.White, new PointF(900, 120));
 
-                int yOffset = 0;
-                foreach (var entry in stigmataImages)
+                var yOffset = 0;
+                foreach (KeyValuePair<Hi3Stigmata, Image> entry in stigmataImages)
                 {
                     ctx.DrawImage(entry.Value, new Point(750, 240 + yOffset), 1f);
                     ctx.DrawText(entry.Key.Id == 0 ? "Unequipped" : entry.Key.Name,
@@ -216,10 +216,10 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
             ctx.Fill(Color.White, new RectangleF(0, 0, 132, 16));
             ctx.Fill(Color.White, new RectangleF(0, 132, 132, 16));
 
-            int starSize = 15;
-            int totalWidth = info.MaxRarity * (starSize + 2) - 2;
-            int startX = (128 - totalWidth) / 2 - 5;
-            for (int i = info.MaxRarity - 1; i >= 0; i--)
+            var starSize = 15;
+            var totalWidth = info.MaxRarity * (starSize + 2) - 2;
+            var startX = (128 - totalWidth) / 2 - 5;
+            for (var i = info.MaxRarity - 1; i >= 0; i--)
             {
                 Image starToDraw = i < info.Rarity ? m_StarIcon : m_StarUnlit;
                 ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 118), 1f);

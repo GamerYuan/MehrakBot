@@ -142,11 +142,11 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzFullAvatarData> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         List<IDisposable> disposables = [];
 
-        var characterInformation = context.Data;
+        ZzzFullAvatarData characterInformation = context.Data;
         try
         {
             ZzzAvatarData character = characterInformation.AvatarList[0];
@@ -169,7 +169,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                         return await CreateDiskImageAsync(disk, token);
                 }).ToListAsync();
 
-            Color accentColor = Color.ParseHex(character.VerticalPaintingColor);
+            var accentColor = Color.ParseHex(character.VerticalPaintingColor);
 
             Image portraitImage = await portraitTask;
             Image weaponImage = await weaponTask;
@@ -230,7 +230,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 foreach (Rank rank in character.Ranks)
                 {
                     using Image<Rgba32> rankImage = CreateRankTemplateImage(rank.Id, rank.IsUnlocked, accentColor);
-                    int yOffset = 130 * (rank.Id - 1);
+                    var yOffset = 130 * (rank.Id - 1);
                     ctx.DrawImage(rankImage, new Point(890 - (int)MathF.Round(yOffset * 0.1763f), yOffset), 1f);
                 }
 
@@ -248,9 +248,9 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 // Skill
                 foreach (Skill skill in character.Skills)
                 {
-                    int skillIndex = skill.SkillType == 6 ? 4 : skill.SkillType;
-                    int yOffset = skillIndex >= 3 ? 130 : 0;
-                    int xOffset = skillIndex % 3 * 120;
+                    var skillIndex = skill.SkillType == 6 ? 4 : skill.SkillType;
+                    var yOffset = skillIndex >= 3 ? 130 : 0;
+                    var xOffset = skillIndex % 3 * 120;
                     ctx.DrawImage(m_SkillImages[skill.SkillType],
                         new Point(1030 + xOffset, 70 + yOffset), 1f);
                     EllipsePolygon skillEllipse = new(new PointF(1110 + xOffset, 150 + yOffset), 25);
@@ -310,10 +310,10 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 ctx.Fill(OverlayColor, statsModule);
                 ctx.Draw(accentColor, 4f, statsModule);
 
-                int offsetInterval = 880 / (character.Properties.Count - 1);
-                int statsYOffset = 0;
+                var offsetInterval = 880 / (character.Properties.Count - 1);
+                var statsYOffset = 0;
 
-                for (int i = 0; i < character.Properties.Count; i++)
+                for (var i = 0; i < character.Properties.Count; i++)
                 {
                     CharacterProperty stat = character.Properties[i];
 
@@ -343,7 +343,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                             Origin = new Vector2(2100, 125 + statsYOffset),
                             HorizontalAlignment = HorizontalAlignment.Right
                         };
-                        string addText = $"+{stat.Add}";
+                        var addText = $"+{stat.Add}";
                         FontRectangle addBound = TextMeasurer.MeasureBounds(addText, option);
                         ctx.DrawText(option, addText, Color.LightGreen);
 
@@ -360,9 +360,9 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 // Active Set
                 EquipSuit[] activeSets =
                     [.. character.Equip.Select(x => x.EquipSuit).DistinctBy(x => x.SuitId).Where(x => x.Own >= 2)];
-                for (int i = 0; i < activeSets.Length; i++)
+                for (var i = 0; i < activeSets.Length; i++)
                 {
-                    int yOffset = i * 50;
+                    var yOffset = i * 50;
                     EquipSuit set = activeSets[i];
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
@@ -378,9 +378,9 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, "No Active Set", Color.White);
 
-                for (int i = 0; i < diskImage.Count; i++)
+                for (var i = 0; i < diskImage.Count; i++)
                 {
-                    int offset = i * 186;
+                    var offset = i * 186;
                     ctx.DrawImage(diskImage[i], new Point(2150, 50 + offset), 1f);
                 }
             });
@@ -444,12 +444,12 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 HorizontalAlignment = HorizontalAlignment.Right
             }, $"Lv.{disk.Level}", Color.White);
             // Draw properties
-            for (int i = 0; i < disk.Properties!.Count; i++)
+            for (var i = 0; i < disk.Properties!.Count; i++)
             {
                 EquipProperty subStat = disk.Properties[i];
                 Image subStatImage = m_StatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
-                int xOffset = i % 2 * 260;
-                int yOffset = i / 2 * 85;
+                var xOffset = i % 2 * 260;
+                var yOffset = i / 2 * 85;
                 Color color = Color.White;
                 if (subStat is { PropertyName: "ATK" or "DEF" or "HP" } && !subStat.Base.EndsWith('%'))
                 {
@@ -464,7 +464,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 }
 
                 ctx.DrawText(subStat.Base!, m_NormalFont, color, new PointF(335 + xOffset, 33 + yOffset));
-                string rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
+                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
                 ctx.DrawText(rolls, m_NormalFont, color, new PointF(460 + xOffset, 18 + yOffset));
             }
         });

@@ -47,8 +47,8 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
         try
         {
-            string cacheKey = $"zzz_characters_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey);
+            var cacheKey = $"zzz_characters_{context.GameUid}";
+            IEnumerable<ZzzBasicAvatarData>? cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey);
 
             if (cachedEntry != null)
             {

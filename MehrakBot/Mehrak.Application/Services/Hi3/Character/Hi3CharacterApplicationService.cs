@@ -45,10 +45,10 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
 
         try
         {
-            var server = Enum.Parse<Hi3Server>(context.GetParameter<string>("server")!);
+            Hi3Server server = Enum.Parse<Hi3Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
+            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
                 region);
 
             if (profile == null)
@@ -61,7 +61,7 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
 
             var gameUid = profile.GameUid;
 
-            var charResponse = await m_CharacterApi.GetAllCharactersAsync(
+            Result<IEnumerable<Hi3CharacterDetail>> charResponse = await m_CharacterApi.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!charResponse.IsSuccess)
@@ -74,7 +74,7 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
             var characterList = charResponse.Data.ToList();
             _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiImpact3, characterList.Select(x => x.Avatar.Name));
 
-            var characterInfo = characterList.FirstOrDefault(x =>
+            Hi3CharacterDetail? characterInfo = characterList.FirstOrDefault(x =>
                 x.Avatar.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
 
             if (characterInfo == null)
@@ -111,7 +111,7 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
             var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            Stream card = await m_CardService.GetCardAsync(cardContext);
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
                 characterInfo.Avatar.Name.ToLowerInvariant());

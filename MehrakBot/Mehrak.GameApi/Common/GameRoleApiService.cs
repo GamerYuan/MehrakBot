@@ -35,7 +35,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
+            HttpClient httpClient = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
@@ -45,7 +45,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            HttpResponseMessage response = await httpClient.SendAsync(request);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -56,7 +56,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError, "API returned error status code", requestUri);
             }
 
-            var node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            JsonNode? node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
 
             if (node?["retcode"]?.GetValue<int>() == -100)
             {
@@ -84,7 +84,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             // Info-level API retcode after parse (success path)
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, 0, context.UserId);
 
-            var gameProfile = node["data"]?["list"]?[0].Deserialize<GameProfile>();
+            GameProfile? gameProfile = node["data"]?["list"]?[0].Deserialize<GameProfile>();
 
             GameProfileDto dto = new()
             {

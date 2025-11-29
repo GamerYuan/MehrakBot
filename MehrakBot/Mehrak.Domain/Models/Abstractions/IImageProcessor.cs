@@ -2,7 +2,7 @@
 
 public interface IImageProcessor
 {
-    public bool ShouldProcess { get; }
+    bool ShouldProcess { get; }
 
-    public Stream ProcessImage(Stream imageStream);
+    Stream ProcessImage(Stream imageStream);
 }

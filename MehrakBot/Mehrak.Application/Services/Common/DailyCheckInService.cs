@@ -36,12 +36,12 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
     {
         try
         {
-            var user = await m_UserRepository.GetUserAsync(context.UserId);
-            var profile = user?.Profiles?.First(x => x.LtUid == context.LtUid);
+            UserModel? user = await m_UserRepository.GetUserAsync(context.UserId);
+            UserProfile? profile = user?.Profiles?.First(x => x.LtUid == context.LtUid);
 
             if (user != null && profile != null && profile.LastCheckIn.HasValue)
             {
-                TimeZoneInfo timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+                var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
                 DateTime nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
                 DateTime lastCheckInUtc8 = TimeZoneInfo.ConvertTimeFromUtc(profile.LastCheckIn.Value, timeZoneInfo);
 
@@ -56,7 +56,7 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
             }
 
             m_Logger.LogInformation("Starting daily check-in for user {Uid}", context.UserId);
-            var gameRecordResult = await m_GameRecordApiService.GetAsync(new GameRecordApiContext(
+            Result<IEnumerable<GameRecordDto>> gameRecordResult = await m_GameRecordApiService.GetAsync(new GameRecordApiContext(
                 context.UserId, context.LtUid, context.LToken));
 
             if (!gameRecordResult.IsSuccess || gameRecordResult.Data == null)
@@ -73,10 +73,10 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
             }
 
             var checkInResults = new List<(bool, string)>();
-            foreach (var game in gameRecords.Select(x => x.Game))
+            foreach (Game game in gameRecords.Select(x => x.Game))
             {
                 CheckInApiContext apiContext = new(context.UserId, context.LtUid, context.LToken, game);
-                var checkInResponse = await m_ApiService.GetAsync(apiContext);
+                Result<CheckInStatus> checkInResponse = await m_ApiService.GetAsync(apiContext);
 
                 if (checkInResponse.IsSuccess)
                 {

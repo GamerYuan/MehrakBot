@@ -64,7 +64,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            int retCode = json["retcode"]?.GetValue<int>() ?? -1;
+            var retCode = json["retcode"]?.GetValue<int>() ?? -1;
 
             // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retCode, context.UserId);

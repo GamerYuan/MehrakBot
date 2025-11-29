@@ -42,8 +42,8 @@ public class
 
         try
         {
-            string cacheKey = $"hsr_characters_{context.GameUid}";
-            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey);
+            var cacheKey = $"hsr_characters_{context.GameUid}";
+            IEnumerable<HsrBasicCharacterData>? cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey);
 
             // Try to get data from cache first
             if (cachedData != null)

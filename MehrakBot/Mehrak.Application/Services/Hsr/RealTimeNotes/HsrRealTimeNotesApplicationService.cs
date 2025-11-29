@@ -36,10 +36,10 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
 
             if (profile == null)
@@ -52,7 +52,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
 
             var gameUid = profile.GameUid;
 
-            var notesResult = await m_ApiService.GetAsync(
+            Result<HsrRealTimeNotesData> notesResult = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!notesResult.IsSuccess)
@@ -76,10 +76,10 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
     private async Task<CommandResult> BuildRealTimeNotes(HsrRealTimeNotesData data,
         Server server, string uid)
     {
-        var tbpImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_tbp");
-        var assignmentImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_assignment");
-        var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_weekly");
-        var rogueImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_rogue");
+        Task<Stream> tbpImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_tbp");
+        Task<Stream> assignmentImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_assignment");
+        Task<Stream> weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_weekly");
+        Task<Stream> rogueImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_rogue");
 
         var weeklyReset = server.GetNextWeeklyResetUnix();
 

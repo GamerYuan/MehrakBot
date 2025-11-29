@@ -82,7 +82,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
         m_StatImages = await statIds.ToAsyncEnumerable().Where(x => x != 8).Select(async (x, token) =>
         {
-            string path = string.Format(StatsPath, x);
+            var path = string.Format(StatsPath, x);
             Image image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path), token);
             return new KeyValuePair<int, Image>(x, image);
         }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
@@ -102,7 +102,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrCharacterInformation> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         HsrCharacterInformation characterInformation = context.Data;
 
@@ -192,9 +192,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             ];
 
             Dictionary<string, int> activeRelicSet = [];
-            foreach (int setId in characterInformation.Relics!.Select(x => x.GetSetId()))
+            foreach (var setId in characterInformation.Relics!.Select(x => x.GetSetId()))
             {
-                string setName = await m_RelicRepository.GetSetName(setId);
+                var setName = await m_RelicRepository.GetSetName(setId);
 
                 if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
 
@@ -207,9 +207,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 .ToDictionary(x => x.Key, x => x.Value);
 
             Dictionary<string, int> activeOrnamentSet = [];
-            foreach (int setId in characterInformation.Ornaments!.Select(x => x.GetSetId()))
+            foreach (var setId in characterInformation.Ornaments!.Select(x => x.GetSetId()))
             {
-                string setName = await m_RelicRepository.GetSetName(setId);
+                var setName = await m_RelicRepository.GetSetName(setId);
 
                 if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
 
@@ -239,7 +239,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             (bool Active, Image Image)[] ranks = [.. (await Task.WhenAll(rankTasks)).Reverse()];
             (Skill Data, Image Image)[] baseSkillImages = [.. await Task.WhenAll(baseSkillTasks)];
             (Skill Data, Image Image)[][] skillImages = [.. await Task.WhenAll(skillTasks)];
-            List<Property> stats = characterInformation.Properties!.Where(x =>
+            var stats = characterInformation.Properties!.Where(x =>
                 float.Parse(x.Final!.TrimEnd('%')) >
                 StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, Game.HonkaiStarRail)).ToList();
             if (stats.Count < 7)
@@ -317,9 +317,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 ctx.DrawImage(overlay, new Point(800, 0), 1f);
                 ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.White, new PointF(70, 1150));
 
-                for (int i = 0; i < ranks.Length; i++)
+                for (var i = 0; i < ranks.Length; i++)
                 {
-                    int offset = i * 100;
+                    var offset = i * 100;
                     EllipsePolygon ellipse = new(new PointF(900, 1115 - offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     if (!ranks[i].Active) ranks[i].Image.Mutate(x => x.Brightness(0.5f));
@@ -327,9 +327,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
                 }
 
-                for (int i = 0; i < baseSkillImages.Length; i++)
+                for (var i = 0; i < baseSkillImages.Length; i++)
                 {
-                    int offset = i * 100;
+                    var offset = i * 100;
                     EllipsePolygon ellipse = new(new PointF(900, 80 + offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
@@ -346,10 +346,10 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         baseSkillImages[i].Data.IsRankWork ? Color.Aqua : Color.White);
                 }
 
-                for (int i = 0; i < skillImages.Length; i++)
+                for (var i = 0; i < skillImages.Length; i++)
                 {
-                    int yOffset = i * 100;
-                    for (int j = 0; j < skillImages[i].Length; j++)
+                    var yOffset = i * 100;
+                    for (var j = 0; j < skillImages[i].Length; j++)
                     {
                         (Skill Data, Image Image) skill = skillImages[i][j];
                         if (!skill.Data.IsActivated)
@@ -357,7 +357,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
                         if (skill.Data.PointType == 3)
                         {
-                            int xOffset = j * 100;
+                            var xOffset = j * 100;
                             EllipsePolygon ellipse = new(new PointF(1020 + xOffset, 80 + yOffset), 45);
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(980 + xOffset, 40 + yOffset), 1f);
@@ -365,7 +365,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         }
                         else
                         {
-                            int xOffset = (j - 1) * 100;
+                            var xOffset = (j - 1) * 100;
                             EllipsePolygon ellipse = new(new PointF(1120 + xOffset, 80 + yOffset), 30);
                             ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                             ctx.DrawImage(skill.Image, new Point(1095 + xOffset, 55 + yOffset), 1f);
@@ -374,9 +374,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     }
                 }
 
-                for (int i = 0; i < servantImages.Length; i++)
+                for (var i = 0; i < servantImages.Length; i++)
                 {
-                    int offset = i * 120;
+                    var offset = i * 120;
                     EllipsePolygon ellipse = new(new PointF(900 + offset, 480), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);
@@ -426,10 +426,10 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     }, "No Light Cone", Color.White);
                 }
 
-                int statOffset = 1100 / stats.Count;
-                for (int i = 0; i < stats.Count; i++)
+                var statOffset = 1100 / stats.Count;
+                for (var i = 0; i < stats.Count; i++)
                 {
-                    int offset = i * statOffset;
+                    var offset = i * statOffset;
                     Property property = stats[i];
                     Image? statImage = m_StatImages.GetValueOrDefault(property.PropertyType!.Value);
                     if (statImage == null)
@@ -449,16 +449,16 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     }, property.Final!, Color.White);
                 }
 
-                for (int i = 0; i < relicImages.Length; i++)
+                for (var i = 0; i < relicImages.Length; i++)
                 {
-                    int offset = i * 170;
+                    var offset = i * 170;
                     ctx.DrawImage(relicImages[i], new Point(2200, 50 + offset), 1f);
                 }
 
-                int k = 0;
+                var k = 0;
                 foreach (KeyValuePair<string, int> relicSet in activeRelicSet)
                 {
-                    int offset = k * 30;
+                    var offset = k * 30;
                     ctx.DrawText(relicSet.Value.ToString(), m_SmallFont, Color.White,
                         new PointF(2200, 720 + offset));
                     ctx.DrawText(int.TryParse(relicSet.Key, out _) ? $"Unknown Relic Set {k + 1}" : relicSet.Key,
@@ -466,16 +466,16 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     k++;
                 }
 
-                for (int i = 0; i < ornamentImages.Length; i++)
+                for (var i = 0; i < ornamentImages.Length; i++)
                 {
-                    int offset = i * 170;
+                    var offset = i * 170;
                     ctx.DrawImage(ornamentImages[ornamentImages.Length - 1 - i], new Point(2200, 1000 - offset), 1f);
                 }
 
                 k = 0;
                 foreach (KeyValuePair<string, int> ornamentSet in activeOrnamentSet)
                 {
-                    int offset = k * 30;
+                    var offset = k * 30;
                     ctx.DrawText(new RichTextOptions(m_SmallFont)
                     {
                         Origin = new PointF(2940, 820 - offset),
@@ -529,12 +529,12 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             }, relic.MainProperty!.Value!, Color.White);
             ctx.DrawText($"+{relic.Level}", m_SmallFont, Color.White, new PointF(180, 20));
 
-            for (int i = 0; i < relic.Properties!.Count; i++)
+            for (var i = 0; i < relic.Properties!.Count; i++)
             {
                 Property subStat = relic.Properties[i];
                 Image subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                int xOffset = i % 2 * 245;
-                int yOffset = i / 2 * 70;
+                var xOffset = i % 2 * 245;
+                var yOffset = i / 2 * 70;
                 Color color = Color.White;
                 if (subStat.PropertyType is 27 or 29 or 31)
                 {
@@ -549,7 +549,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 }
 
                 ctx.DrawText(subStat.Value!, m_NormalFont, color, new PointF(310 + xOffset, 20 + yOffset));
-                string rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
+                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
                 ctx.DrawText(rolls, m_NormalFont, color, new PointF(435 + xOffset, 10 + yOffset));
             }
 
@@ -560,7 +560,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
     private async Task<Image> CreateTemplateRelicSlotImageAsync(int slot)
     {
-        string path = $"hsr_relic_template_{slot}";
+        var path = $"hsr_relic_template_{slot}";
         m_Logger.LogDebug("Loading template relic image from {Path}", path);
 
         Image<Rgba32> relicImage = await Image.LoadAsync<Rgba32>(

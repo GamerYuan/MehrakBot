@@ -42,10 +42,10 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
-            var profile =
+            GameProfileDto? profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
@@ -58,7 +58,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
 
             var gameUid = profile.GameUid;
 
-            var stygianInfo =
+            Result<GenshinStygianInformation> stygianInfo =
                 await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
                     gameUid, region));
             if (!stygianInfo.IsSuccess)
@@ -83,14 +83,14 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                     isEphemeral: true);
             }
 
-            var stygianData = stygianInfo.Data.Data[0].Single;
+            StygianChallengeData stygianData = stygianInfo.Data.Data[0].Single;
 
-            var avatarTasks = stygianData.Challenge!.SelectMany(x => x.Teams).Select(x =>
+            IEnumerable<Task<bool>> avatarTasks = stygianData.Challenge!.SelectMany(x => x.Teams).Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            var sideAvatarTasks = stygianData.Challenge!.SelectMany(x => x.BestAvatar).Select(x =>
+            IEnumerable<Task<bool>> sideAvatarTasks = stygianData.Challenge!.SelectMany(x => x.BestAvatar).Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                     new ImageProcessorBuilder().Resize(0, 150).Build()));
-            var monsterImageTask = stygianData.Challenge!.Select(x => x.Monster)
+            IEnumerable<Task<bool>> monsterImageTask = stygianData.Challenge!.Select(x => x.Monster)
                 .Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
 
@@ -107,7 +107,7 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                 stygianInfo.Data.Data[0], profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            Stream card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),

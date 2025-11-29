@@ -23,9 +23,9 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_AlreadyCheckedInToday_ReturnsAlreadyCheckedInMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, _, _) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>> _, Mock<IApiService<CheckInStatus, CheckInApiContext>> _) = SetupMocks();
 
-        var user = CreateTestUser(true);
+        UserModel user = CreateTestUser(true);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -36,7 +36,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -55,9 +55,9 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_NotCheckedInToday_ProceedsWithCheckIn()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(false);
+        UserModel user = CreateTestUser(false);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -86,7 +86,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -106,7 +106,7 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_NoUserProfile_ProceedsWithCheckIn()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync((UserModel?)null);
@@ -136,7 +136,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -151,7 +151,7 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_InvalidCredentials_ReturnsAuthError()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, _) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>> _) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync((UserModel?)null);
@@ -166,7 +166,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -181,7 +181,7 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_NoGameRecords_ReturnsNoGameRecordsMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, _) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>> _) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync((UserModel?)null);
@@ -196,7 +196,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -212,9 +212,9 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_MultipleGames_ChecksInAllGames()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(false);
+        UserModel user = CreateTestUser(false);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -261,7 +261,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -281,7 +281,7 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_AlreadyCheckedInStatus_ShowsAlreadyCheckedInMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync((UserModel?)null);
@@ -311,7 +311,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -326,7 +326,7 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_NoValidProfile_ShowsNoValidAccountMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync((UserModel?)null);
@@ -356,7 +356,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -371,7 +371,7 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_CheckInApiFails_ShowsErrorMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync((UserModel?)null);
@@ -401,7 +401,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -416,9 +416,9 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_MixedResults_UpdatesUserOnlyIfAllSuccessful()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(false);
+        UserModel user = CreateTestUser(false);
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
             .ReturnsAsync(user);
 
@@ -458,7 +458,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -477,13 +477,13 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_CheckedInYesterdayUtc8_AllowsCheckInToday()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        (DailyCheckInService? service, Mock<IUserRepository>? userRepositoryMock, Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>? gameRecordApiMock, Mock<IApiService<CheckInStatus, CheckInApiContext>>? checkInApiMock) = SetupMocks();
 
         // Create user who checked in yesterday (UTC+8)
         var cst = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
-        var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cst);
-        var yesterdayUtc8 = nowUtc8.AddDays(-1);
-        var yesterdayUtc = TimeZoneInfo.ConvertTimeToUtc(yesterdayUtc8, cst);
+        DateTime nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cst);
+        DateTime yesterdayUtc8 = nowUtc8.AddDays(-1);
+        DateTime yesterdayUtc = TimeZoneInfo.ConvertTimeToUtc(yesterdayUtc8, cst);
 
         var user = new UserModel
         {
@@ -529,7 +529,7 @@ public class DailyCheckInServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert - should proceed with check-in
         Assert.Multiple(() =>
@@ -570,7 +570,7 @@ public class DailyCheckInServiceTests
     private static UserModel CreateTestUser(bool hasCheckedInToday)
     {
         var cst = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
-        var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cst);
+        DateTime nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cst);
 
         DateTime? lastCheckIn = null;
         if (hasCheckedInToday)

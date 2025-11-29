@@ -86,16 +86,16 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrEndInformation> context)
     {
-        var gameMode = context.GetParameter<HsrEndGameMode>("mode");
+        HsrEndGameMode gameMode = context.GetParameter<HsrEndGameMode>("mode");
 
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, gameMode.GetString(), context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
-        var gameModeData = context.Data;
+        HsrEndInformation gameModeData = context.Data;
         List<IDisposable> disposables = [];
         try
         {
-            var avatarImages = await gameModeData.AllFloorDetail
+            Dictionary<HsrAvatar, Image<Rgba32>> avatarImages = await gameModeData.AllFloorDetail
                 .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id).ToAsyncEnumerable().Select(async (x, token) =>
@@ -103,7 +103,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                         await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token))))
                 .ToDictionaryAsync(x => x,
                     x => x.GetStyledAvatarImage(), HsrAvatarIdComparer.Instance);
-            var buffImages = await gameModeData.AllFloorDetail
+            Dictionary<int, Image> buffImages = await gameModeData.AllFloorDetail
                 .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => new HsrEndBuff[] { x.Node1!.Buff, x.Node2!.Buff })
                 .Where(x => x is not null)
@@ -146,7 +146,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                 ],
                 _ => throw new InvalidOperationException()
             };
-            int height = 180 + floorDetails.Chunk(2)
+            var height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
 
             Image<Rgba32> background = gameMode switch
@@ -169,7 +169,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                 });
 
                 HsrEndGroup group = gameModeData.Groups[0];
-                string modeString = gameMode.GetString();
+                var modeString = gameMode.GetString();
                 ctx.DrawText(new RichTextOptions(m_TitleFont)
                 {
                     Origin = new Vector2(50, 80),
@@ -210,10 +210,10 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, context.GameProfile.GameUid!, Color.White);
 
-                int yOffset = 150;
-                foreach ((int floorNumber, HsrEndFloorDetail? floorData) in floorDetails)
+                var yOffset = 150;
+                foreach ((var floorNumber, HsrEndFloorDetail? floorData) in floorDetails)
                 {
-                    int xOffset = floorNumber % 2 * 950 + 50;
+                    var xOffset = floorNumber % 2 * 950 + 50;
 
                     IPath overlay;
 
@@ -247,7 +247,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                             }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
-                        string stageText = gameMode switch
+                        var stageText = gameMode switch
                         {
                             HsrEndGameMode.PureFiction =>
                                 $"{gameModeData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})",
@@ -265,7 +265,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                             floorData?.Name ?? stageText,
                             Color.White);
 
-                        for (int i = 0; i < 3; i++)
+                        for (var i = 0; i < 3; i++)
                             ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
                                 new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
 
@@ -322,12 +322,12 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                     ctx.DrawImage(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 725, yOffset + 425),
                         1f);
 
-                    for (int i = 0; i < 3; i++)
+                    for (var i = 0; i < 3; i++)
                         ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
                             new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 720, yOffset + 10),
                         new PointF(xOffset + 720, yOffset + 55));
-                    string scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
+                    var scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 710, yOffset + 20),
@@ -386,7 +386,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
     {
         const int avatarWidth = 150;
 
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -394,9 +394,9 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
         {
             ctx.Clear(Color.Transparent);
 
-            for (int i = 0; i < avatarIds.Count; i++)
+            for (var i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                var x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

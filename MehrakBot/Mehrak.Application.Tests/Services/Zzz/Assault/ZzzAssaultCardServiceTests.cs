@@ -43,7 +43,7 @@ public class ZzzAssaultCardServiceTests
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(assaultData, Is.Not.Null);
 
-        byte[] goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
             "TestAssets",
             $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
@@ -58,17 +58,17 @@ public class ZzzAssaultCardServiceTests
         MemoryStream memoryStream = new();
         await image.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
-        byte[] generatedImageBytes = memoryStream.ToArray();
+        var generatedImageBytes = memoryStream.ToArray();
 
         // Save generated image to output folder for comparison
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
 
         // Save golden image to output folder for comparison
-        string outputGoldenImagePath = Path.Combine(outputDirectory,
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
             $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 

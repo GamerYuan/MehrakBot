@@ -22,11 +22,11 @@ internal static class CommandResultDataExtensions
         {
             var container = new ComponentContainerProperties();
 
-            foreach (var component in data.Components)
+            foreach (ICommandResultComponent component in data.Components)
                 switch (component)
                 {
                     case CommandSection section:
-                        var sectionComponent = new ComponentSectionProperties(
+                        ComponentSectionProperties sectionComponent = new ComponentSectionProperties(
                                 new ComponentSectionThumbnailProperties(
                                     new ComponentMediaProperties($"attachment://{section.Attachment.FileName}")))
                             .AddComponents(section.Components.Select(x =>
@@ -37,7 +37,7 @@ internal static class CommandResultDataExtensions
                     case CommandAttachment attachment:
                         if (container.Components.LastOrDefault() is not MediaGalleryProperties gallery)
                         {
-                            gallery = new MediaGalleryProperties();
+                            gallery = [];
                             container.AddComponents(gallery);
                         }
 
@@ -58,13 +58,13 @@ internal static class CommandResultDataExtensions
         }
         else
         {
-            foreach (var component in data.Components)
+            foreach (ICommandResultComponent component in data.Components)
                 switch (component)
                 {
                     case CommandAttachment attachment:
                         if (properties.Components?.LastOrDefault() is not MediaGalleryProperties gallery)
                         {
-                            gallery = new MediaGalleryProperties();
+                            gallery = [];
                             properties.AddComponents(gallery);
                         }
 

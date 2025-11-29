@@ -8,6 +8,7 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NetCord;
 using NetCord.Services;
 
 #endregion
@@ -84,7 +85,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_WithValidValidation_ProceedsToRateLimit()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -111,7 +112,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_WhenRateLimited_SendsRateLimitMessage()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -138,7 +139,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_WhenNotRateLimited_ProceedsToAuthentication()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -150,7 +151,7 @@ public class CheckInExecutorServiceTests
             .ReturnsAsync(false);
 
         var user = new UserModel
-            { Id = m_TestUserId, Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }] };
+        { Id = m_TestUserId, Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }] };
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -176,7 +177,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationSuccess_ExecutesApplicationService()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -213,7 +214,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationSuccess_SendsDeferredResponse()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -247,7 +248,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationFailure_SendsFailureMessage()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -275,7 +276,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationTimeout_DoesNotSendResponse()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -301,7 +302,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceSuccess_SendsSuccessFollowup()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -333,7 +334,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceFailure_SendsErrorFollowup()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -371,7 +372,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_Success_TracksCommandMetrics()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -409,7 +410,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_Failure_TracksCommandMetricsWithFailure()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -443,7 +444,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_Success_DisposesMetricsObserver()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -484,7 +485,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_CompleteSuccessFlow_ExecutesInCorrectOrder()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
@@ -541,7 +542,7 @@ public class CheckInExecutorServiceTests
     public async Task ExecuteAsync_WithRateLimit_StopsAtRateLimitCheck()
     {
         // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        SlashCommandInteraction interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 

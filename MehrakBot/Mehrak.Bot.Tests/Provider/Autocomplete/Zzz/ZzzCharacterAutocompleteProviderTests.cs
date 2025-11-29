@@ -45,7 +45,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMatchingCharacters_ReturnsChoices()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Ell");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Ell");
 
         var expectedCharacters = new List<string> { "Ellen", "Ellen Joe" };
 
@@ -54,7 +54,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -73,7 +73,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Zhu Yuan");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Zhu Yuan");
 
         var expectedCharacters = new List<string> { "Zhu Yuan" };
 
@@ -82,7 +82,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -99,7 +99,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNoMatches_ReturnsEmptyChoices()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("XYZ");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("XYZ");
 
         var expectedCharacters = new List<string>();
 
@@ -108,7 +108,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -120,7 +120,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithEmptyQuery_ReturnsAllCharacters()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("");
 
         var expectedCharacters = new List<string> { "Anby", "Billy", "Nicole", "Nekomata" };
 
@@ -129,7 +129,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -141,7 +141,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Nic");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Nic");
 
         var expectedCharacters = new List<string> { "Nicole Demara" };
 
@@ -150,7 +150,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -163,7 +163,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("lycaon");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("lycaon");
 
         var expectedCharacters = new List<string> { "Lycaon" };
 
@@ -172,7 +172,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.ZenlessZoneZero, "lycaon"), Times.Once);
@@ -185,7 +185,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("S");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("S");
 
         var expectedCharacters = new List<string> { "Seth", "Soldier 11", "Soukaku" };
 
@@ -194,7 +194,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -207,7 +207,7 @@ public class ZzzCharacterAutocompleteProviderTests
     {
         // Arrange
         const string query = "Jane";
-        var (option, context) = CreateTestInputs(query);
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs(query);
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, query))
@@ -224,7 +224,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Grace");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Grace");
 
         var expectedCharacters = new List<string> { "Grace" };
 
@@ -233,10 +233,10 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
         Assert.That(choice.Name, Is.EqualTo("Grace"));
     }
@@ -245,7 +245,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Soldier");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Soldier");
 
         var expectedCharacters = new List<string> { "Soldier 11" }; // Name with space/number
 
@@ -254,11 +254,11 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.Multiple(() =>
         {
             Assert.That(choice.Name, Is.EqualTo("Soldier 11"));
@@ -270,18 +270,18 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ReturnsValueTask_CompletesSuccessfully()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Test");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Test");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Test"))
             .Returns([]);
 
         // Act
-        var resultTask = m_Provider.GetChoicesAsync(option, context);
+        ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> resultTask = m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(resultTask.IsCompleted, Is.True);
-        var result = await resultTask;
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await resultTask;
         Assert.That(result, Is.Not.Null);
     }
 
@@ -289,7 +289,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLongCharacterList_ReturnsAllChoices()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("A");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("A");
 
         var expectedCharacters = new List<string>
         {
@@ -301,7 +301,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -318,19 +318,19 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoicesHaveCorrectType()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Ben");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Ben");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Ben"))
             .Returns(["Ben Bigger"]);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.InstanceOf<IEnumerable<ApplicationCommandOptionChoiceProperties>>());
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.That(choice, Is.InstanceOf<ApplicationCommandOptionChoiceProperties>());
     }
 
@@ -338,7 +338,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_PreservesCharacterOrder()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("K");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("K");
 
         var expectedCharacters = new List<string> { "Koleda", "Karin" }; // Assuming Karin is a character or similar
 
@@ -347,7 +347,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         var choices = result!.ToList();
@@ -363,7 +363,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceReturnsReadOnlyList_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Rina");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Rina");
 
         IReadOnlyList<string> expectedCharacters = new List<string> { "Rina" }.AsReadOnly();
 
@@ -372,7 +372,7 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -385,7 +385,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceCalledOnlyOnce()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Corin");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Corin");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Corin"))
@@ -406,7 +406,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithWhitespaceQuery_PassesToService()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("   ");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "   "))
@@ -423,14 +423,14 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNumericQuery_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("11");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("11");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "11"))
             .Returns(["Soldier 11"]);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -443,7 +443,7 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithUnicodeCharacters_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("雅");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("雅");
 
         var expectedCharacters = new List<string> { "星见雅" }; // Miyabi
 
@@ -452,11 +452,11 @@ public class ZzzCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo("星见雅"));
     }
 

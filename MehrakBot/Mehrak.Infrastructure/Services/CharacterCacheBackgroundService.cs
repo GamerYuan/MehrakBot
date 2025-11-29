@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
@@ -109,8 +109,8 @@ public class CharacterCacheBackgroundService : BackgroundService
     {
         List<string> changes = [];
 
-        foreach ((Game game, int afterCount) in afterStatus)
-            if (beforeStatus.TryGetValue(game, out int beforeCount))
+        foreach ((Game game, var afterCount) in afterStatus)
+            if (beforeStatus.TryGetValue(game, out var beforeCount))
             {
                 if (beforeCount != afterCount) changes.Add($"{game}: {beforeCount} -> {afterCount}");
             }
@@ -119,7 +119,7 @@ public class CharacterCacheBackgroundService : BackgroundService
                 changes.Add($"{game}: new -> {afterCount}");
             }
 
-        foreach ((Game game, int beforeCount) in beforeStatus)
+        foreach ((Game game, var beforeCount) in beforeStatus)
             if (!afterStatus.ContainsKey(game))
                 changes.Add($"{game}: {beforeCount} -> removed");
 

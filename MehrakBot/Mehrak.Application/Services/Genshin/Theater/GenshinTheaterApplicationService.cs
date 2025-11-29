@@ -50,10 +50,10 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
-            var profile =
+            GameProfileDto? profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
@@ -66,7 +66,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
 
             var gameUid = profile.GameUid;
 
-            var theaterDataResult =
+            Result<GenshinTheaterInformation> theaterDataResult =
                 await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
                     gameUid, region));
             if (!theaterDataResult.IsSuccess)
@@ -83,7 +83,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                     string.Format(ResponseMessage.ApiError, "Imaginarium Theater data"));
             }
 
-            var theaterData = theaterDataResult.Data;
+            GenshinTheaterInformation theaterData = theaterDataResult.Data;
 
             if (!theaterData.HasDetailData)
             {
@@ -93,10 +93,10 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                     isEphemeral: true);
             }
 
-            var updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
+            IEnumerable<Task<bool>> updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
                 .Select(async x =>
                     await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            var sideAvatarTask =
+            IEnumerable<Task<bool>> sideAvatarTask =
                 ((ItRankAvatar[])
                 [
                     theaterData.Detail.FightStatistic.MaxDamageAvatar,
@@ -106,12 +106,12 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                 .Select(async x =>
                     await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                         new ImageProcessorBuilder().Resize(0, 150).Build()));
-            var buffTask = theaterData.Detail.RoundsData.SelectMany(x => x.SplendourBuff!.Buffs)
+            IEnumerable<Task<bool>> buffTask = theaterData.Detail.RoundsData.SelectMany(x => x.SplendourBuff!.Buffs)
                 .DistinctBy(x => x.Name)
                 .Select(async x => await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                     new ImageProcessorBuilder().Build()));
 
-            var charListResponse = await m_CharacterApiService.GetAllCharactersAsync(
+            Result<IEnumerable<GenshinBasicCharacterData>> charListResponse = await m_CharacterApiService.GetAllCharactersAsync(
                 new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!charListResponse.IsSuccess || !charListResponse.Data.Any())
@@ -139,7 +139,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
             cardContext.SetParameter("constMap", constMap);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            Stream card = await m_CardService.GetCardAsync(cardContext);
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),

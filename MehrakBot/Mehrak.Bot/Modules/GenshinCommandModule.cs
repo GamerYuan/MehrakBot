@@ -9,6 +9,7 @@ using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
+using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -53,7 +54,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.Genshin)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<GenshinCharacterApplicationContext>()
+        ICommandExecutorService<GenshinCharacterApplicationContext> executor = m_Builder.For<GenshinCharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinCharacterApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin character")
@@ -77,7 +78,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         List<(string, object)> parameters = [("game", Game.Genshin)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<GenshinRealTimeNotesApplicationContext>()
+        ICommandExecutorService<GenshinRealTimeNotesApplicationContext> executor = m_Builder.For<GenshinRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinRealTimeNotesApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin notes")
@@ -103,7 +104,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.Genshin)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<CodeRedeemApplicationContext>()
+        ICommandExecutorService<CodeRedeemApplicationContext> executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.Genshin, parameters))
             .WithCommandName("genshin codes")
@@ -129,7 +130,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         List<(string, object)> parameters = [(nameof(floor), floor), ("game", Game.Genshin)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<GenshinAbyssApplicationContext>()
+        ICommandExecutorService<GenshinAbyssApplicationContext> executor = m_Builder.For<GenshinAbyssApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinAbyssApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin abyss")
@@ -153,7 +154,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         List<(string, object)> parameters = [("game", Game.Genshin)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<GenshinTheaterApplicationContext>()
+        ICommandExecutorService<GenshinTheaterApplicationContext> executor = m_Builder.For<GenshinTheaterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinTheaterApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin theater")
@@ -176,7 +177,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         List<(string, object)> parameters = [("game", Game.Genshin)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<GenshinStygianApplicationContext>()
+        ICommandExecutorService<GenshinStygianApplicationContext> executor = m_Builder.For<GenshinStygianApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinStygianApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin theater")
@@ -199,7 +200,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         List<(string, object)> parameters = [("game", Game.Genshin)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<GenshinCharListApplicationContext>()
+        ICommandExecutorService<GenshinCharListApplicationContext> executor = m_Builder.For<GenshinCharListApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinCharListApplicationContext(Context.User.Id, parameters))
             .WithCommandName("genshin theater")

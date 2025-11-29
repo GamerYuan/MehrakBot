@@ -42,10 +42,10 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
 
             if (profile == null)
@@ -56,7 +56,7 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
 
             await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
 
-            var challengeResponse = await m_ApiService.GetAsync(
+            Result<HsrEndInformation> challengeResponse = await m_ApiService.GetAsync(
                 new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
                     context.Mode));
             if (!challengeResponse.IsSuccess)
@@ -67,7 +67,7 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                     string.Format(ResponseMessage.ApiError, $"{context.Mode.GetString()} data"));
             }
 
-            var challengeData = challengeResponse.Data;
+            HsrEndInformation challengeData = challengeResponse.Data;
             if (!challengeData.HasData)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId,
@@ -87,11 +87,11 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                     isEphemeral: true);
             }
 
-            var tasks = nonNull
+            IEnumerable<Task<bool>> tasks = nonNull
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            var buffTasks = challengeData.AllFloorDetail.Where(x => !x.IsFast)
+            IEnumerable<Task<bool>> buffTasks = challengeData.AllFloorDetail.Where(x => !x.IsFast)
                 .SelectMany(x => new List<HsrEndBuff> { x.Node1!.Buff, x.Node2!.Buff })
                 .DistinctBy(x => x.Id)
                 .Select(x =>
@@ -111,10 +111,10 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
             cardContext.SetParameter("server", server);
             cardContext.SetParameter("mode", context.Mode);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            Stream card = await m_CardService.GetCardAsync(cardContext);
 
-            var tz = server.GetTimeZoneInfo();
-            var group = challengeData.Groups[0];
+            TimeZoneInfo tz = server.GetTimeZoneInfo();
+            HsrEndGroup group = challengeData.Groups[0];
             var startTime = new DateTimeOffset(group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
             var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)

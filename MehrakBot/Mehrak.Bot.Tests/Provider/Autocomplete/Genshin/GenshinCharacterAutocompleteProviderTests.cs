@@ -44,7 +44,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMatchingCharacters_ReturnsChoices()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Hu");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Hu");
 
         var expectedCharacters = new List<string> { "Hu Tao", "Huohuo" };
 
@@ -53,7 +53,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -69,7 +69,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Diluc");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Diluc");
 
         var expectedCharacters = new List<string> { "Diluc" };
 
@@ -78,7 +78,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -92,7 +92,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNoMatches_ReturnsEmptyChoices()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("XYZ");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("XYZ");
 
         var expectedCharacters = new List<string>();
 
@@ -101,7 +101,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -113,7 +113,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithEmptyQuery_ReturnsAllCharacters()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("");
 
         var expectedCharacters = new List<string> { "Diluc", "Jean", "Klee", "Venti" };
 
@@ -122,7 +122,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -134,7 +134,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Zho");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Zho");
 
         var expectedCharacters = new List<string> { "Zhongli" };
 
@@ -143,7 +143,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -156,7 +156,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("raiden");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("raiden");
 
         var expectedCharacters = new List<string> { "Raiden Shogun" };
 
@@ -165,7 +165,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, "raiden"), Times.Once);
@@ -178,7 +178,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Tar");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Tar");
 
         var expectedCharacters = new List<string> { "Tartaglia", "Childe" }; // Tartaglia's alias
 
@@ -187,7 +187,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -200,7 +200,7 @@ public class GenshinCharacterAutocompleteProviderTests
     {
         // Arrange
         const string query = "Ayaka";
-        var (option, context) = CreateTestInputs(query);
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs(query);
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, query))
@@ -217,7 +217,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Nahida");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Nahida");
 
         var expectedCharacters = new List<string> { "Nahida" };
 
@@ -226,10 +226,10 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
         Assert.That(choice.Name, Is.EqualTo("Nahida"));
     }
@@ -238,7 +238,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Hu");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Hu");
 
         var expectedCharacters = new List<string> { "Hu Tao" }; // Name with space
 
@@ -247,11 +247,11 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.Multiple(() =>
         {
             Assert.That(choice.Name, Is.EqualTo("Hu Tao"));
@@ -263,18 +263,18 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ReturnsValueTask_CompletesSuccessfully()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Test");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Test");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, "Test"))
             .Returns([]);
 
         // Act
-        var resultTask = m_Provider.GetChoicesAsync(option, context);
+        ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> resultTask = m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(resultTask.IsCompleted, Is.True);
-        var result = await resultTask;
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await resultTask;
         Assert.That(result, Is.Not.Null);
     }
 
@@ -282,7 +282,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithLongCharacterList_ReturnsAllChoices()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("A");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("A");
 
         var expectedCharacters = new List<string>
         {
@@ -295,7 +295,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -312,19 +312,19 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoicesHaveCorrectType()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Ganyu");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Ganyu");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, "Ganyu"))
             .Returns(["Ganyu"]);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result, Is.InstanceOf<IEnumerable<ApplicationCommandOptionChoiceProperties>>());
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.That(choice, Is.InstanceOf<ApplicationCommandOptionChoiceProperties>());
     }
 
@@ -332,7 +332,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_PreservesCharacterOrder()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("K");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("K");
 
         var expectedCharacters = new List<string> { "Kaeya", "Kazuha", "Keqing", "Klee" };
 
@@ -341,7 +341,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         var choices = result!.ToList();
@@ -362,7 +362,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceReturnsReadOnlyList_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Xiao");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Xiao");
 
         IReadOnlyList<string> expectedCharacters = new List<string> { "Xiao" }.AsReadOnly();
 
@@ -371,7 +371,7 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -384,11 +384,11 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceCalledOnlyOnce()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Yelan");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("Yelan");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, "Yelan"))
-            .Returns(new List<string> { "Yelan" });
+            .Returns(["Yelan"]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
@@ -405,7 +405,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithWhitespaceQuery_PassesToService()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("   ");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, "   "))
@@ -422,14 +422,14 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithNumericQuery_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("123");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("123");
 
         m_MockAutocompleteService
             .Setup(x => x.FindCharacter(Game.Genshin, "123"))
-            .Returns(new List<string>());
+            .Returns([]);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -440,7 +440,7 @@ public class GenshinCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithUnicodeCharacters_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("神");
+        (ApplicationCommandInteractionDataOption? option, AutocompleteInteractionContext? context) = CreateTestInputs("神");
 
         var expectedCharacters = new List<string> { "神里绫华" }; // Chinese character name
 
@@ -449,11 +449,11 @@ public class GenshinCharacterAutocompleteProviderTests
             .Returns(expectedCharacters);
 
         // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
+        IEnumerable<ApplicationCommandOptionChoiceProperties>? result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        var choice = result!.First();
+        ApplicationCommandOptionChoiceProperties choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo("神里绫华"));
     }
 

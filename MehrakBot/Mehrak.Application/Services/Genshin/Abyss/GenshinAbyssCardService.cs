@@ -73,13 +73,13 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinAbyssInformation> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Abyss", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
         List<IDisposable> disposableResources = [];
-        var abyssData = context.Data;
-        var constMap = context.GetParameter<Dictionary<int, int>>("constMap");
+        GenshinAbyssInformation abyssData = context.Data;
+        Dictionary<int, int>? constMap = context.GetParameter<Dictionary<int, int>>("constMap");
         var floor = context.GetParameter<uint>("floor");
-        var server = context.GetParameter<Server>("server");
+        Server server = context.GetParameter<Server>("server");
 
         if (constMap == null)
             throw new CommandException("constMap parameter is missing for Abyss card generation");
@@ -125,7 +125,7 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
             Image<Rgba32> background = m_BackgroundImage.CloneAs<Rgba32>();
             disposableResources.Add(background);
 
-            var tzi = server.GetTimeZoneInfo();
+            TimeZoneInfo tzi = server.GetTimeZoneInfo();
 
             background.Mutate(ctx =>
             {
@@ -193,7 +193,7 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
 
                 IPath overlay = ImageUtility.CreateRoundedRectanglePath(700, 150, 15).Translate(50, 720);
 
-                for (int i = 0; i < 5; i++)
+                for (var i = 0; i < 5; i++)
                 {
                     ctx.Fill(OverlayColor, overlay);
                     overlay = overlay.Translate(0, 170);
@@ -279,9 +279,9 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                 }, $"{floorData.Star}/{floorData.MaxStar}", Color.White);
 
                 ctx.DrawImage(m_AbyssStarIconLit, new Point(1395, 47), 1f);
-                for (int i = 0; i < 3; i++)
+                for (var i = 0; i < 3; i++)
                 {
-                    int offset = i * 490 + 160;
+                    var offset = i * 490 + 160;
                     IPath rosterBackground = ImageUtility.CreateRoundedRectanglePath(670, 470, 15)
                         .Translate(785, offset - 60);
                     ctx.Fill(OverlayColor, rosterBackground);
@@ -297,9 +297,9 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                             VerticalAlignment = VerticalAlignment.Center
                         }, "No Clear Records", Color.White);
 
-                        for (int j = 0; j < 3; j++)
+                        for (var j = 0; j < 3; j++)
                         {
-                            int xOffset = 1310 + j * 40;
+                            var xOffset = 1310 + j * 40;
                             ctx.DrawImage(m_AbyssStarIconUnlit, new Point(xOffset, offset - 45), 1f);
                         }
 
@@ -307,20 +307,20 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                     }
 
                     Level level = floorData.Levels![i];
-                    for (int j = 0; j < 3; j++)
+                    for (var j = 0; j < 3; j++)
                     {
-                        int xOffset = 1310 + j * 40;
+                        var xOffset = 1310 + j * 40;
                         ctx.DrawImage(j < floorData.Levels[i].Star ? m_AbyssStarIconLit : m_AbyssStarIconUnlit,
                             new Point(xOffset, offset - 45), 1f);
                     }
 
-                    for (int j = 0; j < level.Battles!.Count; j++)
+                    for (var j = 0; j < level.Battles!.Count; j++)
                     {
                         Battle battle = level.Battles![j];
                         Image<Rgba32> rosterImage =
                             GetRosterImage([.. battle.Avatars!.Select(x => x.Id)], lookup);
                         disposableResources.Add(rosterImage);
-                        int yOffset = offset + j * 200;
+                        var yOffset = offset + j * 200;
                         ctx.DrawImage(rosterImage, new Point(795, yOffset), 1f);
                     }
                 }
@@ -351,7 +351,7 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
     {
         const int avatarWidth = 150;
 
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -359,9 +359,9 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
         {
             ctx.Clear(Color.Transparent);
 
-            for (int i = 0; i < avatarIds.Count; i++)
+            for (var i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                var x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

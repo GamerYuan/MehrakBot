@@ -54,11 +54,11 @@ internal static class AvatarImageUtility
             {
                 ctx.Fill(NormalConstColor, constIcon);
                 ctx.DrawText(new RichTextOptions(NormalFont)
-                    {
-                        Origin = new PointF(130, 130),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{avatar.Rank}", Color.White);
+                {
+                    Origin = new PointF(130, 130),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{avatar.Rank}", Color.White);
             }
 
             IPath border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);

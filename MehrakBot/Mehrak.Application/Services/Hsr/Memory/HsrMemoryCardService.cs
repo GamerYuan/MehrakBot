@@ -82,9 +82,9 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrMemoryInformation> context)
     {
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Memory of Chaos", context.UserId);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
 
-        var memoryData = context.Data;
+        HsrMemoryInformation memoryData = context.Data;
         List<IDisposable> disposableResources = [];
         try
         {
@@ -109,7 +109,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                         return (FloorNumber: floorIndex, Data: floorData);
                     })
             ];
-            int height = 180 + floorDetails.Chunk(2)
+            var height = 180 + floorDetails.Chunk(2)
                 .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520).Sum();
 
             disposableResources.AddRange(avatarImages.Keys);
@@ -160,10 +160,10 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, context.GameProfile.GameUid!, Color.White);
 
-                int yOffset = 150;
-                foreach ((int floorNumber, FloorDetail? floorData) in floorDetails)
+                var yOffset = 150;
+                foreach ((var floorNumber, FloorDetail? floorData) in floorDetails)
                 {
-                    int xOffset = floorNumber % 2 * 750 + 50;
+                    var xOffset = floorNumber % 2 * 750 + 50;
 
                     IPath overlay;
 
@@ -197,7 +197,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                             }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
                         }
 
-                        string stageText =
+                        var stageText =
                             $"{memoryData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})";
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
@@ -206,7 +206,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                             VerticalAlignment = VerticalAlignment.Top
                         }, floorData?.Name ?? stageText, Color.White);
 
-                        for (int i = 0; i < 3; i++)
+                        for (var i = 0; i < 3; i++)
                             ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
                                 new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
 
@@ -230,7 +230,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 270),
                         new PointF(xOffset + 680, yOffset + 270));
                     ctx.DrawImage(node2, new Point(xOffset + 25, yOffset + 295), 1f);
-                    for (int i = 0; i < 3; i++)
+                    for (var i = 0; i < 3; i++)
                         ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
                             new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 520, yOffset + 10),
@@ -271,7 +271,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
     {
         const int avatarWidth = 150;
 
-        int offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
+        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
 
         Image<Rgba32> rosterImage = new(650, 200);
 
@@ -279,9 +279,9 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
         {
             ctx.Clear(Color.Transparent);
 
-            for (int i = 0; i < avatarIds.Count; i++)
+            for (var i = 0; i < avatarIds.Count; i++)
             {
-                int x = offset + i * (avatarWidth + 10);
+                var x = offset + i * (avatarWidth + 10);
                 ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
             }
         });

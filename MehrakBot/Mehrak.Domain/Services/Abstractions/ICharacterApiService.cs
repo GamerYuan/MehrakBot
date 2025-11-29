@@ -9,7 +9,7 @@ namespace Mehrak.Domain.Services.Abstractions;
 
 public interface ICharacterApiService<TBasic, TDetail, TContext> where TContext : IApiContext
 {
-    public Task<Result<IEnumerable<TBasic>>> GetAllCharactersAsync(TContext context);
+    Task<Result<IEnumerable<TBasic>>> GetAllCharactersAsync(TContext context);
 
-    public Task<Result<TDetail>> GetCharacterDetailAsync(TContext context);
+    Task<Result<TDetail>> GetCharacterDetailAsync(TContext context);
 }

@@ -29,7 +29,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>> _, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICardService<Hi3CharacterDetail>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -40,7 +40,7 @@ public class Hi3CharacterApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -55,7 +55,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICardService<Hi3CharacterDetail>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -70,7 +70,7 @@ public class Hi3CharacterApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -85,12 +85,12 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterNotFound_ReturnsEphemeralMessage()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICardService<Hi3CharacterDetail>> _, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        Hi3CharacterDetail character = await LoadTestCharacterAsync("Character_TestData_1.json");
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
@@ -101,7 +101,7 @@ public class Hi3CharacterApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -117,13 +117,13 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterFoundByAlias_ReturnsSuccess()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, _) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService>? characterCacheMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<ICardService<Hi3CharacterDetail>>? cardServiceMock, Mock<IMetricsService>? metricsMock, Mock<IUserRepository> _) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        Hi3CharacterDetail character = await LoadTestCharacterAsync("Character_TestData_1.json");
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
@@ -144,7 +144,7 @@ public class Hi3CharacterApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -161,13 +161,13 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, _) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<ICardService<Hi3CharacterDetail>>? cardServiceMock, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        Hi3CharacterDetail character = await LoadTestCharacterAsync("Character_TestData_1.json");
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
@@ -185,7 +185,7 @@ public class Hi3CharacterApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -202,12 +202,12 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsCardAndTracksMetrics(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, _) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<ICardService<Hi3CharacterDetail>>? cardServiceMock, Mock<IMetricsService>? metricsMock, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var character = await LoadTestCharacterAsync(testDataFile);
+        Hi3CharacterDetail character = await LoadTestCharacterAsync(testDataFile);
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
@@ -225,7 +225,7 @@ public class Hi3CharacterApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -244,12 +244,12 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_VerifyAllImagesUpdated(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, _) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<ICardService<Hi3CharacterDetail>>? cardServiceMock, Mock<IMetricsService> _, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var character = await LoadTestCharacterAsync(testDataFile);
+        Hi3CharacterDetail character = await LoadTestCharacterAsync(testDataFile);
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
@@ -269,7 +269,7 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        int expectedCalls = character.Stigmatas.Count + character.Costumes.Count + 1; // weapon
+        var expectedCalls = character.Stigmatas.Count + character.Costumes.Count + 1; // weapon
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
             Times.Exactly(expectedCalls));
     }
@@ -278,9 +278,9 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICardService<Hi3CharacterDetail>> _, Mock<IMetricsService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -328,9 +328,9 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICardService<Hi3CharacterDetail>> _, Mock<IMetricsService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -373,9 +373,9 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICharacterCacheService> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICardService<Hi3CharacterDetail>> _, Mock<IMetricsService> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -421,12 +421,12 @@ public class Hi3CharacterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, gameRoleApiMock) = SetupIntegrationTest();
+        (Hi3CharacterApplicationService? service, Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>? characterApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var character = await LoadTestCharacterAsync(testDataFile);
+        Hi3CharacterDetail character = await LoadTestCharacterAsync(testDataFile);
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
@@ -438,7 +438,7 @@ public class Hi3CharacterApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.Multiple(() =>
@@ -447,16 +447,16 @@ public class Hi3CharacterApplicationServiceTests
             Assert.That(result.Data, Is.Not.Null);
         });
 
-        var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+        CommandAttachment? attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
         Assert.That(attachment, Is.Not.Null);
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
         // Save card image
-        string outputDir = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDir = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDir);
-        string outputPath = Path.Combine(outputDir, $"Hi3CharacterIntegration_{character.Avatar.Name}.jpg");
+        var outputPath = Path.Combine(outputDir, $"Hi3CharacterIntegration_{character.Avatar.Name}.jpg");
         attachment.Content.Position = 0;
-        await using var fs = File.Create(outputPath);
+        await using FileStream fs = File.Create(outputPath);
         await attachment.Content.CopyToAsync(fs);
     }
 
@@ -564,7 +564,7 @@ public class Hi3CharacterApplicationServiceTests
         };
         var path = Path.Combine(TestDataPath, file);
         var json = await File.ReadAllTextAsync(path);
-        var data = JsonSerializer.Deserialize<Hi3CharacterDetail>(json, options);
+        Hi3CharacterDetail? data = JsonSerializer.Deserialize<Hi3CharacterDetail>(json, options);
         return data ?? throw new InvalidOperationException($"Failed to deserialize {file}");
     }
 

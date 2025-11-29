@@ -39,10 +39,10 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
             var region = server.ToRegion(context.Game);
 
-            var profile =
+            GameProfileDto? profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, context.Game, region);
 
             if (profile == null)
@@ -79,7 +79,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
             {
                 var code = codes[i];
                 var trimmedCode = code.ToUpperInvariant().Trim();
-                var response = await m_ApiService.GetAsync(
+                Result<CodeRedeemResult> response = await m_ApiService.GetAsync(
                     new CodeRedeemApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
                         context.Game, code.ToUpperInvariant().Trim()));
                 if (response.IsSuccess)

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Services;
@@ -29,7 +29,7 @@ public class ImageRepository : IImageRepository
             Metadata = contentType != null ? new BsonDocument("contentType", contentType) : null
         };
         m_Logger.LogInformation("Uploading file to GridFS {FileNameInDb}", fileNameInDb);
-        var objectId = await m_Bucket.UploadFromStreamAsync(fileNameInDb, sourceStream, options);
+        ObjectId objectId = await m_Bucket.UploadFromStreamAsync(fileNameInDb, sourceStream, options);
         return objectId != ObjectId.Empty;
     }
 

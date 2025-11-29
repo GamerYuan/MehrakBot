@@ -30,7 +30,7 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>> _, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository> _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -41,7 +41,7 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -56,7 +56,7 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_AbyssApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -71,7 +71,7 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -86,7 +86,7 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_FloorNotFound_ReturnsNoClearRecords()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -121,7 +121,7 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -137,13 +137,13 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, _, characterApiMock, _, _) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
+        GenshinAbyssInformation abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
@@ -160,7 +160,7 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -175,18 +175,18 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, _, _) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository> _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
+        GenshinAbyssInformation abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
-        var charList = CreateTestCharacterList();
+        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
@@ -202,7 +202,7 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -217,17 +217,17 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, cardServiceMock, _) =
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICardService<GenshinAbyssInformation>>? cardServiceMock, Mock<IUserRepository> _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
+        GenshinAbyssInformation abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
-        var charList = CreateTestCharacterList();
+        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
@@ -245,7 +245,7 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -263,17 +263,17 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, cardServiceMock, _) =
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService>? imageUpdaterMock, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, Mock<ICardService<GenshinAbyssInformation>>? cardServiceMock, Mock<IUserRepository> _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
+        GenshinAbyssInformation abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
-        var charList = CreateTestCharacterList();
+        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
@@ -304,9 +304,9 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
@@ -316,15 +316,15 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
                         LToken = "test",
                         GameUids = null
                     }
-                }
+                ]
             });
 
         // Force early exit after UpdateGameUid by making abyss API fail
@@ -359,9 +359,9 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
@@ -371,8 +371,8 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile>
-                {
+                Profiles =
+                [
                     new()
                     {
                         LtUid = 1ul,
@@ -385,7 +385,7 @@ public class GenshinAbyssApplicationServiceTests
                             }
                         }
                     }
-                }
+                ]
             });
 
         abyssApiMock
@@ -409,9 +409,9 @@ public class GenshinAbyssApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, _, _, _, userRepositoryMock) = SetupMocks();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>> _, Mock<ICardService<GenshinAbyssInformation>> _, Mock<IUserRepository>? userRepositoryMock) = SetupMocks();
 
-        var profile = CreateTestProfile();
+        GameProfileDto profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
@@ -441,7 +441,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(new UserModel
             {
                 Id = 1ul,
-                Profiles = new List<UserProfile> { new() { LtUid = 99999ul, LToken = "x" } }
+                Profiles = [new() { LtUid = 99999ul, LToken = "x" }]
             });
 
         await service.ExecuteAsync(context);
@@ -459,16 +459,16 @@ public class GenshinAbyssApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile, uint floor)
     {
         // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, _, characterApiMock, _, _) = SetupIntegrationTest();
+        (GenshinAbyssApplicationService? service, Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>? abyssApiMock, Mock<IApiService<GameProfileDto, GameRoleApiContext>>? gameRoleApiMock, Mock<IImageUpdaterService> _, Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>? characterApiMock, ICardService<GenshinAbyssInformation> _, Mock<IUserRepository> _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>(testDataFile);
+        GenshinAbyssInformation abyssData = await LoadTestDataAsync<GenshinAbyssInformation>(testDataFile);
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
-        var charList = CreateTestCharacterList();
+        List<GenshinBasicCharacterData> charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
@@ -481,7 +481,7 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         Assert.Multiple(() =>
         {
@@ -491,18 +491,18 @@ public class GenshinAbyssApplicationServiceTests
         });
         Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        CommandAttachment? attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
         Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
 
         // Save the generated card for manual inspection
-        string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
         Directory.CreateDirectory(outputDirectory);
-        string outputImagePath = Path.Combine(outputDirectory,
+        var outputImagePath = Path.Combine(outputDirectory,
             $"AbyssIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_Floor{floor}.jpg");
 
         attachment.Content.Position = 0;
-        await using var fileStream = File.Create(outputImagePath);
+        await using FileStream fileStream = File.Create(outputImagePath);
         await attachment.Content.CopyToAsync(fileStream);
     }
 
@@ -513,11 +513,11 @@ public class GenshinAbyssApplicationServiceTests
         // This test requires real credentials and should only be run manually
         // It demonstrates the full integration with the actual HoYoLab API
 
-        var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
+        IConfigurationSection config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
-        ulong testLtUid = ulong.Parse(config["LtUid"] ?? "0");
-        string? testLToken = config["LToken"];
+        var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
+        var testLToken = config["LToken"];
         const uint floor = 12u;
 
         Assert.Multiple(() =>
@@ -526,7 +526,7 @@ public class GenshinAbyssApplicationServiceTests
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
         });
 
-        var service = SetupRealApiIntegrationTest();
+        GenshinAbyssApplicationService service = SetupRealApiIntegrationTest();
 
         var context = new GenshinAbyssApplicationContext(
             MongoTestHelper.Instance.GetUniqueUserId(),
@@ -537,24 +537,24 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         // Act
-        var result = await service.ExecuteAsync(context);
+        CommandResult result = await service.ExecuteAsync(context);
 
         // Assert
         Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
 
         if (result.IsSuccess)
         {
-            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+            CommandAttachment? attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
             Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
 
             // Save output
-            string outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
+            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
-            string outputImagePath = Path.Combine(outputDirectory, $"AbyssRealApi_Floor{floor}.jpg");
+            var outputImagePath = Path.Combine(outputDirectory, $"AbyssRealApi_Floor{floor}.jpg");
 
             attachment.Content.Position = 0;
-            await using var fileStream = File.Create(outputImagePath);
+            await using FileStream fileStream = File.Create(outputImagePath);
             await attachment.Content.CopyToAsync(fileStream);
         }
     }
@@ -810,9 +810,9 @@ public class GenshinAbyssApplicationServiceTests
 
     private static async Task<T> LoadTestDataAsync<T>(string filename) where T : class
     {
-        string filePath = Path.Combine(TestDataPath, filename);
-        string json = await File.ReadAllTextAsync(filePath);
-        var result = JsonSerializer.Deserialize<T>(json);
+        var filePath = Path.Combine(TestDataPath, filename);
+        var json = await File.ReadAllTextAsync(filePath);
+        T? result = JsonSerializer.Deserialize<T>(json);
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
     }
 

@@ -89,7 +89,7 @@ public sealed partial class DiscordTestHelper : IDisposable
                         var contentBytes = await request.Content.ReadAsByteArrayAsync(cancellationToken);
                         clonedContent = new ByteArrayContent(contentBytes);
 
-                        foreach (var header in request.Content.Headers)
+                        foreach (KeyValuePair<string, IEnumerable<string>> header in request.Content.Headers)
                             clonedContent.Headers.Add(header.Key, header.Value);
                     }
 
@@ -108,23 +108,23 @@ public sealed partial class DiscordTestHelper : IDisposable
         SetupRequestCapture();
 
         var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = $"sample_token_{userId}",
+            Data = new JsonInteractionData
             {
-                Token = $"sample_token_{userId}",
-                Data = new JsonInteractionData
-                {
-                    Components = []
-                },
-                User = new JsonUser
-                {
-                    Id = userId
-                },
-                Channel = new JsonChannel
-                {
-                    Id = 987654321UL,
-                    Type = ChannelType.TextGuildChannel
-                },
-                Entitlements = []
+                Components = []
             },
+            User = new JsonUser
+            {
+                Id = userId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        },
             null,
             async (interaction, callback, _, _, cancellationToken) =>
                 await DiscordClient.Rest.SendInteractionResponseAsync(interaction.Id, interaction.Token, callback,
@@ -156,7 +156,7 @@ public sealed partial class DiscordTestHelper : IDisposable
 
         // Add parameters if specified
         if (parameters.Length > 0)
-            for (int i = 0; i < parameters.Length; i++)
+            for (var i = 0; i < parameters.Length; i++)
                 option[i] = new JsonApplicationCommandInteractionDataOption
                 {
                     Name = parameters[i].Name,
@@ -211,7 +211,7 @@ public sealed partial class DiscordTestHelper : IDisposable
     /// </summary>
     public async Task<string> ExtractInteractionResponseDataAsync()
     {
-        var interactionRequest = m_CapturedRequests.LastOrDefault();
+        (HttpRequestMessage Request, HttpContent? Content) interactionRequest = m_CapturedRequests.LastOrDefault();
 
         if (interactionRequest.Request?.Content == null)
             return string.Empty;
@@ -230,8 +230,8 @@ public sealed partial class DiscordTestHelper : IDisposable
         var jsonDocument = JsonDocument.Parse(jsonString);
 
         // Try to extract content from the JSON
-        if (jsonDocument.RootElement.TryGetProperty("data", out var dataElement) &&
-            dataElement.TryGetProperty("content", out var contentElement))
+        if (jsonDocument.RootElement.TryGetProperty("data", out JsonElement dataElement) &&
+            dataElement.TryGetProperty("content", out JsonElement contentElement))
             return contentElement.GetString() ?? string.Empty;
 
         return jsonString;
@@ -243,7 +243,7 @@ public sealed partial class DiscordTestHelper : IDisposable
     /// <returns>The file bytes if found, otherwise null</returns>
     public async Task<byte[]?> ExtractInteractionResponseAsBytesAsync()
     {
-        var interactionRequest = m_CapturedRequests.LastOrDefault();
+        (HttpRequestMessage Request, HttpContent? Content) interactionRequest = m_CapturedRequests.LastOrDefault();
 
         if (interactionRequest.Content == null || interactionRequest.Request.Content == null)
             return null;
@@ -255,41 +255,41 @@ public sealed partial class DiscordTestHelper : IDisposable
             return null;
 
         // Extract boundary
-        var boundaryMatch = MultipartBoundaryRegex().Match(contentType);
+        System.Text.RegularExpressions.Match boundaryMatch = MultipartBoundaryRegex().Match(contentType);
         if (!boundaryMatch.Success)
             return null;
 
         var boundary = "--" + boundaryMatch.Groups[1].Value.Trim('"');
 
         // Find file boundary indices to properly extract binary data
-        int[] boundaryIndices = FindAllOccurrences(contentBytes, Encoding.ASCII.GetBytes(boundary));
+        var boundaryIndices = FindAllOccurrences(contentBytes, Encoding.ASCII.GetBytes(boundary));
 
-        for (int i = 0; i < boundaryIndices.Length - 1; i++)
+        for (var i = 0; i < boundaryIndices.Length - 1; i++)
         {
             // Get this part's content
-            int partStart = boundaryIndices[i];
-            int partEnd = boundaryIndices[i + 1];
-            byte[] partBytes = new byte[partEnd - partStart];
+            var partStart = boundaryIndices[i];
+            var partEnd = boundaryIndices[i + 1];
+            var partBytes = new byte[partEnd - partStart];
             Array.Copy(contentBytes, partStart, partBytes, 0, partBytes.Length);
 
             // Convert to string to check headers
-            string partText = Encoding.UTF8.GetString(partBytes);
+            var partText = Encoding.UTF8.GetString(partBytes);
 
             // Check if this is a file part
             if (partText.Contains("Content-Disposition: form-data") &&
                 partText.Contains("filename="))
             {
                 // Find the boundary between headers and file data
-                int headerEndIndex = partText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                var headerEndIndex = partText.IndexOf("\r\n\r\n", StringComparison.Ordinal);
                 if (headerEndIndex > 0)
                 {
                     // Calculate the start position of file bytes in the overall content
-                    int fileStart = partStart + headerEndIndex + 4; // +4 for \r\n\r\n
-                    int fileEnd = partEnd - 2; // -2 for \r\n at end
+                    var fileStart = partStart + headerEndIndex + 4; // +4 for \r\n\r\n
+                    var fileEnd = partEnd - 2; // -2 for \r\n at end
 
                     // Extract file bytes
-                    int fileLength = fileEnd - fileStart;
-                    byte[] fileBytes = new byte[fileLength];
+                    var fileLength = fileEnd - fileStart;
+                    var fileBytes = new byte[fileLength];
                     Array.Copy(contentBytes, fileStart, fileBytes, 0, fileLength);
                     return fileBytes;
                 }
@@ -306,10 +306,10 @@ public sealed partial class DiscordTestHelper : IDisposable
     {
         var positions = new List<int>();
 
-        for (int i = 0; i <= source.Length - pattern.Length; i++)
+        for (var i = 0; i <= source.Length - pattern.Length; i++)
         {
-            bool found = true;
-            for (int j = 0; j < pattern.Length; j++)
+            var found = true;
+            for (var j = 0; j < pattern.Length; j++)
                 if (source[i + j] != pattern[j])
                 {
                     found = false;
@@ -337,7 +337,7 @@ public sealed partial class DiscordTestHelper : IDisposable
     private static string ParseMultipartFormData(byte[] contentBytes, string contentType)
     {
         // Extract boundary
-        var boundaryMatch = MultipartBoundaryRegex().Match(contentType);
+        System.Text.RegularExpressions.Match boundaryMatch = MultipartBoundaryRegex().Match(contentType);
         if (!boundaryMatch.Success)
             return string.Empty;
 
@@ -355,7 +355,7 @@ public sealed partial class DiscordTestHelper : IDisposable
             if (!part.Contains("Content-Type: application/json")) continue;
 
             // Extract the JSON payload from this part
-            var jsonMatch = JsonRegex().Match(part);
+            System.Text.RegularExpressions.Match jsonMatch = JsonRegex().Match(part);
             if (jsonMatch.Success)
             {
                 var jsonData = jsonMatch.Groups[1].Value.Trim();
@@ -388,7 +388,7 @@ public sealed partial class DiscordTestHelper : IDisposable
     {
         content = null;
         // Check direct content property
-        if (element.TryGetProperty("content", out var contentElement) &&
+        if (element.TryGetProperty("content", out JsonElement contentElement) &&
             contentElement.ValueKind == JsonValueKind.String)
         {
             content = contentElement.GetString();
@@ -396,9 +396,9 @@ public sealed partial class DiscordTestHelper : IDisposable
         }
 
         // Check data.content path
-        if (!element.TryGetProperty("data", out var dataElement)) return false;
+        if (!element.TryGetProperty("data", out JsonElement dataElement)) return false;
 
-        if (dataElement.TryGetProperty("content", out var dataContentElement) &&
+        if (dataElement.TryGetProperty("content", out JsonElement dataContentElement) &&
             dataContentElement.ValueKind == JsonValueKind.String)
         {
             content = dataContentElement.GetString();
@@ -406,14 +406,14 @@ public sealed partial class DiscordTestHelper : IDisposable
         }
 
         // Check for embeds
-        if (!dataElement.TryGetProperty("embeds", out var embedsElement) ||
+        if (!dataElement.TryGetProperty("embeds", out JsonElement embedsElement) ||
             embedsElement.ValueKind != JsonValueKind.Array ||
             embedsElement.GetArrayLength() <= 0) return false;
 
         // Try to get description from the first embed
-        foreach (var embed in embedsElement.EnumerateArray())
+        foreach (JsonElement embed in embedsElement.EnumerateArray())
         {
-            if (embed.TryGetProperty("description", out var descElement) &&
+            if (embed.TryGetProperty("description", out JsonElement descElement) &&
                 descElement.ValueKind == JsonValueKind.String)
             {
                 content = descElement.GetString();
@@ -421,7 +421,7 @@ public sealed partial class DiscordTestHelper : IDisposable
             }
 
             // Try to get title if no description
-            if (!embed.TryGetProperty("title", out var titleElement) ||
+            if (!embed.TryGetProperty("title", out JsonElement titleElement) ||
                 titleElement.ValueKind != JsonValueKind.String) continue;
 
             content = titleElement.GetString();

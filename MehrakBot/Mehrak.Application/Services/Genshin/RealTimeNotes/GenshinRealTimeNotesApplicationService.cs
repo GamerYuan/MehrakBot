@@ -36,10 +36,10 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
-            var profile =
+            GameProfileDto? profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
             if (profile == null)
@@ -52,7 +52,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
 
             var gameUid = profile.GameUid;
 
-            var notesResult = await m_ApiService.GetAsync(
+            Result<GenshinRealTimeNotesData> notesResult = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!notesResult.IsSuccess)
@@ -80,8 +80,8 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
         Task<Stream> weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
         Task<Stream> transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
 
-        long currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        long weeklyReset = server.GetNextWeeklyResetUnix();
+        var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var weeklyReset = server.GetNextWeeklyResetUnix();
 
         List<ICommandResultComponent> components =
         [

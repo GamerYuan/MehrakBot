@@ -68,7 +68,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
 
     protected static string? GetLastUsedServerAsync(UserModel user, Game game, uint profileId)
     {
-        var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
+        UserProfile? profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;
 
         if (profile.LastUsedRegions?.TryGetValue(game, out var server) ?? false) return server;
@@ -78,7 +78,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
 
     protected async Task UpdateLastUsedServerAsync(UserModel user, uint profileId, Game game, string server)
     {
-        var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
+        UserProfile? profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return;
 
         profile.LastUsedRegions ??= [];

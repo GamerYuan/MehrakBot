@@ -33,15 +33,15 @@ public class CookieEncryptionService : IEncryptionService
         {
             m_Logger.LogDebug("Starting cookie encryption");
 
-            byte[] salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
-            byte[] nonce = RandomNumberGenerator.GetBytes(NonceSizeBytes);
-            byte[] cookieBytes = Encoding.UTF8.GetBytes(plainText);
-            byte[] encryptedCookie = new byte[cookieBytes.Length];
-            byte[] tag = new byte[TagSizeBytes];
+            var salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
+            var nonce = RandomNumberGenerator.GetBytes(NonceSizeBytes);
+            var cookieBytes = Encoding.UTF8.GetBytes(plainText);
+            var encryptedCookie = new byte[cookieBytes.Length];
+            var tag = new byte[TagSizeBytes];
 
             m_Logger.LogTrace("Generated encryption salt and nonce");
 
-            byte[] key = Rfc2898DeriveBytes.Pbkdf2(
+            var key = Rfc2898DeriveBytes.Pbkdf2(
                 Encoding.UTF8.GetBytes(passphrase),
                 salt,
                 Pbkdf2Iterations,
@@ -55,12 +55,12 @@ public class CookieEncryptionService : IEncryptionService
 
             m_Logger.LogTrace("Encryption completed, preparing result");
 
-            byte[] combinedCiphertext = new byte[encryptedCookie.Length + tag.Length];
+            var combinedCiphertext = new byte[encryptedCookie.Length + tag.Length];
             Buffer.BlockCopy(encryptedCookie, 0, combinedCiphertext, 0, encryptedCookie.Length);
             Buffer.BlockCopy(tag, 0, combinedCiphertext, encryptedCookie.Length, tag.Length);
 
             var payload = salt.Concat(nonce).Concat(combinedCiphertext).ToArray();
-            string combinedDataBase64 = Convert.ToBase64String(payload);
+            var combinedDataBase64 = Convert.ToBase64String(payload);
 
             Array.Clear(key, 0, key.Length);
             Array.Clear(cookieBytes, 0, cookieBytes.Length);
@@ -102,14 +102,14 @@ public class CookieEncryptionService : IEncryptionService
                 return string.Empty;
             }
 
-            byte[] salt = new byte[SaltSizeBytes];
-            byte[] nonce = new byte[NonceSizeBytes];
+            var salt = new byte[SaltSizeBytes];
+            var nonce = new byte[NonceSizeBytes];
 
             Buffer.BlockCopy(payload, 0, salt, 0, SaltSizeBytes);
             Buffer.BlockCopy(payload, SaltSizeBytes, nonce, 0, NonceSizeBytes);
 
-            int combinedCiphertextLength = payload.Length - SaltSizeBytes - NonceSizeBytes;
-            byte[] combinedCiphertextWithTag = new byte[combinedCiphertextLength];
+            var combinedCiphertextLength = payload.Length - SaltSizeBytes - NonceSizeBytes;
+            var combinedCiphertextWithTag = new byte[combinedCiphertextLength];
             Buffer.BlockCopy(
                 payload,
                 SaltSizeBytes + NonceSizeBytes,
@@ -123,7 +123,7 @@ public class CookieEncryptionService : IEncryptionService
                 return string.Empty;
             }
 
-            byte[] tag = new byte[TagSizeBytes];
+            var tag = new byte[TagSizeBytes];
             Buffer.BlockCopy(
                 combinedCiphertextWithTag,
                 combinedCiphertextWithTag.Length - TagSizeBytes,
@@ -131,18 +131,18 @@ public class CookieEncryptionService : IEncryptionService
                 0,
                 TagSizeBytes);
 
-            int ciphertextLength = combinedCiphertextWithTag.Length - TagSizeBytes;
-            byte[] ciphertext = new byte[ciphertextLength];
+            var ciphertextLength = combinedCiphertextWithTag.Length - TagSizeBytes;
+            var ciphertext = new byte[ciphertextLength];
             Buffer.BlockCopy(combinedCiphertextWithTag, 0, ciphertext, 0, ciphertextLength);
 
-            byte[] key = Rfc2898DeriveBytes.Pbkdf2(
+            var key = Rfc2898DeriveBytes.Pbkdf2(
                 Encoding.UTF8.GetBytes(passphrase),
                 salt,
                 Pbkdf2Iterations,
                 Pbkdf2HashAlgorithm,
                 KeySizeBytes);
 
-            byte[] decryptedBytes = new byte[ciphertext.Length];
+            var decryptedBytes = new byte[ciphertext.Length];
 
             try
             {
@@ -168,7 +168,7 @@ public class CookieEncryptionService : IEncryptionService
                 throw;
             }
 
-            string plainTextCookie = Encoding.UTF8.GetString(decryptedBytes);
+            var plainTextCookie = Encoding.UTF8.GetString(decryptedBytes);
 
             Array.Clear(decryptedBytes, 0, decryptedBytes.Length);
             Array.Clear(key, 0, key.Length);

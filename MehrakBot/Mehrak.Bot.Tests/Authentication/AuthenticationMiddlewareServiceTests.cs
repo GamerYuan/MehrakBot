@@ -90,7 +90,7 @@ public class AuthenticationMiddlewareServiceTests
             .ReturnsAsync((UserModel?)null);
 
         // Act
-        var result = await m_Service.GetAuthenticationAsync(request);
+        AuthenticationResult result = await m_Service.GetAuthenticationAsync(request);
 
         // Assert
         Assert.Multiple(() =>
@@ -140,7 +140,7 @@ public class AuthenticationMiddlewareServiceTests
             .ReturnsAsync(user);
 
         // Act
-        var result = await m_Service.GetAuthenticationAsync(request);
+        AuthenticationResult result = await m_Service.GetAuthenticationAsync(request);
 
         // Assert
         Assert.Multiple(() =>
@@ -188,7 +188,7 @@ public class AuthenticationMiddlewareServiceTests
         var user = new UserModel
         {
             Id = TestUserId,
-            Profiles = new List<UserProfile> { profile }
+            Profiles = [profile]
         };
 
         var cacheKey = $"ltoken:{TestUserId}:{TestLtUid}";
@@ -202,7 +202,7 @@ public class AuthenticationMiddlewareServiceTests
             .ReturnsAsync(TestLToken);
 
         // Act
-        var result = await m_Service.GetAuthenticationAsync(request);
+        AuthenticationResult result = await m_Service.GetAuthenticationAsync(request);
 
         // Assert
         Assert.Multiple(() =>
@@ -256,7 +256,7 @@ public class AuthenticationMiddlewareServiceTests
         var user = new UserModel
         {
             Id = TestUserId,
-            Profiles = new List<UserProfile> { profile }
+            Profiles = [profile]
         };
 
         var cacheKey = $"ltoken:{TestUserId}:{TestLtUid}";
@@ -358,7 +358,7 @@ public class AuthenticationMiddlewareServiceTests
         var user = new UserModel
         {
             Id = TestUserId,
-            Profiles = new List<UserProfile> { profile }
+            Profiles = [profile]
         };
 
         m_MockUserRepository

@@ -35,10 +35,10 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            string region = server.ToRegion();
+            Server server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            GameProfileDto? profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
                 region);
 
             if (profile == null)
@@ -51,7 +51,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
 
             var gameUid = profile.GameUid;
 
-            var notesResult = await m_ApiService.GetAsync(
+            Result<ZzzRealTimeNotesData> notesResult = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!notesResult.IsSuccess)
@@ -76,17 +76,17 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
     {
         Stream stamImage = await m_ImageRepository.DownloadFileToStreamAsync("zzz_battery");
 
-        long currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        string omnicoins = data.TempleManage.CurrencyNextRefreshTs == 0
+        var omnicoins = data.TempleManage.CurrencyNextRefreshTs == 0
             ? "-"
             : $"{data.TempleManage.CurrentCurrency}/{data.TempleManage.WeeklyCurrencyMax}" +
               $"-# Refreshes in <t:{data.TempleManage.CurrencyNextRefreshTs}:F>";
-        string bounty = data.BountyCommission.Total == 0
+        var bounty = data.BountyCommission.Total == 0
             ? "-"
             : $"{data.BountyCommission.Num}/{data.BountyCommission.Total}\n" +
               $"-# Refreshes in <t:{currTime + data.BountyCommission.RefreshTime}:F>";
-        string weeklyTask = data.WeeklyTask is null
+        var weeklyTask = data.WeeklyTask is null
             ? "-"
             : $"{data.WeeklyTask!.CurPoint}/{data.WeeklyTask!.MaxPoint}\n" +
               $"-# Refreshes in <t:{currTime + data.WeeklyTask.RefreshTime}:F>";

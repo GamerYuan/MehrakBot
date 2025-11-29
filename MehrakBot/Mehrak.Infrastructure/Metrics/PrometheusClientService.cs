@@ -35,13 +35,13 @@ public class PrometheusClientService : ISystemResourceClientService
             PrometheusResponse? memoryTotalQuery =
                 await QueryPrometheusAsync("node_memory_MemTotal_bytes");
 
-            double cpuUsage = cpuUsageQuery?.Data.Result.Count > 0
+            var cpuUsage = cpuUsageQuery?.Data.Result.Count > 0
                 ? double.Parse(cpuUsageQuery.Data.Result[0].Value[1].ToString()!)
                 : -1;
-            long memoryAvailable = memoryAvailableQuery?.Data.Result.Count > 0
+            var memoryAvailable = memoryAvailableQuery?.Data.Result.Count > 0
                 ? long.Parse(memoryAvailableQuery.Data.Result[0].Value[1].ToString()!)
                 : -1;
-            long memoryTotal = memoryTotalQuery?.Data.Result.Count > 0
+            var memoryTotal = memoryTotalQuery?.Data.Result.Count > 0
                 ? long.Parse(memoryTotalQuery.Data.Result[0].Value[1].ToString()!)
                 : -1;
 
@@ -65,11 +65,11 @@ public class PrometheusClientService : ISystemResourceClientService
 
     private async Task<PrometheusResponse?> QueryPrometheusAsync(string query)
     {
-        string encodedQuery = Uri.EscapeDataString(query);
-        string url = $"{PrometheusBaseUrl}/query?query={encodedQuery}";
+        var encodedQuery = Uri.EscapeDataString(query);
+        var url = $"{PrometheusBaseUrl}/query?query={encodedQuery}";
 
         HttpClient httpClient = m_HttpClientFactory.CreateClient();
-        string response = await httpClient.GetStringAsync(url);
+        var response = await httpClient.GetStringAsync(url);
         return JsonSerializer.Deserialize<PrometheusResponse>(response);
     }
 }

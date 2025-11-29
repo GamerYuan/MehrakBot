@@ -19,7 +19,7 @@ internal class ImageProcessorBase : IImageProcessor
         using var image = Image.Load(imageStream);
         image.Mutate(ctx =>
         {
-            foreach (var operation in m_Operations) operation(ctx);
+            foreach (Action<IImageProcessingContext> operation in m_Operations) operation(ctx);
         });
 
         var outputStream = new MemoryStream();
