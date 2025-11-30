@@ -50,6 +50,13 @@ public class ImageUpdaterService : IImageUpdaterService
         {
             m_Logger.LogInformation("Processing {Name}", data.Name);
             using var processedStream = processor.ProcessImage(stream);
+
+            if (processedStream == Stream.Null || processedStream.Length == 0)
+            {
+                m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+                return false;
+            }
+
             processedStream.Position = 0;
             await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
         }
@@ -96,6 +103,13 @@ public class ImageUpdaterService : IImageUpdaterService
             await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable();
 
         using var processedStream = processor.ProcessImage(streams);
+
+        if (processedStream == Stream.Null || processedStream.Length == 0)
+        {
+            m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+            return false;
+        }
+
         processedStream.Position = 0;
         await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
 
