@@ -40,7 +40,7 @@ internal class GenshinWeaponImageProcessorTests
         var outputGoldenImagePath = Path.Combine(outputDirectory, goldenImage);
         File.WriteAllBytes(outputGoldenImagePath, golden);
 
-        Assert.That(stream, Is.Not.Null);
+        Assert.That(bytes, Is.Not.Empty);
         Assert.That(bytes, Is.EqualTo(golden));
     }
 
