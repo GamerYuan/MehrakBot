@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Mehrak.Application.Services.Genshin.Types;
+﻿using Mehrak.Application.Services.Genshin.Types;
 
 namespace Mehrak.Application.Tests.Services.Genshin.Types;
 
@@ -9,18 +8,43 @@ internal class GenshinWeaponImageProcessorTests
 {
     private static readonly string TestDirectory = Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin", "TestAssets", "WeaponProcessor");
 
-    [SetUp]
-    public void StartTest()
+    [Test]
+    [TestCase("icon_sword.png", "original_sword.png", "ascended_sword.png", "golden_sword.png")]
+    [TestCase("icon_polearm.png", "original_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
+    [TestCase("icon_claymore.png", "original_claymore.png", "ascended_claymore.png", "golden_claymore.png")]
+    [TestCase("icon_bow.png", "original_bow.png", "ascended_bow.png", "golden_bow.png")]
+    public void ProcessImage_ShouldMatchGoldenImage(string iconFile, string originalFile, string ascendedFile, string goldenImage)
     {
-        Trace.Listeners.Add(new ConsoleTraceListener());
+        using var icon = File.OpenRead(Path.Combine(TestDirectory, iconFile));
+        using var original = File.OpenRead(Path.Combine(TestDirectory, originalFile));
+        using var ascended = File.OpenRead(Path.Combine(TestDirectory, ascendedFile));
+
+        var golden = File.ReadAllBytes(Path.Combine(TestDirectory, goldenImage));
+
+        var processor = new GenshinWeaponImageProcessor();
+        using var stream = processor.ProcessImage([icon, original, ascended]);
+
+        MemoryStream memoryStream = new();
+        stream.CopyTo(memoryStream);
+        memoryStream.Position = 0;
+
+        var bytes = memoryStream.ToArray();
+
+        // Save generated image to output folder for comparison
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "WeaponProcessor");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory, goldenImage.Replace("golden", "output"));
+        File.WriteAllBytes(outputImagePath, bytes);
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory, goldenImage);
+        File.WriteAllBytes(outputGoldenImagePath, golden);
+
+        Assert.That(stream, Is.Not.Null);
+        Assert.That(bytes, Is.EqualTo(golden));
     }
 
-    [TearDown]
-    public void EndTest()
-    {
-        Trace.Flush();
-    }
-
+    /*
     [Test]
     [TestCase("icon_sword.png", "original_sword.png", "ascended_sword.png", "output_sword.png")]
     [TestCase("icon_polearm.png", "original_polearm.png", "ascended_polearm.png", "output_polearm.png")]
@@ -43,4 +67,5 @@ internal class GenshinWeaponImageProcessorTests
         resultFile.Flush();
         resultFile.Close();
     }
+    */
 }
