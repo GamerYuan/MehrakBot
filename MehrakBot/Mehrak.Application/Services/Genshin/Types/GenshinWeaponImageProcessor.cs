@@ -12,8 +12,28 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
         var imageList = images.Select(StreamToMat).ToList();
 
         var icon = imageList[0];
-        var original = imageList[1];
         var ascended = imageList[2];
+        var original = new Mat();
+
+        if (imageList[1].Width >= 800 || imageList[1].Height >= 800)
+        {
+            using var largeOriginal = imageList[1];
+            var scaleFactor = 0f;
+            if (largeOriginal.Width > largeOriginal.Height)
+            {
+                scaleFactor = 800f / largeOriginal.Width;
+            }
+            else
+            {
+                scaleFactor = 800f / largeOriginal.Height;
+            }
+            Cv2.Resize(largeOriginal, original, new Size((int)(largeOriginal.Width * scaleFactor), (int)(largeOriginal.Height * scaleFactor)));
+        }
+        else
+        {
+            original.Dispose();
+            original = imageList[1];
+        }
 
         var iconAngle = GetOrientationPCA(icon);
         var originalAngle = GetOrientationPCA(original);
@@ -130,9 +150,6 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
                 bestRect = new Rect(maxLoc, newSize);
             }
         }
-
-        if (bestScore < 0.5) return null;
-
         return bestRect;
     }
 
