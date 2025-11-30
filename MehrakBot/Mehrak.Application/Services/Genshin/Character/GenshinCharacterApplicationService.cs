@@ -139,7 +139,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             var weapIconExists = await m_ImageRepository.FileExistsAsync(charData.Weapon.ToBaseImageName());
             var ascendedIconExists = await m_ImageRepository.FileExistsAsync(charData.Weapon.ToAscendedImageName());
 
-            if (!weapIconExists || ascendedIconExists)
+            if (!weapIconExists || !ascendedIconExists)
             {
                 var wikiEntry = characterInfo.Data.WeaponWiki[charData.Weapon.Id.ToString()!].Split('/')[^1];
                 weapImageTask = GetWeaponUrlsAsync(context, profile, charData, wikiEntry);
@@ -188,6 +188,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
 
                     if (!ascendedIconExists)
                     {
+                        // Special case for catalyst
                         if (charData.Weapon.Type == 10)
                         {
                             var list = weapImage.Data.Ascended.ToList();
@@ -196,10 +197,11 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                         }
                         else
                         {
-                            tasks.Add(m_ImageUpdaterService.UpdateMultiImageAsync(
+                            // ignore result from this method
+                            await m_ImageUpdaterService.UpdateMultiImageAsync(
                                 new MultiImageData(charData.Weapon.ToAscendedImageName(), weapImage.Data.Ascended),
                                 new GenshinWeaponImageProcessor()
-                            ));
+                            );
                         }
                     }
                 }
@@ -276,7 +278,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             GenshinCharacterInformation charData, string wikiEntry)
     {
         // Prio to CN locale
-        foreach (var locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
+        foreach (var locale in Enum.GetValues<WikiLocales>())
         {
             var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
 
@@ -292,7 +294,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             var jsonStr = weapWiki.Data["data"]?["page"]?["modules"]?.AsArray().SelectMany(x => x?["components"]?.AsArray() ?? [])
                 .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")?["data"]?.GetValue<string>();
 
-            if (jsonStr != null)
+            if (!string.IsNullOrEmpty(jsonStr))
             {
                 var json = JsonNode.Parse(jsonStr);
                 ascendedUrls.AddRange(json?["list"]?.AsArray().Select(x => x?["img"]?.GetValue<string>())
