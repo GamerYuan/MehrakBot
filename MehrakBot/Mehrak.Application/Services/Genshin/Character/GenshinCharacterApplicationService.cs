@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -123,47 +124,27 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             }
 
             var charData = characterInfo.Data.List[0];
-            var wikiEntry = characterInfo.Data.AvatarWiki[charData.Base.Id.ToString()].Split('/')[^1];
 
             List<Task<bool>> tasks = [];
 
-            if (!await m_ImageRepository.FileExistsAsync(
-                string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id)))
+            Task<Result<string>>? charImageUrlTask = null;
+            Task<Result<(string Base, IEnumerable<string> Ascended)>>? weapImageTask = null;
+
+            if (!await m_ImageRepository.FileExistsAsync(charData.Base.ToImageName()))
             {
-                string? url = null;
-
-                // Prio to CN locale
-                foreach (var locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
-                {
-                    var charWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
-
-                    if (!charWiki.IsSuccess)
-                    {
-                        Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
-                        continue;
-                    }
-
-                    url = charWiki.Data["data"]?["page"]?["header_img_url"]?.ToString();
-
-                    if (!string.IsNullOrEmpty(url)) break;
-
-                    Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
-                        charData.Base.Id, locale, charWiki.Data.ToJsonString());
-                }
-
-                if (string.IsNullOrEmpty(url))
-                {
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Character Image"));
-                }
-
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(
-                    string.Format(FileNameFormat.Genshin.FileName, charData.Base.Id), url),
-                    new ImageProcessorBuilder().AddOperation(GetCharacterImageProcessor()).Build()));
+                var wikiEntry = characterInfo.Data.AvatarWiki[charData.Base.Id.ToString()].Split('/')[^1];
+                charImageUrlTask = GetCharacterImageUrlAsync(context, profile, charData, wikiEntry);
             }
 
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charData.Weapon.ToImageData(),
-                new ImageProcessorBuilder().Resize(200, 0).Build()));
+            var weapIconExists = await m_ImageRepository.FileExistsAsync(charData.Weapon.ToBaseImageName());
+            var ascendedIconExists = await m_ImageRepository.FileExistsAsync(charData.Weapon.ToAscendedImageName());
+
+            if (!weapIconExists || ascendedIconExists)
+            {
+                var wikiEntry = characterInfo.Data.WeaponWiki[charData.Weapon.Id.ToString()!].Split('/')[^1];
+                weapImageTask = GetWeaponUrlsAsync(context, profile, charData, wikiEntry);
+            }
+
             tasks.AddRange(charData.Constellations.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                 new ImageProcessorBuilder().Resize(90, 0).Build())));
             tasks.AddRange(charData.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(
@@ -172,6 +153,57 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             tasks.AddRange(charData.Relics.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                 new ImageProcessorBuilder().Resize(300, 0).AddOperation(ctx => ctx.Pad(300, 300))
                     .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build())));
+
+            if (charImageUrlTask != null)
+            {
+                var charImage = await charImageUrlTask;
+                if (!charImage.IsSuccess)
+                {
+                    Logger.LogError("Failed to fetch Character {Character} image from wiki", charData.Base.Name);
+                    return CommandResult.Failure(CommandFailureReason.ApiError,
+                        string.Format(ResponseMessage.ApiError, "Character Image"));
+                }
+
+                var url = charImage.Data;
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Base.ToImageName(), url),
+                    new ImageProcessorBuilder().AddOperation(GetCharacterImageProcessor()).Build()));
+            }
+
+            if (weapImageTask != null)
+            {
+                var weapImage = await weapImageTask;
+                if (!weapImage.IsSuccess && !weapIconExists)
+                {
+                    tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charData.Weapon.ToImageData(),
+                        new ImageProcessorBuilder().AddOperation(GetWeaponIconProcessor()).Build()));
+                }
+                else
+                {
+                    if (!weapIconExists)
+                    {
+                        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
+                            new ImageData(charData.Weapon.ToBaseImageName(), weapImage.Data.Base),
+                            new ImageProcessorBuilder().AddOperation(GetWeaponIconProcessor()).Build()));
+                    }
+
+                    if (!ascendedIconExists)
+                    {
+                        if (charData.Weapon.Type == 10)
+                        {
+                            var list = weapImage.Data.Ascended.ToList();
+                            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Weapon.ToAscendedImageName(), list[2]),
+                                new ImageProcessorBuilder().AddOperation(GetWeaponIconProcessor()).Build()));
+                        }
+                        else
+                        {
+                            tasks.Add(m_ImageUpdaterService.UpdateMultiImageAsync(
+                                new MultiImageData(charData.Weapon.ToAscendedImageName(), weapImage.Data.Ascended),
+                                new GenshinWeaponImageProcessor()
+                            ));
+                        }
+                    }
+                }
+            }
 
             await Task.WhenAll(tasks);
 
@@ -207,33 +239,86 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
         }
     }
 
+    private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, GameProfileDto profile,
+        GenshinCharacterInformation charData, string wikiEntry)
+    {
+        string? url = null;
+
+        // Prio to CN locale
+        foreach (var locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
+        {
+            var charWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
+
+            if (!charWiki.IsSuccess)
+            {
+                Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
+                continue;
+            }
+
+            url = charWiki.Data["data"]?["page"]?["header_img_url"]?.ToString();
+
+            if (!string.IsNullOrEmpty(url)) break;
+
+            Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
+                charData.Base.Id, locale, charWiki.Data.ToJsonString());
+        }
+
+        if (string.IsNullOrEmpty(url))
+        {
+            return Result<string>.Failure(StatusCode.ExternalServerError);
+        }
+
+        return Result<string>.Success(url);
+    }
+
+    private async Task<Result<(string, IEnumerable<string>)>>
+        GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
+            GenshinCharacterInformation charData, string wikiEntry)
+    {
+        // Prio to CN locale
+        foreach (var locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
+        {
+            var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
+
+            if (!weapWiki.IsSuccess)
+            {
+                Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, weapWiki);
+                continue;
+            }
+
+            var url = weapWiki.Data["data"]?["page"]?["icon_url"]?.ToString();
+            List<string> ascendedUrls = [];
+
+            var jsonStr = weapWiki.Data["data"]?["page"]?["modules"]?.AsArray().SelectMany(x => x?["components"]?.AsArray() ?? [])
+                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")?["data"]?.GetValue<string>();
+
+            if (jsonStr != null)
+            {
+                var json = JsonNode.Parse(jsonStr);
+                ascendedUrls.AddRange(json?["list"]?.AsArray().Select(x => x?["img"]?.GetValue<string>())
+                    .Where(x => !string.IsNullOrEmpty(x)).Cast<string>() ?? []);
+            }
+
+            if (!string.IsNullOrEmpty(url) && ascendedUrls.Count == 2)
+            {
+                ascendedUrls.Insert(0, url);
+                return Result<(string, IEnumerable<string>)>.Success((url, ascendedUrls));
+            }
+
+            Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
+                charData.Base.Id, locale, weapWiki.Data.ToJsonString());
+        }
+
+        return Result<(string, IEnumerable<string>)>.Failure(StatusCode.ExternalServerError);
+    }
+
     private static Action<IImageProcessingContext> GetCharacterImageProcessor()
     {
         return ctx =>
         {
+            ctx.CropTransparentPixels();
+
             var size = ctx.GetCurrentSize();
-            var minX = size.Width;
-            var minY = size.Height;
-            var maxX = -1;
-            var maxY = -1;
-            Lock @lock = new();
-
-            ctx.ProcessPixelRowsAsVector4((row, point) =>
-            {
-                if (row[point.X].W > 0)
-                {
-                    @lock.Enter();
-                    minX = Math.Min(minX, point.X);
-                    minY = Math.Min(minY, point.Y);
-                    maxX = Math.Max(maxX, point.X);
-                    maxY = Math.Max(maxY, point.Y);
-                    @lock.Exit();
-                }
-            });
-
-            if (maxX > minX && maxY > minY) ctx.Crop(new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1));
-
-            size = ctx.GetCurrentSize();
             if (size.Width >= size.Height)
                 ctx.Resize(0,
                     (int)Math.Round(1280 * Math.Min(1.2 * size.Height / size.Width, 1f)),
@@ -252,6 +337,19 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 ctx.Crop(new Rectangle((size.Width - 1280) / 2, 0, 1280, size.Height));
 
             ctx.ApplyGradientFade();
+        };
+    }
+
+    private static Action<IImageProcessingContext> GetWeaponIconProcessor()
+    {
+        return ctx =>
+        {
+            ctx.CropTransparentPixels();
+            ctx.Resize(new ResizeOptions()
+            {
+                Size = new Size(200, 200),
+                Mode = ResizeMode.Pad
+            });
         };
     }
 }
