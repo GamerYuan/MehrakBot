@@ -64,7 +64,7 @@ public class Weapon
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Genshin.FileName, Id);
+        return string.Format(FileNameFormat.Genshin.WeaponBaseName, Id);
     }
 
     public IImageData ToImageData()
