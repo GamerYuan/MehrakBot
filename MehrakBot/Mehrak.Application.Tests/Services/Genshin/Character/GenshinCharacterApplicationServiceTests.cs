@@ -502,6 +502,10 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(false); // Force wiki download
 
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .ReturnsAsync(true);
+
         var wikiResponse = JsonNode.Parse("""
                                           {
                                           "data": {
@@ -542,6 +546,103 @@ public class GenshinCharacterApplicationServiceTests
 
         // Verify wiki API was called
         wikiApiMock.Verify(x => x.GetAsync(It.IsAny<WikiApiContext>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenWeaponImagesMissing_FetchesFromWikiAndUpdates()
+    {
+        // Arrange
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        // Ensure weapon type is not 10 (Catalyst) to test the general path
+        typeof(WeaponDetail).GetProperty("Type")!.SetValue(characterDetail.List[0].Weapon, 1);
+
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync((string path) =>
+            {
+                // Simulate weapon images missing
+                return !path.Contains("weapon");
+            });
+
+        var wikiResponse = JsonNode.Parse("""
+                                          {
+                                          "data": {
+                                          "page": {
+                                          "icon_url": "https://example.com/icon.png",
+                                          "modules": [
+                                          {
+                                          "components": [
+                                          {
+                                          "component_id": "gallery_character",
+                                          "data": "{\"list\": [{\"img\": \"https://example.com/1.png\"}, {\"img\": \"https://example.com/2.png\"}]}"
+                                          }
+                                          ]
+                                          }
+                                          ]
+                                          }
+                                          }
+                                          }
+                                          """);
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateMultiImageAsync(It.IsAny<IMultiImageData>(), It.IsAny<IMultiImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = new GenshinCharacterApplicationContext(
+            1,
+            ("character", "Traveler"),
+            ("server", Server.Asia.ToString()))
+        {
+            LtUid = 1ul,
+            LToken = "test"
+        };
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True);
+
+        // Verify wiki API was called
+        wikiApiMock.Verify(x => x.GetAsync(It.IsAny<WikiApiContext>()), Times.AtLeastOnce);
+
+        // Verify UpdateImageAsync called for base weapon icon
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Url == "https://example.com/icon.png"),
+            It.IsAny<IImageProcessor>()), Times.Once);
+
+        // Verify UpdateMultiImageAsync called for ascended weapon icon
+        imageUpdaterMock.Verify(x => x.UpdateMultiImageAsync(
+            It.Is<IMultiImageData>(d => d.AdditionalUrls.Count() == 3 && d.AdditionalUrls.Contains("https://example.com/icon.png")),
+            It.IsAny<IMultiImageProcessor>()), Times.Once);
     }
 
     [Test]
@@ -589,7 +690,7 @@ public class GenshinCharacterApplicationServiceTests
 
         // Assert
         var charData = characterDetail.List[0];
-        var expectedImageCount = 1 + charData.Constellations.Count + charData.Skills.Count + charData.Relics.Count;
+        var expectedImageCount = charData.Constellations.Count + charData.Skills.Count + charData.Relics.Count;
 
         imageUpdaterMock.Verify(
             x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
@@ -780,6 +881,10 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(false);
 
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .ReturnsAsync(true);
+
         // CN fails, EN succeeds
         wikiApiMock
             .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)))
@@ -844,6 +949,10 @@ public class GenshinCharacterApplicationServiceTests
         imageRepositoryMock
             .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(false);
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .ReturnsAsync(true);
 
         var cnEmpty = JsonNode.Parse("""
                                     { "data": { "page": { "header_img_url": "" } } }

@@ -241,7 +241,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
         }
     }
 
-    private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, GameProfileDto profile,
+    private async Task<Result<string>> GetCharacterImageUrlAsync(GenshinCharacterApplicationContext context, GameProfileDto profile,
         GenshinCharacterInformation charData, string wikiEntry)
     {
         string? url = null;
