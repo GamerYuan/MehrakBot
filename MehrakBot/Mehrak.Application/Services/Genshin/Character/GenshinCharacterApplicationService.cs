@@ -27,7 +27,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
     private readonly ICardService<GenshinCharacterInformation> m_CardService;
     private readonly ICharacterCacheService m_CharacterCacheService;
 
-    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApi;
 
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
@@ -38,7 +38,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
         ICharacterCacheService characterCacheService,
-        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
+        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IApiService<JsonNode, WikiApiContext> wikiApi,
         IImageRepository imageRepository,
         IImageUpdaterService imageUpdaterService,
@@ -79,7 +79,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             var gameUid = profile.GameUid;
 
             var charListResponse = await
-                m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
+                m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
                     context.LToken, gameUid, region));
             if (!charListResponse.IsSuccess)
             {
@@ -112,7 +112,7 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             }
 
             var characterInfo = await m_CharacterApi.GetCharacterDetailAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
+                new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
                     character.Id!.Value));
 
             if (!characterInfo.IsSuccess)

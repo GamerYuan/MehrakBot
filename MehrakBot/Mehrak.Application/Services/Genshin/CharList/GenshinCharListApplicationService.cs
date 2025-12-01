@@ -23,14 +23,14 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICardService<IEnumerable<GenshinBasicCharacterData>> m_CardService;
 
-    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCache;
 
     public GenshinCharListApplicationService(
         IImageUpdaterService imageUpdaterService,
         ICardService<IEnumerable<GenshinBasicCharacterData>> cardService,
-        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
+        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
         ICharacterCacheService characterCache,
@@ -64,7 +64,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
             var gameUid = profile.GameUid;
 
             var charResponse = await
-                m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
+                m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
                     context.LToken, gameUid, region));
 
             if (!charResponse.IsSuccess)
