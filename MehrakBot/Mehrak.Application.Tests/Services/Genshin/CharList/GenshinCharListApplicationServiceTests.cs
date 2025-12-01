@@ -64,7 +64,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
@@ -98,7 +98,7 @@ public class GenshinCharListApplicationServiceTests
 
         var charList = await LoadTestDataAsync<CharacterListData>("CharList_TestData_1.json");
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         // Make image update fail
@@ -136,7 +136,7 @@ public class GenshinCharListApplicationServiceTests
 
         var charList = await LoadTestDataAsync<CharacterListData>("CharList_TestData_1.json");
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         imageUpdaterMock
@@ -180,7 +180,7 @@ public class GenshinCharListApplicationServiceTests
 
         var charList = await LoadTestDataAsync<CharacterListData>("CharList_TestData_1.json");
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         imageUpdaterMock
@@ -240,7 +240,7 @@ public class GenshinCharListApplicationServiceTests
 
         // Force early exit after UpdateGameUid by making char API fail
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
@@ -302,7 +302,7 @@ public class GenshinCharListApplicationServiceTests
             });
 
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
@@ -336,7 +336,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync((UserModel?)null);
 
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
@@ -387,7 +387,7 @@ public class GenshinCharListApplicationServiceTests
 
         var charList = await LoadTestDataAsync<CharacterListData>(testDataFile);
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         var context = new GenshinCharListApplicationContext(
@@ -481,7 +481,7 @@ public class GenshinCharListApplicationServiceTests
 
     private static (
         GenshinCharListApplicationService Service,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
@@ -493,7 +493,7 @@ public class GenshinCharListApplicationServiceTests
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var cardServiceMock = new Mock<ICardService<IEnumerable<GenshinBasicCharacterData>>>();
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail,
-            CharacterApiContext>>();
+            GenshinCharacterApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
@@ -514,7 +514,7 @@ public class GenshinCharListApplicationServiceTests
 
     private static (
         GenshinCharListApplicationService Service,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
@@ -528,7 +528,7 @@ public class GenshinCharListApplicationServiceTests
             Mock.Of<ILogger<GenshinCharListCardService>>());
 
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData,
-            GenshinCharacterDetail, CharacterApiContext>>();
+            GenshinCharacterDetail, GenshinCharacterApiContext>>();
 
         // Use real image updater service
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
