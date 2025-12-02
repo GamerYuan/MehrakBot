@@ -1,5 +1,7 @@
 ﻿namespace Mehrak.Application.Utility;
 
+using System.Diagnostics;
+using OpenCvSharp;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -75,63 +77,38 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
 
     private static Rectangle GetContentBounds(Image<TPixel> image)
     {
-        var minY = int.MaxValue;
-        var maxY = int.MinValue;
-        var minX = int.MaxValue;
-        var maxX = int.MinValue;
+        using var stream = new MemoryStream();
+        image.SaveAsPng(stream);
+        stream.Position = 0;
+        using var src = Cv2.ImDecode(stream.ToArray(), ImreadModes.Unchanged);
 
-        // 1. Find vertical bounds (minY, maxY)
-        image.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
 
-                // Check if this row has any non-transparent pixel
-                var hasContent = false;
-                for (var x = 0; x < row.Length; x++)
-                {
-                    // Check alpha channel. 
-                    // Note: ToRgba32() is reasonably fast, but for extreme performance 
-                    // on specific types you might optimize this.
-                    if (row[x].ToVector4().W > 0)
-                    {
-                        hasContent = true;
-                        break;
-                    }
-                }
-
-                if (hasContent)
-                {
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                }
-            }
-        });
-
-        // If no content found, return empty
-        if (minY == int.MaxValue)
-        {
+        if (src.Channels() != 4)
             return Rectangle.Empty;
+
+        // 3. Apply Threshold to the Alpha channel
+        const double threshValue = 255 * 0.2f;
+
+        for (var i = 1; i < src.Rows - 1; i++)
+        {
+            for (var j = 1; j < src.Cols - 1; j++)
+            {
+                var alpha = src.Get<Vec4b>(i, j)[3];
+                if (alpha > threshValue)
+                {
+                    Trace.TraceInformation("Found non-transparent pixel at ({0}, {1}) with alpha {2}", j, i, alpha);
+                    minX = Math.Min(minX, j);
+                    minY = Math.Min(minY, i);
+                    maxX = Math.Max(maxX, j);
+                    maxY = Math.Max(maxY, i);
+                }
+
+            }
         }
 
-        // 2. Find horizontal bounds (minX, maxX) strictly within the vertical bounds
-        image.ProcessPixelRows(accessor =>
-        {
-            for (var y = minY; y <= maxY; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-
-                for (var x = 0; x < row.Length; x++)
-                {
-                    if (row[x].ToVector4().W > 0)
-                    {
-                        if (x < minX) minX = x;
-                        if (x > maxX) maxX = x;
-                    }
-                }
-            }
-        });
+        if (minX > maxX || minY > maxY)
+            return Rectangle.Empty;
 
         return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
     }
