@@ -14,7 +14,24 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
         var imageList = images.Select(StreamToMat).ToList();
 
         using var icon = imageList[0];
-        using var ascended = imageList[1];
+        using var ascended = new Mat();
+
+        if (imageList[1].Size().Width > 800 || imageList[1].Size().Height > 800)
+        {
+            var scaleFactor = Math.Max(
+                (double)800 / imageList[1].Width,
+                (double)800 / imageList[1].Height
+            );
+            Cv2.Resize(imageList[1], ascended,
+                new Size(imageList[1].Size().Width * scaleFactor, imageList[1].Size().Height * scaleFactor),
+                interpolation: InterpolationFlags.Cubic);
+        }
+        else
+        {
+            imageList[1].CopyTo(ascended);
+        }
+
+        imageList[1].Dispose();
 
         if (icon.Empty() || ascended.Empty())
             return Stream.Null;

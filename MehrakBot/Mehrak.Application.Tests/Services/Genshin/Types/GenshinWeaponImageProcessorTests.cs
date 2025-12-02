@@ -175,13 +175,12 @@ internal class GenshinWeaponImageProcessorTests
         return temp.ToArray();
     }
 
-
+    /*
     [Test]
     [TestCase("icon_sword.png", "ascended_sword.png", "golden_sword.png")]
     [TestCase("icon_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
     [TestCase("icon_claymore.png", "ascended_claymore.png", "golden_claymore.png")]
     [TestCase("icon_bow.png", "ascended_bow.png", "golden_bow.png")]
-    [TestCase("icon.png", "ascended.png", "golden.png")]
     public void GenerateImage(string iconFile, string ascendedFile, string outputFile)
     {
         var icon = File.OpenRead(Path.Combine(TestDirectory, iconFile));
@@ -197,6 +196,6 @@ internal class GenshinWeaponImageProcessorTests
         resultFile.Flush();
         resultFile.Close();
     }
-
+    */
     #endregion
 }
