@@ -19,13 +19,25 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
         if (icon.Empty() || ascended.Empty())
             return Stream.Null;
 
-        // 1. Feature Detection & Matching
-        // We need to find the transformation (Matrix) that maps 'Original' -> 'Icon'.
-        // Once we have that, we apply it to 'Ascended' (which is 1:1 with Original).
-        var homography = FindHomography(ascended, icon);
+        using var iconAlpha = icon.ExtractChannel(3);
+        using var ascendedAlpha = ascended.ExtractChannel(3);
 
-        if (homography.Empty())
-            return Stream.Null;
+        var homography = FindHomography(ascendedAlpha, iconAlpha);
+
+        // Validate homography from alpha; if invalid, try grayscale matching
+        if (!IsHomographyValid(homography, ascended.Size(), icon.Size()))
+        {
+            using var ascendedGray = new Mat();
+            using var iconGray = new Mat();
+
+            Cv2.CvtColor(ascended, ascendedGray, ColorConversionCodes.BGRA2GRAY);
+            Cv2.CvtColor(icon, iconGray, ColorConversionCodes.BGRA2GRAY);
+
+            homography = FindHomography(ascendedGray, iconGray);
+
+            if (!IsHomographyValid(homography, ascended.Size(), icon.Size()))
+                return Stream.Null;
+        }
 
         // 2. Warp the Ascended Image
         // This applies Rotation, Scale, and Translation in one step.
@@ -39,6 +51,8 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
 
         using var final = new Mat();
         Cv2.Resize(warpedAscended, final, new Size(200, 200));
+
+        homography.Dispose();
 
         // 3. Encode and Return
         return new MemoryStream(final.ImEncode(".png"));
@@ -54,16 +68,12 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
         // sigma: 1.6 is standard.
         using var sift = SIFT.Create();
 
-        // Extract alpha for detection
-        using var srcGray = src.ExtractChannel(3);
-        using var dstGray = dst.ExtractChannel(3);
-
         using var descriptorsSrc = new Mat();
         using var descriptorsDst = new Mat();
 
         // Detect and Compute
-        sift.DetectAndCompute(srcGray, null, out var keypointsSrc, descriptorsSrc);
-        sift.DetectAndCompute(dstGray, null, out var keypointsDst, descriptorsDst);
+        sift.DetectAndCompute(src, null, out var keypointsSrc, descriptorsSrc);
+        sift.DetectAndCompute(dst, null, out var keypointsDst, descriptorsDst);
 
         if (keypointsSrc.Length < 4 || keypointsDst.Length < 4)
             return new Mat();
@@ -111,6 +121,48 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
             HomographyMethods.Ransac,
             ransacReprojThreshold: 5.0
         );
+    }
+
+    private static bool IsHomographyValid(Mat h, Size srcSize, Size dstSize)
+    {
+        if (h.Empty()) return false;
+
+        // 1. Check Determinant of the top-left 2x2 matrix (Rotation/Scale)
+        // This detects if the image is flipping (negative det) or collapsing (near zero).
+        var det = h.At<double>(0, 0) * h.At<double>(1, 1) - h.At<double>(1, 0) * h.At<double>(0, 1);
+
+        if (det < 0) return false; // Image is flipped (mirror), likely invalid for icons
+        if (Math.Abs(det) < 0.0001) return false; // Matrix is singular/collapsing
+
+        // 2. Check Geometric Distortion
+        // Transform the 4 corners of the source image to see where they land
+        var srcCorners = new[]
+        {
+            new Point2f(0, 0),
+            new Point2f(srcSize.Width, 0),
+            new Point2f(srcSize.Width, srcSize.Height),
+            new Point2f(0, srcSize.Height)
+        };
+
+        var dstCorners = Cv2.PerspectiveTransform(srcCorners, h);
+
+        // A. Convexity Check
+        // If the transformed shape is "twisted" (bowtie shape), IsContourConvex returns false
+        if (!Cv2.IsContourConvex(dstCorners)) return false;
+
+        // B. Scale/Area Check
+        // Calculate the area of the transformed corners
+        var area = Cv2.ContourArea(dstCorners);
+
+        // Define limits relative to the destination icon size
+        // e.g., The warped image shouldn't be smaller than 1% of the icon
+        // or larger than 100x the icon.
+        double iconArea = dstSize.Width * dstSize.Height;
+
+        if (area < iconArea * 0.01) return false; // Too small (imploded)
+        if (area > iconArea * 100.0) return false; // Too big (exploded to infinity)
+
+        return true;
     }
 
     private static Mat StreamToMat(Stream stream)
