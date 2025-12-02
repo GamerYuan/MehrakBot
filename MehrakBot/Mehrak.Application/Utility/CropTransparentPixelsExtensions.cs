@@ -1,6 +1,5 @@
 ﻿namespace Mehrak.Application.Utility;
 
-using System.Diagnostics;
 using OpenCvSharp;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -97,7 +96,6 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
                 var alpha = src.Get<Vec4b>(i, j)[3];
                 if (alpha > threshValue)
                 {
-                    Trace.TraceInformation("Found non-transparent pixel at ({0}, {1}) with alpha {2}", j, i, alpha);
                     minX = Math.Min(minX, j);
                     minY = Math.Min(minY, i);
                     maxX = Math.Max(maxX, j);
