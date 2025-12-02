@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
@@ -62,13 +63,29 @@ public class Weapon
 
     [JsonPropertyName("name")] public required string Name { get; init; }
 
-    public string ToImageName()
+    [NotNull]
+    public bool? Ascended
+    {
+        get
+        {
+            if (field is null) return Level > 40;
+            return field;
+        }
+        set;
+    }
+
+    public string ToBaseImageName()
     {
         return string.Format(FileNameFormat.Genshin.WeaponBaseName, Id);
     }
 
+    public string ToAscendedImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.WeaponAscendedName, Id);
+    }
+
     public IImageData ToImageData()
     {
-        return new ImageData(ToImageName(), Icon);
+        return new ImageData(ToBaseImageName(), Icon);
     }
 }
