@@ -113,12 +113,26 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
                 context.GameProfile.GameUid, charData.Count);
 
-            var weaponImages = await charData.Select(x => x.Weapon).DistinctBy(x => x.Id)
+            var weaponImages = await charData
                 .ToAsyncEnumerable()
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Id!.Value),
                     async (x, token) =>
                     {
-                        var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
+                        Image image;
+                        if (x.Weapon.Ascended.Value && await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
+                        {
+                            image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.Weapon.ToAscendedImageName()), token);
+                        }
+                        else
+                        {
+                            if (x.Weapon.Ascended.Value)
+                            {
+                                m_Logger.LogInformation("Ascended icon not found for Weapon {Weapon}, falling back to default icon",
+                                    x.Weapon.Name);
+                            }
+                            image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.Weapon.ToBaseImageName()), token);
+                        }
+
                         image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
                         return image;
                     });
@@ -131,7 +145,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 .Select(async (x, token) =>
                 {
                     using var avatarImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
-                    return GetStyledCharacterImage(x, avatarImage, weaponImages[x.Weapon.Id!.Value]);
+                    return GetStyledCharacterImage(x, avatarImage, weaponImages[x.Id!.Value]);
                 })
                 .ToListAsync();
 

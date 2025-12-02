@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Mehrak.Application.Services.Genshin.CharList;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -498,6 +499,8 @@ public class GenshinCharListApplicationServiceTests
         var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var loggerMock = new Mock<ILogger<GenshinCharListApplicationService>>();
+        var imageRepositoryMock = new Mock<IImageRepository>();
+        var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
 
         var service = new GenshinCharListApplicationService(
             imageUpdaterMock.Object,
@@ -506,6 +509,8 @@ public class GenshinCharListApplicationServiceTests
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
             characterCacheMock.Object,
+            imageRepositoryMock.Object,
+            wikiApiMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, userRepositoryMock,
@@ -544,6 +549,9 @@ public class GenshinCharListApplicationServiceTests
         var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
 
+        var imageRepositoryMock = new Mock<IImageRepository>();
+        var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
+
         var service = new GenshinCharListApplicationService(
             imageUpdaterService,
             cardService,
@@ -551,6 +559,8 @@ public class GenshinCharListApplicationServiceTests
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
             characterCacheMock.Object,
+            imageRepositoryMock.Object,
+            wikiApiMock.Object,
             loggerMock.Object);
 
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
@@ -595,6 +605,9 @@ public class GenshinCharListApplicationServiceTests
         var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
 
+        var imageRepositoryMock = new Mock<IImageRepository>();
+        var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
+
         var service = new GenshinCharListApplicationService(
             imageUpdaterService,
             cardService,
@@ -602,6 +615,8 @@ public class GenshinCharListApplicationServiceTests
             gameRoleApiService,
             userRepositoryMock.Object,
             characterCacheMock.Object,
+            imageRepositoryMock.Object,
+            wikiApiMock.Object,
             Mock.Of<ILogger<GenshinCharListApplicationService>>());
 
         return service;
