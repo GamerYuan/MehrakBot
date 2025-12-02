@@ -30,9 +30,8 @@ internal class GenshinWeaponImageProcessorTests
     {
         // Create 2 valid streams
         using var icon = CreateTestImageWithShape(10, 10, 5);
-        using var original = CreateTestImageWithShape(10, 10, 5);
 
-        var streams = new[] { MatToStream(icon), MatToStream(original) };
+        var streams = new[] { MatToStream(icon) };
 
         try
         {
@@ -51,10 +50,9 @@ internal class GenshinWeaponImageProcessorTests
         // Icon: Small square
         using var icon = CreateTestImageWithShape(50, 50, 20);
         // Original: Completely transparent, so it won't match the icon shape
-        using var original = new Mat(100, 100, MatType.CV_8UC4, Scalar.All(0));
         using var ascended = new Mat(100, 100, MatType.CV_8UC4, Scalar.Red);
 
-        var streams = new[] { MatToStream(icon), MatToStream(original), MatToStream(ascended) };
+        var streams = new[] { MatToStream(icon), MatToStream(ascended) };
 
         try
         {
@@ -74,13 +72,10 @@ internal class GenshinWeaponImageProcessorTests
         // Icon: 50x50, center 20x20 opaque
         using var icon = CreateTestImageWithShape(50, 50, 20);
 
-        // Original: 100x100, center 40x40 opaque (2x scale)
-        using var original = CreateTestImageWithShape(100, 100, 40);
-
         // Ascended: 100x100, solid blue (255, 0, 0, 255)
         using var ascended = new Mat(100, 100, MatType.CV_8UC4, new Scalar(255, 0, 0, 255));
 
-        var streams = new[] { MatToStream(icon), MatToStream(original), MatToStream(ascended) };
+        var streams = new[] { MatToStream(icon), MatToStream(ascended) };
 
         try
         {
@@ -100,8 +95,8 @@ internal class GenshinWeaponImageProcessorTests
             {
                 // OpenCV uses BGRA
                 Assert.That(centerPixel.Item0, Is.EqualTo(255), "Blue channel mismatch");
-                Assert.That(centerPixel.Item1, Is.EqualTo(0), "Green channel mismatch");
-                Assert.That(centerPixel.Item2, Is.EqualTo(0), "Red channel mismatch");
+                Assert.That(centerPixel.Item1, Is.Zero, "Green channel mismatch");
+                Assert.That(centerPixel.Item2, Is.Zero, "Red channel mismatch");
                 Assert.That(centerPixel.Item3, Is.EqualTo(255), "Alpha channel mismatch");
             }
         }
@@ -116,19 +111,18 @@ internal class GenshinWeaponImageProcessorTests
     #region Integration Tests
 
     [Test]
-    [TestCase("icon_sword.png", "original_sword.png", "ascended_sword.png", "golden_sword.png")]
-    [TestCase("icon_polearm.png", "original_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
-    [TestCase("icon_claymore.png", "original_claymore.png", "ascended_claymore.png", "golden_claymore.png")]
-    [TestCase("icon_bow.png", "original_bow.png", "ascended_bow.png", "golden_bow.png")]
-    public void ProcessImage_ShouldMatchGoldenImage(string iconFile, string originalFile, string ascendedFile, string goldenImage)
+    [TestCase("icon_sword.png", "ascended_sword.png", "golden_sword.png")]
+    [TestCase("icon_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
+    [TestCase("icon_claymore.png", "ascended_claymore.png", "golden_claymore.png")]
+    [TestCase("icon_bow.png", "ascended_bow.png", "golden_bow.png")]
+    public void ProcessImage_ShouldMatchGoldenImage(string iconFile, string ascendedFile, string goldenImage)
     {
         using var icon = File.OpenRead(Path.Combine(TestDirectory, iconFile));
-        using var original = File.OpenRead(Path.Combine(TestDirectory, originalFile));
         using var ascended = File.OpenRead(Path.Combine(TestDirectory, ascendedFile));
 
         var golden = File.ReadAllBytes(Path.Combine(TestDirectory, goldenImage));
 
-        using var stream = m_Processor.ProcessImage([icon, original, ascended]);
+        using var stream = m_Processor.ProcessImage([icon, ascended]);
 
         MemoryStream memoryStream = new();
         stream.CopyTo(memoryStream);
@@ -183,17 +177,17 @@ internal class GenshinWeaponImageProcessorTests
 
 
     [Test]
-    [TestCase("icon_sword.png", "original_sword.png", "ascended_sword.png", "output_sword.png")]
-    [TestCase("icon_polearm.png", "original_polearm.png", "ascended_polearm.png", "output_polearm.png")]
-    [TestCase("icon_claymore.png", "original_claymore.png", "ascended_claymore.png", "output_claymore.png")]
-    [TestCase("icon_bow.png", "original_bow.png", "ascended_bow.png", "output_bow.png")]
-    public void GenerateImage(string iconFile, string originalFile, string ascendedFile, string outputFile)
+    [TestCase("icon_sword.png", "ascended_sword.png", "golden_sword.png")]
+    [TestCase("icon_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
+    [TestCase("icon_claymore.png", "ascended_claymore.png", "golden_claymore.png")]
+    [TestCase("icon_bow.png", "ascended_bow.png", "golden_bow.png")]
+    [TestCase("icon.png", "ascended.png", "golden.png")]
+    public void GenerateImage(string iconFile, string ascendedFile, string outputFile)
     {
         var icon = File.OpenRead(Path.Combine(TestDirectory, iconFile));
-        var original = File.OpenRead(Path.Combine(TestDirectory, originalFile));
         var ascended = File.OpenRead(Path.Combine(TestDirectory, ascendedFile));
 
-        var resultStream = m_Processor.ProcessImage([icon, original, ascended]);
+        var resultStream = m_Processor.ProcessImage([icon, ascended]);
 
         Assert.That(resultStream, Is.Not.Null);
 
