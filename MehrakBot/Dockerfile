@@ -100,7 +100,7 @@ RUN --mount=type=cache,target=/root/.ccache \
     ldconfig
 
 # Get OpenCvSharp sources
-RUN git clone https://github.com/shimat/opencvsharp.git /opencvsharp
+RUN git clone --branch 4.11.0.20250507 https://github.com/shimat/opencvsharp.git /opencvsharp
 
 # Build and install OpenCvSharp native extern with ccache
 RUN --mount=type=cache,target=/root/.ccache \
