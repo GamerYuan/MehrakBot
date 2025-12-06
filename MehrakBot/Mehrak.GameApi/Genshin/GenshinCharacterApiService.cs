@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 namespace Mehrak.GameApi.Genshin;
 
 public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail,
-    CharacterApiContext>
+    GenshinCharacterApiContext>
 {
     private static readonly string BasePath = "/event/game_record/genshin/api";
 
@@ -34,7 +34,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<GenshinBasicCharacterData>>> GetAllCharactersAsync(CharacterApiContext context)
+    public async Task<Result<IEnumerable<GenshinBasicCharacterData>>> GetAllCharactersAsync(GenshinCharacterApiContext context)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -135,9 +135,9 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         }
     }
 
-    public async Task<Result<GenshinCharacterDetail>> GetCharacterDetailAsync(CharacterApiContext context)
+    public async Task<Result<GenshinCharacterDetail>> GetCharacterDetailAsync(GenshinCharacterApiContext context)
     {
-        if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterId == 0)
+        if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterIds.Count == 0)
         {
             m_Logger.LogError(LogMessages.InvalidRegionOrUid);
             return Result<GenshinCharacterDetail>.Failure(StatusCode.BadParameter,
@@ -154,7 +154,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             {
                 RoleId = context.GameUid,
                 Server = context.Region,
-                CharacterIds = [context.CharacterId]
+                CharacterIds = [.. context.CharacterIds]
             };
             var httpClient = m_HttpClientFactory.CreateClient("Default");
 

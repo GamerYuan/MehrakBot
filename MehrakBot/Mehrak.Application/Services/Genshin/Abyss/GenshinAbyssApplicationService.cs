@@ -24,7 +24,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
 
     private readonly IApiService<GenshinAbyssInformation, BaseHoYoApiContext> m_ApiService;
 
-    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApi;
 
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -32,7 +32,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
     public GenshinAbyssApplicationService(
         ICardService<GenshinAbyssInformation> cardService,
         IApiService<GenshinAbyssInformation, BaseHoYoApiContext> apiService,
-        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
+        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
@@ -108,7 +108,7 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                         new ImageProcessorBuilder().Resize(0, 150).Build())));
 
             var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
+                new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
                     region));
 
             if (!charListResponse.IsSuccess)

@@ -38,6 +38,7 @@ jobs:
           echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list 
           sudo apt update 
           sudo apt install -y libssl1.1
+
       - name: Restore dependencies
         working-directory: ./MehrakBot
         run: dotnet restore

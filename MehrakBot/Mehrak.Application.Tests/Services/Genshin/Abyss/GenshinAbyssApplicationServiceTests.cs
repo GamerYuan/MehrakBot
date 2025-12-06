@@ -149,7 +149,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "Character API Error"));
 
@@ -188,7 +188,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         // Make image update fail
@@ -228,7 +228,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
         var charList = CreateTestCharacterList();
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
@@ -274,7 +274,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
         var charList = CreateTestCharacterList();
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
@@ -469,7 +469,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
 
         var charList = CreateTestCharacterList();
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var context = new GenshinAbyssApplicationContext(
@@ -568,7 +568,7 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>> AbyssApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<ICardService<GenshinAbyssInformation>>
         CardServiceMock,
@@ -579,7 +579,7 @@ public class GenshinAbyssApplicationServiceTests
             new Mock<ICardService<GenshinAbyssInformation>>();
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
         var characterApiMock =
-            new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>();
+            new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var userRepositoryMock = new Mock<IUserRepository>();
@@ -603,7 +603,7 @@ public class GenshinAbyssApplicationServiceTests
         Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>> AbyssApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         ICardService<GenshinAbyssInformation> CardService,
         Mock<IUserRepository> UserRepositoryMock
@@ -616,7 +616,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
         var characterApiMock =
-            new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>();
+            new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>();
 
         // Use real image updater service
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();

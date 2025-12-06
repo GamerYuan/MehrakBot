@@ -67,7 +67,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
@@ -104,7 +104,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var context = new GenshinCharacterApplicationContext(
@@ -138,7 +138,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var context = new GenshinCharacterApplicationContext(
@@ -178,7 +178,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         // Setup alias mapping
@@ -189,7 +189,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
@@ -235,11 +235,11 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError, "API Error"));
 
         var context = new GenshinCharacterApplicationContext(
@@ -278,12 +278,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock
@@ -328,11 +328,11 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
-        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
@@ -383,11 +383,11 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         var charList = CreateTestCharacterList();
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
-        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
@@ -430,12 +430,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock
@@ -490,17 +490,21 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock
             .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(false); // Force wiki download
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .ReturnsAsync(true);
 
         var wikiResponse = JsonNode.Parse("""
                                           {
@@ -545,6 +549,105 @@ public class GenshinCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WhenWeaponImagesMissing_FetchesFromWikiAndUpdates()
+    {
+        // Arrange
+        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        // Ensure weapon type is not 10 (Catalyst) to test the general path
+        typeof(WeaponDetail).GetProperty("Type")!.SetValue(characterDetail.List[0].Weapon, 1);
+
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync((string path) =>
+            {
+                // Simulate weapon images missing
+                return !path.Contains("weapon");
+            });
+
+        var wikiResponse = JsonNode.Parse("""
+                                          {
+                                          "data": {
+                                          "page": {
+                                          "icon_url": "https://example.com/icon.png",
+                                          "modules": [
+                                          {
+                                          "components": [
+                                          {
+                                          "component_id": "gallery_character",
+                                          "data": "{\"list\": [{\"img\": \"https://example.com/1.png\"}, {\"img\": \"https://example.com/2.png\"}]}"
+                                          }
+                                          ]
+                                          }
+                                          ]
+                                          }
+                                          }
+                                          }
+                                          """);
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateMultiImageAsync(It.IsAny<IMultiImageData>(), It.IsAny<IMultiImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = new GenshinCharacterApplicationContext(
+            1,
+            ("character", "Traveler"),
+            ("server", Server.Asia.ToString()))
+        {
+            LtUid = 1ul,
+            LToken = "test"
+        };
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True);
+
+        // Verify wiki API was called
+        wikiApiMock.Verify(x => x.GetAsync(It.IsAny<WikiApiContext>()), Times.AtLeastOnce);
+
+        // Verify UpdateImageAsync called for base weapon icon
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Url == characterDetail.List[0].Weapon.Icon),
+            It.IsAny<IImageProcessor>()), Times.Once);
+
+        // Verify UpdateMultiImageAsync called for ascended weapon icon
+        imageUpdaterMock.Verify(x => x.UpdateMultiImageAsync(
+            It.Is<IMultiImageData>(d => d.AdditionalUrls.Count() == 2 &&
+                d.AdditionalUrls.Contains(characterDetail.List[0].Weapon.Icon) &&
+                d.AdditionalUrls.Contains("https://example.com/2.png")),
+            It.IsAny<IMultiImageProcessor>()), Times.Once);
+    }
+
+    [Test]
     public async Task ExecuteAsync_VerifyImageUpdatesCalledForAllAssets()
     {
         // Arrange
@@ -556,11 +659,11 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         var charList = CreateTestCharacterList();
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
-        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock
@@ -589,7 +692,7 @@ public class GenshinCharacterApplicationServiceTests
 
         // Assert
         var charData = characterDetail.List[0];
-        var expectedImageCount = 1 + charData.Constellations.Count + charData.Skills.Count + charData.Relics.Count;
+        var expectedImageCount = charData.Constellations.Count + charData.Skills.Count + charData.Relics.Count + 1; // +1 for weapon
 
         imageUpdaterMock.Verify(
             x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
@@ -626,7 +729,7 @@ public class GenshinCharacterApplicationServiceTests
 
         // Make character list API fail to exit after UpdateGameUid
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
@@ -688,7 +791,7 @@ public class GenshinCharacterApplicationServiceTests
             });
 
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
@@ -722,7 +825,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync((UserModel?)null);
 
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
@@ -767,18 +870,22 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         // Force wiki path by marking image absent
         imageRepositoryMock
             .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(false);
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .ReturnsAsync(true);
 
         // CN fails, EN succeeds
         wikiApiMock
@@ -833,17 +940,21 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         imageRepositoryMock
             .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(false);
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .ReturnsAsync(true);
 
         var cnEmpty = JsonNode.Parse("""
                                     { "data": { "page": { "header_img_url": "" } } }
@@ -901,12 +1012,12 @@ public class GenshinCharacterApplicationServiceTests
 
         var charList = CreateTestCharacterList();
         characterApiMock
-            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>(testDataFile);
         characterApiMock
-            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
         var context = new GenshinCharacterApplicationContext(
@@ -1004,7 +1115,7 @@ public class GenshinCharacterApplicationServiceTests
 
     private static (
         GenshinCharacterApplicationService Service,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
@@ -1019,7 +1130,7 @@ public class GenshinCharacterApplicationServiceTests
         var cardServiceMock = new Mock<ICardService<GenshinCharacterInformation>>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail,
-            CharacterApiContext>>();
+            GenshinCharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
@@ -1051,7 +1162,7 @@ public class GenshinCharacterApplicationServiceTests
 
     private static (
         GenshinCharacterApplicationService Service,
-        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>>
+        Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
@@ -1068,7 +1179,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData,
-            GenshinCharacterDetail, CharacterApiContext>>();
+            GenshinCharacterDetail, GenshinCharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var metricsMock = new Mock<IMetricsService>();

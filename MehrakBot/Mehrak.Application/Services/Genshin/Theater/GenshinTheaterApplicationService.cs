@@ -25,7 +25,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
 
     private readonly IApiService<GenshinTheaterInformation, BaseHoYoApiContext> m_ApiService;
 
-    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApiService;
 
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -33,7 +33,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
     public GenshinTheaterApplicationService(
         ICardService<GenshinTheaterInformation> cardService,
         IApiService<GenshinTheaterInformation, BaseHoYoApiContext> apiService,
-        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
             characterApiService,
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -112,7 +112,7 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                     new ImageProcessorBuilder().Build()));
 
             var charListResponse = await m_CharacterApiService.GetAllCharactersAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+                new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
             if (!charListResponse.IsSuccess || !charListResponse.Data.Any())
             {

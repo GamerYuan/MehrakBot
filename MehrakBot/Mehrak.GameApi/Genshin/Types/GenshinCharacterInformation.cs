@@ -15,6 +15,8 @@ public class GenshinCharacterDetail
     [JsonPropertyName("list")] public required List<GenshinCharacterInformation> List { get; init; }
 
     [JsonPropertyName("avatar_wiki")] public required Dictionary<string, string> AvatarWiki { get; init; }
+
+    [JsonPropertyName("weapon_wiki")] public required Dictionary<string, string> WeaponWiki { get; init; }
 }
 
 public class BaseCharacterDetail
@@ -225,13 +227,18 @@ public class WeaponDetail
 
     [JsonPropertyName("sub_property")] public StatProperty? SubProperty { get; init; }
 
-    public string ToImageName()
+    public string ToBaseImageName()
     {
-        return string.Format(FileNameFormat.Genshin.FileName, Id);
+        return string.Format(FileNameFormat.Genshin.WeaponBaseName, Id);
+    }
+
+    public string ToAscendedImageName()
+    {
+        return string.Format(FileNameFormat.Genshin.WeaponAscendedName, Id);
     }
 
     public IImageData ToImageData()
     {
-        return new ImageData(ToImageName(), Icon);
+        return new ImageData(ToBaseImageName(), Icon);
     }
 }

@@ -50,6 +50,13 @@ public class ImageUpdaterService : IImageUpdaterService
         {
             m_Logger.LogInformation("Processing {Name}", data.Name);
             using var processedStream = processor.ProcessImage(stream);
+
+            if (processedStream == Stream.Null || processedStream.Length == 0)
+            {
+                m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+                return false;
+            }
+
             processedStream.Position = 0;
             await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
         }
@@ -73,34 +80,51 @@ public class ImageUpdaterService : IImageUpdaterService
         var client = m_HttpClientFactory.CreateClient();
 
         var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
+
         m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
 
-        var images = allUrls.ToAsyncEnumerable().Select(async (x, token) =>
+        var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
         {
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);
             var r = await client.GetAsync(x, token);
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)r.StatusCode, x);
             return r;
-        });
+        }).ToListAsync();
 
+        List<Stream> streams = [];
 
-        if (await images.AnyAsync(x => !x.IsSuccessStatusCode))
+        try
         {
-            var failed = images.Where(x => !x.IsSuccessStatusCode);
-            m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
-                failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
-            return false;
+
+            if (responses.Any(x => !x.IsSuccessStatusCode))
+            {
+                var failed = responses.Where(x => !x.IsSuccessStatusCode);
+                m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
+                    failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
+                return false;
+            }
+
+            streams.AddRange(responses.ToAsyncEnumerable().Select(async (x, token) =>
+                await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable());
+
+            using var processedStream = processor.ProcessImage(streams);
+
+            if (processedStream == Stream.Null || processedStream.Length == 0)
+            {
+                m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+
+                return false;
+            }
+
+            processedStream.Position = 0;
+            await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
+
+            return true;
         }
-
-        var streams = images.Select(async (x, token) =>
-            await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable();
-
-        using var processedStream = processor.ProcessImage(streams);
-        processedStream.Position = 0;
-        await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
-
-        foreach (var item in streams) await item.DisposeAsync();
-
-        return true;
+        finally
+        {
+            foreach (var item in streams) await item.DisposeAsync();
+            responses.ForEach(x => x.Dispose());
+        }
     }
 }

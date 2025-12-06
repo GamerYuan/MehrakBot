@@ -1,9 +1,11 @@
 ﻿#region
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
+using Mehrak.Application.Services.Genshin.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -13,6 +15,8 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 #endregion
 
@@ -23,17 +27,21 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICardService<IEnumerable<GenshinBasicCharacterData>> m_CardService;
 
-    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>
+    private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCache;
+    private readonly IImageRepository m_ImageRepository;
+    private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
 
     public GenshinCharListApplicationService(
         IImageUpdaterService imageUpdaterService,
         ICardService<IEnumerable<GenshinBasicCharacterData>> cardService,
-        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext> characterApi,
+        ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
         ICharacterCacheService characterCache,
+        IImageRepository imageRepository,
+        IApiService<JsonNode, WikiApiContext> wikiApi,
         ILogger<GenshinCharListApplicationService> logger)
         : base(gameRoleApi, userRepository, logger)
     {
@@ -41,6 +49,8 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
         m_CardService = cardService;
         m_CharacterApi = characterApi;
         m_CharacterCache = characterCache;
+        m_ImageRepository = imageRepository;
+        m_WikiApi = wikiApi;
     }
 
     public override async Task<CommandResult> ExecuteAsync(GenshinCharListApplicationContext context)
@@ -64,7 +74,7 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
             var gameUid = profile.GameUid;
 
             var charResponse = await
-                m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
+                m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
                     context.LToken, gameUid, region));
 
             if (!charResponse.IsSuccess)
@@ -84,6 +94,56 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                 characterList.Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
                         new ImageProcessorBuilder().Resize(200, 0).Build()));
+            var temp = await characterList.ToAsyncEnumerable()
+                .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
+                    || x.Weapon.Level == 40).ToListAsync();
+
+            var weaponDict = temp.DistinctBy(x => x.Id!.Value).ToDictionary(x => x.Id!.Value, x => x);
+            var charToFetch = temp.Select(x => x.Id!.Value).Distinct().ToList();
+
+            if (charToFetch.Count > 0)
+            {
+                var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
+                    context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
+
+                if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
+                {
+                    var result = await charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
+                        .DistinctBy(x => x.Weapon.Id)
+                        .ToAsyncEnumerable()
+                        .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
+                        {
+                            if (!charDetail.WeaponWiki.TryGetValue(x.Weapon.Id.ToString()!, out var wikiUrl))
+                            {
+                                return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
+                            }
+                            return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1]));
+                        })
+                        .Where(x => x.Url.IsSuccess)
+                        .Select(x =>
+                        {
+                            weaponDict[x.Data.Base.Id!].Weapon.Ascended = true;
+
+                            // Special case for catalyst
+                            if (x.Data.Weapon.Type == 10)
+                            {
+                                return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
+                                    new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build());
+                            }
+                            else
+                            {
+                                // ignore result from this method
+                                return m_ImageUpdaterService.UpdateMultiImageAsync(
+                                    new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
+                                        [x.Data.Weapon.Icon, x.Url.Data!]),
+                                    new GenshinWeaponImageProcessor()
+                                );
+                            }
+                        }).ToListAsync();
+
+                    await Task.WhenAll(result);
+                }
+            }
 
             var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));
             if (completed.Any(x => !x))
@@ -114,5 +174,56 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
             Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
             return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
+    }
+
+    private async Task<Result<string>>
+        GetWeaponUrlsAsync(GenshinCharListApplicationContext context, GameProfileDto profile,
+            string weaponName, string wikiEntry)
+    {
+        foreach (var locale in Enum.GetValues<WikiLocales>())
+        {
+            var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
+
+            if (!weapWiki.IsSuccess)
+            {
+                Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
+                continue;
+            }
+            List<string> ascendedUrls = [];
+
+            var jsonStr = weapWiki.Data["data"]?["page"]?["modules"]?.AsArray().SelectMany(x => x?["components"]?.AsArray() ?? [])
+                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")?["data"]?.GetValue<string>();
+
+            if (!string.IsNullOrEmpty(jsonStr))
+            {
+                var json = JsonNode.Parse(jsonStr);
+                ascendedUrls.AddRange(json?["list"]?.AsArray().Select(x => x?["img"]?.GetValue<string>())
+                    .Where(x => !string.IsNullOrEmpty(x)).Cast<string>() ?? []);
+            }
+
+            if (ascendedUrls.Count == 2)
+            {
+                return Result<string>.Success(ascendedUrls[1]);
+            }
+
+            Logger.LogWarning("Weapon wiki image is empty for Weapon: {Weapon}, Locale: {Locale}, Data:\n{Data}",
+                weaponName, locale, weapWiki.Data.ToJsonString());
+        }
+
+        return Result<string>.Failure(StatusCode.ExternalServerError);
+    }
+
+    private static Action<IImageProcessingContext> GetCatalystIconProcessor()
+    {
+        return ctx =>
+        {
+            ctx.CropTransparentPixels();
+            ctx.Resize(new ResizeOptions()
+            {
+                Size = new Size(180, 180),
+                Mode = ResizeMode.Pad
+            });
+            ctx.Pad(200, 200);
+        };
     }
 }

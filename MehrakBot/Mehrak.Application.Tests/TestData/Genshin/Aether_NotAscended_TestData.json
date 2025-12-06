@@ -50,23 +50,23 @@
       },
       "relics": [
         {
-          "id": 20544,
-          "name": "Labyrinth Wayfarer",
-          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/6e1a599dabaefe12d191547469d753cd.png",
+          "id": 94543,
+          "name": "Magnificent Tsuba",
+          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/16879d66028f85addecf5a7208f6bffb.png",
           "pos": 1,
           "rarity": 5,
           "level": 20,
           "set": {
-            "id": 2150251,
-            "name": "Deepwood Memories",
+            "id": 2150201,
+            "name": "Emblem of Severed Fate",
             "affixes": [
               {
                 "activation_number": 2,
-                "effect": "Dendro DMG Bonus +15%."
+                "effect": "Energy Recharge +20%"
               },
               {
                 "activation_number": 4,
-                "effect": "After Elemental Skills or Bursts hit opponents, the targets' Dendro RES will be decreased by 30% for 8s. This effect can be triggered even if the equipping character is not on the field."
+                "effect": "Increases Elemental Burst DMG by 25% of Energy Recharge. A maximum of 75% bonus DMG can be obtained in this way."
               }
             ]
           },
@@ -78,169 +78,19 @@
           },
           "sub_property_list": [
             {
-              "property_type": 22,
-              "value": "7.0%",
-              "times": 0
-            },
-            {
-              "property_type": 28,
-              "value": "63",
-              "times": 2
-            },
-            {
-              "property_type": 20,
-              "value": "13.6%",
-              "times": 3
-            },
-            {
-              "property_type": 5,
-              "value": "19",
-              "times": 0
-            }
-          ]
-        },
-        {
-          "id": 20524,
-          "name": "Scholar of Vines",
-          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/c38d8f95cdbfb5d70ac50f60e5520c90.png",
-          "pos": 2,
-          "rarity": 5,
-          "level": 20,
-          "set": {
-            "id": 2150251,
-            "name": "Deepwood Memories",
-            "affixes": [
-              {
-                "activation_number": 2,
-                "effect": "Dendro DMG Bonus +15%."
-              },
-              {
-                "activation_number": 4,
-                "effect": "After Elemental Skills or Bursts hit opponents, the targets' Dendro RES will be decreased by 30% for 8s. This effect can be triggered even if the equipping character is not on the field."
-              }
-            ]
-          },
-          "pos_name": "Plume of Death",
-          "main_property": {
-            "property_type": 5,
-            "value": "311",
-            "times": 0
-          },
-          "sub_property_list": [
-            {
-              "property_type": 20,
-              "value": "12.1%",
-              "times": 3
-            },
-            {
-              "property_type": 22,
-              "value": "20.2%",
-              "times": 2
-            },
-            {
-              "property_type": 28,
-              "value": "23",
-              "times": 0
-            },
-            {
-              "property_type": 8,
-              "value": "16",
-              "times": 0
-            }
-          ]
-        },
-        {
-          "id": 20554,
-          "name": "A Time of Insight",
-          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/69ac28067027935b79072bd3dc5319ed.png",
-          "pos": 3,
-          "rarity": 5,
-          "level": 20,
-          "set": {
-            "id": 2150251,
-            "name": "Deepwood Memories",
-            "affixes": [
-              {
-                "activation_number": 2,
-                "effect": "Dendro DMG Bonus +15%."
-              },
-              {
-                "activation_number": 4,
-                "effect": "After Elemental Skills or Bursts hit opponents, the targets' Dendro RES will be decreased by 30% for 8s. This effect can be triggered even if the equipping character is not on the field."
-              }
-            ]
-          },
-          "pos_name": "Sands of Eon",
-          "main_property": {
-            "property_type": 28,
-            "value": "187",
-            "times": 0
-          },
-          "sub_property_list": [
-            {
-              "property_type": 5,
-              "value": "18",
-              "times": 0
-            },
-            {
-              "property_type": 22,
-              "value": "19.4%",
-              "times": 2
-            },
-            {
-              "property_type": 20,
-              "value": "6.6%",
-              "times": 1
-            },
-            {
-              "property_type": 23,
-              "value": "16.8%",
-              "times": 2
-            }
-          ]
-        },
-        {
-          "id": 79513,
-          "name": "Omen of Thunderstorm",
-          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/f58b5b37605550b7ffefe4b4ee2bcf7d.png",
-          "pos": 4,
-          "rarity": 5,
-          "level": 20,
-          "set": {
-            "id": 2150051,
-            "name": "Thundering Fury",
-            "affixes": [
-              {
-                "activation_number": 2,
-                "effect": "Electro DMG Bonus +15%"
-              },
-              {
-                "activation_number": 4,
-                "effect": "Increases DMG caused by Overloaded, Electro-Charged, Superconduct, and Hyperbloom by 40%, and the DMG Bonus conferred by Aggravate is increased by 20%. When Quicken or the aforementioned Elemental Reactions are triggered, Elemental Skill CD is decreased by 1s. Can only occur once every 0.8s."
-              }
-            ]
-          },
-          "pos_name": "Goblet of Eonothem",
-          "main_property": {
-            "property_type": 43,
-            "value": "46.6%",
-            "times": 0
-          },
-          "sub_property_list": [
-            {
-              "property_type": 22,
-              "value": "15.5%",
+              "property_type": 3,
+              "value": "8.7%",
               "times": 1
             },
             {
               "property_type": 20,
-              "value": "10.9%",
-              "times": 2
+              "value": "2.7%",
+              "times": 0
             },
             {
-              "property_type": 8,
-              "value": "16",
-              "times": 0
+              "property_type": 22,
+              "value": "21.8%",
+              "times": 2
             },
             {
               "property_type": 9,
@@ -250,51 +100,101 @@
           ]
         },
         {
-          "id": 20533,
-          "name": "Laurel Coronet",
-          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/874608b484a50855196d6b526d844791.png",
-          "pos": 5,
+          "id": 93523,
+          "name": "Shaft of Remembrance",
+          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/afcf2a5cf7f130054dac4f31dd7d6c03.png",
+          "pos": 2,
           "rarity": 5,
-          "level": 20,
+          "level": 16,
           "set": {
-            "id": 2150251,
-            "name": "Deepwood Memories",
+            "id": 2150191,
+            "name": "Shimenawa's Reminiscence",
             "affixes": [
               {
                 "activation_number": 2,
-                "effect": "Dendro DMG Bonus +15%."
+                "effect": "ATK +18%."
               },
               {
                 "activation_number": 4,
-                "effect": "After Elemental Skills or Bursts hit opponents, the targets' Dendro RES will be decreased by 30% for 8s. This effect can be triggered even if the equipping character is not on the field."
+                "effect": "When casting an Elemental Skill, if the character has 15 or more Energy, they lose 15 Energy and Normal/Charged/Plunging Attack DMG is increased by 50% for 10s. This effect will not trigger again during that duration."
               }
             ]
           },
-          "pos_name": "Circlet of Logos",
+          "pos_name": "Plume of Death",
           "main_property": {
-            "property_type": 22,
-            "value": "62.2%",
+            "property_type": 5,
+            "value": "258",
             "times": 0
           },
           "sub_property_list": [
             {
-              "property_type": 6,
+              "property_type": 22,
+              "value": "7.8%",
+              "times": 0
+            },
+            {
+              "property_type": 3,
               "value": "10.5%",
               "times": 1
             },
             {
-              "property_type": 20,
-              "value": "6.2%",
-              "times": 1
+              "property_type": 6,
+              "value": "12.2%",
+              "times": 2
             },
             {
-              "property_type": 8,
-              "value": "35",
-              "times": 1
+              "property_type": 9,
+              "value": "5.8%",
+              "times": 0
+            }
+          ]
+        },
+        {
+          "id": 71514,
+          "name": "Frost-Weaved Dignity",
+          "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f6c8/01cec5c9e1de97af4f4d2a0638fb1aae.png",
+          "pos": 4,
+          "rarity": 5,
+          "level": 16,
+          "set": {
+            "id": 2140011,
+            "name": "Blizzard Strayer",
+            "affixes": [
+              {
+                "activation_number": 2,
+                "effect": "Cryo DMG Bonus +15%"
+              },
+              {
+                "activation_number": 4,
+                "effect": "When a character attacks an opponent affected by Cryo, their CRIT Rate is increased by 20%. If the opponent is Frozen, CRIT Rate is increased by an additional 20%."
+              }
+            ]
+          },
+          "pos_name": "Goblet of Eonothem",
+          "main_property": {
+            "property_type": 45,
+            "value": "38.7%",
+            "times": 0
+          },
+          "sub_property_list": [
+            {
+              "property_type": 9,
+              "value": "5.8%",
+              "times": 0
+            },
+            {
+              "property_type": 6,
+              "value": "19.8%",
+              "times": 3
             },
             {
               "property_type": 28,
-              "value": "42",
+              "value": "23",
+              "times": 0
+            },
+            {
+              "property_type": 5,
+              "value": "33",
               "times": 1
             }
           ]

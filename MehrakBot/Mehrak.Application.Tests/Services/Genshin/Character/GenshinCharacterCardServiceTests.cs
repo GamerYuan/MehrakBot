@@ -35,6 +35,7 @@ public class GenshinCharacterCardServiceTests
 
     [Test]
     [TestCase("Aether_TestData.json", "GoldenImage.jpg", "GenshinCharacter")]
+    [TestCase("Aether_NotAscended_TestData.json", "GoldenImage_NotAscended.jpg", "GenshinCharacter_NotAscended")]
     [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg", "GenshinCharacterWithSet")]
     public async Task GenerateCharacterCard_MatchesGoldenImage(string testDataFileName, string goldenImageFileName,
         string outputPrefix)
@@ -86,25 +87,26 @@ public class GenshinCharacterCardServiceTests
     // To be used to generate golden image should the generation algorithm be updated
     [Test]
     [TestCase("Aether_TestData.json", "GoldenImage.jpg")]
+    [TestCase("Aether_NotAscended_TestData.json", "GoldenImage_NotAscended.jpg")]
     [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg")]
-    public async Task GenerateGoldenImage(string testDataFileName, string
-        goldenImageFileName)
+    public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var characterDetail =
             JsonSerializer.Deserialize<GenshinCharacterDetail>(await
                 File.ReadAllTextAsync($"{TestDataPath}/Genshin/{testDataFileName}"));
         Assert.That(characterDetail, Is.Not.Null);
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
         // Act
-        var image = await m_GenshinCharacterCardService.GetCardAsync(
-            new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId,
-                characterDetail.List[0], Server.Asia, profile));
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId,
+            characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
         using var file = new MemoryStream();
         await image.CopyToAsync(file);
-        await
-            File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/{goldenImageFileName}", file.ToArray());
+        await File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/{goldenImageFileName}", file.ToArray());
 
         Assert.That(image, Is.Not.Null);
     }

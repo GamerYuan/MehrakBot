@@ -35,7 +35,7 @@ public static class GameApiServiceCollectionExtension
         // Genshin services
         services.AddSingleton<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>, GenshinAbyssApiService>();
         services
-            .AddSingleton<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, CharacterApiContext>,
+            .AddSingleton<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>,
                 GenshinCharacterApiService>();
         services
             .AddSingleton<IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext>, GenshinRealTimeNotesApiService>();

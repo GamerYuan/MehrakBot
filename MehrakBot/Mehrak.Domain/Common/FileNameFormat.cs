@@ -37,6 +37,16 @@ public static class FileNameFormat
         /// Genshin buff file name format, where {0} is the buff name (no space)
         /// </summary>
         public const string BuffIconName = "genshin_buff_icon_{0}";
+
+        /// <summary>
+        /// Genshin weapon file name format, where {0} is the weapon ID
+        /// </summary>
+        public const string WeaponBaseName = "genshin_weapon_base_{0}";
+
+        /// <summary>
+        /// Genshin ascended weapon file name format, where {0} is the weapon ID
+        /// </summary>
+        public const string WeaponAscendedName = "genshin_weapon_ascended_{0}";
     }
 
     public static class Hsr

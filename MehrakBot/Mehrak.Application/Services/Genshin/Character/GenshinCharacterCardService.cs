@@ -116,9 +116,21 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 Image.LoadAsync<Rgba32>(
                     await m_ImageRepository.DownloadFileToStreamAsync(charInfo.Base.ToImageName()));
 
-            var weaponImageTask =
-                Image.LoadAsync<Rgba32>(
-                    await m_ImageRepository.DownloadFileToStreamAsync(charInfo.Base.Weapon.ToImageName()));
+            Task<Image<Rgba32>> weaponImageTask;
+
+            if (charInfo.Weapon.PromoteLevel >= 2 && await m_ImageRepository.FileExistsAsync(charInfo.Weapon.ToAscendedImageName()))
+            {
+                weaponImageTask = Image.LoadAsync<Rgba32>(
+                    await m_ImageRepository.DownloadFileToStreamAsync(charInfo.Weapon.ToAscendedImageName()));
+            }
+            else
+            {
+                if (charInfo.Weapon.PromoteLevel >= 2)
+                    m_Logger.LogInformation("Ascended icon not found for Weapon {Weapon}, falling back to default icon",
+                        charInfo.Weapon.Name);
+                weaponImageTask = Image.LoadAsync<Rgba32>(
+                    await m_ImageRepository.DownloadFileToStreamAsync(charInfo.Weapon.ToBaseImageName()));
+            }
 
             Task<(bool Active, Image Image)>[] constellationTasks =
             [
@@ -161,24 +173,14 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 })
             ];
 
-            // Await all image loading tasks concurrently
-            await Task.WhenAll(
-                overlayTask,
-                characterPortraitTask,
-                weaponImageTask,
-                Task.WhenAll(constellationTasks),
-                Task.WhenAll(skillTasks),
-                Task.WhenAll(relicImageTasks)
-            );
-
             // Add loaded images to disposable resources
-            var overlay = overlayTask.Result;
+            var overlay = await overlayTask;
             disposableResources.Add(overlay);
 
-            var characterPortrait = characterPortraitTask.Result;
+            var characterPortrait = await characterPortraitTask;
             disposableResources.Add(characterPortrait);
 
-            var weaponImage = weaponImageTask.Result;
+            var weaponImage = await weaponImageTask;
             disposableResources.Add(weaponImage);
 
             (bool Active, Image Image)[] constellationIcons = [.. await Task.WhenAll(constellationTasks)];
