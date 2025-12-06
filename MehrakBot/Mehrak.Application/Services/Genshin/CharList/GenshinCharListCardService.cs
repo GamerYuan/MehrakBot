@@ -114,9 +114,10 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 context.GameProfile.GameUid, charData.Count);
 
             var weaponImages = await charData
-                .DistinctBy(x => x.Id)
+                .Select(x => (Key: GetWeaponKey(x.Weapon), x.Weapon))
+                .DistinctBy(x => x.Key)
                 .ToAsyncEnumerable()
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Id!.Value),
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Key),
                     async (x, token) =>
                     {
                         Image image;
@@ -146,7 +147,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 .Select(async (x, token) =>
                 {
                     using var avatarImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
-                    return GetStyledCharacterImage(x, avatarImage, weaponImages[x.Id!.Value]);
+                    return GetStyledCharacterImage(x, avatarImage, weaponImages[GetWeaponKey(x.Weapon)]);
                 })
                 .ToListAsync();
 
@@ -370,5 +371,10 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
         });
 
         return background;
+    }
+
+    private static string GetWeaponKey(Weapon weapon)
+    {
+        return $"{weapon.Id}_{(weapon.Ascended.Value ? "Ascended" : "Normal")}";
     }
 }
