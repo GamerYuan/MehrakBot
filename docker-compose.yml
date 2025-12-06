@@ -5,6 +5,8 @@ services:
     build:
       context: ./MehrakBot
       dockerfile: Dockerfile
+      args:
+        OPENCV_VERSION: ${OPENCV_VERSION}
     ports:
       - "5000:80"
     depends_on:
@@ -43,10 +45,10 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.size=10GB'
-      - '--storage.tsdb.retention.time=2y'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.size=10GB"
+      - "--storage.tsdb.retention.time=2y"
     networks:
       - mehrak-network
 
@@ -90,9 +92,9 @@ services:
     container_name: node-exporter
     restart: unless-stopped
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -119,8 +121,8 @@ volumes:
   prometheus-data:
   grafana-data:
   app-logs:
-      driver: local
-      driver_opts:
-        type: none
-        device: ./MehrakBot/logs
-        o: bind
+    driver: local
+    driver_opts:
+      type: none
+      device: ./MehrakBot/logs
+      o: bind

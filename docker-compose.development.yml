@@ -6,6 +6,7 @@ services:
       context: ./MehrakBot
       args:
         DOTNET_ENVIRONMENT: Development
+        OPENCV_VERSION: ${OPENCV_VERSION}
       dockerfile: Dockerfile
     ports:
       - "5000:80"
@@ -107,7 +108,7 @@ services:
       - "3100:3100"
     volumes:
       - ./grafana/loki-config.yaml:/etc/loki/local-config.yaml
-      - ./grafana/loki-data:/tmp/loki 
+      - ./grafana/loki-data:/tmp/loki
     networks:
       - mehrak-network
 
