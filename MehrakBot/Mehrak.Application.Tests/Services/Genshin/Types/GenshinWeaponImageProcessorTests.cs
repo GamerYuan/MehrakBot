@@ -5,6 +5,7 @@ namespace Mehrak.Application.Tests.Services.Genshin.Types;
 
 [Parallelizable(ParallelScope.All)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+[Explicit("Require OpenCV Runtime")]
 internal class GenshinWeaponImageProcessorTests
 {
     private static readonly string TestDirectory = Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin", "TestAssets", "WeaponProcessor");
@@ -43,7 +44,6 @@ internal class GenshinWeaponImageProcessorTests
         }
     }
 
-    [Explicit]
     [Test]
     public void ProcessImage_WhenIconNotFound_ReturnsNullStream()
     {
@@ -69,8 +69,6 @@ internal class GenshinWeaponImageProcessorTests
     #endregion
 
     #region Integration Tests
-
-    [Explicit("Require OpenCV Runtime")]
     [Test]
     [TestCase("icon_sword.png", "ascended_sword.png", "golden_sword.png")]
     [TestCase("icon_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
