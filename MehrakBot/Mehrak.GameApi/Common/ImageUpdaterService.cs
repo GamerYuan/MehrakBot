@@ -91,20 +91,22 @@ public class ImageUpdaterService : IImageUpdaterService
             return r;
         }).ToListAsync();
 
-
-        if (responses.Any(x => !x.IsSuccessStatusCode))
-        {
-            var failed = responses.Where(x => !x.IsSuccessStatusCode);
-            m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
-                failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
-            return false;
-        }
-
-        var streams = await responses.ToAsyncEnumerable().Select(async (x, token) =>
-            await x.Content.ReadAsStreamAsync(token)).ToListAsync();
+        List<Stream> streams = [];
 
         try
         {
+
+            if (responses.Any(x => !x.IsSuccessStatusCode))
+            {
+                var failed = responses.Where(x => !x.IsSuccessStatusCode);
+                m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
+                    failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
+                return false;
+            }
+
+            streams.AddRange(responses.ToAsyncEnumerable().Select(async (x, token) =>
+                await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable());
+
             using var processedStream = processor.ProcessImage(streams);
 
             if (processedStream == Stream.Null || processedStream.Length == 0)
