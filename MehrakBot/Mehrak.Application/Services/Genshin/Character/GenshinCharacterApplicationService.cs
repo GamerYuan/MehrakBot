@@ -261,7 +261,6 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
         GetWeaponUrlsAsync(GenshinCharacterApplicationContext context, GameProfileDto profile,
             GenshinCharacterInformation charData, string wikiEntry)
     {
-        // Prio to CN locale
         foreach (var locale in Enum.GetValues<WikiLocales>())
         {
             var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
