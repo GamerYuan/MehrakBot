@@ -1,7 +1,7 @@
 ﻿FROM ubuntu:24.04
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /
+WORKDIR /app
 
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
@@ -132,7 +132,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Copy the published bot from the publish stage
-COPY --from=build /out/ /app/
+COPY --from=build /app/out/ /app/
 COPY --from=build /usr/lib /usr/lib
 COPY --from=build /artifacts /artifacts
 
