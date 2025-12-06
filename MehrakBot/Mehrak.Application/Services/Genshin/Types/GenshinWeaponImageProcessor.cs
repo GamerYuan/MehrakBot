@@ -55,10 +55,14 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
             Cv2.CvtColor(ascended, ascendedGray, ColorConversionCodes.BGRA2GRAY);
             Cv2.CvtColor(icon, iconGray, ColorConversionCodes.BGRA2GRAY);
 
+            homography.Dispose();
             homography = FindHomography(ascendedGray, iconGray);
 
             if (!IsHomographyValid(homography, ascended.Size(), icon.Size()))
+            {
+                homography.Dispose();
                 return Stream.Null;
+            }
         }
 
         // 2. Warp the Ascended Image
