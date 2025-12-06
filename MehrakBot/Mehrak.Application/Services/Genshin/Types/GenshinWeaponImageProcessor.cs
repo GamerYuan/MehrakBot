@@ -18,7 +18,7 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
 
         if (imageList[1].Size().Width > 800 || imageList[1].Size().Height > 800)
         {
-            var scaleFactor = Math.Max(
+            var scaleFactor = Math.Min(
                 (double)800 / imageList[1].Width,
                 (double)800 / imageList[1].Height
             );
