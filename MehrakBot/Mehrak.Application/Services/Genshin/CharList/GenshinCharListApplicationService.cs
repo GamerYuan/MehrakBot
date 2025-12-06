@@ -112,8 +112,13 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                         .DistinctBy(x => x.Weapon.Id)
                         .ToAsyncEnumerable()
                         .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
-                            (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name,
-                                charDetail.WeaponWiki[x.Weapon.Id.ToString()!].Split('/')[^1])))
+                        {
+                            if (!charDetail.WeaponWiki.TryGetValue(x.Weapon.Id.ToString()!, out var wikiUrl))
+                            {
+                                return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
+                            }
+                            return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1]));
+                        })
                         .Where(x => x.Url.IsSuccess)
                         .Select(x =>
                         {
