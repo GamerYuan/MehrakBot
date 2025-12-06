@@ -79,28 +79,29 @@ public class ImageUpdaterService : IImageUpdaterService
 
         var client = m_HttpClientFactory.CreateClient();
 
-        var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
         m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
 
-        var images = allUrls.ToAsyncEnumerable().Select(async (x, token) =>
+        var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
+
+        var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
         {
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);
             var r = await client.GetAsync(x, token);
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)r.StatusCode, x);
             return r;
-        });
+        }).ToListAsync();
 
 
-        if (await images.AnyAsync(x => !x.IsSuccessStatusCode))
+        if (responses.Any(x => !x.IsSuccessStatusCode))
         {
-            var failed = images.Where(x => !x.IsSuccessStatusCode);
+            var failed = responses.Where(x => !x.IsSuccessStatusCode);
             m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
                 failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
             return false;
         }
 
-        var streams = images.Select(async (x, token) =>
-            await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable();
+        var streams = await responses.ToAsyncEnumerable().Select(async (x, token) =>
+            await x.Content.ReadAsStreamAsync(token)).ToListAsync();
 
         try
         {
@@ -121,6 +122,7 @@ public class ImageUpdaterService : IImageUpdaterService
         finally
         {
             foreach (var item in streams) await item.DisposeAsync();
+            responses.ForEach(x => x.Dispose());
         }
     }
 }
