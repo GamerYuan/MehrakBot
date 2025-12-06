@@ -102,19 +102,25 @@ public class ImageUpdaterService : IImageUpdaterService
         var streams = images.Select(async (x, token) =>
             await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable();
 
-        using var processedStream = processor.ProcessImage(streams);
-
-        if (processedStream == Stream.Null || processedStream.Length == 0)
+        try
         {
-            m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
-            return false;
+            using var processedStream = processor.ProcessImage(streams);
+
+            if (processedStream == Stream.Null || processedStream.Length == 0)
+            {
+                m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+
+                return false;
+            }
+
+            processedStream.Position = 0;
+            await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
+
+            return true;
         }
-
-        processedStream.Position = 0;
-        await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
-
-        foreach (var item in streams) await item.DisposeAsync();
-
-        return true;
+        finally
+        {
+            foreach (var item in streams) await item.DisposeAsync();
+        }
     }
 }
