@@ -11,6 +11,11 @@ internal class GenshinWeaponImageProcessor : IMultiImageProcessor
 
     public Stream ProcessImage(IEnumerable<Stream> images)
     {
+        if (images.Count() < 2)
+        {
+            throw new ArgumentException("At least two images are required: Icon and Ascended Image", nameof(images));
+        }
+
         var imageList = images.Select(StreamToMat).ToList();
 
         using var icon = imageList[0];
