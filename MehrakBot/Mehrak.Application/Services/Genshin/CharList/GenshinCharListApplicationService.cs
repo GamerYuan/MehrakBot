@@ -94,14 +94,14 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                 characterList.Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
                         new ImageProcessorBuilder().Resize(200, 0).Build()));
-            var temp = characterList.ToAsyncEnumerable()
+            var temp = await characterList.ToAsyncEnumerable()
                 .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
-                    || x.Weapon.Level == 40);
+                    || x.Weapon.Level == 40).ToListAsync();
 
-            var weaponDict = await temp.DistinctBy(x => x.Id!.Value).ToDictionaryAsync(x => x.Id!.Value, x => x);
-            var charToFetch = await temp.Select(x => x.Id!.Value).Distinct().ToListAsync();
+            var weaponDict = temp.DistinctBy(x => x.Id!.Value).ToDictionary(x => x.Id!.Value, x => x);
+            var charToFetch = temp.Select(x => x.Id!.Value).Distinct().ToList();
 
-            if (charToFetch.Any())
+            if (charToFetch.Count > 0)
             {
                 var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
                     context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
