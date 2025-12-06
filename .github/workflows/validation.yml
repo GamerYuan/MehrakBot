@@ -43,6 +43,7 @@ jobs:
         uses: Dovyski/setup-opencv-action@v1.1
         with:
           opencv-version: "4.12.0"
+          install-deps: false
 
       - name: Restore dependencies
         working-directory: ./MehrakBot
