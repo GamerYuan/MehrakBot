@@ -114,6 +114,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
                 context.GameProfile.GameUid, charData.Count);
 
             var weaponImages = await charData
+                .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Id!.Value),
                     async (x, token) =>

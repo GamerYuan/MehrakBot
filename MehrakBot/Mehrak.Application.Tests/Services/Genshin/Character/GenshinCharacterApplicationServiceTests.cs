@@ -636,12 +636,14 @@ public class GenshinCharacterApplicationServiceTests
 
         // Verify UpdateImageAsync called for base weapon icon
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(
-            It.Is<IImageData>(d => d.Url == "https://example.com/icon.png"),
+            It.Is<IImageData>(d => d.Url == characterDetail.List[0].Weapon.Icon),
             It.IsAny<IImageProcessor>()), Times.Once);
 
         // Verify UpdateMultiImageAsync called for ascended weapon icon
         imageUpdaterMock.Verify(x => x.UpdateMultiImageAsync(
-            It.Is<IMultiImageData>(d => d.AdditionalUrls.Count() == 3 && d.AdditionalUrls.Contains("https://example.com/icon.png")),
+            It.Is<IMultiImageData>(d => d.AdditionalUrls.Count() == 2 &&
+                d.AdditionalUrls.Contains(characterDetail.List[0].Weapon.Icon) &&
+                d.AdditionalUrls.Contains("https://example.com/2.png")),
             It.IsAny<IMultiImageProcessor>()), Times.Once);
     }
 
@@ -690,7 +692,7 @@ public class GenshinCharacterApplicationServiceTests
 
         // Assert
         var charData = characterDetail.List[0];
-        var expectedImageCount = charData.Constellations.Count + charData.Skills.Count + charData.Relics.Count;
+        var expectedImageCount = charData.Constellations.Count + charData.Skills.Count + charData.Relics.Count + 1; // +1 for weapon
 
         imageUpdaterMock.Verify(
             x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),

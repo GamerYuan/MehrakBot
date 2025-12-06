@@ -98,43 +98,46 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                 .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
                     || x.Weapon.Level == 40);
 
-            var weaponDict = await temp.ToDictionaryAsync(x => x.Id!.Value, x => x);
-            var charToFetch = await temp.Select(x => x.Id!.Value).ToListAsync();
+            var weaponDict = await temp.DistinctBy(x => x.Id!.Value).ToDictionaryAsync(x => x.Id!.Value, x => x);
+            var charToFetch = await temp.Select(x => x.Id!.Value).Distinct().ToListAsync();
 
-            var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
-                context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
-
-            if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
+            if (charToFetch.Any())
             {
-                var result = await charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
-                    .DistinctBy(x => x.Weapon.Id)
-                    .ToAsyncEnumerable()
-                    .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
-                        (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name,
-                            charDetail.WeaponWiki[x.Weapon.Id.ToString()!].Split('/')[^1])))
-                    .Where(x => x.Url.IsSuccess)
-                    .Select(x =>
-                    {
-                        weaponDict[x.Data.Base.Id!].Weapon.Ascended = true;
+                var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
+                    context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
 
-                        // Special case for catalyst
-                        if (x.Data.Weapon.Type == 10)
+                if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
+                {
+                    var result = await charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
+                        .DistinctBy(x => x.Weapon.Id)
+                        .ToAsyncEnumerable()
+                        .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
+                            (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name,
+                                charDetail.WeaponWiki[x.Weapon.Id.ToString()!].Split('/')[^1])))
+                        .Where(x => x.Url.IsSuccess)
+                        .Select(x =>
                         {
-                            return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
-                                new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build());
-                        }
-                        else
-                        {
-                            // ignore result from this method
-                            return m_ImageUpdaterService.UpdateMultiImageAsync(
-                                new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
-                                    [x.Data.Weapon.Icon, x.Url.Data!]),
-                                new GenshinWeaponImageProcessor()
-                            );
-                        }
-                    }).ToListAsync();
+                            weaponDict[x.Data.Base.Id!].Weapon.Ascended = true;
 
-                await Task.WhenAll(result);
+                            // Special case for catalyst
+                            if (x.Data.Weapon.Type == 10)
+                            {
+                                return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
+                                    new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build());
+                            }
+                            else
+                            {
+                                // ignore result from this method
+                                return m_ImageUpdaterService.UpdateMultiImageAsync(
+                                    new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
+                                        [x.Data.Weapon.Icon, x.Url.Data!]),
+                                    new GenshinWeaponImageProcessor()
+                                );
+                            }
+                        }).ToListAsync();
+
+                    await Task.WhenAll(result);
+                }
             }
 
             var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));

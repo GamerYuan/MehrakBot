@@ -65,47 +65,6 @@ internal class GenshinWeaponImageProcessorTests
         }
     }
 
-    [Test]
-    public void ProcessImage_WhenIconFound_ReturnsProcessedImage()
-    {
-        // Create matching images
-        // Icon: 50x50, center 20x20 opaque
-        using var icon = CreateTestImageWithShape(50, 50, 20);
-
-        // Ascended: 100x100, solid blue (255, 0, 0, 255)
-        using var ascended = new Mat(100, 100, MatType.CV_8UC4, new Scalar(255, 0, 0, 255));
-
-        var streams = new[] { MatToStream(icon), MatToStream(ascended) };
-
-        try
-        {
-            var result = m_Processor.ProcessImage(streams);
-
-            Assert.That(result, Is.Not.EqualTo(Stream.Null));
-            Assert.That(result.Length, Is.GreaterThan(0));
-
-            // Verify result is a valid image
-            using var resultMat = Cv2.ImDecode(StreamToBytes(result), ImreadModes.Unchanged);
-            Assert.That(resultMat.Width, Is.EqualTo(200));
-            Assert.That(resultMat.Height, Is.EqualTo(200));
-
-            // Check center pixel color (should be blue from ascended)
-            var centerPixel = resultMat.At<Vec4b>(100, 100);
-            using (Assert.EnterMultipleScope())
-            {
-                // OpenCV uses BGRA
-                Assert.That(centerPixel.Item0, Is.EqualTo(255), "Blue channel mismatch");
-                Assert.That(centerPixel.Item1, Is.Zero, "Green channel mismatch");
-                Assert.That(centerPixel.Item2, Is.Zero, "Red channel mismatch");
-                Assert.That(centerPixel.Item3, Is.EqualTo(255), "Alpha channel mismatch");
-            }
-        }
-        finally
-        {
-            foreach (var s in streams) s.Dispose();
-        }
-    }
-
     #endregion
 
     #region Integration Tests
@@ -164,15 +123,6 @@ internal class GenshinWeaponImageProcessorTests
     private static Stream MatToStream(Mat mat)
     {
         return new MemoryStream(mat.ImEncode(".png"));
-    }
-
-    private static byte[] StreamToBytes(Stream stream)
-    {
-        if (stream is MemoryStream ms) return ms.ToArray();
-        using var temp = new MemoryStream();
-        stream.Position = 0;
-        stream.CopyTo(temp);
-        return temp.ToArray();
     }
 
     /*

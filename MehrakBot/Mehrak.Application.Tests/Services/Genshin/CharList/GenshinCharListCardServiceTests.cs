@@ -35,6 +35,7 @@ public class GenshinCharListCardServiceTests
     [Test]
     [TestCase("CharList_TestData_1.json")]
     [TestCase("CharList_TestData_2.json")]
+    [TestCase("CharList_TestData_3.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
@@ -84,35 +85,29 @@ public class GenshinCharListCardServiceTests
         };
     }
 
-    // [Test]
-    // public async Task GenerateGoldenImage()
-    // {
-    //     var testData1 = await JsonSerializer.DeserializeAsync<CharacterListData>(
-    //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
-    //       "CharList_TestData_1.json")));
-    //     var testData2 = await JsonSerializer.DeserializeAsync<CharacterListData>(
-    //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
-    //     "CharList_TestData_2.json")));
-    //
-    //     var userGameData = GetTestUserGameData();
-    //
-    //     var image1 = await m_Service.GetCardAsync(
-    //         new TestCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData1!.List!, Server.Asia, userGameData));
-    //     var image2 = await m_Service.GetCardAsync(
-    //         new TestCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData2!.List!, Server.Asia, userGameData));
-    //
-    //     Assert.Multiple(() =>
-    //     {
-    // Assert.That(image1, Is.Not.Null);
-    //         Assert.That(image2, Is.Not.Null);
-    //  });
-    //
-    //     await using var fileStream1 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    //         "TestAssets", "CharList_GoldenImage_1.jpg"));
-    //     await using var fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    //         "TestAssets", "CharList_GoldenImage_2.jpg"));
-    //
-    //     await image1.CopyToAsync(fileStream1);
-    //     await image2.CopyToAsync(fileStream2);
-    // }
+    /*
+    [Test]
+    [TestCase("CharList_TestData_1.json", "CharList_GoldenImage_1.jpg")]
+    [TestCase("CharList_TestData_2.json", "CharList_GoldenImage_2.jpg")]
+    [TestCase("CharList_TestData_3.json", "CharList_GoldenImage_3.jpg")]
+    public async Task GenerateGoldenImage(string testFilePath, string goldenImage)
+    {
+        var testData = await JsonSerializer.DeserializeAsync<CharacterListData>(
+            File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin",
+          testFilePath)));
+        Assert.That(testData, Is.Not.Null, "Test data should not be null");
+
+        var userGameData = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, testData!.List!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+        var stream = await m_Service.GetCardAsync(cardContext);
+
+        await using var fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+            "TestAssets", goldenImage));
+
+        await stream.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+        fileStream.Close();
+    }
+    */
 }
