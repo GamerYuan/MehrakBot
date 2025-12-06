@@ -180,14 +180,13 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
         GetWeaponUrlsAsync(GenshinCharListApplicationContext context, GameProfileDto profile,
             string weaponName, string wikiEntry)
     {
-        // Prio to CN locale
         foreach (var locale in Enum.GetValues<WikiLocales>())
         {
             var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
 
             if (!weapWiki.IsSuccess)
             {
-                Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, weapWiki);
+                Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
                 continue;
             }
             List<string> ascendedUrls = [];
