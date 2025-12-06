@@ -79,9 +79,9 @@ public class ImageUpdaterService : IImageUpdaterService
 
         var client = m_HttpClientFactory.CreateClient();
 
-        m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
-
         var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
+
+        m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
 
         var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
         {
