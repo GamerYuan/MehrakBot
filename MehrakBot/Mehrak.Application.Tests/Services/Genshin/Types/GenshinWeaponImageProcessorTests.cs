@@ -69,6 +69,7 @@ internal class GenshinWeaponImageProcessorTests
 
     #region Integration Tests
 
+    [Explicit("Require OpenCV Runtime")]
     [Test]
     [TestCase("icon_sword.png", "ascended_sword.png", "golden_sword.png")]
     [TestCase("icon_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
