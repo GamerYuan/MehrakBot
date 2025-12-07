@@ -2,7 +2,7 @@
 
 namespace Mehrak.Infrastructure.Models;
 
-internal class UserContext(DbContextOptions<UserContext> options) : DbContext(options)
+internal class UserDbContext(DbContextOptions<UserDbContext> options) : DbContext(options)
 {
     public DbSet<UserModel> Users { get; set; }
     public DbSet<UserProfileModel> UserProfiles { get; set; }

@@ -8,10 +8,10 @@ namespace Mehrak.Infrastructure.Repositories;
 
 internal class UserRepository : IUserRepository
 {
-    private readonly UserContext m_Context;
+    private readonly UserDbContext m_Context;
     private readonly ILogger<UserRepository> m_Logger;
 
-    public UserRepository(UserContext context, ILogger<UserRepository> logger)
+    public UserRepository(UserDbContext context, ILogger<UserRepository> logger)
     {
         m_Context = context ?? throw new ArgumentNullException(nameof(context));
         m_Logger = logger;
