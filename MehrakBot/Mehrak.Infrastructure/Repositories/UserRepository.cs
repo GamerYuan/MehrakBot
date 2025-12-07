@@ -88,7 +88,6 @@ internal class UserRepository : IUserRepository
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error saving user {UserId} to database", user.Id);
-            throw;
         }
     }
 
@@ -115,7 +114,7 @@ internal class UserRepository : IUserRepository
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error deleting user {UserId} from database", userId);
-            throw;
+            return false;
         }
     }
 
@@ -125,7 +124,7 @@ internal class UserRepository : IUserRepository
         {
             Id = (ulong)model.Id,
             Timestamp = model.Timestamp,
-            Profiles = model.Profiles.Select(p => new UserProfileDto
+            Profiles = [.. model.Profiles.Select(p => new UserProfileDto
             {
                 ProfileId = (uint)p.ProfileId,
                 LtUid = (ulong)p.LtUid,
@@ -142,8 +141,7 @@ internal class UserRepository : IUserRepository
                 LastUsedRegions = p.LastUsedRegions.Count == 0
                     ? null
                     : p.LastUsedRegions.ToDictionary(r => r.Game, r => r.Region)
-            })
-            .ToList()
+            })]
         };
         return dto;
     }
