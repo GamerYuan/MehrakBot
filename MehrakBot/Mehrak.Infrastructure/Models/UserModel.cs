@@ -30,7 +30,7 @@ internal class UserProfileModel
 internal class ProfileGameUid
 {
     public long Id { get; set; }
-    public int ProfileId { get; set; } // FK
+    public long ProfileId { get; set; } // FK
     public UserProfileModel UserProfile { get; set; } = null!;
 
     public Game Game { get; set; }
@@ -42,7 +42,7 @@ internal class ProfileRegion
 {
     public long Id { get; set; }
 
-    public int ProfileId { get; set; } // FK
+    public long ProfileId { get; set; } // FK
     public UserProfileModel UserProfile { get; set; } = null!;
 
     public Game Game { get; set; }
