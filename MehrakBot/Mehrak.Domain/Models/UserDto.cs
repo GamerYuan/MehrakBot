@@ -9,14 +9,14 @@ using MongoDB.Bson.Serialization.Options;
 
 namespace Mehrak.Domain.Models;
 
-public class UserModel
+public class UserDto
 {
     [BsonId] public ulong Id { get; set; }
     [BsonElement("ts")] public DateTime Timestamp { get; set; }
-    [BsonElement("profiles")] public IEnumerable<UserProfile>? Profiles { get; set; } = null;
+    [BsonElement("profiles")] public IEnumerable<UserProfileDto>? Profiles { get; set; } = null;
 }
 
-public class UserProfile
+public class UserProfileDto
 {
     [BsonElement("profile_id")] public uint ProfileId { get; set; }
 

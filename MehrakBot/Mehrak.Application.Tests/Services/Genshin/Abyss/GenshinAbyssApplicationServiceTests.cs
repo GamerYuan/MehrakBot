@@ -313,7 +313,7 @@ public class GenshinAbyssApplicationServiceTests
         // User with matching profile and no stored game uids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -343,7 +343,7 @@ public class GenshinAbyssApplicationServiceTests
 
         // Assert persisted
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -368,7 +368,7 @@ public class GenshinAbyssApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -402,7 +402,7 @@ public class GenshinAbyssApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert not persisted
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -419,7 +419,7 @@ public class GenshinAbyssApplicationServiceTests
         // Case1: user missing
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
@@ -432,20 +432,20 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case2: user present but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles = [new() { LtUid = 99999ul, LToken = "x" }]
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion

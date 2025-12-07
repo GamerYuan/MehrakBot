@@ -75,14 +75,14 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         // Encrypt the token with the test passphrase
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = encryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]
@@ -172,14 +172,14 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         // Encrypt the token with the correct passphrase
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = encryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]
@@ -257,14 +257,14 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = encryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]
@@ -320,14 +320,14 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = encryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]
@@ -412,11 +412,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             var encryptedToken1 = m_EncryptionService.Encrypt("token1", "pass1");
             var encryptedToken2 = m_EncryptionService.Encrypt("token2", "pass2");
 
-            var profile1 = new UserProfile { ProfileId = 1, LtUid = 111, LToken = encryptedToken1 };
-            var profile2 = new UserProfile { ProfileId = 2, LtUid = 222, LToken = encryptedToken2 };
+            var profile1 = new UserProfileDto { ProfileId = 1, LtUid = 111, LToken = encryptedToken1 };
+            var profile2 = new UserProfileDto { ProfileId = 2, LtUid = 222, LToken = encryptedToken2 };
 
-            var user1 = new UserModel { Id = m_TestUserId, Profiles = [profile1] };
-            var user2 = new UserModel { Id = m_TestUserId + 1, Profiles = [profile2] };
+            var user1 = new UserDto { Id = m_TestUserId, Profiles = [profile1] };
+            var user2 = new UserDto { Id = m_TestUserId + 1, Profiles = [profile2] };
 
             m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user1);
             m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId + 1)).ReturnsAsync(user2);
@@ -501,14 +501,14 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var emptyToken = "";
         var encryptedToken = m_EncryptionService.Encrypt(emptyToken, TestPassphrase);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = encryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]
@@ -558,14 +558,14 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var longToken = new string('x', 10000);
         var encryptedToken = m_EncryptionService.Encrypt(longToken, TestPassphrase);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = encryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]
@@ -615,14 +615,14 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var unicodeToken = "测试数据🎮🎯🎲";
         var encryptedToken = m_EncryptionService.Encrypt(unicodeToken, TestPassphrase);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = encryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]

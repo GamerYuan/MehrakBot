@@ -567,7 +567,7 @@ public class HsrCharacterApplicationServiceTests
         // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -597,7 +597,7 @@ public class HsrCharacterApplicationServiceTests
 
         // Assert
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -622,7 +622,7 @@ public class HsrCharacterApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -656,7 +656,7 @@ public class HsrCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -673,7 +673,7 @@ public class HsrCharacterApplicationServiceTests
         // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
@@ -689,13 +689,13 @@ public class HsrCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -705,7 +705,7 @@ public class HsrCharacterApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]

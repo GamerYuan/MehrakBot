@@ -29,14 +29,14 @@ public class AuthenticationResult
     public ulong UserId { get; private init; }
     public ulong LtUid { get; private init; }
     public string? LToken { get; private init; }
-    public UserModel? User { get; private init; }
+    public UserDto? User { get; private init; }
     public IInteractionContext? Context { get; private init; }
 
     public static AuthenticationResult Success(
         ulong userId,
         ulong ltuid,
         string ltoken,
-        UserModel user,
+        UserDto user,
         IInteractionContext context)
     {
         return new AuthenticationResult

@@ -48,7 +48,7 @@ public class DailyCheckInServiceTests
         });
 
         // Verify no API calls were made
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -98,7 +98,7 @@ public class DailyCheckInServiceTests
 
         // Verify user was updated
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u => u.Profiles!.First().LastCheckIn.HasValue)),
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u => u.Profiles!.First().LastCheckIn.HasValue)),
             Times.Once);
     }
 
@@ -109,7 +109,7 @@ public class DailyCheckInServiceTests
         var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -154,7 +154,7 @@ public class DailyCheckInServiceTests
         var (service, userRepositoryMock, gameRecordApiMock, _) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         gameRecordApiMock.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
@@ -184,7 +184,7 @@ public class DailyCheckInServiceTests
         var (service, userRepositoryMock, gameRecordApiMock, _) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         gameRecordApiMock.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success([]));
@@ -284,7 +284,7 @@ public class DailyCheckInServiceTests
         var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -329,7 +329,7 @@ public class DailyCheckInServiceTests
         var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -374,7 +374,7 @@ public class DailyCheckInServiceTests
         var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -470,7 +470,7 @@ public class DailyCheckInServiceTests
         });
 
         // Verify user was NOT updated because not all check-ins succeeded
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -485,13 +485,13 @@ public class DailyCheckInServiceTests
         var yesterdayUtc8 = nowUtc8.AddDays(-1);
         var yesterdayUtc = TimeZoneInfo.ConvertTimeToUtc(yesterdayUtc8, cst);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = 1,
             Timestamp = DateTime.UtcNow,
             Profiles =
             [
-                new UserProfile
+                new UserProfileDto
                 {
                     ProfileId = 1,
                     LtUid = 12345ul,
@@ -539,7 +539,7 @@ public class DailyCheckInServiceTests
                 Does.Contain("Check-in successful"));
         });
 
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Once);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Once);
     }
 
     #endregion
@@ -567,7 +567,7 @@ public class DailyCheckInServiceTests
         return (service, userRepositoryMock, gameRecordApiMock, checkInApiMock);
     }
 
-    private static UserModel CreateTestUser(bool hasCheckedInToday)
+    private static UserDto CreateTestUser(bool hasCheckedInToday)
     {
         var cst = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
         var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cst);
@@ -580,13 +580,13 @@ public class DailyCheckInServiceTests
             lastCheckIn = TimeZoneInfo.ConvertTimeToUtc(todayUtc8, cst);
         }
 
-        return new UserModel
+        return new UserDto
         {
             Id = 1,
             Timestamp = DateTime.UtcNow,
             Profiles =
             [
-                new UserProfile
+                new UserProfileDto
                 {
                     ProfileId = 1,
                     LtUid = 12345ul,

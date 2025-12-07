@@ -149,8 +149,8 @@ public class CheckInExecutorServiceTests
             .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
             .ReturnsAsync(false);
 
-        var user = new UserModel
-        { Id = m_TestUserId, Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }] };
+        var user = new UserDto
+        { Id = m_TestUserId, Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }] };
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -183,10 +183,10 @@ public class CheckInExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware
@@ -220,10 +220,10 @@ public class CheckInExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware
@@ -308,10 +308,10 @@ public class CheckInExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware
@@ -340,10 +340,10 @@ public class CheckInExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware
@@ -378,10 +378,10 @@ public class CheckInExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware
@@ -416,10 +416,10 @@ public class CheckInExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware
@@ -450,10 +450,10 @@ public class CheckInExecutorServiceTests
         m_Service.Context = mockContext.Object;
         m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware
@@ -498,10 +498,10 @@ public class CheckInExecutorServiceTests
             .ReturnsAsync(false)
             .Callback(() => callOrder.Add("RateLimit"));
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = m_TestUserId,
-            Profiles = [new UserProfile { ProfileId = TestProfileId, LtUid = TestLtUid }]
+            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
         };
 
         m_MockAuthMiddleware

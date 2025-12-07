@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
@@ -12,7 +12,7 @@ namespace Mehrak.Infrastructure.Repositories;
 
 public class UserRepository : IUserRepository
 {
-    private readonly IMongoCollection<UserModel> m_Users;
+    private readonly IMongoCollection<UserDto> m_Users;
     private readonly ILogger<UserRepository> m_Logger;
 
     public UserRepository(MongoDbService mongoDbService, ILogger<UserRepository> logger)
@@ -21,7 +21,7 @@ public class UserRepository : IUserRepository
         m_Logger = logger;
     }
 
-    public async Task<UserModel?> GetUserAsync(ulong userId)
+    public async Task<UserDto?> GetUserAsync(ulong userId)
     {
         m_Logger.LogDebug("Retrieving user {UserId} from database", userId);
         var user = await m_Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
@@ -29,7 +29,7 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task CreateOrUpdateUserAsync(UserModel user)
+    public async Task CreateOrUpdateUserAsync(UserDto user)
     {
         try
         {

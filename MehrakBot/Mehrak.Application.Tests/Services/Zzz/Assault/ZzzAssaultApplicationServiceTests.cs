@@ -338,7 +338,7 @@ public class ZzzAssaultApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -366,7 +366,7 @@ public class ZzzAssaultApplicationServiceTests
         await service.ExecuteAsync(context);
 
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -390,7 +390,7 @@ public class ZzzAssaultApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -423,7 +423,7 @@ public class ZzzAssaultApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -438,7 +438,7 @@ public class ZzzAssaultApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         assaultApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
@@ -452,12 +452,12 @@ public class ZzzAssaultApplicationServiceTests
 
         await service.ExecuteAsync(context);
 
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -467,7 +467,7 @@ public class ZzzAssaultApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion

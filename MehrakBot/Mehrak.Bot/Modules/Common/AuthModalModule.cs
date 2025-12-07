@@ -57,7 +57,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
 
             var user = await m_UserRepository.GetUserAsync(Context.User.Id);
-            user ??= new UserModel
+            user ??= new UserDto
             {
                 Id = Context.User.Id
             };
@@ -85,7 +85,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
-            UserProfile profile = new()
+            UserProfileDto profile = new()
             {
                 ProfileId = (uint)user.Profiles.Count() + 1,
                 LtUid = ltuid,

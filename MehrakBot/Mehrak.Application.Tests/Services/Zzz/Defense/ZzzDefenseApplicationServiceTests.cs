@@ -287,7 +287,7 @@ public class ZzzDefenseApplicationServiceTests
         // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -317,7 +317,7 @@ public class ZzzDefenseApplicationServiceTests
 
         // Assert: repository should persist updated user with stored game uid
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -342,7 +342,7 @@ public class ZzzDefenseApplicationServiceTests
         // User exists with game uid already stored for this game/server
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -376,7 +376,7 @@ public class ZzzDefenseApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -392,7 +392,7 @@ public class ZzzDefenseApplicationServiceTests
         // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         defenseApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
@@ -408,13 +408,13 @@ public class ZzzDefenseApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -424,7 +424,7 @@ public class ZzzDefenseApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
