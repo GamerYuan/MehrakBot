@@ -17,7 +17,7 @@ internal class UserRepository : IUserRepository
         m_Logger = logger;
     }
 
-    public async Task<UserDto?> GetUserAsync(long userId)
+    public async Task<UserDto?> GetUserAsync(ulong userId)
     {
         m_Logger.LogDebug("Retrieving user {UserId} from database", userId);
 
@@ -27,7 +27,7 @@ internal class UserRepository : IUserRepository
                 .ThenInclude(p => p.GameUids)
             .Include(u => u.Profiles)
                 .ThenInclude(p => p.LastUsedRegions)
-            .SingleOrDefaultAsync(u => u.Id == userId);
+            .SingleOrDefaultAsync(u => u.Id == (long)userId);
 
         if (user == null)
         {
@@ -55,7 +55,7 @@ internal class UserRepository : IUserRepository
                     .ThenInclude(p => p.GameUids)
                 .Include(u => u.Profiles)
                     .ThenInclude(p => p.LastUsedRegions)
-                .SingleOrDefaultAsync(u => u.Id == user.Id);
+                .SingleOrDefaultAsync(u => u.Id == (long)user.Id);
 
             if (existing == null)
             {
@@ -73,7 +73,7 @@ internal class UserRepository : IUserRepository
 
                 existing.Profiles.Clear();
 
-                var rebuiltProfiles = BuildProfileModels(user, existing.Id);
+                var rebuiltProfiles = BuildProfileModels(user, (ulong)existing.Id);
                 foreach (var p in rebuiltProfiles)
                 {
                     existing.Profiles.Add(p);
@@ -92,13 +92,13 @@ internal class UserRepository : IUserRepository
         }
     }
 
-    public async Task<bool> DeleteUserAsync(long userId)
+    public async Task<bool> DeleteUserAsync(ulong userId)
     {
         try
         {
             m_Logger.LogInformation("Attempting to delete user {UserId} from database", userId);
 
-            var user = await m_Context.Users.FindAsync(userId);
+            var user = await m_Context.Users.FindAsync((long)userId);
             if (user == null)
             {
                 m_Logger.LogInformation("Delete user {UserId} result: {Result}", userId, "Not Found");
@@ -123,12 +123,12 @@ internal class UserRepository : IUserRepository
     {
         var dto = new UserDto
         {
-            Id = model.Id,
+            Id = (ulong)model.Id,
             Timestamp = model.Timestamp,
             Profiles = model.Profiles.Select(p => new UserProfileDto
             {
-                ProfileId = p.ProfileId,
-                LtUid = p.LtUid,
+                ProfileId = (uint)p.ProfileId,
+                LtUid = (ulong)p.LtUid,
                 LToken = p.LToken,
                 LastCheckIn = p.LastCheckIn,
                 GameUids = p.GameUids.Count == 0
@@ -152,14 +152,14 @@ internal class UserRepository : IUserRepository
     {
         var model = new UserModel
         {
-            Id = dto.Id,
+            Id = (long)dto.Id,
             Timestamp = dto.Timestamp,
             Profiles = BuildProfileModels(dto, dto.Id)
         };
         return model;
     }
 
-    private static List<UserProfileModel> BuildProfileModels(UserDto dto, long userId)
+    private static List<UserProfileModel> BuildProfileModels(UserDto dto, ulong userId)
     {
         var profiles = new List<UserProfileModel>();
         if (dto.Profiles == null)
@@ -169,9 +169,9 @@ internal class UserRepository : IUserRepository
         {
             var profile = new UserProfileModel
             {
-                UserId = userId,
-                ProfileId = p.ProfileId,
-                LtUid = p.LtUid,
+                UserId = (long)userId,
+                ProfileId = (int)p.ProfileId,
+                LtUid = (long)p.LtUid,
                 LToken = p.LToken,
                 LastCheckIn = p.LastCheckIn,
                 GameUids = [],

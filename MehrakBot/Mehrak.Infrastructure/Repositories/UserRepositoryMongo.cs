@@ -21,7 +21,7 @@ public class UserRepositoryMongo : IUserRepository
         m_Logger = logger;
     }
 
-    public async Task<UserDto?> GetUserAsync(long userId)
+    public async Task<UserDto?> GetUserAsync(ulong userId)
     {
         m_Logger.LogDebug("Retrieving user {UserId} from database", userId);
         var user = await m_Users.Find(u => u.Id == userId).FirstOrDefaultAsync();
@@ -50,7 +50,7 @@ public class UserRepositoryMongo : IUserRepository
         }
     }
 
-    public async Task<bool> DeleteUserAsync(long userId)
+    public async Task<bool> DeleteUserAsync(ulong userId)
     {
         try
         {

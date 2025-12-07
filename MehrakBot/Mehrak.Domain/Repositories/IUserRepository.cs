@@ -8,9 +8,9 @@ namespace Mehrak.Domain.Repositories;
 
 public interface IUserRepository
 {
-    Task<UserDto?> GetUserAsync(long userId);
+    Task<UserDto?> GetUserAsync(ulong userId);
 
     Task CreateOrUpdateUserAsync(UserDto user);
 
-    Task<bool> DeleteUserAsync(long userId);
+    Task<bool> DeleteUserAsync(ulong userId);
 }

@@ -11,16 +11,16 @@ namespace Mehrak.Domain.Models;
 
 public class UserDto
 {
-    [BsonId] public long Id { get; set; }
+    [BsonId] public ulong Id { get; set; }
     [BsonElement("ts")] public DateTime Timestamp { get; set; }
     [BsonElement("profiles")] public IEnumerable<UserProfileDto>? Profiles { get; set; } = null;
 }
 
 public class UserProfileDto
 {
-    [BsonElement("profile_id")] public int ProfileId { get; set; }
+    [BsonElement("profile_id")] public uint ProfileId { get; set; }
 
-    [BsonElement("ltuid")] public long LtUid { get; set; }
+    [BsonElement("ltuid")] public ulong LtUid { get; set; }
 
     [BsonElement("ltoken")] public string LToken { get; set; } = string.Empty;
 
