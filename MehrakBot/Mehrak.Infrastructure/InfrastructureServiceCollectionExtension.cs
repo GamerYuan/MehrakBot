@@ -20,7 +20,7 @@ public static class InfrastructureServiceCollectionExtension
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddSingleton<MongoDbService>();
-        services.AddSingleton<IUserRepository, UserRepository>();
+        services.AddSingleton<IUserRepository, UserRepositoryMongo>();
         services.AddSingleton<IImageRepository, ImageRepository>();
         services.AddSingleton<ICharacterRepository, CharacterRepository>();
         services.AddSingleton<IAliasRepository, AliasRepository>();
