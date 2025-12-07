@@ -4,8 +4,11 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Metrics;
+using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -17,10 +20,14 @@ namespace Mehrak.Infrastructure;
 
 public static class InfrastructureServiceCollectionExtension
 {
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
+        services.AddDbContext<UserDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
+
         services.AddSingleton<MongoDbService>();
-        services.AddSingleton<IUserRepository, UserRepositoryMongo>();
+        services.AddSingleton<UserRepositoryMongo>();
+
+        services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IImageRepository, ImageRepository>();
         services.AddSingleton<ICharacterRepository, CharacterRepository>();
         services.AddSingleton<IAliasRepository, AliasRepository>();

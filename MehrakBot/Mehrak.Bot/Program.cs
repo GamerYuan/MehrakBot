@@ -100,7 +100,7 @@ public class Program
                     UseCookies = false
                 });
 
-            builder.Services.AddInfrastructureServices();
+            builder.Services.AddInfrastructureServices(builder.Configuration);
 
             builder.Services.AddGameApiServices();
 
