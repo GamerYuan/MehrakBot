@@ -21,7 +21,7 @@ public class MongoDbService
     }
 
     public IMongoCollection<MongoUserModel> Users => m_Database.GetCollection<MongoUserModel>("users");
-    public IMongoCollection<CharacterModel> Characters => m_Database.GetCollection<CharacterModel>("characters");
+    public IMongoCollection<MongoCharacterModel> Characters => m_Database.GetCollection<MongoCharacterModel>("characters");
     public IMongoCollection<AliasModel> Aliases => m_Database.GetCollection<AliasModel>("aliases");
     public IMongoCollection<CodeRedeemModel> Codes => m_Database.GetCollection<CodeRedeemModel>("codes");
     public IMongoCollection<MongoRelicModel> HsrRelics => m_Database.GetCollection<MongoRelicModel>("hsr_relics");

@@ -1,9 +1,10 @@
 ﻿#region
 
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -11,42 +12,49 @@ using MongoDB.Driver;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-public class CharacterRepository : ICharacterRepository
+internal class CharacterRepository : ICharacterRepository
 {
+    private readonly CharacterDbContext m_Context;
     private readonly ILogger<CharacterRepository> m_Logger;
-    private readonly IMongoCollection<CharacterModel> m_Characters;
 
-    public CharacterRepository(MongoDbService mongoDbService, ILogger<CharacterRepository> logger)
+    public CharacterRepository(CharacterDbContext context, ILogger<CharacterRepository> logger)
     {
+        m_Context = context;
         m_Logger = logger;
-        m_Characters = mongoDbService.Characters;
     }
 
     public async Task<List<string>> GetCharactersAsync(Game gameName)
     {
         m_Logger.LogInformation("Retrieving characters for game {Game} from database", gameName);
-        var characterModel = await GetCharacterModelAsync(gameName);
-        return characterModel?.Characters ?? [];
-    }
 
-    public async Task<CharacterModel?> GetCharacterModelAsync(Game gameName)
-    {
-        m_Logger.LogDebug("Retrieving character model for game {Game} from database", gameName);
-        var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
-        return await m_Characters.Find(filter).FirstOrDefaultAsync();
+        return await m_Context.Characters.Where(x => x.Game == gameName)
+            .Select(x => x.Name)
+            .ToListAsync();
     }
 
     public async Task UpsertCharactersAsync(Game gameName, IEnumerable<string> characters)
     {
-        var charList = characters.ToList();
+        var incoming = characters.ToHashSet();
+
+        if (incoming.Count == 0) return;
+
+        var existing = await m_Context.Characters
+            .Where(x => x.Game == gameName && incoming.Contains(x.Name))
+            .Select(x => x.Name)
+            .ToListAsync();
+
+        var newEntities = incoming.Except(existing).Select(name => new CharacterModel
+        {
+            Game = gameName,
+            Name = name
+        }).ToList();
+
+        if (!newEntities.Any()) return;
 
         m_Logger.LogInformation("Upserting characters for game {Game} with {Count} characters",
-            gameName, charList);
+            gameName, newEntities.Count);
 
-        var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
-        var update = Builders<CharacterModel>.Update
-            .AddToSetEach(x => x.Characters, charList);
-
-        await m_Characters.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
+        m_Context.Characters.AddRange(newEntities);
+        await m_Context.SaveChangesAsync();
     }
 }

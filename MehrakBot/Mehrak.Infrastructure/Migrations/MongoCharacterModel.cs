@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 using MongoDB.Bson;
@@ -8,7 +8,8 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Mehrak.Domain.Models;
 
-public class CharacterModel
+[Obsolete]
+public class MongoCharacterModel
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
