@@ -133,11 +133,6 @@ networks:
 volumes:
   mongo_data:
   pgdata:
-    driver: local
-    driver_opts:
-      type: none
-      device: ./postgres/data
-      o: bind
   redis_data:
   prometheus-data:
   grafana-data:
