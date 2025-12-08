@@ -79,7 +79,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify code was saved to repository
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d =>
                     d.ContainsKey("TESTCODE123") && d["TESTCODE123"] == CodeStatus.Valid)),
             Times.Once);
@@ -122,7 +122,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify codes were saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 3)),
+            x => x.UpdateCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 3)),
             Times.Once);
     }
 
@@ -229,7 +229,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify invalid code is still saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d =>
                     d.ContainsKey("ALREADYUSED") && d["ALREADYUSED"] == CodeStatus.Invalid)),
             Times.Once);
@@ -302,7 +302,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Only successful code should be saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 1 && d.ContainsKey("SUCCESS"))),
             Times.Once);
     }
@@ -339,7 +339,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify normalized code was saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d => d.ContainsKey("LOWERCASE123"))),
             Times.Once);
 
@@ -378,7 +378,7 @@ public class CodeRedeemApplicationServiceTests
         Assert.That(result.IsSuccess, Is.True);
 
         // Verify correct game was used
-        codeRepositoryMock.Verify(x => x.AddCodesAsync(game, It.IsAny<Dictionary<string, CodeStatus>>()),
+        codeRepositoryMock.Verify(x => x.UpdateCodesAsync(game, It.IsAny<Dictionary<string, CodeStatus>>()),
             Times.Once);
         codeRedeemApiMock.Verify(
             x => x.GetAsync(It.Is<CodeRedeemApiContext>(c => c.Game == game)),

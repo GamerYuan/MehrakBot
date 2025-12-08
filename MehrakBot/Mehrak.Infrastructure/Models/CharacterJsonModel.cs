@@ -5,7 +5,7 @@ using Mehrak.Domain.Enums;
 
 #endregion
 
-namespace Mehrak.Domain.Models;
+namespace Mehrak.Infrastructure.Models;
 
 internal class CharacterJsonModel
 {

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Domain.Enums;
 
@@ -10,5 +10,5 @@ public interface ICodeRedeemRepository
 {
     Task<List<string>> GetCodesAsync(Game gameName);
 
-    Task AddCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes);
+    Task UpdateCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes);
 }

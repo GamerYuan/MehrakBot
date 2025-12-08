@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
+using Mehrak.Infrastructure.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
