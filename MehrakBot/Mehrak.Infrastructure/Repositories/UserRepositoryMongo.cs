@@ -2,6 +2,7 @@
 
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
+using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -12,7 +13,7 @@ namespace Mehrak.Infrastructure.Repositories;
 
 public class UserRepositoryMongo : IUserRepository
 {
-    private readonly IMongoCollection<UserDto> m_Users;
+    private readonly IMongoCollection<MongoUserModel> m_Users;
     private readonly ILogger<UserRepositoryMongo> m_Logger;
 
     public UserRepositoryMongo(MongoDbService mongoDbService, ILogger<UserRepositoryMongo> logger)
