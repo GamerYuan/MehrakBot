@@ -5,7 +5,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Options;
 
-namespace Mehrak.Infrastructure.Models;
+namespace Mehrak.Infrastructure.Migrations;
 
 [Obsolete]
 public class MongoUserModel

@@ -1,7 +1,7 @@
 ﻿#region
 
 using Mehrak.Domain.Models;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.Migrations;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -24,7 +24,7 @@ public class MongoDbService
     public IMongoCollection<CharacterModel> Characters => m_Database.GetCollection<CharacterModel>("characters");
     public IMongoCollection<AliasModel> Aliases => m_Database.GetCollection<AliasModel>("aliases");
     public IMongoCollection<CodeRedeemModel> Codes => m_Database.GetCollection<CodeRedeemModel>("codes");
-    public IMongoCollection<HsrRelicModel> HsrRelics => m_Database.GetCollection<HsrRelicModel>("hsr_relics");
+    public IMongoCollection<MongoRelicModel> HsrRelics => m_Database.GetCollection<MongoRelicModel>("hsr_relics");
 
     public GridFSBucket Bucket => new(m_Database);
 }

@@ -1,13 +1,12 @@
 ﻿#region
 
-using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 #endregion
 
-namespace Mehrak.Infrastructure.Repositories;
+namespace Mehrak.Infrastructure.Migrations;
 
 public class UserRepositoryMongo
 {
