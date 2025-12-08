@@ -23,6 +23,8 @@ public static class InfrastructureServiceCollectionExtension
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddDbContext<UserDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
+        services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
+        services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
 
         services.AddSingleton<MongoDbService>();
 
