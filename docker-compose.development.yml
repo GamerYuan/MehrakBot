@@ -20,6 +20,20 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
 
+  postgres:
+    image: postgres:18.1
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/data/postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=mehrak_dev
+      - PGDATA=/data/postgres
+    networks:
+      - mehrak-network
+
   mongodb:
     image: mongo:latest
     ports:
@@ -118,6 +132,12 @@ networks:
 
 volumes:
   mongo_data:
+  pgdata:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./postgres/data
+      o: bind
   redis_data:
   prometheus-data:
   grafana-data:
