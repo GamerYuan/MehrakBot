@@ -13,6 +13,8 @@ internal sealed class PostgresTestHelper : IAsyncDisposable
 
     public async Task InitAsync()
     {
+        if (m_Db != null) return;
+
         m_Db = new PostgreSqlBuilder()
             .WithImage("postgres:16.4")
             .WithUsername("test")
