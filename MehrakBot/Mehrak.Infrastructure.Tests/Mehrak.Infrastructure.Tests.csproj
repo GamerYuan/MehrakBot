@@ -23,6 +23,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.9.0" />
     <PackageReference Include="Testcontainers.Redis" Version="4.9.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,10 +33,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Mehrak.Infrastructure\Mehrak.Infrastructure.csproj" />
     <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="IntegrationTests\Repositories\" />
   </ItemGroup>
 
 </Project>
