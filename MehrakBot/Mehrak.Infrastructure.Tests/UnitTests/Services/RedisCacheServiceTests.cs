@@ -6,7 +6,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Mehrak.Infrastructure.Tests.Services;
+namespace Mehrak.Infrastructure.Tests.UnitTests.Services;
 
 /// <summary>
 /// Unit tests for RedisCacheService validating cache operations, serialization/deserialization,

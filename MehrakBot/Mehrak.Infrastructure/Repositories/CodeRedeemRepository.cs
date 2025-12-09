@@ -34,7 +34,9 @@ internal class CodeRedeemRepository : ICodeRedeemRepository
 
     public async Task UpdateCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes)
     {
-        var existingCodes = await m_Context.Codes.Where(x => x.Game == gameName && codes.ContainsKey(x.Code)).ToListAsync();
+        var incoming = codes.Select(x => x.Key).ToHashSet();
+
+        var existingCodes = await m_Context.Codes.Where(x => x.Game == gameName && incoming.Contains(x.Code)).ToListAsync();
 
         var expiredCodes = codes
             .Where(kvp => kvp.Value == CodeStatus.Invalid)
