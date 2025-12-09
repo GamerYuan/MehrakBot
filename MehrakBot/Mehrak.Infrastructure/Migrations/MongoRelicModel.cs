@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using Mehrak.Domain.Models;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace Mehrak.Infrastructure.Migrations;
@@ -14,4 +15,13 @@ public class MongoRelicModel
     [BsonElement("set_id")] public int SetId { get; set; }
 
     [BsonElement("set_name")] public required string SetName { get; set; }
+
+    public HsrRelicModel ToRelicModel()
+    {
+        return new HsrRelicModel
+        {
+            SetId = SetId,
+            SetName = SetName
+        };
+    }
 }
