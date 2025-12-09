@@ -61,7 +61,10 @@ public class ImageRepository : IImageRepository
 
         using var response = await m_S3.GetObjectAsync(getReq, cancellationToken).ConfigureAwait(false);
         MemoryStream stream = new();
-        await response.ResponseStream.CopyToAsync(stream).ConfigureAwait(false);
+
+        if ((int)response.HttpStatusCode >= 300) return Stream.Null;
+
+        await response.ResponseStream.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
         stream.Position = 0;
         return stream;
     }
