@@ -614,7 +614,6 @@ public class GenshinTheaterApplicationServiceTests
         Mock<IUserRepository> UserRepositoryMock
         ) SetupIntegrationTest()
     {
-        // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinTheaterCardService(
             DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinTheaterCardService>>());

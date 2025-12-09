@@ -15,7 +15,7 @@ internal class HsrRelicRepositoryIntegrationTests
     [Test]
     public async Task AddSetName_PersistsRelicSet()
     {
-        const int setId = 4101;
+        var setId = Random.Shared.Next(1000000, 9999999);
         const string setName = "Longevous Disciple";
 
         await using (var ctx = CreateContext())
@@ -34,7 +34,7 @@ internal class HsrRelicRepositoryIntegrationTests
     [Test]
     public async Task AddSetName_DoesNotOverwriteExistingEntry()
     {
-        const int setId = 4102;
+        var setId = Random.Shared.Next(1000000, 9999999);
 
         await using (var ctx = CreateContext())
         {
@@ -58,7 +58,7 @@ internal class HsrRelicRepositoryIntegrationTests
     [Test]
     public async Task GetSetName_ReturnsEmptyStringWhenMissing()
     {
-        const int setId = 987654;
+        var setId = Random.Shared.Next(1000000, 9999999);
 
         await using var ctx = CreateContext();
         var repo = CreateRepository(ctx);
