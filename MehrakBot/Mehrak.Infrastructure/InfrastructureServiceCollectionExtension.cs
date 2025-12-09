@@ -5,6 +5,7 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Metrics;
+using Mehrak.Infrastructure.Migrations;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -25,8 +26,10 @@ public static class InfrastructureServiceCollectionExtension
         services.AddDbContext<UserDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
         services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
         services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
+        services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
 
         services.AddSingleton<MongoDbService>();
+        services.AddHostedService<MongoToSqlMigrator>();
 
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IImageRepository, ImageRepository>();

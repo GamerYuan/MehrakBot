@@ -14,16 +14,6 @@ public class MongoUserModel
     [BsonElement("ts")] public DateTime Timestamp { get; set; }
     [BsonElement("profiles")] public IEnumerable<MongoUserProfile>? Profiles { get; set; } = null;
 
-    public static MongoUserModel FromDto(UserDto dto)
-    {
-        return new MongoUserModel
-        {
-            Id = dto.Id,
-            Timestamp = dto.Timestamp,
-            Profiles = dto.Profiles?.Select(MongoUserProfile.FromDto) ?? []
-        };
-    }
-
     public UserDto ToDto()
     {
         return new UserDto()
@@ -48,7 +38,7 @@ public class MongoUserProfile
     [BsonRepresentation(BsonType.String)]
     public Dictionary<Game, Dictionary<Server, string>>? GameUids { get; set; } = null;
 
-    [BsonElement("last_used_regions")] public Dictionary<Game, string>? LastUsedRegions { get; set; } = null;
+    [BsonElement("last_used_regions")] public Dictionary<Game, Server>? LastUsedRegions { get; set; } = null;
 
     public UserProfileDto ToDto()
     {
@@ -59,20 +49,7 @@ public class MongoUserProfile
             LToken = LToken,
             LastCheckIn = LastCheckIn,
             GameUids = GameUids?.ToDictionary(x => x.Key, x => x.Value.ToDictionary(y => y.Key.ToString(), y => y.Value)) ?? [],
-            LastUsedRegions = LastUsedRegions?.ToDictionary() ?? []
-        };
-    }
-
-    public static MongoUserProfile FromDto(UserProfileDto dto)
-    {
-        return new MongoUserProfile
-        {
-            ProfileId = dto.ProfileId,
-            LtUid = dto.LtUid,
-            LToken = dto.LToken,
-            LastCheckIn = dto.LastCheckIn,
-            GameUids = dto.GameUids?.ToDictionary(x => x.Key, x => x.Value.ToDictionary(y => Enum.Parse<Server>(y.Key), y => y.Value)) ?? [],
-            LastUsedRegions = dto.LastUsedRegions?.ToDictionary() ?? []
+            LastUsedRegions = LastUsedRegions?.ToDictionary(x => x.Key, x => x.Value.ToString()) ?? []
         };
     }
 }

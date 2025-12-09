@@ -494,3 +494,5 @@ appsettings**.json
 /MehrakBot/Mehrak.Application.Tests/appsettings.test.json
 
 /grafana/loki-data
+
+/MehrakBot/efbundles/
