@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,16 +13,16 @@ namespace Mehrak.Infrastructure.Services;
 
 internal class AliasInitializationService : IHostedService
 {
-    private readonly IAliasRepository m_AliasRepository;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<AliasInitializationService> m_Logger;
     private readonly string m_AssetsPath;
 
     public AliasInitializationService(
-        IAliasRepository aliasRepository,
+        IServiceScopeFactory scopeFactory,
         ILogger<AliasInitializationService> logger,
         string? assetsPath = null)
     {
-        m_AliasRepository = aliasRepository;
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
         m_AssetsPath = assetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     }
@@ -85,12 +86,15 @@ internal class AliasInitializationService : IHostedService
                 return;
             }
 
+            using var scope = m_ScopeFactory.CreateScope();
+            var aliasRepository = scope.ServiceProvider.GetRequiredService<IAliasRepository>();
+
             var gameName = aliasJsonModel.Game;
             var aliases = aliasJsonModel.Aliases
                 .SelectMany(x => x.Alias.Select(alias => (alias, x.Name)))
                 .ToDictionary(x => x.alias, x => x.Name);
 
-            await m_AliasRepository.UpsertAliasAsync(gameName, aliases);
+            await aliasRepository.UpsertAliasAsync(gameName, aliases);
 
             m_Logger.LogDebug("Finished processing alias JSON file {FilePath}", filePath);
         }

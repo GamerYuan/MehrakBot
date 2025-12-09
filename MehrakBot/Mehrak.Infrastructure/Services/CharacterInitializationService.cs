@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,16 +13,16 @@ namespace Mehrak.Infrastructure.Services;
 
 public class CharacterInitializationService : IHostedService
 {
-    private readonly ICharacterRepository m_CharacterRepository;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<CharacterInitializationService> m_Logger;
     private readonly string m_AssetsPath;
 
     public CharacterInitializationService(
-        ICharacterRepository characterRepository,
+        IServiceScopeFactory scopeFactory,
         ILogger<CharacterInitializationService> logger,
         string? assetsPath = null)
     {
-        m_CharacterRepository = characterRepository;
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
         m_AssetsPath = assetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     }
@@ -85,10 +86,13 @@ public class CharacterInitializationService : IHostedService
                 return;
             }
 
+            using var scope = m_ScopeFactory.CreateScope();
+            var characterRepository = scope.ServiceProvider.GetRequiredService<ICharacterRepository>();
+
             var gameName = characterJsonModel.Game;
             var newCharacters = characterJsonModel.Characters;
 
-            await m_CharacterRepository.UpsertCharactersAsync(gameName, newCharacters);
+            await characterRepository.UpsertCharactersAsync(gameName, newCharacters);
             m_Logger.LogInformation("Processed character JSON file: {FilePath}", jsonFilePath);
         }
         catch (Exception ex)

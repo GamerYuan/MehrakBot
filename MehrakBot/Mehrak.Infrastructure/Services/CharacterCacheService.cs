@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -12,20 +13,17 @@ namespace Mehrak.Infrastructure.Services;
 
 public class CharacterCacheService : ICharacterCacheService
 {
-    private readonly ICharacterRepository m_CharacterRepository;
-    private readonly IAliasRepository m_AliasRepository;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<CharacterCacheService> m_Logger;
     private readonly ConcurrentDictionary<Game, List<string>> m_CharacterCache;
     private readonly Dictionary<Game, Dictionary<string, string>> m_AliasCache;
     private readonly SemaphoreSlim m_UpdateSemaphore;
 
     public CharacterCacheService(
-        ICharacterRepository characterRepository,
-        IAliasRepository aliasRepository,
+        IServiceScopeFactory scopeFactory,
         ILogger<CharacterCacheService> logger)
     {
-        m_CharacterRepository = characterRepository;
-        m_AliasRepository = aliasRepository;
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
         m_AliasCache = [];
         m_CharacterCache = new ConcurrentDictionary<Game, List<string>>();
@@ -54,11 +52,14 @@ public class CharacterCacheService : ICharacterCacheService
     {
         try
         {
+            using var scope = m_ScopeFactory.CreateScope();
+            var characterRepository = scope.ServiceProvider.GetRequiredService<ICharacterRepository>();
+
             var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, [])).ToList();
 
             if (toAdd.Count == 0) return;
 
-            await m_CharacterRepository.UpsertCharactersAsync(gameName, toAdd);
+            await characterRepository.UpsertCharactersAsync(gameName, toAdd);
             await UpdateCharactersAsync(gameName);
         }
         catch (Exception e)
@@ -99,7 +100,10 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating character cache for {Game}", gameName);
 
-            var characters = await m_CharacterRepository.GetCharactersAsync(gameName);
+            using var scope = m_ScopeFactory.CreateScope();
+            var characterRepository = scope.ServiceProvider.GetRequiredService<ICharacterRepository>();
+
+            var characters = await characterRepository.GetCharactersAsync(gameName);
             characters.Sort();
 
             if (characters.Count > 0)
@@ -125,7 +129,10 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating alias cache for {Game}", gameName);
 
-            var aliases = new Dictionary<string, string>(await m_AliasRepository.GetAliasesAsync(gameName),
+            using var scope = m_ScopeFactory.CreateScope();
+            var aliasRepository = scope.ServiceProvider.GetRequiredService<IAliasRepository>();
+
+            var aliases = new Dictionary<string, string>(await aliasRepository.GetAliasesAsync(gameName),
                 StringComparer.OrdinalIgnoreCase);
 
             if (aliases.Count > 0)

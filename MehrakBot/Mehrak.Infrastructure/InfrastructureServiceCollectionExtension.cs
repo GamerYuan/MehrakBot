@@ -24,10 +24,10 @@ public static class InfrastructureServiceCollectionExtension
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
-        services.AddDbContext<UserDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
-        services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
-        services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
-        services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
+        services.AddDbContext<UserDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
 
         services.AddSingleton<IAmazonS3>(sp =>
         {
@@ -45,12 +45,13 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<MongoDbService>();
         services.AddHostedService<MongoToSqlMigrator>();
 
-        services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IImageRepository, ImageRepository>();
-        services.AddSingleton<ICharacterRepository, CharacterRepository>();
-        services.AddSingleton<IAliasRepository, AliasRepository>();
-        services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
-        services.AddSingleton<IRelicRepository, HsrRelicRepository>();
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICharacterRepository, CharacterRepository>();
+        services.AddScoped<IAliasRepository, AliasRepository>();
+        services.AddScoped<ICodeRedeemRepository, CodeRedeemRepository>();
+        services.AddScoped<IRelicRepository, HsrRelicRepository>();
         BsonSerializer.RegisterSerializer(new EnumSerializer<Game>(BsonType.String));
 
         services.AddSingleton<ICacheService, RedisCacheService>();
