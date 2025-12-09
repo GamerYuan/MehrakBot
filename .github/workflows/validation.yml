@@ -31,14 +31,6 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Install libssl1.1 (restores libcrypto.so.1.1 which is required by MongoDB binaries v4.4.4)
-        if: runner.os == 'Linux'
-        working-directory: ./MehrakBot
-        run: |
-          echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list 
-          sudo apt update 
-          sudo apt install -y libssl1.1
-
       - name: Restore dependencies
         working-directory: ./MehrakBot
         run: dotnet restore
