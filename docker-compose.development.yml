@@ -126,8 +126,61 @@ services:
     networks:
       - mehrak-network
 
+  seaweed-master:
+    image: chrislusf/seaweedfs:latest
+    command: "master -mdir=/data -ip=seaweed-master -ip.bind=0.0.0.0"
+    ports:
+      - "9333:9333"
+      - "19333:19333"
+    volumes:
+      - ./seaweed-master:/data
+    networks:
+      - mehrak-network
+      - seaweed-network
+
+  seaweed-volume:
+    image: chrislusf/seaweedfs:latest
+    command: "volume -mserver=seaweed-master:9333 -dir=/data -ip=seaweed-volume -preStopSeconds=1"
+    depends_on:
+      - seaweed-master
+    ports:
+      - "8080:8080"
+      - "18080:18080"
+    volumes:
+      - ./seaweed-volume:/data
+    networks:
+      - seaweed-network
+
+  seaweed-filer:
+    image: chrislusf/seaweedfs:latest
+    command: 'filer -master="seaweed-master:9333" -ip=seaweed-filer'
+    depends_on:
+      - seaweed-master
+      - seaweed-volume
+    ports:
+      - "8888:8888"
+      - "18888:18888"
+    volumes:
+      - ./seaweed-filer:/data
+    networks:
+      - seaweed-network
+
+  seaweed-s3:
+    image: chrislusf/seaweedfs:latest
+    command: 's3 -filer=seaweed-"filer:8888" -ip.bind=0.0.0.0 -port=8333 -config=/etc/seaweedfs/s3.json'
+    depends_on:
+      - seaweed-filer
+    ports:
+      - "8333:8333"
+    volumes:
+      - ./seaweed-s3/s3.json:/etc/seaweedfs/s3.json:ro
+    networks:
+      - seaweed-network
+
 networks:
   mehrak-network:
+    driver: bridge
+  seaweed-network:
     driver: bridge
 
 volumes:
@@ -136,6 +189,7 @@ volumes:
   redis_data:
   prometheus-data:
   grafana-data:
+  seaweed_data:
   app-logs:
     driver: local
     driver_opts:

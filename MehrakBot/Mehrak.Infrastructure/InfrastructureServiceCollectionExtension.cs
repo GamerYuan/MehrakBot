@@ -1,5 +1,6 @@
 ﻿#region
 
+using Amazon.S3;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
@@ -27,6 +28,19 @@ public static class InfrastructureServiceCollectionExtension
         services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
         services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
         services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]), ServiceLifetime.Singleton);
+
+        services.AddSingleton<IAmazonS3>(sp =>
+        {
+            var cfg = sp.GetRequiredService<IConfiguration>().GetSection("Storage");
+            var s3Config = new AmazonS3Config
+            {
+                ServiceURL = cfg["ServiceUrl"],
+                ForcePathStyle = bool.TryParse(cfg["ForcePathStyle"], out var fps) && fps,
+                Timeout = TimeSpan.FromSeconds(30),
+                SignatureMethod = Amazon.Runtime.SigningAlgorithm.HmacSHA1,
+            };
+            return new AmazonS3Client(cfg["AccessKey"], cfg["SecretKey"], s3Config);
+        });
 
         services.AddSingleton<MongoDbService>();
         services.AddHostedService<MongoToSqlMigrator>();

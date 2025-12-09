@@ -92,6 +92,7 @@ public class Program
 
             // Database Services
             builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
+            builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
 
             // Api Services
             builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>

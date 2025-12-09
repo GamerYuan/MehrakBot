@@ -496,3 +496,5 @@ appsettings**.json
 /grafana/loki-data
 
 /MehrakBot/efbundles/
+
+/seaweed**/

@@ -1,11 +1,11 @@
 ﻿#region
 
+using Amazon.S3;
+using Amazon.S3.Model;
 using Mehrak.Domain.Repositories;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Logging;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using MongoDB.Driver.GridFS;
+using Microsoft.Extensions.Options;
 
 #endregion
 
@@ -13,58 +13,121 @@ namespace Mehrak.Infrastructure.Repositories;
 
 public class ImageRepository : IImageRepository
 {
-    private readonly GridFSBucket m_Bucket;
+    private readonly IAmazonS3 m_S3;
     private readonly ILogger<ImageRepository> m_Logger;
+    private readonly string m_Bucket;
 
-    public ImageRepository(MongoDbService database, ILogger<ImageRepository> logger)
+    public ImageRepository(IAmazonS3 s3, IOptions<S3StorageConfig> options, ILogger<ImageRepository> logger)
     {
-        m_Bucket = database.Bucket;
+        m_S3 = s3;
+        m_Bucket = options.Value.Bucket ?? throw new ArgumentNullException(nameof(options.Value.Bucket));
         m_Logger = logger;
     }
 
-    public async Task<bool> UploadFileAsync(string fileNameInDb, Stream sourceStream, string? contentType = null)
+    public async Task<bool> UploadFileAsync(string fileName, Stream sourceStream,
+        string? contentType = null, CancellationToken cancellationToken = default)
     {
-        GridFSUploadOptions options = new()
+        m_Logger.LogDebug("Uploading file to S3: {FileName}", fileName);
+
+        if (sourceStream.CanSeek) sourceStream.Position = 0;
+
+        var putReq = new PutObjectRequest
         {
-            Metadata = contentType != null ? new BsonDocument("contentType", contentType) : null
+            BucketName = m_Bucket,
+            Key = fileName,
+            InputStream = sourceStream,
+            AutoCloseStream = false,
+            ContentType = contentType ?? "application/octet-stream"
         };
-        m_Logger.LogInformation("Uploading file to GridFS {FileNameInDb}", fileNameInDb);
-        var objectId = await m_Bucket.UploadFromStreamAsync(fileNameInDb, sourceStream, options);
-        return objectId != ObjectId.Empty;
+
+        if (!string.IsNullOrEmpty(contentType))
+        {
+            putReq.Metadata["content-type"] = contentType;
+        }
+
+        var response = await m_S3.PutObjectAsync(putReq, cancellationToken).ConfigureAwait(false);
+        return (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
     }
 
-    public async Task<Stream> DownloadFileToStreamAsync(string fileNameInDb)
+    public async Task<Stream> DownloadFileToStreamAsync(string fileName, CancellationToken cancellationToken = default)
     {
-        m_Logger.LogInformation("Downloading file from GridFS {FileNameInDb}", fileNameInDb);
+        m_Logger.LogDebug("Downloading file from S3: {FileName}", fileName);
+
+        var getReq = new GetObjectRequest
+        {
+            BucketName = m_Bucket,
+            Key = fileName,
+        };
+
+        using var response = await m_S3.GetObjectAsync(getReq, cancellationToken).ConfigureAwait(false);
         MemoryStream stream = new();
-        await m_Bucket.DownloadToStreamByNameAsync(fileNameInDb, stream);
+        await response.ResponseStream.CopyToAsync(stream).ConfigureAwait(false);
         stream.Position = 0;
         return stream;
     }
 
-    public async Task DeleteFileAsync(string fileNameInDb)
+    public async Task DeleteFileAsync(string fileName, CancellationToken cancellationToken = default)
     {
-        m_Logger.LogInformation("Deleting file from GridFS {FileNameInDb}", fileNameInDb);
-        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
-        var fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
+        m_Logger.LogDebug("Deleting file from S3: {FileName}", fileName);
 
-        if (fileInfo != null) await m_Bucket.DeleteAsync(fileInfo.Id);
+        var delReq = new DeleteObjectRequest
+        {
+            BucketName = m_Bucket,
+            Key = fileName
+        };
+        await m_S3.DeleteObjectAsync(delReq, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<bool> FileExistsAsync(string fileNameInDb)
+    public async Task<bool> FileExistsAsync(string fileName, CancellationToken cancellationToken = default)
     {
-        m_Logger.LogInformation("Checking if file {FileNameInDb} exists in GridFS", fileNameInDb);
-        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, fileNameInDb);
-        var fileInfo = await (await m_Bucket.FindAsync(filter)).FirstOrDefaultAsync();
-        return fileInfo != null;
+        m_Logger.LogDebug("Checking if file exists in S3: {FileNameInDb}", fileName);
+
+        try
+        {
+            var headReq = new GetObjectMetadataRequest
+            {
+                BucketName = m_Bucket,
+                Key = fileName
+            };
+
+            var response = await m_S3.GetObjectMetadataAsync(headReq, cancellationToken).ConfigureAwait(false);
+            return (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (AmazonS3Exception ex)
+        {
+            m_Logger.LogError(ex, "GetObjectMetadata failed for file {FileName} in bucket {Bucket}", fileName, m_Bucket);
+            return false;
+        }
     }
 
-    public async Task<List<string>> ListFilesAsync(string prefix = "")
+    public async Task<List<string>> ListFilesAsync(string prefix = "", CancellationToken cancellationToken = default)
     {
-        m_Logger.LogInformation("Listing files in GridFS with prefix {Prefix}", prefix);
-        var filter = Builders<GridFSFileInfo>
-            .Filter.Regex(x => x.Filename, new BsonRegularExpression($"^{prefix}"));
-        var fileInfos = await (await m_Bucket.FindAsync(filter)).ToListAsync();
-        return [.. fileInfos.Select(x => x.Filename)];
+        m_Logger.LogDebug("Listing files in S3 bucket {Bucket} with prefix {Prefix}", m_Bucket, prefix);
+
+        var keys = new List<string>();
+        string? continuationToken = null;
+
+        do
+        {
+            var listReq = new ListObjectsV2Request
+            {
+                BucketName = m_Bucket,
+                Prefix = prefix,
+                ContinuationToken = continuationToken,
+                MaxKeys = 1000
+            };
+
+            var response = await m_S3.ListObjectsV2Async(listReq, cancellationToken).ConfigureAwait(false);
+
+            keys.AddRange(response.S3Objects.Select(o => o.Key));
+            continuationToken = response.IsTruncated ?? false ? response.NextContinuationToken : null;
+
+        } while (continuationToken != null);
+
+        return keys;
     }
 }
