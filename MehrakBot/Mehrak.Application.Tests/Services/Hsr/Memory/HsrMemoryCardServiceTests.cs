@@ -28,7 +28,7 @@ public class HsrMemoryCardServiceTests
     public async Task Setup()
     {
         m_Service = new HsrMemoryCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>());
         await m_Service.InitializeAsync();
     }

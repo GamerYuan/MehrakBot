@@ -450,7 +450,7 @@ public class GenshinStygianApplicationServiceTests
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
 
-        var context = new GenshinStygianApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new GenshinStygianApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -503,7 +503,7 @@ public class GenshinStygianApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new GenshinStygianApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new GenshinStygianApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -577,7 +577,7 @@ public class GenshinStygianApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinStygianCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>());
 
         var stygianApiMock = new Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>>();
@@ -587,7 +587,7 @@ public class GenshinStygianApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -614,7 +614,7 @@ public class GenshinStygianApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new GenshinStygianCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>());
 
         // Real HTTP client factory
@@ -633,7 +633,7 @@ public class GenshinStygianApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

@@ -3,19 +3,19 @@
 [SetUpFixture]
 public class TestSetup
 {
-    private MongoTestHelper m_MongoTestHelper;
+    private DbTestHelper m_MongoTestHelper;
 
     [OneTimeSetUp]
     public async Task Setup()
     {
-        m_MongoTestHelper = new MongoTestHelper();
+        m_MongoTestHelper = new DbTestHelper();
 
         foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"),
                      "*.png", SearchOption.AllDirectories))
         {
             var fileName = Path.GetFileNameWithoutExtension(image);
             await using var stream = File.OpenRead(image);
-            await MongoTestHelper.Instance.ImageRepository.UploadFileAsync(fileName, stream);
+            await DbTestHelper.Instance.ImageRepository.UploadFileAsync(fileName, stream);
         }
     }
 

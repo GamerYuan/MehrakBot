@@ -524,7 +524,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
         var context = new ZzzCharacterApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
             ("server", Server.Asia.ToString()))
         {
@@ -585,7 +585,7 @@ public class ZzzCharacterApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new ZzzCharacterApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
             ("server", Server.Asia.ToString()))
         {
@@ -675,7 +675,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new ZzzCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>());
 
         var characterCacheMock = new Mock<ICharacterCacheService>();
@@ -696,7 +696,7 @@ public class ZzzCharacterApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -733,7 +733,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new ZzzCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>());
 
         // Real HTTP client factory
@@ -771,7 +771,7 @@ public class ZzzCharacterApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -786,7 +786,7 @@ public class ZzzCharacterApplicationServiceTests
         var service = new ZzzCharacterApplicationService(
             cardService,
             imageUpdaterService,
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             characterApiService,
             characterCacheServiceMock.Object,
             wikiApiService,

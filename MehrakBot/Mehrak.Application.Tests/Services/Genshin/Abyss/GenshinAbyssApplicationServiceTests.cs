@@ -473,7 +473,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var context = new GenshinAbyssApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
@@ -529,7 +529,7 @@ public class GenshinAbyssApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new GenshinAbyssApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
@@ -611,7 +611,7 @@ public class GenshinAbyssApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinAbyssCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinAbyssCardService>>());
 
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
@@ -623,7 +623,7 @@ public class GenshinAbyssApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -651,7 +651,7 @@ public class GenshinAbyssApplicationServiceTests
     private static GenshinAbyssApplicationService SetupRealApiIntegrationTest()
     {
         // Use all real services - no mocks
-        var cardService = new GenshinAbyssCardService(MongoTestHelper.Instance.ImageRepository,
+        var cardService = new GenshinAbyssCardService(DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinAbyssCardService>>());
 
         // Real HTTP client factory
@@ -682,7 +682,7 @@ public class GenshinAbyssApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

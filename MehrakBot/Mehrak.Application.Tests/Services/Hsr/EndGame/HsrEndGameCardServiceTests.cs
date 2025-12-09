@@ -34,7 +34,7 @@ public class HsrEndGameCardServiceTests
     public async Task Setup()
     {
         m_Service = new HsrEndGameCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrEndGameCardService>>());
         await m_Service.InitializeAsync();
     }

@@ -480,7 +480,7 @@ public class GenshinTheaterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
-        var context = new GenshinTheaterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new GenshinTheaterApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -533,7 +533,7 @@ public class GenshinTheaterApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new GenshinTheaterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new GenshinTheaterApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -616,7 +616,7 @@ public class GenshinTheaterApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinTheaterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinTheaterCardService>>());
 
         var theaterApiMock = new Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>();
@@ -628,7 +628,7 @@ public class GenshinTheaterApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -656,7 +656,7 @@ public class GenshinTheaterApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new GenshinTheaterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinTheaterCardService>>());
 
         // Real HTTP client factory
@@ -687,7 +687,7 @@ public class GenshinTheaterApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

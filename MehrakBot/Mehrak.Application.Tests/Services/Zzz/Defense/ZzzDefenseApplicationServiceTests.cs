@@ -447,7 +447,7 @@ public class ZzzDefenseApplicationServiceTests
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzDefenseData>.Success(defenseData));
 
-        var context = new ZzzDefenseApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new ZzzDefenseApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -501,7 +501,7 @@ public class ZzzDefenseApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new ZzzDefenseApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new ZzzDefenseApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -570,7 +570,7 @@ public class ZzzDefenseApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new ZzzDefenseCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzDefenseCardService>>());
 
         var defenseApiMock = new Mock<IApiService<ZzzDefenseData, BaseHoYoApiContext>>();
@@ -580,7 +580,7 @@ public class ZzzDefenseApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -607,7 +607,7 @@ public class ZzzDefenseApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new ZzzDefenseCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzDefenseCardService>>());
 
         // Real HTTP client factory
@@ -626,7 +626,7 @@ public class ZzzDefenseApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

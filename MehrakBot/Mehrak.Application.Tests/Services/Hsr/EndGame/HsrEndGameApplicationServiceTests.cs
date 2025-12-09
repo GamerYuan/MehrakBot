@@ -421,7 +421,7 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
+        var context = new HsrEndGameApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -477,7 +477,7 @@ public class HsrEndGameApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
+        var context = new HsrEndGameApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -547,7 +547,7 @@ public class HsrEndGameApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrEndGameCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrEndGameCardService>>());
 
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
@@ -557,7 +557,7 @@ public class HsrEndGameApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -584,7 +584,7 @@ public class HsrEndGameApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new HsrEndGameCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrEndGameCardService>>());
 
         // Real HTTP client factory
@@ -603,7 +603,7 @@ public class HsrEndGameApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

@@ -102,7 +102,7 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
-        imageRepoMock.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync((string val) => val.Contains("weapon"));
+        imageRepoMock.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync((string val, CancellationToken _) => val.Contains("weapon"));
 
         // Make image update fail
         imageUpdaterMock
@@ -596,7 +596,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         var context = new GenshinCharListApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+            DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -651,7 +651,7 @@ public class GenshinCharListApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new GenshinCharListApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+            DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -741,7 +741,7 @@ public class GenshinCharListApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinCharListCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>());
 
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData,
@@ -752,7 +752,7 @@ public class GenshinCharListApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -761,7 +761,7 @@ public class GenshinCharListApplicationServiceTests
         var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
 
-        var imageRepository = MongoTestHelper.Instance.ImageRepository;
+        var imageRepository = DbTestHelper.Instance.ImageRepository;
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
 
         var service = new GenshinCharListApplicationService(
@@ -783,7 +783,7 @@ public class GenshinCharListApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new GenshinCharListCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>());
 
         // Real HTTP client factory
@@ -810,7 +810,7 @@ public class GenshinCharListApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

@@ -461,7 +461,7 @@ public class HsrMemoryApplicationServiceTests
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
-        var context = new HsrMemoryApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrMemoryApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -515,7 +515,7 @@ public class HsrMemoryApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrMemoryApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrMemoryApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -585,7 +585,7 @@ public class HsrMemoryApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrMemoryCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>());
 
         var memoryApiMock = new Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>>();
@@ -595,7 +595,7 @@ public class HsrMemoryApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -622,7 +622,7 @@ public class HsrMemoryApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new HsrMemoryCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>());
 
         // Real HTTP client factory
@@ -641,7 +641,7 @@ public class HsrMemoryApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

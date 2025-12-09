@@ -430,7 +430,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        var context = new Hi3CharacterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(),
+        var context = new Hi3CharacterApplicationContext(DbTestHelper.Instance.GetUniqueUserId(),
             ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
@@ -520,13 +520,13 @@ public class Hi3CharacterApplicationServiceTests
 
         // Real card service + real image updater
         var cardService = new Hi3CharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>());
 
         cardService.InitializeAsync().Wait();
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             CreateHttpClientFactory(),
             Mock.Of<ILogger<ImageUpdaterService>>());
 

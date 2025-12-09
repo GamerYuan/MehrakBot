@@ -376,7 +376,7 @@ public class HsrCharListApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrCharListApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -430,7 +430,7 @@ public class HsrCharListApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrCharListApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -508,7 +508,7 @@ public class HsrCharListApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrCharListCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>());
 
         var characterApiMock = new Mock<ICharacterApiService<HsrBasicCharacterData,
@@ -519,7 +519,7 @@ public class HsrCharListApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -545,7 +545,7 @@ public class HsrCharListApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new HsrCharListCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>());
 
         // Real HTTP client factory
@@ -571,7 +571,7 @@ public class HsrCharListApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

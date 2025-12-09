@@ -212,7 +212,7 @@ public class HsrCharacterApplicationServiceTests
 
         imageRepositoryMock
             .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
-            .Returns((string fileName) => Task.FromResult(fileName.Contains("21004")));
+            .Returns((string fileName, CancellationToken _) => Task.FromResult(fileName.Contains("21004")));
 
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
@@ -253,7 +253,7 @@ public class HsrCharacterApplicationServiceTests
 
         // Setup to return true for relics but false for light cone
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
-            .Returns((string fileName) => Task.FromResult(!fileName.Contains("21004"))); // Light cone ID
+            .Returns((string fileName, CancellationToken _) => Task.FromResult(!fileName.Contains("21004"))); // Light cone ID
 
         // Wiki returns error for light cone
         wikiApiMock.Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Game == Game.HonkaiStarRail)))
@@ -723,7 +723,7 @@ public class HsrCharacterApplicationServiceTests
 
         // Force relic set missing images (setId 118 expected file names hsr_1181..hsr_1184)
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
-            .ReturnsAsync((string name) => !name.Contains("118"));
+            .ReturnsAsync((string name, CancellationToken _) => !name.Contains("118"));
 
         // EN locale returns page without Set module
         var enResponse = JsonNode.Parse("{\"data\":{\"page\":{\"name\":\"Missing Set Module\",\"modules\":[]}}}");
@@ -783,7 +783,7 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
-            .ReturnsAsync((string name) => !name.Contains("118"));
+            .ReturnsAsync((string name, CancellationToken _) => !name.Contains("118"));
 
         var relicJson = JsonSerializer.Serialize(new
         {
@@ -831,7 +831,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_RelicWiki_PartialThenCompleteJson_CompletesMissingPieces()
     {
         var (service1, characterApiMock1, _, wikiApiMock1, imageRepositoryMock1, imageUpdaterMock1, cardServiceMock1,
-            gameRoleApiMock1, _, _, relicRepositoryMock1) = SetupMocks();
+            gameRoleApiMock1, _, _, _) = SetupMocks();
 
         gameRoleApiMock1.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -843,7 +843,7 @@ public class HsrCharacterApplicationServiceTests
         // Simulate repository state for file existence
         HashSet<string> existingFiles = [];
         imageRepositoryMock1.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
-            .ReturnsAsync((string name) => existingFiles.Contains(name));
+            .ReturnsAsync((string name, CancellationToken _) => existingFiles.Contains(name));
         imageRepositoryMock1.Setup(x => x.FileExistsAsync(It.Is<string>(x => x.Contains("21004"))))
             .ReturnsAsync(true); // Light cone ID
         imageUpdaterMock1.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
@@ -882,7 +882,7 @@ public class HsrCharacterApplicationServiceTests
 
         // Second run with complete list
         var (service2, characterApiMock2, _, wikiApiMock2, imageRepositoryMock2, imageUpdaterMock2, cardServiceMock2,
-            gameRoleApiMock2, _, _, relicRepositoryMock2) = SetupMocks();
+            gameRoleApiMock2, _, _, _) = SetupMocks();
 
         gameRoleApiMock2.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -890,7 +890,7 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
         // Inject existingFiles state into second set of mocks
         imageRepositoryMock2.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
-            .ReturnsAsync((string name) => existingFiles.Contains(name));
+            .ReturnsAsync((string name, CancellationToken _) => existingFiles.Contains(name));
         imageUpdaterMock2.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .Returns((IImageData data, IImageProcessor _) =>
             {
@@ -949,7 +949,7 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
         var context = new HsrCharacterApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
@@ -1006,7 +1006,7 @@ public class HsrCharacterApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new HsrCharacterApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
@@ -1107,7 +1107,7 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync((int setId) => $"Relic Set {setId}");
 
         var cardService = new HsrCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             relicRepositoryMock.Object,
             Mock.Of<ILogger<HsrCharacterCardService>>());
 
@@ -1137,7 +1137,7 @@ public class HsrCharacterApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -1173,7 +1173,7 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync((int setId) => $"Relic Set {setId}");
 
         var cardService = new HsrCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             relicRepositoryMock.Object,
             Mock.Of<ILogger<HsrCharacterCardService>>());
 
@@ -1210,7 +1210,7 @@ public class HsrCharacterApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -1226,7 +1226,7 @@ public class HsrCharacterApplicationServiceTests
             cardService,
             wikiApiService,
             imageUpdaterService,
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             characterCacheServiceMock.Object,
             characterApiService,
             metricsMock.Object,
