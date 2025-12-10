@@ -45,7 +45,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         if (user == null)
         {
             m_Logger.LogWarning("User account not found for UserId={UserId}", request.Context.Interaction.User.Id);
-            return AuthenticationResult.Failure(request.Context, "User account not found. Please add a profile first.");
+            return AuthenticationResult.NotFound(request.Context, "User account not found. Please add a profile first.");
         }
 
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == request.ProfileId);
@@ -53,7 +53,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         {
             m_Logger.LogWarning("Profile not found for UserId={UserId}, ProfileId={ProfileId}",
                 request.Context.Interaction.User.Id, request.ProfileId);
-            return AuthenticationResult.Failure(request.Context, "No profiles found. Please add a profile first.");
+            return AuthenticationResult.NotFound(request.Context, "No profiles found. Please add a profile first.");
         }
 
         var cacheKey = $"ltoken:{request.Context.Interaction.User.Id}:{profile.LtUid}";

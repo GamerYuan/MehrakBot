@@ -126,8 +126,14 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         else if (authResult.Status == AuthStatus.Failure)
         {
             await authResult.Context!.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithContent(authResult.ErrorMessage!)
+                new InteractionMessageProperties().WithContent(authResult.ErrorMessage)
                     .WithFlags(MessageFlags.Ephemeral));
+        }
+        else if (authResult.Status == AuthStatus.NotFound)
+        {
+            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithContent(authResult.ErrorMessage)
+                    .WithFlags(MessageFlags.Ephemeral)));
         }
     }
 }
