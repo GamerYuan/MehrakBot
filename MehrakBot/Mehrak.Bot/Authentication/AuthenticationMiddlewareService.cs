@@ -6,7 +6,6 @@ using Mehrak.Bot.Modules.Common;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -19,7 +18,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 {
     private readonly ICacheService m_CacheService;
     private readonly IEncryptionService m_EncryptionService;
-    private readonly IServiceScopeFactory m_ScopeFactory;
+    private readonly IUserRepository m_UserRepository;
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
     private readonly ConcurrentDictionary<string, AuthenticationResponse> m_NotifiedRequests = [];
     private readonly ConcurrentDictionary<string, byte> m_CurrentRequests = [];
@@ -29,20 +28,17 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
     public AuthenticationMiddlewareService(
         ICacheService cacheService,
         IEncryptionService encryptionService,
-        IServiceScopeFactory scopeFactory,
+        IUserRepository userRepository,
         ILogger<AuthenticationMiddlewareService> logger)
     {
         m_CacheService = cacheService;
         m_EncryptionService = encryptionService;
-        m_ScopeFactory = scopeFactory;
+        m_UserRepository = userRepository;
         m_Logger = logger;
     }
 
     public async Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request)
     {
-        using var scope = m_ScopeFactory.CreateScope();
-        var m_UserRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-
         m_Logger.LogDebug("GetAuthenticationAsync started for UserId={UserId}, ProfileId={ProfileId}",
             request.Context.Interaction.User.Id, request.ProfileId);
         var user = await m_UserRepository.GetUserAsync(request.Context.Interaction.User.Id);
