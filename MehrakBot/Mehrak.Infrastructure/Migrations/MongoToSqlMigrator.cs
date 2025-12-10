@@ -4,10 +4,11 @@ using Mehrak.Infrastructure.Extensions;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using Npgsql;
 
 namespace Mehrak.Infrastructure.Migrations;
 
@@ -15,24 +16,32 @@ namespace Mehrak.Infrastructure.Migrations;
 internal class MongoToSqlMigrator : IHostedService
 {
     private readonly MongoDbService m_MongoService;
-    private readonly IServiceScopeFactory m_ScopeFactory;
+    private readonly IConfiguration m_Config;
     private readonly ILogger<MongoToSqlMigrator> m_Logger;
 
     public MongoToSqlMigrator(
         MongoDbService mongoService,
-        IServiceScopeFactory scopeFactory,
+        IConfiguration config,
         ILogger<MongoToSqlMigrator> logger)
     {
         m_MongoService = mongoService;
-        m_ScopeFactory = scopeFactory;
+        m_Config = config;
         m_Logger = logger;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using var scope = m_ScopeFactory.CreateScope();
-        var userDbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
-        var relicDbContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
+        using var connection = new NpgsqlConnection(m_Config["Postgres:ConnectionString"]);
+        await connection.OpenAsync(cancellationToken);
+
+        using var userDbContext = new UserDbContext(
+            new DbContextOptionsBuilder<UserDbContext>()
+                .UseNpgsql(connection)
+                .Options);
+        using var relicDbContext = new RelicDbContext(
+            new DbContextOptionsBuilder<RelicDbContext>()
+                .UseNpgsql(connection)
+                .Options);
 
         m_Logger.LogInformation("Migrating MongoDB to SQL database");
 

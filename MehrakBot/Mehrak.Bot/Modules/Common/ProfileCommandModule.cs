@@ -60,7 +60,13 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         if (profileId == 0)
         {
-            await m_UserRepository.DeleteUserAsync(Context.User.Id);
+            if (!await m_UserRepository.DeleteUserAsync(Context.User.Id))
+            {
+                await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
+                return;
+            }
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("All profiles deleted!")));
@@ -81,6 +87,21 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             if (profiles[i].ProfileId == profileId)
                 profiles.RemoveAt(i);
             else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
+
+        if (profiles.Count == 0)
+        {
+            if (!await m_UserRepository.DeleteUserAsync(Context.User.Id))
+            {
+                await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
+                return;
+            }
+            await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("All profiles deleted!")));
+            return;
+        }
 
         user.Profiles = profiles;
         if (!await m_UserRepository.CreateOrUpdateUserAsync(user))
