@@ -80,7 +80,7 @@ public class CommandExecutorServiceTests
 
         m_MockUserRepository
             .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()))
-            .Returns(Task.CompletedTask);
+            .Returns(Task.FromResult(true));
     }
 
     [TearDown]
@@ -672,7 +672,7 @@ public class CommandExecutorServiceTests
 
         m_MockUserRepository
             .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()))
-            .Returns(Task.CompletedTask)
+            .Returns(Task.FromResult(true))
             .Callback(() => callOrder.Add("UpdateLastServer"));
 
         m_MockApplicationService
@@ -712,7 +712,7 @@ public class CommandExecutorServiceTests
             LtUid = ltUid,
             LastUsedRegions = lastUsedServer.HasValue
                 ? new Dictionary<Game, string> { { TestGame, lastUsedServer.Value.ToString() } }
-                : null
+                : []
         };
 
         return new UserDto

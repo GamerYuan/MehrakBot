@@ -347,7 +347,6 @@ public class ZzzAssaultApplicationServiceTests
                     {
                         LtUid = 1ul,
                         LToken = "test",
-                        GameUids = null
                     }
                 ]
             });

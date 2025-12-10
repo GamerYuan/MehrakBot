@@ -296,7 +296,6 @@ public class ZzzDefenseApplicationServiceTests
                     {
                         LtUid = 1ul,
                         LToken = "test",
-                        GameUids = null
                     }
                 ]
             });

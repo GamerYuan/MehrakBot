@@ -369,7 +369,6 @@ public class ZzzCharacterApplicationServiceTests
                     {
                         LtUid = 1ul,
                         LToken = "test",
-                        GameUids = null
                     }
                 ]
             });

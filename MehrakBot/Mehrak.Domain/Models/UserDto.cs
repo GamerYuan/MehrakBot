@@ -23,7 +23,7 @@ public class UserProfileDto
 
     public DateTime? LastCheckIn { get; set; }
 
-    public Dictionary<Game, Dictionary<string, string>>? GameUids { get; set; } = null;
+    public Dictionary<Game, Dictionary<string, string>> GameUids { get; set; } = [];
 
-    public Dictionary<Game, string>? LastUsedRegions { get; set; } = null;
+    public Dictionary<Game, string> LastUsedRegions { get; set; } = [];
 }

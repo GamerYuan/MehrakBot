@@ -307,7 +307,6 @@ public class HsrMemoryApplicationServiceTests
                         {
                             LtUid = 1ul,
                             LToken = "test",
-                            GameUids = null
                         }
                     ]
             }

@@ -438,8 +438,7 @@ public class CodeRedeemApplicationServiceTests
                     new()
                     {
                         LtUid = 12345ul,
-                        LToken = "test",
-                        GameUids = null
+                        LToken = "test"
                     }
                 ]
             });

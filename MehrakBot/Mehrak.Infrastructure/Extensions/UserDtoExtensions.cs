@@ -17,17 +17,13 @@ internal static class UserDtoExtensions
                 LtUid = (ulong)p.LtUid,
                 LToken = p.LToken,
                 LastCheckIn = p.LastCheckIn,
-                GameUids = p.GameUids.Count == 0
-                    ? null
-                    : p.GameUids
+                GameUids = p.GameUids
                         .GroupBy(g => g.Game)
                         .ToDictionary(
                             g => g.Key,
                             g => g.ToDictionary(x => x.Region, x => x.GameUid)
                         ),
-                LastUsedRegions = p.LastUsedRegions.Count == 0
-                    ? null
-                    : p.LastUsedRegions.ToDictionary(r => r.Game, r => r.Region)
+                LastUsedRegions = p.LastUsedRegions.DistinctBy(r => r.Game).ToDictionary(r => r.Game, r => r.Region)
             })]
         };
         return dto;
@@ -63,33 +59,27 @@ internal static class UserDtoExtensions
                 LastUsedRegions = []
             };
 
-            if (p.GameUids != null)
+            foreach (var gameEntry in p.GameUids)
             {
-                foreach (var gameEntry in p.GameUids)
+                var game = gameEntry.Key;
+                foreach (var regionEntry in gameEntry.Value)
                 {
-                    var game = gameEntry.Key;
-                    foreach (var regionEntry in gameEntry.Value)
+                    profile.GameUids.Add(new ProfileGameUid
                     {
-                        profile.GameUids.Add(new ProfileGameUid
-                        {
-                            Game = game,
-                            Region = regionEntry.Key,
-                            GameUid = regionEntry.Value
-                        });
-                    }
+                        Game = game,
+                        Region = regionEntry.Key,
+                        GameUid = regionEntry.Value
+                    });
                 }
             }
 
-            if (p.LastUsedRegions != null)
+            foreach (var region in p.LastUsedRegions)
             {
-                foreach (var region in p.LastUsedRegions)
+                profile.LastUsedRegions.Add(new ProfileRegion
                 {
-                    profile.LastUsedRegions.Add(new ProfileRegion
-                    {
-                        Game = region.Key,
-                        Region = region.Value
-                    });
-                }
+                    Game = region.Key,
+                    Region = region.Value
+                });
             }
 
             profiles.Add(profile);
