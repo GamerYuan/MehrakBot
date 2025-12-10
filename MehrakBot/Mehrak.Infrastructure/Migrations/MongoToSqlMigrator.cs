@@ -1,5 +1,4 @@
-﻿using DnsClient.Internal;
-using Mehrak.Domain.Repositories;
+﻿using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
