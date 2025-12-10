@@ -60,6 +60,16 @@ public class AuthenticationResult
         };
     }
 
+    public static AuthenticationResult NotFound(IInteractionContext context, string errorMessage)
+    {
+        return new AuthenticationResult
+        {
+            Status = AuthStatus.NotFound,
+            Context = context,
+            ErrorMessage = errorMessage
+        };
+    }
+
     public static AuthenticationResult Timeout()
     {
         return new AuthenticationResult
@@ -102,5 +112,6 @@ public enum AuthStatus
 {
     Success,
     Failure,
-    Timeout
+    Timeout,
+    NotFound
 }

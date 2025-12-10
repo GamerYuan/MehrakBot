@@ -499,6 +499,86 @@ public class ZzzCharacterApplicationServiceTests
         userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
+    [Test]
+    public async Task ExecuteAsync_WikiFallback_WhenInitialLocaleFails_UsesAlternateLocale()
+    {
+        // Arrange
+        var (service, characterApiMock, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        var charImageName = fullCharData.AvatarList[0].ToImageName();
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .Returns((string file, CancellationToken _) => Task.FromResult(file != charImageName));
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(cardStream);
+
+        const string expectedUrl = "https://example.com/zzz_char.png";
+        var wikiSuccessNode = JsonNode.Parse("""
+        {
+          "data": {
+            "page": {
+              "modules": [
+                {
+                  "components": [
+                    {
+                      "component_id": "gallery_character",
+                      "data": "{\"list\":[{\"img\":\"https://example.com/zzz_char.png\",\"tag_list\":[],\"id\":\"1000000001\"}]}\n"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+        """)!;
+
+        // First call to wiki API should use initial locale (en-us)
+        wikiApiMock.SetupSequence(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not found"))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiSuccessNode));
+
+        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
+        {
+            LtUid = 1ul,
+            LToken = "test"
+        };
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data?.Components.OfType<CommandAttachment>().FirstOrDefault()?.Content, Is.Not.Null);
+        }
+
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(ctx => ctx.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(ctx => ctx.Locale == WikiLocales.CN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.IsAny<WikiApiContext>()), Times.Exactly(2));
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(x => x.Url == expectedUrl), It.IsAny<IImageProcessor>()));
+    }
+
     #endregion
 
     #region Integration Tests
