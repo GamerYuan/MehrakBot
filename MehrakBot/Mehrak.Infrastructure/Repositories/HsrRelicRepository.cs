@@ -25,22 +25,34 @@ internal class HsrRelicRepository : IRelicRepository
 
     public async Task AddSetName(int setId, string setName)
     {
-        // Upsert: if exists, do nothing; if not, insert
-        using var scope = m_ScopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
+        try
+        {
+            // Upsert: if exists, do nothing; if not, insert
+            using var scope = m_ScopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
-        var existing = await context.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
-        if (existing == null)
-        {
-            var entity = new HsrRelicModel { SetId = setId, SetName = setName };
-            context.HsrRelics.Add(entity);
-            await context.SaveChangesAsync();
-            m_Logger.LogDebug("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+            var existing = await context.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
+            if (existing == null)
+            {
+                var entity = new HsrRelicModel { SetId = setId, SetName = setName };
+                context.HsrRelics.Add(entity);
+                await context.SaveChangesAsync();
+                m_Logger.LogDebug("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+            }
+            else
+            {
+                // Do not overwrite existing name as per original behavior
+                m_Logger.LogDebug("Relic set mapping for setId {SetId} already exists; skipping overwrite", setId);
+            }
         }
-        else
+        catch (DbUpdateException e)
         {
-            // Do not overwrite existing name as per original behavior
-            m_Logger.LogDebug("Relic set mapping for setId {SetId} already exists; skipping overwrite", setId);
+            m_Logger.LogWarning(e, "Attempted to insert duplicate relic set mapping for setId {SetId}; skipping", setId);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Error adding relic set mapping for setId {SetId}", setId);
+            throw;
         }
     }
 
