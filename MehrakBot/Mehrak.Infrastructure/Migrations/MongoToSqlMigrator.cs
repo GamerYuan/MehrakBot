@@ -32,12 +32,13 @@ internal class MongoToSqlMigrator : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         using var connection = new NpgsqlConnection(m_Config["Postgres:ConnectionString"]);
+        await connection.OpenAsync(cancellationToken);
 
-        var userDbContext = new UserDbContext(
+        using var userDbContext = new UserDbContext(
             new DbContextOptionsBuilder<UserDbContext>()
                 .UseNpgsql(connection)
                 .Options);
-        var relicDbContext = new RelicDbContext(
+        using var relicDbContext = new RelicDbContext(
             new DbContextOptionsBuilder<RelicDbContext>()
                 .UseNpgsql(connection)
                 .Options);
