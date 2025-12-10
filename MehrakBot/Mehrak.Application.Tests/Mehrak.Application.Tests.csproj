@@ -28,7 +28,6 @@
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-        <PackageReference Include="Mongo2Go" Version="4.1.0" />
         <PackageReference Include="Moq" Version="4.20.72" />
         <PackageReference Include="NUnit" Version="4.4.0" />
         <PackageReference Include="NUnit.Analyzers" Version="4.11.2">
