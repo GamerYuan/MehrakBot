@@ -2,6 +2,7 @@
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -12,20 +13,20 @@ namespace Mehrak.Infrastructure.Migrations;
 internal class MongoToSqlMigrator : IHostedService
 {
     private readonly MongoDbService m_MongoService;
-    private readonly UserDbContext m_DbContext;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly IUserRepository m_UserRepo;
     private readonly IRelicRepository m_RelicRepo;
     private readonly ILogger<MongoToSqlMigrator> m_Logger;
 
     public MongoToSqlMigrator(
         MongoDbService mongoService,
-        UserDbContext dbContext,
+        IServiceScopeFactory scopeFactory,
         IUserRepository userRepo,
         IRelicRepository relicRepo,
         ILogger<MongoToSqlMigrator> logger)
     {
         m_MongoService = mongoService;
-        m_DbContext = dbContext;
+        m_ScopeFactory = scopeFactory;
         m_UserRepo = userRepo;
         m_RelicRepo = relicRepo;
         m_Logger = logger;
@@ -33,7 +34,12 @@ internal class MongoToSqlMigrator : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (await m_DbContext.Users.AnyAsync(cancellationToken: cancellationToken))
+        using var scope = m_ScopeFactory.CreateScope();
+        var userDbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+        var relicDbContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
+
+        if (await userDbContext.Users.AnyAsync(cancellationToken: cancellationToken) ||
+            await relicDbContext.HsrRelics.AnyAsync(cancellationToken: cancellationToken))
         {
             m_Logger.LogInformation("SQL database is not empty. Migration skipped.");
             return;
@@ -41,7 +47,7 @@ internal class MongoToSqlMigrator : IHostedService
 
         m_Logger.LogInformation("Migrating MongoDB to SQL database");
 
-        using var transaction = await m_DbContext.Database.BeginTransactionAsync(cancellationToken);
+        using var transaction = await userDbContext.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
