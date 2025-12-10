@@ -1,7 +1,7 @@
 ﻿using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -40,7 +40,7 @@ internal class UserRepository : IUserRepository
             return null;
         }
 
-        var dto = MapToDto(user);
+        var dto = user.ToDto();
         m_Logger.LogDebug("User {UserId} retrieval result: {Result}", userId, "Found");
         return dto;
     }
@@ -67,7 +67,7 @@ internal class UserRepository : IUserRepository
 
             if (existing == null)
             {
-                var newModel = MapToModel(user);
+                var newModel = user.ToUserModel();
                 await context.Users.AddAsync(newModel);
             }
             else
@@ -81,7 +81,7 @@ internal class UserRepository : IUserRepository
 
                 existing.Profiles.Clear();
 
-                var rebuiltProfiles = BuildProfileModels(user, (ulong)existing.Id);
+                var rebuiltProfiles = user.BuildProfileModels((ulong)existing.Id);
                 foreach (var p in rebuiltProfiles)
                 {
                     existing.Profiles.Add(p);
@@ -127,98 +127,5 @@ internal class UserRepository : IUserRepository
             m_Logger.LogError(ex, "Error deleting user {UserId} from database", userId);
             return false;
         }
-    }
-
-    private static UserDto MapToDto(UserModel model)
-    {
-        var dto = new UserDto
-        {
-            Id = (ulong)model.Id,
-            Timestamp = model.Timestamp,
-            Profiles = [.. model.Profiles.Select(p => new UserProfileDto
-            {
-                ProfileId = (uint)p.ProfileId,
-                LtUid = (ulong)p.LtUid,
-                LToken = p.LToken,
-                LastCheckIn = p.LastCheckIn,
-                GameUids = p.GameUids.Count == 0
-                    ? null
-                    : p.GameUids
-                        .GroupBy(g => g.Game)
-                        .ToDictionary(
-                            g => g.Key,
-                            g => g.ToDictionary(x => x.Region, x => x.GameUid)
-                        ),
-                LastUsedRegions = p.LastUsedRegions.Count == 0
-                    ? null
-                    : p.LastUsedRegions.ToDictionary(r => r.Game, r => r.Region)
-            })]
-        };
-        return dto;
-    }
-
-    private static UserModel MapToModel(UserDto dto)
-    {
-        var model = new UserModel
-        {
-            Id = (long)dto.Id,
-            Timestamp = dto.Timestamp,
-            Profiles = BuildProfileModels(dto, dto.Id)
-        };
-        return model;
-    }
-
-    private static List<UserProfileModel> BuildProfileModels(UserDto dto, ulong userId)
-    {
-        var profiles = new List<UserProfileModel>();
-        if (dto.Profiles == null)
-            return profiles;
-
-        foreach (var p in dto.Profiles)
-        {
-            var profile = new UserProfileModel
-            {
-                UserId = (long)userId,
-                ProfileId = (int)p.ProfileId,
-                LtUid = (long)p.LtUid,
-                LToken = p.LToken,
-                LastCheckIn = p.LastCheckIn,
-                GameUids = [],
-                LastUsedRegions = []
-            };
-
-            if (p.GameUids != null)
-            {
-                foreach (var gameEntry in p.GameUids)
-                {
-                    var game = gameEntry.Key;
-                    foreach (var regionEntry in gameEntry.Value)
-                    {
-                        profile.GameUids.Add(new ProfileGameUid
-                        {
-                            Game = game,
-                            Region = regionEntry.Key,
-                            GameUid = regionEntry.Value
-                        });
-                    }
-                }
-            }
-
-            if (p.LastUsedRegions != null)
-            {
-                foreach (var region in p.LastUsedRegions)
-                {
-                    profile.LastUsedRegions.Add(new ProfileRegion
-                    {
-                        Game = region.Key,
-                        Region = region.Value
-                    });
-                }
-            }
-
-            profiles.Add(profile);
-        }
-
-        return profiles;
     }
 }
