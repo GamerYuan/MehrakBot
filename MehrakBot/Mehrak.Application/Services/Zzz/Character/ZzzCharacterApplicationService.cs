@@ -195,7 +195,7 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
         foreach (var locale in Enum.GetValues<WikiLocales>())
         {
             var wikiResponse =
-                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage));
+                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale));
 
             if (!wikiResponse.IsSuccess)
             {
