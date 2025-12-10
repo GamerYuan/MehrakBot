@@ -120,37 +120,14 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             var characterData = response.Data;
             var charInfo = characterData.AvatarList[0];
 
+            Task<Result<string>>? charImageUrlTask = null;
+
             List<Task<bool>> tasks = [];
 
-            if (!await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Zzz.FileName, charInfo.Id)))
+            if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
             {
                 var entryPage = characterData.AvatarWiki[charInfo.Id.ToString()].Split('/')[^1];
-                var wikiResponse =
-                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage));
-
-                if (!wikiResponse.IsSuccess)
-                {
-                    Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse);
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Character Image"));
-                }
-
-                var url = JsonNode.Parse(wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
-                    .SelectMany(x => x?["components"]?.AsArray() ?? [])
-                    .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
-                    ?["data"]?.GetValue<string>() ?? "")
-                    ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
-
-                if (string.IsNullOrEmpty(url))
-                {
-                    Logger.LogError("Character wiki image URL is empty for characterId: {CharacterId}, Data:\n{Data}",
-                        charInfo.Id, wikiResponse.Data.ToJsonString());
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Character Image"));
-                }
-
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
-                    url), new ImageProcessorBuilder().Resize(2000, 0).Build()));
+                charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage);
             }
 
             if (charInfo.Weapon != null)
@@ -161,6 +138,21 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                 .Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                         new ImageProcessorBuilder().Resize(140, 0).Build())));
+
+            if (charImageUrlTask != null)
+            {
+                var charImage = await charImageUrlTask;
+                if (!charImage.IsSuccess)
+                {
+                    Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
+                    return CommandResult.Failure(CommandFailureReason.ApiError,
+                        string.Format(ResponseMessage.ApiError, "Character Image"));
+                }
+
+                var url = charImage.Data;
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
+                    url), new ImageProcessorBuilder().Resize(2000, 0).Build()));
+            }
 
             var completed = await Task.WhenAll(tasks);
 
@@ -193,5 +185,41 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
             return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
+    }
+
+    private async Task<Result<string>> GetCharacterImageUrlAsync(ZzzCharacterApplicationContext context, string gameUid,
+        ZzzAvatarData charInfo, string entryPage)
+    {
+        string? url = null;
+
+        foreach (var locale in Enum.GetValues<WikiLocales>())
+        {
+            var wikiResponse =
+                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage));
+
+            if (!wikiResponse.IsSuccess)
+            {
+                Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse);
+                continue;
+            }
+
+            url = JsonNode.Parse(wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
+                .SelectMany(x => x?["components"]?.AsArray() ?? [])
+                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
+                ?["data"]?.GetValue<string>() ?? "")
+                ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
+
+            if (!string.IsNullOrEmpty(url)) break;
+
+            Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
+                charInfo.Name, locale, wikiResponse.Data.ToJsonString());
+        }
+
+        if (string.IsNullOrEmpty(url))
+        {
+            return Result<string>.Failure(StatusCode.ExternalServerError, "Character image not found");
+        }
+
+        return Result<string>.Success(url);
     }
 }
