@@ -81,9 +81,9 @@ internal class AliasRepository : IAliasRepository
             }
         }
 
+        await context.SaveChangesAsync();
+
         m_Logger.LogDebug("Upsert completed. Updated {UpdateCount} entries, Created {NewCount} entries",
             updateCount, newCount);
-
-        await context.SaveChangesAsync();
     }
 }
