@@ -3,6 +3,7 @@ using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Extensions;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -35,8 +36,8 @@ internal class MongoToSqlMigrator : IHostedService
 
         m_Logger.LogInformation("Migrating MongoDB to SQL database");
 
-        await using var userTransaction = await userDbContext.Database.BeginTransactionAsync(cancellationToken);
-        await using var relicTransaction = await relicDbContext.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await userDbContext.Database.BeginTransactionAsync(cancellationToken);
+        await relicDbContext.Database.UseTransactionAsync(transaction.GetDbTransaction(), cancellationToken);
 
         try
         {
@@ -85,8 +86,7 @@ internal class MongoToSqlMigrator : IHostedService
                 await relicDbContext.SaveChangesAsync(cancellationToken);
             }
 
-            await userTransaction.CommitAsync(cancellationToken);
-            await relicTransaction.CommitAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
             m_Logger.LogInformation("Migration completed. Users: {TotalUsers} (Failed: {FailedUsers}), Relics: {TotalRelics} (Failed: {FailedRelics})",
                     userCount, failedUsers, relicCount, failedRelics);
@@ -94,7 +94,7 @@ internal class MongoToSqlMigrator : IHostedService
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Migration failed and was rolled back");
-            await userTransaction.RollbackAsync(cancellationToken);
+            await transaction.RollbackAsync(cancellationToken);
             throw;
         }
     }
