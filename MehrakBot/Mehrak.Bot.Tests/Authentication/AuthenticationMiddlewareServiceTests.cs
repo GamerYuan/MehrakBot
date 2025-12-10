@@ -59,7 +59,7 @@ public class AuthenticationMiddlewareServiceTests
     #region GetAuthenticationAsync Tests
 
     [Test]
-    public async Task GetAuthenticationAsync_UserNotFound_ReturnsFailure()
+    public async Task GetAuthenticationAsync_UserNotFound_ReturnsNotFound()
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
@@ -97,14 +97,14 @@ public class AuthenticationMiddlewareServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.ErrorMessage, Does.Contain("User account not found"));
-            Assert.That(result.Status, Is.EqualTo(AuthStatus.Failure));
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.NotFound));
         });
 
         m_MockUserRepository.Verify(x => x.GetUserAsync(TestUserId), Times.Once);
     }
 
     [Test]
-    public async Task GetAuthenticationAsync_ProfileNotFound_ReturnsFailure()
+    public async Task GetAuthenticationAsync_ProfileNotFound_ReturnsNotFound()
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
@@ -147,7 +147,7 @@ public class AuthenticationMiddlewareServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.ErrorMessage, Does.Contain("No profiles found"));
-            Assert.That(result.Status, Is.EqualTo(AuthStatus.Failure));
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.NotFound));
         });
     }
 

@@ -470,6 +470,34 @@ public class CommandExecutorServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_AuthenticationNotFound_SendsErrorResponse()
+    {
+        // Arrange
+        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        var mockContext = new Mock<IInteractionContext>();
+        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
+
+        var context = new TestApplicationContext(m_TestUserId);
+        m_Service.Context = mockContext.Object;
+        m_Service.ApplicationContext = context;
+
+        const string errorMessage = "Profile not found";
+
+        m_MockAuthMiddleware
+            .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
+            .ReturnsAsync(AuthenticationResult.NotFound(mockContext.Object, errorMessage));
+
+        // Act
+        await m_Service.ExecuteAsync(TestProfileId);
+
+        // Assert
+        var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain(errorMessage));
+
+        m_MockApplicationService.Verify(x => x.ExecuteAsync(It.IsAny<TestApplicationContext>()), Times.Never);
+    }
+
+    [Test]
     public async Task ExecuteAsync_AuthenticationTimeout_DoesNotSendResponse()
     {
         // Arrange
