@@ -4,6 +4,7 @@ using Amazon.S3;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Metrics;
 using Mehrak.Infrastructure.Migrations;
@@ -12,6 +13,7 @@ using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -31,15 +33,15 @@ public static class InfrastructureServiceCollectionExtension
 
         services.AddSingleton<IAmazonS3>(sp =>
         {
-            var cfg = sp.GetRequiredService<IConfiguration>().GetSection("Storage");
+            var cfg = sp.GetRequiredService<IOptions<S3StorageConfig>>().Value;
             var s3Config = new AmazonS3Config
             {
-                ServiceURL = cfg["ServiceUrl"],
-                ForcePathStyle = bool.TryParse(cfg["ForcePathStyle"], out var fps) && fps,
+                ServiceURL = cfg.ServiceURL,
+                ForcePathStyle = cfg.ForcePathStyle,
                 Timeout = TimeSpan.FromSeconds(30),
-                SignatureMethod = Amazon.Runtime.SigningAlgorithm.HmacSHA1,
+                SignatureMethod = Amazon.Runtime.SigningAlgorithm.HmacSHA256
             };
-            return new AmazonS3Client(cfg["AccessKey"], cfg["SecretKey"], s3Config);
+            return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
         });
 
         services.AddSingleton<MongoDbService>();
