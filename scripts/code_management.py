@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 import sys
 from typing import Dict, Union
 
@@ -29,6 +30,40 @@ GAME_ALIASES: Dict[str, GameValue] = {
     "tearsofthemis": 5,
     "tot": 5,
 }
+
+
+def _load_env_from_parent(override: bool = False) -> None:
+    """Load environment variables from ../.env relative to this script.
+
+    Only sets variables that are not already defined unless override=True.
+    Supports simple KEY=VALUE pairs and optional quotes.
+    """
+    try:
+        env_path = Path(__file__).resolve().parent.parent / ".env"
+    except Exception:
+        return
+
+    if not env_path.exists():
+        return
+
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Support leading `export `
+            if line.startswith("export "):
+                line = line[len("export ") :]
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if override or key not in os.environ:
+                os.environ[key] = value
+    except Exception:
+        # Silently ignore dotenv parse errors to avoid breaking CLI
+        pass
 
 
 def parse_args() -> argparse.Namespace:
@@ -139,6 +174,8 @@ def delete_code(conn: psycopg.Connection, game_value: GameValue, code: str) -> N
 
 
 def main() -> int:
+    _load_env_from_parent()
+
     args = parse_args()
     try:
         game_value = resolve_game(args.game)
