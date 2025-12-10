@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
+using Mehrak.Infrastructure.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Services;
 
-public class AliasInitializationService : IHostedService
+internal class AliasInitializationService : IHostedService
 {
     private readonly IAliasRepository m_AliasRepository;
     private readonly ILogger<AliasInitializationService> m_Logger;
@@ -61,11 +61,11 @@ public class AliasInitializationService : IHostedService
 
         if (aliasJsonFiles.Length == 0)
         {
-            m_Logger.LogInformation("No alias JSON files found in Assets directory");
+            m_Logger.LogDebug("No alias JSON files found in Assets directory");
             return;
         }
 
-        m_Logger.LogInformation("Found {Count} alias JSON files", aliasJsonFiles.Length);
+        m_Logger.LogDebug("Found {Count} alias JSON files", aliasJsonFiles.Length);
 
         foreach (var file in aliasJsonFiles) await ProcessAliasJsonFileAsync(file);
     }
@@ -74,7 +74,7 @@ public class AliasInitializationService : IHostedService
     {
         try
         {
-            m_Logger.LogInformation("Processing alias JSON file {FilePath}", filePath);
+            m_Logger.LogDebug("Processing alias JSON file {FilePath}", filePath);
 
             var jsonContent = await File.ReadAllTextAsync(filePath);
             var aliasJsonModel = JsonSerializer.Deserialize<AliasJsonModel>(jsonContent);
@@ -90,39 +90,9 @@ public class AliasInitializationService : IHostedService
                 .SelectMany(x => x.Alias.Select(alias => (alias, x.Name)))
                 .ToDictionary(x => x.alias, x => x.Name);
 
-            var existingAlias = await m_AliasRepository.GetAliasesAsync(gameName);
+            await m_AliasRepository.UpsertAliasAsync(gameName, aliases);
 
-            var newAliases =
-                aliases.Where(x => !existingAlias.ContainsKey(x.Key)).ToList();
-
-            if (newAliases.Count > 0)
-            {
-                m_Logger.LogInformation(
-                    "Found {Count} new alias for game {Game}, {Alias}",
-                    newAliases.Count,
-                    gameName,
-                    string.Join(',', newAliases.Select(x => x.Key)));
-
-                Dictionary<string, string> merged = [];
-
-                foreach (var alias in
-                         newAliases.Concat(existingAlias).Where(alias => !merged.ContainsKey(alias.Key)))
-                    merged.Add(alias.Key, alias.Value);
-
-                AliasModel updatedModel = new()
-                {
-                    Game = gameName,
-                    Alias = merged
-                };
-
-                await m_AliasRepository.UpsertCharacterAliasesAsync(updatedModel);
-            }
-            else
-            {
-                m_Logger.LogInformation(
-                    "No missing aliases found for {Game}, database is up to date",
-                    gameName);
-            }
+            m_Logger.LogDebug("Finished processing alias JSON file {FilePath}", filePath);
         }
         catch (Exception e)
         {

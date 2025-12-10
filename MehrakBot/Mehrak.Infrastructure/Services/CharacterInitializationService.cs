@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
+using Mehrak.Infrastructure.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -85,32 +85,11 @@ public class CharacterInitializationService : IHostedService
                 return;
             }
 
-            var gameName = characterJsonModel.GetGame();
+            var gameName = characterJsonModel.Game;
             var newCharacters = characterJsonModel.Characters;
 
-            var existingModel = await m_CharacterRepository.GetCharacterModelAsync(gameName);
-            var existingCharacters = existingModel?.Characters ?? [];
-
-            var missingCharacters = newCharacters.Except(existingCharacters, StringComparer.OrdinalIgnoreCase).ToList();
-
-            if (missingCharacters.Count > 0)
-            {
-                m_Logger.LogInformation(
-                    "Found {Count} missing characters for {Game}: {Characters}",
-                    missingCharacters.Count,
-                    gameName,
-                    string.Join(", ", missingCharacters));
-
-                await m_CharacterRepository.UpsertCharactersAsync(gameName, missingCharacters);
-
-                m_Logger.LogInformation(
-                    "Successfully updated character database for {Game}",
-                    gameName);
-            }
-            else
-            {
-                m_Logger.LogInformation("No missing characters found for {Game}, database is up to date", gameName);
-            }
+            await m_CharacterRepository.UpsertCharactersAsync(gameName, newCharacters);
+            m_Logger.LogInformation("Processed character JSON file: {FilePath}", jsonFilePath);
         }
         catch (Exception ex)
         {

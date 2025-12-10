@@ -66,7 +66,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         return true;
     }
 
-    protected static string? GetLastUsedServerAsync(UserModel user, Game game, uint profileId)
+    protected static string? GetLastUsedServerAsync(UserDto user, Game game, uint profileId)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;
@@ -76,7 +76,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         return null;
     }
 
-    protected async Task UpdateLastUsedServerAsync(UserModel user, uint profileId, Game game, string server)
+    protected async Task UpdateLastUsedServerAsync(UserDto user, uint profileId, Game game, string server)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return;

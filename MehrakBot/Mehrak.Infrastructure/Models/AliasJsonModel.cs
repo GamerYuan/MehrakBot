@@ -1,20 +1,20 @@
-#region
+﻿#region
 
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Enums;
 
 #endregion
 
-namespace Mehrak.Domain.Models;
+namespace Mehrak.Infrastructure.Models;
 
-public class AliasJsonModel
+internal class AliasJsonModel
 {
     [JsonPropertyName("game")] public required Game Game { get; init; }
 
     [JsonPropertyName("aliases")] public required List<AliasEntry> Aliases { get; init; }
 }
 
-public class AliasEntry
+internal class AliasEntry
 {
     [JsonPropertyName("name")] public required string Name { get; init; }
 

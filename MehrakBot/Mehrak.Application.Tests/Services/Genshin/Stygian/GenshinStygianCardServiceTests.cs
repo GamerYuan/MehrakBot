@@ -28,7 +28,7 @@ public class GenshinStygianCardServiceTests
     public async Task Setup()
     {
         m_Service = new GenshinStygianCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>());
         await m_Service.InitializeAsync();
     }

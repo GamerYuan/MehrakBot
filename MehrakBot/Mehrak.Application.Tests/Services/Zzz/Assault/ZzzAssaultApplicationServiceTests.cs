@@ -338,7 +338,7 @@ public class ZzzAssaultApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -347,7 +347,6 @@ public class ZzzAssaultApplicationServiceTests
                     {
                         LtUid = 1ul,
                         LToken = "test",
-                        GameUids = null
                     }
                 ]
             });
@@ -366,7 +365,7 @@ public class ZzzAssaultApplicationServiceTests
         await service.ExecuteAsync(context);
 
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -390,7 +389,7 @@ public class ZzzAssaultApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -423,7 +422,7 @@ public class ZzzAssaultApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -438,7 +437,7 @@ public class ZzzAssaultApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         assaultApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
@@ -452,12 +451,12 @@ public class ZzzAssaultApplicationServiceTests
 
         await service.ExecuteAsync(context);
 
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -467,7 +466,7 @@ public class ZzzAssaultApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
@@ -489,7 +488,7 @@ public class ZzzAssaultApplicationServiceTests
         assaultApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<ZzzAssaultData>.Success(assaultData));
 
-        var context = new ZzzAssaultApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new ZzzAssaultApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -543,7 +542,7 @@ public class ZzzAssaultApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new ZzzAssaultApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new ZzzAssaultApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -613,7 +612,7 @@ public class ZzzAssaultApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new ZzzAssaultCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzAssaultCardService>>());
 
         var assaultApiMock = new Mock<IApiService<ZzzAssaultData, BaseHoYoApiContext>>();
@@ -623,7 +622,7 @@ public class ZzzAssaultApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -650,7 +649,7 @@ public class ZzzAssaultApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new ZzzAssaultCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzAssaultCardService>>());
 
         // Real HTTP client factory
@@ -669,7 +668,7 @@ public class ZzzAssaultApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

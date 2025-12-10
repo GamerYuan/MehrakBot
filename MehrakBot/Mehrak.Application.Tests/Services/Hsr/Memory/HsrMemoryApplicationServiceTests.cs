@@ -298,7 +298,7 @@ public class HsrMemoryApplicationServiceTests
         // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -307,7 +307,6 @@ public class HsrMemoryApplicationServiceTests
                         {
                             LtUid = 1ul,
                             LToken = "test",
-                            GameUids = null
                         }
                     ]
             }
@@ -329,7 +328,7 @@ public class HsrMemoryApplicationServiceTests
 
         // Assert: repository should persist updated user with stored game uid
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -354,7 +353,7 @@ public class HsrMemoryApplicationServiceTests
         // User exists with game uid already stored for this game/server
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -389,7 +388,7 @@ public class HsrMemoryApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -405,7 +404,7 @@ public class HsrMemoryApplicationServiceTests
         // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         memoryApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
@@ -421,13 +420,13 @@ public class HsrMemoryApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -438,7 +437,7 @@ public class HsrMemoryApplicationServiceTests
             );
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
@@ -461,7 +460,7 @@ public class HsrMemoryApplicationServiceTests
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
-        var context = new HsrMemoryApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrMemoryApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -515,7 +514,7 @@ public class HsrMemoryApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrMemoryApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrMemoryApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -585,7 +584,7 @@ public class HsrMemoryApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrMemoryCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>());
 
         var memoryApiMock = new Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>>();
@@ -595,7 +594,7 @@ public class HsrMemoryApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -622,7 +621,7 @@ public class HsrMemoryApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new HsrMemoryCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>());
 
         // Real HTTP client factory
@@ -641,7 +640,7 @@ public class HsrMemoryApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

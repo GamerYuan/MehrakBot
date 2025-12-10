@@ -1,9 +1,11 @@
 ﻿#region
 
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -11,42 +13,55 @@ using MongoDB.Driver;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-public class CharacterRepository : ICharacterRepository
+internal class CharacterRepository : ICharacterRepository
 {
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<CharacterRepository> m_Logger;
-    private readonly IMongoCollection<CharacterModel> m_Characters;
 
-    public CharacterRepository(MongoDbService mongoDbService, ILogger<CharacterRepository> logger)
+    public CharacterRepository(IServiceScopeFactory scopeFactory, ILogger<CharacterRepository> logger)
     {
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
-        m_Characters = mongoDbService.Characters;
     }
 
     public async Task<List<string>> GetCharactersAsync(Game gameName)
     {
-        m_Logger.LogInformation("Retrieving characters for game {Game} from database", gameName);
-        var characterModel = await GetCharacterModelAsync(gameName);
-        return characterModel?.Characters ?? [];
-    }
+        m_Logger.LogDebug("Retrieving characters for game {Game} from database", gameName);
 
-    public async Task<CharacterModel?> GetCharacterModelAsync(Game gameName)
-    {
-        m_Logger.LogDebug("Retrieving character model for game {Game} from database", gameName);
-        var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
-        return await m_Characters.Find(filter).FirstOrDefaultAsync();
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        return await context.Characters.Where(x => x.Game == gameName)
+            .Select(x => x.Name)
+            .ToListAsync();
     }
 
     public async Task UpsertCharactersAsync(Game gameName, IEnumerable<string> characters)
     {
-        var charList = characters.ToList();
+        var incoming = characters.ToHashSet();
 
-        m_Logger.LogInformation("Upserting characters for game {Game} with {Count} characters",
-            gameName, charList);
+        if (incoming.Count == 0) return;
 
-        var filter = Builders<CharacterModel>.Filter.Eq(c => c.Game, gameName);
-        var update = Builders<CharacterModel>.Update
-            .AddToSetEach(x => x.Characters, charList);
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
-        await m_Characters.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
+        var existing = await context.Characters
+            .Where(x => x.Game == gameName && incoming.Contains(x.Name))
+            .Select(x => x.Name)
+            .ToListAsync();
+
+        var newEntities = incoming.Except(existing).Select(name => new CharacterModel
+        {
+            Game = gameName,
+            Name = name
+        }).ToList();
+
+        if (!newEntities.Any()) return;
+
+        m_Logger.LogDebug("Upserting characters for game {Game} with {Count} characters",
+            gameName, newEntities.Count);
+
+        context.Characters.AddRange(newEntities);
+        await context.SaveChangesAsync();
     }
 }

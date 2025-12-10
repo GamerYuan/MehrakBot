@@ -214,7 +214,7 @@ public class HsrCharListApplicationServiceTests
         // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -222,8 +222,7 @@ public class HsrCharListApplicationServiceTests
                     new()
                     {
                         LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = null
+                        LToken = "test"
                     }
                 ]
             });
@@ -245,7 +244,7 @@ public class HsrCharListApplicationServiceTests
 
         // Assert: repository should persist updated user with stored game uid
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -270,7 +269,7 @@ public class HsrCharListApplicationServiceTests
         // User exists with game uid already stored for this game/server
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -305,7 +304,7 @@ public class HsrCharListApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -322,7 +321,7 @@ public class HsrCharListApplicationServiceTests
         // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
@@ -339,13 +338,13 @@ public class HsrCharListApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -355,7 +354,7 @@ public class HsrCharListApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
@@ -376,7 +375,7 @@ public class HsrCharListApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrCharListApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -430,7 +429,7 @@ public class HsrCharListApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrCharListApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+        var context = new HsrCharListApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -508,7 +507,7 @@ public class HsrCharListApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrCharListCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>());
 
         var characterApiMock = new Mock<ICharacterApiService<HsrBasicCharacterData,
@@ -519,7 +518,7 @@ public class HsrCharListApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -545,7 +544,7 @@ public class HsrCharListApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new HsrCharListCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>());
 
         // Real HTTP client factory
@@ -571,7 +570,7 @@ public class HsrCharListApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

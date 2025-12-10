@@ -285,7 +285,7 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
         userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -293,8 +293,7 @@ public class Hi3CharacterApplicationServiceTests
                     new()
                     {
                         LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = null
+                        LToken = "test"
                     }
                 ]
             });
@@ -313,7 +312,7 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
             u.Id == 1ul
             && u.Profiles != null
             && u.Profiles.Any(p => p.LtUid == 1ul
@@ -336,7 +335,7 @@ public class Hi3CharacterApplicationServiceTests
 
         // User already has game uid stored
         userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -366,7 +365,7 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -381,7 +380,7 @@ public class Hi3CharacterApplicationServiceTests
 
         // User not found
         userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
@@ -396,19 +395,19 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // User exists but LtUid mismatch
         userRepositoryMock.Reset();
         userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles = [new() { LtUid = 9999ul, LToken = "test" }]
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
@@ -430,7 +429,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        var context = new Hi3CharacterApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(),
+        var context = new Hi3CharacterApplicationContext(DbTestHelper.Instance.GetUniqueUserId(),
             ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
@@ -520,13 +519,13 @@ public class Hi3CharacterApplicationServiceTests
 
         // Real card service + real image updater
         var cardService = new Hi3CharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>());
 
         cardService.InitializeAsync().Wait();
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             CreateHttpClientFactory(),
             Mock.Of<ILogger<ImageUpdaterService>>());
 

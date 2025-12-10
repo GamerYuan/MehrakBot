@@ -2,55 +2,73 @@
 
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 
 #endregion
 
 namespace Mehrak.Infrastructure.Repositories;
 
-public class HsrRelicRepository : IRelicRepository
+internal class HsrRelicRepository : IRelicRepository
 {
-    private readonly IMongoCollection<HsrRelicModel> m_MongoCollection;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<HsrRelicRepository> m_Logger;
 
-    public HsrRelicRepository(MongoDbService mongoService,
+    public HsrRelicRepository(IServiceScopeFactory scopeFactory,
         ILogger<HsrRelicRepository> logger)
     {
-        m_MongoCollection = mongoService.HsrRelics;
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
     }
 
     public async Task AddSetName(int setId, string setName)
     {
-        var filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
-        var update = Builders<HsrRelicModel>.Update
-            .SetOnInsert(x => x.SetId, setId)
-            .SetOnInsert(x => x.SetName, setName);
+        try
+        {
+            // Upsert: if exists, do nothing; if not, insert
+            using var scope = m_ScopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
-        UpdateOptions options = new() { IsUpsert = true };
-        var result = await m_MongoCollection.UpdateOneAsync(filter, update, options);
-
-        if (result.UpsertedId != null)
-            m_Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
-        else if (result.ModifiedCount > 0)
-            m_Logger.LogInformation("Added relic set mapping for setId {SetId}", setId);
-        else
-            m_Logger.LogInformation("Relic set mapping for setId {SetId} already exists; skipping overwrite", setId);
+            var existing = await context.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
+            if (existing == null)
+            {
+                var entity = new HsrRelicModel { SetId = setId, SetName = setName };
+                context.HsrRelics.Add(entity);
+                await context.SaveChangesAsync();
+                m_Logger.LogDebug("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+            }
+            else
+            {
+                // Do not overwrite existing name as per original behavior
+                m_Logger.LogDebug("Relic set mapping for setId {SetId} : {SetName} already exists; skipping overwrite", setId, setName);
+            }
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogWarning(e, "An error occurred while inserting relic {SetId}, {SetName}", setId, setName);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Error adding relic set mapping for setId {SetId}, {SetName}", setId, setName);
+            throw;
+        }
     }
 
     public async Task<string> GetSetName(int setId)
     {
-        var filter = Builders<HsrRelicModel>.Filter.Eq(x => x.SetId, setId);
-        var doc = await m_MongoCollection.Find(filter).FirstOrDefaultAsync();
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
+
+        var doc = await context.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
         if (doc == null)
         {
             m_Logger.LogWarning("Set name for setId {SetId} not found", setId);
             return string.Empty;
         }
 
-        m_Logger.LogInformation("Retrieved set name for setId {SetId}: {SetName}", setId, doc.SetName);
+        m_Logger.LogDebug("Retrieved set name for setId {SetId}: {SetName}", setId, doc.SetName);
         return doc.SetName;
     }
 }

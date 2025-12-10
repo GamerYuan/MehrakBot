@@ -1,76 +1,81 @@
 ﻿#region
 
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 
 #endregion
 
 namespace Mehrak.Infrastructure.Repositories;
 
-public class CodeRedeemRepository : ICodeRedeemRepository
+internal class CodeRedeemRepository : ICodeRedeemRepository
 {
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<CodeRedeemRepository> m_Logger;
-    private readonly IMongoCollection<CodeRedeemModel> m_Collection;
 
-    public CodeRedeemRepository(MongoDbService service, ILogger<CodeRedeemRepository> logger)
+    public CodeRedeemRepository(IServiceScopeFactory scopeFactory, ILogger<CodeRedeemRepository> logger)
     {
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
-        m_Collection = service.Codes;
     }
 
     public async Task<List<string>> GetCodesAsync(Game gameName)
     {
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CodeRedeemDbContext>();
+
         m_Logger.LogDebug("Fetching codes for game: {Game}", gameName);
-        var entry = await m_Collection
-            .Find(x => x.Game == gameName).FirstOrDefaultAsync();
-        return entry?.Codes ?? [];
+        return await context.Codes.AsNoTracking()
+            .Where(x => x.Game == gameName)
+            .Select(x => x.Code)
+            .ToListAsync();
     }
 
-    public async Task AddCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes)
+    public async Task UpdateCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes)
     {
-        var entry = await m_Collection
-            .Find(x => x.Game == gameName).FirstOrDefaultAsync();
-        if (entry == null)
-        {
-            entry = new CodeRedeemModel
-            {
-                Game = gameName,
-                Codes = []
-            };
-            await m_Collection.InsertOneAsync(entry);
-        }
+        var incoming = codes.Select(x => x.Key).ToHashSet();
 
-        entry.Codes ??= [];
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CodeRedeemDbContext>();
+
+        var existingCodes = await context.Codes.Where(x => x.Game == gameName && incoming.Contains(x.Code)).ToListAsync();
 
         var expiredCodes = codes
             .Where(kvp => kvp.Value == CodeStatus.Invalid)
             .Select(kvp => kvp.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var removed = entry.Codes.RemoveAll(code => expiredCodes.Contains(code));
+        List<CodeRedeemModel> codesToRemove = [];
 
-        var existingCodes = new HashSet<string>(entry.Codes, StringComparer.OrdinalIgnoreCase);
-        var newValidCodes = codes
-            .Where(kvp => kvp.Value == CodeStatus.Valid && !existingCodes.Contains(kvp.Key))
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        entry.Codes.AddRange(newValidCodes);
-
-        if (removed == 0 && newValidCodes.Count == 0)
+        if (expiredCodes.Count > 0)
         {
-            m_Logger.LogDebug("No changes to codes for game: {Game}", gameName);
-            return;
+            codesToRemove.AddRange(existingCodes.Where(x => expiredCodes.Contains(x.Code)));
+            context.Codes.RemoveRange(codesToRemove);
         }
 
-        m_Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
-            newValidCodes.Count, removed, gameName);
+        var newValidCodes = codes
+            .Where(kvp => kvp.Value == CodeStatus.Valid)
+            .Select(kvp => kvp.Key)
+            .Except(existingCodes.Select(x => x.Code), StringComparer.OrdinalIgnoreCase)
+            .Select(x => new CodeRedeemModel
+            {
+                Game = gameName,
+                Code = x
+            })
+            .ToList();
 
-        await m_Collection.ReplaceOneAsync(
-            x => x.Game == gameName, entry, new ReplaceOptions { IsUpsert = true });
+        if (newValidCodes.Count > 0)
+        {
+            context.Codes.AddRange(newValidCodes);
+        }
+
+        await context.SaveChangesAsync();
+
+        m_Logger.LogDebug("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
+            newValidCodes.Count, codesToRemove.Count, gameName);
     }
 }

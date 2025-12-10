@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Manage HSR relic set mappings in MongoDB.
+Manage HSR relic set mappings in Postgres (table: HsrRelics).
 
-Schema (collection: hsr_relics):
-- set_id   (int)
-- set_name (string)
+Schema (table "HsrRelics"):
+- SetId   (int, primary key)
+- SetName (text, required)
 
 Usage:
-  python3 hsr_relic_manager.py add [set id] [set name]
-  python3 hsr_relic_manager.py delete [set id]
-  python3 hsr_relic_manager.py update [set id] [new set name]
+    python3 hsr_relic_manager.py add [set id] [set name]
+    python3 hsr_relic_manager.py delete [set id]
+    python3 hsr_relic_manager.py update [set id] [new set name]
 
 Connection settings:
-- Reads ../.env (relative to this script) and loads environment variables
-  before parsing CLI options.
-- Uses env vars MONGODB_CONNECTION_STRING and MONGODB_DATABASE_NAME
-  or pass --conn and --db options to override.
+- Reads ../.env (relative to this script) before CLI parsing.
+- Defaults: POSTGRES_HOST=localhost, POSTGRES_PORT=5433, POSTGRES_DB=mehrak_dev,
+    POSTGRES_USER=postgres (password from POSTGRES_PASSWORD). You can also
+    pass a full connection string with --conn.
 """
 
 import argparse
@@ -24,9 +24,7 @@ import sys
 from pathlib import Path
 from typing import Tuple
 
-from pymongo import MongoClient, ASCENDING
-from pymongo.collection import Collection
-from pymongo.errors import DuplicateKeyError, PyMongoError
+import psycopg
 
 
 def _load_env_from_parent(override: bool = False) -> None:
@@ -36,7 +34,7 @@ def _load_env_from_parent(override: bool = False) -> None:
     Supports simple KEY=VALUE pairs and optional quotes.
     """
     try:
-        env_path = (Path(__file__).resolve().parent.parent / ".env")
+        env_path = Path(__file__).resolve().parent.parent / ".env"
     except Exception:
         return
 
@@ -50,7 +48,7 @@ def _load_env_from_parent(override: bool = False) -> None:
                 continue
             # Support leading `export `
             if line.startswith("export "):
-                line = line[len("export "):]
+                line = line[len("export ") :]
             if "=" not in line:
                 continue
             key, value = line.split("=", 1)
@@ -63,13 +61,27 @@ def _load_env_from_parent(override: bool = False) -> None:
         pass
 
 
-def get_collection(conn: str, db_name: str) -> Collection:
-    client = MongoClient(conn)
-    db = client[db_name]
-    coll = db["hsr_relics"]
-    # Ensure unique index on set_id
-    coll.create_index([("set_id", ASCENDING)], unique=True)
-    return coll
+def build_conninfo(args: argparse.Namespace) -> Tuple[bool, dict]:
+    if args.conn:
+        return False, {"conninfo": args.conn}
+
+    env_conn = os.getenv("POSTGRES_CONNECTION_STRING") or os.getenv("DATABASE_URL")
+    if env_conn:
+        return False, {"conninfo": env_conn}
+
+    host = args.host or os.getenv("POSTGRES_HOST", "localhost")
+    port = args.port or int(os.getenv("POSTGRES_PORT", "5433"))
+    db_name = args.db or os.getenv("POSTGRES_DB", "mehrak_dev")
+    user = args.user or os.getenv("POSTGRES_USER", "postgres")
+    password = args.password or os.getenv("POSTGRES_PASSWORD", "")
+
+    return True, {
+        "host": host,
+        "port": port,
+        "dbname": db_name,
+        "user": user,
+        "password": password,
+    }
 
 
 def parse_args() -> Tuple[str, argparse.Namespace]:
@@ -88,14 +100,29 @@ def parse_args() -> Tuple[str, argparse.Namespace]:
     parser.add_argument(
         "--conn",
         dest="conn",
-        default=os.environ.get("MONGODB_CONNECTION_STRING", "mongodb://localhost:27017"),
-        help="MongoDB connection string (default from env MONGODB_CONNECTION_STRING or mongodb://localhost:27017)",
+        help="Full Postgres connection string/URL (overrides other connection options)",
     )
     parser.add_argument(
-        "--db",
-        dest="db",
-        default=os.environ.get("MONGODB_DATABASE_NAME", "mehrak"),
-        help="MongoDB database name (default from env MONGODB_DATABASE_NAME or 'mehrak')",
+        "--host",
+        dest="host",
+        help="Postgres host (default env POSTGRES_HOST or localhost)",
+    )
+    parser.add_argument(
+        "--port",
+        dest="port",
+        type=int,
+        help="Postgres port (default env POSTGRES_PORT or 5433)",
+    )
+    parser.add_argument(
+        "--db", dest="db", help="Database name (default env POSTGRES_DB or mehrak_dev)"
+    )
+    parser.add_argument(
+        "--user", dest="user", help="Database user (default env POSTGRES_USER)"
+    )
+    parser.add_argument(
+        "--password",
+        dest="password",
+        help="Database password (default env POSTGRES_PASSWORD)",
     )
 
     args = parser.parse_args()
@@ -106,50 +133,55 @@ def parse_args() -> Tuple[str, argparse.Namespace]:
     return args.command, args
 
 
-def cmd_add(coll: Collection, set_id: int, set_name: str) -> int:
+def cmd_add(conn: psycopg.Connection, set_id: int, set_name: str) -> int:
     try:
-        # Only insert if it doesn't exist
-        result = coll.update_one(
-            {"set_id": set_id},
-            {"$setOnInsert": {"set_id": set_id, "set_name": set_name}},
-            upsert=True,
-        )
-        if result.upserted_id is not None:
-            print(f"Inserted: set_id={set_id}, set_name='{set_name}'")
-            return 0
-        else:
-            print(f"Exists: set_id={set_id} already present. No changes made.")
-            return 0
-    except DuplicateKeyError:
-        print(f"Exists: set_id={set_id} already present. No changes made.")
+        with conn.cursor() as cur:
+            cur.execute(
+                'INSERT INTO "HsrRelics" ("SetId", "SetName") VALUES (%s, %s) '
+                'ON CONFLICT ("SetId") DO NOTHING RETURNING "SetId";',
+                (set_id, set_name),
+            )
+            row = cur.fetchone()
+            if row:
+                print(f"Inserted: set_id={set_id}, set_name='{set_name}'")
+            else:
+                print(f"Exists: set_id={set_id} already present. No changes made.")
+            conn.commit()
         return 0
-    except PyMongoError as e:
+    except Exception as e:
         print(f"Error adding mapping: {e}", file=sys.stderr)
         return 1
 
 
-def cmd_update(coll: Collection, set_id: int, set_name: str) -> int:
+def cmd_update(conn: psycopg.Connection, set_id: int, set_name: str) -> int:
     try:
-        result = coll.update_one({"set_id": set_id}, {"$set": {"set_name": set_name}}, upsert=False)
-        if result.matched_count == 0:
-            print(f"Not found: set_id={set_id}. Nothing updated.")
-            return 1
-        print(f"Updated: set_id={set_id}, set_name='{set_name}'")
-        return 0
-    except PyMongoError as e:
+        with conn.cursor() as cur:
+            cur.execute(
+                'UPDATE "HsrRelics" SET "SetName" = %s WHERE "SetId" = %s;',
+                (set_name, set_id),
+            )
+            if cur.rowcount == 0:
+                print(f"Not found: set_id={set_id}. Nothing updated.")
+                return 1
+            conn.commit()
+            print(f"Updated: set_id={set_id}, set_name='{set_name}'")
+            return 0
+    except Exception as e:
         print(f"Error updating mapping: {e}", file=sys.stderr)
         return 1
 
 
-def cmd_delete(coll: Collection, set_id: int) -> int:
+def cmd_delete(conn: psycopg.Connection, set_id: int) -> int:
     try:
-        result = coll.delete_one({"set_id": set_id})
-        if result.deleted_count == 0:
-            print(f"Not found: set_id={set_id}. Nothing deleted.")
-            return 1
-        print(f"Deleted: set_id={set_id}")
-        return 0
-    except PyMongoError as e:
+        with conn.cursor() as cur:
+            cur.execute('DELETE FROM "HsrRelics" WHERE "SetId" = %s;', (set_id,))
+            if cur.rowcount == 0:
+                print(f"Not found: set_id={set_id}. Nothing deleted.")
+                return 1
+            conn.commit()
+            print(f"Deleted: set_id={set_id}")
+            return 0
+    except Exception as e:
         print(f"Error deleting mapping: {e}", file=sys.stderr)
         return 1
 
@@ -159,18 +191,22 @@ def main() -> int:
     _load_env_from_parent()
 
     command, args = parse_args()
+    use_kwargs, conn_kwargs = build_conninfo(args)
     try:
-        coll = get_collection(args.conn, args.db)
-    except Exception as e:  # connection errors
-        print(f"Failed to connect to MongoDB: {e}", file=sys.stderr)
+        with (
+            psycopg.connect(**conn_kwargs)
+            if use_kwargs
+            else psycopg.connect(conn_kwargs["conninfo"])
+        ) as conn:
+            if command == "add":
+                return cmd_add(conn, args.set_id, args.set_name)
+            if command == "update":
+                return cmd_update(conn, args.set_id, args.set_name)
+            if command == "delete":
+                return cmd_delete(conn, args.set_id)
+    except Exception as e:
+        print(f"Failed to connect to Postgres: {e}", file=sys.stderr)
         return 2
-
-    if command == "add":
-        return cmd_add(coll, args.set_id, args.set_name)
-    if command == "update":
-        return cmd_update(coll, args.set_id, args.set_name)
-    if command == "delete":
-        return cmd_delete(coll, args.set_id)
 
     print("Unknown command", file=sys.stderr)
     return 2

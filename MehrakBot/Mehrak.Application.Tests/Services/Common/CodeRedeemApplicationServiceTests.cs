@@ -79,7 +79,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify code was saved to repository
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d =>
                     d.ContainsKey("TESTCODE123") && d["TESTCODE123"] == CodeStatus.Valid)),
             Times.Once);
@@ -122,7 +122,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify codes were saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 3)),
+            x => x.UpdateCodesAsync(Game.Genshin, It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 3)),
             Times.Once);
     }
 
@@ -229,7 +229,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify invalid code is still saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d =>
                     d.ContainsKey("ALREADYUSED") && d["ALREADYUSED"] == CodeStatus.Invalid)),
             Times.Once);
@@ -302,7 +302,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Only successful code should be saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d => d.Count == 1 && d.ContainsKey("SUCCESS"))),
             Times.Once);
     }
@@ -339,7 +339,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Verify normalized code was saved
         codeRepositoryMock.Verify(
-            x => x.AddCodesAsync(Game.Genshin,
+            x => x.UpdateCodesAsync(Game.Genshin,
                 It.Is<Dictionary<string, CodeStatus>>(d => d.ContainsKey("LOWERCASE123"))),
             Times.Once);
 
@@ -378,7 +378,7 @@ public class CodeRedeemApplicationServiceTests
         Assert.That(result.IsSuccess, Is.True);
 
         // Verify correct game was used
-        codeRepositoryMock.Verify(x => x.AddCodesAsync(game, It.IsAny<Dictionary<string, CodeStatus>>()),
+        codeRepositoryMock.Verify(x => x.UpdateCodesAsync(game, It.IsAny<Dictionary<string, CodeStatus>>()),
             Times.Once);
         codeRedeemApiMock.Verify(
             x => x.GetAsync(It.Is<CodeRedeemApiContext>(c => c.Game == game)),
@@ -430,7 +430,7 @@ public class CodeRedeemApplicationServiceTests
         // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -438,8 +438,7 @@ public class CodeRedeemApplicationServiceTests
                     new()
                     {
                         LtUid = 12345ul,
-                        LToken = "test",
-                        GameUids = null
+                        LToken = "test"
                     }
                 ]
             });
@@ -460,7 +459,7 @@ public class CodeRedeemApplicationServiceTests
 
         // Assert: repository should persist updated user with stored game uid
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 12345ul
@@ -486,7 +485,7 @@ public class CodeRedeemApplicationServiceTests
         // User exists with game uid already stored for this game/server
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -522,7 +521,7 @@ public class CodeRedeemApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -539,7 +538,7 @@ public class CodeRedeemApplicationServiceTests
         // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         codeRedeemApiMock
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
@@ -555,13 +554,13 @@ public class CodeRedeemApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -571,7 +570,7 @@ public class CodeRedeemApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion

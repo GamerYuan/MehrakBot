@@ -260,7 +260,7 @@ public class HsrEndGameApplicationServiceTests
         // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -268,8 +268,7 @@ public class HsrEndGameApplicationServiceTests
                     new()
                     {
                         LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = null
+                        LToken = "test"
                     }
                 ]
             });
@@ -290,7 +289,7 @@ public class HsrEndGameApplicationServiceTests
 
         // Assert: repository should persist updated user with stored game uid
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -315,7 +314,7 @@ public class HsrEndGameApplicationServiceTests
         // User exists with game uid already stored for this game/server
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -349,7 +348,7 @@ public class HsrEndGameApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -365,7 +364,7 @@ public class HsrEndGameApplicationServiceTests
         // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
@@ -381,13 +380,13 @@ public class HsrEndGameApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -397,7 +396,7 @@ public class HsrEndGameApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
@@ -421,7 +420,7 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
+        var context = new HsrEndGameApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -477,7 +476,7 @@ public class HsrEndGameApplicationServiceTests
 
         var service = SetupRealApiIntegrationTest();
 
-        var context = new HsrEndGameApplicationContext(MongoTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
+        var context = new HsrEndGameApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -547,7 +546,7 @@ public class HsrEndGameApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrEndGameCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrEndGameCardService>>());
 
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
@@ -557,7 +556,7 @@ public class HsrEndGameApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -584,7 +583,7 @@ public class HsrEndGameApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new HsrEndGameCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrEndGameCardService>>());
 
         // Real HTTP client factory
@@ -603,7 +602,7 @@ public class HsrEndGameApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

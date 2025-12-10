@@ -1,75 +1,208 @@
+import argparse
+import os
+from pathlib import Path
 import sys
-import pymongo
-from pymongo import MongoClient
+from typing import Dict, Union
 
-def main():
-    if len(sys.argv) != 4:
-        print("Usage: python3 code_management.py [add|delete] [game] [code]")
-        print("Example: python3 code_management.py add Genshin TESTCODE")
-        sys.exit(1)
-    
-    operation = sys.argv[1].lower()
-    game = sys.argv[2]
-    code = sys.argv[3].upper()  # Convert to uppercase
-    
-    if operation not in ['add', 'delete']:
-        print("Error: Operation must be 'add' or 'delete'")
-        sys.exit(1)
-    
+import psycopg
+
+GameValue = int
+
+
+def _normalize_game(value: str) -> str:
+    return value.lower().replace(" ", "").replace("_", "")
+
+
+GAME_ALIASES: Dict[str, GameValue] = {
+    "genshin": 1,
+    "gi": 1,
+    "hk4e": 1,
+    "honkaiimpact3": 4,
+    "hi3": 4,
+    "bh3": 4,
+    "honkaiimpact3rd": 4,
+    "honkaistarrail": 2,
+    "hsr": 2,
+    "hkrpg": 2,
+    "zenlesszonezero": 3,
+    "zzz": 3,
+    "zenless": 3,
+    "tearsofthemis": 5,
+    "tot": 5,
+}
+
+
+def _load_env_from_parent(override: bool = False) -> None:
+    """Load environment variables from ../.env relative to this script.
+
+    Only sets variables that are not already defined unless override=True.
+    Supports simple KEY=VALUE pairs and optional quotes.
+    """
     try:
-        # Connect to MongoDB
-        client = MongoClient("mongodb://localhost:27017/")  # Adjust connection string as needed
-        db = client["MehrakBot"]
-        collection = db["codes"]
-        
-        # Find existing document for the game
-        document = collection.find_one({"game": game})
-        
-        if operation == "add":
-            if document is None:
-                # Create new document
-                new_doc = {
-                    "game": game,
-                    "codes": [code]
-                }
-                collection.insert_one(new_doc)
-                print(f"Created new entry for {game} and added code: {code}")
+        env_path = Path(__file__).resolve().parent.parent / ".env"
+    except Exception:
+        return
+
+    if not env_path.exists():
+        return
+
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Support leading `export `
+            if line.startswith("export "):
+                line = line[len("export ") :]
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if override or key not in os.environ:
+                os.environ[key] = value
+    except Exception:
+        # Silently ignore dotenv parse errors to avoid breaking CLI
+        pass
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Manage redeem codes in the Postgres Codes table",
+        epilog="Defaults use env vars POSTGRES_* (port 5433).",
+    )
+    parser.add_argument(
+        "command", choices=["add", "delete"], help="Operation to perform"
+    )
+    parser.add_argument("game", help="Game name, e.g. Genshin, HSR, ZZZ")
+    parser.add_argument("code", help="Redeem code")
+    parser.add_argument(
+        "--conn", dest="conn", help="Full Postgres connection string/URL"
+    )
+    parser.add_argument(
+        "--host",
+        dest="host",
+        help="Postgres host (default env POSTGRES_HOST or localhost)",
+    )
+    parser.add_argument(
+        "--port",
+        dest="port",
+        type=int,
+        help="Postgres port (default env POSTGRES_PORT or 5433)",
+    )
+    parser.add_argument(
+        "--db", dest="db", help="Database name (default env POSTGRES_DB or mehrak_dev)"
+    )
+    parser.add_argument(
+        "--user", dest="user", help="Database user (default env POSTGRES_USER)"
+    )
+    parser.add_argument(
+        "--password",
+        dest="password",
+        help="Database password (default env POSTGRES_PASSWORD)",
+    )
+    return parser.parse_args()
+
+
+def resolve_game(game_input: str) -> GameValue:
+    normalized = _normalize_game(game_input)
+    if normalized in GAME_ALIASES:
+        return GAME_ALIASES[normalized]
+    # Allow exact enum names from the codebase
+    name_map = {
+        "unsupported": 0,
+        "genshin": 1,
+        "honkaistarrail": 2,
+        "zenlesszonezero": 3,
+        "honkaiimpact3": 4,
+        "tearsofthemis": 5,
+    }
+    if normalized in name_map:
+        return name_map[normalized]
+    raise ValueError(
+        f"Unknown game '{game_input}'. Supported: {', '.join(sorted(set(GAME_ALIASES)))}"
+    )
+
+
+def build_conninfo(args: argparse.Namespace) -> Union[str, Dict[str, Union[str, int]]]:
+    if args.conn:
+        return args.conn
+
+    env_conn = os.getenv("POSTGRES_CONNECTION_STRING") or os.getenv("DATABASE_URL")
+    if env_conn:
+        return env_conn
+
+    host = args.host or os.getenv("POSTGRES_HOST", "localhost")
+    port = args.port or int(os.getenv("POSTGRES_PORT", "5433"))
+    db_name = args.db or os.getenv("POSTGRES_DB", "mehrak_dev")
+    user = args.user or os.getenv("POSTGRES_USER", "postgres")
+    password = args.password or os.getenv("POSTGRES_PASSWORD", "")
+
+    return {
+        "host": host,
+        "port": port,
+        "dbname": db_name,
+        "user": user,
+        "password": password,
+    }
+
+
+def add_code(conn: psycopg.Connection, game_value: GameValue, code: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            'INSERT INTO "Codes" ("Game", "Code") VALUES (%s, %s) '
+            'ON CONFLICT ("Game", "Code") DO NOTHING RETURNING "Id";',
+            (game_value, code),
+        )
+        row = cur.fetchone()
+        if row:
+            print(f"Added code '{code}' for game '{game_value}' (Id={row[0]})")
+        else:
+            print(f"Code '{code}' already exists for game '{game_value}'")
+
+
+def delete_code(conn: psycopg.Connection, game_value: GameValue, code: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            'DELETE FROM "Codes" WHERE "Game" = %s AND "Code" = %s;',
+            (game_value, code),
+        )
+        if cur.rowcount and cur.rowcount > 0:
+            print(f"Removed code '{code}' for game '{game_value}'")
+        else:
+            print(f"Code '{code}' not found for game '{game_value}'")
+
+
+def main() -> int:
+    _load_env_from_parent()
+
+    args = parse_args()
+    try:
+        game_value = resolve_game(args.game)
+    except ValueError as exc:  # invalid game name
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    conninfo = build_conninfo(args)
+    code = args.code.upper()
+
+    try:
+        with (
+            psycopg.connect(**conninfo)
+            if isinstance(conninfo, dict)
+            else psycopg.connect(conninfo)
+        ) as conn:
+            if args.command == "add":
+                add_code(conn, game_value, code)
             else:
-                # Check if code already exists
-                if document.get("codes") and code in document["codes"]:
-                    print(f"Code '{code}' already exists for {game}")
-                else:
-                    # Add code to existing document
-                    collection.update_one(
-                        {"game": game},
-                        {"$addToSet": {"codes": code}}
-                    )
-                    print(f"Added code '{code}' to {game}")
-        
-        elif operation == "delete":
-            if document is None or not document.get("codes") or code not in document["codes"]:
-                print(f"Code '{code}' not found for {game}")
-            else:
-                # Remove code from document
-                collection.update_one(
-                    {"game": game},
-                    {"$pull": {"codes": code}}
-                )
-                print(f"Removed code '{code}' from {game}")
-                
-                # Check if codes array is now empty and optionally remove the document
-                updated_doc = collection.find_one({"game": game})
-                if not updated_doc.get("codes"):
-                    collection.delete_one({"game": game})
-                    print(f"Removed empty entry for {game}")
-    
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    
-    finally:
-        if 'client' in locals():
-            client.close()
+                delete_code(conn, game_value, code)
+            conn.commit()
+    except Exception as exc:
+        print(f"Database error: {exc}", file=sys.stderr)
+        return 2
+
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

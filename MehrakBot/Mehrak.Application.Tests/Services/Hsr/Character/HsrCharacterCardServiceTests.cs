@@ -136,7 +136,7 @@ public class HsrCharacterCardServiceTests
         var relicRepositoryMock = new Mock<IRelicRepository>();
 
         var characterCardService = new HsrCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             relicRepositoryMock.Object,
             Mock.Of<ILogger<HsrCharacterCardService>>());
         await characterCardService.InitializeAsync();

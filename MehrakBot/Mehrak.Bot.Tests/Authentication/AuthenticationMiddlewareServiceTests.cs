@@ -87,7 +87,7 @@ public class AuthenticationMiddlewareServiceTests
 
         m_MockUserRepository
             .Setup(x => x.GetUserAsync(TestUserId))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         // Act
         var result = await m_Service.GetAuthenticationAsync(request);
@@ -129,7 +129,7 @@ public class AuthenticationMiddlewareServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = TestUserId,
             Profiles = []
@@ -178,14 +178,14 @@ public class AuthenticationMiddlewareServiceTests
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = TestEncryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = TestUserId,
             Profiles = [profile]
@@ -246,14 +246,14 @@ public class AuthenticationMiddlewareServiceTests
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = TestEncryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = TestUserId,
             Profiles = [profile]
@@ -348,14 +348,14 @@ public class AuthenticationMiddlewareServiceTests
         }, null!, null!, new RestClient());
         mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
 
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = TestProfileId,
             LtUid = TestLtUid,
             LToken = TestEncryptedToken
         };
 
-        var user = new UserModel
+        var user = new UserDto
         {
             Id = TestUserId,
             Profiles = [profile]
@@ -402,7 +402,7 @@ public class AuthenticationMiddlewareServiceTests
     {
         // Arrange
         var mockContext = new Mock<IInteractionContext>();
-        var user = new UserModel { Id = TestUserId };
+        var user = new UserDto { Id = TestUserId };
 
         // Act
         var result = AuthenticationResult.Success(

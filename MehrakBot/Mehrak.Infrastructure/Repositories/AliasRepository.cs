@@ -1,52 +1,89 @@
 ﻿#region
 
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 
 #endregion
 
 namespace Mehrak.Infrastructure.Repositories;
 
-public class AliasRepository : IAliasRepository
+internal class AliasRepository : IAliasRepository
 {
-    private readonly IMongoCollection<AliasModel> m_AliasesCollection;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<AliasRepository> m_Logger;
 
-    public AliasRepository(MongoDbService mongoDbService, ILogger<AliasRepository> logger)
+    public AliasRepository(IServiceScopeFactory scopeFactory, ILogger<AliasRepository> logger)
     {
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
-        m_AliasesCollection = mongoDbService.Aliases;
     }
 
     public async Task<Dictionary<string, string>> GetAliasesAsync(Game gameName)
     {
-        m_Logger.LogInformation("Fetching aliases for game: {Game}", gameName);
-        return await m_AliasesCollection
-            .Find(alias => alias.Game == gameName)
-            .Project(alias => alias.Alias)
-            .FirstOrDefaultAsync() ?? [];
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        m_Logger.LogDebug("Fetching aliases for game: {Game}", gameName);
+        return await context.Aliases.AsNoTracking()
+            .Where(x => x.Game == gameName)
+            .ToDictionaryAsync(x => x.Alias, x => x.CharacterName);
     }
 
-    public async Task UpsertCharacterAliasesAsync(AliasModel aliasModel)
+    public async Task UpsertAliasAsync(Game gameName, Dictionary<string, string> alias)
     {
-        m_Logger.LogInformation("Upserting aliases for game {Game} with {Count} aliases", aliasModel.Game,
-            aliasModel.Alias.Count);
+        if (alias.Count == 0)
+            return;
 
-        var existing = await m_AliasesCollection.Find(x => x.Game == aliasModel.Game).FirstOrDefaultAsync();
-        if (existing != null)
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        // Load existing aliases for the provided keys
+        var aliasKeys = alias.Keys.ToList();
+        var existing = await context.Aliases
+            .Where(x => x.Game == gameName && aliasKeys.Contains(x.Alias))
+            .ToListAsync();
+
+        // Map for quick lookup
+        var existingMap = existing.ToDictionary(x => x.Alias, x => x);
+
+        int updateCount = 0, newCount = 0;
+
+        foreach (var kvp in alias)
         {
-            m_Logger.LogInformation("Updating existing aliases for game {Game}", aliasModel.Game);
-            aliasModel.Id = existing.Id;
-            await m_AliasesCollection.ReplaceOneAsync(x => x.Id == existing.Id, aliasModel);
+            var key = kvp.Key;
+            var character = kvp.Value;
+
+            if (existingMap.TryGetValue(key, out var model))
+            {
+                // Update existing row's character
+                if (!string.Equals(model.CharacterName, character, StringComparison.OrdinalIgnoreCase))
+                {
+                    model.CharacterName = character;
+                    context.Aliases.Update(model);
+                    updateCount++;
+                }
+            }
+            else
+            {
+                // Insert new row
+                context.Aliases.Add(new AliasModel
+                {
+                    Game = gameName,
+                    Alias = key,
+                    CharacterName = character
+                });
+                newCount++;
+            }
         }
-        else
-        {
-            m_Logger.LogInformation("Inserting new aliases for game {Game}", aliasModel.Game);
-            await m_AliasesCollection.InsertOneAsync(aliasModel);
-        }
+
+        await context.SaveChangesAsync();
+
+        m_Logger.LogDebug("Upsert completed. Updated {UpdateCount} entries, Created {NewCount} entries",
+            updateCount, newCount);
     }
 }

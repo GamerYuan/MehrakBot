@@ -79,8 +79,8 @@ public class CommandExecutorServiceTests
             .Returns(Mock.Of<IDisposable>());
 
         m_MockUserRepository
-            .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()))
-            .Returns(Task.CompletedTask);
+            .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()))
+            .Returns(Task.FromResult(true));
     }
 
     [TearDown]
@@ -125,7 +125,7 @@ public class CommandExecutorServiceTests
 
         // Verify server was updated in user model
         m_MockUserRepository.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == TestServer.ToString())),
             Times.Once);
     }
@@ -227,7 +227,7 @@ public class CommandExecutorServiceTests
 
         // Assert
         m_MockUserRepository.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == Server.Europe.ToString())),
             Times.Once);
     }
@@ -671,8 +671,8 @@ public class CommandExecutorServiceTests
             .Callback(() => callOrder.Add("MetricsStart"));
 
         m_MockUserRepository
-            .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()))
-            .Returns(Task.CompletedTask)
+            .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()))
+            .Returns(Task.FromResult(true))
             .Callback(() => callOrder.Add("UpdateLastServer"));
 
         m_MockApplicationService
@@ -704,18 +704,18 @@ public class CommandExecutorServiceTests
 
     #region Helper Methods
 
-    private UserModel CreateTestUser(uint profileId, ulong ltUid, Server? lastUsedServer = null)
+    private UserDto CreateTestUser(uint profileId, ulong ltUid, Server? lastUsedServer = null)
     {
-        var profile = new UserProfile
+        var profile = new UserProfileDto
         {
             ProfileId = profileId,
             LtUid = ltUid,
             LastUsedRegions = lastUsedServer.HasValue
                 ? new Dictionary<Game, string> { { TestGame, lastUsedServer.Value.ToString() } }
-                : null
+                : []
         };
 
-        return new UserModel
+        return new UserDto
         {
             Id = m_TestUserId,
             Profiles = [profile]

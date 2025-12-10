@@ -313,7 +313,7 @@ public class GenshinAbyssApplicationServiceTests
         // User with matching profile and no stored game uids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -321,8 +321,7 @@ public class GenshinAbyssApplicationServiceTests
                     new()
                     {
                         LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = null
+                        LToken = "test"
                     }
                 ]
             });
@@ -343,7 +342,7 @@ public class GenshinAbyssApplicationServiceTests
 
         // Assert persisted
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -368,7 +367,7 @@ public class GenshinAbyssApplicationServiceTests
 
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -402,7 +401,7 @@ public class GenshinAbyssApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert not persisted
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -419,7 +418,7 @@ public class GenshinAbyssApplicationServiceTests
         // Case1: user missing
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
@@ -432,20 +431,20 @@ public class GenshinAbyssApplicationServiceTests
         };
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case2: user present but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles = [new() { LtUid = 99999ul, LToken = "x" }]
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
@@ -473,7 +472,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var context = new GenshinAbyssApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
@@ -529,7 +528,7 @@ public class GenshinAbyssApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new GenshinAbyssApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("floor", (object)floor), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
@@ -611,7 +610,7 @@ public class GenshinAbyssApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinAbyssCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinAbyssCardService>>());
 
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
@@ -623,7 +622,7 @@ public class GenshinAbyssApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -651,7 +650,7 @@ public class GenshinAbyssApplicationServiceTests
     private static GenshinAbyssApplicationService SetupRealApiIntegrationTest()
     {
         // Use all real services - no mocks
-        var cardService = new GenshinAbyssCardService(MongoTestHelper.Instance.ImageRepository,
+        var cardService = new GenshinAbyssCardService(DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinAbyssCardService>>());
 
         // Real HTTP client factory
@@ -682,7 +681,7 @@ public class GenshinAbyssApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 

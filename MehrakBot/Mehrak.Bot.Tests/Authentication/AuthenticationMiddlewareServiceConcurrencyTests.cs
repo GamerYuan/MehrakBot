@@ -89,14 +89,14 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                 var token = m_UserTokens[userId];
                 var encryptedToken = m_EncryptionService.Encrypt(token, CorrectPassphrase);
 
-                var profile = new UserProfile
+                var profile = new UserProfileDto
                 {
                     ProfileId = TestProfileId,
                     LtUid = BaseLtUid + userId % 1000,
                     LToken = encryptedToken
                 };
 
-                return new UserModel
+                return new UserDto
                 {
                     Id = userId,
                     Profiles = [profile]

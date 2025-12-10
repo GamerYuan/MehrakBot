@@ -360,7 +360,7 @@ public class ZzzCharacterApplicationServiceTests
         // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -369,7 +369,6 @@ public class ZzzCharacterApplicationServiceTests
                     {
                         LtUid = 1ul,
                         LToken = "test",
-                        GameUids = null
                     }
                 ]
             });
@@ -390,7 +389,7 @@ public class ZzzCharacterApplicationServiceTests
 
         // Assert: repository should persist updated user with stored game uid
         userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserModel>(u =>
+            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
                 && u.Profiles != null
                 && u.Profiles.Any(p => p.LtUid == 1ul
@@ -415,7 +414,7 @@ public class ZzzCharacterApplicationServiceTests
         // User exists with game uid already stored for this game/server
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -449,7 +448,7 @@ public class ZzzCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     [Test]
@@ -465,7 +464,7 @@ public class ZzzCharacterApplicationServiceTests
         // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserModel?)null);
+            .ReturnsAsync((UserDto?)null);
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
@@ -481,13 +480,13 @@ public class ZzzCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
 
         // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserModel
+            .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
                 Profiles =
@@ -497,7 +496,7 @@ public class ZzzCharacterApplicationServiceTests
             });
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserModel>()), Times.Never);
+        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
     }
 
     #endregion
@@ -524,7 +523,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
         var context = new ZzzCharacterApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
             ("server", Server.Asia.ToString()))
         {
@@ -585,7 +584,7 @@ public class ZzzCharacterApplicationServiceTests
         var service = SetupRealApiIntegrationTest();
 
         var context = new ZzzCharacterApplicationContext(
-            MongoTestHelper.Instance.GetUniqueUserId(),
+            DbTestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
             ("server", Server.Asia.ToString()))
         {
@@ -675,7 +674,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new ZzzCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>());
 
         var characterCacheMock = new Mock<ICharacterCacheService>();
@@ -696,7 +695,7 @@ public class ZzzCharacterApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -733,7 +732,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Use all real services - no mocks
         var cardService = new ZzzCharacterCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>());
 
         // Real HTTP client factory
@@ -771,7 +770,7 @@ public class ZzzCharacterApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -786,7 +785,7 @@ public class ZzzCharacterApplicationServiceTests
         var service = new ZzzCharacterApplicationService(
             cardService,
             imageUpdaterService,
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             characterApiService,
             characterCacheServiceMock.Object,
             wikiApiService,

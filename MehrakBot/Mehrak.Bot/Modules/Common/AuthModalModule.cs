@@ -56,8 +56,10 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         {
             m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
 
+            await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+
             var user = await m_UserRepository.GetUserAsync(Context.User.Id);
-            user ??= new UserModel
+            user ??= new UserDto
             {
                 Id = Context.User.Id
             };
@@ -68,9 +70,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
             {
                 m_Logger.LogWarning("User {UserId} provided invalid UID format", Context.User.Id);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Invalid UID!"))));
+                        .AddComponents(new TextDisplayProperties("Invalid UID!")));
                 return;
             }
 
@@ -79,13 +81,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             if (user.Profiles.Any(x => x.LtUid == ltuid))
             {
                 m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Profile already exists!"))));
+                        .AddComponents(new TextDisplayProperties("Profile already exists!")));
                 return;
             }
 
-            UserProfile profile = new()
+            UserProfileDto profile = new()
             {
                 ProfileId = (uint)user.Profiles.Count() + 1,
                 LtUid = ltuid,
@@ -96,23 +98,28 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             user.Profiles = user.Profiles.Append(profile);
 
-            await m_UserRepository.CreateOrUpdateUserAsync(user);
+            if (!await m_UserRepository.CreateOrUpdateUserAsync(user))
+            {
+                m_Logger.LogError("Failed to add profile for user {UserId}", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Failed to add profile! Please try again later")));
+                return;
+            }
+
             m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
 
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+            await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Added profile successfully!"))));
+                    .AddComponents(new TextDisplayProperties("Added profile successfully!")));
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Error processing auth modal for user {UserId}", Context.User.Id);
 
-            InteractionMessageProperties responseMessage = new()
-            {
-                Content = "An error occurred",
-                Flags = MessageFlags.Ephemeral
-            };
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(responseMessage));
+            await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("An error occurred while processing your request. Please try again later")));
         }
     }
 

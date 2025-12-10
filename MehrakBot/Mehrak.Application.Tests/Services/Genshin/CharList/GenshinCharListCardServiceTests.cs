@@ -28,7 +28,7 @@ public class GenshinCharListCardServiceTests
     public void Setup()
     {
         m_Service = new GenshinCharListCardService(
-            MongoTestHelper.Instance.ImageRepository,
+            DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>());
     }
 
