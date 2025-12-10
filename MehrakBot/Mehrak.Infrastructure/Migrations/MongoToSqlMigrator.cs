@@ -42,7 +42,8 @@ internal class MongoToSqlMigrator : IHostedService
 
         m_Logger.LogInformation("Migrating MongoDB to SQL database");
 
-        await using var transaction = await userDbContext.Database.BeginTransactionAsync(cancellationToken);
+        await using var userTransaction = await userDbContext.Database.BeginTransactionAsync(cancellationToken);
+        await using var relicTransaction = await relicDbContext.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
@@ -64,6 +65,7 @@ internal class MongoToSqlMigrator : IHostedService
             }
 
             await userDbContext.SaveChangesAsync(cancellationToken);
+            await userTransaction.CommitAsync(cancellationToken);
 
             var mongoRelics = await m_MongoService.HsrRelics.Find(_ => true).ToListAsync(cancellationToken);
             var failedRelics = 0;
@@ -82,15 +84,15 @@ internal class MongoToSqlMigrator : IHostedService
             }
 
             await relicDbContext.SaveChangesAsync(cancellationToken);
+            await relicTransaction.CommitAsync(cancellationToken);
 
-            await transaction.CommitAsync(cancellationToken);
             m_Logger.LogInformation("Migration completed. Users: {TotalUsers} (Failed: {FailedUsers}), Relics: {TotalRelics} (Failed: {FailedRelics})",
                 mongoUsers.Count, failedUsers, mongoRelics.Count, failedRelics);
         }
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Migration failed and was rolled back");
-            await transaction.RollbackAsync(cancellationToken);
+            await userTransaction.RollbackAsync(cancellationToken);
             throw;
         }
     }
