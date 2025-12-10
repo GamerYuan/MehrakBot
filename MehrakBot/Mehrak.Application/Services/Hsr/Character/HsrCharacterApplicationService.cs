@@ -161,8 +161,9 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                             }
 
                             jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
-                                .FirstOrDefault(x => x?["name"]?.GetValue<string>() == "Set")?
-                                ["components"]?.AsArray()[0]?["data"]?.GetValue<string>();
+                                .SelectMany(x => x?["components"]?.AsArray() ?? [])
+                                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
+                                ?["data"]?.GetValue<string>();
 
                             if (!string.IsNullOrEmpty(jsonStr)) break;
 

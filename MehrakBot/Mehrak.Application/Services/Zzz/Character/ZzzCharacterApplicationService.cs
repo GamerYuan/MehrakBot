@@ -135,9 +135,10 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
                         string.Format(ResponseMessage.ApiError, "Character Image"));
                 }
 
-                var url = JsonNode.Parse(wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray().FirstOrDefault(x =>
-                        x?["name"]?
-                            .GetValue<string>() == "Gallery")?["components"]?[0]?["data"]?.GetValue<string>() ?? "")
+                var url = JsonNode.Parse(wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
+                    .SelectMany(x => x?["components"]?.AsArray() ?? [])
+                    .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
+                    ?["data"]?.GetValue<string>() ?? "")
                     ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
 
                 if (string.IsNullOrEmpty(url))
