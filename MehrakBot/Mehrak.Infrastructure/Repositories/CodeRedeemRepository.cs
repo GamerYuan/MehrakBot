@@ -60,8 +60,7 @@ internal class CodeRedeemRepository : ICodeRedeemRepository
         var newValidCodes = codes
             .Where(kvp => kvp.Value == CodeStatus.Valid)
             .Select(kvp => kvp.Key)
-            .Except(existingCodes.Select(x => x.Code))
-            .Distinct()
+            .Except(existingCodes.Select(x => x.Code), StringComparer.OrdinalIgnoreCase)
             .Select(x => new CodeRedeemModel
             {
                 Game = gameName,
