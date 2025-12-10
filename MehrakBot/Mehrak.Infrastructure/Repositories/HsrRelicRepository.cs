@@ -42,16 +42,16 @@ internal class HsrRelicRepository : IRelicRepository
             else
             {
                 // Do not overwrite existing name as per original behavior
-                m_Logger.LogDebug("Relic set mapping for setId {SetId} already exists; skipping overwrite", setId);
+                m_Logger.LogDebug("Relic set mapping for setId {SetId} : {SetName} already exists; skipping overwrite", setId, setName);
             }
         }
         catch (DbUpdateException e)
         {
-            m_Logger.LogWarning(e, "Attempted to insert duplicate relic set mapping for setId {SetId}; skipping", setId);
+            m_Logger.LogWarning(e, "An error occurred while inserting relic {SetId}, {SetName}", setId, setName);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "Error adding relic set mapping for setId {SetId}", setId);
+            m_Logger.LogError(e, "Error adding relic set mapping for setId {SetId}, {SetName}", setId, setName);
             throw;
         }
     }
