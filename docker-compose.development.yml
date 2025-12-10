@@ -190,7 +190,6 @@ volumes:
   redis_data:
   prometheus-data:
   grafana-data:
-  seaweed_data:
   app-logs:
     driver: local
     driver_opts:
