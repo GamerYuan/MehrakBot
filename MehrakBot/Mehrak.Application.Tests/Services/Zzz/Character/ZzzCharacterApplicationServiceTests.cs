@@ -554,8 +554,8 @@ public class ZzzCharacterApplicationServiceTests
 
         // First call to wiki API should use initial locale (en-us)
         wikiApiMock.SetupSequence(x => x.GetAsync(It.IsAny<WikiApiContext>()))
-            .ReturnsAsync(Result<JsonNode>.Success(wikiSuccessNode))
-            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not found")); // Simulate not found on second call
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not found"))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiSuccessNode));
 
         var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
         {
@@ -573,6 +573,9 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(result.Data?.Components.OfType<CommandAttachment>().FirstOrDefault()?.Content, Is.Not.Null);
         }
 
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(ctx => ctx.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(ctx => ctx.Locale == WikiLocales.CN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.IsAny<WikiApiContext>()), Times.Exactly(2));
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(x => x.Url == expectedUrl), It.IsAny<IImageProcessor>()));
     }
 
