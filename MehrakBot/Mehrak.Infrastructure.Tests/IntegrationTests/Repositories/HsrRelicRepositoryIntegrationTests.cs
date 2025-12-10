@@ -1,6 +1,8 @@
 ﻿using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace Mehrak.Infrastructure.Tests.IntegrationTests.Repositories;
 
@@ -10,7 +12,29 @@ internal class HsrRelicRepositoryIntegrationTests
     private static RelicDbContext CreateContext() => PostgresTestHelper.Instance.CreateRelicDbContext();
 
     private static HsrRelicRepository CreateRepository(RelicDbContext ctx)
-        => new(ctx, NullLogger<HsrRelicRepository>.Instance);
+        => new(CreateScopeFactory(ctx), NullLogger<HsrRelicRepository>.Instance);
+
+    private static IServiceScopeFactory CreateScopeFactory(RelicDbContext ctx)
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+        serviceProvider
+            .Setup(x => x.GetService(typeof(RelicDbContext)))
+            .Returns(ctx);
+
+        var serviceScope = new Mock<IServiceScope>();
+        serviceScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
+
+        var serviceScopeFactory = new Mock<IServiceScopeFactory>();
+        serviceScopeFactory
+            .Setup(x => x.CreateScope())
+            .Returns(serviceScope.Object);
+
+        serviceProvider
+            .Setup(x => x.GetService(typeof(IServiceScopeFactory)))
+            .Returns(serviceScopeFactory.Object);
+
+        return serviceScopeFactory.Object;
+    }
 
     [Test]
     public async Task AddSetName_PersistsRelicSet()

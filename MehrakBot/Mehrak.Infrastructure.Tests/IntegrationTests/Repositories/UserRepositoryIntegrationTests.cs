@@ -2,7 +2,9 @@
 using Mehrak.Domain.Models;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace Mehrak.Infrastructure.Tests.IntegrationTests.Repositories;
 
@@ -12,7 +14,29 @@ internal class UserRepositoryIntegrationTests
     private static UserDbContext CreateContext() => PostgresTestHelper.Instance.CreateUserDbContext();
 
     private static UserRepository CreateRepository(UserDbContext ctx)
-        => new(ctx, NullLogger<UserRepository>.Instance);
+        => new(CreateScopeFactory(ctx), NullLogger<UserRepository>.Instance);
+
+    private static IServiceScopeFactory CreateScopeFactory(UserDbContext ctx)
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+        serviceProvider
+            .Setup(x => x.GetService(typeof(UserDbContext)))
+            .Returns(ctx);
+
+        var serviceScope = new Mock<IServiceScope>();
+        serviceScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
+
+        var serviceScopeFactory = new Mock<IServiceScopeFactory>();
+        serviceScopeFactory
+            .Setup(x => x.CreateScope())
+            .Returns(serviceScope.Object);
+
+        serviceProvider
+            .Setup(x => x.GetService(typeof(IServiceScopeFactory)))
+            .Returns(serviceScopeFactory.Object);
+
+        return serviceScopeFactory.Object;
+    }
 
     [Test]
     public async Task CreateOrUpdateUserAsync_InsertsAndRetrievesUser()

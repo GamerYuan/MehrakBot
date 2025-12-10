@@ -1,7 +1,9 @@
 ﻿using Mehrak.Domain.Enums;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace Mehrak.Infrastructure.Tests.IntegrationTests.Repositories;
 
@@ -11,7 +13,29 @@ internal class AliasRepositoryIntegrationTests
     private static CharacterDbContext CreateContext() => PostgresTestHelper.Instance.CreateCharacterDbContext();
 
     private static AliasRepository CreateRepository(CharacterDbContext ctx)
-        => new(ctx, NullLogger<AliasRepository>.Instance);
+        => new(CreateScopeFactory(ctx), NullLogger<AliasRepository>.Instance);
+
+    private static IServiceScopeFactory CreateScopeFactory(CharacterDbContext ctx)
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+        serviceProvider
+            .Setup(x => x.GetService(typeof(CharacterDbContext)))
+            .Returns(ctx);
+
+        var serviceScope = new Mock<IServiceScope>();
+        serviceScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
+
+        var serviceScopeFactory = new Mock<IServiceScopeFactory>();
+        serviceScopeFactory
+            .Setup(x => x.CreateScope())
+            .Returns(serviceScope.Object);
+
+        serviceProvider
+            .Setup(x => x.GetService(typeof(IServiceScopeFactory)))
+            .Returns(serviceScopeFactory.Object);
+
+        return serviceScopeFactory.Object;
+    }
 
     private static string UniqueAlias(string prefix)
     {

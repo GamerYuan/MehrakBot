@@ -1,7 +1,9 @@
 ﻿using Mehrak.Domain.Enums;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace Mehrak.Infrastructure.Tests.IntegrationTests.Repositories;
 
@@ -11,7 +13,29 @@ internal class CodeRedeemRepositoryIntegrationTests
     private static CodeRedeemDbContext CreateContext() => PostgresTestHelper.Instance.CreateCodeRedeemDbContext();
 
     private static CodeRedeemRepository CreateRepository(CodeRedeemDbContext ctx)
-        => new(ctx, NullLogger<CodeRedeemRepository>.Instance);
+        => new(CreateScopeFactory(ctx), NullLogger<CodeRedeemRepository>.Instance);
+
+    private static IServiceScopeFactory CreateScopeFactory(CodeRedeemDbContext ctx)
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+        serviceProvider
+            .Setup(x => x.GetService(typeof(CodeRedeemDbContext)))
+            .Returns(ctx);
+
+        var serviceScope = new Mock<IServiceScope>();
+        serviceScope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
+
+        var serviceScopeFactory = new Mock<IServiceScopeFactory>();
+        serviceScopeFactory
+            .Setup(x => x.CreateScope())
+            .Returns(serviceScope.Object);
+
+        serviceProvider
+            .Setup(x => x.GetService(typeof(IServiceScopeFactory)))
+            .Returns(serviceScopeFactory.Object);
+
+        return serviceScopeFactory.Object;
+    }
 
     [Test]
     public async Task UpdateCodesAsync_AddsValidCodes()
