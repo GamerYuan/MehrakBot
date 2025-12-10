@@ -168,7 +168,7 @@ services:
 
   seaweed-s3:
     image: chrislusf/seaweedfs:latest
-    command: 's3 -filer=seaweed-"filer:8888" -ip.bind=0.0.0.0 -port=8333 -config=/etc/seaweedfs/s3.json'
+    command: 's3 -filer="seaweed-filer:8888" -ip.bind=0.0.0.0 -port=8333 -config=/etc/seaweedfs/s3.json'
     depends_on:
       - seaweed-filer
     ports:
