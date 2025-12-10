@@ -196,8 +196,8 @@ def main() -> int:
         with (
             psycopg.connect(**conn_kwargs)
             if use_kwargs
-            else psycopg.connect(conn_kwargs["conninfo"]) as conn
-        ):
+            else psycopg.connect(conn_kwargs["conninfo"])
+        ) as conn:
             if command == "add":
                 return cmd_add(conn, args.set_id, args.set_name)
             if command == "update":

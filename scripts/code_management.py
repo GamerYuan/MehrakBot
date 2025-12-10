@@ -190,8 +190,8 @@ def main() -> int:
         with (
             psycopg.connect(**conninfo)
             if isinstance(conninfo, dict)
-            else psycopg.connect(conninfo) as conn
-        ):
+            else psycopg.connect(conninfo)
+        ) as conn:
             if args.command == "add":
                 add_code(conn, game_value, code)
             else:
