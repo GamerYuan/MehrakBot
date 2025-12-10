@@ -10,7 +10,7 @@ public interface IUserRepository
 {
     Task<UserDto?> GetUserAsync(ulong userId);
 
-    Task CreateOrUpdateUserAsync(UserDto user);
+    Task<bool> CreateOrUpdateUserAsync(UserDto user);
 
     Task<bool> DeleteUserAsync(ulong userId);
 }

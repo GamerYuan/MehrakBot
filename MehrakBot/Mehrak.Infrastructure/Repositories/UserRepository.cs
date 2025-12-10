@@ -45,7 +45,7 @@ internal class UserRepository : IUserRepository
         return dto;
     }
 
-    public async Task CreateOrUpdateUserAsync(UserDto user)
+    public async Task<bool> CreateOrUpdateUserAsync(UserDto user)
     {
         try
         {
@@ -92,10 +92,12 @@ internal class UserRepository : IUserRepository
 
             await context.SaveChangesAsync();
             m_Logger.LogInformation("User {UserId} successfully saved to database", user.Id);
+            return true;
         }
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error saving user {UserId} to database", user.Id);
+            return false;
         }
     }
 

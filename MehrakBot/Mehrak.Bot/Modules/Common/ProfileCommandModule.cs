@@ -47,21 +47,23 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             Description = "The ID of the profile you want to delete. Leave blank if you wish to delete all profiles.")]
         uint profileId = 0)
     {
+        await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+
         var user = await m_UserRepository.GetUserAsync(Context.User.Id);
         if (user?.Profiles == null)
         {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+            await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("No profile found!"))));
+                    .AddComponents(new TextDisplayProperties("No profile found!")));
             return;
         }
 
         if (profileId == 0)
         {
             await m_UserRepository.DeleteUserAsync(Context.User.Id);
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+            await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("All profiles deleted!"))));
+                    .AddComponents(new TextDisplayProperties("All profiles deleted!")));
             return;
         }
 
@@ -69,9 +71,9 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         if (profiles.All(x => x.ProfileId != profileId))
         {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+            await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID {profileId} found!"))));
+                    .AddComponents(new TextDisplayProperties($"No profile with ID {profileId} found!")));
             return;
         }
 
@@ -81,12 +83,18 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
 
         user.Profiles = profiles;
-        await m_UserRepository.CreateOrUpdateUserAsync(user);
+        if (!await m_UserRepository.CreateOrUpdateUserAsync(user))
+        {
+            await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
+            return;
+        }
 
-        await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+        await Context.Interaction.SendFollowupMessageAsync(
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(
-                    new TextDisplayProperties($"Profile {profileId} deleted!"))));
+                    new TextDisplayProperties($"Profile {profileId} deleted!")));
     }
 
     [SubSlashCommand("list", "List your profiles")]
