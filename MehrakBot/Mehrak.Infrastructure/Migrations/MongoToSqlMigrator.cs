@@ -33,13 +33,6 @@ internal class MongoToSqlMigrator : IHostedService
         var userDbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
         var relicDbContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
-        if (await userDbContext.Users.AnyAsync(cancellationToken: cancellationToken) ||
-            await relicDbContext.HsrRelics.AnyAsync(cancellationToken: cancellationToken))
-        {
-            m_Logger.LogInformation("SQL database is not empty. Migration skipped.");
-            return;
-        }
-
         m_Logger.LogInformation("Migrating MongoDB to SQL database");
 
         await using var userTransaction = await userDbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -47,47 +40,56 @@ internal class MongoToSqlMigrator : IHostedService
 
         try
         {
-            var mongoUsers = await m_MongoService.Users.Find(_ => true).ToListAsync(cancellationToken);
-            var failedUsers = 0;
+            int userCount = 0, failedUsers = 0, relicCount = 0, failedRelics = 0;
 
-            foreach (var mongoUser in mongoUsers)
+            if (!await userDbContext.Users.AnyAsync(cancellationToken: cancellationToken))
             {
-                try
+                var mongoUsers = await m_MongoService.Users.Find(_ => true).ToListAsync(cancellationToken);
+                userCount = mongoUsers.Count;
+
+                foreach (var mongoUser in mongoUsers)
                 {
-                    var user = mongoUser.ToDto();
-                    userDbContext.Users.Add(user.ToUserModel());
+                    try
+                    {
+                        var user = mongoUser.ToDto();
+                        userDbContext.Users.Add(user.ToUserModel());
+                    }
+                    catch (Exception e)
+                    {
+                        m_Logger.LogError(e, "Failed to migrate user {UserId}", mongoUser.Id);
+                        failedUsers++;
+                    }
                 }
-                catch (Exception e)
-                {
-                    m_Logger.LogError(e, "Failed to migrate user {UserId}", mongoUser.Id);
-                    failedUsers++;
-                }
+
+                await userDbContext.SaveChangesAsync(cancellationToken);
             }
 
-            await userDbContext.SaveChangesAsync(cancellationToken);
+            if (!await relicDbContext.HsrRelics.AnyAsync(cancellationToken: cancellationToken))
+            {
+                var mongoRelics = await m_MongoService.HsrRelics.Find(_ => true).ToListAsync(cancellationToken);
+                relicCount = mongoRelics.Count;
+
+                foreach (var mongoRelic in mongoRelics)
+                {
+                    try
+                    {
+                        relicDbContext.HsrRelics.Add(new HsrRelicModel { SetId = mongoRelic.SetId, SetName = mongoRelic.SetName });
+                    }
+                    catch (Exception ex)
+                    {
+                        m_Logger.LogError(ex, "Failed to migrate relic {SetId}", mongoRelic.SetId);
+                        failedRelics++;
+                    }
+                }
+
+                await relicDbContext.SaveChangesAsync(cancellationToken);
+            }
+
             await userTransaction.CommitAsync(cancellationToken);
-
-            var mongoRelics = await m_MongoService.HsrRelics.Find(_ => true).ToListAsync(cancellationToken);
-            var failedRelics = 0;
-
-            foreach (var mongoRelic in mongoRelics)
-            {
-                try
-                {
-                    relicDbContext.HsrRelics.Add(new HsrRelicModel { SetId = mongoRelic.SetId, SetName = mongoRelic.SetName });
-                }
-                catch (Exception ex)
-                {
-                    m_Logger.LogError(ex, "Failed to migrate relic {SetId}", mongoRelic.SetId);
-                    failedRelics++;
-                }
-            }
-
-            await relicDbContext.SaveChangesAsync(cancellationToken);
             await relicTransaction.CommitAsync(cancellationToken);
 
             m_Logger.LogInformation("Migration completed. Users: {TotalUsers} (Failed: {FailedUsers}), Relics: {TotalRelics} (Failed: {FailedRelics})",
-                mongoUsers.Count, failedUsers, mongoRelics.Count, failedRelics);
+                    userCount, failedUsers, relicCount, failedRelics);
         }
         catch (Exception ex)
         {
