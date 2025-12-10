@@ -5,6 +5,7 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -13,19 +14,22 @@ namespace Mehrak.Infrastructure.Repositories;
 
 internal class AliasRepository : IAliasRepository
 {
-    private readonly CharacterDbContext m_Context;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<AliasRepository> m_Logger;
 
-    public AliasRepository(CharacterDbContext context, ILogger<AliasRepository> logger)
+    public AliasRepository(IServiceScopeFactory scopeFactory, ILogger<AliasRepository> logger)
     {
-        m_Context = context;
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
     }
 
     public async Task<Dictionary<string, string>> GetAliasesAsync(Game gameName)
     {
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
         m_Logger.LogDebug("Fetching aliases for game: {Game}", gameName);
-        return await m_Context.Aliases.AsNoTracking()
+        return await context.Aliases.AsNoTracking()
             .Where(x => x.Game == gameName)
             .ToDictionaryAsync(x => x.Alias, x => x.CharacterName);
     }
@@ -35,14 +39,19 @@ internal class AliasRepository : IAliasRepository
         if (alias.Count == 0)
             return;
 
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
         // Load existing aliases for the provided keys
         var aliasKeys = alias.Keys.ToList();
-        var existing = await m_Context.Aliases
+        var existing = await context.Aliases
             .Where(x => x.Game == gameName && aliasKeys.Contains(x.Alias))
             .ToListAsync();
 
         // Map for quick lookup
         var existingMap = existing.ToDictionary(x => x.Alias, x => x);
+
+        int updateCount = 0, newCount = 0;
 
         foreach (var kvp in alias)
         {
@@ -55,21 +64,26 @@ internal class AliasRepository : IAliasRepository
                 if (!string.Equals(model.CharacterName, character, StringComparison.OrdinalIgnoreCase))
                 {
                     model.CharacterName = character;
-                    m_Context.Aliases.Update(model);
+                    context.Aliases.Update(model);
+                    updateCount++;
                 }
             }
             else
             {
                 // Insert new row
-                m_Context.Aliases.Add(new AliasModel
+                context.Aliases.Add(new AliasModel
                 {
                     Game = gameName,
                     Alias = key,
                     CharacterName = character
                 });
+                newCount++;
             }
         }
 
-        await m_Context.SaveChangesAsync();
+        m_Logger.LogDebug("Upsert completed. Updated {UpdateCount} entries, Created {NewCount} entries",
+            updateCount, newCount);
+
+        await context.SaveChangesAsync();
     }
 }

@@ -3,18 +3,19 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Repositories;
 
 internal class UserRepository : IUserRepository
 {
-    private readonly UserDbContext m_Context;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<UserRepository> m_Logger;
 
-    public UserRepository(UserDbContext context, ILogger<UserRepository> logger)
+    public UserRepository(IServiceScopeFactory scopeFactory, ILogger<UserRepository> logger)
     {
-        m_Context = context ?? throw new ArgumentNullException(nameof(context));
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
     }
 
@@ -22,7 +23,10 @@ internal class UserRepository : IUserRepository
     {
         m_Logger.LogDebug("Retrieving user {UserId} from database", userId);
 
-        var user = await m_Context.Users
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+
+        var user = await context.Users
             .AsNoTracking()
             .Include(u => u.Profiles)
                 .ThenInclude(p => p.GameUids)
@@ -47,11 +51,14 @@ internal class UserRepository : IUserRepository
         {
             m_Logger.LogInformation("Creating or updating user {UserId} in database", user.Id);
 
+            using var scope = m_ScopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+
             // Ensure timestamp is set similar to Mongo implementation
             user.Timestamp = DateTime.UtcNow;
 
             // Load existing with children
-            var existing = await m_Context.Users
+            var existing = await context.Users
                 .Include(u => u.Profiles)
                     .ThenInclude(p => p.GameUids)
                 .Include(u => u.Profiles)
@@ -61,7 +68,7 @@ internal class UserRepository : IUserRepository
             if (existing == null)
             {
                 var newModel = MapToModel(user);
-                await m_Context.Users.AddAsync(newModel);
+                await context.Users.AddAsync(newModel);
             }
             else
             {
@@ -70,7 +77,7 @@ internal class UserRepository : IUserRepository
 
                 // Replace profiles to keep parity with document upsert behavior
                 // Remove existing children (cascade will handle children but we need explicit for update)
-                m_Context.UserProfiles.RemoveRange(existing.Profiles);
+                context.UserProfiles.RemoveRange(existing.Profiles);
 
                 existing.Profiles.Clear();
 
@@ -80,10 +87,10 @@ internal class UserRepository : IUserRepository
                     existing.Profiles.Add(p);
                 }
 
-                m_Context.Users.Update(existing);
+                context.Users.Update(existing);
             }
 
-            await m_Context.SaveChangesAsync();
+            await context.SaveChangesAsync();
             m_Logger.LogInformation("User {UserId} successfully saved to database", user.Id);
         }
         catch (Exception ex)
@@ -98,15 +105,18 @@ internal class UserRepository : IUserRepository
         {
             m_Logger.LogInformation("Attempting to delete user {UserId} from database", userId);
 
-            var user = await m_Context.Users.FindAsync((long)userId);
+            using var scope = m_ScopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+
+            var user = await context.Users.FindAsync((long)userId);
             if (user == null)
             {
                 m_Logger.LogInformation("Delete user {UserId} result: {Result}", userId, "Not Found");
                 return false;
             }
 
-            m_Context.Users.Remove(user);
-            var affected = await m_Context.SaveChangesAsync();
+            context.Users.Remove(user);
+            var affected = await context.SaveChangesAsync();
             var success = affected > 0;
 
             m_Logger.LogInformation("Delete user {UserId} result: {Result}", userId, success ? "Deleted" : "Not Found");

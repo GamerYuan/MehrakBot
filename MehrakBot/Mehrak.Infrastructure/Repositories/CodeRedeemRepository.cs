@@ -5,6 +5,7 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -14,19 +15,22 @@ namespace Mehrak.Infrastructure.Repositories;
 
 internal class CodeRedeemRepository : ICodeRedeemRepository
 {
-    private readonly CodeRedeemDbContext m_Context;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<CodeRedeemRepository> m_Logger;
 
-    public CodeRedeemRepository(CodeRedeemDbContext context, ILogger<CodeRedeemRepository> logger)
+    public CodeRedeemRepository(IServiceScopeFactory scopeFactory, ILogger<CodeRedeemRepository> logger)
     {
-        m_Context = context;
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
     }
 
     public async Task<List<string>> GetCodesAsync(Game gameName)
     {
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CodeRedeemDbContext>();
+
         m_Logger.LogDebug("Fetching codes for game: {Game}", gameName);
-        return await m_Context.Codes.AsNoTracking()
+        return await context.Codes.AsNoTracking()
             .Where(x => x.Game == gameName)
             .Select(x => x.Code)
             .ToListAsync();
@@ -36,7 +40,10 @@ internal class CodeRedeemRepository : ICodeRedeemRepository
     {
         var incoming = codes.Select(x => x.Key).ToHashSet();
 
-        var existingCodes = await m_Context.Codes.Where(x => x.Game == gameName && incoming.Contains(x.Code)).ToListAsync();
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CodeRedeemDbContext>();
+
+        var existingCodes = await context.Codes.Where(x => x.Game == gameName && incoming.Contains(x.Code)).ToListAsync();
 
         var expiredCodes = codes
             .Where(kvp => kvp.Value == CodeStatus.Invalid)
@@ -48,7 +55,7 @@ internal class CodeRedeemRepository : ICodeRedeemRepository
         if (expiredCodes.Count > 0)
         {
             codesToRemove.AddRange(existingCodes.Where(x => expiredCodes.Contains(x.Code)));
-            m_Context.Codes.RemoveRange(codesToRemove);
+            context.Codes.RemoveRange(codesToRemove);
         }
 
         var newValidCodes = codes
@@ -65,10 +72,10 @@ internal class CodeRedeemRepository : ICodeRedeemRepository
 
         if (newValidCodes.Count > 0)
         {
-            m_Context.Codes.AddRange(newValidCodes);
+            context.Codes.AddRange(newValidCodes);
         }
 
-        await m_Context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         m_Logger.LogDebug("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
             newValidCodes.Count, codesToRemove.Count, gameName);
