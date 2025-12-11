@@ -266,7 +266,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                     ctx.DrawImage(skill.Image, new Point(70, 870 - offset), 1f);
                     ctx.Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
                     EllipsePolygon talentEllipse = new(120, 980 - offset, 25);
-                    ctx.Fill(Color.DarkGray, talentEllipse);
+                    ctx.Fill(skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
