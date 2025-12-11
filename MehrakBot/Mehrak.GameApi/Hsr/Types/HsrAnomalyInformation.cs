@@ -7,6 +7,14 @@ namespace Mehrak.GameApi.Hsr.Types;
 
 public class HsrAnomalyInformation
 {
+    [JsonPropertyName("challenge_peak_records")] public required List<ChallengeRecord> ChallengeRecords { get; init; }
+    [JsonPropertyName("challenge_peak_best_record_brief")] public required RecordBrief BestRecord { get; init; }
+
+    public string ToMedalName() => string.Format(FileNameFormat.Hsr.AnomalyName,
+        $"icon_{BestRecord.RankIconType}_{ChallengeRecords[0].Group.GameVersion}");
+
+    public IImageData ToMedalIconData() => new ImageData(ToMedalName(), BestRecord.RankIcon);
+
 }
 
 public class AnomalyGroup
@@ -26,17 +34,14 @@ public class AnomalyGroup
 public class ChallengeRecord
 {
     [JsonPropertyName("group")] public required AnomalyGroup Group { get; init; }
-    [JsonPropertyName("boss_info")] public BossInfo? BossInfo { get; init; }
+    [JsonPropertyName("boss_info")] public required BossInfo BossInfo { get; init; }
     [JsonPropertyName("mob_infos")] public required List<MobInfo> MobInfo { get; init; }
+    [JsonPropertyName("boss_record")] public BossRecord? BossRecord { get; init; }
+    [JsonPropertyName("mob_records")] public required List<MobRecord> MobRecords { get; init; }
     [JsonPropertyName("has_challenge_record")] public bool HasChallengeRecord { get; init; }
     [JsonPropertyName("battle_num")] public int BattleNum { get; init; }
     [JsonPropertyName("boss_stars")] public int BossStars { get; init; }
     [JsonPropertyName("mob_stars")] public int MobStars { get; init; }
-    [JsonPropertyName("challenge_peak_best_record_brief")] public required RecordBrief BestRecord { get; init; }
-
-    public string ToMedalName() => string.Format(FileNameFormat.Hsr.AnomalyName, $"icon_{BestRecord.RankIconType}_{Group.GameVersion}");
-
-    public IImageData ToMedalIconData() => new ImageData(ToMedalName(), BestRecord.RankIcon);
 }
 
 public class BossInfo
