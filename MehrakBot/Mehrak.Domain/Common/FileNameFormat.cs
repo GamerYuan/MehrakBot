@@ -80,6 +80,11 @@ public static class FileNameFormat
         /// HSR end game buff file name format, where {0} is the buff ID
         /// </summary>
         public const string EndGameBuffName = "hsr_endgame_buff_{0}";
+
+        /// <summary>
+        /// HSR anomaly file name format
+        /// </summary>
+        public const string AnomalyName = "hsr_anomaly_{0}";
     }
 
     public static class Zzz
