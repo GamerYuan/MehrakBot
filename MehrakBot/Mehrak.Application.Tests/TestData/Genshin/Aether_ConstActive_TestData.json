@@ -221,7 +221,7 @@
           "id": 53,
           "name": "Relayed Beacon",
           "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f721/6d636b106d3abeab33b6fea38aa89225.png",
-          "effect": "Increases the Level of Flowfire Blade by 3.\nMaximum upgrade level is 15.",
+          "effect": "Increases the Level of <color=#FFD780FF>Flowfire Blade</color> by 3.\nMaximum upgrade level is 15.",
           "is_actived": true,
           "pos": 3
         },
@@ -237,7 +237,7 @@
           "id": 55,
           "name": "The Fire Inextinguishable",
           "icon": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f721/620c536c24e82d7638b4da0537dae6c8.png",
-          "effect": "Increases the Level of Plains Scorcher by 3.\nMaximum upgrade level is 15.",
+          "effect": "Increases the Level of <color=#FFD780FF>Plains Scorcher</color> by 3.\nMaximum upgrade level is 15.",
           "is_actived": true,
           "pos": 5
         },

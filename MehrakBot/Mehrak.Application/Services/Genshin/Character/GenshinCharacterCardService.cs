@@ -3,6 +3,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -549,7 +550,12 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 
     private static void AssignConstEffects(Constellation activeConst, List<Skill> skills)
     {
-        foreach (var skill in skills.Where(skill => activeConst.Effect!.Contains(skill.Name)))
+        if (activeConst.Effect == null) return;
+
+        var skillNames = Regex.Matches(activeConst.Effect, @"<color=#FFD780FF>(.*)<\/color>")
+            .Select(x => x.Groups[1].Value).ToList();
+
+        foreach (var skill in skills.Where(skill => skillNames.Contains(skill.Name)))
         {
             skill.IsConstAffected = true;
         }
