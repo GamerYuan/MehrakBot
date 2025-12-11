@@ -37,6 +37,7 @@ public class GenshinCharacterCardServiceTests
     [TestCase("Aether_TestData.json", "GoldenImage.jpg", "GenshinCharacter")]
     [TestCase("Aether_NotAscended_TestData.json", "GoldenImage_NotAscended.jpg", "GenshinCharacter_NotAscended")]
     [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg", "GenshinCharacterWithSet")]
+    [TestCase("Aether_ConstActive_TestData.json", "GoldenImage_ConstActive.jpg", "GenshinCharacter_ConstActive")]
     public async Task GenerateCharacterCard_MatchesGoldenImage(string testDataFileName, string goldenImageFileName,
         string outputPrefix)
     {
@@ -83,12 +84,13 @@ public class GenshinCharacterCardServiceTests
         };
     }
 
-    /*
     // To be used to generate golden image should the generation algorithm be updated
+    [Explicit]
     [Test]
     [TestCase("Aether_TestData.json", "GoldenImage.jpg")]
     [TestCase("Aether_NotAscended_TestData.json", "GoldenImage_NotAscended.jpg")]
     [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg")]
+    [TestCase("Aether_ConstActive_TestData.json", "GoldenImage_ConstActive.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var characterDetail =
@@ -110,5 +112,4 @@ public class GenshinCharacterCardServiceTests
 
         Assert.That(image, Is.Not.Null);
     }
-    */
 }
