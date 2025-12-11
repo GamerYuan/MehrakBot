@@ -173,6 +173,12 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 })
             ];
 
+            if (charInfo.Constellations[2].IsActived ?? false)
+                AssignConstEffects(charInfo.Constellations[2], charInfo.Skills);
+
+            if (charInfo.Constellations[4].IsActived ?? false)
+                AssignConstEffects(charInfo.Constellations[4], charInfo.Skills);
+
             // Add loaded images to disposable resources
             var overlay = await overlayTask;
             disposableResources.Add(overlay);
@@ -539,5 +545,13 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             m_Logger.LogWarning("Unknown element type: {Element}, using default color", element);
 
         return color;
+    }
+
+    private static void AssignConstEffects(Constellation activeConst, List<Skill> skills)
+    {
+        foreach (var skill in skills.Where(skill => activeConst.Effect!.Contains(skill.Name)))
+        {
+            skill.IsConstAffected = true;
+        }
     }
 }

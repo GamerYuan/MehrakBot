@@ -191,12 +191,6 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 }
             }
 
-            if (charData.Constellations[2].IsActived ?? false)
-                AssignConstEffects(charData.Constellations[2], charData.Skills);
-
-            if (charData.Constellations[4].IsActived ?? false)
-                AssignConstEffects(charData.Constellations[4], charData.Skills);
-
             await Task.WhenAll(tasks);
 
             if (tasks.Any(x => !x.Result))
@@ -341,13 +335,5 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             });
             ctx.Pad(200, 200);
         };
-    }
-
-    private static void AssignConstEffects(Constellation activeConst, List<Skill> skills)
-    {
-        foreach (var skill in skills.Where(skill => activeConst.Effect!.Contains(skill.Name)))
-        {
-            skill.IsConstAffected = true;
-        }
     }
 }
