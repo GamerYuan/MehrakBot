@@ -124,6 +124,8 @@ public class Skill
 
     [JsonPropertyName("name")] public required string Name { get; init; }
 
+    [JsonIgnore] public bool IsConstAffected { get; set; }
+
     public string ToImageName(int avatarId)
     {
         return string.Format(FileNameFormat.Genshin.SkillName, avatarId, SkillId);

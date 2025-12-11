@@ -3,6 +3,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -173,6 +174,12 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 })
             ];
 
+            if (charInfo.Constellations?.FirstOrDefault(x => x.Pos == 3)?.IsActived ?? false)
+                AssignConstEffects(charInfo.Constellations[2], charInfo.Skills);
+
+            if (charInfo.Constellations?.FirstOrDefault(x => x.Pos == 5)?.IsActived ?? false)
+                AssignConstEffects(charInfo.Constellations[4], charInfo.Skills);
+
             // Add loaded images to disposable resources
             var overlay = await overlayTask;
             disposableResources.Add(overlay);
@@ -266,7 +273,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                     ctx.DrawImage(skill.Image, new Point(70, 870 - offset), 1f);
                     ctx.Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
                     EllipsePolygon talentEllipse = new(120, 980 - offset, 25);
-                    ctx.Fill(Color.DarkGray, talentEllipse);
+                    ctx.Fill(skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
@@ -539,5 +546,25 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             m_Logger.LogWarning("Unknown element type: {Element}, using default color", element);
 
         return color;
+    }
+
+    private void AssignConstEffects(Constellation activeConst, List<Skill> skills)
+    {
+        if (activeConst.Effect == null) return;
+
+        var skillNames = Regex.Matches(activeConst.Effect, @"<color=#FFD780FF>(.*?)<\/color>")
+            .Select(x => x.Groups[1].Value).ToList();
+
+        if (skillNames.Count == 0)
+        {
+            m_Logger.LogWarning("Expected skill name but found none in constellation effect: {Effect}",
+                activeConst.Effect);
+            return;
+        }
+
+        foreach (var skill in skills.Where(skill => skillNames.Contains(skill.Name)))
+        {
+            skill.IsConstAffected = true;
+        }
     }
 }
