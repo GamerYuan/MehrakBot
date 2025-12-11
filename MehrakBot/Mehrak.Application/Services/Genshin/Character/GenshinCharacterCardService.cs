@@ -174,10 +174,10 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 })
             ];
 
-            if (charInfo.Constellations[2].IsActived ?? false)
+            if (charInfo.Constellations?.FirstOrDefault(x => x.Pos == 3)?.IsActived ?? false)
                 AssignConstEffects(charInfo.Constellations[2], charInfo.Skills);
 
-            if (charInfo.Constellations[4].IsActived ?? false)
+            if (charInfo.Constellations?.FirstOrDefault(x => x.Pos == 5)?.IsActived ?? false)
                 AssignConstEffects(charInfo.Constellations[4], charInfo.Skills);
 
             // Add loaded images to disposable resources
@@ -548,12 +548,19 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
         return color;
     }
 
-    private static void AssignConstEffects(Constellation activeConst, List<Skill> skills)
+    private void AssignConstEffects(Constellation activeConst, List<Skill> skills)
     {
         if (activeConst.Effect == null) return;
 
         var skillNames = Regex.Matches(activeConst.Effect, @"<color=#FFD780FF>(.*)<\/color>")
             .Select(x => x.Groups[1].Value).ToList();
+
+        if (skillNames.Count == 0)
+        {
+            m_Logger.LogWarning("Expected skill name but found none in constellation effect: {Effect}",
+                activeConst.Effect);
+            return;
+        }
 
         foreach (var skill in skills.Where(skill => skillNames.Contains(skill.Name)))
         {
