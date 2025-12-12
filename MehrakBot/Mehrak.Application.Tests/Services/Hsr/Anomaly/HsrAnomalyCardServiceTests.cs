@@ -29,6 +29,39 @@ internal class HsrAnomalyCardServiceTests
         await m_Service.InitializeAsync();
     }
 
+    [Test]
+    [TestCase("Anomaly_TestData_1.json", "Anomaly_GoldenImage_1.jpg", "HsrAnomaly_Data1")]
+    [TestCase("Anomaly_TestData_2.json", "Anomaly_GoldenImage_2.jpg", "HsrAnomaly_Data2")]
+    public async Task GenerateAnomalyCardAsync_MatchesGoldenImage(string fileName, string goldenImageName, string testName)
+    {
+        var data = await JsonSerializer.DeserializeAsync<HsrAnomalyInformation>(File.OpenRead(Path.Combine(TestDataPath, fileName)));
+        Assert.That(data, Is.Not.Null);
+
+        var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(TestUserId, data, GetTestUserGameData());
+        cardContext.SetParameter("server", Server.Asia);
+
+        using var image = await m_Service.GetCardAsync(cardContext);
+
+        using var memStream = new MemoryStream();
+        await image.CopyToAsync(memStream);
+        memStream.Position = 0;
+        var bytes = memStream.ToArray();
+
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(TestAssetsPath, goldenImageName));
+
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, bytes);
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
+
+        Assert.That(bytes, Is.Not.Empty);
+        Assert.That(bytes, Is.EqualTo(goldenImage));
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto
