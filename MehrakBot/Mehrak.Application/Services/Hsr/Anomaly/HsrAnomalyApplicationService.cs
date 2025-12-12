@@ -95,7 +95,11 @@ internal class HsrAnomalyApplicationService : BaseApplicationService<HsrAnomalyA
                 .DistinctBy(x => x.Id)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor)));
 
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(), new ImageProcessorBuilder().Build()));
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(),
+                new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
+
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(anomalyData.ToMedalIconData(),
+                new ImageProcessorBuilder().Resize(120, 0).Build()));
 
             if (bestRecord.BossRecord != null)
             {
