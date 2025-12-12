@@ -136,8 +136,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
                     Origin = new Vector2(50, 110),
                     VerticalAlignment = VerticalAlignment.Bottom
                 },
-                    $"{bestRecord.Group.BeginTime.Day}/{bestRecord.Group.BeginTime.Month}/{bestRecord.Group.BeginTime.Year} - " +
-                    $"{bestRecord.Group.EndTime.Day}/{bestRecord.Group.EndTime.Month}/{bestRecord.Group.EndTime.Year}",
+                    $"Version {bestRecord.Group.GameVersion}",
                     Color.White);
 
                 ctx.DrawImage(medalImage, new Point(465, 20), 1f);
