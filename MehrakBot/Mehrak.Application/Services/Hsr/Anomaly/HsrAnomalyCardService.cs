@@ -208,6 +208,8 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
         image.Mutate(ctx =>
         {
             ctx.Clear(OverlayColor);
+
+            ctx.DrawImage(bossImage, new Point(0, 0), 1f);
             ctx.DrawText(new RichTextOptions(m_NormalFont)
             {
                 Origin = new Vector2(300, 43),
@@ -216,7 +218,6 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             for (var i = 0; i < 3; i++)
                 ctx.DrawImage(i < record?.StarNum ? m_BossStarLit : m_BossStarUnlit,
                     new Point(975 + i * 50, 15), 1f);
-            ctx.DrawImage(bossImage, new Point(0, 0), 1f);
 
             if (record != null)
             {
@@ -241,7 +242,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             {
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(550, 140),
+                    Origin = new Vector2(550, 170),
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Center
                 }, "No Clear Records", Color.White);
@@ -272,19 +273,11 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
                 ctx.DrawImage(i < record.StarNum ? m_StarLit : m_StarUnlit,
                     new Point(725 + i * 50, 15), 1f);
 
-            ctx.DrawText(new RichTextOptions(m_NormalFont)
-            {
-                Origin = new Vector2(650, 30),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top
-            }, record.RoundNum.ToString(), Color.White);
-            ctx.DrawImage(m_CycleIcon, new Point(650, 20), 1f);
-
             if (record.Avatars.Count == 0)
             {
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(450, 140),
+                    Origin = new Vector2(450, 170),
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Center
                 }, record.IsFast ? "Quick Clear" : "No Clear Records", Color.White);
@@ -293,6 +286,13 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             {
                 using var rosterImage = GetRosterImage([.. record.Avatars.Select(x => x.Id)], avatarLookup);
                 ctx.DrawImage(rosterImage, new Point(125, 90), 1f);
+                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                {
+                    Origin = new Vector2(650, 30),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top
+                }, record.RoundNum.ToString(), Color.White);
+                ctx.DrawImage(m_CycleIcon, new Point(650, 20), 1f);
             }
 
             ctx.ApplyRoundedCorners(15);
