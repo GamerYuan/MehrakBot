@@ -99,7 +99,7 @@ public class Program
                 new HttpClientHandler
                 {
                     UseCookies = false
-                });
+                }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
 
             builder.Services.AddInfrastructureServices(builder.Configuration);
 
