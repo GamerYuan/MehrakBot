@@ -96,8 +96,6 @@ internal class HsrAnomalyApplicationService : BaseApplicationService<HsrAnomalyA
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor)));
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(), new ImageProcessorBuilder().Build()));
-            tasks.AddRange(bestRecord.MobInfo.Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build())));
 
             if (bestRecord.BossRecord != null)
             {
