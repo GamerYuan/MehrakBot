@@ -110,19 +110,23 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
                 .ToDictionaryAsync(x => x,
                     x => x.GetStyledAvatarImage(),
                     HsrAvatarIdComparer.Instance);
-            var bossImage = await Image.LoadAsync(
+
+            disposableResources.AddRange(avatarImages.Keys);
+            disposableResources.AddRange(avatarImages.Values);
+
+            using var bossImage = await Image.LoadAsync(
                 await m_ImageRepository.DownloadFileToStreamAsync(bestRecord.BossInfo.ToImageName()));
-            var buffImage = bestRecord.BossRecord != null
+            using var buffImage = bestRecord.BossRecord != null
                 ? await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(bestRecord.BossRecord.Buff.ToImageName()))
                 : null;
-            var medalImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(anomalyData.ToMedalName()));
+            using var medalImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(anomalyData.ToMedalName()));
 
             buffImage?.Mutate(ctx => ctx.Resize(110, 0));
 
             var lookup = avatarImages.GetAlternateLookup<int>();
 
-            var background = m_Background.CloneAs<Rgba32>();
+            using var background = m_Background.CloneAs<Rgba32>();
 
             background.Mutate(ctx =>
             {
