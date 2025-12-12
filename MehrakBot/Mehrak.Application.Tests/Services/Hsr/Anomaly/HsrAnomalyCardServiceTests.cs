@@ -34,7 +34,8 @@ internal class HsrAnomalyCardServiceTests
     [TestCase("Anomaly_TestData_2.json", "Anomaly_GoldenImage_2.jpg", "HsrAnomaly_Data2")]
     public async Task GenerateAnomalyCardAsync_MatchesGoldenImage(string fileName, string goldenImageName, string testName)
     {
-        var data = await JsonSerializer.DeserializeAsync<HsrAnomalyInformation>(File.OpenRead(Path.Combine(TestDataPath, fileName)));
+        using var dataStream = File.OpenRead(Path.Combine(TestDataPath, fileName));
+        var data = await JsonSerializer.DeserializeAsync<HsrAnomalyInformation>(dataStream);
         Assert.That(data, Is.Not.Null);
 
         var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(TestUserId, data, GetTestUserGameData());
@@ -84,11 +85,10 @@ internal class HsrAnomalyCardServiceTests
         var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(TestUserId, data, GetTestUserGameData());
         cardContext.SetParameter("server", Server.Asia);
 
-        var image = await m_Service.GetCardAsync(cardContext);
+        await using var image = await m_Service.GetCardAsync(cardContext);
 
         using var fileStream = File.OpenWrite(Path.Combine(TestAssetsPath, goldenImage));
         await image.CopyToAsync(fileStream);
         await fileStream.FlushAsync();
-        await fileStream.DisposeAsync();
     }
 }
