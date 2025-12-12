@@ -50,4 +50,25 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
+
+    public static string GetHelpString(string subcommand = "")
+    {
+        return subcommand switch
+        {
+            "battlesuit" => "## HI3 Battlesuit\n" +
+                            "Get battlesuit card from Honkai Impact 3rd\n" +
+                            "### Usage\n" +
+                            "```/hi3 battlesuit <battlesuit> [server] [profile]```\n" +
+                            "### Parameters:\n" +
+                            "- `battlesuit`: Battlesuit Name (Case-Insensitive)\n" +
+                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                            "### Examples\n" +
+                            "```/hi3 battlesuit White Comet\n/hi3 battlesuit White Comet SEA```",
+            _ => "## Honkai Impact 3rd Toolbox\n" +
+                 "Honkai Impact 3rd related commands and utilities.\n" +
+                 "### Subcommands\n" +
+                 "- battlesuit: Get battlesuit card from Honkai Impact 3rd"
+        };
+    }
 }

@@ -5,6 +5,7 @@
 #region
 
 using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Hsr.Anomaly;
 using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Application.Services.Hsr.EndGame;
@@ -202,12 +203,44 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
+    [SubSlashCommand("aa", "Get Anomaly Arbitration card")]
+    public async Task AnomalyCommand(
+    [SlashCommandParameter(Name = "server", Description = "Server")]
+        Server? server = null,
+    [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the Anomaly command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
+
+        var executor = m_Builder.For<HsrAnomalyApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new HsrAnomalyApplicationContext(Context.User.Id, parameters))
+            .WithCommandName("hsr aa")
+            .Build();
+
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
+    }
+
     public static string GetHelpString(string subcommand = "")
     {
         return subcommand switch
         {
+            "aa" => "## Anomaly Arbitration\n" +
+                    "Get Anomaly Arbitration summary card\n" +
+                    "### Usage\n" +
+                    "```/hsr aa [server] [profile]```\n" +
+                    "### Parameters\n" +
+                    "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                    "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                    "### Examples\n" +
+                    "```/hsr aa\n/hsr aa Asia 2```",
             "as" => "## Apocalyptic Shadow\n" +
-                    "Get Apocalyptic Shadow card summary card\n" +
+                    "Get Apocalyptic Shadow summary card\n" +
                     "### Usage\n" +
                     "```/hsr as [server] [profile]```\n" +
                     "### Parameters\n" +
@@ -246,7 +279,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "### Examples\n" +
                        "```/hsr codes\n/hsr codes HONKAISTARRAIL\n/hsr codes HONKAISTARRAIL, AMPHOREUS\n/hsr codes HONKAISTARRAIL Asia 2```",
             "moc" => "## Memory of Chaos\n" +
-                     "Get Memory of Chaos card summary card\n" +
+                     "Get Memory of Chaos summary card\n" +
                      "### Usage\n" +
                      "```/hsr moc [server] [profile]```\n" +
                      "### Parameters\n" +
@@ -264,7 +297,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "### Examples\n" +
                        "```/hsr notes\n/hsr notes Asia 2```",
             "pf" => "## Pure Fiction\n" +
-                    "Get Pure Fiction card summary card\n" +
+                    "Get Pure Fiction summary card\n" +
                     "### Usage\n" +
                     "```/hsr pf [server] [profile]```\n" +
                     "### Parameters\n" +
@@ -275,13 +308,14 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
-                 "- `as`: Get Apocalyptic Shadow card summary card\n" +
+                 "- aa: Get Anomaly Arbitration summary card\n" +
+                 "- `as`: Get Apocalyptic Shadow summary card\n" +
                  "- `character`: Get character card from Honkai: Star Rail\n" +
                  "- `charlist`: Get character list from Honkai: Star Rail\n" +
                  "- `codes`: Redeem Honkai: Star Rail codes\n" +
-                 "- `moc`: Get Memory of Chaos card summary card\n" +
+                 "- `moc`: Get Memory of Chaos summary card\n" +
                  "- `notes`: Get real-time notes for Honkai: Star Rail\n" +
-                 "- `pf`: Get Pure Fiction card summary card\n"
+                 "- `pf`: Get Pure Fiction summary card\n"
         };
     }
 }

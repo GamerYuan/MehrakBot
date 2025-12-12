@@ -26,6 +26,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         {
             "genshin" => GenshinCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
+            "hi3" => Hi3CommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "hsr" => HsrCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "zzz" => ZzzCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "health" => HealthCommandModule.GetHelpString(),
@@ -34,7 +35,8 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
                  "- `/profile [add|delete|list]`\n" +
                  "- `/checkin`\n" +
                  "- `/genshin [abyss|character|charlist|codes|notes|stygian|theater]`\n" +
-                 "- `/hsr [as|character|charlist|codes|moc|notes|pf]`\n" +
+                 "- `/hi3 [battlesuit]`\n" +
+                 "- `/hsr [aa|as|character|charlist|codes|moc|notes|pf]`\n" +
                  "- `/zzz [character|codes]`\n" +
                  "Use `/help <command>` to get help about a specific command or subcommand.\n" +
                  "For example: `/help genshin` or `/help genshin character`"

@@ -3,12 +3,12 @@
 [SetUpFixture]
 public class TestSetup
 {
-    private DbTestHelper m_MongoTestHelper;
+    private DbTestHelper m_DbTestHelper;
 
     [OneTimeSetUp]
     public async Task Setup()
     {
-        m_MongoTestHelper = new DbTestHelper();
+        m_DbTestHelper = new DbTestHelper();
 
         foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"),
                      "*.png", SearchOption.AllDirectories))
@@ -22,6 +22,6 @@ public class TestSetup
     [OneTimeTearDown]
     public void TearDown()
     {
-        m_MongoTestHelper.Dispose();
+        m_DbTestHelper.Dispose();
     }
 }

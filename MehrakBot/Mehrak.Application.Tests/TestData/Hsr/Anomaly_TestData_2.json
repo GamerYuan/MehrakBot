@@ -1,0 +1,147 @@
+﻿{
+  "challenge_peak_records": [
+    {
+      "group": {
+        "group_id": 2,
+        "begin_time": {
+          "year": 2025,
+          "month": 11,
+          "day": 5,
+          "hour": 7,
+          "minute": 0
+        },
+        "end_time": {
+          "year": 2025,
+          "month": 12,
+          "day": 17,
+          "hour": 6,
+          "minute": 0
+        },
+        "status": "End",
+        "name_mi18n": "Illusory Realm of the Blazing Sun",
+        "game_version": "3.7",
+        "theme_pic_path": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u069sd/3def4f6d09c0af1cf5d73b378204a162.png"
+      },
+      "boss_info": {
+        "maze_id": 204,
+        "name_mi18n": "Sublime, Radiant, Avatar of the Sky",
+        "hard_mode_name_mi18n": "King in Check: Plight",
+        "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u069sd/8d2e75f2b0719e6eb1e5e423437a21a3.png"
+      },
+      "mob_infos": [
+        {
+          "maze_id": 201,
+          "name": "Knight (I)",
+          "monster_name": "Aurumaton Spectral Envoy",
+          "monster_icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u069sd/81fb9a5346bad172504cbe90cb656e8c.png"
+        },
+        {
+          "maze_id": 202,
+          "name": "Knight (II)",
+          "monster_name": "Borisin Warhead: Hoolay",
+          "monster_icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u069sd/0e2128f2b2e7855dbb95613d5f328dd9.png"
+        },
+        {
+          "maze_id": 203,
+          "name": "Knight (III)",
+          "monster_name": "Wonder Forest's Banacademic Office Staff",
+          "monster_icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u069sd/8feea7c2fff1a2084db552e578a9c0a6.png"
+        }
+      ],
+      "has_challenge_record": true,
+      "battle_num": 16,
+      "boss_record": null,
+      "mob_records": [
+        {
+          "maze_id": 201,
+          "has_challenge_record": true,
+          "challenge_time": {
+            "year": 2025,
+            "month": 11,
+            "day": 8,
+            "hour": 9,
+            "minute": 2
+          },
+          "avatars": [
+            {
+              "id": 1308,
+              "level": 80,
+              "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+              "rarity": 5,
+              "element": "lightning",
+              "rank": 0
+            },
+            {
+              "id": 1301,
+              "level": 80,
+              "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+              "rarity": 4,
+              "element": "fire",
+              "rank": 6
+            },
+            {
+              "id": 1308,
+              "level": 80,
+              "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+              "rarity": 5,
+              "element": "lightning",
+              "rank": 0
+            },
+            {
+              "id": 1301,
+              "level": 80,
+              "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+              "rarity": 4,
+              "element": "fire",
+              "rank": 6
+            }
+          ],
+          "round_num": 1,
+          "star_num": 2,
+          "is_fast": false
+        },
+        {
+          "maze_id": 202,
+          "has_challenge_record": true,
+          "challenge_time": {
+            "year": 2025,
+            "month": 11,
+            "day": 8,
+            "hour": 9,
+            "minute": 15
+          },
+          "avatars": [],
+          "round_num": 4,
+          "star_num": 3,
+          "is_fast": true
+        },
+        {
+          "maze_id": 203,
+          "has_challenge_record": true,
+          "challenge_time": {
+            "year": 2025,
+            "month": 11,
+            "day": 8,
+            "hour": 13,
+            "minute": 11
+          },
+          "avatars": [],
+          "round_num": 5,
+          "star_num": 1,
+          "is_fast": false
+        }
+      ],
+      "boss_stars": 0,
+      "mob_stars": 6
+    }
+  ],
+  "has_more_boss_record": false,
+  "challenge_peak_best_record_brief": {
+    "total_battle_num": 9,
+    "mob_stars": 6,
+    "boss_stars": 0,
+    "challenge_peak_rank_icon_type": "ChallengePeakRankIconTypeBronze",
+    "challenge_peak_rank_icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u069sd/48137421fa0fef87952edfa9739339e8.png"
+  }
+}
+
