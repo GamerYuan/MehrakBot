@@ -11,7 +11,7 @@ public class HsrAnomalyInformation
     [JsonPropertyName("challenge_peak_best_record_brief")] public required RecordBrief BestRecord { get; init; }
 
     public string ToMedalName() => string.Format(FileNameFormat.Hsr.AnomalyName,
-        $"icon_{BestRecord.RankIconType}_{ChallengeRecords[0].Group.GameVersion}");
+        $"icon_{BestRecord.RankIconType}_{ChallengeRecords[0].Group.GameVersion.Replace('.', '_')}");
 
     public IImageData ToMedalIconData() => new ImageData(ToMedalName(), BestRecord.RankIcon);
 
@@ -61,12 +61,6 @@ public class MobInfo
     [JsonPropertyName("maze_id")] public int MazeId { get; init; }
     [JsonPropertyName("name")] public required string Name { get; init; }
     [JsonPropertyName("monster_name")] public required string MonsterName { get; init; }
-    [JsonPropertyName("monster_icon")] public required string MonsterIcon { get; init; }
-
-    public string ToImageName() => string.Format(FileNameFormat.Hsr.FileName,
-        string.Join('_', MonsterName.Split(Path.GetInvalidFileNameChars())).Replace(" ", ""));
-
-    public IImageData ToImageData() => new ImageData(ToImageName(), MonsterIcon);
 }
 
 public class MobRecord
