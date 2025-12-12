@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Application.Services.Hsr.Anomaly;
 using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Application.Services.Hsr.EndGame;
@@ -33,6 +34,10 @@ internal static class HsrApplicationServiceExtensions
         services.AddTransient<IApplicationService<HsrMemoryApplicationContext>, HsrMemoryApplicationService>();
         services.AddSingleton<ICardService<HsrMemoryInformation>, HsrMemoryCardService>();
         services.RegisterAsyncInitializableFor<ICardService<HsrMemoryInformation>, HsrMemoryCardService>();
+
+        services.AddTransient<IApplicationService<HsrAnomalyApplicationContext>, HsrAnomalyApplicationService>();
+        services.AddSingleton<ICardService<HsrAnomalyInformation>, HsrAnomalyCardService>();
+        services.RegisterAsyncInitializableFor<ICardService<HsrAnomalyInformation>, HsrAnomalyCardService>();
 
         services
             .AddTransient<IApplicationService<HsrRealTimeNotesApplicationContext>,

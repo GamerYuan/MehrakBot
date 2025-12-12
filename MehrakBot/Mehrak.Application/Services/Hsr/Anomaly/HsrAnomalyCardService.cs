@@ -117,7 +117,6 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
                     await m_ImageRepository.DownloadFileToStreamAsync(bestRecord.BossRecord.Buff.ToImageName()))
                 : null;
             var medalImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(anomalyData.ToMedalName()));
-            medalImage.Mutate(x => x.Resize(120, 0));
 
             buffImage?.Mutate(ctx => ctx.Resize(110, 0));
 
@@ -206,11 +205,6 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
         Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> avatarLookup)
     {
         Image<Rgba32> image = new(1150, 300);
-        bossImage.Mutate(x =>
-        {
-            x.Resize(350, 0);
-            x.ApplyGradientFade();
-        });
         image.Mutate(ctx =>
         {
             ctx.Clear(OverlayColor);

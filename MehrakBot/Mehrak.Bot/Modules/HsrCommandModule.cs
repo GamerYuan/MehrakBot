@@ -5,6 +5,7 @@
 #region
 
 using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Hsr.Anomaly;
 using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Application.Services.Hsr.EndGame;
@@ -202,10 +203,42 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
+    [SubSlashCommand("aa", "Get Anomaly Arbitration card")]
+    public async Task AnomalyCommand(
+    [SlashCommandParameter(Name = "server", Description = "Server")]
+        Server? server = null,
+    [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        uint profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
+
+        var executor = m_Builder.For<HsrAnomalyApplicationContext>()
+            .WithInteractionContext(Context)
+            .WithApplicationContext(new HsrAnomalyApplicationContext(Context.User.Id, parameters))
+            .WithCommandName("hsr aa")
+            .Build();
+
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
+    }
+
     public static string GetHelpString(string subcommand = "")
     {
         return subcommand switch
         {
+            "aa" => "## Anomaly Arbitration\n" +
+                    "Get Anomaly Arbitration card summary card\n" +
+                    "### Usage\n" +
+                    "```/hsr aa [server] [profile]```\n" +
+                    "### Parameters\n" +
+                    "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                    "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                    "### Examples\n" +
+                    "```/hsr aa\n/hsr aa Asia 2```",
             "as" => "## Apocalyptic Shadow\n" +
                     "Get Apocalyptic Shadow card summary card\n" +
                     "### Usage\n" +

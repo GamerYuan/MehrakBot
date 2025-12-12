@@ -49,6 +49,7 @@ public static class GameApiServiceCollectionExtension
         services.AddSingleton<IApiService<HsrMemoryInformation, BaseHoYoApiContext>, HsrMemoryApiService>();
         services.AddSingleton<IApiService<HsrEndInformation, HsrEndGameApiContext>, HsrEndGameApiService>();
         services.AddSingleton<IApiService<HsrRealTimeNotesData, BaseHoYoApiContext>, HsrRealTimeNotesApiService>();
+        services.AddSingleton<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>, HsrAnomalyApiService>();
 
         // Zenless Zone Zero services
         services.AddSingleton<IApiService<ZzzAssaultData, BaseHoYoApiContext>, ZzzAssaultApiService>();
