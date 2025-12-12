@@ -10,8 +10,14 @@ public class HsrAnomalyInformation
     [JsonPropertyName("challenge_peak_records")] public required List<ChallengeRecord> ChallengeRecords { get; init; }
     [JsonPropertyName("challenge_peak_best_record_brief")] public required RecordBrief BestRecord { get; init; }
 
-    public string ToMedalName() => string.Format(FileNameFormat.Hsr.AnomalyName,
-        $"icon_{BestRecord.RankIconType}_{ChallengeRecords[0].Group.GameVersion.Replace('.', '_')}");
+    public string ToMedalName()
+    {
+        if (ChallengeRecords.Count == 0)
+            throw new InvalidOperationException("Cannot generate medal name from empty challenge records");
+
+        return string.Format(FileNameFormat.Hsr.AnomalyName,
+            $"icon_{BestRecord.RankIconType}_{ChallengeRecords[0].Group.GameVersion.Replace('.', '_')}");
+    }
 
     public IImageData ToMedalIconData() => new ImageData(ToMedalName(), BestRecord.RankIcon);
 
