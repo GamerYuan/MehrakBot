@@ -80,8 +80,13 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
         var assignmentImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_assignment");
         var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_weekly");
         var rogueImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_rogue");
+        var gridFightImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_gridfight");
 
         var weeklyReset = server.GetNextWeeklyResetUnix();
+        var nextWeeklyReset = server.GetNextNextWeeklyResetUnix();
+
+        var firstCwReset = new DateTime(2025, 11, 10, 4, 0, 0, DateTimeKind.Utc);
+        var isCwReset = (int)((DateTime.UtcNow - firstCwReset).TotalDays / 7) % 2 == 1;
 
         List<ICommandResultComponent> components =
         [
@@ -116,9 +121,16 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
             new CommandSection([
                     new CommandText("Simulated Universe", CommandText.TextType.Header3),
                     new CommandText($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
-                    new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
+                    new CommandText(isCwReset ? $"Resets <t:{nextWeeklyReset}:R>" : $"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
                 new CommandAttachment("hsr_rogue.png", await rogueImage)
+            ),
+            new CommandSection([
+                    new CommandText("Currency Wars", CommandText.TextType.Header3),
+                    new CommandText($"{data.GridFightWeeklyCur}/{data.GridFightWeeklyMax}"),
+                    new CommandText(isCwReset ? $"Resets <t:{weeklyReset}:R>" : $"Resets <t:{nextWeeklyReset}:R>", CommandText.TextType.Footer)
+                ],
+                new CommandAttachment("hsr_gridfight.png", await gridFightImage)
             )
         ];
 
