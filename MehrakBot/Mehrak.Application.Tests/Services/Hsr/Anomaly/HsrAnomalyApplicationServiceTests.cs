@@ -356,7 +356,7 @@ public class HsrAnomalyApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile)
     {
         // Arrange
-        var (service, apiMock, _, gameRoleApiMock, _) = SetupIntegrationTest();
+        var (service, apiMock, _, gameRoleApiMock, _) = await SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -429,13 +429,13 @@ public class HsrAnomalyApplicationServiceTests
         return (service, apiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, userRepositoryMock);
     }
 
-    private static (
+    private static async Task<(
         HsrAnomalyApplicationService Service,
         Mock<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>> ApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IUserRepository> UserRepositoryMock
-        ) SetupIntegrationTest()
+        )> SetupIntegrationTest()
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrAnomalyCardService(
@@ -458,7 +458,7 @@ public class HsrAnomalyApplicationServiceTests
         var loggerMock = new Mock<ILogger<HsrAnomalyApplicationService>>();
 
         // Initialize card service
-        cardService.InitializeAsync().Wait();
+        await cardService.InitializeAsync();
 
         var service = new HsrAnomalyApplicationService(
             cardService,
