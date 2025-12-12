@@ -211,7 +211,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         uint profile = 1)
     {
         m_Logger.LogInformation(
-            "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
+            "User {User} used the Anomaly command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
@@ -231,7 +231,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         return subcommand switch
         {
             "aa" => "## Anomaly Arbitration\n" +
-                    "Get Anomaly Arbitration card summary card\n" +
+                    "Get Anomaly Arbitration summary card\n" +
                     "### Usage\n" +
                     "```/hsr aa [server] [profile]```\n" +
                     "### Parameters\n" +
@@ -240,7 +240,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                     "### Examples\n" +
                     "```/hsr aa\n/hsr aa Asia 2```",
             "as" => "## Apocalyptic Shadow\n" +
-                    "Get Apocalyptic Shadow card summary card\n" +
+                    "Get Apocalyptic Shadow summary card\n" +
                     "### Usage\n" +
                     "```/hsr as [server] [profile]```\n" +
                     "### Parameters\n" +
@@ -279,7 +279,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "### Examples\n" +
                        "```/hsr codes\n/hsr codes HONKAISTARRAIL\n/hsr codes HONKAISTARRAIL, AMPHOREUS\n/hsr codes HONKAISTARRAIL Asia 2```",
             "moc" => "## Memory of Chaos\n" +
-                     "Get Memory of Chaos card summary card\n" +
+                     "Get Memory of Chaos summary card\n" +
                      "### Usage\n" +
                      "```/hsr moc [server] [profile]```\n" +
                      "### Parameters\n" +
@@ -297,7 +297,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "### Examples\n" +
                        "```/hsr notes\n/hsr notes Asia 2```",
             "pf" => "## Pure Fiction\n" +
-                    "Get Pure Fiction card summary card\n" +
+                    "Get Pure Fiction summary card\n" +
                     "### Usage\n" +
                     "```/hsr pf [server] [profile]```\n" +
                     "### Parameters\n" +
