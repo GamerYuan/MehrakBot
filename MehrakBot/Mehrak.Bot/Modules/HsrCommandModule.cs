@@ -308,13 +308,14 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
-                 "- `as`: Get Apocalyptic Shadow card summary card\n" +
+                 "- aa: Get Anomaly Arbitration summary card\n" +
+                 "- `as`: Get Apocalyptic Shadow summary card\n" +
                  "- `character`: Get character card from Honkai: Star Rail\n" +
                  "- `charlist`: Get character list from Honkai: Star Rail\n" +
                  "- `codes`: Redeem Honkai: Star Rail codes\n" +
-                 "- `moc`: Get Memory of Chaos card summary card\n" +
+                 "- `moc`: Get Memory of Chaos summary card\n" +
                  "- `notes`: Get real-time notes for Honkai: Star Rail\n" +
-                 "- `pf`: Get Pure Fiction card summary card\n"
+                 "- `pf`: Get Pure Fiction summary card\n"
         };
     }
 }
