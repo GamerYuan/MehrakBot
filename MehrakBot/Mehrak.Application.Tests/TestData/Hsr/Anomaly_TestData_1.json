@@ -265,12 +265,6 @@
     "boss_stars": 1,
     "challenge_peak_rank_icon_type": "ChallengePeakRankIconTypeBronze",
     "challenge_peak_rank_icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u069sd/48137421fa0fef87952edfa9739339e8.png"
-  },
-  "role": {
-    "server": "prod_official_asia",
-    "nickname": "Luna",
-    "level": 70,
-    "role_id": "803156364"
   }
 }
 

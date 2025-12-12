@@ -42,6 +42,7 @@ internal class HsrAnomalyCardServiceTests
     [Explicit]
     [Test]
     [TestCase("Anomaly_TestData_1.json", "Anomaly_GoldenImage_1.jpg")]
+    [TestCase("Anomaly_TestData_2.json", "Anomaly_GoldenImage_2.jpg")]
     public async Task GenerateGoldenImage(string fileName, string goldenImage)
     {
         var data = await JsonSerializer.DeserializeAsync<HsrAnomalyInformation>(File.OpenRead(Path.Combine(TestDataPath, fileName)));
