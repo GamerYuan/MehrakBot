@@ -48,9 +48,11 @@ public static class ServerUtility
         var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
 
         // Calculate days until next next Monday
-        var daysUntilNextNextMonday = ((int)DayOfWeek.Monday - (int)nowLocal.DayOfWeek + 7) % 7 + 7;
-        if (daysUntilNextNextMonday == 0 && nowLocal.TimeOfDay >= TimeSpan.FromHours(4))
-            daysUntilNextNextMonday = 14; // If it's already Monday after 4AM, go to next next week
+        var daysUntilMonday = ((int)DayOfWeek.Monday - (int)nowLocal.DayOfWeek + 7) % 7;
+        if (daysUntilMonday == 0 && nowLocal.TimeOfDay >= TimeSpan.FromHours(4))
+            daysUntilMonday = 7; // If it's already Monday after 4AM, go to next week
+
+        var daysUntilNextNextMonday = daysUntilMonday + 7;
 
         var nextNextMondayLocal = nowLocal.Date.AddDays(daysUntilNextNextMonday).AddHours(4);
 

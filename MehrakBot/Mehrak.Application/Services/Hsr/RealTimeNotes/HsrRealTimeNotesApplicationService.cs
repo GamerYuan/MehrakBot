@@ -85,8 +85,12 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
         var weeklyReset = server.GetNextWeeklyResetUnix();
         var nextWeeklyReset = server.GetNextNextWeeklyResetUnix();
 
-        var firstCwReset = new DateTime(2025, 11, 10, 4, 0, 0, DateTimeKind.Utc);
-        var isCwReset = (int)((DateTime.UtcNow - firstCwReset).TotalDays / 7) % 2 == 1;
+        var tzi = server.GetTimeZoneInfo();
+
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tzi);
+        var firstCwReset = new DateTime(2025, 11, 10, 4, 0, 0, DateTimeKind.Unspecified);
+
+        var isCwReset = (int)((nowLocal - firstCwReset).TotalDays / 7) % 2 == 1;
 
         List<ICommandResultComponent> components =
         [
