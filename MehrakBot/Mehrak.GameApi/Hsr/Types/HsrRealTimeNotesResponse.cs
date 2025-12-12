@@ -60,6 +60,12 @@ public class HsrRealTimeNotesData
 
     [JsonPropertyName("rogue_tourn_exp_is_full")]
     public bool RogueTournExpIsFull { get; init; }
+
+    [JsonPropertyName("grid_fight_weekly_cur")]
+    public int GridFightWeeklyCur { get; init; }
+
+    [JsonPropertyName("grid_fight_weekly_max")]
+    public int GridFightWeeklyMax { get; init; }
 }
 
 public class Expedition

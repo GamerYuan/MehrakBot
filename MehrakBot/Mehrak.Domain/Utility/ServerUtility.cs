@@ -40,4 +40,23 @@ public static class ServerUtility
         // Convert back to UTC
         return new DateTimeOffset(nextMondayLocal).ToUnixTimeSeconds();
     }
+
+    public static long GetNextNextWeeklyResetUnix(this Server region)
+    {
+        var tz = region.GetTimeZoneInfo();
+        var nowUtc = DateTime.UtcNow;
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
+
+        // Calculate days until next next Monday
+        var daysUntilMonday = ((int)DayOfWeek.Monday - (int)nowLocal.DayOfWeek + 7) % 7;
+        if (daysUntilMonday == 0 && nowLocal.TimeOfDay >= TimeSpan.FromHours(4))
+            daysUntilMonday = 7; // If it's already Monday after 4AM, go to next week
+
+        var daysUntilNextNextMonday = daysUntilMonday + 7;
+
+        var nextNextMondayLocal = nowLocal.Date.AddDays(daysUntilNextNextMonday).AddHours(4);
+
+        // Convert back to UTC
+        return new DateTimeOffset(nextNextMondayLocal).ToUnixTimeSeconds();
+    }
 }
