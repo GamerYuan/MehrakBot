@@ -180,6 +180,7 @@ services:
       - ./seaweed-s3/s3.json:/etc/seaweedfs/s3.json:ro
     networks:
       - seaweed-network
+      - mehrak-network
 
 networks:
   mehrak-network:
