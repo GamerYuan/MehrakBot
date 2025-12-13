@@ -26,7 +26,7 @@ jobs:
           if [ -d "MehrakBot/Assets" ]; then
             echo "Creating assets archive..."
             cd MehrakBot/Assets
-            zip -r "../assets-$TAG_NAME.zip" . -x "*.git*" ".gitattributes"
+            zip -r "../../assets-$TAG_NAME.zip" . -x "*.git*" ".gitattributes"
           else
             echo "No assets directory found!"
             exit 1
