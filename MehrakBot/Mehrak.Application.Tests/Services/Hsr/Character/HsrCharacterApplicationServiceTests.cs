@@ -380,7 +380,7 @@ public class HsrCharacterApplicationServiceTests
                         {{
                             ""components"": [
                                 {{
-                                    ""component_id"": ""gallery_character"",
+                                    ""component_id"": ""set"",
                                     ""data"": ""{escapedRelicJson}""
                                 }}
                             ]
@@ -738,7 +738,7 @@ public class HsrCharacterApplicationServiceTests
             }
         });
         var escapedRelicJson = relicJson.Replace("\"", "\\\"");
-        var cnResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"CN Relic Set\",\"modules\":[{{\"components\":[{{\"component_id\":\"gallery_character\",\"data\":\"{escapedRelicJson}\"}}]}}]}}}}}}");
+        var cnResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"CN Relic Set\",\"modules\":[{{\"components\":[{{\"component_id\":\"set\",\"data\":\"{escapedRelicJson}\"}}]}}]}}}}}}");
 
         wikiApiMock.Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)))
             .ReturnsAsync(Result<JsonNode>.Success(enResponse!));
@@ -795,7 +795,7 @@ public class HsrCharacterApplicationServiceTests
             }
         });
         var escapedRelicJson = relicJson.Replace("\"", "\\\"");
-        var enResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"EN Relic Set\",\"modules\":[{{\"components\":[{{\"component_id\":\"gallery_character\",\"data\":\"{escapedRelicJson}\"}}]}}]}}}}}}");
+        var enResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"EN Relic Set\",\"modules\":[{{\"components\":[{{\"component_id\":\"set\",\"data\":\"{escapedRelicJson}\"}}]}}]}}}}}}");
 
         List<WikiLocales> calledLocales = [];
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
@@ -864,7 +864,7 @@ public class HsrCharacterApplicationServiceTests
             }
         });
         var escapedPartial = partialJson.Replace("\"", "\\\"");
-        var partialResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"Partial Relic Set\",\"modules\":[{{\"components\":[{{\"component_id\":\"gallery_character\",\"data\":\"{escapedPartial}\"}}]}}]}}}}}}");
+        var partialResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"Partial Relic Set\",\"modules\":[{{\"components\":[{{\"component_id\":\"set\",\"data\":\"{escapedPartial}\"}}]}}]}}}}}}");
         wikiApiMock1.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Success(partialResponse!));
 

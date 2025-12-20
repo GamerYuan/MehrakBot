@@ -162,7 +162,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
                             jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
                                 .SelectMany(x => x?["components"]?.AsArray() ?? [])
-                                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
+                                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "set")
                                 ?["data"]?.GetValue<string>();
 
                             if (!string.IsNullOrEmpty(jsonStr)) break;
@@ -184,7 +184,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
                 new ImageProcessorBuilder().Resize(1000, 0).Build()));
-            tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null).SelectMany(x => x.Value!.Select((e, i) =>
+            tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null)
+                .SelectMany(x => x.Value!.Select((e, i) =>
                     new ImageData(
                         string.Format(FileNameFormat.Hsr.FileName, $"{x.Key.GetSetId()}{(x.Key.Pos < 5 ? i + 1 : i + 5)}"),
                         e?["icon_url"]?.GetValue<string>() ?? string.Empty))
