@@ -188,7 +188,7 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                 .SelectMany(x => x.Value!.Select((e, i) =>
                     new ImageData(
                         string.Format(FileNameFormat.Hsr.FileName, $"{x.Key.GetSetId()}{(x.Key.Pos < 5 ? i + 1 : i + 5)}"),
-                        e?["icon_url"]?.GetValue<string>()!))
+                        e?["icon_url"]?.GetValue<string>() ?? string.Empty))
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor))));
             tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments)
                 .Where(x => !uniqueRelicSetId.Contains(x.GetSetId()))

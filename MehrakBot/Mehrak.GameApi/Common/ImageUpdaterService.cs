@@ -83,12 +83,6 @@ public class ImageUpdaterService : IImageUpdaterService
             return true;
         }
 
-        if (data.AdditionalUrls.Any(string.IsNullOrEmpty))
-        {
-            m_Logger.LogWarning("{Name} has an empty URL, skipping download", data.Name);
-            return false;
-        }
-
         var client = m_HttpClientFactory.CreateClient();
 
         var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
