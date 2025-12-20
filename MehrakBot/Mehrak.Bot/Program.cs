@@ -19,6 +19,7 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
+using Serilog.Events;
 using Serilog.Extensions;
 using Serilog.Sinks.Grafana.Loki;
 using StackExchange.Redis;
@@ -51,9 +52,18 @@ public class Program
             builder.Configuration.AddJsonFile("appsettings.development.json");
         }
 
-        // Configure Serilog
+        var logLevels = builder.Configuration.GetSection("Logging:LogLevel");
+        var defaultLevel = MapLevel(logLevels["Default"], LogEventLevel.Information);
+
         var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Is(defaultLevel);
+
+        // apply overrides from config (System, Microsoft, EF, etc.)
+        foreach (var kvp in logLevels.GetChildren().Where(c => !string.Equals(c.Key, "Default", StringComparison.OrdinalIgnoreCase)))
+            loggerConfig.MinimumLevel.Override(kvp.Key, MapLevel(kvp.Value, defaultLevel));
+
+        // Configure Serilog
+        loggerConfig
             .Enrich.FromLogContext()
             .Enrich.WithRequestQuery()
             .Enrich.WithRequestBody()
@@ -161,4 +171,17 @@ public class Program
             await Log.CloseAndFlushAsync();
         }
     }
+
+    private static LogEventLevel MapLevel(string? value, LogEventLevel fallback) =>
+        value?.ToLowerInvariant() switch
+        {
+            "trace" or "verbose" => LogEventLevel.Verbose,
+            "debug" => LogEventLevel.Debug,
+            "information" or "info" => LogEventLevel.Information,
+            "warning" or "warn" => LogEventLevel.Warning,
+            "error" => LogEventLevel.Error,
+            "critical" or "fatal" => LogEventLevel.Fatal,
+            "none" => LogEventLevel.Fatal + 1,
+            _ => fallback
+        };
 }
