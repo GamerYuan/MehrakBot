@@ -31,6 +31,12 @@ public class ImageUpdaterService : IImageUpdaterService
             return true;
         }
 
+        if (string.IsNullOrEmpty(data.Url))
+        {
+            m_Logger.LogWarning("{Name} has an empty URL, skipping download", data.Name);
+            return false;
+        }
+
         var client = m_HttpClientFactory.CreateClient();
 
         m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
@@ -75,6 +81,12 @@ public class ImageUpdaterService : IImageUpdaterService
         {
             m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
             return true;
+        }
+
+        if (data.AdditionalUrls.Any(string.IsNullOrEmpty))
+        {
+            m_Logger.LogWarning("{Name} has an empty URL, skipping download", data.Name);
+            return false;
         }
 
         var client = m_HttpClientFactory.CreateClient();
