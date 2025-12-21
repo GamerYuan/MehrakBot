@@ -14,6 +14,13 @@ internal class DbStatusService : IDbStatusService
 
     public async Task<bool> GetDbStatus()
     {
-        return await m_UserDbContext.Database.CanConnectAsync();
+        try
+        {
+            return await m_UserDbContext.Database.CanConnectAsync();
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
