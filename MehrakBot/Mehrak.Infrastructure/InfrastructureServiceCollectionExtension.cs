@@ -1,8 +1,8 @@
 ﻿#region
 
 using Amazon.S3;
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
@@ -13,9 +13,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
 using StackExchange.Redis;
 
 #endregion
@@ -40,6 +37,8 @@ public static class InfrastructureServiceCollectionExtension
             options.InstanceName = "MehrakBot_";
         });
 
+        services.AddTransient<IDbStatusService, DbStatusService>();
+
         services.AddSingleton<IAmazonS3>(sp =>
         {
             var cfg = sp.GetRequiredService<IOptions<S3StorageConfig>>().Value;
@@ -59,7 +58,6 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<IAliasRepository, AliasRepository>();
         services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
         services.AddSingleton<IRelicRepository, HsrRelicRepository>();
-        BsonSerializer.RegisterSerializer(new EnumSerializer<Game>(BsonType.String));
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 
