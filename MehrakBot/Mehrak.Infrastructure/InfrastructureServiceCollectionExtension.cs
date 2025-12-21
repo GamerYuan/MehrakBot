@@ -7,7 +7,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Metrics;
-using Mehrak.Infrastructure.Migrations;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -43,9 +42,6 @@ public static class InfrastructureServiceCollectionExtension
             };
             return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
         });
-
-        services.AddSingleton<MongoDbService>();
-        services.AddHostedService<MongoToSqlMigrator>();
 
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IImageRepository, ImageRepository>();
