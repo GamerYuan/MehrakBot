@@ -12,7 +12,6 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
         <PackageReference Include="NetCord" Version="1.0.0-alpha.410" />
         <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.410" />
@@ -28,7 +27,6 @@
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.1" />
-        <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
     </ItemGroup>
 
     <ItemGroup>

@@ -16,6 +16,7 @@ using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using StackExchange.Redis;
 
 #endregion
 
@@ -29,6 +30,15 @@ public static class InfrastructureServiceCollectionExtension
         services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
         services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
         services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
+
+        IConnectionMultiplexer multiplexer = ConnectionMultiplexer.Connect(
+            config["Redis:ConnectionString"] ?? "localhost:6379");
+        services.AddSingleton(multiplexer);
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
+            options.InstanceName = "MehrakBot_";
+        });
 
         services.AddSingleton<IAmazonS3>(sp =>
         {
