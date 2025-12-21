@@ -5,10 +5,9 @@
 #region
 
 using System.Net.NetworkInformation;
+using Mehrak.Domain.Services;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure.Metrics;
-using MongoDB.Bson;
-using MongoDB.Driver;
 using NetCord;
 using NetCord.Gateway;
 using NetCord.Rest;
@@ -21,7 +20,7 @@ namespace Mehrak.Bot.Modules.Common;
 
 public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly IMongoDatabase m_MongoClient;
+    private readonly IDbStatusService m_DbStatus;
     private readonly IConnectionMultiplexer m_RedisConnection;
     private readonly GatewayClient m_GatewayClient;
     private readonly ISystemResourceClientService m_PrometheusClientService;
@@ -49,10 +48,10 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         }
     }
 
-    public HealthCommandModule(IMongoDatabase mongoClient, IConnectionMultiplexer redisConnection,
+    public HealthCommandModule(IDbStatusService dbStatus, IConnectionMultiplexer redisConnection,
         GatewayClient gatewayClient, ISystemResourceClientService prometheusClientService)
     {
-        m_MongoClient = mongoClient;
+        m_DbStatus = dbStatus;
         m_RedisConnection = redisConnection;
         m_GatewayClient = gatewayClient;
         m_PrometheusClientService = prometheusClientService;
@@ -72,7 +71,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
 
         var systemUsageTask = m_PrometheusClientService.GetSystemResourceAsync();
 
-        var mongoDbStatus = await m_MongoClient.RunCommandAsync((Command<BsonDocument>)"{ping:1}") != null;
+        var dbStatus = await m_DbStatus.GetDbStatus();
 
         var cacheStatus = m_RedisConnection.IsConnected;
 
@@ -114,10 +113,10 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         container.AddComponents(new ComponentSeparatorProperties());
         container.AddComponents(new TextDisplayProperties($"### __System Status__\n" +
                                                           "```ansi\n" +
-                                                          GetFormattedStatus("MongoDB",
-                                                              mongoDbStatus
+                                                          GetFormattedStatus("Database",
+                                                              dbStatus
                                                                   ? "Online"
-                                                                  : "Offline", mongoDbStatus) + "\n" +
+                                                                  : "Offline", dbStatus) + "\n" +
                                                           GetFormattedStatus("Redis",
                                                               cacheStatus
                                                                   ? "Online"

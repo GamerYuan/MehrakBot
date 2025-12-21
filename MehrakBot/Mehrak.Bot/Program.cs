@@ -11,7 +11,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using NetCord;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
@@ -22,7 +21,6 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Extensions;
 using Serilog.Sinks.Grafana.Loki;
-using StackExchange.Redis;
 
 #endregion
 
@@ -116,20 +114,6 @@ public class Program
             builder.Services.AddGameApiServices();
 
             builder.Services.AddApplicationServices();
-
-            IConnectionMultiplexer multiplexer = await ConnectionMultiplexer.ConnectAsync(
-                builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379");
-            builder.Services.AddSingleton(multiplexer);
-            builder.Services.AddStackExchangeRedisCache(options =>
-            {
-                options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
-                options.InstanceName = "MehrakBot_";
-            });
-
-            MongoClient mongoClient = new(builder.Configuration["MongoDB:ConnectionString"]);
-            var db = mongoClient.GetDatabase(builder.Configuration["MongoDB:DatabaseName"]);
-
-            builder.Services.AddSingleton(db);
 
             builder.Services.AddBotServices();
 

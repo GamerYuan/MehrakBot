@@ -7,7 +7,6 @@ using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 
 #endregion
 
@@ -56,7 +55,7 @@ internal class CharacterRepository : ICharacterRepository
             Name = name
         }).ToList();
 
-        if (!newEntities.Any()) return;
+        if (newEntities.Count == 0) return;
 
         m_Logger.LogDebug("Upserting characters for game {Game} with {Count} characters",
             gameName, newEntities.Count);

@@ -1,22 +1,19 @@
 ﻿#region
 
 using Amazon.S3;
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Metrics;
-using Mehrak.Infrastructure.Migrations;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
+using StackExchange.Redis;
 
 #endregion
 
@@ -31,6 +28,17 @@ public static class InfrastructureServiceCollectionExtension
         services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
         services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
 
+        IConnectionMultiplexer multiplexer = ConnectionMultiplexer.Connect(
+            config["Redis:ConnectionString"] ?? "localhost:6379");
+        services.AddSingleton(multiplexer);
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
+            options.InstanceName = "MehrakBot_";
+        });
+
+        services.AddTransient<IDbStatusService, DbStatusService>();
+
         services.AddSingleton<IAmazonS3>(sp =>
         {
             var cfg = sp.GetRequiredService<IOptions<S3StorageConfig>>().Value;
@@ -44,16 +52,12 @@ public static class InfrastructureServiceCollectionExtension
             return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
         });
 
-        services.AddSingleton<MongoDbService>();
-        services.AddHostedService<MongoToSqlMigrator>();
-
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IImageRepository, ImageRepository>();
         services.AddSingleton<ICharacterRepository, CharacterRepository>();
         services.AddSingleton<IAliasRepository, AliasRepository>();
         services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
         services.AddSingleton<IRelicRepository, HsrRelicRepository>();
-        BsonSerializer.RegisterSerializer(new EnumSerializer<Game>(BsonType.String));
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 
