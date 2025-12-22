@@ -18,3 +18,23 @@ public class AddDashboardUserResultDto
     public string? TemporaryPassword { get; init; }
     public bool RequiresPasswordReset { get; init; }
 }
+
+public class ChangeDashboardPasswordRequestDto
+{
+    public Guid UserId { get; init; }
+    public string CurrentPassword { get; init; } = string.Empty;
+    public string NewPassword { get; init; } = string.Empty;
+}
+
+public class ChangeDashboardPasswordResultDto
+{
+    public bool Succeeded { get; init; }
+    public string? Error { get; init; }
+    public bool SessionsInvalidated { get; init; }
+}
+
+public class ForceResetDashboardPasswordRequestDto
+{
+    public Guid UserId { get; init; }
+    public string NewPassword { get; init; } = string.Empty;
+}

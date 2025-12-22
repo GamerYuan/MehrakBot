@@ -111,4 +111,55 @@ public class AuthController : ControllerBase
             gameWritePermissions = result.GameWritePermissions
         });
     }
+
+    [Authorize]
+    [HttpPost("password")]
+    public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Invalid user context." });
+
+        var result = await m_AuthService.ChangePasswordAsync(new ChangeDashboardPasswordRequestDto
+        {
+            UserId = userId,
+            CurrentPassword = request.CurrentPassword,
+            NewPassword = request.NewPassword
+        }, HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+            return BadRequest(new { error = result.Error ?? "Unable to update password." });
+
+        if (result.SessionsInvalidated)
+            await HttpContext.SignOutAsync();
+
+        return Ok(new { requiresPasswordReset = false });
+    }
+
+    [Authorize]
+    [HttpPost("password/reset")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Invalid user context." });
+
+        var result = await m_AuthService.ForceResetPasswordAsync(new ForceResetDashboardPasswordRequestDto
+        {
+            UserId = userId,
+            NewPassword = request.NewPassword
+        }, HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+            return BadRequest(new { error = result.Error ?? "Unable to reset password." });
+
+        await HttpContext.SignOutAsync();
+        return Ok(new { requiresPasswordReset = false });
+    }
 }

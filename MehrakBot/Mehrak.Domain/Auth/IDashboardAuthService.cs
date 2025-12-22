@@ -8,4 +8,6 @@ public interface IDashboardAuthService
     Task<bool> ValidateSessionAsync(string sessionToken, CancellationToken ct = default);
     Task InvalidateSessionAsync(string sessionToken, CancellationToken ct = default);
     Task<AddDashboardUserResultDto> AddDashboardUserAsync(AddDashboardUserRequestDto request, CancellationToken ct = default);
+    Task<ChangeDashboardPasswordResultDto> ChangePasswordAsync(ChangeDashboardPasswordRequestDto request, CancellationToken ct = default);
+    Task<ChangeDashboardPasswordResultDto> ForceResetPasswordAsync(ForceResetDashboardPasswordRequestDto request, CancellationToken ct = default);
 }

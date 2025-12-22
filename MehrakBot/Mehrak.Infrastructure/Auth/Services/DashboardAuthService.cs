@@ -148,13 +148,14 @@ public class DashboardAuthService : IDashboardAuthService
 
         var tempPassword = GenerateTemporaryPassword();
         user.PasswordHash = m_Hasher.HashPassword(user, tempPassword);
-        user.GamePermissions = [.. normalizedPermissions
+        user.GamePermissions = normalizedPermissions
             .Select(code => new DashboardGamePermission
             {
                 GameCode = code,
                 AllowWrite = true,
                 User = user
-            })];
+            })
+            .ToList();
 
         m_Db.DashboardUsers.Add(user);
         await m_Db.SaveChangesAsync(ct);
@@ -167,6 +168,105 @@ public class DashboardAuthService : IDashboardAuthService
             TemporaryPassword = tempPassword,
             RequiresPasswordReset = user.RequirePasswordReset,
             GameWritePermissions = normalizedPermissions
+        };
+    }
+
+    public async Task<ChangeDashboardPasswordResultDto> ChangePasswordAsync(ChangeDashboardPasswordRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+        {
+            return new ChangeDashboardPasswordResultDto
+            {
+                Succeeded = false,
+                Error = "New password is too short."
+            };
+        }
+
+        var user = await m_Db.DashboardUsers
+            .Include(u => u.Sessions)
+            .SingleOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct);
+
+        if (user == null)
+        {
+            return new ChangeDashboardPasswordResultDto
+            {
+                Succeeded = false,
+                Error = "User not found."
+            };
+        }
+
+        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
+        if (verify == PasswordVerificationResult.Failed)
+        {
+            return new ChangeDashboardPasswordResultDto
+            {
+                Succeeded = false,
+                Error = "Current password is incorrect."
+            };
+        }
+
+        user.PasswordHash = m_Hasher.HashPassword(user, request.NewPassword);
+        user.RequirePasswordReset = false;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        var hadSessions = user.Sessions.Count > 0;
+        m_Db.DashboardSessions.RemoveRange(user.Sessions);
+
+        await m_Db.SaveChangesAsync(ct);
+
+        return new ChangeDashboardPasswordResultDto
+        {
+            Succeeded = true,
+            SessionsInvalidated = hadSessions
+        };
+    }
+
+    public async Task<ChangeDashboardPasswordResultDto> ForceResetPasswordAsync(ForceResetDashboardPasswordRequestDto request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+        {
+            return new ChangeDashboardPasswordResultDto
+            {
+                Succeeded = false,
+                Error = "New password is too short."
+            };
+        }
+
+        var user = await m_Db.DashboardUsers
+            .Include(u => u.Sessions)
+            .SingleOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct);
+
+        if (user == null)
+        {
+            return new ChangeDashboardPasswordResultDto
+            {
+                Succeeded = false,
+                Error = "User not found."
+            };
+        }
+
+        if (!user.RequirePasswordReset)
+        {
+            return new ChangeDashboardPasswordResultDto
+            {
+                Succeeded = false,
+                Error = "Password reset is not required."
+            };
+        }
+
+        user.PasswordHash = m_Hasher.HashPassword(user, request.NewPassword);
+        user.RequirePasswordReset = false;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        var hadSessions = user.Sessions.Count > 0;
+        m_Db.DashboardSessions.RemoveRange(user.Sessions);
+
+        await m_Db.SaveChangesAsync(ct);
+
+        return new ChangeDashboardPasswordResultDto
+        {
+            Succeeded = true,
+            SessionsInvalidated = hadSessions
         };
     }
 
