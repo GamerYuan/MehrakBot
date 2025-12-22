@@ -17,4 +17,5 @@ public class LoginResultDto
 
     public bool IsSuperAdmin { get; init; }
     public IReadOnlyCollection<string> GameWritePermissions { get; init; } = [];
+    public bool RequiresPasswordReset { get; init; }
 }

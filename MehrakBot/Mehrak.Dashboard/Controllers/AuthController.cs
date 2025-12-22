@@ -63,7 +63,8 @@ public class AuthController : ControllerBase
             username = result.Username,
             discordUserId = result.DiscordUserId,
             isSuperAdmin = result.IsSuperAdmin,
-            gameWritePermissions = result.GameWritePermissions
+            gameWritePermissions = result.GameWritePermissions,
+            requiresPasswordReset = result.RequiresPasswordReset
         });
     }
 
@@ -72,5 +73,42 @@ public class AuthController : ControllerBase
     {
         await HttpContext.SignOutAsync();
         return Ok();
+    }
+
+    [Authorize(Policy = "RequireSuperAdmin")]
+    [HttpPost("add")]
+    public async Task<IActionResult> AddUser([FromBody] AddDashboardUserRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var permissions = request.GameWritePermissions?
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p.Trim())
+            .ToArray() ?? Array.Empty<string>();
+
+        var result = await m_AuthService.AddDashboardUserAsync(new AddDashboardUserRequestDto
+        {
+            Username = request.Username.Trim(),
+            DiscordUserId = request.DiscordUserId,
+            IsSuperAdmin = request.IsSuperAdmin,
+            GameWritePermissions = permissions
+        }, HttpContext.RequestAborted);
+
+        if (!result.Succeeded)
+        {
+            var errorPayload = new { error = result.Error ?? "Failed to create dashboard user." };
+            var isConflict = result.Error?.Contains("already", StringComparison.OrdinalIgnoreCase) == true;
+            return isConflict ? Conflict(errorPayload) : BadRequest(errorPayload);
+        }
+
+        return Ok(new
+        {
+            userId = result.UserId,
+            username = result.Username,
+            temporaryPassword = result.TemporaryPassword,
+            requiresPasswordReset = result.RequiresPasswordReset,
+            gameWritePermissions = result.GameWritePermissions
+        });
     }
 }

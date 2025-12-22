@@ -8,6 +8,7 @@ public class DashboardUser
     public long DiscordId { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsSuperAdmin { get; set; } = false;
+    public bool RequirePasswordReset { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 

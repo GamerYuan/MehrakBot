@@ -21,6 +21,7 @@ public class DashboardAuthDbContext : DbContext
             b.Property(u => u.Username).IsRequired().HasMaxLength(100);
             b.Property(u => u.PasswordHash).IsRequired();
             b.Property(u => u.DiscordId).IsRequired();
+            b.Property(u => u.RequirePasswordReset).IsRequired();
         });
 
         modelBuilder.Entity<DashboardSession>(b =>
