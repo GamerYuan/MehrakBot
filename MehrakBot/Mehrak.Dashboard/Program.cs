@@ -90,6 +90,7 @@ public class Program
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
+        builder.Services.AddScoped<IDashboardUserService, DashboardUserService>();
         builder.Services.AddScoped<DashboardCookieEvents>();
 
         builder.Services

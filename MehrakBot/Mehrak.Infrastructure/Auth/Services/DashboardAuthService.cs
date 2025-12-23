@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+﻿using System.Linq;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Infrastructure.Auth.Entities;
@@ -13,8 +13,6 @@ public class DashboardAuthService : IDashboardAuthService
     private readonly PasswordHasher<DashboardUser> m_Hasher = new();
 
     private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(1);
-    private const string TemporaryPasswordCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@#$%^&*_-";
-    private const int TemporaryPasswordLength = 16;
 
     public DashboardAuthService(DashboardAuthDbContext db)
     {
@@ -89,86 +87,6 @@ public class DashboardAuthService : IDashboardAuthService
             m_Db.DashboardSessions.Remove(session);
             await m_Db.SaveChangesAsync(ct);
         }
-    }
-
-    public async Task<AddDashboardUserResultDto> AddDashboardUserAsync(AddDashboardUserRequestDto request, CancellationToken ct = default)
-    {
-        var username = request.Username?.Trim();
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return new AddDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is required."
-            };
-        }
-
-        if (request.DiscordUserId <= 0)
-        {
-            return new AddDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Discord user id must be a positive number."
-            };
-        }
-
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.Username == username, ct))
-        {
-            return new AddDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is already in use."
-            };
-        }
-
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.DiscordId == request.DiscordUserId, ct))
-        {
-            return new AddDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Discord user id is already in use."
-            };
-        }
-
-        var normalizedPermissions = (request.GameWritePermissions ?? Array.Empty<string>())
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.Trim().ToLowerInvariant())
-            .Distinct()
-            .ToArray();
-
-        var user = new DashboardUser
-        {
-            Username = username,
-            DiscordId = request.DiscordUserId,
-            IsSuperAdmin = request.IsSuperAdmin,
-            IsActive = true,
-            RequirePasswordReset = true,
-            UpdatedAtUtc = DateTime.UtcNow
-        };
-
-        var tempPassword = GenerateTemporaryPassword();
-        user.PasswordHash = m_Hasher.HashPassword(user, tempPassword);
-        user.GamePermissions = normalizedPermissions
-            .Select(code => new DashboardGamePermission
-            {
-                GameCode = code,
-                AllowWrite = true,
-                User = user
-            })
-            .ToList();
-
-        m_Db.DashboardUsers.Add(user);
-        await m_Db.SaveChangesAsync(ct);
-
-        return new AddDashboardUserResultDto
-        {
-            Succeeded = true,
-            UserId = user.Id,
-            Username = user.Username,
-            TemporaryPassword = tempPassword,
-            RequiresPasswordReset = user.RequirePasswordReset,
-            GameWritePermissions = normalizedPermissions
-        };
     }
 
     public async Task<ChangeDashboardPasswordResultDto> ChangePasswordAsync(ChangeDashboardPasswordRequestDto request, CancellationToken ct = default)
@@ -268,20 +186,5 @@ public class DashboardAuthService : IDashboardAuthService
             Succeeded = true,
             SessionsInvalidated = hadSessions
         };
-    }
-
-    private static string GenerateTemporaryPassword(int length = TemporaryPasswordLength)
-    {
-        var passwordChars = new char[length];
-        Span<byte> buffer = stackalloc byte[length];
-        RandomNumberGenerator.Fill(buffer);
-
-        for (var i = 0; i < length; i++)
-        {
-            var index = buffer[i] % TemporaryPasswordCharacters.Length;
-            passwordChars[i] = TemporaryPasswordCharacters[index];
-        }
-
-        return new string(passwordChars);
     }
 }
