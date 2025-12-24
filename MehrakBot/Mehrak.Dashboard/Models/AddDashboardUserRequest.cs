@@ -13,6 +13,6 @@ namespace Mehrak.Dashboard.Models
 
         public bool IsSuperAdmin { get; set; }
 
-        public IEnumerable<string> GameWritePermissions { get; set; } = Array.Empty<string>();
+        public IEnumerable<string> GameWritePermissions { get; set; } = [];
     }
 }

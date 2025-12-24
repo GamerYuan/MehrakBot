@@ -9,6 +9,6 @@ public class UpdatePasswordRequest
     public string CurrentPassword { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(100, MinimumLength = 12, ErrorMessage = "New password must be at least 12 characters.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "New password must be at least 8 characters.")]
     public string NewPassword { get; set; } = string.Empty;
 }
