@@ -4,6 +4,7 @@ using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Auth.Services;
 
@@ -11,17 +12,20 @@ public class DashboardUserService : IDashboardUserService
 {
     private readonly DashboardAuthDbContext m_Db;
     private readonly PasswordHasher<DashboardUser> m_Hasher = new();
+    private readonly ILogger<DashboardUserService> m_Logger;
 
     private const string TemporaryPasswordCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@#$%^&*_-";
     private const int TemporaryPasswordLength = 16;
 
-    public DashboardUserService(DashboardAuthDbContext db)
+    public DashboardUserService(DashboardAuthDbContext db, ILogger<DashboardUserService> logger)
     {
         m_Db = db;
+        m_Logger = logger;
     }
 
     public async Task<IReadOnlyCollection<DashboardUserSummaryDto>> GetDashboardUsersAsync(CancellationToken ct = default)
     {
+        m_Logger.LogInformation("Fetching dashboard user summaries.");
         var users = await m_Db.DashboardUsers
             .Include(u => u.GamePermissions)
             .OrderBy(u => u.Username)
@@ -109,6 +113,8 @@ public class DashboardUserService : IDashboardUserService
         m_Db.DashboardUsers.Add(user);
         await m_Db.SaveChangesAsync(ct);
 
+        m_Logger.LogInformation("Dashboard user {UserId} created with DiscordId {DiscordId}.", user.Id, user.DiscordId);
+
         return new AddDashboardUserResultDto
         {
             Succeeded = true,
@@ -122,6 +128,7 @@ public class DashboardUserService : IDashboardUserService
 
     public async Task<UpdateDashboardUserResultDto> UpdateDashboardUserAsync(UpdateDashboardUserRequestDto request, CancellationToken ct = default)
     {
+        m_Logger.LogInformation("Updating dashboard user {UserId}.", request.UserId);
         var username = request.Username?.Trim();
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -141,10 +148,8 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.GamePermissions)
-            .SingleOrDefaultAsync(u => u.Id == request.UserId, ct);
-
+        var user = await m_Db.DashboardUsers.Include(x => x.GamePermissions)
+            .SingleOrDefaultAsync(x => x.Id == request.UserId, ct);
         if (user == null)
         {
             return new UpdateDashboardUserResultDto
@@ -172,7 +177,7 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        var normalizedPermissions = (request.GameWritePermissions ?? Array.Empty<string>())
+        var normalizedPermissions = (request.GameWritePermissions ?? [])
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(p => p.Trim().ToLowerInvariant())
             .Distinct()
@@ -184,25 +189,11 @@ public class DashboardUserService : IDashboardUserService
         user.IsActive = request.IsActive;
         user.UpdatedAtUtc = DateTime.UtcNow;
 
-        var existingCodes = user.GamePermissions.ToDictionary(p => p.GameCode, StringComparer.OrdinalIgnoreCase);
-        foreach (var permission in user.GamePermissions.
-            Where(permission => !normalizedPermissions.Contains(permission.GameCode, StringComparer.OrdinalIgnoreCase)))
-        {
-            m_Db.DashboardGamePermissions.Remove(permission);
-        }
-
-        foreach (var code in normalizedPermissions
-            .Where(code => !existingCodes.Keys.Any(k => string.Equals(k, code, StringComparison.OrdinalIgnoreCase))))
-        {
-            user.GamePermissions.Add(new DashboardGamePermission
-            {
-                User = user,
-                GameCode = code,
-                AllowWrite = true
-            });
-        }
+        SyncGamePermissions(user, normalizedPermissions);
 
         await m_Db.SaveChangesAsync(ct);
+
+        m_Logger.LogInformation("Dashboard user {UserId} updated successfully.", user.Id);
 
         return new UpdateDashboardUserResultDto
         {
@@ -217,6 +208,7 @@ public class DashboardUserService : IDashboardUserService
 
     public async Task<RemoveDashboardUserResultDto> RemoveDashboardUserAsync(Guid userId, CancellationToken ct = default)
     {
+        m_Logger.LogInformation("Deleting dashboard user {UserId}.", userId);
         var user = await m_Db.DashboardUsers.SingleOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
         {
@@ -230,6 +222,8 @@ public class DashboardUserService : IDashboardUserService
         m_Db.DashboardUsers.Remove(user);
         await m_Db.SaveChangesAsync(ct);
 
+        m_Logger.LogInformation("Dashboard user {UserId} deleted.", userId);
+
         return new RemoveDashboardUserResultDto
         {
             Succeeded = true
@@ -238,6 +232,7 @@ public class DashboardUserService : IDashboardUserService
 
     public async Task<DashboardUserRequireResetResultDto> RequirePasswordResetAsync(Guid userId, CancellationToken ct = default)
     {
+        m_Logger.LogInformation("Setting require password reset for user {UserId}.", userId);
         var user = await m_Db.DashboardUsers
             .Include(u => u.Sessions)
             .SingleOrDefaultAsync(u => u.Id == userId, ct);
@@ -269,11 +264,49 @@ public class DashboardUserService : IDashboardUserService
 
         await m_Db.SaveChangesAsync(ct);
 
+        m_Logger.LogInformation("Require password reset enabled for user {UserId}. Sessions invalidated: {Invalidated}.", userId, hadSessions);
+
         return new DashboardUserRequireResetResultDto
         {
             Succeeded = true,
             SessionsInvalidated = hadSessions
         };
+    }
+
+    private void SyncGamePermissions(DashboardUser user, string[] normalizedPermissions)
+    {
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        var toRemove = user.GamePermissions
+            .Where(permission => !normalizedPermissions.Contains(permission.GameCode, comparer))
+            .ToList();
+
+        if (toRemove.Count > 0)
+        {
+            foreach (var permission in toRemove)
+                m_Db.DashboardGamePermissions.Remove(permission);
+        }
+
+        var existingCodes = user.GamePermissions
+            .Select(p => p.GameCode)
+            .Where(code => code != null)
+            .ToHashSet(comparer);
+
+        var addedCount = 0;
+        foreach (var code in normalizedPermissions.Where(code => !existingCodes.Contains(code)))
+        {
+            m_Db.DashboardGamePermissions.Add(new DashboardGamePermission
+            {
+                UserId = user.Id,
+                User = user,
+                GameCode = code,
+                AllowWrite = true
+            });
+            existingCodes.Add(code);
+            addedCount++;
+        }
+
+        m_Logger.LogDebug("Synchronized permissions for user {UserId}. Added: {Added}, Removed: {Removed}.",
+            user.Id, addedCount, toRemove.Count);
     }
 
     private static string GenerateTemporaryPassword(int length = TemporaryPasswordLength)
