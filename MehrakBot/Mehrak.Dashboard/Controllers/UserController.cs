@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using Mehrak.Dashboard.Models;
+﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -14,15 +12,18 @@ namespace Mehrak.Dashboard.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IDashboardUserService m_UserService;
+    private readonly ILogger<UserController> m_Logger;
 
-    public UserController(IDashboardUserService userService)
+    public UserController(IDashboardUserService userService, ILogger<UserController> logger)
     {
         m_UserService = userService;
+        m_Logger = logger;
     }
 
-    [HttpGet]
+    [HttpGet("list")]
     public async Task<IActionResult> GetUsers()
     {
+        m_Logger.LogInformation("Listing dashboard users");
         var users = await m_UserService.GetDashboardUsersAsync(HttpContext.RequestAborted);
         var payload = users.Select(u => new
         {
@@ -35,11 +36,13 @@ public class UserController : ControllerBase
         return Ok(payload);
     }
 
-    [HttpPost]
+    [HttpPost("add")]
     public async Task<IActionResult> AddUser([FromBody] AddDashboardUserRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
+
+        m_Logger.LogInformation("Creating dashboard user {Username}", request.Username);
 
         var permissions = request.GameWritePermissions?
             .Where(p => !string.IsNullOrWhiteSpace(p))
@@ -56,10 +59,13 @@ public class UserController : ControllerBase
 
         if (!result.Succeeded)
         {
+            m_Logger.LogWarning("Failed to create dashboard user {Username}: {Reason}", request.Username, result.Error ?? "Unknown error");
             var errorPayload = new { error = result.Error ?? "Failed to create dashboard user." };
             var isConflict = result.Error?.Contains("already", StringComparison.OrdinalIgnoreCase) == true;
             return isConflict ? Conflict(errorPayload) : BadRequest(errorPayload);
         }
+
+        m_Logger.LogInformation("Created dashboard user {UserId}", result.UserId);
 
         return Ok(new
         {
@@ -76,6 +82,8 @@ public class UserController : ControllerBase
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
+
+        m_Logger.LogInformation("Updating dashboard user {UserId}", id);
 
         var permissions = request.GameWritePermissions?
             .Where(p => !string.IsNullOrWhiteSpace(p))
@@ -94,10 +102,13 @@ public class UserController : ControllerBase
 
         if (!result.Succeeded)
         {
+            m_Logger.LogWarning("Failed to update dashboard user {UserId}: {Reason}", id, result.Error ?? "Unknown error");
             var errorPayload = new { error = result.Error ?? "Failed to update dashboard user." };
             var isConflict = result.Error?.Contains("already", StringComparison.OrdinalIgnoreCase) == true;
             return isConflict ? Conflict(errorPayload) : BadRequest(errorPayload);
         }
+
+        m_Logger.LogInformation("Updated dashboard user {UserId}", id);
 
         return Ok(new
         {
@@ -112,9 +123,14 @@ public class UserController : ControllerBase
     [HttpPost("{id:guid}/password/require-reset")]
     public async Task<IActionResult> RequirePasswordReset(Guid id)
     {
+        m_Logger.LogInformation("Forcing password reset requirement for user {UserId}", id);
+
         var result = await m_UserService.RequirePasswordResetAsync(id, HttpContext.RequestAborted);
         if (!result.Succeeded)
+        {
+            m_Logger.LogWarning("Failed to set password reset requirement for user {UserId}: {Reason}", id, result.Error ?? "Unknown error");
             return NotFound(new { error = result.Error ?? "User not found." });
+        }
 
         return Ok(new
         {
@@ -126,10 +142,16 @@ public class UserController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
+        m_Logger.LogInformation("Deleting dashboard user {UserId}", id);
+
         var result = await m_UserService.RemoveDashboardUserAsync(id, HttpContext.RequestAborted);
         if (!result.Succeeded)
+        {
+            m_Logger.LogWarning("Failed to delete dashboard user {UserId}: {Reason}", id, result.Error ?? "Unknown error");
             return NotFound(new { error = result.Error ?? "Failed to remove dashboard user." });
+        }
 
+        m_Logger.LogInformation("Deleted dashboard user {UserId}", id);
         return NoContent();
     }
 }

@@ -4,6 +4,7 @@ using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Auth.Services;
 
@@ -11,27 +12,36 @@ public class DashboardAuthService : IDashboardAuthService
 {
     private readonly DashboardAuthDbContext m_Db;
     private readonly PasswordHasher<DashboardUser> m_Hasher = new();
+    private readonly ILogger<DashboardAuthService> m_Logger;
 
     private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(1);
 
-    public DashboardAuthService(DashboardAuthDbContext db)
+    public DashboardAuthService(DashboardAuthDbContext db, ILogger<DashboardAuthService> logger)
     {
         m_Db = db;
+        m_Logger = logger;
     }
 
     public async Task<LoginResultDto> LoginAsync(LoginRequestDto request, CancellationToken ct = default)
     {
+        m_Logger.LogInformation("Login attempt for username {Username}", request.Username);
         var user = await m_Db.DashboardUsers
             .Include(u => u.Sessions)
             .Include(u => u.GamePermissions)
             .SingleOrDefaultAsync(u => u.Username == request.Username && u.IsActive, ct);
 
         if (user == null)
+        {
+            m_Logger.LogWarning("Login failed for username {Username}: user not found or inactive", request.Username);
             return new LoginResultDto { Succeeded = false, Error = "Invalid credentials." };
+        }
 
         var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verify == PasswordVerificationResult.Failed)
+        {
+            m_Logger.LogWarning("Login failed for username {Username}: invalid password", request.Username);
             return new LoginResultDto { Succeeded = false, Error = "Invalid credentials." };
+        }
 
         // Uniqueness: remove previous sessions
         m_Db.DashboardSessions.RemoveRange(user.Sessions);
@@ -47,6 +57,8 @@ public class DashboardAuthService : IDashboardAuthService
         user.UpdatedAtUtc = DateTime.UtcNow;
         m_Db.DashboardSessions.Add(session);
         await m_Db.SaveChangesAsync(ct);
+
+        m_Logger.LogInformation("Login succeeded for user {UserId}", user.Id);
 
         var gameWrites = user.GamePermissions
             .Where(p => p.AllowWrite)
@@ -74,13 +86,17 @@ public class DashboardAuthService : IDashboardAuthService
             .SingleOrDefaultAsync(s => s.SessionToken == sessionToken, ct);
 
         if (session == null || session.IsExpired() || !session.User.IsActive)
+        {
+            m_Logger.LogWarning("Session validation failed for token {Token}.", sessionToken);
             return false;
+        }
 
         return true;
     }
 
     public async Task InvalidateSessionAsync(string sessionToken, CancellationToken ct = default)
     {
+        m_Logger.LogInformation("Invalidating session {Token}.", sessionToken);
         var session = await m_Db.DashboardSessions.SingleOrDefaultAsync(s => s.SessionToken == sessionToken, ct);
         if (session != null)
         {
@@ -106,6 +122,7 @@ public class DashboardAuthService : IDashboardAuthService
 
         if (user == null)
         {
+            m_Logger.LogWarning("Password change failed: user {UserId} not found or inactive.", request.UserId);
             return new ChangeDashboardPasswordResultDto
             {
                 Succeeded = false,
@@ -116,6 +133,7 @@ public class DashboardAuthService : IDashboardAuthService
         var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
         if (verify == PasswordVerificationResult.Failed)
         {
+            m_Logger.LogWarning("Password change failed: incorrect current password for user {UserId}.", request.UserId);
             return new ChangeDashboardPasswordResultDto
             {
                 Succeeded = false,
@@ -131,6 +149,8 @@ public class DashboardAuthService : IDashboardAuthService
         m_Db.DashboardSessions.RemoveRange(user.Sessions);
 
         await m_Db.SaveChangesAsync(ct);
+
+        m_Logger.LogInformation("Password changed for user {UserId}. Sessions invalidated: {Invalidated}.", request.UserId, hadSessions);
 
         return new ChangeDashboardPasswordResultDto
         {
@@ -156,6 +176,7 @@ public class DashboardAuthService : IDashboardAuthService
 
         if (user == null)
         {
+            m_Logger.LogWarning("Forced reset failed: user {UserId} not found or inactive.", request.UserId);
             return new ChangeDashboardPasswordResultDto
             {
                 Succeeded = false,
@@ -165,6 +186,7 @@ public class DashboardAuthService : IDashboardAuthService
 
         if (!user.RequirePasswordReset)
         {
+            m_Logger.LogWarning("Forced reset skipped: user {UserId} does not require reset.", request.UserId);
             return new ChangeDashboardPasswordResultDto
             {
                 Succeeded = false,
@@ -180,6 +202,8 @@ public class DashboardAuthService : IDashboardAuthService
         m_Db.DashboardSessions.RemoveRange(user.Sessions);
 
         await m_Db.SaveChangesAsync(ct);
+
+        m_Logger.LogInformation("Forced password reset completed for user {UserId}. Sessions invalidated: {Invalidated}.", request.UserId, hadSessions);
 
         return new ChangeDashboardPasswordResultDto
         {

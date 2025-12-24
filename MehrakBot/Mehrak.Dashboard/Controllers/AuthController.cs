@@ -16,22 +16,31 @@ public class AuthController : ControllerBase
     private const string SessionTokenClaim = "dashboard_session";
     private const string PermissionClaim = "perm";
     private readonly IDashboardAuthService m_AuthService;
+    private readonly ILogger<AuthController> m_Logger;
 
-    public AuthController(IDashboardAuthService authService)
+    public AuthController(IDashboardAuthService authService, ILogger<AuthController> logger)
     {
         m_AuthService = authService;
+        m_Logger = logger;
     }
 
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        m_Logger.LogInformation("Login attempt for username {Username}", request.Username);
+
         var result = await m_AuthService.LoginAsync(
             new LoginRequestDto { Username = request.Username, Password = request.Password },
             HttpContext.RequestAborted);
 
         if (!result.Succeeded || result.SessionToken is null)
+        {
+            m_Logger.LogWarning("Login failed for username {Username}: {Reason}", request.Username, result.Error ?? "Unknown error");
             return Unauthorized(new { error = result.Error ?? "Invalid credentials" });
+        }
+
+        m_Logger.LogInformation("Login succeeded for user {UserId}", result.UserId);
 
         var claims = new List<Claim>
         {
@@ -94,7 +103,12 @@ public class AuthController : ControllerBase
         }, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
+        {
+            m_Logger.LogWarning("Password update failed for user {UserId}: {Reason}", userId, result.Error ?? "Unknown error");
             return BadRequest(new { error = result.Error ?? "Unable to update password." });
+        }
+
+        m_Logger.LogInformation("Password updated for user {UserId}. Sessions invalidated: {Invalidated}", userId, result.SessionsInvalidated);
 
         if (result.SessionsInvalidated)
             await HttpContext.SignOutAsync();
@@ -113,6 +127,8 @@ public class AuthController : ControllerBase
         if (!Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized(new { error = "Invalid user context." });
 
+        m_Logger.LogInformation("Forced password reset requested for user {UserId}", userId);
+
         var result = await m_AuthService.ForceResetPasswordAsync(new ForceResetDashboardPasswordRequestDto
         {
             UserId = userId,
@@ -120,7 +136,12 @@ public class AuthController : ControllerBase
         }, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
+        {
+            m_Logger.LogWarning("Forced password reset failed for user {UserId}: {Reason}", userId, result.Error ?? "Unknown error");
             return BadRequest(new { error = result.Error ?? "Unable to reset password." });
+        }
+
+        m_Logger.LogInformation("Forced password reset completed for user {UserId}", userId);
 
         await HttpContext.SignOutAsync();
         return Ok(new { requiresPasswordReset = false });
