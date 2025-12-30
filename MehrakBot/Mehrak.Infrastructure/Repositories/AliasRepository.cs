@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-internal class AliasRepository : IAliasRepository
+public class AliasRepository : IAliasRepository
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<AliasRepository> m_Logger;
@@ -85,5 +85,31 @@ internal class AliasRepository : IAliasRepository
 
         m_Logger.LogDebug("Upsert completed. Updated {UpdateCount} entries, Created {NewCount} entries",
             updateCount, newCount);
+    }
+
+    public async Task DeleteAliasAsync(Game gameName, string alias)
+    {
+        var normalized = alias.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            m_Logger.LogWarning("Delete alias skipped due to invalid alias for game {Game}", gameName);
+            return;
+        }
+
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var entity = await context.Aliases
+            .FirstOrDefaultAsync(x => x.Game == gameName && x.Alias == normalized);
+
+        if (entity == null)
+        {
+            m_Logger.LogInformation("Alias {Alias} not found for game {Game}; nothing to delete", normalized, gameName);
+            return;
+        }
+
+        context.Aliases.Remove(entity);
+        await context.SaveChangesAsync();
+        m_Logger.LogInformation("Deleted alias {Alias} for game {Game}", normalized, gameName);
     }
 }

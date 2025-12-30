@@ -97,6 +97,7 @@ public class Program
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
         builder.Services.AddScoped<IDashboardUserService, DashboardUserService>();
         builder.Services.AddScoped<ICharacterRepository, CharacterRepository>();
+        builder.Services.AddScoped<IAliasRepository, AliasRepository>();
         builder.Services.AddScoped<DashboardCookieEvents>();
 
         builder.Services
