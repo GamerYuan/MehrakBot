@@ -1,5 +1,7 @@
-﻿using System.Globalization;
+﻿using Mehrak.Application;
+using System.Globalization;
 using Mehrak.Dashboard.Auth;
+using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
@@ -113,6 +115,8 @@ public class Program
         builder.Services.AddSingleton<IEncryptionService, CookieEncryptionService>();
         builder.Services.AddScoped<IDashboardProfileAuthenticationService, DashboardProfileAuthenticationService>();
         builder.Services.AddScoped<DashboardCookieEvents>();
+        builder.Services.AddApplicationServices();
+        builder.Services.AddDashboardApplicationExecutor();
 
         builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
