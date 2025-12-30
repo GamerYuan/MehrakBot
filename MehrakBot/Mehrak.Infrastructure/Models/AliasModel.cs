@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Mehrak.Infrastructure.Models;
 
 [Index(nameof(Game), nameof(Alias), IsUnique = true)]
-internal class AliasModel
+public class AliasModel
 {
     [Key]
     public int Id { get; set; }

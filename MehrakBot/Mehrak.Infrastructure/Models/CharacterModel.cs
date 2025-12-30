@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Mehrak.Infrastructure.Models;
 
 [Index(nameof(Game), nameof(Name), IsUnique = true)]
-internal class CharacterModel
+public class CharacterModel
 {
     [Key]
     public int Id { get; set; }

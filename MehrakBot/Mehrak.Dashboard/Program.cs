@@ -1,9 +1,12 @@
 ﻿using System.Globalization;
 using Mehrak.Dashboard.Auth;
 using Mehrak.Domain.Auth;
+using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -87,10 +90,13 @@ public class Program
         // DbContext
         builder.Services.AddDbContext<DashboardAuthDbContext>(options =>
             options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
+        builder.Services.AddDbContext<CharacterDbContext>(options =>
+            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
         builder.Services.AddScoped<IDashboardUserService, DashboardUserService>();
+        builder.Services.AddScoped<ICharacterRepository, CharacterRepository>();
         builder.Services.AddScoped<DashboardCookieEvents>();
 
         builder.Services
