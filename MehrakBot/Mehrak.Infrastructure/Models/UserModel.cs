@@ -3,7 +3,7 @@ using Mehrak.Domain.Enums;
 
 namespace Mehrak.Infrastructure.Models;
 
-internal class UserModel
+public class UserModel
 {
     [Key]
     public long Id { get; set; }
@@ -11,7 +11,7 @@ internal class UserModel
     public List<UserProfileModel> Profiles { get; set; } = [];
 }
 
-internal class UserProfileModel
+public class UserProfileModel
 {
     public long Id { get; set; }
     public long UserId { get; set; } // FK
@@ -27,7 +27,7 @@ internal class UserProfileModel
     public List<ProfileRegion> LastUsedRegions { get; set; } = [];
 }
 
-internal class ProfileGameUid
+public class ProfileGameUid
 {
     public long Id { get; set; }
     public long ProfileId { get; set; } // FK
@@ -38,7 +38,7 @@ internal class ProfileGameUid
     public string GameUid { get; set; } = string.Empty;
 }
 
-internal class ProfileRegion
+public class ProfileRegion
 {
     public long Id { get; set; }
 

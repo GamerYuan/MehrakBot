@@ -2,11 +2,13 @@
 using Mehrak.Dashboard.Auth;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
+using Mehrak.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -92,12 +94,24 @@ public class Program
             options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
         builder.Services.AddDbContext<CharacterDbContext>(options =>
             options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
+        builder.Services.AddDbContext<UserDbContext>(options =>
+            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
+
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+            options.InstanceName = "MehrakDashboard_";
+        });
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
         builder.Services.AddScoped<IDashboardUserService, DashboardUserService>();
         builder.Services.AddScoped<ICharacterRepository, CharacterRepository>();
         builder.Services.AddScoped<IAliasRepository, AliasRepository>();
+        builder.Services.AddSingleton<IUserRepository, UserRepository>();
+        builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+        builder.Services.AddSingleton<IEncryptionService, CookieEncryptionService>();
+        builder.Services.AddScoped<IDashboardProfileAuthenticationService, DashboardProfileAuthenticationService>();
         builder.Services.AddScoped<DashboardCookieEvents>();
 
         builder.Services
