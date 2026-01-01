@@ -47,10 +47,6 @@
         <None Include="appsettings.json" Condition="Exists('appsettings.json')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Include="..\Assets\**\*.*" Exclude="..\Assets\.git\**\*;..\Assets\.gitattributes">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
-        </None>
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.development.json')">
@@ -60,9 +56,17 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Services\Autocomplete\**" />
-      <EmbeddedResource Remove="Services\Autocomplete\**" />
-      <None Remove="Services\Autocomplete\**" />
+      <Compile Update="Properties\Resources.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Resources.resx</DependentUpon>
+      </Compile>
     </ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Update="Properties\Resources.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+    </ItemGroup>
 </Project>

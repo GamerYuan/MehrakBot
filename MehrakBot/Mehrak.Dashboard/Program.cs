@@ -1,19 +1,24 @@
-﻿using Mehrak.Application;
-using System.Globalization;
+﻿using System.Globalization;
+using Amazon.S3;
+using Mehrak.Application;
 using Mehrak.Dashboard.Auth;
+using Mehrak.Dashboard.Metrics;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.GameApi;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
+using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions;
@@ -92,6 +97,8 @@ public class Program
         builder.Logging.AddSerilog(dispose: true);
 
         // DbContext
+        builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
+
         builder.Services.AddDbContext<DashboardAuthDbContext>(options =>
             options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
         builder.Services.AddDbContext<CharacterDbContext>(options =>
@@ -105,17 +112,46 @@ public class Program
             options.InstanceName = "MehrakDashboard_";
         });
 
+        builder.Services.AddSingleton<IAmazonS3>(sp =>
+        {
+            var cfg = sp.GetRequiredService<IOptions<S3StorageConfig>>().Value;
+            var s3Config = new AmazonS3Config
+            {
+                ServiceURL = cfg.ServiceURL,
+                ForcePathStyle = cfg.ForcePathStyle,
+                Timeout = TimeSpan.FromSeconds(30),
+                SignatureMethod = Amazon.Runtime.SigningAlgorithm.HmacSHA256
+            };
+            return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
+        });
+
+        builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
+
+        builder.Services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
+        builder.Services.AddSingleton<IMetricsService, DashboardMetricsService>();
+
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
         builder.Services.AddScoped<IDashboardUserService, DashboardUserService>();
-        builder.Services.AddScoped<ICharacterRepository, CharacterRepository>();
-        builder.Services.AddScoped<IAliasRepository, AliasRepository>();
+        builder.Services.AddScoped<IAttachmentStorageService, AttachmentStorageService>();
+
+        builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
+        builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
         builder.Services.AddSingleton<IUserRepository, UserRepository>();
+        builder.Services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
+        builder.Services.AddSingleton<IImageRepository, ImageRepository>();
+        builder.Services.AddSingleton<IRelicRepository, HsrRelicRepository>();
         builder.Services.AddSingleton<ICacheService, RedisCacheService>();
         builder.Services.AddSingleton<IEncryptionService, CookieEncryptionService>();
         builder.Services.AddScoped<IDashboardProfileAuthenticationService, DashboardProfileAuthenticationService>();
         builder.Services.AddScoped<DashboardCookieEvents>();
         builder.Services.AddApplicationServices();
+        builder.Services.AddGameApiServices();
+        builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
+            new HttpClientHandler
+            {
+                UseCookies = false
+            }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
         builder.Services.AddDashboardApplicationExecutor();
 
         builder.Services
