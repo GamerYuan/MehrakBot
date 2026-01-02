@@ -68,6 +68,19 @@ public sealed class CodesController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("list")]
+    public async Task<IActionResult> ListCodes([FromQuery] string game)
+    {
+        if (!TryParseGame(game, out var parsedGame, out var errorResult))
+            return errorResult!;
+
+        if (!HasGameWriteAccess(game))
+            return Forbid();
+
+        var codes = await m_CodeRepository.GetCodesAsync(parsedGame);
+        return Ok(new { game = parsedGame.ToString(), codes });
+    }
+
     private static bool TryParseGame(string gameValue, out Game game, out IActionResult? error)
     {
         error = null;
