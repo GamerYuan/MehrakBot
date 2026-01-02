@@ -5,7 +5,7 @@ using Prometheus;
 
 namespace Mehrak.Dashboard.Metrics;
 
-public class DashboardMetricsService : IMetricsService, IHostedService
+public class DashboardMetricsService : IDashboardMetrics, IHostedService
 {
     private readonly Counter m_CommandsTotal = Prometheus.Metrics.CreateCounter(
         "dashboard_commands_total",
@@ -42,8 +42,26 @@ public class DashboardMetricsService : IMetricsService, IHostedService
         new CounterConfiguration { LabelNames = ["game", "character"] }
     );
 
+    private readonly Counter m_UserLogins = Prometheus.Metrics.CreateCounter(
+        "dashboard_user_logins_total",
+        "Number of successful dashboard logins",
+        new CounterConfiguration { LabelNames = ["user_id"] }
+    );
+
+    private readonly Counter m_UserLogouts = Prometheus.Metrics.CreateCounter(
+        "dashboard_user_logouts_total",
+        "Number of dashboard logouts",
+        new CounterConfiguration { LabelNames = ["user_id"] }
+    );
+
+    private readonly Gauge m_ActiveSessionsGauge = Prometheus.Metrics.CreateGauge(
+        "dashboard_active_sessions",
+        "Current number of authenticated dashboard sessions"
+    );
+
     private readonly IOptions<MetricsConfig> m_Options;
     private IHost? m_MetricsServer;
+    private long m_ActiveSessionCount;
 
     public DashboardMetricsService(IOptions<MetricsConfig> options)
     {
@@ -72,6 +90,30 @@ public class DashboardMetricsService : IMetricsService, IHostedService
         m_CommandsByName.WithLabels(commandName).Inc();
         m_CommandResults.WithLabels(commandName, isSuccess ? "success" : "failure").Inc();
         m_CommandsByUser.WithLabels(userId.ToString()).Inc();
+    }
+
+    public void TrackUserLogin(string userId)
+    {
+        m_UserLogins.WithLabels(userId).Inc();
+        var active = Interlocked.Increment(ref m_ActiveSessionCount);
+        m_ActiveSessionsGauge.Set(active);
+    }
+
+    public void TrackUserLogout(string userId)
+    {
+        m_UserLogouts.WithLabels(userId).Inc();
+        var active = Interlocked.Decrement(ref m_ActiveSessionCount);
+        if (active < 0)
+        {
+            active = 0;
+            Interlocked.Exchange(ref m_ActiveSessionCount, 0);
+        }
+        m_ActiveSessionsGauge.Set(active);
+    }
+
+    public void TrackDiscordLatency(double latencyMs)
+    {
+        throw new NotSupportedException();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -104,11 +146,5 @@ public class DashboardMetricsService : IMetricsService, IHostedService
             await m_MetricsServer.StopAsync(cancellationToken);
             m_MetricsServer.Dispose();
         }
-    }
-
-
-    public void TrackDiscordLatency(double latencyMs)
-    {
-        throw new NotSupportedException();
     }
 }

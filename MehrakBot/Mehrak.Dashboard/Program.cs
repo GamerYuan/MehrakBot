@@ -128,7 +128,8 @@ public class Program
         builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
 
         builder.Services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
-        builder.Services.AddSingleton<IMetricsService, DashboardMetricsService>();
+        builder.Services.AddSingleton<IDashboardMetrics, DashboardMetricsService>();
+        builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<IDashboardMetrics>());
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();

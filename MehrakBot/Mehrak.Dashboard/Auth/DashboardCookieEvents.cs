@@ -1,4 +1,6 @@
-﻿using Mehrak.Domain.Auth;
+﻿using System.Security.Claims;
+using Mehrak.Domain.Auth;
+using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -8,10 +10,12 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
 {
     private const string SessionTokenClaim = "dashboard_session";
     private readonly IDashboardAuthService m_AuthService;
+    private readonly IDashboardMetrics m_Metrics;
 
-    public DashboardCookieEvents(IDashboardAuthService authService)
+    public DashboardCookieEvents(IDashboardAuthService authService, IDashboardMetrics metrics)
     {
         m_AuthService = authService;
+        m_Metrics = metrics;
     }
 
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
@@ -19,6 +23,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         var sessionToken = context.Principal?.Claims.FirstOrDefault(c => c.Type == SessionTokenClaim)?.Value;
         if (string.IsNullOrWhiteSpace(sessionToken))
         {
+            TrackLogout(context);
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync();
             return;
@@ -27,6 +32,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         var valid = await m_AuthService.ValidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         if (!valid)
         {
+            TrackLogout(context);
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync();
         }
@@ -38,6 +44,15 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         if (!string.IsNullOrWhiteSpace(sessionToken))
         {
             await m_AuthService.InvalidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
+        }
+    }
+
+    private void TrackLogout(CookieValidatePrincipalContext context)
+    {
+        var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            m_Metrics.TrackUserLogout(userId);
         }
     }
 }
