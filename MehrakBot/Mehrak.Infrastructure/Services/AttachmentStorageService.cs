@@ -2,10 +2,13 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
-namespace Mehrak.Dashboard.Services;
+namespace Mehrak.Infrastructure.Services;
 
-internal sealed class AttachmentStorageService : IAttachmentStorageService
+public sealed class AttachmentStorageService : IAttachmentStorageService
 {
     private readonly IAmazonS3 m_S3;
     private readonly string m_Bucket;
@@ -105,7 +108,7 @@ internal sealed class AttachmentStorageService : IAttachmentStorageService
         return new AttachmentDownloadResult(stream, contentType);
     }
 
-    internal static bool IsValidStorageFileName(string fileName)
+    public static bool IsValidStorageFileName(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName))
             return false;

@@ -1,5 +1,5 @@
-﻿using Mehrak.Dashboard.Services;
-using Mehrak.Domain.Models;
+﻿using Mehrak.Domain.Models;
+using Mehrak.Domain.Services.Abstractions;
 
 namespace Mehrak.Dashboard.Models;
 

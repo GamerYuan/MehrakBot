@@ -1,6 +1,6 @@
 ﻿using Mehrak.Domain.Models;
 
-namespace Mehrak.Dashboard.Services;
+namespace Mehrak.Domain.Services.Abstractions;
 
 public record StoredAttachmentResult(string OriginalFileName, string StorageFileName);
 
