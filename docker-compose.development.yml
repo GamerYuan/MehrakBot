@@ -4,12 +4,13 @@ services:
     image: mehrak:latest
     build:
       context: ./MehrakBot
+      dockerfile: Dockerfile
+      target: bot
       args:
         DOTNET_ENVIRONMENT: Development
         OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
-      dockerfile: Dockerfile
     ports:
-      - "5000:80"
+      - "5000:9090"
     depends_on:
       - mongodb
       - postgres
@@ -18,6 +19,26 @@ services:
       - mehrak-network
     volumes:
       - app-logs:/app/logs
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+
+  dashboard:
+    image: mehrak-dashboard:latest
+    build:
+      context: ./MehrakBot
+      dockerfile: Dockerfile
+      target: dashboard
+      args:
+        DOTNET_ENVIRONMENT: Development
+        OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
+    ports:
+      - "5100:8080"
+    depends_on:
+      - mongodb
+      - postgres
+      - redis
+    networks:
+      - mehrak-network
     environment:
       - DOTNET_ENVIRONMENT=Development
 
