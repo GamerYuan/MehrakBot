@@ -1,14 +1,15 @@
 <script setup>
 import { useRouter } from "vue-router";
+import Button from "primevue/button";
+import Card from "primevue/card";
+
 const router = useRouter();
 </script>
 
 <template>
   <div class="container">
     <div class="top-nav">
-      <button @click="router.push('/login')" class="btn dashboard-btn">
-        Dashboard
-      </button>
+      <Button label="Dashboard" outlined @click="router.push('/dashboard')" />
     </div>
 
     <header>
@@ -18,51 +19,64 @@ const router = useRouter();
 
     <main>
       <div class="actions">
-        <a
+        <Button
+          as="a"
+          label="Add to Discord"
           href="https://discord.com/oauth2/authorize?client_id=1365154828430610532"
-          class="btn primary"
           target="_blank"
           rel="noopener noreferrer"
-          >Add to Discord</a
-        >
-        <a
+        />
+        <Button
+          as="a"
+          label="Documentation"
           href="https://gameryuan.gitbook.io/mehrak/"
-          class="btn secondary"
           target="_blank"
           rel="noopener noreferrer"
-          >Documentation</a
-        >
+          severity="secondary"
+          outlined
+        />
       </div>
 
       <div class="features">
-        <div class="card">
-          <h2>Common Utilities</h2>
-          <p>Multi-profile support, HoYoLAB Daily Check In</p>
-        </div>
-        <div class="card">
-          <h2>Genshin Impact</h2>
-          <p>
-            Character build card, Abyss summary card, Code redemption, and more.
-          </p>
-        </div>
-        <div class="card">
-          <h2>Honkai: Star Rail</h2>
-          <p>
-            Character build card, Memory of Chaos summary card, Code redemption,
-            and more.
-          </p>
-        </div>
-        <div class="card">
-          <h2>Zenless Zone Zero</h2>
-          <p>
-            Character build card, Shiyu Defense summary card, Code redemption,
-            and more.
-          </p>
-        </div>
-        <div class="card">
-          <h2>Honkai Impact: 3rd</h2>
-          <p>Character build card, and more coming soon.</p>
-        </div>
+        <Card class="feature-card bg-zinc-800! border! border-zinc-700!">
+          <template #title>Common Utilities</template>
+          <template #content>
+            <p>Multi-profile support, HoYoLAB Daily Check In</p>
+          </template>
+        </Card>
+        <Card class="feature-card bg-zinc-800! border! border-zinc-700!">
+          <template #title>Genshin Impact</template>
+          <template #content>
+            <p>
+              Character build card, Abyss summary card, Code redemption, and
+              more.
+            </p>
+          </template>
+        </Card>
+        <Card class="feature-card bg-zinc-800! border! border-zinc-700!">
+          <template #title>Honkai: Star Rail</template>
+          <template #content>
+            <p>
+              Character build card, Memory of Chaos summary card, Code
+              redemption, and more.
+            </p>
+          </template>
+        </Card>
+        <Card class="feature-card bg-zinc-800! border! border-zinc-700!">
+          <template #title>Zenless Zone Zero</template>
+          <template #content>
+            <p>
+              Character build card, Shiyu Defense summary card, Code redemption,
+              and more.
+            </p>
+          </template>
+        </Card>
+        <Card class="feature-card bg-zinc-800! border! border-zinc-700!">
+          <template #title>Honkai Impact: 3rd</template>
+          <template #content>
+            <p>Character build card, and more coming soon.</p>
+          </template>
+        </Card>
       </div>
     </main>
 
@@ -78,25 +92,13 @@ const router = useRouter();
   flex-direction: column;
   gap: 4rem;
   position: relative;
+  padding: 2rem;
 }
 
 .top-nav {
   position: absolute;
-  top: 0;
-  right: 0;
-}
-
-.dashboard-btn {
-  background-color: transparent;
-  border: 1px solid var(--primary-color);
-  color: var(--primary-color);
-  font-size: 0.9rem;
-  padding: 0.5rem 1rem;
-}
-
-.dashboard-btn:hover {
-  background-color: var(--primary-color);
-  color: white;
+  top: 1rem;
+  right: 1rem;
 }
 
 .tagline {
@@ -111,30 +113,6 @@ const router = useRouter();
   margin-bottom: 3rem;
 }
 
-.btn {
-  padding: 0.8rem 1.5rem;
-  border-radius: 8px;
-  font-weight: bold;
-  transition: transform 0.2s, background-color 0.2s, color 0.2s;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-}
-
-.btn.primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.btn.secondary {
-  background-color: var(--card-bg);
-  border: 1px solid #555;
-  color: white;
-}
-
 .features {
   display: flex;
   flex-wrap: wrap;
@@ -144,34 +122,16 @@ const router = useRouter();
   margin: 0 auto;
 }
 
-.card {
-  background-color: var(--card-bg);
-  padding: 2rem;
-  border-radius: 12px;
-  text-align: left;
-  border: 1px solid #333;
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-  display: flex;
-  flex-direction: column;
+.feature-card {
   flex: 1 1 300px;
   max-width: 380px;
   min-height: 200px;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  border-color: var(--primary-color);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
-
-.card h2 {
-  color: var(--secondary-color);
-  margin-top: 0;
-  margin-bottom: 1rem;
+  text-align: left;
 }
 
 footer {
   color: #666;
   font-size: 0.9rem;
+  margin-top: 2rem;
 }
 </style>

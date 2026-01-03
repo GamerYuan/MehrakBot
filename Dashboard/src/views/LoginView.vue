@@ -1,30 +1,38 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useToast } from "primevue/usetoast";
+import InputText from "primevue/inputtext";
+import Password from "primevue/password";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Message from "primevue/message";
 
 const router = useRouter();
 const route = useRoute();
+const toast = useToast();
+
 const username = ref("");
 const password = ref("");
 const error = ref("");
 const loading = ref(false);
-const showToast = ref(false);
-const toastMessage = ref("");
 
 onMounted(() => {
   if (route.query.resetSuccess === "true") {
-    toastMessage.value =
-      "Password successfully reset. Please login with your new password.";
-    showToast.value = true;
-    setTimeout(() => {
-      showToast.value = false;
-    }, 5000);
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail:
+        "Password successfully reset. Please login with your new password.",
+      life: 5000,
+    });
   } else if (route.query.passwordChanged === "true") {
-    toastMessage.value = "Password successfully changed. Please login again.";
-    showToast.value = true;
-    setTimeout(() => {
-      showToast.value = false;
-    }, 5000);
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "Password successfully changed. Please login again.",
+      life: 5000,
+    });
   }
 });
 
@@ -82,54 +90,51 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="login-container">
-    <div v-if="showToast" class="toast success">
-      {{ toastMessage }}
-    </div>
-    <div class="card login-card">
-      <h2>Dashboard Login</h2>
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" v-model="username" required />
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" required />
-        </div>
-        <div v-if="error" class="error-text mb-2">{{ error }}</div>
+  <div class="auth-container">
+    <Card class="auth-card">
+      <template #title>
+        <h2 class="text-center">Dashboard Login</h2>
+      </template>
+      <template #content>
+        <form @submit.prevent="handleLogin">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <label for="username">Username</label>
+              <InputText id="username" v-model="username" required fluid />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label for="password">Password</label>
+              <Password
+                id="password"
+                v-model="password"
+                required
+                :feedback="false"
+                toggleMask
+                fluid
+              />
+            </div>
+            <Message v-if="error" severity="error" class="mb-2">{{
+              error
+            }}</Message>
 
-        <button
-          type="submit"
-          :disabled="loading"
-          class="btn primary full-width"
-        >
-          {{ loading ? "Logging in..." : "Login" }}
-        </button>
-      </form>
-      <button @click="router.push('/')" class="btn text mt-2">
-        Back to Home
-      </button>
-    </div>
+            <Button type="submit" label="Login" :loading="loading" fluid />
+          </div>
+        </form>
+        <Button
+          label="Back to Home"
+          link
+          @click="router.push('/')"
+          class="mt-2 w-full"
+        />
+      </template>
+    </Card>
   </div>
 </template>
 
 <style scoped>
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 80vh;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 400px;
-}
-
 h2 {
   margin-top: 0;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   color: var(--primary-color);
 }
 </style>

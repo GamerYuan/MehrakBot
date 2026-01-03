@@ -1,16 +1,20 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import { useToast } from "primevue/usetoast";
+import Password from "primevue/password";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Message from "primevue/message";
 
 const router = useRouter();
+const toast = useToast();
+
 const currentPassword = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
 const error = ref("");
 const loading = ref(false);
-const showToast = ref(false);
-const toastMessage = ref("");
-const toastType = ref("error");
 
 const passwordsMatch = computed(() => {
   return newPassword.value === confirmPassword.value;
@@ -45,7 +49,6 @@ const handleChangePassword = async () => {
 
   loading.value = true;
   error.value = "";
-  showToast.value = false;
 
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
@@ -83,14 +86,12 @@ const handleChangePassword = async () => {
   } catch (err) {
     console.error(err);
     error.value = err.message || "An error occurred";
-    toastMessage.value = error.value;
-    toastType.value = "error";
-    showToast.value = true;
-
-    // Hide toast after 5 seconds
-    setTimeout(() => {
-      showToast.value = false;
-    }, 5000);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.value,
+      life: 5000,
+    });
   } finally {
     loading.value = false;
   }
@@ -98,138 +99,91 @@ const handleChangePassword = async () => {
 </script>
 
 <template>
-  <div class="change-password-container">
-    <div v-if="showToast" class="toast" :class="toastType">
-      {{ toastMessage }}
-    </div>
+  <div class="auth-container">
+    <Card class="auth-card">
+      <template #title>Change Password</template>
+      <template #content>
+        <form @submit.prevent="handleChangePassword">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <label for="currentPassword">Current Password</label>
+              <Password
+                id="currentPassword"
+                v-model="currentPassword"
+                required
+                :feedback="false"
+                toggleMask
+                fluid
+              />
+            </div>
 
-    <div class="card change-password-card">
-      <h2>Change Password</h2>
+            <div class="flex flex-col gap-2">
+              <label for="newPassword">New Password</label>
+              <Password
+                id="newPassword"
+                v-model="newPassword"
+                required
+                toggleMask
+                fluid
+              >
+                <template #footer>
+                  <div class="password-requirements" v-if="newPassword">
+                    <p :class="{ met: passwordRequirements.length }">
+                      At least 8 characters
+                    </p>
+                    <p :class="{ met: passwordRequirements.uppercase }">
+                      At least 1 uppercase letter
+                    </p>
+                    <p :class="{ met: passwordRequirements.lowercase }">
+                      At least 1 lowercase letter
+                    </p>
+                    <p :class="{ met: passwordRequirements.number }">
+                      At least 1 number
+                    </p>
+                    <p :class="{ met: passwordRequirements.symbol }">
+                      At least 1 symbol
+                    </p>
+                  </div>
+                </template>
+              </Password>
+            </div>
 
-      <form @submit.prevent="handleChangePassword">
-        <div class="form-group">
-          <label for="currentPassword">Current Password</label>
-          <input
-            type="password"
-            id="currentPassword"
-            v-model="currentPassword"
-            required
-          />
-        </div>
+            <div class="flex flex-col gap-2">
+              <label for="confirmPassword">Confirm New Password</label>
+              <Password
+                id="confirmPassword"
+                v-model="confirmPassword"
+                required
+                :feedback="false"
+                toggleMask
+                fluid
+              />
+              <small v-if="confirmPassword && !passwordsMatch" class="p-error"
+                >Passwords do not match</small
+              >
+            </div>
 
-        <div class="form-group">
-          <label for="newPassword">New Password</label>
-          <input
-            type="password"
-            id="newPassword"
-            v-model="newPassword"
-            required
-          />
-          <div class="requirements" v-if="newPassword">
-            <p :class="{ met: passwordRequirements.length }">
-              At least 8 characters
-            </p>
-            <p :class="{ met: passwordRequirements.uppercase }">
-              At least 1 uppercase letter
-            </p>
-            <p :class="{ met: passwordRequirements.lowercase }">
-              At least 1 lowercase letter
-            </p>
-            <p :class="{ met: passwordRequirements.number }">
-              At least 1 number
-            </p>
-            <p :class="{ met: passwordRequirements.symbol }">
-              At least 1 symbol
-            </p>
+            <div class="flex gap-2 mt-4">
+              <Button
+                label="Cancel"
+                severity="secondary"
+                outlined
+                class="flex-1"
+                @click="router.push('/dashboard')"
+              />
+              <Button
+                type="submit"
+                label="Change Password"
+                :loading="loading"
+                :disabled="!isValid"
+                class="flex-1"
+              />
+            </div>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label for="confirmPassword">Confirm New Password</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            v-model="confirmPassword"
-            required
-          />
-          <span v-if="confirmPassword && !passwordsMatch" class="error-text"
-            >Passwords do not match</span
-          >
-        </div>
-
-        <div class="actions">
-          <button
-            type="button"
-            @click="router.push('/dashboard')"
-            class="btn secondary"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            :disabled="loading || !isValid"
-            class="btn primary"
-          >
-            {{ loading ? "Changing..." : "Change Password" }}
-          </button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </template>
+    </Card>
   </div>
 </template>
 
-<style scoped>
-.change-password-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 80vh;
-}
-
-.change-password-card {
-  width: 100%;
-  max-width: 400px;
-}
-
-h2 {
-  margin-top: 0;
-  margin-bottom: 2rem;
-  color: var(--primary-color);
-}
-
-.requirements {
-  margin-top: 0.5rem;
-  font-size: 0.8rem;
-  color: #888;
-}
-
-.requirements p {
-  margin: 0.2rem 0;
-  display: flex;
-  align-items: center;
-}
-
-.requirements p::before {
-  content: "○";
-  margin-right: 0.5rem;
-  font-weight: bold;
-}
-
-.requirements p.met {
-  color: #4caf50;
-}
-
-.requirements p.met::before {
-  content: "✓";
-}
-
-.actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.btn {
-  flex: 1;
-}
-</style>
+<style scoped></style>

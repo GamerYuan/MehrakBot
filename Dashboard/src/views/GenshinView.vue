@@ -1,6 +1,20 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import Tabs from "primevue/tabs";
+import TabList from "primevue/tablist";
+import Tab from "primevue/tab";
+import TabPanels from "primevue/tabpanels";
+import TabPanel from "primevue/tabpanel";
+import InputText from "primevue/inputtext";
+import InputNumber from "primevue/inputnumber";
+import Select from "primevue/select";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Dialog from "primevue/dialog";
+import Password from "primevue/password";
+import Message from "primevue/message";
+import Image from "primevue/image";
 
 const router = useRouter();
 const activeTab = ref("character");
@@ -140,189 +154,142 @@ const handleAuth = async () => {
   <div class="genshin-view">
     <h1>Genshin Impact</h1>
 
-    <div class="tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        class="tab-btn"
-        :class="{ active: activeTab === tab.id }"
-        @click="activeTab = tab.id"
-      >
-        {{ tab.name }}
-      </button>
-    </div>
+    <Tabs v-model:value="activeTab">
+      <TabList>
+        <Tab v-for="tab in tabs" :key="tab.id" :value="tab.id">{{
+          tab.name
+        }}</Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel v-for="tab in tabs" :key="tab.id" :value="tab.id">
+          <Card class="command-card">
+            <template #content>
+              <form @submit.prevent="executeCommand">
+                <div class="flex flex-col gap-4">
+                  <div class="flex flex-row md:flex-row gap-4">
+                    <div class="flex flex-col gap-2 flex-1">
+                      <label>Profile ID (1-10)</label>
+                      <InputNumber
+                        v-model="profileId"
+                        showButtons
+                        :min="1"
+                        :max="10"
+                        fluid
+                      />
+                    </div>
+                    <div class="flex flex-col gap-2 flex-1">
+                      <label>Server</label>
+                      <Select
+                        v-model="server"
+                        :options="servers"
+                        optionLabel="label"
+                        optionValue="value"
+                        fluid
+                        class="h-full items-center"
+                      />
+                    </div>
+                  </div>
 
-    <div class="card command-card">
-      <form @submit.prevent="executeCommand">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Profile ID (1-10)</label>
-            <div class="number-input-wrapper">
-              <button
-                type="button"
-                class="number-input-btn"
-                @click="profileId = Math.max(1, (Number(profileId) || 0) - 1)"
-              >
-                -
-              </button>
-              <input
-                v-model="profileId"
-                type="number"
-                min="1"
-                max="10"
-                required
-              />
-              <button
-                type="button"
-                class="number-input-btn"
-                @click="profileId = Math.min(10, (Number(profileId) || 0) + 1)"
-              >
-                +
-              </button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Server</label>
-            <select v-model="server">
-              <option v-for="s in servers" :key="s.value" :value="s.value">
-                {{ s.label }}
-              </option>
-            </select>
-          </div>
-        </div>
+                  <!-- Specific Inputs -->
+                  <div
+                    v-if="activeTab === 'character'"
+                    class="flex flex-col gap-2"
+                  >
+                    <label>Character Name</label>
+                    <InputText
+                      v-model="characterName"
+                      required
+                      placeholder="e.g. Nahida"
+                      fluid
+                    />
+                  </div>
 
-        <!-- Specific Inputs -->
-        <div v-if="activeTab === 'character'" class="form-group">
-          <label>Character Name</label>
-          <input
-            type="text"
-            v-model="characterName"
-            required
-            placeholder="e.g. Nahida"
-          />
-        </div>
+                  <div v-if="activeTab === 'abyss'" class="flex flex-col gap-2">
+                    <label>Floor (9-12)</label>
+                    <InputNumber
+                      v-model="abyssFloor"
+                      showButtons
+                      :min="9"
+                      :max="12"
+                      fluid
+                    />
+                  </div>
 
-        <div v-if="activeTab === 'abyss'" class="form-group">
-          <label>Floor (9-12)</label>
-          <div class="number-input-wrapper">
-            <button
-              type="button"
-              class="number-input-btn"
-              @click="abyssFloor = Math.max(9, Number(abyssFloor) - 1)"
-            >
-              -
-            </button>
-            <input
-              v-model="abyssFloor"
-              type="number"
-              min="9"
-              max="12"
-              required
-            />
-            <button
-              type="button"
-              class="number-input-btn"
-              @click="abyssFloor = Math.min(12, Number(abyssFloor) + 1)"
-            >
-              +
-            </button>
-          </div>
-        </div>
+                  <Button
+                    type="submit"
+                    :label="loading ? 'Executing...' : 'Execute'"
+                    :loading="loading"
+                    fluid
+                  />
+                </div>
+              </form>
+              <Message v-if="error" severity="error" class="mt-2">{{
+                error
+              }}</Message>
+            </template>
+          </Card>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
 
-        <button type="submit" class="btn primary" :disabled="loading">
-          {{ loading ? "Executing..." : "Execute" }}
-        </button>
-      </form>
-
-      <div v-if="error" class="error-text mt-2">{{ error }}</div>
-    </div>
-
-    <div v-if="resultImage" class="result-container mt-2">
-      <div class="card">
-        <img :src="resultImage" alt="Result" class="result-image" />
-      </div>
+    <div v-if="resultImage" class="result-container mt-4">
+      <Card>
+        <template #content>
+          <Image :src="resultImage" alt="Result" preview width="100%" />
+        </template>
+      </Card>
     </div>
 
     <!-- Auth Modal -->
-    <div v-if="showAuthModal" class="modal-overlay">
-      <div class="modal">
-        <h2>Profile Authentication Required</h2>
-        <p>
-          Please authenticate profile <strong>{{ authProfileId }}</strong>
-        </p>
+    <Dialog
+      v-model:visible="showAuthModal"
+      modal
+      header="Profile Authentication Required"
+      :style="{ width: '25rem' }"
+    >
+      <p class="mb-4">
+        Please authenticate profile <strong>{{ authProfileId }}</strong>
+      </p>
 
-        <form @submit.prevent="handleAuth">
-          <div class="form-group">
+      <form @submit.prevent="handleAuth">
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-2">
             <label>Passphrase</label>
-            <input v-model="authPassphrase" type="password" required />
+            <Password
+              v-model="authPassphrase"
+              required
+              :feedback="false"
+              toggleMask
+              fluid
+            />
           </div>
 
-          <div v-if="authError" class="error-text mb-2">{{ authError }}</div>
+          <Message v-if="authError" severity="error">{{ authError }}</Message>
 
-          <div class="modal-actions">
-            <button
+          <div class="flex justify-end gap-2">
+            <Button
               type="button"
+              label="Cancel"
+              severity="secondary"
               @click="showAuthModal = false"
-              class="btn secondary"
-            >
-              Cancel
-            </button>
-            <button type="submit" class="btn primary" :disabled="authLoading">
-              {{ authLoading ? "Authenticating..." : "Authenticate" }}
-            </button>
+            />
+            <Button
+              type="submit"
+              :label="authLoading ? 'Authenticating...' : 'Authenticate'"
+              :loading="authLoading"
+            />
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      </form>
+    </Dialog>
   </div>
 </template>
 
 <style scoped>
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.tab-btn {
-  padding: 0.8rem 1.5rem;
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  color: #ccc;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
-}
-
-.tab-btn:hover {
-  background-color: #333;
-  color: white;
-}
-
-.tab-btn.active {
-  background-color: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
 .result-image {
   max-width: 100%;
   border-radius: 8px;
   display: block;
   margin: 0 auto;
-}
-
-@media (max-width: 600px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

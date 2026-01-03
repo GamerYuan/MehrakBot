@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --primary-color: #5865f2;
   --secondary-color: #ffc107;
@@ -351,24 +353,6 @@ th {
 }
 
 /* --- Utilities --- */
-.text-center {
-  text-align: center;
-}
-.mb-1 {
-  margin-bottom: 0.5rem;
-}
-.mb-2 {
-  margin-bottom: 1rem;
-}
-.mt-1 {
-  margin-top: 0.5rem;
-}
-.mt-2 {
-  margin-top: 1rem;
-}
-.full-width {
-  width: 100%;
-}
 
 .error-text {
   color: var(--danger-color);
@@ -472,4 +456,138 @@ th {
   color: white;
   background-color: transparent;
   text-decoration: underline;
+}
+
+/* --- Layout Utilities --- */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}
+
+/* --- Spacing Utilities --- */
+.mb-1 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mt-1 {
+  margin-top: 0.5rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+/* --- Typography Utilities --- */
+.text-center {
+  text-align: center;
+}
+
+.select-all {
+  user-select: all;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-mono {
+  font-family: monospace;
+}
+
+.p-error {
+  color: var(--danger-color);
+}
+
+/* --- Auth Pages --- */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.password-requirements {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.password-requirements p {
+  margin: 0.2rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.password-requirements p::before {
+  content: "○";
+  margin-right: 0.5rem;
+  font-weight: bold;
+}
+
+.password-requirements p.met {
+  color: var(--success-color);
+}
+
+.password-requirements p.met::before {
+  content: "✓";
 }

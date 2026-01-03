@@ -1,5 +1,8 @@
 <script setup>
 import { useRouter } from "vue-router";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Tag from "primevue/tag";
 
 const router = useRouter();
 
@@ -25,56 +28,61 @@ const toTitleCase = (str) => {
       <h1>Dashboard</h1>
     </header>
 
-    <div class="user-info-card">
-      <div class="card-header">
-        <h2>User Profile</h2>
-        <button
-          @click="router.push('/dashboard/change-password')"
-          class="btn small"
-        >
-          Change Password
-        </button>
-      </div>
-      <div class="info-row">
-        <span class="label">Username:</span>
-        <span class="value">{{ userInfo.username }}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Discord User ID:</span>
-        <span class="value">{{ userInfo.discordUserId }}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Super Admin:</span>
-        <span
-          class="value"
-          :class="{ yes: userInfo.isSuperAdmin, no: !userInfo.isSuperAdmin }"
-        >
-          {{ userInfo.isSuperAdmin ? "Yes" : "No" }}
-        </span>
-      </div>
-    </div>
+    <Card class="mb-4">
+      <template #title>
+        <div class="flex justify-between items-center">
+          <span>User Profile</span>
+          <Button
+            label="Change Password"
+            size="small"
+            outlined
+            @click="router.push('/dashboard/change-password')"
+          />
+        </div>
+      </template>
+      <template #content>
+        <div class="flex flex-col gap-2">
+          <div class="info-row">
+            <span class="label">Username:</span>
+            <span class="value">{{ userInfo.username }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Discord User ID:</span>
+            <span class="value">{{ userInfo.discordUserId }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Super Admin:</span>
+            <Tag
+              :severity="userInfo.isSuperAdmin ? 'success' : 'secondary'"
+              :value="userInfo.isSuperAdmin ? 'Yes' : 'No'"
+            />
+          </div>
+        </div>
+      </template>
+    </Card>
 
-    <div class="permissions-card">
-      <h2>Game Permissions</h2>
-      <ul
-        v-if="
-          userInfo.gameWritePermissions &&
-          userInfo.gameWritePermissions.length > 0
-        "
-        class="permissions-list"
-      >
-        <li
-          v-for="perm in userInfo.gameWritePermissions"
-          :key="perm"
-          class="permission-item"
+    <Card>
+      <template #title>Game Permissions</template>
+      <template #content>
+        <div
+          v-if="
+            userInfo.gameWritePermissions &&
+            userInfo.gameWritePermissions.length > 0
+          "
+          class="flex flex-wrap gap-2"
         >
-          {{ toTitleCase(perm) }}
-        </li>
-      </ul>
-      <p v-else class="no-perms">
-        No specific game write permissions assigned.
-      </p>
-    </div>
+          <Tag
+            v-for="perm in userInfo.gameWritePermissions"
+            :key="perm"
+            :value="toTitleCase(perm)"
+            severity="info"
+          />
+        </div>
+        <p v-else class="no-perms">
+          No specific game write permissions assigned.
+        </p>
+      </template>
+    </Card>
   </div>
 </template>
 
@@ -91,38 +99,6 @@ const toTitleCase = (str) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #444;
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.card-header h2 {
-  margin: 0;
-  border: none;
-  padding: 0;
-}
-
-.user-info-card,
-.permissions-card {
-  background-color: var(--card-bg);
-  padding: 2rem;
-  border-radius: 12px;
-  border: 1px solid #333;
-  margin-bottom: 2rem;
-}
-
-h2 {
-  color: var(--secondary-color);
-  margin-top: 0;
-  border-bottom: 1px solid #444;
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .info-row {
@@ -146,60 +122,8 @@ h2 {
   font-size: 1.1rem;
 }
 
-.value.yes {
-  color: #4caf50;
-}
-.value.no {
-  color: #aaa;
-}
-
-.permissions-list {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.permission-item {
-  background-color: #1a1a1a;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--primary-color);
-  color: white;
-}
-
 .no-perms {
   color: #888;
   font-style: italic;
-}
-
-.btn {
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  border: none;
-  font-size: 0.9rem;
-  transition: background-color 0.2s;
-}
-
-.btn.secondary {
-  background-color: #333;
-  color: white;
-  border: 1px solid #555;
-}
-
-.btn.small {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
-  background-color: transparent;
-  border: 1px solid var(--primary-color);
-  color: var(--primary-color);
-}
-
-.btn.small:hover {
-  background-color: var(--primary-color);
-  color: white;
 }
 </style>

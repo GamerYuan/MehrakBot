@@ -1,8 +1,21 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Button from "primevue/button";
+import InputText from "primevue/inputtext";
+import Dialog from "primevue/dialog";
+import Checkbox from "primevue/checkbox";
+import Tag from "primevue/tag";
+import Select from "primevue/select";
 
 const router = useRouter();
+const confirm = useConfirm();
+const toast = useToast();
+
 const props = defineProps({
   userInfo: {
     type: Object,
@@ -19,8 +32,6 @@ const filterPermission = ref("All");
 // Modal states
 const showAddModal = ref(false);
 const showUpdateModal = ref(false);
-const showDeleteConfirm = ref(false);
-const showResetConfirm = ref(false);
 const showTempPasswordModal = ref(false);
 
 const selectedUser = ref(null);
@@ -74,6 +85,12 @@ const fetchUsers = async () => {
     users.value = await response.json();
   } catch (err) {
     error.value = err.message;
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
   } finally {
     loading.value = false;
   }
@@ -138,14 +155,40 @@ const openUpdateModal = (user) => {
   showUpdateModal.value = true;
 };
 
-const openDeleteConfirm = (user) => {
-  selectedUser.value = user;
-  showDeleteConfirm.value = true;
+const confirmDelete = (user) => {
+  confirm.require({
+    message: `Are you sure you want to delete user ${user.username}?`,
+    header: "Confirm Delete",
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: {
+      label: "Cancel",
+      severity: "secondary",
+      outlined: true,
+    },
+    acceptProps: {
+      label: "Delete",
+      severity: "danger",
+    },
+    accept: () => handleDeleteUser(user),
+  });
 };
 
-const openResetConfirm = (user) => {
-  selectedUser.value = user;
-  showResetConfirm.value = true;
+const confirmReset = (user) => {
+  confirm.require({
+    message: `Force password reset for ${user.username}?`,
+    header: "Confirm Password Reset",
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: {
+      label: "Cancel",
+      severity: "secondary",
+      outlined: true,
+    },
+    acceptProps: {
+      label: "Confirm",
+      severity: "primary",
+    },
+    accept: () => handleResetPassword(user),
+  });
 };
 
 const getSelectedPermissions = () => {
@@ -186,8 +229,19 @@ const handleAddUser = async () => {
     showAddModal.value = false;
     showTempPasswordModal.value = true;
     fetchUsers();
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "User added successfully",
+      life: 3000,
+    });
   } catch (err) {
-    alert(err.message);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
   }
 };
 
@@ -224,21 +278,29 @@ const handleUpdateUser = async () => {
 
     showUpdateModal.value = false;
     fetchUsers();
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "User updated successfully",
+      life: 3000,
+    });
   } catch (err) {
-    alert(err.message);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
   }
 };
 
-const handleDeleteUser = async () => {
+const handleDeleteUser = async (user) => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(
-      `${backendUrl}/users/${selectedUser.value.userId}`,
-      {
-        method: "DELETE",
-        credentials: "include",
-      }
-    );
+    const response = await fetch(`${backendUrl}/users/${user.userId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
 
     if (response.status === 401) {
       router.push("/login");
@@ -250,18 +312,28 @@ const handleDeleteUser = async () => {
       throw new Error(data.error || "Failed to delete user");
     }
 
-    showDeleteConfirm.value = false;
     fetchUsers();
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "User deleted successfully",
+      life: 3000,
+    });
   } catch (err) {
-    alert(err.message);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
   }
 };
 
-const handleResetPassword = async () => {
+const handleResetPassword = async (user) => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
-      `${backendUrl}/users/${selectedUser.value.userId}/password/require-reset`,
+      `${backendUrl}/users/${user.userId}/password/require-reset`,
       {
         method: "POST",
         credentials: "include",
@@ -273,17 +345,35 @@ const handleResetPassword = async () => {
       throw new Error(data.error || "Failed to reset password");
     }
 
-    alert(
-      "Password reset required for user. They will be prompted to set a new password on next login."
-    );
-    showResetConfirm.value = false;
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "Password reset required for user.",
+      life: 5000,
+    });
   } catch (err) {
-    alert(err.message);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
   }
 };
 
 onMounted(() => {
   fetchUsers();
+});
+
+const permissionOptions = computed(() => {
+  return [
+    { label: "All Permissions", value: "All" },
+    { label: "Super Admin", value: "SuperAdmin" },
+    ...availablePermissions.map((perm) => ({
+      label: formatPermission(perm),
+      value: perm,
+    })),
+  ];
 });
 </script>
 
@@ -291,199 +381,248 @@ onMounted(() => {
   <div class="user-management">
     <div class="header">
       <h1>User Management</h1>
-      <button @click="openAddModal" class="btn primary">Add User</button>
+      <Button label="Add User" icon="pi pi-plus" @click="openAddModal" />
     </div>
 
-    <div class="controls">
-      <input
+    <div class="controls flex gap-4 mb-4">
+      <InputText
         v-model="searchQuery"
-        type="text"
         placeholder="Search by username..."
-        class="search-box"
+        class="flex-1"
+        fluid
       />
 
-      <select v-model="filterPermission" class="filter-select">
-        <option value="All">All Permissions</option>
-        <option value="SuperAdmin">Super Admin</option>
-        <option v-for="perm in availablePermissions" :key="perm" :value="perm">
-          {{ formatPermission(perm) }}
-        </option>
-      </select>
+      <Select
+        v-model="filterPermission"
+        :options="permissionOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Filter Permissions"
+        class="w-1/3 items-center"
+      />
     </div>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Discord ID</th>
-            <th>Role</th>
-            <th>Permissions</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in filteredUsers" :key="user.userId">
-            <td>{{ user.username }}</td>
-            <td>{{ user.discordUserId }}</td>
-            <td>
-              <span v-if="user.isSuperAdmin" class="badge admin"
-                >Super Admin</span
-              >
-              <span v-else class="badge user">User</span>
-            </td>
-            <td>
-              <div class="perms-tags">
-                <span
-                  v-for="perm in user.gameWritePermissions"
-                  :key="perm"
-                  class="tag"
-                >
-                  {{ formatPermission(perm) }}
-                </span>
-              </div>
-            </td>
-            <td class="actions-cell">
-              <button
-                @click="openUpdateModal(user)"
-                class="btn icon-btn"
-                title="Edit"
-              >
-                ✏️
-              </button>
-              <button
-                @click="openResetConfirm(user)"
-                class="btn icon-btn"
-                title="Reset Password"
-              >
-                🔒
-              </button>
-              <button
-                @click="openDeleteConfirm(user)"
-                class="btn icon-btn delete"
-                title="Delete"
-              >
-                🗑️
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Modals -->
-    <div v-if="showAddModal || showUpdateModal" class="modal-overlay">
-      <div class="modal">
-        <h2>{{ showAddModal ? "Add New User" : "Update User" }}</h2>
-        <form
-          @submit.prevent="showAddModal ? handleAddUser() : handleUpdateUser()"
-        >
-          <div class="form-group">
-            <label>Username</label>
-            <input type="text" v-model="formData.username" required />
+    <DataTable
+      :value="filteredUsers"
+      :loading="loading"
+      tableStyle="min-width: 50rem"
+    >
+      <Column field="username" header="Username"></Column>
+      <Column field="discordUserId" header="Discord ID"></Column>
+      <Column header="Role">
+        <template #body="slotProps">
+          <Tag
+            :severity="slotProps.data.isSuperAdmin ? 'success' : 'secondary'"
+            :value="slotProps.data.isSuperAdmin ? 'Super Admin' : 'User'"
+          />
+        </template>
+      </Column>
+      <Column header="Permissions">
+        <template #body="slotProps">
+          <div class="flex flex-wrap gap-2">
+            <Tag
+              v-for="perm in slotProps.data.gameWritePermissions"
+              :key="perm"
+              :value="formatPermission(perm)"
+              severity="info"
+            />
           </div>
-          <div class="form-group">
-            <label>Discord User ID</label>
-            <input
-              v-model="formData.discordUserId"
+        </template>
+      </Column>
+      <Column header="Actions">
+        <template #body="slotProps">
+          <div class="flex gap-2">
+            <Button
+              icon="pi pi-pencil"
+              severity="secondary"
+              text
+              rounded
+              aria-label="Edit"
+              @click="openUpdateModal(slotProps.data)"
+            />
+            <Button
+              icon="pi pi-lock"
+              severity="warn"
+              text
+              rounded
+              aria-label="Reset Password"
+              @click="confirmReset(slotProps.data)"
+            />
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              text
+              rounded
+              aria-label="Delete"
+              @click="confirmDelete(slotProps.data)"
+            />
+          </div>
+        </template>
+      </Column>
+    </DataTable>
+
+    <!-- Add/Update Modal -->
+    <Dialog
+      v-model:visible="showAddModal"
+      modal
+      header="Add New User"
+      :style="{ width: '25rem' }"
+    >
+      <form @submit.prevent="handleAddUser">
+        <div class="flex flex-col gap-4 mb-4">
+          <div class="flex flex-col gap-2">
+            <label for="username" class="font-semibold w-24">Username</label>
+            <InputText
+              id="username"
+              v-model="formData.username"
+              class="flex-auto"
+              autocomplete="off"
               required
-              type="text"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label for="discordId" class="font-semibold w-24">Discord ID</label>
+            <InputText
+              id="discordId"
+              v-model="formData.discordUserId"
+              class="flex-auto"
+              autocomplete="off"
+              required
               pattern="\d+"
               title="Numeric ID"
             />
           </div>
-
-          <div class="form-group checkbox">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="formData.isSuperAdmin" />
-              Super Admin
-            </label>
+          <div class="flex items-center gap-2">
+            <Checkbox
+              v-model="formData.isSuperAdmin"
+              binary
+              inputId="isSuperAdmin"
+            />
+            <label for="isSuperAdmin" class="font-semibold">Super Admin</label>
           </div>
-
-          <div class="form-group">
-            <label>Game Write Permissions</label>
-            <div class="toggle-grid">
+          <div class="flex flex-col gap-2">
+            <label class="font-semibold">Game Write Permissions</label>
+            <div class="flex flex-col gap-2">
               <div
                 v-for="perm in availablePermissions"
                 :key="perm"
-                class="toggle-card"
-                :class="{ active: formData.permissions[perm] }"
-                @click="
-                  formData.permissions[perm] = !formData.permissions[perm]
-                "
+                class="flex items-center gap-2"
               >
-                {{ formatPermission(perm) }}
+                <Checkbox
+                  v-model="formData.permissions[perm]"
+                  binary
+                  :inputId="perm"
+                />
+                <label :for="perm">{{ formatPermission(perm) }}</label>
               </div>
             </div>
           </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <Button
+            type="button"
+            label="Cancel"
+            severity="secondary"
+            @click="showAddModal = false"
+          ></Button>
+          <Button type="submit" label="Save"></Button>
+        </div>
+      </form>
+    </Dialog>
 
-          <div class="modal-actions">
-            <button
-              type="button"
-              @click="
-                showAddModal = false;
-                showUpdateModal = false;
-              "
-              class="btn secondary"
+    <Dialog
+      v-model:visible="showUpdateModal"
+      modal
+      header="Update User"
+      :style="{ width: '25rem' }"
+    >
+      <form @submit.prevent="handleUpdateUser">
+        <div class="flex flex-col gap-4 mb-4">
+          <div class="flex flex-col gap-2">
+            <label for="edit-username" class="font-semibold w-24"
+              >Username</label
             >
-              Cancel
-            </button>
-            <button type="submit" class="btn primary">Save</button>
+            <InputText
+              id="edit-username"
+              v-model="formData.username"
+              class="flex-auto"
+              autocomplete="off"
+              required
+            />
           </div>
-        </form>
-      </div>
-    </div>
-
-    <div v-if="showDeleteConfirm" class="modal-overlay">
-      <div class="modal small">
-        <h2>Confirm Delete</h2>
-        <p>
-          Are you sure you want to delete user
-          <strong>{{ selectedUser.username }}</strong
-          >?
-        </p>
-        <div class="modal-actions">
-          <button @click="showDeleteConfirm = false" class="btn secondary">
-            Cancel
-          </button>
-          <button @click="handleDeleteUser" class="btn delete">Delete</button>
+          <div class="flex flex-col gap-2">
+            <label for="edit-discordId" class="font-semibold w-24"
+              >Discord ID</label
+            >
+            <InputText
+              id="edit-discordId"
+              v-model="formData.discordUserId"
+              class="flex-auto"
+              autocomplete="off"
+              required
+              pattern="\d+"
+              title="Numeric ID"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <Checkbox
+              v-model="formData.isSuperAdmin"
+              binary
+              inputId="edit-isSuperAdmin"
+            />
+            <label for="edit-isSuperAdmin" class="font-semibold"
+              >Super Admin</label
+            >
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="font-semibold">Game Write Permissions</label>
+            <div class="flex flex-col gap-2">
+              <div
+                v-for="perm in availablePermissions"
+                :key="perm"
+                class="flex items-center gap-2"
+              >
+                <Checkbox
+                  v-model="formData.permissions[perm]"
+                  binary
+                  :inputId="'edit-' + perm"
+                />
+                <label :for="'edit-' + perm">{{
+                  formatPermission(perm)
+                }}</label>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-
-    <div v-if="showResetConfirm" class="modal-overlay">
-      <div class="modal small">
-        <h2>Confirm Password Reset</h2>
-        <p>
-          Force password reset for <strong>{{ selectedUser.username }}</strong
-          >?
-        </p>
-        <div class="modal-actions">
-          <button @click="showResetConfirm = false" class="btn secondary">
-            Cancel
-          </button>
-          <button @click="handleResetPassword" class="btn primary">
-            Confirm
-          </button>
+        <div class="flex justify-end gap-2">
+          <Button
+            type="button"
+            label="Cancel"
+            severity="secondary"
+            @click="showUpdateModal = false"
+          ></Button>
+          <Button type="submit" label="Save"></Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </Dialog>
 
-    <div v-if="showTempPasswordModal" class="modal-overlay">
-      <div class="modal small">
-        <h2>User Created</h2>
-        <p>Temporary Password:</p>
-        <div class="code-block">{{ tempPassword }}</div>
-        <p class="text-warning">
-          Please copy this password. It will not be shown again.
-        </p>
-        <div class="modal-actions">
-          <button @click="showTempPasswordModal = false" class="btn primary">
-            Close
-          </button>
-        </div>
+    <Dialog
+      v-model:visible="showTempPasswordModal"
+      modal
+      header="User Created"
+      :style="{ width: '25rem' }"
+    >
+      <p class="mb-4">Temporary Password:</p>
+      <div class="code-block select-all">
+        {{ tempPassword }}
       </div>
-    </div>
+      <p class="text-orange-500 mb-4">
+        Please copy this password. It will not be shown again.
+      </p>
+      <div class="flex justify-end">
+        <Button label="Close" @click="showTempPasswordModal = false"></Button>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -495,38 +634,7 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
-.controls {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.search-box {
-  flex: 1;
-  max-width: 300px;
-}
-
-.filter-select {
-  width: auto;
-  min-width: 200px;
-  padding: 0.6rem;
-}
-
-.perms-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.actions-cell {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
+.text-orange-500 {
+  color: var(--p-orange-500);
 }
 </style>
