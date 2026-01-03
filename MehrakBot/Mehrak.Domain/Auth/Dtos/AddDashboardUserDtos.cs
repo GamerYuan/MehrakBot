@@ -70,6 +70,7 @@ public class DashboardUserSummaryDto
 {
     public Guid UserId { get; init; }
     public string Username { get; init; } = string.Empty;
+    public string DiscordUserId { get; init; } = string.Empty;
     public bool IsSuperAdmin { get; init; }
     public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
 }

@@ -8,8 +8,9 @@ namespace Mehrak.Dashboard.Models
         [StringLength(100, MinimumLength = 3)]
         public string Username { get; set; } = string.Empty;
 
-        [Range(1, long.MaxValue)]
-        public long DiscordUserId { get; set; }
+        [Required]
+        [RegularExpression("^\\d+$", ErrorMessage = "DiscordUserId must be numeric.")]
+        public string DiscordUserId { get; set; } = string.Empty;
 
         public bool IsSuperAdmin { get; set; }
 

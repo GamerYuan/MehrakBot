@@ -180,12 +180,27 @@ public class Program
 
         builder.Services.AddControllers();
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAllDev", builder =>
+            {
+                builder.AllowAnyHeader()
+                    .AllowAnyOrigin()
+                    .AllowAnyMethod();
+            });
+        });
+
         var app = builder.Build();
         await AddDefaultSuperAdminAccount(app);
         app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseCors("AllowAllDev");
+        }
 
         await app.RunAsync();
     }

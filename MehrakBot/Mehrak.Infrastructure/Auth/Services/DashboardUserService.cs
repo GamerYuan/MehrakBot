@@ -36,6 +36,7 @@ public class DashboardUserService : IDashboardUserService
             {
                 UserId = u.Id,
                 Username = u.Username,
+                DiscordUserId = u.DiscordId.ToString(),
                 IsSuperAdmin = u.IsSuperAdmin,
                 GameWritePermissions = [.. u.GamePermissions
                     .Where(p => p.AllowWrite)

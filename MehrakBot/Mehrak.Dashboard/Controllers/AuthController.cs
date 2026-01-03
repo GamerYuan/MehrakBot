@@ -75,7 +75,7 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             username = result.Username,
-            discordUserId = result.DiscordUserId,
+            discordUserId = result.DiscordUserId.ToString(),
             isSuperAdmin = result.IsSuperAdmin,
             gameWritePermissions = result.GameWritePermissions,
             requiresPasswordReset = result.RequiresPasswordReset

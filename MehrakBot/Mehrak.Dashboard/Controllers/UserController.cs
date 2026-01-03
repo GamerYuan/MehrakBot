@@ -1,4 +1,5 @@
-﻿using Mehrak.Dashboard.Models;
+﻿using System.Globalization;
+using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -29,6 +30,7 @@ public class UserController : ControllerBase
         {
             userId = u.UserId,
             username = u.Username,
+            discordUserId = u.DiscordUserId,
             isSuperAdmin = u.IsSuperAdmin,
             gameWritePermissions = u.GameWritePermissions
         });
@@ -42,6 +44,9 @@ public class UserController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        if (!TryParseDiscordUserId(request.DiscordUserId, out var discordUserId, out var parseError))
+            return parseError!;
+
         m_Logger.LogInformation("Creating dashboard user {Username}", request.Username);
 
         var permissions = request.GameWritePermissions?
@@ -52,7 +57,7 @@ public class UserController : ControllerBase
         var result = await m_UserService.AddDashboardUserAsync(new AddDashboardUserRequestDto
         {
             Username = request.Username.Trim(),
-            DiscordUserId = request.DiscordUserId,
+            DiscordUserId = discordUserId,
             IsSuperAdmin = request.IsSuperAdmin,
             GameWritePermissions = permissions
         }, HttpContext.RequestAborted);
@@ -83,6 +88,9 @@ public class UserController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        if (!TryParseDiscordUserId(request.DiscordUserId, out var discordUserId, out var parseError))
+            return parseError!;
+
         m_Logger.LogInformation("Updating dashboard user {UserId}", id);
 
         var permissions = request.GameWritePermissions?
@@ -94,7 +102,7 @@ public class UserController : ControllerBase
         {
             UserId = id,
             Username = request.Username.Trim(),
-            DiscordUserId = request.DiscordUserId,
+            DiscordUserId = discordUserId,
             IsSuperAdmin = request.IsSuperAdmin,
             IsActive = request.IsActive,
             GameWritePermissions = permissions
@@ -153,5 +161,22 @@ public class UserController : ControllerBase
 
         m_Logger.LogInformation("Deleted dashboard user {UserId}", id);
         return NoContent();
+    }
+
+    private bool TryParseDiscordUserId(string discordUserIdValue, out long discordUserId, out IActionResult? errorResult)
+    {
+        errorResult = null;
+        discordUserId = 0;
+
+        if (string.IsNullOrWhiteSpace(discordUserIdValue) ||
+            !long.TryParse(discordUserIdValue, NumberStyles.None, CultureInfo.InvariantCulture, out discordUserId) ||
+            discordUserId <= 0)
+        {
+            ModelState.AddModelError("DiscordUserId", "DiscordUserId must be a valid numeric string.");
+            errorResult = ValidationProblem(ModelState);
+            return false;
+        }
+
+        return true;
     }
 }
