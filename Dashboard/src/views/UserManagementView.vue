@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const props = defineProps({
   userInfo: {
     type: Object,
@@ -64,6 +66,10 @@ const fetchUsers = async () => {
     const response = await fetch(`${backendUrl}/users/list`, {
       credentials: "include",
     });
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
     if (!response.ok) throw new Error("Failed to fetch users");
     users.value = await response.json();
   } catch (err) {
@@ -165,6 +171,11 @@ const handleAddUser = async () => {
       body: JSON.stringify(payload),
     });
 
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.error || "Failed to add user");
@@ -201,6 +212,11 @@ const handleUpdateUser = async () => {
       }
     );
 
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.error || "Failed to update user");
@@ -223,6 +239,11 @@ const handleDeleteUser = async () => {
         credentials: "include",
       }
     );
+
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
 
     if (!response.ok) {
       const data = await response.json();
@@ -359,7 +380,7 @@ onMounted(() => {
         >
           <div class="form-group">
             <label>Username</label>
-            <input v-model="formData.username" required />
+            <input type="text" v-model="formData.username" required />
           </div>
           <div class="form-group">
             <label>Discord User ID</label>

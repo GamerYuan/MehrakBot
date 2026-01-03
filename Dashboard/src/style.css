@@ -1,6 +1,6 @@
 :root {
-  --primary-color: #5865F2;
-  --secondary-color: #FFC107;
+  --primary-color: #5865f2;
+  --secondary-color: #ffc107;
   --bg-color: #1a1a1a;
   --text-color: #ffffff;
   --card-bg: #2c2c2c;
@@ -8,7 +8,7 @@
   --input-bg: #1a1a1a;
   --danger-color: #ff4444;
   --success-color: #4caf50;
-  
+
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -152,20 +152,97 @@ label {
   color: #ccc;
 }
 
-input[type='text'],
-input[type='password'],
-input[type='email'],
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
 select,
 textarea {
   width: 100%;
-  padding: 0.8rem;
-  border-radius: 6px;
+  padding: 1rem;
+  border-radius: 8px;
   border: 1px solid var(--border-color);
   background-color: var(--input-bg);
   color: white;
-  font-size: 1rem;
+  font-size: 1.1rem;
   box-sizing: border-box;
   font-family: inherit;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23cccccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.number-input-wrapper {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--input-bg);
+  overflow: hidden;
+}
+
+.number-input-wrapper input[type="number"] {
+  border: none;
+  text-align: center;
+  padding: 1rem 0.5rem;
+  width: 100%;
+  background: transparent;
+  border-radius: 0;
+}
+
+.number-input-wrapper input[type="number"]:focus {
+  outline: none;
+}
+
+.number-input-btn {
+  background-color: var(--card-bg);
+  border: none;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  width: 3.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  padding: 0;
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+}
+
+.number-input-btn:first-child {
+  border-left: none;
+  border-right: 1px solid var(--border-color);
+}
+
+.number-input-btn:last-child {
+  border-left: 1px solid var(--border-color);
+  border-right: none;
+}
+
+.number-input-btn:hover {
+  background-color: #333;
+}
+
+.number-input-btn:active {
+  background-color: #444;
 }
 
 input:focus,
@@ -196,7 +273,7 @@ textarea:focus {
   width: 100%;
   max-width: 500px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
 .modal.small {
@@ -230,7 +307,8 @@ table {
   background-color: var(--card-bg);
 }
 
-th, td {
+th,
+td {
   padding: 1rem;
   text-align: left;
   border-bottom: 1px solid #333;
@@ -273,12 +351,24 @@ th {
 }
 
 /* --- Utilities --- */
-.text-center { text-align: center; }
-.mb-1 { margin-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 1rem; }
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.full-width { width: 100%; }
+.text-center {
+  text-align: center;
+}
+.mb-1 {
+  margin-bottom: 0.5rem;
+}
+.mb-2 {
+  margin-bottom: 1rem;
+}
+.mt-1 {
+  margin-top: 0.5rem;
+}
+.mt-2 {
+  margin-top: 1rem;
+}
+.full-width {
+  width: 100%;
+}
 
 .error-text {
   color: var(--danger-color);
@@ -300,12 +390,22 @@ th {
   animation: slideDown 0.5s ease-out;
 }
 
-.toast.success { background-color: var(--success-color); }
-.toast.error { background-color: var(--danger-color); }
+.toast.success {
+  background-color: var(--success-color);
+}
+.toast.error {
+  background-color: var(--danger-color);
+}
 
 @keyframes slideDown {
-  from { top: -50px; opacity: 0; }
-  to { top: 20px; opacity: 1; }
+  from {
+    top: -50px;
+    opacity: 0;
+  }
+  to {
+    top: 20px;
+    opacity: 1;
+  }
 }
 
 /* --- Toggle Cards --- */

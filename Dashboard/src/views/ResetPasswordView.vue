@@ -53,6 +53,11 @@ const handleReset = async () => {
       }),
     });
 
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
     const data = await response.json();
 
     if (!response.ok) {

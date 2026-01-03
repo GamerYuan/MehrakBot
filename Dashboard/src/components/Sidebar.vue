@@ -14,6 +14,11 @@ const props = defineProps({
 
 const isActive = (path) => route.path === path;
 
+const hasPermission = (perm) => {
+  if (props.userInfo.isSuperAdmin) return true;
+  return props.userInfo.gameWritePermissions?.includes(perm);
+};
+
 const handleLogout = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
@@ -54,6 +59,14 @@ const handleLogout = async () => {
         :class="{ active: isActive('/dashboard/users') }"
       >
         User Management
+      </router-link>
+
+      <router-link
+        to="/dashboard/genshin"
+        class="nav-item"
+        :class="{ active: isActive('/dashboard/genshin') }"
+      >
+        Genshin Impact
       </router-link>
     </nav>
 
