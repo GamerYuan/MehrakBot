@@ -38,11 +38,11 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
         { 6, Color.ParseHex("f0b74f") }
     };
 
-    private Image m_Background;
-    private Image m_StigmataSlot;
-    private Image m_StarIcon;
-    private Image m_StarUnlit;
-    private List<Image> m_CharacterRankIcons;
+    private Image m_Background = null!;
+    private Image m_StigmataSlot = null!;
+    private Image m_StarIcon = null!;
+    private Image m_StarUnlit = null!;
+    private List<Image> m_CharacterRankIcons = [];
 
     private static readonly Color OverlayColor = Color.FromRgba(47, 87, 126, 196);
 

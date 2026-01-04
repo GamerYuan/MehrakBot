@@ -43,12 +43,12 @@ public sealed class Hi3Controller : ControllerBase
         m_Logger.LogInformation("Executing HI3 battlesuit command for user {UserId}", discordUserId);
 
         var parameters = BuildParameters(Game.HonkaiImpact3, server,
-            (nameof(request.Battlesuit).ToLowerInvariant(), request.Battlesuit.Trim()));
+            ("character", request.Battlesuit.Trim()));
 
         var executor = m_ExecutorBuilder.For<Hi3CharacterApplicationContext>()
             .WithDiscordUserId(discordUserId)
             .WithApplicationContext(new Hi3CharacterApplicationContext(discordUserId, parameters))
-            .AddValidator<string>(nameof(request.Battlesuit).ToLowerInvariant(), value => !string.IsNullOrWhiteSpace(value))
+            .AddValidator<string>("character", value => !string.IsNullOrWhiteSpace(value))
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);

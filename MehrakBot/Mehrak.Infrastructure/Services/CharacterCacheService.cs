@@ -47,7 +47,7 @@ public class CharacterCacheService : ICharacterCacheService
 
     public Dictionary<string, string> GetAliases(Game gameName)
     {
-        return m_AliasCache.TryGetValue(gameName, out var dict) ? dict : [];
+        return m_AliasCache.GetValueOrDefault(gameName, []);
     }
 
     public async Task UpsertCharacters(Game gameName, IEnumerable<string> characters)
