@@ -499,3 +499,5 @@ appsettings**.json
 /MehrakBot/efbundles/
 
 /seaweed**/
+
+/Dashboard/dist/

@@ -184,8 +184,9 @@ public class Program
         {
             options.AddPolicy("AllowAllDev", builder =>
             {
-                builder.AllowAnyHeader()
-                    .AllowAnyOrigin()
+                builder.WithOrigins("http://localhost:5173")
+                    .AllowAnyHeader()
+                    .AllowCredentials()
                     .AllowAnyMethod();
             });
         });

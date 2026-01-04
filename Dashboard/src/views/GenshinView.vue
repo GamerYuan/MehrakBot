@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import { useConfirm } from "primevue/useconfirm";
 import Tabs from "primevue/tabs";
 import TabList from "primevue/tablist";
 import Tab from "primevue/tab";
@@ -9,6 +10,7 @@ import TabPanel from "primevue/tabpanel";
 import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
 import Select from "primevue/select";
+import AutoComplete from "primevue/autocomplete";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Dialog from "primevue/dialog";
@@ -17,6 +19,7 @@ import Message from "primevue/message";
 import Image from "primevue/image";
 
 const router = useRouter();
+const confirm = useConfirm();
 const activeTab = ref("character");
 const loading = ref(false);
 const error = ref("");
@@ -31,6 +34,35 @@ const server = ref("America");
 const characterName = ref("");
 const abyssFloor = ref(12);
 
+const allCharacters = ref([]);
+const filteredCharacters = ref([]);
+
+const fetchCharacters = async () => {
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(`${backendUrl}/characters/list?game=Genshin`, {
+      credentials: "include",
+    });
+    if (response.ok) {
+      const data = await response.json();
+      allCharacters.value = data.sort();
+    }
+  } catch (err) {
+    console.error("Failed to fetch characters:", err);
+  }
+};
+
+const searchCharacter = (event) => {
+  const query = event.query.toLowerCase();
+  filteredCharacters.value = allCharacters.value.filter((char) =>
+    char.toLowerCase().includes(query)
+  );
+};
+
+onMounted(() => {
+  fetchCharacters();
+});
+
 // Auth Modal Data
 const authProfileId = ref("");
 const authPassphrase = ref("");
@@ -44,13 +76,106 @@ const servers = [
   { value: "Sar", label: "TW/HK/MO" },
 ];
 
-const tabs = [
-  { id: "character", name: "Character" },
-  { id: "abyss", name: "Abyss" },
-  { id: "theater", name: "Theater" },
-  { id: "stygian", name: "Stygian" },
-  { id: "charlist", name: "Character List" },
-];
+const user = JSON.parse(localStorage.getItem("mehrak_user") || "{}");
+const canManage =
+  user.isSuperAdmin ||
+  (user.gameWritePermissions && user.gameWritePermissions.includes("genshin"));
+
+const tabs = computed(() => {
+  const t = [
+    { id: "character", name: "Character" },
+    { id: "abyss", name: "Abyss" },
+    { id: "theater", name: "Theater" },
+    { id: "stygian", name: "Stygian" },
+    { id: "charlist", name: "Character List" },
+  ];
+  if (canManage) {
+    t.push({ id: "manage", name: "Manage Characters" });
+  }
+  return t;
+});
+
+const newCharacterName = ref("");
+const manageSearchQuery = ref("");
+const manageLoading = ref(false);
+const manageError = ref("");
+
+const filteredManageCharacters = computed(() => {
+  if (!manageSearchQuery.value) return allCharacters.value;
+  const query = manageSearchQuery.value.toLowerCase();
+  return allCharacters.value.filter((char) =>
+    char.toLowerCase().includes(query)
+  );
+});
+
+const addCharacter = async () => {
+  if (!newCharacterName.value) return;
+  manageLoading.value = true;
+  manageError.value = "";
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(`${backendUrl}/characters/add?game=Genshin`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ characters: [newCharacterName.value] }),
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to add character");
+    }
+    newCharacterName.value = "";
+    await fetchCharacters();
+  } catch (err) {
+    manageError.value = err.message;
+  } finally {
+    manageLoading.value = false;
+  }
+};
+
+const deleteCharacter = (name) => {
+  confirm.require({
+    message: `Are you sure you want to delete ${name}?`,
+    header: "Confirm Delete",
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: {
+      label: "Cancel",
+      severity: "secondary",
+      outlined: true,
+    },
+    acceptProps: {
+      label: "Delete",
+      severity: "danger",
+    },
+    accept: () => executeDeleteCharacter(name),
+  });
+};
+
+const executeDeleteCharacter = async (name) => {
+  manageLoading.value = true;
+  manageError.value = "";
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(
+      `${backendUrl}/characters/delete?game=Genshin&character=${encodeURIComponent(
+        name
+      )}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to delete character");
+    }
+    await fetchCharacters();
+  } catch (err) {
+    manageError.value = err.message;
+  } finally {
+    manageLoading.value = false;
+  }
+};
 
 // Clear result when tab changes
 watch(activeTab, () => {
@@ -162,7 +287,57 @@ const handleAuth = async () => {
       </TabList>
       <TabPanels>
         <TabPanel v-for="tab in tabs" :key="tab.id" :value="tab.id">
-          <Card class="command-card">
+          <div v-if="tab.id === 'manage'">
+            <Card>
+              <template #title>Manage Characters</template>
+              <template #content>
+                <div class="flex flex-col gap-4">
+                  <div class="flex gap-2">
+                    <InputText
+                      v-model="newCharacterName"
+                      placeholder="New Character Name"
+                      fluid
+                      class="flex-1"
+                    />
+                    <Button
+                      label="Add"
+                      @click="addCharacter"
+                      :loading="manageLoading"
+                    />
+                  </div>
+                  <Message v-if="manageError" severity="error">{{
+                    manageError
+                  }}</Message>
+                  <div class="flex flex-col gap-2">
+                    <InputText
+                      v-model="manageSearchQuery"
+                      placeholder="Search characters..."
+                      fluid
+                    />
+                  </div>
+                  <div
+                    class="flex flex-col max-h-150 overflow-y-auto rounded p-2"
+                  >
+                    <div
+                      v-for="char in filteredManageCharacters"
+                      :key="char"
+                      class="flex justify-between items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                    >
+                      <span>{{ char }}</span>
+                      <Button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        text
+                        @click="deleteCharacter(char)"
+                        :loading="manageLoading"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </Card>
+          </div>
+          <Card v-else class="command-card">
             <template #content>
               <form @submit.prevent="executeCommand">
                 <div class="flex flex-col gap-4">
@@ -196,11 +371,13 @@ const handleAuth = async () => {
                     class="flex flex-col gap-2"
                   >
                     <label>Character Name</label>
-                    <InputText
+                    <AutoComplete
                       v-model="characterName"
-                      required
-                      placeholder="e.g. Nahida"
+                      :suggestions="filteredCharacters"
+                      @complete="searchCharacter"
+                      dropdown
                       fluid
+                      placeholder="e.g. Nahida"
                     />
                   </div>
 
