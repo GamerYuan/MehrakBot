@@ -105,6 +105,8 @@ public class Program
             options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
         builder.Services.AddDbContext<UserDbContext>(options =>
             options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
+        builder.Services.AddDbContext<CodeRedeemDbContext>(options =>
+            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
 
         builder.Services.AddStackExchangeRedisCache(options =>
         {

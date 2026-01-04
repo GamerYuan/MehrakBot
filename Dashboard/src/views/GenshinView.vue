@@ -394,7 +394,7 @@ const fetchCodes = async () => {
     }
     if (response.ok) {
       const data = await response.json();
-      codes.value = data.map((c) => ({ code: c }));
+      codes.value = data.codes.map((c) => ({ code: c }));
     }
   } catch (err) {
     console.error("Failed to fetch codes:", err);
@@ -758,7 +758,7 @@ const handleAuth = async () => {
                     />
                   </div>
 
-                  <div class="flex justify-between items-center gap-2">
+                  <div class="flex justify-between gap-2">
                     <InputText
                       v-model="codesSearchQuery"
                       placeholder="Search codes..."

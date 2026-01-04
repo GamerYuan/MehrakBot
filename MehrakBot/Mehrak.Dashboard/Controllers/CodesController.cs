@@ -21,49 +21,49 @@ public sealed class CodesController : ControllerBase
     }
 
     [HttpPatch("add")]
-    public async Task<IActionResult> AddCodes([FromQuery] string gameStr, [FromBody] AddCodesRequest request)
+    public async Task<IActionResult> AddCodes([FromQuery] string game, [FromBody] AddCodesRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (!TryParseGame(gameStr, out var game, out var errorResult))
+        if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return errorResult!;
 
-        if (!HasGameWriteAccess(gameStr))
+        if (!HasGameWriteAccess(game))
             return Forbid();
 
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
             return BadRequest(new { error = "Codes list must contain at least one value." });
 
-        m_Logger.LogInformation("Adding {Count} codes for game {Game}", normalized.Count, game);
+        m_Logger.LogInformation("Adding {Count} codes for game {Game}", normalized.Count, parsedGame);
 
         var payload = normalized.ToDictionary(code => code, _ => CodeStatus.Valid, StringComparer.OrdinalIgnoreCase);
-        await m_CodeRepository.UpdateCodesAsync(game, payload);
+        await m_CodeRepository.UpdateCodesAsync(parsedGame, payload);
 
         return NoContent();
     }
 
     [HttpDelete("remove")]
-    public async Task<IActionResult> RemoveCodes([FromQuery] string gameStr, [FromQuery] RemoveCodesRequest request)
+    public async Task<IActionResult> RemoveCodes([FromQuery] string game, [FromQuery] RemoveCodesRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (!TryParseGame(gameStr, out var game, out var errorResult))
+        if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return errorResult!;
 
-        if (!HasGameWriteAccess(gameStr))
+        if (!HasGameWriteAccess(game))
             return Forbid();
 
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
             return BadRequest(new { error = "Codes list must contain at least one value." });
 
-        m_Logger.LogInformation("Removing {Count} codes for game {Game}", normalized.Count, game);
+        m_Logger.LogInformation("Removing {Count} codes for game {Game}", normalized.Count, parsedGame);
 
         var payload = normalized.ToDictionary(code => code, _ => CodeStatus.Invalid, StringComparer.OrdinalIgnoreCase);
-        await m_CodeRepository.UpdateCodesAsync(game, payload);
+        await m_CodeRepository.UpdateCodesAsync(parsedGame, payload);
 
         return NoContent();
     }
