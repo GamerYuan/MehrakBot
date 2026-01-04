@@ -28,7 +28,17 @@ public class AliasController : ControllerBase
 
         m_Logger.LogInformation("Listing aliases for game {Game}", gameEnum);
         var aliases = await m_AliasRepository.GetAliasesAsync(gameEnum);
-        return Ok(aliases);
+
+        Dictionary<string, List<string>> result = [];
+
+        foreach (var alias in aliases)
+        {
+            if (!result.ContainsKey(alias.Value))
+                result.Add(alias.Value, []);
+            result[alias.Value].Add(alias.Key);
+        }
+
+        return Ok(result);
     }
 
     [HttpPatch("add")]

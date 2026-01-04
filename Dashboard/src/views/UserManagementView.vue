@@ -9,6 +9,7 @@ import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Checkbox from "primevue/checkbox";
+import ToggleButton from "primevue/togglebutton";
 import Tag from "primevue/tag";
 import Select from "primevue/select";
 
@@ -503,18 +504,23 @@ const permissionOptions = computed(() => {
           <div class="flex flex-col gap-2">
             <label class="font-semibold">Game Write Permissions</label>
             <div class="flex flex-col gap-2">
-              <div
+              <ToggleButton
                 v-for="perm in availablePermissions"
                 :key="perm"
-                class="flex items-center gap-2"
-              >
-                <Checkbox
-                  v-model="formData.permissions[perm]"
-                  binary
-                  :inputId="perm"
-                />
-                <label :for="perm">{{ formatPermission(perm) }}</label>
-              </div>
+                v-model="formData.permissions[perm]"
+                :onLabel="formatPermission(perm)"
+                :offLabel="formatPermission(perm)"
+                class="w-full"
+                :pt="{
+                  root: ({ props }) => ({
+                    class: [
+                      props.modelValue
+                        ? '!bg-green-500 !border-green-500 !text-white hover:!bg-green-600'
+                        : '',
+                    ],
+                  }),
+                }"
+              />
             </div>
           </div>
         </div>
@@ -577,20 +583,23 @@ const permissionOptions = computed(() => {
           <div class="flex flex-col gap-2">
             <label class="font-semibold">Game Write Permissions</label>
             <div class="flex flex-col gap-2">
-              <div
+              <ToggleButton
                 v-for="perm in availablePermissions"
                 :key="perm"
-                class="flex items-center gap-2"
-              >
-                <Checkbox
-                  v-model="formData.permissions[perm]"
-                  binary
-                  :inputId="'edit-' + perm"
-                />
-                <label :for="'edit-' + perm">{{
-                  formatPermission(perm)
-                }}</label>
-              </div>
+                v-model="formData.permissions[perm]"
+                :onLabel="formatPermission(perm)"
+                :offLabel="formatPermission(perm)"
+                class="w-full"
+                :pt="{
+                  root: ({ props }) => ({
+                    class: [
+                      props.modelValue
+                        ? '!bg-green-500 !border-green-500 !text-white hover:!bg-green-600'
+                        : '',
+                    ],
+                  }),
+                }"
+              />
             </div>
           </div>
         </div>

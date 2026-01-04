@@ -2,11 +2,15 @@
 import { ref, watch, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 import Tabs from "primevue/tabs";
 import TabList from "primevue/tablist";
 import Tab from "primevue/tab";
 import TabPanels from "primevue/tabpanels";
 import TabPanel from "primevue/tabpanel";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Tag from "primevue/tag";
 import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
 import Select from "primevue/select";
@@ -20,10 +24,11 @@ import Image from "primevue/image";
 
 const router = useRouter();
 const confirm = useConfirm();
+const toast = useToast();
 const activeTab = ref("character");
 const loading = ref(false);
 const error = ref("");
-const resultImage = ref("");
+const resultImages = ref({});
 const showAuthModal = ref(false);
 
 // Common Data
@@ -36,6 +41,7 @@ const abyssFloor = ref(12);
 
 const allCharacters = ref([]);
 const filteredCharacters = ref([]);
+const aliases = ref([]);
 
 const fetchCharacters = async () => {
   try {
@@ -43,12 +49,38 @@ const fetchCharacters = async () => {
     const response = await fetch(`${backendUrl}/characters/list?game=Genshin`, {
       credentials: "include",
     });
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
     if (response.ok) {
       const data = await response.json();
       allCharacters.value = data.sort();
     }
   } catch (err) {
     console.error("Failed to fetch characters:", err);
+  }
+};
+
+const fetchAliases = async () => {
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(`${backendUrl}/alias/list?game=Genshin`, {
+      credentials: "include",
+    });
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+    if (response.ok) {
+      const data = await response.json();
+      aliases.value = Object.entries(data).map(([name, aliasList]) => ({
+        name,
+        aliases: aliasList,
+      }));
+    }
+  } catch (err) {
+    console.error("Failed to fetch aliases:", err);
   }
 };
 
@@ -91,14 +123,48 @@ const tabs = computed(() => {
   ];
   if (canManage) {
     t.push({ id: "manage", name: "Manage Characters" });
+    t.push({ id: "aliases", name: "Manage Aliases" });
+    t.push({ id: "codes", name: "Manage Codes" });
   }
   return t;
 });
 
 const newCharacterName = ref("");
 const manageSearchQuery = ref("");
+const aliasSearchQuery = ref("");
 const manageLoading = ref(false);
 const manageError = ref("");
+
+// Add Alias Modal Data
+const showAddAliasModal = ref(false);
+const newAliasCharacter = ref("");
+const newAliasList = ref("");
+const addAliasLoading = ref(false);
+const isEditingAlias = ref(false);
+const originalAliases = ref([]);
+
+// Codes Data
+const codes = ref([]);
+const selectedCodes = ref([]);
+const newCodesInput = ref("");
+const codesSearchQuery = ref("");
+const codesLoading = ref(false);
+
+const openAddAliasModal = () => {
+  isEditingAlias.value = false;
+  newAliasCharacter.value = "";
+  newAliasList.value = "";
+  originalAliases.value = [];
+  showAddAliasModal.value = true;
+};
+
+const openEditAliasModal = (data) => {
+  isEditingAlias.value = true;
+  newAliasCharacter.value = data.name;
+  newAliasList.value = data.aliases.join(", ");
+  originalAliases.value = [...data.aliases];
+  showAddAliasModal.value = true;
+};
 
 const filteredManageCharacters = computed(() => {
   if (!manageSearchQuery.value) return allCharacters.value;
@@ -106,6 +172,22 @@ const filteredManageCharacters = computed(() => {
   return allCharacters.value.filter((char) =>
     char.toLowerCase().includes(query)
   );
+});
+
+const filteredAliases = computed(() => {
+  if (!aliasSearchQuery.value) return aliases.value;
+  const query = aliasSearchQuery.value.toLowerCase();
+  return aliases.value.filter(
+    (item) =>
+      item.name.toLowerCase().includes(query) ||
+      item.aliases.some((alias) => alias.toLowerCase().includes(query))
+  );
+});
+
+const filteredCodes = computed(() => {
+  if (!codesSearchQuery.value) return codes.value;
+  const query = codesSearchQuery.value.toLowerCase();
+  return codes.value.filter((c) => c.code.toLowerCase().includes(query));
 });
 
 const addCharacter = async () => {
@@ -120,6 +202,10 @@ const addCharacter = async () => {
       credentials: "include",
       body: JSON.stringify({ characters: [newCharacterName.value] }),
     });
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.error || "Failed to add character");
@@ -165,6 +251,10 @@ const executeDeleteCharacter = async (name) => {
         credentials: "include",
       }
     );
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.error || "Failed to delete character");
@@ -177,16 +267,273 @@ const executeDeleteCharacter = async (name) => {
   }
 };
 
+const handleAliasSubmit = async () => {
+  if (!newAliasCharacter.value || !newAliasList.value) return;
+  addAliasLoading.value = true;
+
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const currentAliasesArray = newAliasList.value
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (isEditingAlias.value) {
+      const addedAliases = currentAliasesArray.filter(
+        (a) => !originalAliases.value.includes(a)
+      );
+      const removedAliases = originalAliases.value.filter(
+        (a) => !currentAliasesArray.includes(a)
+      );
+
+      const promises = [];
+
+      if (addedAliases.length > 0) {
+        promises.push(
+          fetch(`${backendUrl}/alias/add?game=Genshin`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              character: newAliasCharacter.value,
+              aliases: addedAliases,
+            }),
+          }).then(async (res) => {
+            if (res.status === 401) {
+              router.push("/login");
+              throw new Error("Unauthorized");
+            }
+            if (!res.ok) {
+              const data = await res.json();
+              throw new Error(data.error || "Failed to add new aliases");
+            }
+          })
+        );
+      }
+
+      for (const alias of removedAliases) {
+        promises.push(
+          fetch(
+            `${backendUrl}/alias/delete?game=Genshin&alias=${encodeURIComponent(
+              alias
+            )}`,
+            {
+              method: "DELETE",
+              credentials: "include",
+            }
+          ).then(async (res) => {
+            if (res.status === 401) {
+              router.push("/login");
+              throw new Error("Unauthorized");
+            }
+            if (!res.ok) {
+              const data = await res.json();
+              throw new Error(data.error || `Failed to delete alias ${alias}`);
+            }
+          })
+        );
+      }
+
+      await Promise.all(promises);
+    } else {
+      const response = await fetch(`${backendUrl}/alias/add?game=Genshin`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          character: newAliasCharacter.value,
+          aliases: currentAliasesArray,
+        }),
+      });
+
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to add aliases");
+      }
+    }
+
+    showAddAliasModal.value = false;
+    newAliasCharacter.value = "";
+    newAliasList.value = "";
+    originalAliases.value = [];
+    await fetchAliases();
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: isEditingAlias.value
+        ? "Aliases updated successfully"
+        : "Aliases added successfully",
+      life: 3000,
+    });
+  } catch (err) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
+  } finally {
+    addAliasLoading.value = false;
+  }
+};
+
+const fetchCodes = async () => {
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(`${backendUrl}/codes/list?game=Genshin`, {
+      credentials: "include",
+    });
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+    if (response.ok) {
+      const data = await response.json();
+      codes.value = data.map((c) => ({ code: c }));
+    }
+  } catch (err) {
+    console.error("Failed to fetch codes:", err);
+  }
+};
+
+const confirmAddCodes = () => {
+  if (!newCodesInput.value) return;
+  confirm.require({
+    message: "Are you sure you want to add these codes?",
+    header: "Confirm Add",
+    icon: "pi pi-exclamation-triangle",
+    accept: executeAddCodes,
+  });
+};
+
+const executeAddCodes = async () => {
+  codesLoading.value = true;
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const codesToAdd = newCodesInput.value
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c);
+
+    const response = await fetch(`${backendUrl}/codes/add?game=Genshin`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ Codes: codesToAdd }),
+    });
+
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to add codes");
+    }
+
+    newCodesInput.value = "";
+    await fetchCodes();
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "Codes added successfully",
+      life: 3000,
+    });
+  } catch (err) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
+  } finally {
+    codesLoading.value = false;
+  }
+};
+
+const confirmDeleteCodes = (codesList) => {
+  confirm.require({
+    message: `Are you sure you want to delete ${codesList.length} code(s)?`,
+    header: "Confirm Delete",
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: {
+      label: "Cancel",
+      severity: "secondary",
+      outlined: true,
+    },
+    acceptProps: {
+      label: "Delete",
+      severity: "danger",
+    },
+    accept: () => executeDeleteCodes(codesList),
+  });
+};
+
+const executeDeleteCodes = async (codesList) => {
+  codesLoading.value = true;
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const params = new URLSearchParams();
+    params.append("game", "Genshin");
+    codesList.forEach((c) => params.append("codes", c));
+    const response = await fetch(
+      `${backendUrl}/codes/remove?${params.toString()}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
+
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to delete codes");
+    }
+
+    selectedCodes.value = [];
+    await fetchCodes();
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "Codes deleted successfully",
+      life: 3000,
+    });
+  } catch (err) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: err.message,
+      life: 5000,
+    });
+  } finally {
+    codesLoading.value = false;
+  }
+};
+
 // Clear result when tab changes
-watch(activeTab, () => {
-  resultImage.value = "";
+watch(activeTab, (newTab) => {
   error.value = "";
+  if (newTab === "aliases" && canManage) {
+    fetchAliases();
+  } else if (newTab === "codes" && canManage) {
+    fetchCodes();
+  }
 });
 
 const executeCommand = async () => {
   loading.value = true;
   error.value = "";
-  resultImage.value = "";
+  resultImages.value[activeTab.value] = "";
 
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
@@ -227,7 +574,9 @@ const executeCommand = async () => {
     }
 
     if (data.storageFileName) {
-      resultImage.value = `${backendUrl}/attachments/${data.storageFileName}`;
+      resultImages.value[
+        activeTab.value
+      ] = `${backendUrl}/attachments/${data.storageFileName}`;
     }
   } catch (err) {
     error.value = err.message;
@@ -315,13 +664,11 @@ const handleAuth = async () => {
                       fluid
                     />
                   </div>
-                  <div
-                    class="flex flex-col max-h-150 overflow-y-auto rounded p-2"
-                  >
+                  <div class="flex flex-col max-h-150 overflow-y-auto rounded">
                     <div
                       v-for="char in filteredManageCharacters"
                       :key="char"
-                      class="flex justify-between items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                      class="flex justify-between items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                       <span>{{ char }}</span>
                       <Button
@@ -333,6 +680,128 @@ const handleAuth = async () => {
                       />
                     </div>
                   </div>
+                </div>
+              </template>
+            </Card>
+          </div>
+          <div v-else-if="tab.id === 'aliases'">
+            <Card>
+              <template #title>Manage Aliases</template>
+              <template #content>
+                <div class="flex flex-col gap-4">
+                  <Button
+                    label="Add"
+                    @click="openAddAliasModal"
+                    :loading="manageLoading"
+                  />
+                  <InputText
+                    v-model="aliasSearchQuery"
+                    placeholder="Search aliases..."
+                    fluid
+                  />
+                  <DataTable
+                    :value="filteredAliases"
+                    paginator
+                    :rows="10"
+                    tableStyle="min-width: 50rem"
+                  >
+                    <Column
+                      field="name"
+                      header="Character Name"
+                      sortable
+                    ></Column>
+                    <Column header="Aliases">
+                      <template #body="slotProps">
+                        <div class="flex flex-wrap gap-2">
+                          <Tag
+                            v-for="alias in slotProps.data.aliases"
+                            :key="alias"
+                            :value="alias"
+                            severity="info"
+                          />
+                        </div>
+                      </template>
+                    </Column>
+                    <Column style="width: 3rem">
+                      <template #body="slotProps">
+                        <Button
+                          icon="pi pi-pencil"
+                          text
+                          rounded
+                          severity="secondary"
+                          @click="openEditAliasModal(slotProps.data)"
+                        />
+                      </template>
+                    </Column>
+                  </DataTable>
+                </div>
+              </template>
+            </Card>
+          </div>
+          <div v-else-if="tab.id === 'codes'">
+            <Card>
+              <template #title>Manage Codes</template>
+              <template #content>
+                <div class="flex flex-col gap-4">
+                  <div class="flex gap-2">
+                    <InputText
+                      v-model="newCodesInput"
+                      placeholder="New Codes (comma-separated)"
+                      fluid
+                      class="flex-1"
+                    />
+                    <Button
+                      label="Add"
+                      @click="confirmAddCodes"
+                      :loading="codesLoading"
+                      :disabled="!newCodesInput"
+                    />
+                  </div>
+
+                  <div class="flex justify-between items-center gap-2">
+                    <InputText
+                      v-model="codesSearchQuery"
+                      placeholder="Search codes..."
+                      fluid
+                      class="flex-1"
+                    />
+                    <Button
+                      label="Delete Selected"
+                      severity="danger"
+                      @click="
+                        confirmDeleteCodes(selectedCodes.map((c) => c.code))
+                      "
+                      :disabled="!selectedCodes.length"
+                      :loading="codesLoading"
+                    />
+                  </div>
+
+                  <DataTable
+                    :value="filteredCodes"
+                    v-model:selection="selectedCodes"
+                    dataKey="code"
+                    paginator
+                    :rows="10"
+                    tableStyle="min-width: 50rem"
+                  >
+                    <Column
+                      selectionMode="multiple"
+                      headerStyle="width: 3rem"
+                    ></Column>
+                    <Column field="code" header="Code" sortable></Column>
+                    <Column style="width: 3rem">
+                      <template #body="slotProps">
+                        <Button
+                          icon="pi pi-trash"
+                          severity="danger"
+                          text
+                          rounded
+                          @click="confirmDeleteCodes([slotProps.data.code])"
+                          :loading="codesLoading"
+                        />
+                      </template>
+                    </Column>
+                  </DataTable>
                 </div>
               </template>
             </Card>
@@ -409,10 +878,15 @@ const handleAuth = async () => {
       </TabPanels>
     </Tabs>
 
-    <div v-if="resultImage" class="result-container mt-4">
+    <div v-if="resultImages[activeTab]" class="result-container mt-4">
       <Card>
         <template #content>
-          <Image :src="resultImage" alt="Result" preview width="100%" />
+          <Image
+            :src="resultImages[activeTab]"
+            alt="Result"
+            preview
+            width="100%"
+          />
         </template>
       </Card>
     </div>
@@ -454,6 +928,54 @@ const handleAuth = async () => {
               type="submit"
               :label="authLoading ? 'Authenticating...' : 'Authenticate'"
               :loading="authLoading"
+            />
+          </div>
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- Add/Edit Alias Modal -->
+    <Dialog
+      v-model:visible="showAddAliasModal"
+      modal
+      :header="isEditingAlias ? 'Edit Alias' : 'Add Alias'"
+      :style="{ width: '30rem' }"
+    >
+      <form @submit.prevent="handleAliasSubmit">
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-2">
+            <label for="alias-char">Character Name</label>
+            <InputText
+              id="alias-char"
+              v-model="newAliasCharacter"
+              required
+              placeholder="e.g. Nahida"
+              fluid
+              :disabled="isEditingAlias"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label for="alias-list">Aliases (comma-separated)</label>
+            <InputText
+              id="alias-list"
+              v-model="newAliasList"
+              required
+              placeholder="e.g. Radish, Dendro Archon"
+              fluid
+            />
+          </div>
+          <div class="flex justify-end gap-2 mt-2">
+            <Button
+              type="button"
+              label="Cancel"
+              severity="secondary"
+              @click="showAddAliasModal = false"
+            />
+            <Button
+              type="submit"
+              :label="isEditingAlias ? 'Update' : 'Add'"
+              :loading="addAliasLoading"
+              :disabled="!newAliasCharacter || !newAliasList"
             />
           </div>
         </div>

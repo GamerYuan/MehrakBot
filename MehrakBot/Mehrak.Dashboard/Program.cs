@@ -192,16 +192,17 @@ public class Program
         });
 
         var app = builder.Build();
-        await AddDefaultSuperAdminAccount(app);
-        app.UseHttpsRedirection();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.MapControllers();
 
         if (app.Environment.IsDevelopment())
         {
             app.UseCors("AllowAllDev");
         }
+
+        await AddDefaultSuperAdminAccount(app);
+        app.UseHttpsRedirection();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapControllers();
 
         await app.RunAsync();
     }

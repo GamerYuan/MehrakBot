@@ -21,15 +21,15 @@ public sealed class CodesController : ControllerBase
     }
 
     [HttpPatch("add")]
-    public async Task<IActionResult> AddCodes([FromBody] AddCodesRequest request)
+    public async Task<IActionResult> AddCodes([FromQuery] string gameStr, [FromBody] AddCodesRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (!TryParseGame(request.Game, out var game, out var errorResult))
+        if (!TryParseGame(gameStr, out var game, out var errorResult))
             return errorResult!;
 
-        if (!HasGameWriteAccess(request.Game))
+        if (!HasGameWriteAccess(gameStr))
             return Forbid();
 
         var normalized = NormalizeCodes(request.Codes);
@@ -45,15 +45,15 @@ public sealed class CodesController : ControllerBase
     }
 
     [HttpDelete("remove")]
-    public async Task<IActionResult> RemoveCodes([FromQuery] RemoveCodesRequest request)
+    public async Task<IActionResult> RemoveCodes([FromQuery] string gameStr, [FromQuery] RemoveCodesRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (!TryParseGame(request.Game, out var game, out var errorResult))
+        if (!TryParseGame(gameStr, out var game, out var errorResult))
             return errorResult!;
 
-        if (!HasGameWriteAccess(request.Game))
+        if (!HasGameWriteAccess(gameStr))
             return Forbid();
 
         var normalized = NormalizeCodes(request.Codes);
