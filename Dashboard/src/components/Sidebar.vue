@@ -68,6 +68,14 @@ const handleLogout = async () => {
       >
         Genshin Impact
       </router-link>
+
+      <router-link
+        to="/dashboard/hsr"
+        class="nav-item"
+        :class="{ active: isActive('/dashboard/hsr') }"
+      >
+        Honkai: Star Rail
+      </router-link>
     </nav>
 
     <div class="sidebar-footer">

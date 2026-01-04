@@ -7,6 +7,7 @@ import DashboardHomeView from "../views/DashboardHomeView.vue";
 import ChangePasswordView from "../views/ChangePasswordView.vue";
 import UserManagementView from "../views/UserManagementView.vue";
 import GenshinView from "../views/GenshinView.vue";
+import HsrView from "../views/HsrView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,6 +45,11 @@ const router = createRouter({
           path: "genshin",
           name: "genshin",
           component: GenshinView,
+        },
+        {
+          path: "hsr",
+          name: "hsr",
+          component: HsrView,
         },
         {
           path: "change-password",

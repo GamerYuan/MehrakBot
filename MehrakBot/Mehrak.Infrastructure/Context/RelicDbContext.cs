@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Context;
 
-internal class RelicDbContext(DbContextOptions<RelicDbContext> options) : DbContext(options)
+public class RelicDbContext(DbContextOptions<RelicDbContext> options) : DbContext(options)
 {
     public DbSet<HsrRelicModel> HsrRelics { get; set; }
 
