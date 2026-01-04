@@ -485,7 +485,7 @@ const handleAuth = async () => {
           v-for="tab in tabs"
           :key="tab.id"
           :value="tab.id"
-          class="whitespace-nowrap flex-shrink-0"
+          class="whitespace-nowrap shrink-0"
         >
           {{ tab.name }}
         </Tab>
@@ -634,7 +634,7 @@ const handleAuth = async () => {
                       @complete="searchCharacter"
                       dropdown
                       fluid
-                      placeholder="e.g. Kiana"
+                      placeholder="e.g. White Comet"
                     />
                   </div>
 
@@ -726,7 +726,7 @@ const handleAuth = async () => {
               id="alias-char"
               v-model="newAliasCharacter"
               required
-              placeholder="e.g. Kiana"
+              placeholder="e.g. White Comet"
               fluid
               :disabled="isEditingAlias"
             />
