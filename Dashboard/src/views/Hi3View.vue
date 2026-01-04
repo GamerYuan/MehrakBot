@@ -25,7 +25,7 @@ import Image from "primevue/image";
 const router = useRouter();
 const confirm = useConfirm();
 const toast = useToast();
-const activeTab = ref("character");
+const activeTab = ref("battlesuit");
 const loading = ref(false);
 const error = ref("");
 const resultImages = ref({});
@@ -36,8 +36,7 @@ const profileId = ref(1);
 const server = ref("America");
 
 // Specific Data
-const characterName = ref("");
-const abyssFloor = ref(12);
+const battlesuitName = ref("");
 
 const allCharacters = ref([]);
 const filteredCharacters = ref([]);
@@ -46,9 +45,12 @@ const aliases = ref([]);
 const fetchCharacters = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/characters/list?game=Genshin`, {
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${backendUrl}/characters/list?game=HonkaiImpact3`,
+      {
+        credentials: "include",
+      }
+    );
     if (response.status === 401) {
       router.push("/login");
       return;
@@ -65,9 +67,12 @@ const fetchCharacters = async () => {
 const fetchAliases = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/alias/list?game=Genshin`, {
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${backendUrl}/alias/list?game=HonkaiImpact3`,
+      {
+        credentials: "include",
+      }
+    );
     if (response.status === 401) {
       router.push("/login");
       return;
@@ -102,29 +107,24 @@ const authLoading = ref(false);
 const authError = ref("");
 
 const servers = [
+  { value: "SEA", label: "SEA" },
+  { value: "JP", label: "JP" },
+  { value: "KR", label: "KR" },
   { value: "America", label: "America" },
+  { value: "SAR", label: "TW/HK/MO" },
   { value: "Europe", label: "Europe" },
-  { value: "Asia", label: "Asia" },
-  { value: "Sar", label: "TW/HK/MO" },
 ];
 
 const user = JSON.parse(localStorage.getItem("mehrak_user") || "{}");
 const canManage =
   user.isSuperAdmin ||
-  (user.gameWritePermissions && user.gameWritePermissions.includes("genshin"));
+  (user.gameWritePermissions && user.gameWritePermissions.includes("hi3"));
 
 const tabs = computed(() => {
-  const t = [
-    { id: "character", name: "Character" },
-    { id: "abyss", name: "Spiral Abyss" },
-    { id: "theater", name: "Imaginarium Theater" },
-    { id: "stygian", name: "Stygian Onslaught" },
-    { id: "charlist", name: "Character List" },
-  ];
+  const t = [{ id: "battlesuit", name: "Battlesuit" }];
   if (canManage) {
     t.push({ id: "manage", name: "Manage Characters" });
     t.push({ id: "aliases", name: "Manage Aliases" });
-    t.push({ id: "codes", name: "Manage Codes" });
   }
   return t;
 });
@@ -142,13 +142,6 @@ const newAliasList = ref("");
 const addAliasLoading = ref(false);
 const isEditingAlias = ref(false);
 const originalAliases = ref([]);
-
-// Codes Data
-const codes = ref([]);
-const selectedCodes = ref([]);
-const newCodesInput = ref("");
-const codesSearchQuery = ref("");
-const codesLoading = ref(false);
 
 const openAddAliasModal = () => {
   isEditingAlias.value = false;
@@ -184,24 +177,21 @@ const filteredAliases = computed(() => {
   );
 });
 
-const filteredCodes = computed(() => {
-  if (!codesSearchQuery.value) return codes.value;
-  const query = codesSearchQuery.value.toLowerCase();
-  return codes.value.filter((c) => c.code.toLowerCase().includes(query));
-});
-
 const addCharacter = async () => {
   if (!newCharacterName.value) return;
   manageLoading.value = true;
   manageError.value = "";
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/characters/add?game=Genshin`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ characters: [newCharacterName.value] }),
-    });
+    const response = await fetch(
+      `${backendUrl}/characters/add?game=HonkaiImpact3`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ characters: [newCharacterName.value] }),
+      }
+    );
     if (response.status === 401) {
       router.push("/login");
       return;
@@ -243,7 +233,7 @@ const executeDeleteCharacter = async (name) => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
-      `${backendUrl}/characters/delete?game=Genshin&character=${encodeURIComponent(
+      `${backendUrl}/characters/delete?game=HonkaiImpact3&character=${encodeURIComponent(
         name
       )}`,
       {
@@ -290,7 +280,7 @@ const handleAliasSubmit = async () => {
 
       if (addedAliases.length > 0) {
         promises.push(
-          fetch(`${backendUrl}/alias/add?game=Genshin`, {
+          fetch(`${backendUrl}/alias/add?game=HonkaiImpact3`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -314,7 +304,7 @@ const handleAliasSubmit = async () => {
       for (const alias of removedAliases) {
         promises.push(
           fetch(
-            `${backendUrl}/alias/delete?game=Genshin&alias=${encodeURIComponent(
+            `${backendUrl}/alias/delete?game=HonkaiImpact3&alias=${encodeURIComponent(
               alias
             )}`,
             {
@@ -336,15 +326,18 @@ const handleAliasSubmit = async () => {
 
       await Promise.all(promises);
     } else {
-      const response = await fetch(`${backendUrl}/alias/add?game=Genshin`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          character: newAliasCharacter.value,
-          aliases: currentAliasesArray,
-        }),
-      });
+      const response = await fetch(
+        `${backendUrl}/alias/add?game=HonkaiImpact3`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            character: newAliasCharacter.value,
+            aliases: currentAliasesArray,
+          }),
+        }
+      );
 
       if (response.status === 401) {
         router.push("/login");
@@ -382,151 +375,11 @@ const handleAliasSubmit = async () => {
   }
 };
 
-const fetchCodes = async () => {
-  try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/codes/list?game=Genshin`, {
-      credentials: "include",
-    });
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
-    if (response.ok) {
-      const data = await response.json();
-      codes.value = data.codes.map((c) => ({ code: c }));
-    }
-  } catch (err) {
-    console.error("Failed to fetch codes:", err);
-  }
-};
-
-const confirmAddCodes = () => {
-  if (!newCodesInput.value) return;
-  confirm.require({
-    message: "Are you sure you want to add these codes?",
-    header: "Confirm Add",
-    icon: "pi pi-exclamation-triangle",
-    accept: executeAddCodes,
-  });
-};
-
-const executeAddCodes = async () => {
-  codesLoading.value = true;
-  try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const codesToAdd = newCodesInput.value
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c);
-
-    const response = await fetch(`${backendUrl}/codes/add?game=Genshin`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ Codes: codesToAdd }),
-    });
-
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
-
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || "Failed to add codes");
-    }
-
-    newCodesInput.value = "";
-    await fetchCodes();
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "Codes added successfully",
-      life: 3000,
-    });
-  } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
-  } finally {
-    codesLoading.value = false;
-  }
-};
-
-const confirmDeleteCodes = (codesList) => {
-  confirm.require({
-    message: `Are you sure you want to delete ${codesList.length} code(s)?`,
-    header: "Confirm Delete",
-    icon: "pi pi-exclamation-triangle",
-    rejectProps: {
-      label: "Cancel",
-      severity: "secondary",
-      outlined: true,
-    },
-    acceptProps: {
-      label: "Delete",
-      severity: "danger",
-    },
-    accept: () => executeDeleteCodes(codesList),
-  });
-};
-
-const executeDeleteCodes = async (codesList) => {
-  codesLoading.value = true;
-  try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const params = new URLSearchParams();
-    params.append("game", "Genshin");
-    codesList.forEach((c) => params.append("codes", c));
-    const response = await fetch(
-      `${backendUrl}/codes/remove?${params.toString()}`,
-      {
-        method: "DELETE",
-        credentials: "include",
-      }
-    );
-
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
-
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || "Failed to delete codes");
-    }
-
-    selectedCodes.value = [];
-    await fetchCodes();
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "Codes deleted successfully",
-      life: 3000,
-    });
-  } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
-  } finally {
-    codesLoading.value = false;
-  }
-};
-
 // Clear result when tab changes
 watch(activeTab, (newTab) => {
   error.value = "";
   if (newTab === "aliases" && canManage) {
     fetchAliases();
-  } else if (newTab === "codes" && canManage) {
-    fetchCodes();
   }
 });
 
@@ -537,16 +390,14 @@ const executeCommand = async () => {
 
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    let endpoint = `/genshin/${activeTab.value}`;
+    let endpoint = `/hi3/${activeTab.value}`;
     let payload = {
       profileId: Number(profileId.value),
       server: server.value,
     };
 
-    if (activeTab.value === "character") {
-      payload.character = characterName.value;
-    } else if (activeTab.value === "abyss") {
-      payload.floor = Number(abyssFloor.value);
+    if (activeTab.value === "battlesuit") {
+      payload.battlesuit = battlesuitName.value;
     }
 
     const response = await fetch(`${backendUrl}${endpoint}`, {
@@ -625,8 +476,8 @@ const handleAuth = async () => {
 </script>
 
 <template>
-  <div class="genshin-view">
-    <h1>Genshin Impact</h1>
+  <div class="hi3-view">
+    <h1>Honkai Impact 3rd</h1>
 
     <Tabs v-model:value="activeTab" scrollable>
       <TabList>
@@ -634,7 +485,7 @@ const handleAuth = async () => {
           v-for="tab in tabs"
           :key="tab.id"
           :value="tab.id"
-          class="whitespace-nowrap shrink-0"
+          class="whitespace-nowrap flex-shrink-0"
         >
           {{ tab.name }}
         </Tab>
@@ -743,74 +594,6 @@ const handleAuth = async () => {
               </template>
             </Card>
           </div>
-          <div v-else-if="tab.id === 'codes'">
-            <Card>
-              <template #title>Manage Codes</template>
-              <template #content>
-                <div class="flex flex-col gap-4">
-                  <div class="flex gap-2">
-                    <InputText
-                      v-model="newCodesInput"
-                      placeholder="New Codes (comma-separated)"
-                      fluid
-                      class="flex-1"
-                    />
-                    <Button
-                      label="Add"
-                      @click="confirmAddCodes"
-                      :loading="codesLoading"
-                      :disabled="!newCodesInput"
-                    />
-                  </div>
-
-                  <div class="flex justify-between gap-2">
-                    <InputText
-                      v-model="codesSearchQuery"
-                      placeholder="Search codes..."
-                      fluid
-                      class="flex-1"
-                    />
-                    <Button
-                      label="Delete Selected"
-                      severity="danger"
-                      @click="
-                        confirmDeleteCodes(selectedCodes.map((c) => c.code))
-                      "
-                      :disabled="!selectedCodes.length"
-                      :loading="codesLoading"
-                    />
-                  </div>
-
-                  <DataTable
-                    :value="filteredCodes"
-                    v-model:selection="selectedCodes"
-                    dataKey="code"
-                    paginator
-                    :rows="10"
-                    tableStyle="min-width: 50rem"
-                  >
-                    <Column
-                      selectionMode="multiple"
-                      headerStyle="width: 3rem"
-                    ></Column>
-                    <Column field="code" header="Code" sortable></Column>
-                    <Column style="width: 3rem">
-                      <template #body="slotProps">
-                        <Button
-                          icon="pi pi-trash"
-                          severity="danger"
-                          text
-                          rounded
-                          @click="confirmDeleteCodes([slotProps.data.code])"
-                          :loading="codesLoading"
-                        />
-                      </template>
-                    </Column>
-                  </DataTable>
-                </div>
-              </template>
-            </Card>
-          </div>
           <Card v-else class="command-card">
             <template #content>
               <form @submit.prevent="executeCommand">
@@ -841,28 +624,17 @@ const handleAuth = async () => {
 
                   <!-- Specific Inputs -->
                   <div
-                    v-if="activeTab === 'character'"
+                    v-if="activeTab === 'battlesuit'"
                     class="flex flex-col gap-2"
                   >
-                    <label>Character Name</label>
+                    <label>Battlesuit Name</label>
                     <AutoComplete
-                      v-model="characterName"
+                      v-model="battlesuitName"
                       :suggestions="filteredCharacters"
                       @complete="searchCharacter"
                       dropdown
                       fluid
-                      placeholder="e.g. Nahida"
-                    />
-                  </div>
-
-                  <div v-if="activeTab === 'abyss'" class="flex flex-col gap-2">
-                    <label>Floor (9-12)</label>
-                    <InputNumber
-                      v-model="abyssFloor"
-                      showButtons
-                      :min="9"
-                      :max="12"
-                      fluid
+                      placeholder="e.g. Kiana"
                     />
                   </div>
 
@@ -954,7 +726,7 @@ const handleAuth = async () => {
               id="alias-char"
               v-model="newAliasCharacter"
               required
-              placeholder="e.g. Nahida"
+              placeholder="e.g. Kiana"
               fluid
               :disabled="isEditingAlias"
             />
@@ -965,7 +737,7 @@ const handleAuth = async () => {
               id="alias-list"
               v-model="newAliasList"
               required
-              placeholder="e.g. Radish, Dendro Archon"
+              placeholder="e.g. Tuna"
               fluid
             />
           </div>

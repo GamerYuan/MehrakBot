@@ -8,6 +8,8 @@ import ChangePasswordView from "../views/ChangePasswordView.vue";
 import UserManagementView from "../views/UserManagementView.vue";
 import GenshinView from "../views/GenshinView.vue";
 import HsrView from "../views/HsrView.vue";
+import ZzzView from "../views/ZzzView.vue";
+import Hi3View from "../views/Hi3View.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,6 +52,16 @@ const router = createRouter({
           path: "hsr",
           name: "hsr",
           component: HsrView,
+        },
+        {
+          path: "zzz",
+          name: "zzz",
+          component: ZzzView,
+        },
+        {
+          path: "hi3",
+          name: "hi3",
+          component: Hi3View,
         },
         {
           path: "change-password",

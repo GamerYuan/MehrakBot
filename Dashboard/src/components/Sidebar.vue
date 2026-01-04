@@ -76,6 +76,22 @@ const handleLogout = async () => {
       >
         Honkai: Star Rail
       </router-link>
+
+      <router-link
+        to="/dashboard/zzz"
+        class="nav-item"
+        :class="{ active: isActive('/dashboard/zzz') }"
+      >
+        Zenless Zone Zero
+      </router-link>
+
+      <router-link
+        to="/dashboard/hi3"
+        class="nav-item"
+        :class="{ active: isActive('/dashboard/hi3') }"
+      >
+        Honkai Impact 3rd
+      </router-link>
     </nav>
 
     <div class="sidebar-footer">

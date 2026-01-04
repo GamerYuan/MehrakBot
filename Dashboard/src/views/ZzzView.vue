@@ -37,7 +37,6 @@ const server = ref("America");
 
 // Specific Data
 const characterName = ref("");
-const abyssFloor = ref(12);
 
 const allCharacters = ref([]);
 const filteredCharacters = ref([]);
@@ -46,9 +45,12 @@ const aliases = ref([]);
 const fetchCharacters = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/characters/list?game=Genshin`, {
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${backendUrl}/characters/list?game=ZenlessZoneZero`,
+      {
+        credentials: "include",
+      }
+    );
     if (response.status === 401) {
       router.push("/login");
       return;
@@ -65,9 +67,12 @@ const fetchCharacters = async () => {
 const fetchAliases = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/alias/list?game=Genshin`, {
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${backendUrl}/alias/list?game=ZenlessZoneZero`,
+      {
+        credentials: "include",
+      }
+    );
     if (response.status === 401) {
       router.push("/login");
       return;
@@ -111,15 +116,13 @@ const servers = [
 const user = JSON.parse(localStorage.getItem("mehrak_user") || "{}");
 const canManage =
   user.isSuperAdmin ||
-  (user.gameWritePermissions && user.gameWritePermissions.includes("genshin"));
+  (user.gameWritePermissions && user.gameWritePermissions.includes("zzz"));
 
 const tabs = computed(() => {
   const t = [
     { id: "character", name: "Character" },
-    { id: "abyss", name: "Spiral Abyss" },
-    { id: "theater", name: "Imaginarium Theater" },
-    { id: "stygian", name: "Stygian Onslaught" },
-    { id: "charlist", name: "Character List" },
+    { id: "shiyu", name: "Shiyu Defense" },
+    { id: "da", name: "Deadly Assault" },
   ];
   if (canManage) {
     t.push({ id: "manage", name: "Manage Characters" });
@@ -196,12 +199,15 @@ const addCharacter = async () => {
   manageError.value = "";
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/characters/add?game=Genshin`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ characters: [newCharacterName.value] }),
-    });
+    const response = await fetch(
+      `${backendUrl}/characters/add?game=ZenlessZoneZero`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ characters: [newCharacterName.value] }),
+      }
+    );
     if (response.status === 401) {
       router.push("/login");
       return;
@@ -243,7 +249,7 @@ const executeDeleteCharacter = async (name) => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
-      `${backendUrl}/characters/delete?game=Genshin&character=${encodeURIComponent(
+      `${backendUrl}/characters/delete?game=ZenlessZoneZero&character=${encodeURIComponent(
         name
       )}`,
       {
@@ -290,7 +296,7 @@ const handleAliasSubmit = async () => {
 
       if (addedAliases.length > 0) {
         promises.push(
-          fetch(`${backendUrl}/alias/add?game=Genshin`, {
+          fetch(`${backendUrl}/alias/add?game=ZenlessZoneZero`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -314,7 +320,7 @@ const handleAliasSubmit = async () => {
       for (const alias of removedAliases) {
         promises.push(
           fetch(
-            `${backendUrl}/alias/delete?game=Genshin&alias=${encodeURIComponent(
+            `${backendUrl}/alias/delete?game=ZenlessZoneZero&alias=${encodeURIComponent(
               alias
             )}`,
             {
@@ -336,15 +342,18 @@ const handleAliasSubmit = async () => {
 
       await Promise.all(promises);
     } else {
-      const response = await fetch(`${backendUrl}/alias/add?game=Genshin`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          character: newAliasCharacter.value,
-          aliases: currentAliasesArray,
-        }),
-      });
+      const response = await fetch(
+        `${backendUrl}/alias/add?game=ZenlessZoneZero`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            character: newAliasCharacter.value,
+            aliases: currentAliasesArray,
+          }),
+        }
+      );
 
       if (response.status === 401) {
         router.push("/login");
@@ -385,9 +394,12 @@ const handleAliasSubmit = async () => {
 const fetchCodes = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/codes/list?game=Genshin`, {
-      credentials: "include",
-    });
+    const response = await fetch(
+      `${backendUrl}/codes/list?game=ZenlessZoneZero`,
+      {
+        credentials: "include",
+      }
+    );
     if (response.status === 401) {
       router.push("/login");
       return;
@@ -420,12 +432,15 @@ const executeAddCodes = async () => {
       .map((c) => c.trim())
       .filter((c) => c);
 
-    const response = await fetch(`${backendUrl}/codes/add?game=Genshin`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ Codes: codesToAdd }),
-    });
+    const response = await fetch(
+      `${backendUrl}/codes/add?game=ZenlessZoneZero`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ Codes: codesToAdd }),
+      }
+    );
 
     if (response.status === 401) {
       router.push("/login");
@@ -480,7 +495,7 @@ const executeDeleteCodes = async (codesList) => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const params = new URLSearchParams();
-    params.append("game", "Genshin");
+    params.append("game", "ZenlessZoneZero");
     codesList.forEach((c) => params.append("codes", c));
     const response = await fetch(
       `${backendUrl}/codes/remove?${params.toString()}`,
@@ -537,7 +552,7 @@ const executeCommand = async () => {
 
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    let endpoint = `/genshin/${activeTab.value}`;
+    let endpoint = `/zzz/${activeTab.value}`;
     let payload = {
       profileId: Number(profileId.value),
       server: server.value,
@@ -545,8 +560,6 @@ const executeCommand = async () => {
 
     if (activeTab.value === "character") {
       payload.character = characterName.value;
-    } else if (activeTab.value === "abyss") {
-      payload.floor = Number(abyssFloor.value);
     }
 
     const response = await fetch(`${backendUrl}${endpoint}`, {
@@ -625,8 +638,8 @@ const handleAuth = async () => {
 </script>
 
 <template>
-  <div class="genshin-view">
-    <h1>Genshin Impact</h1>
+  <div class="zzz-view">
+    <h1>Zenless Zone Zero</h1>
 
     <Tabs v-model:value="activeTab" scrollable>
       <TabList>
@@ -851,18 +864,7 @@ const handleAuth = async () => {
                       @complete="searchCharacter"
                       dropdown
                       fluid
-                      placeholder="e.g. Nahida"
-                    />
-                  </div>
-
-                  <div v-if="activeTab === 'abyss'" class="flex flex-col gap-2">
-                    <label>Floor (9-12)</label>
-                    <InputNumber
-                      v-model="abyssFloor"
-                      showButtons
-                      :min="9"
-                      :max="12"
-                      fluid
+                      placeholder="e.g. Ellen"
                     />
                   </div>
 
@@ -954,7 +956,7 @@ const handleAuth = async () => {
               id="alias-char"
               v-model="newAliasCharacter"
               required
-              placeholder="e.g. Nahida"
+              placeholder="e.g. Ellen"
               fluid
               :disabled="isEditingAlias"
             />
@@ -965,7 +967,7 @@ const handleAuth = async () => {
               id="alias-list"
               v-model="newAliasList"
               required
-              placeholder="e.g. Radish, Dendro Archon"
+              placeholder="e.g. Shark Girl"
               fluid
             />
           </div>
