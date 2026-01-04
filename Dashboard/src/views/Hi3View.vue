@@ -31,6 +31,21 @@ const error = ref("");
 const resultImages = ref({});
 const showAuthModal = ref(false);
 
+const showErrorToast = (message, status) => {
+  toast.add({
+    severity: "error",
+    summary: "Error",
+    detail: `${message} (Code: ${status ?? "N/A"})`,
+    life: 5000,
+  });
+};
+
+const buildError = (message, status) => {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+};
+
 // Common Data
 const profileId = ref(1);
 const server = ref("America");
@@ -58,9 +73,15 @@ const fetchCharacters = async () => {
     if (response.ok) {
       const data = await response.json();
       allCharacters.value = data.sort();
+    } else {
+      const data = await response.json().catch(() => ({}));
+      showErrorToast(
+        data.error || "Failed to fetch characters",
+        response.status
+      );
     }
   } catch (err) {
-    console.error("Failed to fetch characters:", err);
+    showErrorToast(err.message, err.status);
   }
 };
 
@@ -83,9 +104,12 @@ const fetchAliases = async () => {
         name,
         aliases: aliasList,
       }));
+    } else {
+      const data = await response.json().catch(() => ({}));
+      showErrorToast(data.error || "Failed to fetch aliases", response.status);
     }
   } catch (err) {
-    console.error("Failed to fetch aliases:", err);
+    showErrorToast(err.message, err.status);
   }
 };
 
@@ -198,12 +222,16 @@ const addCharacter = async () => {
     }
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || "Failed to add character");
+      throw buildError(
+        data.error || "Failed to add character",
+        response.status
+      );
     }
     newCharacterName.value = "";
     await fetchCharacters();
   } catch (err) {
     manageError.value = err.message;
+    showErrorToast(err.message, err.status);
   } finally {
     manageLoading.value = false;
   }
@@ -247,11 +275,15 @@ const executeDeleteCharacter = async (name) => {
     }
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || "Failed to delete character");
+      throw buildError(
+        data.error || "Failed to delete character",
+        response.status
+      );
     }
     await fetchCharacters();
   } catch (err) {
     manageError.value = err.message;
+    showErrorToast(err.message, err.status);
   } finally {
     manageLoading.value = false;
   }
@@ -291,11 +323,14 @@ const handleAliasSubmit = async () => {
           }).then(async (res) => {
             if (res.status === 401) {
               router.push("/login");
-              throw new Error("Unauthorized");
+              throw buildError("Unauthorized", res.status);
             }
             if (!res.ok) {
               const data = await res.json();
-              throw new Error(data.error || "Failed to add new aliases");
+              throw buildError(
+                data.error || "Failed to add new aliases",
+                res.status
+              );
             }
           })
         );
@@ -314,11 +349,14 @@ const handleAliasSubmit = async () => {
           ).then(async (res) => {
             if (res.status === 401) {
               router.push("/login");
-              throw new Error("Unauthorized");
+              throw buildError("Unauthorized", res.status);
             }
             if (!res.ok) {
               const data = await res.json();
-              throw new Error(data.error || `Failed to delete alias ${alias}`);
+              throw buildError(
+                data.error || `Failed to delete alias ${alias}`,
+                res.status
+              );
             }
           })
         );
@@ -346,7 +384,10 @@ const handleAliasSubmit = async () => {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to add aliases");
+        throw buildError(
+          data.error || "Failed to add aliases",
+          response.status
+        );
       }
     }
 
@@ -364,12 +405,7 @@ const handleAliasSubmit = async () => {
       life: 3000,
     });
   } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
+    showErrorToast(err.message, err.status);
   } finally {
     addAliasLoading.value = false;
   }
@@ -421,7 +457,7 @@ const executeCommand = async () => {
     }
 
     if (!response.ok) {
-      throw new Error(data.error || "Command failed");
+      throw buildError(data.error || "Command failed", response.status);
     }
 
     if (data.storageFileName) {
@@ -431,6 +467,7 @@ const executeCommand = async () => {
     }
   } catch (err) {
     error.value = err.message;
+    showErrorToast(err.message, err.status);
   } finally {
     loading.value = false;
   }
@@ -460,7 +497,7 @@ const handleAuth = async () => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || "Authentication failed");
+      throw buildError(data.error || "Authentication failed", response.status);
     }
 
     showAuthModal.value = false;
@@ -469,6 +506,7 @@ const handleAuth = async () => {
     executeCommand();
   } catch (err) {
     authError.value = err.message;
+    showErrorToast(err.message, err.status);
   } finally {
     authLoading.value = false;
   }

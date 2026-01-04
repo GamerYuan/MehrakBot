@@ -38,6 +38,21 @@ const showTempPasswordModal = ref(false);
 const selectedUser = ref(null);
 const tempPassword = ref("");
 
+const showErrorToast = (message, status) => {
+  toast.add({
+    severity: "error",
+    summary: "Error",
+    detail: `${message} (Code: ${status ?? "N/A"})`,
+    life: 5000,
+  });
+};
+
+const buildError = (message, status) => {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+};
+
 // Form data
 const formData = ref({
   username: "",
@@ -82,16 +97,13 @@ const fetchUsers = async () => {
       router.push("/login");
       return;
     }
-    if (!response.ok) throw new Error("Failed to fetch users");
+    if (!response.ok) {
+      throw buildError("Failed to fetch users", response.status);
+    }
     users.value = await response.json();
   } catch (err) {
     error.value = err.message;
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
+    showErrorToast(err.message, err.status);
   } finally {
     loading.value = false;
   }
@@ -222,7 +234,7 @@ const handleAddUser = async () => {
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || "Failed to add user");
+      throw buildError(data.error || "Failed to add user", response.status);
     }
 
     const result = await response.json();
@@ -237,12 +249,7 @@ const handleAddUser = async () => {
       life: 3000,
     });
   } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
+    showErrorToast(err.message, err.status);
   }
 };
 
@@ -274,7 +281,7 @@ const handleUpdateUser = async () => {
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || "Failed to update user");
+      throw buildError(data.error || "Failed to update user", response.status);
     }
 
     showUpdateModal.value = false;
@@ -286,12 +293,7 @@ const handleUpdateUser = async () => {
       life: 3000,
     });
   } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
+    showErrorToast(err.message, err.status);
   }
 };
 
@@ -310,7 +312,7 @@ const handleDeleteUser = async (user) => {
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || "Failed to delete user");
+      throw buildError(data.error || "Failed to delete user", response.status);
     }
 
     fetchUsers();
@@ -321,12 +323,7 @@ const handleDeleteUser = async (user) => {
       life: 3000,
     });
   } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
+    showErrorToast(err.message, err.status);
   }
 };
 
@@ -343,7 +340,10 @@ const handleResetPassword = async (user) => {
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || "Failed to reset password");
+      throw buildError(
+        data.error || "Failed to reset password",
+        response.status
+      );
     }
 
     toast.add({
@@ -353,12 +353,7 @@ const handleResetPassword = async (user) => {
       life: 5000,
     });
   } catch (err) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message,
-      life: 5000,
-    });
+    showErrorToast(err.message, err.status);
   }
 };
 
