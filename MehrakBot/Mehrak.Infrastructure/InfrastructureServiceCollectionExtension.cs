@@ -52,6 +52,8 @@ public static class InfrastructureServiceCollectionExtension
             return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
         });
 
+        services.AddSingleton<IAttachmentStorageService, AttachmentStorageService>();
+
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IImageRepository, ImageRepository>();
         services.AddSingleton<ICharacterRepository, CharacterRepository>();

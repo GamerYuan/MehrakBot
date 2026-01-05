@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hsr.Memory;
 
-internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApplicationContext>
+internal class HsrMemoryApplicationService : BaseAttachmentApplicationService<HsrMemoryApplicationContext>
 {
     private readonly ICardService<HsrMemoryInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -30,8 +30,9 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
         IApiService<HsrMemoryInformation, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<HsrMemoryApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -77,6 +78,25 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
                     isEphemeral: true);
             }
 
+            var tz = server.GetTimeZoneInfo();
+            var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+            var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+
+            var fileName = GetFileName(JsonSerializer.Serialize(memoryData), gameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success(
+                    [
+                        new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
+                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                        new CommandAttachment(fileName),
+                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                    ],
+                    true);
+            }
+
             var tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x.Id)
                 .Select(x =>
@@ -93,19 +113,19 @@ internal class HsrMemoryApplicationService : BaseApplicationService<HsrMemoryApp
             var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
 
-            var tz = server.GetTimeZoneInfo();
-            var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-            var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success(
                 [
                     new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                    new CommandAttachment("moc_card.jpg", card),
+                    new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
