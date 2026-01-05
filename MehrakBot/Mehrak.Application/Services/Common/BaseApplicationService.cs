@@ -78,7 +78,8 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
 }
 
 public abstract class BaseAttachmentApplicationService<TContext> :
-    BaseApplicationService<TContext> where TContext : IApplicationContext
+    BaseApplicationService<TContext>, IAttachmentApplicationService<TContext>
+    where TContext : IApplicationContext
 {
     private readonly IAttachmentStorageService m_AttachmentStorageService;
 
@@ -91,13 +92,13 @@ public abstract class BaseAttachmentApplicationService<TContext> :
         m_AttachmentStorageService = attachmentStorageService;
     }
 
-    private static string GetFileName(string serializedData, string gameUid)
+    protected static string GetFileName(string serializedData, string gameUid)
     {
         var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{gameUid}_{serializedData}"));
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
-    private async Task<bool> UploadAttachmentAsync(ulong userId, string storageFileName, Stream fileStream)
+    protected async Task<bool> StoreAttachmentAsync(ulong userId, string storageFileName, Stream fileStream)
     {
         var uploadResult = await m_AttachmentStorageService.StoreAsync(storageFileName, fileStream);
         if (!uploadResult)
@@ -109,7 +110,7 @@ public abstract class BaseAttachmentApplicationService<TContext> :
         return true;
     }
 
-    private async Task<bool> AttachmentExistsAsync(string storageFileName)
+    protected async Task<bool> AttachmentExistsAsync(string storageFileName)
     {
         return await m_AttachmentStorageService.ExistsAsync(storageFileName);
     }

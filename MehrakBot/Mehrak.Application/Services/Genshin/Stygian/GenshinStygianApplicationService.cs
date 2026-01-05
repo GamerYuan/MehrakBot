@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Genshin.Stygian;
 
-public class GenshinStygianApplicationService : BaseApplicationService<GenshinStygianApplicationContext>
+public class GenshinStygianApplicationService : BaseAttachmentApplicationService<GenshinStygianApplicationContext>
 {
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICardService<StygianData> m_CardService;
@@ -30,8 +30,9 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
         IApiService<GenshinStygianInformation, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<GenshinStygianApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_ImageUpdaterService = imageUpdaterService;
         m_CardService = cardService;
@@ -85,6 +86,20 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
 
             var stygianData = stygianInfo.Data.Data[0].Single;
 
+            var filename = GetFileName(JsonSerializer.Serialize(stygianData), profile.GameUid);
+            if (await AttachmentExistsAsync(filename))
+            {
+                return CommandResult.Success(
+                    [new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary",
+                        CommandText.TextType.Header3),
+                     new CommandText(
+                         $"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\n" +
+                         $"Cycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>"),
+                     new CommandAttachment(filename),
+                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                    ], true);
+            }
+
             var avatarTasks = stygianData.Challenge!.SelectMany(x => x.Teams).Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
             var sideAvatarTasks = stygianData.Challenge!.SelectMany(x => x.BestAvatar).Select(x =>
@@ -107,13 +122,19 @@ public class GenshinStygianApplicationService : BaseApplicationService<GenshinSt
                 stygianInfo.Data.Data[0], profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary", CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{stygianInfo.Data.Data[0].Schedule!.StartTime}:f>\n" +
                                     $"Cycle end: <t:{stygianInfo.Data.Data[0].Schedule!.EndTime}:f>"),
-                    new CommandAttachment("stygian_card.jpg", card),
+                    new CommandAttachment(filename),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);

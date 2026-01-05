@@ -22,7 +22,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.CharList;
 
-public class GenshinCharListApplicationService : BaseApplicationService<GenshinCharListApplicationContext>
+public class GenshinCharListApplicationService : BaseAttachmentApplicationService<GenshinCharListApplicationContext>
 {
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICardService<IEnumerable<GenshinBasicCharacterData>> m_CardService;
@@ -42,8 +42,9 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
         ICharacterCacheService characterCache,
         IImageRepository imageRepository,
         IApiService<JsonNode, WikiApiContext> wikiApi,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<GenshinCharListApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_ImageUpdaterService = imageUpdaterService;
         m_CardService = cardService;
@@ -86,6 +87,16 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
 
             var characterList = charResponse.Data.ToList();
             _ = m_CharacterCache.UpsertCharacters(Game.Genshin, characterList.Select(x => x.Name));
+
+            var filename = GetFileName(JsonSerializer.Serialize(characterList), profile.GameUid);
+            if (await AttachmentExistsAsync(filename))
+            {
+                return CommandResult.Success(
+                [
+                    new CommandText($"<@{context.UserId}>"),
+                    new CommandAttachment(filename)
+                ]);
+            }
 
             var avatarTask =
                 characterList.Select(x =>
@@ -157,10 +168,16 @@ public class GenshinCharListApplicationService : BaseApplicationService<GenshinC
                     characterList, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)
+                new CommandText($"<@{context.UserId}>"), new CommandAttachment(filename)
             ]);
         }
         catch (CommandException e)

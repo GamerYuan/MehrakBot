@@ -22,7 +22,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.Character;
 
-internal class GenshinCharacterApplicationService : BaseApplicationService<GenshinCharacterApplicationContext>
+internal class GenshinCharacterApplicationService : BaseAttachmentApplicationService<GenshinCharacterApplicationContext>
 {
     private readonly ICardService<GenshinCharacterInformation> m_CardService;
     private readonly ICharacterCacheService m_CharacterCacheService;
@@ -45,8 +45,9 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorage,
         ILogger<GenshinCharacterApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorage, logger)
     {
         m_CardService = cardService;
         m_CharacterCacheService = characterCacheService;
@@ -124,6 +125,15 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
             }
 
             var charData = characterInfo.Data.List[0];
+
+            var filename = GetFileName(JsonSerializer.Serialize(charData), profile.GameUid);
+            if (await AttachmentExistsAsync(filename))
+            {
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>"),
+                    new CommandAttachment(filename)
+                ]);
+            }
 
             List<Task<bool>> tasks = [];
 
@@ -204,12 +214,20 @@ internal class GenshinCharacterApplicationService : BaseApplicationService<Gensh
                 characterInfo.Data.List[0], profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
+
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), character.Name.ToLowerInvariant());
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)
+                new CommandText($"<@{context.UserId}>"),
+                new CommandAttachment(filename)
             ]);
         }
         catch (CommandException e)
