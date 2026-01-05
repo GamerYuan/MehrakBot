@@ -1,7 +1,5 @@
-﻿using System.Security.Cryptography;
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -21,11 +19,10 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
         m_Logger = logger;
     }
 
-    public async Task<StoredAttachmentResult?> StoreAsync(CommandAttachment attachment, CancellationToken cancellationToken = default)
+    public async Task<bool> StoreAsync(string storageFileName, Stream stream, CancellationToken cancellationToken = default)
     {
-        var (fileName, stream) = attachment.GetAttachment();
         if (stream == Stream.Null)
-            return null;
+            return false;
 
         using MemoryStream buffer = new();
         if (stream.CanSeek)
@@ -33,20 +30,10 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
 
         await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
         if (buffer.Length == 0)
-            return null;
+            return false;
 
         buffer.Position = 0;
-        string hash;
-        using (var sha256 = SHA256.Create())
-        {
-            hash = Convert.ToHexString(await sha256.ComputeHashAsync(buffer, cancellationToken)).ToLowerInvariant();
-        }
-
-        buffer.Position = 0;
-        var extension = Path.GetExtension(fileName);
-        var storageFileName = string.IsNullOrEmpty(extension)
-            ? hash
-            : $"{hash}{extension.ToLowerInvariant()}";
+        var extension = Path.GetExtension(storageFileName);
         var objectKey = storageFileName;
 
         var contentType = ResolveContentType(extension);
@@ -70,12 +57,12 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
 
         if (!success)
         {
-            m_Logger.LogError("Failed to upload attachment {FileName} to {ObjectKey}", fileName, objectKey);
-            return null;
+            m_Logger.LogError("Failed to upload attachment {FileName} to {ObjectKey}", storageFileName, objectKey);
+            return false;
         }
 
-        m_Logger.LogDebug("Stored attachment {FileName} as {ObjectKey}", fileName, objectKey);
-        return new StoredAttachmentResult(fileName, storageFileName);
+        m_Logger.LogDebug("Stored attachment {FileName} as {ObjectKey}", storageFileName, objectKey);
+        return true;
     }
 
     public async Task<AttachmentDownloadResult?> DownloadAsync(string storageFileName, CancellationToken cancellationToken = default)
@@ -106,6 +93,27 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
 
         var contentType = ResolveContentType(Path.GetExtension(storageFileName));
         return new AttachmentDownloadResult(stream, contentType);
+    }
+
+    public async Task<bool> ExistsAsync(string storageFileName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(storageFileName) || !IsValidStorageFileName(storageFileName))
+            return false;
+        var objectKey = storageFileName;
+        var metadataReq = new GetObjectMetadataRequest
+        {
+            BucketName = m_Bucket,
+            Key = objectKey,
+        };
+        try
+        {
+            var response = await m_S3.GetObjectMetadataAsync(metadataReq, cancellationToken).ConfigureAwait(false);
+            return (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
     }
 
     public static bool IsValidStorageFileName(string fileName)

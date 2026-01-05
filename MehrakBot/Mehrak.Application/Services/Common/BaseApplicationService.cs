@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Security.Cryptography;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
@@ -73,5 +74,43 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
                 await m_UserRepository.CreateOrUpdateUserAsync(user);
             }
         }
+    }
+}
+
+public abstract class BaseAttachmentApplicationService<TContext> :
+    BaseApplicationService<TContext> where TContext : IApplicationContext
+{
+    private readonly IAttachmentStorageService m_AttachmentStorageService;
+
+    protected BaseAttachmentApplicationService(
+        IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
+        IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
+        ILogger<BaseAttachmentApplicationService<TContext>> logger) : base(gameRoleApi, userRepository, logger)
+    {
+        m_AttachmentStorageService = attachmentStorageService;
+    }
+
+    private static string GetFileName(string serializedData, string gameUid)
+    {
+        var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{gameUid}_{serializedData}"));
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
+
+    private async Task<bool> UploadAttachmentAsync(ulong userId, string storageFileName, Stream fileStream)
+    {
+        var uploadResult = await m_AttachmentStorageService.StoreAsync(storageFileName, fileStream);
+        if (!uploadResult)
+        {
+            Logger.LogError("Failed to upload attachment for User {UserId}, FileName {FileName}, Result {@Result}",
+                userId, storageFileName, uploadResult);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task<bool> AttachmentExistsAsync(string storageFileName)
+    {
+        return await m_AttachmentStorageService.ExistsAsync(storageFileName);
     }
 }

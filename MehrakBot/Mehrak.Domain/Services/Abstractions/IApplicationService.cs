@@ -10,3 +10,10 @@ public interface IApplicationService<TContext> where TContext : IApplicationCont
 {
     Task<CommandResult> ExecuteAsync(TContext context);
 }
+
+public interface IAttachmentApplicationService<TContext> : IApplicationService<TContext>
+    where TContext : IApplicationContext
+{
+    Task<CommandResult> ExecuteWithAttachmentsAsync(TContext context,
+        IEnumerable<ICommandResultAttachment> attachments);
+}

@@ -3,6 +3,7 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
     where TContext : IApplicationContext
 {
     private readonly IServiceProvider m_ServiceProvider;
+    private readonly IAttachmentStorageService m_AttachmentService;
 
     public CommandExecutorService(
         IServiceProvider serviceProvider,
@@ -37,10 +39,12 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
+        IAttachmentStorageService attachmentService,
         ILogger<CommandExecutorService<TContext>> logger
     ) : base(userRepository, commandRateLimitService, authenticationMiddleware, metricsService, logger)
     {
         m_ServiceProvider = serviceProvider;
+        m_AttachmentService = attachmentService;
     }
 
     public override async Task ExecuteAsync(uint profile)
@@ -100,10 +104,43 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                 .ExecuteAsync(ApplicationContext)
                 .ConfigureAwait(false);
 
-            MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, commandResult.IsSuccess);
 
             if (commandResult.IsSuccess)
             {
+                var message = commandResult.Data.ToMessage();
+                if (service is IAttachmentApplicationService<TContext>)
+                {
+                    var attachment = commandResult.Data.Components.FirstOrDefault(x => x is ICommandResultAttachment) as ICommandResultAttachment;
+                    if (attachment != null)
+                    {
+                        var stream = await m_AttachmentService.DownloadAsync(attachment.FileName)!;
+                        if (stream != null)
+                            message.AddAttachments(new AttachmentProperties(attachment!.FileName, stream.Content));
+                        else
+                        {
+                            Logger.LogWarning("Attachment {Attachment} not found for command {Command}",
+                                attachment.FileName, CommandName);
+                            MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
+                            await authResult.Context!.Interaction.SendFollowupMessageAsync(
+                                new InteractionMessageProperties().WithContent(
+                                        "Attachment not found. Please try again later.")
+                                    .WithFlags(MessageFlags.Ephemeral));
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Attachment not found in command result for command {Command}",
+                            CommandName);
+                        MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
+                        await authResult.Context!.Interaction.SendFollowupMessageAsync(
+                            new InteractionMessageProperties().WithContent(
+                                    "Attachment not found. Please try again later.")
+                                .WithFlags(MessageFlags.Ephemeral));
+                    }
+                }
+
+                MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, true);
+
                 if (IsResponseEphemeral || commandResult.Data.IsEphemeral)
                 {
                     await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.Data.ToMessage()
@@ -125,12 +162,14 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         }
         else if (authResult.Status == AuthStatus.Failure)
         {
+            MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
             await authResult.Context!.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithContent(authResult.ErrorMessage)
                     .WithFlags(MessageFlags.Ephemeral));
         }
         else if (authResult.Status == AuthStatus.NotFound)
         {
+            MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
             await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithContent(authResult.ErrorMessage)
                     .WithFlags(MessageFlags.Ephemeral)));

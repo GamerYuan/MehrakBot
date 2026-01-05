@@ -10,6 +10,11 @@ public interface ICommandResultComponent;
 
 public interface ICommandResultAttachment
 {
+    string FileName { get; init; }
+}
+
+public interface ICommandResultEmbedAttachment
+{
     (string, Stream) GetAttachment();
 }
 
@@ -69,12 +74,12 @@ public class CommandResult
     }
 }
 
-public class CommandSection : ICommandResultComponent, ICommandResultAttachment
+public class CommandSection : ICommandResultComponent, ICommandResultEmbedAttachment
 {
     public IEnumerable<CommandText> Components { get; }
-    public CommandAttachment Attachment { get; }
+    public EmbeddedAttachment Attachment { get; }
 
-    public CommandSection(IEnumerable<CommandText> components, CommandAttachment attachment)
+    public CommandSection(IEnumerable<CommandText> components, EmbeddedAttachment attachment)
     {
         Components = components;
         Attachment = attachment;
@@ -88,10 +93,21 @@ public class CommandSection : ICommandResultComponent, ICommandResultAttachment
 
 public class CommandAttachment : ICommandResultComponent, ICommandResultAttachment
 {
-    public string FileName { get; }
-    public Stream Content { get; }
 
-    public CommandAttachment(string fileName, Stream content)
+    public CommandAttachment(string fileName)
+    {
+        FileName = fileName;
+    }
+
+    public string FileName { get; init; }
+}
+
+public class EmbeddedAttachment : ICommandResultAttachment, ICommandResultEmbedAttachment
+{
+    public string FileName { get; init; }
+    public Stream Content { get; init; }
+
+    public EmbeddedAttachment(string fileName, Stream content)
     {
         FileName = fileName;
         Content = content;
@@ -102,6 +118,7 @@ public class CommandAttachment : ICommandResultComponent, ICommandResultAttachme
         return (FileName, Content);
     }
 }
+
 
 public class CommandText : ICommandResultComponent
 {
