@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -17,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Zzz.Defense;
 
-internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseApplicationContext>
+internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService<ZzzDefenseApplicationContext>
 {
     private readonly ICardService<ZzzDefenseData> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -29,8 +30,9 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
         IApiService<ZzzDefenseData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<ZzzDefenseApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -88,6 +90,19 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
                     isEphemeral: true);
             }
 
+            var fileName = GetFileName(JsonSerializer.Serialize(defenseData), gameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success([
+                        new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
+                        new CommandText(
+                            $"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
+                        new CommandAttachment(fileName),
+                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                    ],
+                    true);
+            }
+
             var updateImageTask = nonNull.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
                 .DistinctBy(x => x!.Id)
                 .Select(avatar =>
@@ -110,13 +125,19 @@ internal class ZzzDefenseApplicationService : BaseApplicationService<ZzzDefenseA
             var cardContext = new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
                     new CommandText(
                         $"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
-                    new CommandAttachment("shiyu_card.jpg", card),
+                    new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);

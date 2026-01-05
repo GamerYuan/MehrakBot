@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Zzz.Character;
 
-internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharacterApplicationContext>
+internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService<ZzzCharacterApplicationContext>
 {
     private readonly ICardService<ZzzFullAvatarData> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -39,8 +39,9 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<ZzzCharacterApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -120,6 +121,15 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             var characterData = response.Data;
             var charInfo = characterData.AvatarList[0];
 
+            var fileName = GetFileName(JsonSerializer.Serialize(characterData), charInfo.Id!.ToString());
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
+                    new CommandAttachment(fileName)
+                ]);
+            }
+
             Task<Result<string>>? charImageUrlTask = null;
 
             List<Task<bool>> tasks = [];
@@ -166,12 +176,18 @@ internal class ZzzCharacterApplicationService : BaseApplicationService<ZzzCharac
             var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)
+                new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
             ]);
         }
         catch (CommandException e)
