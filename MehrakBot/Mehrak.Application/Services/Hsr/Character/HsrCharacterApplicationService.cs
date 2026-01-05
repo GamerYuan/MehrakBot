@@ -111,7 +111,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
                 }
             }
 
-            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), gameUid);
+            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success([

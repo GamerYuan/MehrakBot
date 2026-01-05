@@ -88,7 +88,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService<G
                 ], isEphemeral: true);
             }
 
-            var filename = GetFileName(JsonSerializer.Serialize(floorData), profile.GameUid);
+            var filename = GetFileName(JsonSerializer.Serialize(floorData), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(filename))
             {
                 return CommandResult.Success([

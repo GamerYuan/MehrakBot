@@ -126,7 +126,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
             var charData = characterInfo.Data.List[0];
 
-            var filename = GetFileName(JsonSerializer.Serialize(charData), profile.GameUid);
+            var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(filename))
             {
                 return CommandResult.Success([

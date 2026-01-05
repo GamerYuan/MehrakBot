@@ -90,7 +90,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService<Z
             var startTs = assaultData.StartTime.ToTimestamp(tz);
             var endTs = assaultData.EndTime.ToTimestamp(tz);
 
-            var fileName = GetFileName(JsonSerializer.Serialize(assaultData), gameUid);
+            var fileName = GetFileName(JsonSerializer.Serialize(assaultData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success([

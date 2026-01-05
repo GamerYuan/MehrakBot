@@ -95,7 +95,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService<H
             var endTime = new DateTimeOffset(bestRecord.Group.EndTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
 
-            var fileName = GetFileName(JsonSerializer.Serialize(anomalyData), gameUid);
+            var fileName = GetFileName(JsonSerializer.Serialize(anomalyData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success(

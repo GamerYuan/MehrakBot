@@ -95,7 +95,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                     isEphemeral: true);
             }
 
-            var filename = GetFileName(JsonSerializer.Serialize(theaterData), profile.GameUid);
+            var filename = GetFileName(JsonSerializer.Serialize(theaterData), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(filename))
             {
                 return CommandResult.Success([

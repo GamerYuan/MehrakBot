@@ -92,10 +92,10 @@ public abstract class BaseAttachmentApplicationService<TContext> :
         m_AttachmentStorageService = attachmentStorageService;
     }
 
-    protected static string GetFileName(string serializedData, string gameUid)
+    protected static string GetFileName(string serializedData, string extension, string gameUid)
     {
         var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{gameUid}_{serializedData}"));
-        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+        return $"{Convert.ToHexString(hashBytes).ToLowerInvariant()}.{extension}";
     }
 
     protected async Task<bool> StoreAttachmentAsync(ulong userId, string storageFileName, Stream fileStream)

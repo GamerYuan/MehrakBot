@@ -88,7 +88,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
             var characterList = charResponse.Data.ToList();
             _ = m_CharacterCache.UpsertCharacters(Game.Genshin, characterList.Select(x => x.Name));
 
-            var filename = GetFileName(JsonSerializer.Serialize(characterList), profile.GameUid);
+            var filename = GetFileName(JsonSerializer.Serialize(characterList), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(filename))
             {
                 return CommandResult.Success(

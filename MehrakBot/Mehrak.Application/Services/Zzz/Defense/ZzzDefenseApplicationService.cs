@@ -90,7 +90,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService<Z
                     isEphemeral: true);
             }
 
-            var fileName = GetFileName(JsonSerializer.Serialize(defenseData), gameUid);
+            var fileName = GetFileName(JsonSerializer.Serialize(defenseData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success([

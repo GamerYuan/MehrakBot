@@ -84,7 +84,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService<Hs
             var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
 
-            var fileName = GetFileName(JsonSerializer.Serialize(memoryData), gameUid);
+            var fileName = GetFileName(JsonSerializer.Serialize(memoryData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success(

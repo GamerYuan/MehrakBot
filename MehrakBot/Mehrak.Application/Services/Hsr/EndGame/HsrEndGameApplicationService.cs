@@ -95,7 +95,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
             var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)
                 .ToUnixTimeSeconds();
 
-            var fileName = GetFileName(JsonSerializer.Serialize(challengeData), profile.GameUid);
+            var fileName = GetFileName(JsonSerializer.Serialize(challengeData), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success([

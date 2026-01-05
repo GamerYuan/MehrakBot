@@ -86,7 +86,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
 
             var stygianData = stygianInfo.Data.Data[0].Single;
 
-            var filename = GetFileName(JsonSerializer.Serialize(stygianData), profile.GameUid);
+            var filename = GetFileName(JsonSerializer.Serialize(stygianData), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(filename))
             {
                 return CommandResult.Success(
