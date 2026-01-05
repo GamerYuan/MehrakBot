@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
 
 namespace Mehrak.Dashboard.Models;
 
@@ -9,60 +8,6 @@ public sealed class DashboardCommandResponseDto
     public bool IsContainer { get; init; }
     public bool IsEphemeral { get; init; }
     public IReadOnlyList<DashboardCommandComponentDto> Components { get; init; } = [];
-
-    public static async Task<DashboardCommandResponseDto> FromCommandResultAsync(
-        CommandResult result,
-        IAttachmentStorageService attachmentStorage,
-        CancellationToken cancellationToken = default)
-    {
-        if (!result.IsSuccess || result.Data is null)
-            throw new InvalidOperationException("Command result does not contain any data.");
-
-        List<DashboardCommandComponentDto> components = [];
-        foreach (var component in result.Data.Components)
-        {
-            var dto = await CreateComponentAsync(component, attachmentStorage, cancellationToken).ConfigureAwait(false);
-            if (dto is not null)
-                components.Add(dto);
-        }
-
-        return new DashboardCommandResponseDto
-        {
-            Success = true,
-            IsContainer = result.Data.IsContainer,
-            IsEphemeral = result.Data.IsEphemeral,
-            Components = components
-        };
-    }
-
-    private static async Task<DashboardCommandComponentDto?> CreateComponentAsync(
-        ICommandResultComponent component,
-        IAttachmentStorageService attachmentStorage,
-        CancellationToken cancellationToken)
-    {
-        switch (component)
-        {
-            case CommandText text:
-                return DashboardCommandComponentDto.FromText(text);
-            case CommandAttachment attachment:
-                {
-                    var stored = await attachmentStorage.StoreAsync(attachment, cancellationToken).ConfigureAwait(false);
-                    if (stored is null)
-                        return null;
-                    return DashboardCommandComponentDto.FromAttachment(new DashboardCommandAttachmentDto(stored.OriginalFileName, stored.StorageFileName));
-                }
-            case CommandSection section:
-                {
-                    var stored = await attachmentStorage.StoreAsync(section.Attachment, cancellationToken).ConfigureAwait(false);
-                    if (stored is null)
-                        return null;
-                    var texts = section.Components.Select(t => new DashboardCommandTextDto(t.Content, t.Type)).ToArray();
-                    return DashboardCommandComponentDto.FromSection(texts, new DashboardCommandAttachmentDto(stored.OriginalFileName, stored.StorageFileName));
-                }
-            default:
-                return null;
-        }
-    }
 }
 
 public sealed class DashboardCommandComponentDto
@@ -115,4 +60,4 @@ public sealed record DashboardCommandTextDto(string Content, CommandText.TextTyp
 
 public sealed record DashboardCommandSectionDto(IReadOnlyList<DashboardCommandTextDto> Components, DashboardCommandAttachmentDto Attachment);
 
-public sealed record DashboardCommandAttachmentDto(string FileName, string StorageFileName);
+public sealed record DashboardCommandAttachmentDto(string StorageFileName);

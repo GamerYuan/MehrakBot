@@ -1,6 +1,8 @@
 ﻿using Mehrak.Dashboard.Auth;
+using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Mehrak.Dashboard.Services;
 
@@ -133,7 +135,7 @@ public sealed class DashboardApplicationExecutionResult
         Status = status;
         CommandResult = commandResult;
         ErrorMessage = errorMessage;
-        ValidationErrors = validationErrors ?? Array.Empty<string>();
+        ValidationErrors = validationErrors ?? [];
     }
 
     public DashboardExecutionStatus Status { get; }
@@ -174,5 +176,73 @@ public sealed class DashboardApplicationExecutionResult
     public static DashboardApplicationExecutionResult Error(string message)
     {
         return new DashboardApplicationExecutionResult(DashboardExecutionStatus.Error, errorMessage: message);
+    }
+
+    public IActionResult MapToActionResult()
+    {
+        return Status switch
+        {
+            DashboardExecutionStatus.Success when CommandResult is not null =>
+                TryExtractAttachment(CommandResult) is { } attachment
+                    ? new ObjectResult(attachment)
+                    {
+                        StatusCode = StatusCodes.Status200OK
+                    }
+                    : HandleMissingAttachment(CommandResult),
+            DashboardExecutionStatus.ValidationFailed
+                => new ObjectResult(new { error = ErrorMessage ?? "Validation failed.", validationErrors = ValidationErrors })
+                {
+                    StatusCode = StatusCodes.Status400BadRequest
+                },
+            DashboardExecutionStatus.AuthenticationRequired
+                => new ObjectResult(new { error = ErrorMessage ?? "Authentication required.", code = "AUTH_REQUIRED" })
+                {
+                    StatusCode = StatusCodes.Status403Forbidden
+                },
+            DashboardExecutionStatus.AuthenticationFailed
+                => new ObjectResult(new { error = ErrorMessage ?? "Authentication failed." })
+                {
+                    StatusCode = StatusCodes.Status401Unauthorized
+                },
+            DashboardExecutionStatus.NotFound
+                => new ObjectResult(new { error = ErrorMessage ?? "Requested resource was not found." })
+                {
+                    StatusCode = StatusCodes.Status404NotFound
+                },
+            _
+                => new ObjectResult(new { error = ErrorMessage ?? "Unable to execute command." })
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError
+                }
+        };
+    }
+
+    private static DashboardCommandAttachmentDto? TryExtractAttachment(CommandResult commandResult)
+    {
+        if (commandResult.Data is null)
+            return null;
+
+        var fileName = (commandResult.Data.Components.FirstOrDefault(x => x is CommandAttachment) as CommandAttachment)?.FileName;
+
+        return fileName == null ? null : new(fileName);
+    }
+
+    private static ObjectResult HandleMissingAttachment(CommandResult commandResult)
+    {
+        string errorMessage;
+        if (commandResult.IsSuccess)
+        {
+            errorMessage = (commandResult.Data.Components.FirstOrDefault(x => x is CommandText) as CommandText)
+                ?.Content ?? "Command executed successfully but no attachment was found.";
+        }
+        else
+        {
+            errorMessage = commandResult.ErrorMessage ?? "Command execution failed without a specific error message.";
+        }
+
+        return new ObjectResult(new { error = errorMessage })
+        {
+            StatusCode = StatusCodes.Status500InternalServerError
+        };
     }
 }

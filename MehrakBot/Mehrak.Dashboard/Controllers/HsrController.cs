@@ -7,8 +7,6 @@ using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,16 +19,13 @@ public sealed class HsrController : ControllerBase
 {
     private readonly IDashboardApplicationExecutorBuilder m_ExecutorBuilder;
     private readonly ILogger<HsrController> m_Logger;
-    private readonly IAttachmentStorageService m_AttachmentStorage;
 
     public HsrController(
         IDashboardApplicationExecutorBuilder executorBuilder,
-        ILogger<HsrController> logger,
-        IAttachmentStorageService attachmentStorage)
+        ILogger<HsrController> logger)
     {
         m_ExecutorBuilder = executorBuilder;
         m_Logger = logger;
-        m_AttachmentStorage = attachmentStorage;
     }
 
     [HttpPost("character")]
@@ -56,7 +51,7 @@ public sealed class HsrController : ControllerBase
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
-        return await MapExecutionResultAsync(result, HttpContext.RequestAborted);
+        return result.MapToActionResult();
     }
 
     [HttpPost("moc")]
@@ -80,7 +75,7 @@ public sealed class HsrController : ControllerBase
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
-        return await MapExecutionResultAsync(result, HttpContext.RequestAborted);
+        return result.MapToActionResult();
     }
 
     [HttpPost("pf")]
@@ -104,7 +99,7 @@ public sealed class HsrController : ControllerBase
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
-        return await MapExecutionResultAsync(result, HttpContext.RequestAborted);
+        return result.MapToActionResult();
     }
 
     [HttpPost("as")]
@@ -128,7 +123,7 @@ public sealed class HsrController : ControllerBase
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
-        return await MapExecutionResultAsync(result, HttpContext.RequestAborted);
+        return result.MapToActionResult();
     }
 
     [HttpPost("charlist")]
@@ -152,7 +147,7 @@ public sealed class HsrController : ControllerBase
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
-        return await MapExecutionResultAsync(result, HttpContext.RequestAborted);
+        return result.MapToActionResult();
     }
 
     [HttpPost("aa")]
@@ -176,7 +171,7 @@ public sealed class HsrController : ControllerBase
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
-        return await MapExecutionResultAsync(result, HttpContext.RequestAborted);
+        return result.MapToActionResult();
     }
 
     private bool TryGetDiscordUserId(out ulong discordUserId, out IActionResult? errorResult)
@@ -213,64 +208,5 @@ public sealed class HsrController : ControllerBase
         foreach (var extra in extras)
             parameters.Add(extra);
         return parameters;
-    }
-
-    private async Task<IActionResult> MapExecutionResultAsync(DashboardApplicationExecutionResult result, CancellationToken cancellationToken)
-    {
-        return result.Status switch
-        {
-            DashboardExecutionStatus.Success when result.CommandResult is not null =>
-                await TryExtractAttachmentAsync(result.CommandResult, cancellationToken) is { } attachment
-                    ? Ok(attachment)
-                    : HandleMissingAttachment(),
-            DashboardExecutionStatus.ValidationFailed
-                => BadRequest(new { error = result.ErrorMessage ?? "Validation failed.", validationErrors = result.ValidationErrors }),
-            DashboardExecutionStatus.AuthenticationRequired
-                => StatusCode(StatusCodes.Status403Forbidden, new { error = result.ErrorMessage ?? "Authentication required.", code = "AUTH_REQUIRED" }),
-            DashboardExecutionStatus.AuthenticationFailed
-                => Unauthorized(new { error = result.ErrorMessage ?? "Authentication failed." }),
-            DashboardExecutionStatus.NotFound
-                => NotFound(new { error = result.ErrorMessage ?? "Requested resource was not found." }),
-            _
-                => StatusCode(StatusCodes.Status500InternalServerError, new { error = result.ErrorMessage ?? "Unable to execute command." })
-        };
-    }
-
-    private async Task<DashboardCommandAttachmentDto?> TryExtractAttachmentAsync(CommandResult commandResult, CancellationToken cancellationToken)
-    {
-        if (commandResult.Data is null)
-            return null;
-
-        foreach (var component in commandResult.Data.Components)
-        {
-            var attachment = component switch
-            {
-                CommandAttachment direct => direct,
-                CommandSection section => section.Attachment,
-                _ => null
-            };
-
-            if (attachment is null)
-                continue;
-
-            var stored = await m_AttachmentStorage.StoreAsync(attachment, cancellationToken).ConfigureAwait(false);
-            if (stored is null)
-            {
-                m_Logger.LogWarning("Failed to persist attachment {AttachmentFile} for dashboard request", attachment.FileName);
-                continue;
-            }
-
-            return new DashboardCommandAttachmentDto(stored.OriginalFileName, stored.StorageFileName);
-        }
-
-        return null;
-    }
-
-    private ObjectResult HandleMissingAttachment()
-    {
-        var discordId = User.FindFirstValue("discord_id") ?? "unknown";
-        m_Logger.LogWarning("HSR command result contained no attachment for user {UserId}", discordId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { error = "Command executed successfully but no image was generated." });
     }
 }
