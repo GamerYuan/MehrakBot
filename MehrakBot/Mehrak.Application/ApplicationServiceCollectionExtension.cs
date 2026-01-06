@@ -6,7 +6,6 @@ using Mehrak.Application.Services.Genshin;
 using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Zzz;
-using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
