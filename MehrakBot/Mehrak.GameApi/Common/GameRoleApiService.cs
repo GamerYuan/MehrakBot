@@ -1,7 +1,7 @@
 ﻿#region
 
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
@@ -56,24 +56,30 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError, "API returned error status code", requestUri);
             }
 
-            var node = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<GameProfileResponse>>();
 
-            if (node?["retcode"]?.GetValue<int>() == -100)
+            if (json == null)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
+                    "An error occurred while retrieving profile information", requestUri);
+            }
+
+            if (json.Retcode == -100)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
             }
 
-            if (node?["retcode"]?.GetValue<int>() != 0)
+            if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, node?["retcode"]?.GetValue<int>() ?? -1,
-                    context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError,
                     $"An error occurred while retrieving profile information", requestUri);
             }
 
-            if (node["data"]?["list"] == null || node["data"]?["list"]?.AsArray().Count == 0)
+            if (json.Data?.List == null || json.Data?.List.Count == 0)
             {
                 m_Logger.LogWarning("No game data found for User {UserId} profile LtUid {LtUid} on {Region}",
                     context.UserId, context.LtUid, context.Region);
@@ -84,7 +90,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             // Info-level API retcode after parse (success path)
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, 0, context.UserId);
 
-            var gameProfile = node["data"]?["list"]?[0].Deserialize<GameProfile>();
+            var gameProfile = json?.Data?.List[0];
 
             GameProfileDto dto = new()
             {
@@ -103,5 +109,10 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             return Result<GameProfileDto>.Failure(StatusCode.BotError,
                 "An error occurred while processing the request");
         }
+    }
+
+    private sealed class GameProfileResponse
+    {
+        [JsonPropertyName("list")] public List<GameProfile> List { get; set; } = [];
     }
 }

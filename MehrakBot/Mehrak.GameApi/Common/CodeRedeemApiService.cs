@@ -1,6 +1,6 @@
 ﻿#region
 
-using System.Text.Json.Nodes;
+using System.Net.Http.Json;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
@@ -56,7 +56,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
             if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
@@ -64,12 +64,10 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            var retCode = json["retcode"]?.GetValue<int>() ?? -1;
-
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retCode, context.UserId);
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
-            switch (retCode)
+            switch (json.Retcode)
             {
                 case 0:
                     m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
@@ -107,7 +105,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                         "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
 
                 default:
-                    m_Logger.LogError(LogMessages.UnknownRetcode, retCode, context.UserId, requestUri);
+                    m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                     return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                         "An error occurred while redeeming the code", requestUri);
             }
