@@ -50,7 +50,7 @@ public class UserController : ControllerBase
         if (!TryParseDiscordUserId(request.DiscordUserId, out var discordUserId, out var parseError))
             return parseError!;
 
-        m_Logger.LogInformation("Creating dashboard user {Username}", request.Username);
+        m_Logger.LogInformation("Creating dashboard user {Username}", request.Username.ReplaceLineEndings("").Trim());
 
         var permissions = request.GameWritePermissions?
             .Where(p => !string.IsNullOrWhiteSpace(p))
@@ -67,7 +67,8 @@ public class UserController : ControllerBase
 
         if (!result.Succeeded)
         {
-            m_Logger.LogWarning("Failed to create dashboard user {Username}: {Reason}", request.Username, result.Error ?? "Unknown error");
+            m_Logger.LogWarning("Failed to create dashboard user {Username}: {Reason}", request.Username.ReplaceLineEndings("").Trim(),
+                result.Error ?? "Unknown error");
             var errorPayload = new { error = result.Error ?? "Failed to create dashboard user." };
             var isConflict = result.Error?.Contains("already", StringComparison.OrdinalIgnoreCase) == true;
             return isConflict ? Conflict(errorPayload) : BadRequest(errorPayload);

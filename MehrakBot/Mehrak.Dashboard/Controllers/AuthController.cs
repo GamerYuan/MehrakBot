@@ -31,17 +31,16 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        request.Username = request.Username.ReplaceLineEndings("").Trim();
-
-        m_Logger.LogInformation("Login attempt for username {Username}", request.Username);
+        m_Logger.LogInformation("Login attempt for username {Username}", request.Username.ReplaceLineEndings("").Trim());
 
         var result = await m_AuthService.LoginAsync(
-            new LoginRequestDto { Username = request.Username, Password = request.Password },
+            new LoginRequestDto { Username = request.Username.ReplaceLineEndings("").Trim(), Password = request.Password },
             HttpContext.RequestAborted);
 
         if (!result.Succeeded || result.SessionToken is null)
         {
-            m_Logger.LogWarning("Login failed for username {Username}: {Reason}", request.Username, result.Error ?? "Unknown error");
+            m_Logger.LogWarning("Login failed for username {Username}: {Reason}", request.Username.ReplaceLineEndings("").Trim(),
+                result.Error ?? "Unknown error");
             return Unauthorized(new { error = result.Error ?? "Invalid credentials" });
         }
 
