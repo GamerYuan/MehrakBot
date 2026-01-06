@@ -3,6 +3,7 @@
     <Project Path="Mehrak.Application/Mehrak.Application.csproj" />
     <Project Path="Mehrak.Bot.Tests/Mehrak.Bot.Tests.csproj" />
     <Project Path="Mehrak.Bot/Mehrak.Bot.csproj" />
+    <Project Path="Mehrak.Dashboard.Tests/Mehrak.Dashboard.Tests.csproj" />
     <Project Path="Mehrak.Dashboard/Mehrak.Dashboard.csproj" Id="9d4737b5-ae56-4fff-b882-fcb59687e9b3" />
     <Project Path="Mehrak.Domain/Mehrak.Domain.csproj" />
     <Project Path="Mehrak.GameApi/Mehrak.GameApi.csproj" />
