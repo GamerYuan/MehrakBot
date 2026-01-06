@@ -24,15 +24,9 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
         if (stream == Stream.Null)
             return false;
 
-        using MemoryStream buffer = new();
         if (stream.CanSeek)
             stream.Position = 0;
 
-        await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-        if (buffer.Length == 0)
-            return false;
-
-        buffer.Position = 0;
         var extension = Path.GetExtension(storageFileName);
         var objectKey = storageFileName;
 
