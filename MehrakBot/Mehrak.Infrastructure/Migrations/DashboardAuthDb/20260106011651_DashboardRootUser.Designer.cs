@@ -3,6 +3,7 @@ using System;
 using Mehrak.Infrastructure.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
 {
     [DbContext(typeof(DashboardAuthDbContext))]
-    partial class DashboardAuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260106011651_DashboardRootUser")]
+    partial class DashboardRootUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

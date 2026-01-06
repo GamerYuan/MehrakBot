@@ -236,7 +236,8 @@ public class Program
                 DiscordId = long.Parse(adminDiscordId),
                 IsSuperAdmin = true,
                 IsActive = true,
-                RequirePasswordReset = false
+                RequirePasswordReset = false,
+                IsRootUser = true
             };
             user.PasswordHash = hasher.HashPassword(user, adminPassword);
 

@@ -74,6 +74,7 @@ public class DashboardAuthService : IDashboardAuthService
             DiscordUserId = user.DiscordId,
             SessionToken = sessionToken,
             IsSuperAdmin = user.IsSuperAdmin,
+            IsRootUser = user.IsRootUser,
             GameWritePermissions = gameWrites,
             RequiresPasswordReset = user.RequirePasswordReset
         };

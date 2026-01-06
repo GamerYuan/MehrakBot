@@ -17,6 +17,7 @@ public class AddDashboardUserResultDto
     public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
     public string? TemporaryPassword { get; init; }
     public bool RequiresPasswordReset { get; init; }
+    public bool IsRootUser { get; init; }
 }
 
 public class ChangeDashboardPasswordRequestDto
@@ -58,6 +59,7 @@ public class UpdateDashboardUserResultDto
     public bool IsActive { get; init; }
     public bool IsSuperAdmin { get; init; }
     public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
+    public bool IsRootUser { get; init; }
 }
 
 public class RemoveDashboardUserResultDto
@@ -72,6 +74,7 @@ public class DashboardUserSummaryDto
     public string Username { get; init; } = string.Empty;
     public string DiscordUserId { get; init; } = string.Empty;
     public bool IsSuperAdmin { get; init; }
+    public bool IsRootUser { get; init; }
     public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
 }
 

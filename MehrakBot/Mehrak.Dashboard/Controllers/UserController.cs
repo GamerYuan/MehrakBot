@@ -32,6 +32,7 @@ public class UserController : ControllerBase
             username = u.Username,
             discordUserId = u.DiscordUserId,
             isSuperAdmin = u.IsSuperAdmin,
+            isRootUser = u.IsRootUser,
             gameWritePermissions = u.GameWritePermissions
         });
 
@@ -78,6 +79,7 @@ public class UserController : ControllerBase
             username = result.Username,
             temporaryPassword = result.TemporaryPassword,
             requiresPasswordReset = result.RequiresPasswordReset,
+            isRootUser = false,
             gameWritePermissions = result.GameWritePermissions
         });
     }
@@ -124,6 +126,7 @@ public class UserController : ControllerBase
             username = result.Username,
             isActive = result.IsActive,
             isSuperAdmin = result.IsSuperAdmin,
+            isRootUser = result.IsRootUser,
             gameWritePermissions = result.GameWritePermissions
         });
     }

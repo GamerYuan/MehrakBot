@@ -38,6 +38,7 @@ public class DashboardUserService : IDashboardUserService
                 Username = u.Username,
                 DiscordUserId = u.DiscordId.ToString(),
                 IsSuperAdmin = u.IsSuperAdmin,
+                IsRootUser = u.IsRootUser,
                 GameWritePermissions = [.. u.GamePermissions
                     .Where(p => p.AllowWrite)
                     .Select(p => p.GameCode)
@@ -160,6 +161,15 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
+        if (user.IsRootUser)
+        {
+            return new UpdateDashboardUserResultDto
+            {
+                Succeeded = false,
+                Error = "Root user cannot be modified."
+            };
+        }
+
         if (await m_Db.DashboardUsers.AnyAsync(u => u.Username == username && u.Id != user.Id, ct))
         {
             return new UpdateDashboardUserResultDto
@@ -203,6 +213,7 @@ public class DashboardUserService : IDashboardUserService
             Username = user.Username,
             IsActive = user.IsActive,
             IsSuperAdmin = user.IsSuperAdmin,
+            IsRootUser = user.IsRootUser,
             GameWritePermissions = normalizedPermissions
         };
     }
@@ -217,6 +228,15 @@ public class DashboardUserService : IDashboardUserService
             {
                 Succeeded = false,
                 Error = "User not found."
+            };
+        }
+
+        if (user.IsRootUser)
+        {
+            return new RemoveDashboardUserResultDto
+            {
+                Succeeded = false,
+                Error = "Root user cannot be deleted."
             };
         }
 
@@ -244,6 +264,15 @@ public class DashboardUserService : IDashboardUserService
             {
                 Succeeded = false,
                 Error = "User not found."
+            };
+        }
+
+        if (user.IsRootUser)
+        {
+            return new DashboardUserRequireResetResultDto
+            {
+                Succeeded = false,
+                Error = "Root user cannot be forced to reset password."
             };
         }
 

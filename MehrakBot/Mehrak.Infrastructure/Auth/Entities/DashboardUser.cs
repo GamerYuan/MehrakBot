@@ -14,6 +14,7 @@ public class DashboardUser
 
     public ICollection<DashboardSession> Sessions { get; set; } = [];
     public ICollection<DashboardGamePermission> GamePermissions { get; set; } = [];
+    public bool IsRootUser { get; set; } = false;
 }
 
 public class DashboardSession

@@ -56,6 +56,9 @@ public class AuthController : ControllerBase
         if (result.IsSuperAdmin)
             claims.Add(new Claim(ClaimTypes.Role, "superadmin"));
 
+        if (result.IsRootUser)
+            claims.Add(new Claim("is_root_user", "true"));
+
         foreach (var game in result.GameWritePermissions)
             claims.Add(new Claim(PermissionClaim, $"game_write:{game}"));
 
@@ -77,6 +80,7 @@ public class AuthController : ControllerBase
             username = result.Username,
             discordUserId = result.DiscordUserId.ToString(),
             isSuperAdmin = result.IsSuperAdmin,
+            isRootUser = result.IsRootUser,
             gameWritePermissions = result.GameWritePermissions,
             requiresPasswordReset = result.RequiresPasswordReset
         });
