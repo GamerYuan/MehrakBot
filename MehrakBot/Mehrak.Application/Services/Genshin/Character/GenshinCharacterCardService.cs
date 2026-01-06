@@ -553,7 +553,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
         if (activeConst.Effect == null) return;
 
         var skillNames = Regex.Matches(activeConst.Effect, @"<color=#FFD780FF>(.*?)<\/color>")
-            .Select(x => x.Groups[1].Value.TrimStart("Normal Attack: ").ToString()).ToList();
+            .Select(x => x.Groups[1].Value.Replace("Normal Attack: ", "")).ToList();
 
         if (skillNames.Count == 0)
         {
