@@ -51,6 +51,13 @@ const toTitleCase = (str) => {
             <span class="value">{{ userInfo.discordUserId }}</span>
           </div>
           <div class="info-row">
+            <span class="label">Root User:</span>
+            <Tag
+              :severity="userInfo.isRootUser ? 'warn' : 'secondary'"
+              :value="userInfo.isRootUser ? 'Yes' : 'No'"
+            />
+          </div>
+          <div class="info-row">
             <span class="label">Super Admin:</span>
             <Tag
               :severity="userInfo.isSuperAdmin ? 'success' : 'secondary'"

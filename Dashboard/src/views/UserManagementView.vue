@@ -74,6 +74,17 @@ const availablePermissions = [
   "zenlesszonezero",
 ];
 
+const isRootUser = (user) => !!user?.isRootUser;
+
+const blockRootAction = () => {
+  toast.add({
+    severity: "warn",
+    summary: "Action not allowed",
+    detail: "Root user cannot be modified.",
+    life: 4000,
+  });
+};
+
 const permissionLabels = {
   genshin: "Genshin Impact",
   honkaistarrail: "Honkai: Star Rail",
@@ -148,6 +159,10 @@ const openAddModal = () => {
 };
 
 const openUpdateModal = (user) => {
+  if (isRootUser(user)) {
+    blockRootAction();
+    return;
+  }
   selectedUser.value = user;
   const userPerms = (user.gameWritePermissions || []).map((p) =>
     p.toLowerCase()
@@ -169,6 +184,10 @@ const openUpdateModal = (user) => {
 };
 
 const confirmDelete = (user) => {
+  if (isRootUser(user)) {
+    blockRootAction();
+    return;
+  }
   confirm.require({
     message: `Are you sure you want to delete user ${user.username}?`,
     header: "Confirm Delete",
@@ -187,6 +206,10 @@ const confirmDelete = (user) => {
 };
 
 const confirmReset = (user) => {
+  if (isRootUser(user)) {
+    blockRootAction();
+    return;
+  }
   confirm.require({
     message: `Force password reset for ${user.username}?`,
     header: "Confirm Password Reset",
@@ -254,6 +277,10 @@ const handleAddUser = async () => {
 };
 
 const handleUpdateUser = async () => {
+  if (isRootUser(selectedUser.value)) {
+    blockRootAction();
+    return;
+  }
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const payload = {
@@ -298,6 +325,10 @@ const handleUpdateUser = async () => {
 };
 
 const handleDeleteUser = async (user) => {
+  if (isRootUser(user)) {
+    blockRootAction();
+    return;
+  }
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(`${backendUrl}/users/${user.userId}`, {
@@ -328,6 +359,10 @@ const handleDeleteUser = async (user) => {
 };
 
 const handleResetPassword = async (user) => {
+  if (isRootUser(user)) {
+    blockRootAction();
+    return;
+  }
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
@@ -408,9 +443,16 @@ const permissionOptions = computed(() => {
       <Column header="Role">
         <template #body="slotProps">
           <Tag
-            :severity="slotProps.data.isSuperAdmin ? 'success' : 'secondary'"
-            :value="slotProps.data.isSuperAdmin ? 'Super Admin' : 'User'"
+            v-if="slotProps.data.isRootUser"
+            severity="danger"
+            value="Root User"
           />
+          <Tag
+            v-else-if="slotProps.data.isSuperAdmin"
+            severity="success"
+            value="Super Admin"
+          />
+          <Tag v-else severity="secondary" value="User" />
         </template>
       </Column>
       <Column header="Permissions">
@@ -434,6 +476,7 @@ const permissionOptions = computed(() => {
               text
               rounded
               aria-label="Edit"
+              :disabled="slotProps.data.isRootUser"
               @click="openUpdateModal(slotProps.data)"
             />
             <Button
@@ -442,6 +485,7 @@ const permissionOptions = computed(() => {
               text
               rounded
               aria-label="Reset Password"
+              :disabled="slotProps.data.isRootUser"
               @click="confirmReset(slotProps.data)"
             />
             <Button
@@ -450,6 +494,7 @@ const permissionOptions = computed(() => {
               text
               rounded
               aria-label="Delete"
+              :disabled="slotProps.data.isRootUser"
               @click="confirmDelete(slotProps.data)"
             />
           </div>
