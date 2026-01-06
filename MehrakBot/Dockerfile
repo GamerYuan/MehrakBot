@@ -129,10 +129,10 @@ RUN dotnet publish Mehrak.Bot/Mehrak.Bot.csproj \
 
 # Stage 3: Publish Dashboard
 FROM build-env AS publish-dashboard
-ARG DOTNET_ENVIRONMENT=Production
+ARG ASPNETCORE_ENVIRONMENT=Production
 RUN dotnet restore --runtime linux-x64 Mehrak.Dashboard/Mehrak.Dashboard.csproj
 RUN dotnet publish Mehrak.Dashboard/Mehrak.Dashboard.csproj \
-    -c $([ "$DOTNET_ENVIRONMENT" = "Development" ] && echo "Debug" || echo "Release" ) \
+    -c $([ "$ASPNETCORE_ENVIRONMENT" = "Development" ] && echo "Debug" || echo "Release" ) \
     -r linux-x64 -o /app/out/dashboard
 
 # Stage 4: Runtime Base
@@ -144,11 +144,10 @@ COPY --from=build-env /artifacts /artifacts
 # Stage 5: Bot Final
 FROM runtime-base AS bot
 COPY --from=publish-bot /app/out/bot /app
-EXPOSE 9090
 ENTRYPOINT ["/app/Mehrak.Bot"]
 
 # Stage 6: Dashboard Final
 FROM runtime-base AS dashboard
 COPY --from=publish-dashboard /app/out/dashboard /app
-EXPOSE 8080
+EXPOSE 5000
 ENTRYPOINT ["/app/Mehrak.Dashboard"]
