@@ -31,6 +31,8 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        request.Username = request.Username.ReplaceLineEndings("").Trim();
+
         m_Logger.LogInformation("Login attempt for username {Username}", request.Username);
 
         var result = await m_AuthService.LoginAsync(

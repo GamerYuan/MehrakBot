@@ -22,6 +22,8 @@ public sealed class AttachmentController : ControllerBase
     [HttpGet("{fileName}")]
     public async Task<IActionResult> Download(string fileName, CancellationToken cancellationToken)
     {
+        fileName = fileName.ReplaceLineEndings("").Trim();
+
         if (!AttachmentStorageService.IsValidStorageFileName(fileName))
             return BadRequest(new { error = "Invalid attachment identifier." });
 

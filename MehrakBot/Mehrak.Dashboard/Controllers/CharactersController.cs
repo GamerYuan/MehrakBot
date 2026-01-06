@@ -42,7 +42,7 @@ public class CharactersController : ControllerBase
 
         var normalizedCharacters = request.Characters
             .Where(c => !string.IsNullOrWhiteSpace(c))
-            .Select(c => c.Trim())
+            .Select(c => c.ReplaceLineEndings("").Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
@@ -69,7 +69,7 @@ public class CharactersController : ControllerBase
         if (!HasGameWriteAccess(game!))
             return Forbid();
 
-        var normalized = character.Trim();
+        var normalized = character.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting character {Character} from game {Game}", normalized, gameEnum);
         await m_CharacterRepository.DeleteCharacterAsync(gameEnum, normalized);
         return NoContent();

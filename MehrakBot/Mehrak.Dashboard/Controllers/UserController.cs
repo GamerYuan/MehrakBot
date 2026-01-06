@@ -42,6 +42,8 @@ public class UserController : ControllerBase
     [HttpPost("add")]
     public async Task<IActionResult> AddUser([FromBody] AddDashboardUserRequest request)
     {
+        request.Username = request.Username.ReplaceLineEndings("").Trim();
+
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 

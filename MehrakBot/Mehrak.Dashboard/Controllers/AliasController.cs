@@ -56,13 +56,13 @@ public class AliasController : ControllerBase
         if (request.Aliases == null)
             return BadRequest(new { error = "Aliases payload is required." });
 
-        var characterName = request.Character.Trim();
+        var characterName = request.Character.ReplaceLineEndings("").Trim();
         if (characterName.Length == 0)
             return BadRequest(new { error = "Character name is required." });
 
         var normalizedAliases = request.Aliases
             .Where(a => !string.IsNullOrWhiteSpace(a))
-            .Select(a => a.Trim())
+            .Select(a => a.ReplaceLineEndings("").Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
@@ -76,7 +76,8 @@ public class AliasController : ControllerBase
             return Conflict(new { error = $"Aliases already exist: {string.Join(", ", conflicts)}" });
 
         var payload = normalizedAliases.ToDictionary(alias => alias, _ => characterName, StringComparer.OrdinalIgnoreCase);
-        m_Logger.LogInformation("Adding {Count} aliases for character {Character} in game {Game}", normalizedAliases.Length, characterName, gameEnum);
+        m_Logger.LogInformation("Adding {Count} aliases for character {Character} in game {Game}", normalizedAliases.Length,
+            characterName, gameEnum);
         await m_AliasRepository.UpsertAliasAsync(gameEnum, payload);
         return NoContent();
     }
@@ -93,7 +94,7 @@ public class AliasController : ControllerBase
         if (!HasGameWriteAccess(game!))
             return Forbid();
 
-        var normalized = alias.Trim();
+        var normalized = alias.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting alias {Alias} for game {Game}", normalized, gameEnum);
         await m_AliasRepository.DeleteAliasAsync(gameEnum, normalized);
         return NoContent();
@@ -108,7 +109,7 @@ public class AliasController : ControllerBase
             return false;
         }
 
-        if (!Enum.TryParse<Game>(input, true, out game))
+        if (!Enum.TryParse(input, true, out game))
         {
             error = "Invalid game parameter.";
             return false;
