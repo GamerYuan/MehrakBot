@@ -73,7 +73,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             if (retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.UserId, requestUri, json);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }

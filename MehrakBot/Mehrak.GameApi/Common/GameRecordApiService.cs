@@ -75,7 +75,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }

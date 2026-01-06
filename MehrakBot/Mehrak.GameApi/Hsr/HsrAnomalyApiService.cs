@@ -82,7 +82,7 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<HsrAnomalyInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }

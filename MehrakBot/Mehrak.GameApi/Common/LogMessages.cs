@@ -43,7 +43,7 @@ internal static class LogMessages
     public const string EmptyResponseData = "Response contained empty data from {Endpoint} for User {UserId}";
 
     public const string UnknownRetcode =
-        "API returned non-zero retcode {Retcode} for User {UserId} at endpoint: {Endpoint}";
+        "API returned non-zero retcode {Retcode} for User {UserId} at endpoint: {Endpoint}. {@Response}";
 
     public const string ExceptionOccurred =
         "An exception occurred while fetching data from {Endpoint} for User {UserId}";

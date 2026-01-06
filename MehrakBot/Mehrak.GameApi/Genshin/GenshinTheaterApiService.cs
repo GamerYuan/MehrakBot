@@ -81,7 +81,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data", requestUri);
             }

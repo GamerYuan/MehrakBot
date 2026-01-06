@@ -82,7 +82,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }

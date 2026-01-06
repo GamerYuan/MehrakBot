@@ -1,8 +1,8 @@
 ﻿#region
 
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -80,7 +80,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     "An unknown error occurred during check-in", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
 
             if (json == null)
             {
@@ -89,13 +89,11 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     "An unknown error occurred during check-in", requestUri);
             }
 
-            var retcode = json["retcode"]?.GetValue<int>();
-
             // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode ?? -1,
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode,
                 context.UserId);
 
-            switch (retcode)
+            switch (json.Retcode)
             {
                 case -5003:
                     m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.UserId, context.LtUid, context.Game.ToString());
@@ -115,7 +113,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                         "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
 
                 default:
-                    m_Logger.LogError(LogMessages.UnknownRetcode, retcode ?? -1, context.UserId, requestUri);
+                    m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                     return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
                         $"An unknown error occurred during check-in", requestUri);
             }

@@ -80,7 +80,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }

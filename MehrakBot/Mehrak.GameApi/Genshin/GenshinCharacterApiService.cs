@@ -112,7 +112,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
@@ -203,7 +203,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             if (json?.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json?.Retcode, context.UserId, requestUri);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json?.Retcode, context.UserId, requestUri, json);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
