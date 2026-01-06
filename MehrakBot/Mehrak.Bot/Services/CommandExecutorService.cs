@@ -110,8 +110,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                 var message = commandResult.Data.ToMessage();
                 if (service is IAttachmentApplicationService<TContext>)
                 {
-                    var attachment = commandResult.Data.Components.FirstOrDefault(x => x is ICommandResultAttachment) as ICommandResultAttachment;
-                    if (attachment != null)
+                    if (commandResult.Data.Components.FirstOrDefault(x => x is ICommandResultAttachment) is ICommandResultAttachment attachment)
                     {
                         var stream = await m_AttachmentService.DownloadAsync(attachment.FileName)!;
                         if (stream != null)
@@ -125,6 +124,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                                 new InteractionMessageProperties().WithContent(
                                         "Attachment not found. Please try again later.")
                                     .WithFlags(MessageFlags.Ephemeral));
+                            return;
                         }
                     }
                     else
@@ -136,6 +136,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                             new InteractionMessageProperties().WithContent(
                                     "Attachment not found. Please try again later.")
                                 .WithFlags(MessageFlags.Ephemeral));
+                        return;
                     }
                 }
 
@@ -157,6 +158,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             }
             else
             {
+                MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
                 await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
             }
         }

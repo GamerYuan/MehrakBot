@@ -13,7 +13,7 @@ public interface ICommandResultAttachment
     string FileName { get; init; }
 }
 
-public interface ICommandResultEmbedAttachment
+public interface ICommandResultEmbedAttachment : ICommandResultComponent
 {
     (string, Stream) GetAttachment();
 }
@@ -74,7 +74,7 @@ public class CommandResult
     }
 }
 
-public class CommandSection : ICommandResultComponent, ICommandResultEmbedAttachment
+public class CommandSection : ICommandResultEmbedAttachment
 {
     public IEnumerable<CommandText> Components { get; }
     public EmbeddedAttachment Attachment { get; }
