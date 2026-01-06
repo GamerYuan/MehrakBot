@@ -203,7 +203,6 @@ public class Program
         }
 
         await AddDefaultSuperAdminAccount(app);
-        app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
