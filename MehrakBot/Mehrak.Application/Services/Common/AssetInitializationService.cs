@@ -17,15 +17,15 @@ public class AssetInitializationService : IHostedService
     {
         var imageRepo = m_ServiceProvider.GetRequiredService<IImageRepository>();
 
-        foreach (var image in Directory.EnumerateFiles($"{AppContext.BaseDirectory}Assets", "*.png",
+        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"), "*.png",
                      SearchOption.AllDirectories))
         {
             if (Path.GetDirectoryName(image)?.Contains("Test") ?? false) continue;
-            var fileName = Path.GetFileName(image).Split('.')[0];
-            if (await imageRepo.FileExistsAsync(fileName)) continue;
+            var fileName = Path.GetFileNameWithoutExtension(image);
+            if (await imageRepo.FileExistsAsync(fileName, cancellationToken)) continue;
 
             await using var stream = File.OpenRead(image);
-            await imageRepo.UploadFileAsync(fileName, stream);
+            await imageRepo.UploadFileAsync(fileName, stream, cancellationToken: cancellationToken);
         }
     }
 
