@@ -4,6 +4,6 @@ namespace Mehrak.Dashboard.Models;
 
 public class AddCharactersRequest
 {
-    [Required]
+    [Required, MinLength(1)]
     public IEnumerable<string> Characters { get; set; } = [];
 }

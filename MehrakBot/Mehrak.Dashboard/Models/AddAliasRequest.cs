@@ -4,9 +4,9 @@ namespace Mehrak.Dashboard.Models;
 
 public class AddAliasRequest
 {
-    [Required]
+    [Required(AllowEmptyStrings = false)]
     public string Character { get; set; } = string.Empty;
 
-    [Required]
-    public IEnumerable<string> Aliases { get; set; } = Array.Empty<string>();
+    [Required, MinLength(1)]
+    public IEnumerable<string> Aliases { get; set; } = [];
 }

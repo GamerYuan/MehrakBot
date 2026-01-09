@@ -9,6 +9,7 @@ public class UpdateDashboardUserRequest
     public string Username { get; set; } = string.Empty;
 
     [Required]
+    [StringLength(20, MinimumLength = 17, ErrorMessage = "DiscordUserId must be between 17 and 20 digits.")]
     [RegularExpression("^\\d+$", ErrorMessage = "DiscordUserId must be numeric.")]
     public string DiscordUserId { get; set; } = string.Empty;
 
