@@ -221,9 +221,10 @@ public class Program
 
         if (string.IsNullOrWhiteSpace(adminUsername) ||
             string.IsNullOrWhiteSpace(adminPassword) ||
-            string.IsNullOrWhiteSpace(adminDiscordId))
+            string.IsNullOrWhiteSpace(adminDiscordId) ||
+            !long.TryParse(adminDiscordId, out _))
         {
-            throw new ArgumentException("Admin credentials are not set in configuration.");
+            throw new ArgumentException("Admin credentials are not set or not valid in configuration.");
         }
 
         if (!await db.DashboardUsers.AnyAsync(u => u.Username == adminUsername))
