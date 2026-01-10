@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Threading.RateLimiting;
 using Amazon.S3;
 using Mehrak.Application;
 using Mehrak.Dashboard.Auth;
@@ -179,6 +180,22 @@ public class Program
                         c.Type == "perm" &&
                         c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))));
 
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.AddPolicy("login", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
+        });
+
         builder.Services.AddControllers();
 
         builder.Services.AddCors(options =>
@@ -202,6 +219,7 @@ public class Program
         await AddDefaultSuperAdminAccount(app);
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseRateLimiter();
         app.MapControllers();
 
         await app.RunAsync();
