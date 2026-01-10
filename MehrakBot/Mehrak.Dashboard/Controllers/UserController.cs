@@ -131,7 +131,7 @@ public class UserController : ControllerBase
 
         request.Username = request.Username.ReplaceLineEndings("").Trim();
 
-        var supportedPerms = Enum.GetValues<Game>().Select(x => x.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var supportedPerms = Enum.GetNames<Game>().ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (permissions.Any(x => !supportedPerms.Contains(x)))
         {
@@ -140,8 +140,17 @@ public class UserController : ControllerBase
         }
 
         var user = await m_UserService.GetDashboardUserByIdAsync(id, HttpContext.RequestAborted);
-        if (user != null && user.IsSuperAdmin != request.IsSuperAdmin && !User.IsInRole("rootuser"))
-            return Forbid("Only Root User can update Super Admin role");
+        if (user == null)
+        {
+            m_Logger.LogWarning("Dashboard user {UserId} not found for update", id);
+            return NotFound(new { error = "User not found." });
+        }
+
+        if (user.IsSuperAdmin != request.IsSuperAdmin && !User.IsInRole("rootuser"))
+        {
+            m_Logger.LogWarning("Non-root user attempted to change super admin status of user {UserId}", id);
+            return Forbid();
+        }
 
         var result = await m_UserService.UpdateDashboardUserAsync(new UpdateDashboardUserRequestDto
         {
@@ -180,7 +189,11 @@ public class UserController : ControllerBase
     {
         m_Logger.LogInformation("Forcing password reset requirement for user {UserId}", id);
 
-        if (!User.IsInRole("rootuser")) return Forbid("Only root user can force password reset");
+        if (!User.IsInRole("rootuser"))
+        {
+            m_Logger.LogWarning("Non-root user attempted to require password reset for user {UserId}", id);
+            return Forbid();
+        }
 
         var result = await m_UserService.RequirePasswordResetAsync(id, HttpContext.RequestAborted);
         if (!result.Succeeded)
