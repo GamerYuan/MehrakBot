@@ -44,7 +44,7 @@ public class UserController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var userIdClaim = User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized(new { error = "Invalid user token." });
         m_Logger.LogInformation("Getting current dashboard user {UserId}", userId);
@@ -126,6 +126,8 @@ public class UserController : ControllerBase
             .Select(p => p.Trim())
             .ToArray() ?? [];
 
+        request.Username = request.Username.ReplaceLineEndings("").Trim();
+
         var supportedPerms = Enum.GetValues<Game>().Select(x => x.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (permissions.Any(x => !supportedPerms.Contains(x)))
@@ -141,7 +143,7 @@ public class UserController : ControllerBase
         var result = await m_UserService.UpdateDashboardUserAsync(new UpdateDashboardUserRequestDto
         {
             UserId = id,
-            Username = request.Username.Trim(),
+            Username = request.Username,
             DiscordUserId = discordUserId,
             IsSuperAdmin = request.IsSuperAdmin,
             IsActive = request.IsActive,
@@ -173,6 +175,8 @@ public class UserController : ControllerBase
     public async Task<IActionResult> RequirePasswordReset(Guid id)
     {
         m_Logger.LogInformation("Forcing password reset requirement for user {UserId}", id);
+
+        if (!User.IsInRole("rootuser")) return Forbid("Only root user can force password reset");
 
         var result = await m_UserService.RequirePasswordResetAsync(id, HttpContext.RequestAborted);
         if (!result.Succeeded)
