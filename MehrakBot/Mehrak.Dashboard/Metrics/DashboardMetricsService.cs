@@ -113,7 +113,7 @@ public class DashboardMetricsService : IDashboardMetrics, IHostedService
 
     public void TrackDiscordLatency(double latencyMs)
     {
-        throw new NotSupportedException();
+        // no-op
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

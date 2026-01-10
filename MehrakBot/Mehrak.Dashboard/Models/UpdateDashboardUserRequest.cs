@@ -17,5 +17,5 @@ public class UpdateDashboardUserRequest
 
     public bool IsActive { get; set; } = true;
 
-    public IEnumerable<string> GameWritePermissions { get; set; } = Array.Empty<string>();
+    public IEnumerable<string> GameWritePermissions { get; set; } = [];
 }
