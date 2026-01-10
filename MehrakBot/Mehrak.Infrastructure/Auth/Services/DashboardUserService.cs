@@ -46,14 +46,14 @@ public class DashboardUserService : IDashboardUserService
             })];
     }
 
-    public async Task<DashboardUserSummaryDto> GetDashboardUserByIdAsync(Guid userId, CancellationToken ct = default)
+    public async Task<DashboardUserSummaryDto?> GetDashboardUserByIdAsync(Guid userId, CancellationToken ct = default)
     {
         m_Logger.LogInformation("Fetching dashboard user summary for user {UserId}.", userId);
         var user = await m_Db.DashboardUsers
             .Include(u => u.GamePermissions)
             .SingleOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
-            return null!;
+            return null;
         return new DashboardUserSummaryDto
         {
             UserId = user.Id,
