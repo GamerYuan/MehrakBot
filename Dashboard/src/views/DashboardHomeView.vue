@@ -1,17 +1,16 @@
 <script setup>
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Tag from "primevue/tag";
+import Message from "primevue/message";
 
 const router = useRouter();
 
-const props = defineProps({
-  userInfo: {
-    type: Object,
-    required: true,
-  },
-});
+const userInfo = ref(null);
+const loading = ref(true);
+const error = ref("");
 
 const toTitleCase = (str) => {
   if (!str) return "";
@@ -20,76 +19,110 @@ const toTitleCase = (str) => {
     (text) => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
   );
 };
+
+onMounted(async () => {
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(`${backendUrl}/users/me`, {
+      credentials: "include",
+    });
+
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user data: ${response.statusText}`);
+    }
+
+    userInfo.value = await response.json();
+  } catch (err) {
+    error.value = err.message || "An error occurred";
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <template>
   <div class="dashboard-container">
-    <header class="dashboard-header">
-      <h1>Dashboard</h1>
-    </header>
+    <div v-if="loading" class="text-center p-4">Loading user data...</div>
+    <Message
+      v-else-if="error"
+      severity="error"
+      :closable="false"
+      class="mb-4"
+      >{{ error }}</Message
+    >
+    <div v-else-if="userInfo">
+      <header class="dashboard-header">
+        <h1>Dashboard</h1>
+      </header>
 
-    <Card class="mb-4">
-      <template #title>
-        <div class="flex justify-between items-center">
-          <span>User Profile</span>
-          <Button
-            label="Change Password"
-            size="small"
-            outlined
-            @click="router.push('/dashboard/change-password')"
-          />
-        </div>
-      </template>
-      <template #content>
-        <div class="flex flex-col gap-2">
-          <div class="info-row">
-            <span class="label">Username:</span>
-            <span class="value">{{ userInfo.username }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Discord User ID:</span>
-            <span class="value">{{ userInfo.discordUserId }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Root User:</span>
-            <Tag
-              :severity="userInfo.isRootUser ? 'warn' : 'secondary'"
-              :value="userInfo.isRootUser ? 'Yes' : 'No'"
+      <Card class="mb-4">
+        <template #title>
+          <div class="flex justify-between items-center">
+            <span>User Profile</span>
+            <Button
+              label="Change Password"
+              size="small"
+              outlined
+              @click="router.push('/dashboard/change-password')"
             />
           </div>
-          <div class="info-row">
-            <span class="label">Super Admin:</span>
+        </template>
+        <template #content>
+          <div class="flex flex-col gap-2">
+            <div class="info-row">
+              <span class="label">Username:</span>
+              <span class="value">{{ userInfo.username }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Discord User ID:</span>
+              <span class="value">{{ userInfo.discordUserId }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Root User:</span>
+              <Tag
+                :severity="userInfo.isRootUser ? 'warn' : 'secondary'"
+                :value="userInfo.isRootUser ? 'Yes' : 'No'"
+              />
+            </div>
+            <div class="info-row">
+              <span class="label">Super Admin:</span>
+              <Tag
+                :severity="userInfo.isSuperAdmin ? 'success' : 'secondary'"
+                :value="userInfo.isSuperAdmin ? 'Yes' : 'No'"
+              />
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <Card>
+        <template #title>Game Permissions</template>
+        <template #content>
+          <div
+            v-if="
+              userInfo.gameWritePermissions &&
+              userInfo.gameWritePermissions.length > 0
+            "
+            class="flex flex-wrap gap-2"
+          >
             <Tag
-              :severity="userInfo.isSuperAdmin ? 'success' : 'secondary'"
-              :value="userInfo.isSuperAdmin ? 'Yes' : 'No'"
+              v-for="perm in userInfo.gameWritePermissions"
+              :key="perm"
+              :value="toTitleCase(perm)"
+              severity="info"
             />
           </div>
-        </div>
-      </template>
-    </Card>
-
-    <Card>
-      <template #title>Game Permissions</template>
-      <template #content>
-        <div
-          v-if="
-            userInfo.gameWritePermissions &&
-            userInfo.gameWritePermissions.length > 0
-          "
-          class="flex flex-wrap gap-2"
-        >
-          <Tag
-            v-for="perm in userInfo.gameWritePermissions"
-            :key="perm"
-            :value="toTitleCase(perm)"
-            severity="info"
-          />
-        </div>
-        <p v-else class="no-perms">
-          No specific game write permissions assigned.
-        </p>
-      </template>
-    </Card>
+          <p v-else class="no-perms">
+            No specific game write permissions assigned.
+          </p>
+        </template>
+      </Card>
+    </div>
   </div>
 </template>
 
