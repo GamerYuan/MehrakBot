@@ -21,7 +21,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
-using Serilog.Extensions;
 using Serilog.Sinks.Grafana.Loki;
 
 namespace Mehrak.Dashboard;
@@ -63,8 +62,6 @@ public class Program
         // Configure Serilog
         loggerConfig
             .Enrich.FromLogContext()
-            .Enrich.WithRequestQuery()
-            .Enrich.WithRequestBody()
             .WriteTo.Console(
                 outputTemplate:
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
