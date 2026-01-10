@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace Mehrak.Dashboard.Controllers;
 
 [ApiController]
-[Authorize(Policy = "RequireSuperAdmin")]
 [Route("users")]
 public class UserController : ControllerBase
 {
@@ -23,6 +22,7 @@ public class UserController : ControllerBase
         m_Logger = logger;
     }
 
+    [Authorize(Policy = "RequireSuperAdmin")]
     [HttpGet("list")]
     public async Task<IActionResult> GetUsers()
     {
@@ -41,6 +41,7 @@ public class UserController : ControllerBase
         return Ok(payload);
     }
 
+    [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
@@ -62,13 +63,14 @@ public class UserController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "RequireSuperAdmin")]
     [HttpPost("add")]
     public async Task<IActionResult> AddUser([FromBody] AddDashboardUserRequest request)
     {
-        request.Username = request.Username.ReplaceLineEndings("").Trim();
-
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
+
+        request.Username = request.Username.ReplaceLineEndings("").Trim();
 
         if (!TryParseDiscordUserId(request.DiscordUserId, out var discordUserId, out var parseError))
             return parseError!;
@@ -110,6 +112,7 @@ public class UserController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "RequireSuperAdmin")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateDashboardUserRequest request)
     {
@@ -171,6 +174,7 @@ public class UserController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "RequireSuperAdmin")]
     [HttpPost("{id:guid}/password/require-reset")]
     public async Task<IActionResult> RequirePasswordReset(Guid id)
     {
@@ -192,6 +196,7 @@ public class UserController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "RequireSuperAdmin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
