@@ -72,10 +72,12 @@ public class DashboardUserSummaryDto
 {
     public Guid UserId { get; init; }
     public string Username { get; init; } = string.Empty;
+
+    // Serialized as string to avoid precision loss in JavaScript clients (Discord IDs exceed Number.MAX_SAFE_INTEGER)
     public string DiscordUserId { get; init; } = string.Empty;
     public bool IsSuperAdmin { get; init; }
     public bool IsRootUser { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
+    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = [];
 }
 
 public class DashboardUserRequireResetResultDto
