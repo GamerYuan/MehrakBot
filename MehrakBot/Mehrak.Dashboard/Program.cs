@@ -38,12 +38,11 @@ public class Program
             ContentRootPath = Directory.GetCurrentDirectory()
         };
 
-        settings.Configuration.AddJsonFile("appsettings.json")
-            .AddUserSecrets<Program>()
-            .AddEnvironmentVariables()
-            .Build();
-
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.Configuration.AddJsonFile("appsettings.json")
+            .AddUserSecrets<Program>()
+            .AddEnvironmentVariables();
 
         if (builder.Environment.IsDevelopment())
         {
