@@ -43,7 +43,7 @@ public class AuthController : ControllerBase
         {
             m_Logger.LogWarning("Login failed for username {Username}: {Reason}", request.Username.ReplaceLineEndings("").Trim(),
                 result.Error ?? "Unknown error");
-            return Unauthorized(new { error = result.Error ?? "Invalid credentials" });
+            return Unauthorized(new { error = "Invalid credentials" });
         }
 
         m_Logger.LogInformation("Login succeeded for user {UserId}", result.UserId);
