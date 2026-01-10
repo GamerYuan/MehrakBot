@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Security.Claims;
 using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
@@ -38,6 +39,27 @@ public class UserController : ControllerBase
         });
 
         return Ok(payload);
+    }
+
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Invalid user token." });
+        m_Logger.LogInformation("Getting current dashboard user {UserId}", userId);
+        var user = await m_UserService.GetDashboardUserByIdAsync(userId, HttpContext.RequestAborted);
+        if (user == null)
+            return NotFound(new { error = "User not found." });
+        return Ok(new
+        {
+            userId = user.UserId,
+            username = user.Username,
+            discordUserId = user.DiscordUserId,
+            isSuperAdmin = user.IsSuperAdmin,
+            isRootUser = user.IsRootUser,
+            gameWritePermissions = user.GameWritePermissions
+        });
     }
 
     [HttpPost("add")]
