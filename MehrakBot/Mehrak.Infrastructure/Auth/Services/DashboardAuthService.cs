@@ -1,4 +1,5 @@
-﻿using Mehrak.Domain.Auth;
+﻿using System.Text.RegularExpressions;
+using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Auth.Services;
 
-public class DashboardAuthService : IDashboardAuthService
+public partial class DashboardAuthService : IDashboardAuthService
 {
     private readonly DashboardAuthDbContext m_Db;
     private readonly PasswordHasher<DashboardUser> m_Hasher = new();
@@ -35,7 +36,7 @@ public class DashboardAuthService : IDashboardAuthService
             return new LoginResultDto { Succeeded = false, Error = "Invalid credentials." };
         }
 
-        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, Regex.Replace(request.Password, @"\s+", ""));
         if (verify == PasswordVerificationResult.Failed)
         {
             m_Logger.LogWarning("Login failed for username {Username}: invalid password", request.Username);
@@ -130,7 +131,7 @@ public class DashboardAuthService : IDashboardAuthService
             };
         }
 
-        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
+        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, Regex.Replace(request.CurrentPassword, @"\s+", ""));
         if (verify == PasswordVerificationResult.Failed)
         {
             m_Logger.LogWarning("Password change failed: incorrect current password for user {UserId}.", request.UserId);
@@ -141,7 +142,7 @@ public class DashboardAuthService : IDashboardAuthService
             };
         }
 
-        user.PasswordHash = m_Hasher.HashPassword(user, request.NewPassword);
+        user.PasswordHash = m_Hasher.HashPassword(user, Regex.Replace(request.NewPassword, @"\s+", ""));
         user.RequirePasswordReset = false;
         user.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -194,7 +195,7 @@ public class DashboardAuthService : IDashboardAuthService
             };
         }
 
-        user.PasswordHash = m_Hasher.HashPassword(user, request.NewPassword);
+        user.PasswordHash = m_Hasher.HashPassword(user, RemoveWhiteSpace().Replace(request.NewPassword, ""));
         user.RequirePasswordReset = false;
         user.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -211,4 +212,7 @@ public class DashboardAuthService : IDashboardAuthService
             SessionsInvalidated = hadSessions
         };
     }
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex RemoveWhiteSpace();
 }
