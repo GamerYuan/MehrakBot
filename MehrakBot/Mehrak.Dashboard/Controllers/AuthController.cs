@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
             claims.Add(new Claim(ClaimTypes.Role, "superadmin"));
 
         if (result.IsRootUser)
-            claims.Add(new Claim("is_root_user", "true"));
+            claims.Add(new Claim(ClaimTypes.Role, "rootuser"));
 
         foreach (var game in result.GameWritePermissions)
             claims.Add(new Claim(PermissionClaim, $"game_write:{game}"));

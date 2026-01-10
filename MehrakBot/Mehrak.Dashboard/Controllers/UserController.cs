@@ -103,6 +103,10 @@ public class UserController : ControllerBase
             .Select(p => p.Trim())
             .ToArray() ?? [];
 
+        var user = await m_UserService.GetDashboardUserByIdAsync(id, HttpContext.RequestAborted);
+        if (user != null && user.IsSuperAdmin != request.IsSuperAdmin && !User.IsInRole("rootuser"))
+            return Forbid("Only Root User can update Super Admin role");
+
         var result = await m_UserService.UpdateDashboardUserAsync(new UpdateDashboardUserRequestDto
         {
             UserId = id,

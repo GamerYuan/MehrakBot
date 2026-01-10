@@ -46,6 +46,28 @@ public class DashboardUserService : IDashboardUserService
             })];
     }
 
+    public async Task<DashboardUserSummaryDto> GetDashboardUserByIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        m_Logger.LogInformation("Fetching dashboard user summary for user {UserId}.", userId);
+        var user = await m_Db.DashboardUsers
+            .Include(u => u.GamePermissions)
+            .SingleOrDefaultAsync(u => u.Id == userId, ct);
+        if (user == null)
+            return null!;
+        return new DashboardUserSummaryDto
+        {
+            UserId = user.Id,
+            Username = user.Username,
+            DiscordUserId = user.DiscordId.ToString(),
+            IsSuperAdmin = user.IsSuperAdmin,
+            IsRootUser = user.IsRootUser,
+            GameWritePermissions = [.. user.GamePermissions
+                .Where(p => p.AllowWrite)
+                .Select(p => p.GameCode)
+                .Distinct(StringComparer.OrdinalIgnoreCase)]
+        };
+    }
+
     public async Task<AddDashboardUserResultDto> AddDashboardUserAsync(AddDashboardUserRequestDto request, CancellationToken ct = default)
     {
         var username = request.Username?.Trim();
