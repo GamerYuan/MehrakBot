@@ -102,12 +102,15 @@ public class DashboardMetricsService : IDashboardMetrics, IHostedService
     public void TrackUserLogout(string userId)
     {
         m_UserLogouts.WithLabels(userId).Inc();
-        var active = Interlocked.Decrement(ref m_ActiveSessionCount);
-        if (active < 0)
+        long active;
+        long newValue;
+        do
         {
-            active = 0;
-            Interlocked.Exchange(ref m_ActiveSessionCount, 0);
-        }
+            active = Interlocked.Read(ref m_ActiveSessionCount);
+            newValue = Math.Max(0, active - 1);
+        } while (Interlocked.CompareExchange(ref m_ActiveSessionCount, newValue, active) != active);
+
+        active = newValue;
         m_ActiveSessionsGauge.Set(active);
     }
 
