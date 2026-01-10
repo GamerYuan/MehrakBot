@@ -60,6 +60,8 @@ public class AliasController : ControllerBase
         if (characterName.Length == 0)
             return BadRequest(new { error = "Character name is required." });
 
+        request.Character = characterName;
+
         var normalizedAliases = request.Aliases
             .Where(a => !string.IsNullOrWhiteSpace(a))
             .Select(a => a.ReplaceLineEndings("").Trim())
