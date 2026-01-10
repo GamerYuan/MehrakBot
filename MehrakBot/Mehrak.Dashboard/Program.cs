@@ -17,6 +17,7 @@ using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -180,6 +181,11 @@ public class Program
                         c.Type == "perm" &&
                         c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))));
 
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        });
+
         builder.Services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -210,13 +216,15 @@ public class Program
         });
 
         var app = builder.Build();
+        await AddDefaultSuperAdminAccount(app);
+
+        app.UseForwardedHeaders();
 
         if (app.Environment.IsDevelopment())
         {
             app.UseCors("AllowAllDev");
         }
 
-        await AddDefaultSuperAdminAccount(app);
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseRateLimiter();
