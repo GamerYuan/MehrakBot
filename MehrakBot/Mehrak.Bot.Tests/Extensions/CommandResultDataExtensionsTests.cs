@@ -279,7 +279,7 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_SingleAttachment_CreatesMediaGallery()
     {
         // Arrange
-        var attachment = new TestCommandAttachment("test.png");
+        var attachment = new TestAttachment("test.png");
         var components = new List<ICommandResultComponent> { attachment };
         var data = new CommandResultData(components, false, false);
 
@@ -289,8 +289,7 @@ public class CommandResultDataExtensionsTests
         // Assert
         Assert.That(result.Components, Is.Not.Null);
         Assert.That(result.Components!.OfType<MediaGalleryProperties>(), Is.Not.Empty);
-        Assert.That(result.Attachments, Is.Not.Null);
-        Assert.That(result.Attachments!.Count(), Is.EqualTo(1));
+        Assert.That(result.Attachments, Is.Null.Or.Empty);
     }
 
     [Test]
@@ -299,9 +298,9 @@ public class CommandResultDataExtensionsTests
         // Arrange
         var components = new List<ICommandResultComponent>
         {
-            new TestCommandAttachment("image1.png"),
-            new TestCommandAttachment("image2.jpg"),
-            new TestCommandAttachment("image3.gif")
+            new TestAttachment("image1.png"),
+            new TestAttachment("image2.jpg"),
+            new TestAttachment("image3.gif")
         };
         var data = new CommandResultData(components, false, false);
 
@@ -312,7 +311,7 @@ public class CommandResultDataExtensionsTests
         Assert.That(result.Components, Is.Not.Null);
         var galleries = result.Components!.OfType<MediaGalleryProperties>().ToList();
         Assert.That(galleries, Has.Count.EqualTo(1), "Should have exactly one gallery");
-        Assert.That(result.Attachments!.Count(), Is.EqualTo(3));
+        Assert.That(result.Attachments, Is.Null.Or.Empty);
     }
 
     [Test]
@@ -322,9 +321,9 @@ public class CommandResultDataExtensionsTests
         var components = new List<ICommandResultComponent>
         {
             new CommandText("Title", TextType.Header1),
-            new TestCommandAttachment("image.png"),
+            new TestAttachment("image.png"),
             new CommandText("Description", TextType.Plain),
-            new TestCommandAttachment("image2.png")
+            new TestAttachment("image2.png")
         };
         var data = new CommandResultData(components, false, false);
 
@@ -335,7 +334,7 @@ public class CommandResultDataExtensionsTests
         Assert.That(result.Components, Is.Not.Null);
         Assert.That(result.Components!.OfType<TextDisplayProperties>().Count(), Is.EqualTo(2));
         Assert.That(result.Components!.OfType<MediaGalleryProperties>().Count(), Is.EqualTo(2));
-        Assert.That(result.Attachments!.Count(), Is.EqualTo(2));
+        Assert.That(result.Attachments, Is.Null.Or.Empty);
     }
 
     #endregion
@@ -392,8 +391,8 @@ public class CommandResultDataExtensionsTests
         // Arrange
         var components = new List<ICommandResultComponent>
         {
-            new TestCommandAttachment("image1.png"),
-            new TestCommandAttachment("image2.png")
+            new TestAttachment("image1.png"),
+            new TestAttachment("image2.png")
         };
         var data = new CommandResultData(components, true, false);
 
@@ -403,7 +402,7 @@ public class CommandResultDataExtensionsTests
         // Assert
         var container = result.Components!.OfType<ComponentContainerProperties>().First();
         Assert.That(container.Components!.OfType<MediaGalleryProperties>().Count(), Is.EqualTo(1));
-        Assert.That(result.Attachments!.Count(), Is.EqualTo(2));
+        Assert.That(result.Attachments, Is.Null.Or.Empty);
     }
 
     [Test]
@@ -432,7 +431,7 @@ public class CommandResultDataExtensionsTests
         {
             new TestCommandSection("section.png", [new CommandText("Section", TextType.Header2)]),
             new CommandText("Text", TextType.Plain),
-            new TestCommandAttachment("image.png")
+            new TestAttachment("image.png")
         };
         var data = new CommandResultData(components, true, false);
 
@@ -454,9 +453,9 @@ public class CommandResultDataExtensionsTests
         {
             new TestCommandSection("section.png",
                 [new CommandText("Title", TextType.Header1)]),
-            new TestCommandAttachment("image1.png"),
-            new TestCommandAttachment("image2.png"),
-            new TestCommandAttachment("image3.png")
+            new TestAttachment("image1.png"),
+            new TestAttachment("image2.png"),
+            new TestAttachment("image3.png")
         };
         var data = new CommandResultData(components, true, false);
 
@@ -467,7 +466,10 @@ public class CommandResultDataExtensionsTests
         var container = result.Components!.OfType<ComponentContainerProperties>().First();
         var galleries = container.Components!.OfType<MediaGalleryProperties>().ToList();
         Assert.That(galleries, Has.Count.EqualTo(1), "Attachments should be grouped in one gallery");
-        Assert.That(result.Attachments!.Count(), Is.EqualTo(4), "Should have section thumbnail + 3 images");
+        // Only section thumbnail should be in attachments
+        Assert.That(result.Attachments, Is.Not.Null);
+        Assert.That(result.Attachments!.Count(), Is.EqualTo(1), "Should have only section thumbnail in attachments");
+        Assert.That(result.Attachments!.First().FileName, Is.EqualTo("section.png"));
     }
 
     #endregion
@@ -475,10 +477,10 @@ public class CommandResultDataExtensionsTests
     #region Attachment Processing Tests
 
     [Test]
-    public void ToMessage_AttachmentWithFileName_UsesCorrectAttachmentPath()
+    public void ToMessage_AttachmentWithFileName_NotAddedToAttachments()
     {
         // Arrange
-        var attachment = new TestCommandAttachment("test-image.png");
+        var attachment = new TestAttachment("test-image.png");
         var components = new List<ICommandResultComponent> { attachment };
         var data = new CommandResultData(components, false, false);
 
@@ -486,20 +488,18 @@ public class CommandResultDataExtensionsTests
         var result = data.ToMessage();
 
         // Assert
-        Assert.That(result.Attachments, Is.Not.Null);
-        var attachmentProps = result.Attachments!.First();
-        Assert.That(attachmentProps.FileName, Is.EqualTo("test-image.png"));
+        Assert.That(result.Attachments, Is.Null.Or.Empty, "CommandAttachments should not be added to message attachments");
     }
 
     [Test]
-    public void ToMessage_MultipleAttachmentsWithDifferentNames_PreservesAllFileNames()
+    public void ToMessage_MultipleAttachmentsWithDifferentNames_NotAddedToAttachments()
     {
         // Arrange
         var components = new List<ICommandResultComponent>
         {
-            new TestCommandAttachment("file1.png"),
-            new TestCommandAttachment("file2.jpg"),
-            new TestCommandAttachment("file3.gif")
+            new TestAttachment("file1.png"),
+            new TestAttachment("file2.jpg"),
+            new TestAttachment("file3.gif")
         };
         var data = new CommandResultData(components, false, false);
 
@@ -507,10 +507,7 @@ public class CommandResultDataExtensionsTests
         var result = data.ToMessage();
 
         // Assert
-        var fileNames = result.Attachments!.Select(a => a.FileName).ToList();
-        Assert.That(fileNames, Does.Contain("file1.png"));
-        Assert.That(fileNames, Does.Contain("file2.jpg"));
-        Assert.That(fileNames, Does.Contain("file3.gif"));
+        Assert.That(result.Attachments, Is.Null.Or.Empty);
     }
 
     [Test]
@@ -610,12 +607,21 @@ public class CommandResultDataExtensionsTests
     /// <summary>
     /// Test implementation of CommandAttachment for testing purposes
     /// </summary>
-    private class TestCommandAttachment : CommandAttachment
+    private class TestAttachment : CommandAttachment
     {
-        public TestCommandAttachment(string fileName)
-            : base(fileName, new MemoryStream(new byte[] { 1, 2, 3, 4, 5 }))
+        public TestAttachment(string fileName)
+            : base(fileName)
         {
         }
+    }
+
+    private class TestEmbeddedAttachment : EmbeddedAttachment
+    {
+        public TestEmbeddedAttachment(string fileName)
+            : base(fileName, new MemoryStream([1, 2, 3, 4, 5]))
+        {
+        }
+
     }
 
     /// <summary>
@@ -624,7 +630,7 @@ public class CommandResultDataExtensionsTests
     private class TestCommandSection : CommandSection
     {
         public TestCommandSection(string attachmentFileName, IEnumerable<CommandText> components)
-            : base(components, new TestCommandAttachment(attachmentFileName))
+            : base(components, new TestEmbeddedAttachment(attachmentFileName))
         {
         }
     }

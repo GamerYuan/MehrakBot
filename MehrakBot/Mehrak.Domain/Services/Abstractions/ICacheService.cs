@@ -14,3 +14,9 @@ public interface ICacheService
 
     Task RemoveAsync(string key);
 }
+
+public static class CacheKeys
+{
+    public static string BotLToken(ulong userId, ulong ltUid) => $"bot:ltoken:{userId}:{ltUid}";
+    public static string DashboardLToken(ulong userId, ulong ltUid) => $"dashboard:ltoken:{userId}:{ltUid}";
+}

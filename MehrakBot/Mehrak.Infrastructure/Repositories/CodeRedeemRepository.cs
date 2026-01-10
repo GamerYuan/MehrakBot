@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-internal class CodeRedeemRepository : ICodeRedeemRepository
+public class CodeRedeemRepository : ICodeRedeemRepository
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<CodeRedeemRepository> m_Logger;

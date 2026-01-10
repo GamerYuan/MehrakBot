@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hi3.Character;
 
-internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3CharacterApplicationContext>
+internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService<Hi3CharacterApplicationContext>
 {
     private readonly ICardService<Hi3CharacterDetail> m_CardService;
     private readonly ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> m_CharacterApi;
@@ -29,8 +29,9 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<Hi3CharacterApplicationService> logger
-    ) : base(gameRoleApi, userRepository, logger)
+    ) : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_CharacterApi = characterApi;
@@ -92,6 +93,14 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
                 }
             }
 
+            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
+                ]);
+            }
+
             List<Task<bool>> tasks = [];
 
             tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
@@ -111,13 +120,19 @@ internal class Hi3CharacterApplicationService : BaseApplicationService<Hi3Charac
             var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
                 characterInfo.Avatar.Name.ToLowerInvariant());
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)
+                new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
             ]);
         }
         catch (CommandException e)

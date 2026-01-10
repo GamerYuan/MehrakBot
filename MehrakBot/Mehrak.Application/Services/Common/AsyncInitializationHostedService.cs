@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace Mehrak.Bot.Services;
+namespace Mehrak.Application.Services.Common;
 
 public class AsyncInitializationHostedService : IHostedService
 {

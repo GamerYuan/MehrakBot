@@ -32,6 +32,7 @@ public class CommandExecutorServiceTests
     private Mock<ICommandRateLimitService> m_MockRateLimitService = null!;
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
     private Mock<IMetricsService> m_MockMetricsService = null!;
+    private Mock<IAttachmentStorageService> m_MockAttachmentService = null!;
     private CommandExecutorService<TestApplicationContext> m_Service = null!;
     private DiscordTestHelper m_DiscordHelper = null!;
 
@@ -51,6 +52,7 @@ public class CommandExecutorServiceTests
         m_MockRateLimitService = new Mock<ICommandRateLimitService>();
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
         m_MockMetricsService = new Mock<IMetricsService>();
+        m_MockAttachmentService = new Mock<IAttachmentStorageService>();
         m_DiscordHelper = new DiscordTestHelper();
         m_DiscordHelper.SetupRequestCapture();
 
@@ -65,6 +67,7 @@ public class CommandExecutorServiceTests
             m_MockRateLimitService.Object,
             m_MockAuthMiddleware.Object,
             m_MockMetricsService.Object,
+            m_MockAttachmentService.Object,
             NullLogger<CommandExecutorService<TestApplicationContext>>.Instance);
 
         m_TestUserId = (ulong)new Random(DateTime.UtcNow.Microsecond).NextInt64();

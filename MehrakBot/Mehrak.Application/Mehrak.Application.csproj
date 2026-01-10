@@ -26,4 +26,11 @@
       <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="..\Assets\**\*.*" Exclude="..\Assets\.git\**\*;..\Assets\.gitattributes">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </None>
+    </ItemGroup>
+
 </Project>

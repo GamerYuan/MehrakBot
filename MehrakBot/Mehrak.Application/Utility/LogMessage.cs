@@ -23,4 +23,7 @@ internal static class LogMessage
     public const string NoClearRecords = "No clear records found for {DataType} for User {UserId} UID {GameUid}";
 
     public const string ServiceInitialized = "{ServiceName} initialized";
+
+    public const string AttachmentStoreError =
+        "Failed to store attachment {FileName} for User {UserId}";
 }

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Context;
 
-internal class UserDbContext(DbContextOptions<UserDbContext> options) : DbContext(options)
+public class UserDbContext(DbContextOptions<UserDbContext> options) : DbContext(options)
 {
     public DbSet<UserModel> Users { get; set; }
     public DbSet<UserProfileModel> UserProfiles { get; set; }

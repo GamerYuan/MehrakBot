@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-internal class CharacterRepository : ICharacterRepository
+public class CharacterRepository : ICharacterRepository
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<CharacterRepository> m_Logger;
@@ -62,5 +62,31 @@ internal class CharacterRepository : ICharacterRepository
 
         context.Characters.AddRange(newEntities);
         await context.SaveChangesAsync();
+    }
+
+    public async Task DeleteCharacterAsync(Game gameName, string character)
+    {
+        var normalized = character.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            m_Logger.LogWarning("Delete character skipped due to invalid name for game {Game}", gameName);
+            return;
+        }
+
+        using var scope = m_ScopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var entity = await context.Characters
+            .FirstOrDefaultAsync(x => x.Game == gameName && x.Name == normalized);
+
+        if (entity == null)
+        {
+            m_Logger.LogInformation("Character {Character} not found for game {Game}; nothing to delete", normalized, gameName);
+            return;
+        }
+
+        context.Characters.Remove(entity);
+        await context.SaveChangesAsync();
+        m_Logger.LogInformation("Deleted character {Character} for game {Game}", normalized, gameName);
     }
 }

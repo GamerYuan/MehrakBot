@@ -5,6 +5,7 @@
 
 # dotenv files
 .env
+.env.local
 
 # User-specific files
 *.rsuser
@@ -498,3 +499,5 @@ appsettings**.json
 /MehrakBot/efbundles/
 
 /seaweed**/
+
+/Dashboard/dist/

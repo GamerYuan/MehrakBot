@@ -11,4 +11,6 @@ public interface ICharacterRepository
     Task<List<string>> GetCharactersAsync(Game gameName);
 
     Task UpsertCharactersAsync(Game gameName, IEnumerable<string> characters);
+
+    Task DeleteCharacterAsync(Game gameName, string character);
 }

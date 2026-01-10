@@ -1,5 +1,4 @@
-﻿
-namespace Mehrak.Domain.Repositories;
+﻿namespace Mehrak.Domain.Repositories;
 
 public interface IImageRepository
 {

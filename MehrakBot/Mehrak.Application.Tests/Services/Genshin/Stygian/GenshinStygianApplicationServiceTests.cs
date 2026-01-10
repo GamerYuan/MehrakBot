@@ -30,7 +30,7 @@ public class GenshinStygianApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, gameRoleApiMock, _, _) = SetupMocks();
+        var (service, _, gameRoleApiMock, _, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -56,7 +56,7 @@ public class GenshinStygianApplicationServiceTests
     public async Task ExecuteAsync_StygianApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, _, _) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -86,7 +86,7 @@ public class GenshinStygianApplicationServiceTests
     public async Task ExecuteAsync_StygianNotUnlocked_ReturnsEphemeralMessage()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, _, _) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -123,7 +123,7 @@ public class GenshinStygianApplicationServiceTests
     public async Task ExecuteAsync_NoStygianData_ReturnsNoClearRecords()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, _, _) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -177,7 +177,7 @@ public class GenshinStygianApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, _) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -186,7 +186,6 @@ public class GenshinStygianApplicationServiceTests
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
 
-        // Make image update fail
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
@@ -212,7 +211,7 @@ public class GenshinStygianApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, _) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -243,13 +242,15 @@ public class GenshinStygianApplicationServiceTests
                 result.Data.Components.OfType<CommandText>().Any(x => x.Content.Contains("Stygian Onslaught Summary")),
                 Is.True);
         });
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, _) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -281,13 +282,12 @@ public class GenshinStygianApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, _, attachmentStorageMock, userRepositoryMock) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User exists with matching profile but no stored GameUids
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
             .ReturnsAsync(new UserDto
@@ -303,7 +303,6 @@ public class GenshinStygianApplicationServiceTests
                 ]
             });
 
-        // Force early exit after UpdateGameUid by making stygian API fail
         stygianApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "err"));
@@ -317,7 +316,6 @@ public class GenshinStygianApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        // Assert: repository should persist updated user with stored game uid
         userRepositoryMock.Verify(
             x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
                 u.Id == 1ul
@@ -329,19 +327,20 @@ public class GenshinStygianApplicationServiceTests
                                        && p.GameUids[Game.Genshin][Server.Asia.ToString()] == profile.GameUid)
             )),
             Times.Once);
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, _, attachmentStorageMock, userRepositoryMock) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User exists with game uid already stored for this game/server
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
             .ReturnsAsync(new UserDto
@@ -377,21 +376,20 @@ public class GenshinStygianApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        // Assert: no persistence since it was already stored
         userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, _, userRepositoryMock) = SetupMocks();
+        var (service, stygianApiMock, gameRoleApiMock, _, attachmentStorageMock, userRepositoryMock) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // Case: user not found
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
             .ReturnsAsync((UserDto?)null);
@@ -406,27 +404,22 @@ public class GenshinStygianApplicationServiceTests
             LToken = "test"
         };
 
-        // Act
         await service.ExecuteAsync(context);
-
-        // Assert: no persistence
         userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        // Case: user exists but no matching profile
         userRepositoryMock.Reset();
         userRepositoryMock
             .Setup(x => x.GetUserAsync(1ul))
             .ReturnsAsync(new UserDto
             {
                 Id = 1ul,
-                Profiles =
-                [
-                    new() { LtUid = 99999ul, LToken = "test" }
-                ]
+                Profiles = [new() { LtUid = 99999ul, LToken = "test" }]
             });
 
         await service.ExecuteAsync(context);
         userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -440,7 +433,7 @@ public class GenshinStygianApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile)
     {
         // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, _, _) = SetupIntegrationTest();
+        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, storedAttachments) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -448,6 +441,9 @@ public class GenshinStygianApplicationServiceTests
         var stygianData = await LoadTestDataAsync(testDataFile);
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
 
         var context = new GenshinStygianApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
@@ -468,26 +464,27 @@ public class GenshinStygianApplicationServiceTests
 
         var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
 
-        // Save the generated card for manual inspection
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
-        Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory,
-            $"StygianIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}.jpg");
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
-        attachment.Content.Position = 0;
-        await using var fileStream = File.Create(outputImagePath);
-        await attachment.Content.CopyToAsync(fileStream);
+        if (storedAttachments.TryGetValue(attachment.FileName, out var stored))
+        {
+            var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
+            Directory.CreateDirectory(outputDirectory);
+            var outputImagePath = Path.Combine(outputDirectory,
+                $"StygianIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}.jpg");
+
+            stored.Position = 0;
+            await using var fileStream = File.Create(outputImagePath);
+            await stored.CopyToAsync(fileStream);
+        }
     }
 
     [Test]
     [Explicit("This test calls real API - only run manually")]
     public async Task IntegrationTest_WithRealApi_FullFlow()
     {
-        // This test requires real credentials and should only be run manually
-        // It demonstrates the full integration with the actual HoYoLab API
-
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
@@ -500,7 +497,7 @@ public class GenshinStygianApplicationServiceTests
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
         });
 
-        var service = SetupRealApiIntegrationTest();
+        var (service, storedAttachments) = SetupRealApiIntegrationTest();
 
         var context = new GenshinStygianApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
@@ -518,16 +515,16 @@ public class GenshinStygianApplicationServiceTests
         {
             var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-            Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
+            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            Assert.That(storedStream!.Length, Is.GreaterThan(0));
 
-            // Save output
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
             var outputImagePath = Path.Combine(outputDirectory, "StygianRealApi.jpg");
 
-            attachment.Content.Position = 0;
+            storedStream.Position = 0;
             await using var fileStream = File.Create(outputImagePath);
-            await attachment.Content.CopyToAsync(fileStream);
+            await storedStream.CopyToAsync(fileStream);
         }
     }
 
@@ -540,6 +537,7 @@ public class GenshinStygianApplicationServiceTests
         Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>> StygianApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
+        Mock<IAttachmentStorageService> AttachmentStorageMock,
         Mock<IUserRepository> UserRepositoryMock
         ) SetupMocks()
     {
@@ -548,9 +546,14 @@ public class GenshinStygianApplicationServiceTests
         var stygianApiMock = new Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var userRepositoryMock = new Mock<IUserRepository>();
+        var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<GenshinStygianApplicationService>>();
 
-        // Setup card service to return a valid stream
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<StygianData>>()))
             .ReturnsAsync(cardStream);
@@ -561,9 +564,10 @@ public class GenshinStygianApplicationServiceTests
             stygianApiMock.Object,
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
+            attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, userRepositoryMock);
+        return (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, userRepositoryMock);
     }
 
     private static (
@@ -571,17 +575,16 @@ public class GenshinStygianApplicationServiceTests
         Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>> StygianApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<IUserRepository> UserRepositoryMock
+        Mock<IAttachmentStorageService> AttachmentStorageMock,
+        Dictionary<string, MemoryStream> StoredAttachments
         ) SetupIntegrationTest()
     {
-        // Use real card service with MongoTestHelper for image repository
         var cardService = new GenshinStygianCardService(
             DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>());
 
         var stygianApiMock = new Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>>();
 
-        // Use real image updater service
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
@@ -593,8 +596,22 @@ public class GenshinStygianApplicationServiceTests
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var loggerMock = new Mock<ILogger<GenshinStygianApplicationService>>();
         var userRepositoryMock = new Mock<IUserRepository>();
+        var attachmentStorageMock = new Mock<IAttachmentStorageService>();
+        var storedAttachments = new Dictionary<string, MemoryStream>();
 
-        // Initialize card service
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string name, Stream stream, CancellationToken _) =>
+            {
+                MemoryStream copy = new();
+                if (stream.CanSeek) stream.Position = 0;
+                stream.CopyTo(copy);
+                copy.Position = 0;
+                storedAttachments[name] = copy;
+                return true;
+            });
+
         cardService.InitializeAsync().Wait();
 
         var service = new GenshinStygianApplicationService(
@@ -603,43 +620,52 @@ public class GenshinStygianApplicationServiceTests
             stygianApiMock.Object,
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
+            attachmentStorageMock.Object,
             loggerMock.Object);
 
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        return (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, userRepositoryMock);
+        return (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, storedAttachments);
     }
 
-    private static GenshinStygianApplicationService SetupRealApiIntegrationTest()
+    private static (GenshinStygianApplicationService Service, Dictionary<string, MemoryStream> StoredAttachments) SetupRealApiIntegrationTest()
     {
-        // Use all real services - no mocks
         var cardService = new GenshinStygianCardService(
             DbTestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>());
 
-        // Real HTTP client factory
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
-        // Real Stygian API service
         var stygianApi = new GenshinStygianApiService(
             httpClientFactory.Object,
             Mock.Of<ILogger<GenshinStygianApiService>>());
 
-        // Real game role API service
         var gameRoleApiService = new GameRoleApiService(
             httpClientFactory.Object,
             Mock.Of<ILogger<GameRoleApiService>>());
 
-        // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
             DbTestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
-        // Initialize card service
         cardService.InitializeAsync().Wait();
 
         var userRepositoryMock = new Mock<IUserRepository>();
+        var storedAttachments = new Dictionary<string, MemoryStream>();
+        var attachmentStorageMock = new Mock<IAttachmentStorageService>();
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string name, CancellationToken _) => storedAttachments.ContainsKey(name));
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string name, Stream stream, CancellationToken _) =>
+            {
+                MemoryStream copy = new();
+                if (stream.CanSeek) stream.Position = 0;
+                stream.CopyTo(copy);
+                copy.Position = 0;
+                storedAttachments[name] = copy;
+                return true;
+            });
 
         var service = new GenshinStygianApplicationService(
             imageUpdaterService,
@@ -647,9 +673,10 @@ public class GenshinStygianApplicationServiceTests
             stygianApi,
             gameRoleApiService,
             userRepositoryMock.Object,
+            attachmentStorageMock.Object,
             Mock.Of<ILogger<GenshinStygianApplicationService>>());
 
-        return service;
+        return (service, storedAttachments);
     }
 
     private static GameProfileDto CreateTestProfile()

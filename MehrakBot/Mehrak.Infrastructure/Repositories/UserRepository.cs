@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-internal class UserRepository : IUserRepository
+public class UserRepository : IUserRepository
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<UserRepository> m_Logger;

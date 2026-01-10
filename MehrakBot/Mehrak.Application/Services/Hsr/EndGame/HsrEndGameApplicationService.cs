@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hsr.EndGame;
 
-public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApplicationContext>
+public class HsrEndGameApplicationService : BaseAttachmentApplicationService<HsrEndGameApplicationContext>
 {
     private readonly ICardService<HsrEndInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -31,7 +31,8 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
         IApiService<HsrEndInformation, HsrEndGameApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
-        ILogger<HsrEndGameApplicationService> logger) : base(gameRoleApi, userRepository, logger)
+        IAttachmentStorageService attachmentStorageService,
+        ILogger<HsrEndGameApplicationService> logger) : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -87,6 +88,26 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
                     isEphemeral: true);
             }
 
+            var tz = server.GetTimeZoneInfo();
+            var group = challengeData.Groups[0];
+            var startTime = new DateTimeOffset(group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+            var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+
+            var fileName = GetFileName(JsonSerializer.Serialize(challengeData), "jpg", profile.GameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success([
+                        new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary",
+                            CommandText.TextType.Header3),
+                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                        new CommandAttachment(fileName),
+                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                    ],
+                    true);
+            }
+
             var tasks = nonNull
                 .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
                 .DistinctBy(x => x.Id)
@@ -111,21 +132,20 @@ public class HsrEndGameApplicationService : BaseApplicationService<HsrEndGameApp
             cardContext.SetParameter("server", server);
             cardContext.SetParameter("mode", context.Mode);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
 
-            var tz = server.GetTimeZoneInfo();
-            var group = challengeData.Groups[0];
-            var startTime = new DateTimeOffset(group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-            var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary",
                         CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                    new CommandAttachment($"{context.Mode.GetString().ToLowerInvariant().Replace(' ', '_')}_card.jpg",
-                        card),
+                    new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true

@@ -23,4 +23,8 @@ internal static class ResponseMessage
 
     public const string ApiLimitationFooter =
         "Information may be inaccurate due to API limitations. Please check in-game for the most accurate data.";
+
+    public const string AttachmentStoreError =
+        "An error occurred while storing the generated attachment. Please try again later\n" +
+        "For repeated errors, please contact the developers";
 }

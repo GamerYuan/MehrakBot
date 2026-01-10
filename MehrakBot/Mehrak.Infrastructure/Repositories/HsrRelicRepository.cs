@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Repositories;
 
-internal class HsrRelicRepository : IRelicRepository
+public class HsrRelicRepository : IRelicRepository
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<HsrRelicRepository> m_Logger;
