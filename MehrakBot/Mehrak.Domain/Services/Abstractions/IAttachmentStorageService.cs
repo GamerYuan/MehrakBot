@@ -11,4 +11,6 @@ public interface IAttachmentStorageService
     Task<AttachmentDownloadResult?> DownloadAsync(string storageFileName, CancellationToken cancellationToken = default);
 
     Task<bool> ExistsAsync(string storageFileName, CancellationToken cancellationToken = default);
+
+    bool IsValidStorageFileName(string storageFileName);
 }

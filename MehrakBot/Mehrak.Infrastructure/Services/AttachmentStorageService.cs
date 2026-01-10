@@ -110,13 +110,13 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
         }
     }
 
-    public static bool IsValidStorageFileName(string fileName)
+    public bool IsValidStorageFileName(string storageFileName)
     {
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (string.IsNullOrWhiteSpace(storageFileName))
             return false;
 
-        var safeName = Path.GetFileName(fileName);
-        if (!ReferenceEquals(fileName, safeName))
+        var safeName = Path.GetFileName(storageFileName);
+        if (!ReferenceEquals(storageFileName, safeName))
             return false;
 
         var span = safeName.AsSpan();

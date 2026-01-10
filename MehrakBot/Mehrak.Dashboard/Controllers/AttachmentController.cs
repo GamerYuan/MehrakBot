@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Services.Abstractions;
-using Mehrak.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,7 +23,7 @@ public sealed class AttachmentController : ControllerBase
     {
         fileName = fileName.ReplaceLineEndings("").Trim();
 
-        if (!AttachmentStorageService.IsValidStorageFileName(fileName))
+        if (!m_AttachmentStorage.IsValidStorageFileName(fileName))
             return BadRequest(new { error = "Invalid attachment identifier." });
 
         var attachment = await m_AttachmentStorage.DownloadAsync(fileName, cancellationToken).ConfigureAwait(false);
