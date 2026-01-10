@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Mehrak.Domain.Auth;
+﻿using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -88,7 +87,7 @@ public class DashboardAuthService : IDashboardAuthService
 
         if (session == null || session.IsExpired() || !session.User.IsActive)
         {
-            m_Logger.LogWarning("Session validation failed for token {Token}.", sessionToken);
+            m_Logger.LogWarning("Session validation failed for token {Token}.", sessionToken[..6]);
             return false;
         }
 
@@ -97,7 +96,7 @@ public class DashboardAuthService : IDashboardAuthService
 
     public async Task InvalidateSessionAsync(string sessionToken, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Invalidating session {Token}.", sessionToken);
+        m_Logger.LogInformation("Invalidating session {Token}.", sessionToken[..6]);
         var session = await m_Db.DashboardSessions.SingleOrDefaultAsync(s => s.SessionToken == sessionToken, ct);
         if (session != null)
         {
