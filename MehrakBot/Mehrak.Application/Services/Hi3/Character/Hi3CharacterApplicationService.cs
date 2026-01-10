@@ -93,7 +93,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
                 }
             }
 
-            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", characterInfo.Avatar.Id.ToString());
+            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success([

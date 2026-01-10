@@ -121,7 +121,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             var characterData = response.Data;
             var charInfo = characterData.AvatarList[0];
 
-            var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", charInfo.Id!.ToString());
+            var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success([
