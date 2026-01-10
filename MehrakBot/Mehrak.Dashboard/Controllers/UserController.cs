@@ -2,6 +2,7 @@
 using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
+using Mehrak.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -102,6 +103,14 @@ public class UserController : ControllerBase
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(p => p.Trim())
             .ToArray() ?? [];
+
+        var supportedPerms = Enum.GetValues<Game>().Select(x => x.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (permissions.Any(x => !supportedPerms.Contains(x)))
+        {
+            ModelState.AddModelError("GameWritePermissions", "One or more provided game write permissions are invalid.");
+            return ValidationProblem(ModelState);
+        }
 
         var user = await m_UserService.GetDashboardUserByIdAsync(id, HttpContext.RequestAborted);
         if (user != null && user.IsSuperAdmin != request.IsSuperAdmin && !User.IsInRole("rootuser"))
