@@ -239,6 +239,9 @@ public class Program
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DashboardAuthDbContext>();
 
+        if (await db.DashboardUsers.AnyAsync(u => u.IsRootUser))
+            return;
+
         var adminUsername = app.Configuration["Dashboard:AdminUsername"];
         var adminPassword = app.Configuration["Dashboard:AdminPassword"];
         var adminDiscordId = app.Configuration["Dashboard:AdminDiscordId"];
