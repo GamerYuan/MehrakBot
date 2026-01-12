@@ -1,6 +1,8 @@
 ﻿#region
 
-using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Models;
+using Mehrak.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -14,12 +16,12 @@ namespace Mehrak.Bot.Modules.Common;
     Contexts = [InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel])]
 public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly IUserRepository m_UserRepository;
+    private readonly UserDbContext m_UserContext;
     private readonly ILogger<ProfileCommandModule> m_Logger;
 
-    public ProfileCommandModule(IUserRepository userRepository, ILogger<ProfileCommandModule> logger)
+    public ProfileCommandModule(UserDbContext userContext, ILogger<ProfileCommandModule> logger)
     {
-        m_UserRepository = userRepository;
+        m_UserContext = userContext;
         m_Logger = logger;
     }
 
@@ -27,9 +29,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     public async Task AddProfileCommand()
     {
         m_Logger.LogInformation("User {UserId} is adding HoYoLAB profile", Context.User.Id);
-        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
 
-        if (user?.Profiles != null && user.Profiles.Count() >= 10)
+        if (await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).CountAsync() >= 10)
         {
             m_Logger.LogInformation("User {UserId} has reached the maximum number of profiles", Context.User.Id);
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
@@ -49,31 +50,17 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
-        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
-        if (user?.Profiles == null)
-        {
-            await Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("No profile found!")));
-            return;
-        }
-
         if (profileId == 0)
         {
-            if (!await m_UserRepository.DeleteUserAsync(Context.User.Id))
-            {
-                await Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
-                return;
-            }
+            await m_UserContext.Users.Where(x => x.Id == (long)Context.Interaction.Id).ExecuteDeleteAsync();
+
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("All profiles deleted!")));
+                    .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
             return;
         }
 
-        var profiles = user.Profiles.ToList();
+        var profiles = await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).ToListAsync();
 
         if (profiles.All(x => x.ProfileId != profileId))
         {
@@ -84,44 +71,66 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         }
 
         for (var i = profiles.Count - 1; i >= 0; i--)
-            if (profiles[i].ProfileId == profileId)
-                profiles.RemoveAt(i);
-            else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
-
-        if (profiles.Count == 0)
         {
-            if (!await m_UserRepository.DeleteUserAsync(Context.User.Id))
+            if (profiles[i].ProfileId == profileId)
             {
+                profiles.RemoveAt(i);
+                m_UserContext.UserProfiles.Remove(profiles[i]);
+            }
+            else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
+        }
+
+        try
+        {
+            m_UserContext.UserProfiles.UpdateRange(profiles);
+
+            await m_UserContext.SaveChangesAsync();
+
+            if (profiles.Count == 0)
+            {
+                await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
                 await Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("All profiles deleted!")));
                 return;
             }
+
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("All profiles deleted!")));
-            return;
+                    .AddComponents(
+                        new TextDisplayProperties($"Profile {profileId} deleted!")));
         }
-
-        user.Profiles = profiles;
-        if (!await m_UserRepository.CreateOrUpdateUserAsync(user))
+        catch (DbUpdateException e)
         {
+            m_Logger.LogError(e, "Failed to delete profile {ProfileId} for user {UserId}", profileId, Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
-            return;
         }
-
-        await Context.Interaction.SendFollowupMessageAsync(
-            new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(
-                    new TextDisplayProperties($"Profile {profileId} deleted!")));
     }
 
     [SubSlashCommand("list", "List your profiles")]
     public async Task ListProfileCommand()
     {
-        var user = await m_UserRepository.GetUserAsync(Context.User.Id);
+        var user = await m_UserContext.Users.AsNoTracking()
+            .Where(x => x.Id == (long)Context.User.Id)
+            .Select(u => new UserDto()
+            {
+                Id = (ulong)u.Id,
+                Profiles = u.Profiles.Select(p => new UserProfileDto()
+                {
+                    ProfileId = p.ProfileId,
+                    LtUid = (ulong)p.LtUid,
+                    GameUids = p.GameUids
+                        .GroupBy(g => g.Game)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.ToDictionary(
+                                x => x.Region,
+                                x => x.GameUid))
+                }).ToList()
+            }).FirstOrDefaultAsync();
+
         if (user?.Profiles == null || !user.Profiles.Any())
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
