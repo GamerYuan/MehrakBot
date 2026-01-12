@@ -94,7 +94,7 @@ public class UserController : ControllerBase
         {
             Username = request.Username.Trim(),
             DiscordUserId = discordUserId,
-            IsSuperAdmin = request.IsSuperAdmin,
+            IsSuperAdmin = false,
             GameWritePermissions = permissions
         }, HttpContext.RequestAborted);
 
@@ -222,6 +222,13 @@ public class UserController : ControllerBase
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         m_Logger.LogInformation("Deleting dashboard user {UserId}", id);
+
+        var toDelete = await m_UserService.GetDashboardUserByIdAsync(id, HttpContext.RequestAborted);
+        if ((toDelete?.IsSuperAdmin ?? false) && !User.IsInRole("rootuser"))
+        {
+            m_Logger.LogWarning("Non-root user attempted to delete super admin user {UserId}", id);
+            return Forbid();
+        }
 
         var result = await m_UserService.RemoveDashboardUserAsync(id, HttpContext.RequestAborted);
         if (!result.Succeeded)

@@ -12,8 +12,6 @@ namespace Mehrak.Dashboard.Models
         [RegularExpression("^\\d+$", ErrorMessage = "DiscordUserId must be numeric.")]
         public string DiscordUserId { get; set; } = string.Empty;
 
-        public bool IsSuperAdmin { get; set; }
-
         public IEnumerable<string> GameWritePermissions { get; set; } = [];
     }
 }
