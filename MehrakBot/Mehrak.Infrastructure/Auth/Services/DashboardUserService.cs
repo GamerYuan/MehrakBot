@@ -376,12 +376,10 @@ public class DashboardUserService : IDashboardUserService
     private static string GenerateTemporaryPassword(int length = TemporaryPasswordLength)
     {
         var passwordChars = new char[length];
-        Span<byte> buffer = stackalloc byte[length];
-        RandomNumberGenerator.Fill(buffer);
 
         for (var i = 0; i < length; i++)
         {
-            var index = buffer[i] % TemporaryPasswordCharacters.Length;
+            var index = RandomNumberGenerator.GetInt32(TemporaryPasswordCharacters.Length);
             passwordChars[i] = TemporaryPasswordCharacters[index];
         }
 
