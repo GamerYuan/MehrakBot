@@ -140,8 +140,9 @@ public class DashboardUserService : IDashboardUserService
         {
             await m_Db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException e)
         {
+            m_Logger.LogError(e, "Failed to create dashboard user due to a database error.");
             return new AddDashboardUserResultDto
             {
                 Succeeded = false,
@@ -236,7 +237,19 @@ public class DashboardUserService : IDashboardUserService
 
         SyncGamePermissions(user, normalizedPermissions);
 
-        await m_Db.SaveChangesAsync(ct);
+        try
+        {
+            await m_Db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogError(e, "Failed to update dashboard user due to a database error.");
+            return new UpdateDashboardUserResultDto
+            {
+                Succeeded = false,
+                Error = "Failed to create user due to a database error."
+            };
+        }
 
         m_Logger.LogInformation("Dashboard user {UserId} updated successfully.", user.Id);
 
@@ -275,7 +288,20 @@ public class DashboardUserService : IDashboardUserService
         }
 
         m_Db.DashboardUsers.Remove(user);
-        await m_Db.SaveChangesAsync(ct);
+
+        try
+        {
+            await m_Db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogError(e, "Failed to create dashboard user due to a database error.");
+            return new RemoveDashboardUserResultDto
+            {
+                Succeeded = false,
+                Error = "Failed to delete user due to a database error."
+            };
+        }
 
         m_Logger.LogInformation("Dashboard user {UserId} deleted.", userId);
 
@@ -326,7 +352,19 @@ public class DashboardUserService : IDashboardUserService
         if (hadSessions)
             m_Db.DashboardSessions.RemoveRange(user.Sessions);
 
-        await m_Db.SaveChangesAsync(ct);
+        try
+        {
+            await m_Db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogError(e, "Failed to force password reset for dashboard user due to a database error.");
+            return new DashboardUserRequireResetResultDto
+            {
+                Succeeded = false,
+                Error = "Failed to create user due to a database error."
+            };
+        }
 
         m_Logger.LogInformation("Require password reset enabled for user {UserId}. Sessions invalidated: {Invalidated}.", userId, hadSessions);
 
