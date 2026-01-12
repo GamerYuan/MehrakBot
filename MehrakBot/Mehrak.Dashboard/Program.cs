@@ -207,25 +207,33 @@ public class Program
 
         builder.Services.AddCors(options =>
         {
-            options.AddPolicy("AllowAllDev", builder =>
+            if (builder.Environment.IsDevelopment())
             {
-                builder.WithOrigins("http://localhost:5173")
-                    .AllowAnyHeader()
-                    .AllowCredentials()
-                    .AllowAnyMethod();
-            });
+                options.AddDefaultPolicy(b =>
+                {
+                    b.WithOrigins("http://localhost:5173")
+                        .AllowAnyHeader()
+                        .AllowCredentials()
+                        .AllowAnyMethod();
+                });
+            }
+            else
+            {
+                options.AddDefaultPolicy(b =>
+                {
+                    b.WithOrigins(builder.Configuration["Dashboard:Origin"] ?? throw new ArgumentException("Dashboard Origin cannot be empty"))
+                        .AllowAnyHeader()
+                        .AllowCredentials()
+                        .AllowAnyMethod();
+                });
+            }
         });
 
         var app = builder.Build();
         await AddDefaultSuperAdminAccount(app);
 
         app.UseForwardedHeaders();
-
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseCors("AllowAllDev");
-        }
-
+        app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseRateLimiter();
