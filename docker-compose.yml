@@ -27,10 +27,7 @@ services:
       target: dashboard
       args:
         OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
-    ports:
-      - "5100:8080"
     depends_on:
-      - mongodb
       - postgres
       - redis
     networks:
