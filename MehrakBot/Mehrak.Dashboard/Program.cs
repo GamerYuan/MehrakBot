@@ -209,9 +209,9 @@ public class Program
         {
             if (builder.Environment.IsDevelopment())
             {
-                options.AddDefaultPolicy(builder =>
+                options.AddDefaultPolicy(b =>
                 {
-                    builder.WithOrigins("http://localhost:5173")
+                    b.WithOrigins("http://localhost:5173")
                         .AllowAnyHeader()
                         .AllowCredentials()
                         .AllowAnyMethod();
@@ -219,9 +219,9 @@ public class Program
             }
             else
             {
-                options.AddDefaultPolicy(builder =>
+                options.AddDefaultPolicy(b =>
                 {
-                    builder.WithOrigins("https://mehrak.yuan-dev.com")
+                    b.WithOrigins(builder.Configuration["Dashboard:Origin"] ?? throw new ArgumentException("Dashboard Origin cannot be empty"))
                         .AllowAnyHeader()
                         .AllowCredentials()
                         .AllowAnyMethod();
