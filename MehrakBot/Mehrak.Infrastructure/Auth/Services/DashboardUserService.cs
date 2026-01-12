@@ -135,7 +135,19 @@ public class DashboardUserService : IDashboardUserService
             .ToList();
 
         m_Db.DashboardUsers.Add(user);
-        await m_Db.SaveChangesAsync(ct);
+
+        try
+        {
+            await m_Db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            return new AddDashboardUserResultDto
+            {
+                Succeeded = false,
+                Error = "Failed to create user due to a database error."
+            };
+        }
 
         m_Logger.LogInformation("Dashboard user {UserId} created with DiscordId {DiscordId}.", user.Id, user.DiscordId);
 
