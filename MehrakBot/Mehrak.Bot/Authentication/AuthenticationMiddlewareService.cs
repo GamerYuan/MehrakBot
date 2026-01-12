@@ -3,9 +3,11 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Mehrak.Bot.Modules.Common;
-using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -18,7 +20,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 {
     private readonly ICacheService m_CacheService;
     private readonly IEncryptionService m_EncryptionService;
-    private readonly IUserRepository m_UserRepository;
+    private readonly UserDbContext m_UserContext;
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
     private readonly ConcurrentDictionary<string, AuthenticationResponse> m_NotifiedRequests = [];
     private readonly ConcurrentDictionary<string, byte> m_CurrentRequests = [];
@@ -28,12 +30,12 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
     public AuthenticationMiddlewareService(
         ICacheService cacheService,
         IEncryptionService encryptionService,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ILogger<AuthenticationMiddlewareService> logger)
     {
         m_CacheService = cacheService;
         m_EncryptionService = encryptionService;
-        m_UserRepository = userRepository;
+        m_UserContext = userContext;
         m_Logger = logger;
     }
 
@@ -41,14 +43,30 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
     {
         m_Logger.LogDebug("GetAuthenticationAsync started for UserId={UserId}, ProfileId={ProfileId}",
             request.Context.Interaction.User.Id, request.ProfileId);
-        var user = await m_UserRepository.GetUserAsync(request.Context.Interaction.User.Id);
+
+        var user = await m_UserContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == (long)request.Context.Interaction.User.Id)
+            .Select(x => new UserDto()
+            {
+                Id = (ulong)x.Id,
+                Profiles = x.Profiles.Select(p => new UserProfileDto()
+                {
+                    Id = p.Id,
+                    ProfileId = p.ProfileId,
+                    LtUid = (ulong)p.LtUid,
+                    LToken = p.LToken
+                }).ToList()
+            }).FirstOrDefaultAsync();
+
         if (user == null)
         {
             m_Logger.LogWarning("User account not found for UserId={UserId}", request.Context.Interaction.User.Id);
             return AuthenticationResult.NotFound(request.Context, "User account not found. Please add a profile first.");
         }
 
-        var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == request.ProfileId);
+        var profile = user.Profiles?.FirstOrDefault();
+
         if (profile == null)
         {
             m_Logger.LogWarning("Profile not found for UserId={UserId}, ProfileId={ProfileId}",

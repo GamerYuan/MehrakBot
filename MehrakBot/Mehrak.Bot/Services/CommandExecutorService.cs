@@ -4,8 +4,8 @@ using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -35,13 +35,13 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
     public CommandExecutorService(
         IServiceProvider serviceProvider,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
         IAttachmentStorageService attachmentService,
         ILogger<CommandExecutorService<TContext>> logger
-    ) : base(userRepository, commandRateLimitService, authenticationMiddleware, metricsService, logger)
+    ) : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, logger)
     {
         m_ServiceProvider = serviceProvider;
         m_AttachmentService = attachmentService;
@@ -79,7 +79,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
                 if (server == null)
                 {
-                    server = GetLastUsedServerAsync(authResult.User, game, profile);
+                    server = await GetLastUsedServerAsync(authResult.User, game, profile);
                     if (server == null)
                     {
                         await authResult.Context.Interaction.SendFollowupMessageAsync(
