@@ -80,7 +80,15 @@ public class UserController : ControllerBase
         var permissions = request.GameWritePermissions?
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(p => p.Trim())
-            .ToArray() ?? Array.Empty<string>();
+            .ToArray() ?? [];
+
+        var supportedPerms = Enum.GetNames<Game>().ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (permissions.Any(x => !supportedPerms.Contains(x)))
+        {
+            ModelState.AddModelError("GameWritePermissions", "One or more provided game write permissions are invalid.");
+            return ValidationProblem(ModelState);
+        }
 
         var result = await m_UserService.AddDashboardUserAsync(new AddDashboardUserRequestDto
         {
