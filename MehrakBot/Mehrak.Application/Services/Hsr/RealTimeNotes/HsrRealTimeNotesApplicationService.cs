@@ -102,7 +102,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                         ? "Already Full!"
                         : $"Recovers <t:{data.StaminaFullTs}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_tbp.png", await tbpImage)
+                new EmbeddedAttachment("hsr_tbp.png", await tbpImage)
             ),
             new CommandSection([
                     new CommandText("Assignments", CommandText.TextType.Header3),
@@ -111,7 +111,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                         ? $"{data.AcceptedExpeditionNum}/{data.TotalExpeditionNum}"
                         : "None Accepted!", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_assignment.png", await assignmentImage)
+                new EmbeddedAttachment("hsr_assignment.png", await assignmentImage)
             ),
             new CommandSection([
                     new CommandText("Echoes of War", CommandText.TextType.Header3),
@@ -120,21 +120,21 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                         : "Fully Claimed!"),
                     new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_weekly.png", await weeklyImage)
+                new EmbeddedAttachment("hsr_weekly.png", await weeklyImage)
             ),
             new CommandSection([
                     new CommandText("Simulated Universe", CommandText.TextType.Header3),
                     new CommandText($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
                     new CommandText(isCwReset ? $"Resets <t:{nextWeeklyReset}:R>" : $"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_rogue.png", await rogueImage)
+                new EmbeddedAttachment("hsr_rogue.png", await rogueImage)
             ),
             new CommandSection([
                     new CommandText("Currency Wars", CommandText.TextType.Header3),
                     new CommandText($"{data.GridFightWeeklyCur}/{data.GridFightWeeklyMax}"),
                     new CommandText(isCwReset ? $"Resets <t:{weeklyReset}:R>" : $"Resets <t:{nextWeeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_gridfight.png", await gridFightImage)
+                new EmbeddedAttachment("hsr_gridfight.png", await gridFightImage)
             )
         ];
 

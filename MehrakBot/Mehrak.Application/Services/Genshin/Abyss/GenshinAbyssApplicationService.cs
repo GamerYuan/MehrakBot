@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Genshin.Abyss;
 
-public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbyssApplicationContext>
+public class GenshinAbyssApplicationService : BaseAttachmentApplicationService<GenshinAbyssApplicationContext>
 {
     private readonly ICardService<GenshinAbyssInformation> m_CardService;
 
@@ -36,8 +36,9 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<GenshinAbyssApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ApiService = apiService;
@@ -85,6 +86,18 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
                     new CommandText(
                         string.Format(ResponseMessage.NoClearRecords, $"Spiral Abyss (Floor {floor})"))
                 ], isEphemeral: true);
+            }
+
+            var filename = GetFileName(JsonSerializer.Serialize(floorData), "jpg", profile.GameUid);
+            if (await AttachmentExistsAsync(filename))
+            {
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
+                        CommandText.TextType.Header3),
+                    new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
+                    new CommandAttachment(filename),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                ], isEphemeral: false);
             }
 
             List<Task<bool>> tasks = [];
@@ -138,13 +151,19 @@ public class GenshinAbyssApplicationService : BaseApplicationService<GenshinAbys
             cardContext.SetParameter("server", server);
             cardContext.SetParameter("floor", floor);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
                         CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
-                    new CommandAttachment("abyss_card.jpg", card),
+                    new CommandAttachment(filename),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true

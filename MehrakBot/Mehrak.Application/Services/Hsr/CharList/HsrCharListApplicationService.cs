@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hsr.CharList;
 
-public class HsrCharListApplicationService : BaseApplicationService<HsrCharListApplicationContext>
+public class HsrCharListApplicationService : BaseAttachmentApplicationService<HsrCharListApplicationContext>
 {
     private readonly ICardService<IEnumerable<HsrCharacterInformation>> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -34,8 +34,9 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
         ICharacterCacheService characterCache,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<HsrCharListApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -77,6 +78,15 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
             var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
             _ = m_CharacterCache.UpsertCharacters(Game.HonkaiStarRail, characterList.Select(x => x.Name));
 
+            var fileName = GetFileName(JsonSerializer.Serialize(characterList), "jpg", gameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>")
+                    , new CommandAttachment(fileName)
+                ]);
+            }
+
             var avatarTask = characterList.Select(x => m_ImageUpdaterService
                 .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor));
             var weaponTask =
@@ -97,10 +107,18 @@ public class HsrCharListApplicationService : BaseApplicationService<HsrCharListA
                     context.UserId, characterList, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>"), new CommandAttachment("charlist_card.jpg", card)
+                new CommandText($"<@{context.UserId}>")
+                , new CommandAttachment(fileName)
             ]);
         }
         catch (CommandException e)

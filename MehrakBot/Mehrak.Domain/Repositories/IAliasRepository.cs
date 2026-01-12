@@ -11,4 +11,6 @@ public interface IAliasRepository
     Task<Dictionary<string, string>> GetAliasesAsync(Game gameName);
 
     Task UpsertAliasAsync(Game gameName, Dictionary<string, string> alias);
+
+    Task DeleteAliasAsync(Game gameName, string alias);
 }

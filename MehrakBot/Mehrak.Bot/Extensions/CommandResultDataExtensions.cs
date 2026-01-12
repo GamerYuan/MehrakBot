@@ -86,7 +86,7 @@ internal static class CommandResultDataExtensions
                 }
         }
 
-        properties.AddAttachments(data.Components.OfType<ICommandResultAttachment>()
+        properties.AddAttachments(data.Components.OfType<ICommandResultEmbedAttachment>()
             .Select(x => x.GetAttachment()).Select(x => new AttachmentProperties(x.Item1, x.Item2)));
 
         return properties;

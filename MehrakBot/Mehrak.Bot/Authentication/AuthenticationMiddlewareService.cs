@@ -56,7 +56,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             return AuthenticationResult.NotFound(request.Context, "No profiles found. Please add a profile first.");
         }
 
-        var cacheKey = $"ltoken:{request.Context.Interaction.User.Id}:{profile.LtUid}";
+        var cacheKey = CacheKeys.BotLToken(request.Context.Interaction.User.Id, profile.LtUid);
         m_Logger.LogDebug("Checking cache for LToken. UserId={UserId}, LtUid={LtUid}",
             request.Context.Interaction.User.Id, profile.LtUid);
         var token = await m_CacheService.GetAsync<string>(cacheKey);

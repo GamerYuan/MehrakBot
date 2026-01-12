@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Genshin.Theater;
 
-public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTheaterApplicationContext>
+public class GenshinTheaterApplicationService : BaseAttachmentApplicationService<GenshinTheaterApplicationContext>
 {
     private readonly ICardService<GenshinTheaterInformation>
         m_CardService;
@@ -38,7 +38,9 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
-        ILogger<GenshinTheaterApplicationService> logger) : base(gameRoleApi, userRepository, logger)
+        IAttachmentStorageService attachmentStorageService,
+        ILogger<GenshinTheaterApplicationService> logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ApiService = apiService;
@@ -93,6 +95,18 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
                     isEphemeral: true);
             }
 
+            var filename = GetFileName(JsonSerializer.Serialize(theaterData), "jpg", profile.GameUid);
+            if (await AttachmentExistsAsync(filename))
+            {
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),
+                    new CommandText(
+                        $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
+                    new CommandAttachment(filename),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                ], true);
+            }
+
             var updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
                 .Select(async x =>
                     await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
@@ -139,13 +153,19 @@ public class GenshinTheaterApplicationService : BaseApplicationService<GenshinTh
             cardContext.SetParameter("constMap", constMap);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),
                     new CommandText(
                         $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
-                    new CommandAttachment("theater_card.jpg", card),
+                    new CommandAttachment(filename),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);

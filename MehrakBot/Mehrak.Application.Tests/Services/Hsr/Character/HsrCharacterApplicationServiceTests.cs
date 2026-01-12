@@ -31,7 +31,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -57,7 +57,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -88,7 +88,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_UpdatesCharacterCache_WhenCharacterListFetched()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -117,7 +117,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -153,7 +153,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, _, imageRepositoryMock,
-            imageUpdaterMock, cardMock, gameRoleApiMock, _, _, _) = SetupMocks();
+            imageUpdaterMock, cardMock, gameRoleApiMock, _, _, _, attachmentStorageMock) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -194,13 +194,14 @@ public class HsrCharacterApplicationServiceTests
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
             Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_WikiApiError_ForRelics_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _) =
+        var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -241,7 +242,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiApiError_ForLightCone_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _) =
+        var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -285,7 +286,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _
-                ) =
+                , _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -333,7 +334,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, relicRepositoryMock) = SetupMocks();
+            gameRoleApiMock, _, _, relicRepositoryMock, attachmentStorageMock) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -439,6 +440,7 @@ public class HsrCharacterApplicationServiceTests
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
             Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -446,7 +448,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, metricsMock, _, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, _, _, attachmentStorageMock) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -494,6 +496,7 @@ public class HsrCharacterApplicationServiceTests
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
             Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -501,7 +504,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, _) = SetupMocks();
+            gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -557,7 +560,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -612,7 +615,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -662,7 +665,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, userRepositoryMock, _, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -711,7 +714,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_RelicWiki_FallbackLocale_UsesAlternateLocaleWhenENMissingModule()
     {
         var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, relicRepositoryMock) = SetupMocks();
+            gameRoleApiMock, _, _, relicRepositoryMock, attachmentStorageMock) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -766,13 +769,14 @@ public class HsrCharacterApplicationServiceTests
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url.Contains("relic_cn_4")), It.IsAny<IImageProcessor>()), Times.Once);
         // EN set name not added (since module missing)
         relicRepositoryMock.Verify(x => x.AddSetName(It.Is<int>(x => x == 118), It.Is<string>(x => x.Equals("Missing Set Module"))), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_RelicWiki_ENSetName_StopsLocaleIteration()
     {
         var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, relicRepositoryMock) = SetupMocks();
+            gameRoleApiMock, _, _, relicRepositoryMock, attachmentStorageMock) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -824,13 +828,14 @@ public class HsrCharacterApplicationServiceTests
         // Locale iteration should stop at EN for each needed set (no other locales)
         Assert.That(calledLocales.All(l => l == WikiLocales.EN), Is.True, $"Unexpected locales: {string.Join(',', calledLocales)}");
         relicRepositoryMock.Verify(x => x.AddSetName(118, "EN Relic Set"), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_RelicWiki_PartialThenCompleteJson_CompletesMissingPieces()
     {
         var (service1, characterApiMock1, _, wikiApiMock1, imageRepositoryMock1, imageUpdaterMock1, cardServiceMock1,
-            gameRoleApiMock1, _, _, _) = SetupMocks();
+            gameRoleApiMock1, _, _, _, attachmentStorageMock1) = SetupMocks();
 
         gameRoleApiMock1.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -881,7 +886,7 @@ public class HsrCharacterApplicationServiceTests
 
         // Second run with complete list
         var (service2, characterApiMock2, _, wikiApiMock2, imageRepositoryMock2, imageUpdaterMock2, cardServiceMock2,
-            gameRoleApiMock2, _, _, _) = SetupMocks();
+            gameRoleApiMock2, _, _, _, attachmentStorageMock2) = SetupMocks();
 
         gameRoleApiMock2.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -927,6 +932,8 @@ public class HsrCharacterApplicationServiceTests
 
         // All four relic piece images should now exist (hsr_1181..hsr_1184)
         Assert.That(existingFiles.Count(f => f.StartsWith("hsr_118")), Is.EqualTo(4));
+        attachmentStorageMock1.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock2.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion
@@ -938,7 +945,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile, string characterName)
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _) = SetupIntegrationTest();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, attachmentStorageMock) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -968,18 +975,9 @@ public class HsrCharacterApplicationServiceTests
 
         var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(attachment!.Content.Length, Is.GreaterThan(0), "Expected a non-empty card image");
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
 
-        // Save the generated card for manual inspection
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
-        Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(
-            outputDirectory,
-            $"HsrCharacterIntegration_{Path.GetFileNameWithoutExtension(testDataFile)}_{characterName}.jpg");
-
-        attachment.Content.Position = 0;
-        await using var fileStream = File.Create(outputImagePath);
-        await attachment.Content.CopyToAsync(fileStream);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -1002,7 +1000,7 @@ public class HsrCharacterApplicationServiceTests
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
         });
 
-        var service = SetupRealApiIntegrationTest();
+        var (service, attachmentStorage, storedAttachments) = SetupRealApiIntegrationTest();
 
         var context = new HsrCharacterApplicationContext(
             DbTestHelper.Instance.GetUniqueUserId(),
@@ -1022,16 +1020,17 @@ public class HsrCharacterApplicationServiceTests
         {
             var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-            Assert.That(attachment!.Content.Length, Is.GreaterThan(0));
+            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            Assert.That(storedStream!.Length, Is.GreaterThan(0));
 
             // Save output
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
             var outputImagePath = Path.Combine(outputDirectory, $"HsrCharacterRealApi_{characterName}.jpg");
 
-            attachment.Content.Position = 0;
+            storedStream.Position = 0;
             await using var fileStream = File.Create(outputImagePath);
-            await attachment.Content.CopyToAsync(fileStream);
+            await storedStream.CopyToAsync(fileStream);
         }
     }
 
@@ -1051,7 +1050,8 @@ public class HsrCharacterApplicationServiceTests
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IMetricsService> MetricsMock,
         Mock<IUserRepository> UserRepositoryMock,
-        Mock<IRelicRepository> RelicRepositoryMock
+        Mock<IRelicRepository> RelicRepositoryMock,
+        Mock<IAttachmentStorageService> AttachmentStorageMock
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrCharacterInformation>>();
@@ -1065,7 +1065,13 @@ public class HsrCharacterApplicationServiceTests
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var userRepositoryMock = new Mock<IUserRepository>();
         var relicRepositoryMock = new Mock<IRelicRepository>();
+        var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<HsrCharacterApplicationService>>();
+
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Setup default empty aliases
         characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
@@ -1082,10 +1088,11 @@ public class HsrCharacterApplicationServiceTests
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
             relicRepositoryMock.Object,
+            attachmentStorageMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
-            cardServiceMock, gameRoleApiMock, metricsMock, userRepositoryMock, relicRepositoryMock);
+            cardServiceMock, gameRoleApiMock, metricsMock, userRepositoryMock, relicRepositoryMock, attachmentStorageMock);
     }
 
     private static (
@@ -1097,7 +1104,7 @@ public class HsrCharacterApplicationServiceTests
         Mock<IImageRepository> ImageRepositoryMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IMetricsService> MetricsMock,
-        Mock<IUserRepository> UserRepositoryMock
+        Mock<IAttachmentStorageService> AttachmentStorageMock
         ) SetupIntegrationTest()
     {
         // Use real card service with MongoTestHelper for image repository
@@ -1116,6 +1123,12 @@ public class HsrCharacterApplicationServiceTests
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var metricsMock = new Mock<IMetricsService>();
+        var attachmentStorageMock = new Mock<IAttachmentStorageService>();
+
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Setup default empty aliases
         characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
@@ -1158,13 +1171,14 @@ public class HsrCharacterApplicationServiceTests
             gameRoleApiMock.Object,
             userRepositoryMock.Object,
             relicRepositoryMock.Object,
+            attachmentStorageMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, gameRoleApiMock,
-            metricsMock, userRepositoryMock);
+            metricsMock, attachmentStorageMock);
     }
 
-    private static HsrCharacterApplicationService SetupRealApiIntegrationTest()
+    private static (HsrCharacterApplicationService Service, IAttachmentStorageService AttachmentStorageService, Dictionary<string, MemoryStream> StoredAttachments) SetupRealApiIntegrationTest()
     {
         // Use all real services - no mocks
         var relicRepositoryMock = new Mock<IRelicRepository>();
@@ -1221,6 +1235,21 @@ public class HsrCharacterApplicationServiceTests
 
         var userRepositoryMock = new Mock<IUserRepository>();
 
+        var storedAttachments = new Dictionary<string, MemoryStream>();
+        var attachmentStorageMock = new Mock<IAttachmentStorageService>();
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string name, CancellationToken _) => storedAttachments.ContainsKey(name));
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string name, Stream stream, CancellationToken _) =>
+            {
+                MemoryStream copy = new();
+                if (stream.CanSeek) stream.Position = 0;
+                stream.CopyTo(copy);
+                copy.Position = 0;
+                storedAttachments[name] = copy;
+                return true;
+            });
+
         var service = new HsrCharacterApplicationService(
             cardService,
             wikiApiService,
@@ -1232,9 +1261,10 @@ public class HsrCharacterApplicationServiceTests
             gameRoleApiService,
             userRepositoryMock.Object,
             relicRepositoryMock.Object,
+            attachmentStorageMock.Object,
             Mock.Of<ILogger<HsrCharacterApplicationService>>());
 
-        return service;
+        return (service, attachmentStorageMock.Object, storedAttachments);
     }
 
     private static GameProfileDto CreateTestProfile()

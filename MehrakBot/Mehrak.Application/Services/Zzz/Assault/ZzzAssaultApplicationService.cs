@@ -24,7 +24,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Zzz.Assault;
 
-internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultApplicationContext>
+internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService<ZzzAssaultApplicationContext>
 {
     private readonly ICardService<ZzzAssaultData> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -36,8 +36,9 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
         IApiService<ZzzAssaultData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<ZzzAssaultApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -85,6 +86,23 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
                     isEphemeral: true);
             }
 
+            var tz = server.GetTimeZoneInfo();
+            var startTs = assaultData.StartTime.ToTimestamp(tz);
+            var endTs = assaultData.EndTime.ToTimestamp(tz);
+
+            var fileName = GetFileName(JsonSerializer.Serialize(assaultData), "jpg", gameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success([
+                        new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
+                        new CommandText($"Cycle start: <t:{startTs}:f>\n" +
+                                        $"Cycle end: <t:{endTs}:f>"),
+                        new CommandAttachment(fileName),
+                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                    ],
+                    true);
+            }
+
             var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
                 .DistinctBy(x => x.Id)
                 .Select(avatar =>
@@ -117,15 +135,19 @@ internal class ZzzAssaultApplicationService : BaseApplicationService<ZzzAssaultA
             var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
 
-            var tz = server.GetTimeZoneInfo();
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{assaultData.StartTime.ToTimestamp(tz)}:f>\n" +
-                                    $"Cycle end: <t:{assaultData.EndTime.ToTimestamp(tz)}:f>"),
-                    new CommandAttachment("da_card.jpg", card),
+                    new CommandText($"Cycle start: <t:{startTs}:f>\n" +
+                                    $"Cycle end: <t:{endTs}:f>"),
+                    new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);

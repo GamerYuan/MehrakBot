@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hsr.Character;
 
-public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacterApplicationContext>
+public class HsrCharacterApplicationService : BaseAttachmentApplicationService<HsrCharacterApplicationContext>
 {
     private readonly ICardService<HsrCharacterInformation> m_CardService;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
@@ -44,7 +44,8 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
         IRelicRepository relicRepository,
-        ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userRepository, logger)
+        IAttachmentStorageService attachmentStorageService,
+        ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_WikiApi = wikiApi;
@@ -108,6 +109,15 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
                             string.Format(ResponseMessage.CharacterNotFound, characterName))
                     ], isEphemeral: true);
                 }
+            }
+
+            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", gameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>")
+                    , new CommandAttachment(fileName)
+                ]);
             }
 
             var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
@@ -251,13 +261,21 @@ public class HsrCharacterApplicationService : BaseApplicationService<HsrCharacte
             var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
                 characterInfo.Name.ToLowerInvariant());
 
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>"), new CommandAttachment("character_card.jpg", card)
+                new CommandText($"<@{context.UserId}>")
+                , new CommandAttachment(fileName)
             ]);
         }
         catch (CommandException e)

@@ -20,6 +20,8 @@ public static class ApplicationServiceCollectionExtension
         services.AddTransient<IApplicationService<CheckInApplicationContext>, DailyCheckInService>();
         services.AddTransient<IApplicationService<CodeRedeemApplicationContext>, CodeRedeemApplicationService>();
 
+        services.AddHostedService<AsyncInitializationHostedService>();
+
         services.AddGenshinApplicationServices();
         services.AddHsrApplicationServices();
         services.AddZzzApplicationServices();

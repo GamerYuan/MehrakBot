@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hsr.Anomaly;
 
-internal class HsrAnomalyApplicationService : BaseApplicationService<HsrAnomalyApplicationContext>
+internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService<HsrAnomalyApplicationContext>
 {
     private readonly ICardService<HsrAnomalyInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -27,8 +27,9 @@ internal class HsrAnomalyApplicationService : BaseApplicationService<HsrAnomalyA
         IApiService<HsrAnomalyInformation, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         IUserRepository userRepository,
+        IAttachmentStorageService attachmentStorageService,
         ILogger<HsrAnomalyApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -88,6 +89,25 @@ internal class HsrAnomalyApplicationService : BaseApplicationService<HsrAnomalyA
                     isEphemeral: true);
             }
 
+            var tz = server.GetTimeZoneInfo();
+            var startTime = new DateTimeOffset(bestRecord.Group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+            var endTime = new DateTimeOffset(bestRecord.Group.EndTime.ToDateTime(), tz.BaseUtcOffset)
+                .ToUnixTimeSeconds();
+
+            var fileName = GetFileName(JsonSerializer.Serialize(anomalyData), "jpg", gameUid);
+            if (await AttachmentExistsAsync(fileName))
+            {
+                return CommandResult.Success(
+                    [
+                        new CommandText($"<@{context.UserId}>'s Anomaly Arbitration Summary", CommandText.TextType.Header3),
+                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                        new CommandAttachment(fileName),
+                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                    ],
+                    true);
+            }
+
             List<Task<bool>> tasks = [];
 
             tasks.AddRange(bestRecord.MobRecords.SelectMany(x => x.Avatars)
@@ -118,19 +138,20 @@ internal class HsrAnomalyApplicationService : BaseApplicationService<HsrAnomalyA
             var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(context.UserId, anomalyData, profile);
             cardContext.SetParameter("server", server);
 
-            var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
 
-            var tz = server.GetTimeZoneInfo();
-            var startTime = new DateTimeOffset(bestRecord.Group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-            var endTime = new DateTimeOffset(bestRecord.Group.EndTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
 
             return CommandResult.Success(
                 [
                     new CommandText($"<@{context.UserId}>'s Anomaly Arbitration Summary", CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                    new CommandAttachment("anomaly_card.jpg", card),
+                    new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);

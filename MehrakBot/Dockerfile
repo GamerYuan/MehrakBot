@@ -1,6 +1,4 @@
-﻿FROM ubuntu:24.04
-
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+﻿FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 WORKDIR /app
 
 RUN --mount=type=cache,target=/var/cache/apt \
@@ -117,26 +115,39 @@ RUN --mount=type=cache,target=/root/.ccache \
     mkdir -p /artifacts; \
     cp /opencvsharp/make/OpenCvSharpExtern/libOpenCvSharpExtern.so /artifacts/
 
-ARG DOTNET_ENVIRONMENT=Production
-
 RUN apt update && apt install -y clang
 
 COPY . .
 
+# Stage 2: Publish Bot
+FROM build-env AS publish-bot
+ARG DOTNET_ENVIRONMENT=Production
 RUN dotnet restore --runtime linux-x64 Mehrak.Bot/Mehrak.Bot.csproj
 RUN dotnet publish Mehrak.Bot/Mehrak.Bot.csproj \
     -c $([ "$DOTNET_ENVIRONMENT" = "Development" ] && echo "Debug" || echo "Release" ) \
-    -r linux-x64 -o out
-    
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+    -r linux-x64 -o /app/out/bot
+
+# Stage 3: Publish Dashboard
+FROM build-env AS publish-dashboard
+ARG ASPNETCORE_ENVIRONMENT=Production
+RUN dotnet restore --runtime linux-x64 Mehrak.Dashboard/Mehrak.Dashboard.csproj
+RUN dotnet publish Mehrak.Dashboard/Mehrak.Dashboard.csproj \
+    -c $([ "$ASPNETCORE_ENVIRONMENT" = "Development" ] && echo "Debug" || echo "Release" ) \
+    -r linux-x64 -o /app/out/dashboard
+
+# Stage 4: Runtime Base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-base
 WORKDIR /app
+COPY --from=build-env /usr/lib /usr/lib
+COPY --from=build-env /artifacts /artifacts
 
-# Copy the published bot from the publish stage
-COPY --from=build /app/out/ /app/
-COPY --from=build /usr/lib /usr/lib
-COPY --from=build /artifacts /artifacts
-
-EXPOSE 9090
-
-# Your bot's entry point
+# Stage 5: Bot Final
+FROM runtime-base AS bot
+COPY --from=publish-bot /app/out/bot /app
 ENTRYPOINT ["/app/Mehrak.Bot"]
+
+# Stage 6: Dashboard Final
+FROM runtime-base AS dashboard
+COPY --from=publish-dashboard /app/out/dashboard /app
+EXPOSE 5000
+ENTRYPOINT ["/app/Mehrak.Dashboard"]

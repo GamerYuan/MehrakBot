@@ -191,7 +191,7 @@ public class AuthenticationMiddlewareServiceTests
             Profiles = [profile]
         };
 
-        var cacheKey = $"ltoken:{TestUserId}:{TestLtUid}";
+        var cacheKey = $"bot:ltoken:{TestUserId}:{TestLtUid}";
 
         m_MockUserRepository
             .Setup(x => x.GetUserAsync(TestUserId))
@@ -259,7 +259,7 @@ public class AuthenticationMiddlewareServiceTests
             Profiles = [profile]
         };
 
-        var cacheKey = $"ltoken:{TestUserId}:{TestLtUid}";
+        var cacheKey = $"bot:ltoken:{TestUserId}:{TestLtUid}";
 
         m_MockUserRepository
             .Setup(x => x.GetUserAsync(TestUserId))
