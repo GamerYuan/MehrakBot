@@ -214,12 +214,20 @@ public class Program
                     .AllowCredentials()
                     .AllowAnyMethod();
             });
+            options.AddDefaultPolicy(builder =>
+            {
+                builder.WithOrigins("https://mehrak.yuan-dev.com")
+                    .AllowAnyHeader()
+                    .AllowCredentials()
+                    .AllowAnyMethod();
+            });
         });
 
         var app = builder.Build();
         await AddDefaultSuperAdminAccount(app);
 
         app.UseForwardedHeaders();
+        app.UseCors();
 
         if (app.Environment.IsDevelopment())
         {
