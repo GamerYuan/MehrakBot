@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Net;
 using System.Threading.RateLimiting;
 using Amazon.S3;
 using Mehrak.Application;
@@ -183,6 +184,7 @@ public class Program
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Nginx:KnownProxy"] ?? "127.0.0.1"));
         });
 
         builder.Services.AddRateLimiter(options =>
