@@ -207,20 +207,26 @@ public class Program
 
         builder.Services.AddCors(options =>
         {
-            options.AddPolicy("AllowAllDev", builder =>
+            if (builder.Environment.IsDevelopment())
             {
-                builder.WithOrigins("http://localhost:5173")
-                    .AllowAnyHeader()
-                    .AllowCredentials()
-                    .AllowAnyMethod();
-            });
-            options.AddDefaultPolicy(builder =>
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins("http://localhost:5173")
+                        .AllowAnyHeader()
+                        .AllowCredentials()
+                        .AllowAnyMethod();
+                });
+            }
+            else
             {
-                builder.WithOrigins("https://mehrak.yuan-dev.com")
-                    .AllowAnyHeader()
-                    .AllowCredentials()
-                    .AllowAnyMethod();
-            });
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins("https://mehrak.yuan-dev.com")
+                        .AllowAnyHeader()
+                        .AllowCredentials()
+                        .AllowAnyMethod();
+                });
+            }
         });
 
         var app = builder.Build();
@@ -228,12 +234,6 @@ public class Program
 
         app.UseForwardedHeaders();
         app.UseCors();
-
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseCors("AllowAllDev");
-        }
-
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseRateLimiter();
