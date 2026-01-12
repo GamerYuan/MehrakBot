@@ -5,7 +5,6 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Metrics;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
@@ -23,11 +22,6 @@ public static class InfrastructureServiceCollectionExtension
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
-        services.AddDbContext<UserDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
-
         IConnectionMultiplexer multiplexer = ConnectionMultiplexer.Connect(
             config["Redis:ConnectionString"] ?? "localhost:6379");
         services.AddSingleton(multiplexer);

@@ -7,6 +7,8 @@ using Mehrak.Bot.Services;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -101,6 +103,11 @@ public class Program
             // Database Services
             builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
+
+            builder.Services.AddDbContext<UserDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
+            builder.Services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
+            builder.Services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
+            builder.Services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
 
             // Api Services
             builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
