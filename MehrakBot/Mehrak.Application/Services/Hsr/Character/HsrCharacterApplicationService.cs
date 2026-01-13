@@ -14,6 +14,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -32,7 +33,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
         m_CharacterApi;
 
     private readonly IMetricsService m_MetricsService;
-    private readonly IRelicRepository m_RelicRepository;
+    private readonly RelicDbContext m_RelicContext;
 
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
@@ -44,7 +45,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
-        IRelicRepository relicRepository,
+        RelicDbContext relicContext,
         IAttachmentStorageService attachmentStorageService,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
@@ -55,7 +56,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
         m_CharacterCacheService = characterCacheService;
         m_CharacterApi = characterApi;
         m_MetricsService = metricsService;
-        m_RelicRepository = relicRepository;
+        m_RelicContext = relicContext;
     }
 
     public override async Task<CommandResult> ExecuteAsync(HsrCharacterApplicationContext context)
@@ -168,7 +169,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
                             if (locale == WikiLocales.EN)
                             {
                                 var setName = wikiResponse.Data["data"]?["page"]?["name"]?.GetValue<string>();
-                                if (setName != null) await m_RelicRepository.AddSetName(setId, setName);
+                                if (setName != null) await AddSetName(setId, setName);
                             }
 
                             jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
@@ -289,6 +290,29 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
         {
             Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
             return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+        }
+    }
+
+    private async Task AddSetName(int setId, string setName)
+    {
+        try
+        {
+            var existing = await m_RelicContext.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
+            if (existing == null)
+            {
+                var entity = new HsrRelicModel { SetId = setId, SetName = setName };
+                m_RelicContext.HsrRelics.Add(entity);
+                await m_RelicContext.SaveChangesAsync();
+                Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+            }
+            else
+            {
+                Logger.LogDebug("Relic set mapping for setId {SetId} : {SetName} already exists; skipping overwrite", setId, setName);
+            }
+        }
+        catch (DbUpdateException e)
+        {
+            Logger.LogWarning(e, "An error occurred while inserting relic {SetId}, {SetName}", setId, setName);
         }
     }
 }
