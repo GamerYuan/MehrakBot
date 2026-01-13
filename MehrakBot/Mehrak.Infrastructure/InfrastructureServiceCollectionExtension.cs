@@ -1,12 +1,10 @@
 ﻿#region
 
 using Amazon.S3;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Metrics;
-using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -47,13 +45,6 @@ public static class InfrastructureServiceCollectionExtension
         });
 
         services.AddSingleton<IAttachmentStorageService, AttachmentStorageService>();
-
-        services.AddSingleton<IUserRepository, UserRepository>();
-        services.AddSingleton<IImageRepository, ImageRepository>();
-        services.AddSingleton<ICharacterRepository, CharacterRepository>();
-        services.AddSingleton<IAliasRepository, AliasRepository>();
-        services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
-        services.AddSingleton<IRelicRepository, HsrRelicRepository>();
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 

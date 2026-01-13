@@ -7,7 +7,6 @@ using Mehrak.Dashboard.Auth;
 using Mehrak.Dashboard.Metrics;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure.Auth;
@@ -15,7 +14,6 @@ using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -139,12 +137,6 @@ public class Program
         builder.Services.AddScoped<IDashboardUserService, DashboardUserService>();
         builder.Services.AddScoped<IAttachmentStorageService, AttachmentStorageService>();
 
-        builder.Services.AddSingleton<ICharacterRepository, CharacterRepository>();
-        builder.Services.AddSingleton<IAliasRepository, AliasRepository>();
-        builder.Services.AddSingleton<IUserRepository, UserRepository>();
-        builder.Services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
-        builder.Services.AddSingleton<IImageRepository, ImageRepository>();
-        builder.Services.AddSingleton<IRelicRepository, HsrRelicRepository>();
         builder.Services.AddSingleton<ICacheService, RedisCacheService>();
         builder.Services.AddSingleton<IEncryptionService, CookieEncryptionService>();
         builder.Services.AddScoped<IDashboardProfileAuthenticationService, DashboardProfileAuthenticationService>();
