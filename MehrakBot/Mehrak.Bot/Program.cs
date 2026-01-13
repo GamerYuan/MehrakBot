@@ -4,10 +4,11 @@ using System.Globalization;
 using Mehrak.Application;
 using Mehrak.Application.Services.Common;
 using Mehrak.Bot.Services;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Metrics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -104,11 +105,6 @@ public class Program
             builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
 
-            builder.Services.AddDbContext<UserDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-            builder.Services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-            builder.Services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-            builder.Services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-
             // Api Services
             builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
                 new HttpClientHandler
@@ -123,6 +119,11 @@ public class Program
             builder.Services.AddApplicationServices();
 
             builder.Services.AddBotServices();
+
+            builder.Services.AddSingleton<IMetricsService, BotMetricsService>();
+            builder.Services.AddHostedService<BotMetricsService>();
+
+            builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
 
             builder.Services.AddHostedService<AssetInitializationService>();
 

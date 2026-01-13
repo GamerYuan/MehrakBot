@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Threading.RateLimiting;
-using Amazon.S3;
 using Mehrak.Application;
 using Mehrak.Dashboard.Auth;
 using Mehrak.Dashboard.Metrics;
@@ -9,17 +8,15 @@ using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
+using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.Grafana.Loki;
@@ -30,13 +27,6 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        HostApplicationBuilderSettings settings = new()
-        {
-            Args = args,
-            Configuration = new ConfigurationManager(),
-            ContentRootPath = Directory.GetCurrentDirectory()
-        };
-
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Configuration.AddJsonFile("appsettings.json")
@@ -93,56 +83,23 @@ public class Program
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(dispose: true);
 
-        // DbContext
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
-
-        builder.Services.AddDbContext<DashboardAuthDbContext>(options =>
-            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-        builder.Services.AddDbContext<CharacterDbContext>(options =>
-            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-        builder.Services.AddDbContext<UserDbContext>(options =>
-            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-        builder.Services.AddDbContext<CodeRedeemDbContext>(options =>
-            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-        builder.Services.AddDbContext<RelicDbContext>(options =>
-            options.UseNpgsql(builder.Configuration["Postgres:ConnectionString"]));
-
-        builder.Services.AddStackExchangeRedisCache(options =>
-        {
-            options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
-            options.InstanceName = "MehrakDashboard_";
-        });
-
-        builder.Services.AddSingleton<IAmazonS3>(sp =>
-        {
-            var cfg = sp.GetRequiredService<IOptions<S3StorageConfig>>().Value;
-            var s3Config = new AmazonS3Config
-            {
-                ServiceURL = cfg.ServiceURL,
-                ForcePathStyle = cfg.ForcePathStyle,
-                Timeout = TimeSpan.FromSeconds(30),
-                SignatureMethod = Amazon.Runtime.SigningAlgorithm.HmacSHA256
-            };
-            return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
-        });
-
         builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
 
-        builder.Services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
         builder.Services.AddSingleton<IDashboardMetrics, DashboardMetricsService>();
         builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<IDashboardMetrics>());
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
         builder.Services.AddScoped<IDashboardUserService, DashboardUserService>();
-        builder.Services.AddScoped<IAttachmentStorageService, AttachmentStorageService>();
 
-        builder.Services.AddSingleton<ICacheService, RedisCacheService>();
-        builder.Services.AddSingleton<IEncryptionService, CookieEncryptionService>();
         builder.Services.AddScoped<IDashboardProfileAuthenticationService, DashboardProfileAuthenticationService>();
         builder.Services.AddScoped<DashboardCookieEvents>();
+
         builder.Services.AddApplicationServices();
         builder.Services.AddGameApiServices();
+        builder.Services.AddInfrastructureServices(builder.Configuration);
+
         builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
             new HttpClientHandler
             {

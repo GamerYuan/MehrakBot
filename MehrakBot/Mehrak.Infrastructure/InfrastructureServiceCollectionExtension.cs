@@ -1,10 +1,13 @@
 ﻿#region
 
 using Amazon.S3;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Metrics;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +23,17 @@ public static class InfrastructureServiceCollectionExtension
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
+        services.AddDbContext<DashboardAuthDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<CharacterDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<UserDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<CodeRedeemDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<RelicDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+
         IConnectionMultiplexer multiplexer = ConnectionMultiplexer.Connect(
             config["Redis:ConnectionString"] ?? "localhost:6379");
         services.AddSingleton(multiplexer);
@@ -44,6 +58,8 @@ public static class InfrastructureServiceCollectionExtension
             return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
         });
 
+        services.AddSingleton<IImageRepository, ImageRepository>();
+
         services.AddSingleton<IAttachmentStorageService, AttachmentStorageService>();
 
         services.AddSingleton<ICacheService, RedisCacheService>();
@@ -53,11 +69,6 @@ public static class InfrastructureServiceCollectionExtension
         services.AddHostedService<AliasInitializationService>();
         services.AddHostedService<CharacterCacheBackgroundService>();
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
-
-        services.AddSingleton<IMetricsService, BotMetricsService>();
-        services.AddHostedService<BotMetricsService>();
-
-        services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
 
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 
