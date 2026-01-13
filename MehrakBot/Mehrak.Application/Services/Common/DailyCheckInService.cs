@@ -4,9 +4,10 @@ using Mehrak.Application.Models.Context;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
+using Mehrak.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -15,18 +16,18 @@ namespace Mehrak.Application.Services.Common;
 
 public class DailyCheckInService : IApplicationService<CheckInApplicationContext>
 {
-    private readonly IUserRepository m_UserRepository;
+    private readonly UserDbContext m_UserContext;
     private readonly IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext> m_GameRecordApiService;
     private readonly IApiService<CheckInStatus, CheckInApiContext> m_ApiService;
     private readonly ILogger<DailyCheckInService> m_Logger;
 
     public DailyCheckInService(
-        IUserRepository userRepository,
+        UserDbContext userContext,
         IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext> gameRecordApiService,
         IApiService<CheckInStatus, CheckInApiContext> apiService,
         ILogger<DailyCheckInService> logger)
     {
-        m_UserRepository = userRepository;
+        m_UserContext = userContext;
         m_GameRecordApiService = gameRecordApiService;
         m_ApiService = apiService;
         m_Logger = logger;
@@ -36,10 +37,11 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
     {
         try
         {
-            var user = await m_UserRepository.GetUserAsync(context.UserId);
-            var profile = user?.Profiles?.First(x => x.LtUid == context.LtUid);
+            var profile = await m_UserContext.UserProfiles
+                .Where(x => x.UserId == (long)context.UserId && x.LtUid == (long)context.LtUid)
+                .FirstOrDefaultAsync();
 
-            if (user != null && profile != null && profile.LastCheckIn.HasValue)
+            if (profile != null && profile.LastCheckIn.HasValue)
             {
                 var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
                 var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
@@ -111,7 +113,15 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
             if (checkInResults.All(x => x.Item1) && profile != null)
             {
                 profile.LastCheckIn = DateTime.UtcNow;
-                await m_UserRepository.CreateOrUpdateUserAsync(user!);
+
+                try
+                {
+                    await m_UserContext.SaveChangesAsync();
+                }
+                catch (DbUpdateException e)
+                {
+                    m_Logger.LogError(e, "Failed to update LastCheckIn for user {UserId}, LtUid {LtUid}", context.UserId, context.LtUid);
+                }
             }
 
             m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);

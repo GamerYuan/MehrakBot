@@ -14,6 +14,7 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -38,13 +39,13 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         ICardService<IEnumerable<GenshinBasicCharacterData>> cardService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ICharacterCacheService characterCache,
         IImageRepository imageRepository,
         IApiService<JsonNode, WikiApiContext> wikiApi,
         IAttachmentStorageService attachmentStorageService,
         ILogger<GenshinCharListApplicationService> logger)
-        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
+        : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_ImageUpdaterService = imageUpdaterService;
         m_CardService = cardService;
@@ -70,7 +71,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
 
             var gameUid = profile.GameUid;
 

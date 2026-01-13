@@ -13,6 +13,7 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -42,10 +43,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
         ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         IRelicRepository relicRepository,
         IAttachmentStorageService attachmentStorageService,
-        ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userRepository, attachmentStorageService, logger)
+        ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_WikiApi = wikiApi;
@@ -75,7 +76,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
 
             var gameUid = profile.GameUid;
 

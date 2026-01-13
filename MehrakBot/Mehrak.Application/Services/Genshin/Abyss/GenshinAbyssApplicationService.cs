@@ -8,10 +8,10 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -35,10 +35,10 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService<G
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ILogger<GenshinAbyssApplicationService> logger)
-        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
+        : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ApiService = apiService;
@@ -62,7 +62,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService<G
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
 
             var abyssInfo = await m_ApiService.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,

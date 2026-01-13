@@ -9,6 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
         <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
+        <ProjectReference Include="..\Mehrak.Infrastructure\Mehrak.Infrastructure.csproj" />
     </ItemGroup>
 
     <ItemGroup>

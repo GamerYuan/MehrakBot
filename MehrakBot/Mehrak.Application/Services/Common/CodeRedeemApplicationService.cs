@@ -10,6 +10,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -27,9 +28,9 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
         ICodeRedeemRepository codeRepository,
         IApiService<CodeRedeemResult, CodeRedeemApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ILogger<CodeRedeemApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userContext, logger)
     {
         m_CodeRepository = codeRepository;
         m_ApiService = apiService;
@@ -51,7 +52,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, server.ToString());
 
             var gameUid = profile.GameUid;
 
