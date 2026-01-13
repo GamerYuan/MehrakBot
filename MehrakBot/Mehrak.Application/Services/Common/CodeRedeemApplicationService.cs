@@ -5,12 +5,13 @@ using Mehrak.Application.Models.Context;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -19,20 +20,20 @@ namespace Mehrak.Application.Services.Common;
 
 public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApplicationContext>
 {
-    private readonly ICodeRedeemRepository m_CodeRepository;
+    private readonly CodeRedeemDbContext m_CodeContext;
     private readonly IApiService<CodeRedeemResult, CodeRedeemApiContext> m_ApiService;
 
     private readonly int m_RedeemDelay = 5500;
 
     public CodeRedeemApplicationService(
-        ICodeRedeemRepository codeRepository,
+        CodeRedeemDbContext codeContext,
         IApiService<CodeRedeemResult, CodeRedeemApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         ILogger<CodeRedeemApplicationService> logger)
         : base(gameRoleApi, userContext, logger)
     {
-        m_CodeRepository = codeRepository;
+        m_CodeContext = codeContext;
         m_ApiService = apiService;
     }
 
@@ -61,7 +62,11 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
             var codes = RegexExpressions.RedeemCodeSplitRegex().Split(codeStr!).Where(x => !string.IsNullOrEmpty(x))
                 .ToList();
 
-            if (codes.Count == 0) codes = await m_CodeRepository.GetCodesAsync(context.Game);
+            if (codes.Count == 0)
+                codes = await m_CodeContext.Codes.AsNoTracking()
+                    .Where(x => x.Game == context.Game)
+                    .Select(x => x.Code)
+                    .ToListAsync();
 
             if (codes.Count == 0)
             {
@@ -101,7 +106,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
             }
 
             if (successfulCodes.Count > 0)
-                await m_CodeRepository.UpdateCodesAsync(context.Game, successfulCodes).ConfigureAwait(false);
+                await UpdateCodesAsync(context.Game, successfulCodes).ConfigureAwait(false);
 
             return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
         }
@@ -109,6 +114,55 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
         {
             Logger.LogError(e, LogMessage.UnknownError, $"Codes {context.Game}", context.UserId, e.Message);
             return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+        }
+    }
+
+    private async Task UpdateCodesAsync(Game game, Dictionary<string, CodeStatus> codes)
+    {
+        var incoming = codes.Select(x => x.Key).ToHashSet();
+
+        var existingCodes = await m_CodeContext.Codes.AsNoTracking()
+            .Where(x => x.Game == game && incoming.Contains(x.Code))
+            .ToListAsync();
+
+        var expiredCodes = codes
+            .Where(kvp => kvp.Value == CodeStatus.Invalid)
+            .Select(kvp => kvp.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        List<CodeRedeemModel> codesToRemove = [];
+
+        if (expiredCodes.Count > 0)
+        {
+            codesToRemove.AddRange(existingCodes.Where(x => expiredCodes.Contains(x.Code)));
+            m_CodeContext.Codes.RemoveRange(codesToRemove);
+        }
+
+        var newValidCodes = codes
+            .Where(kvp => kvp.Value == CodeStatus.Valid)
+            .Select(kvp => kvp.Key)
+            .Except(existingCodes.Select(x => x.Code), StringComparer.OrdinalIgnoreCase)
+            .Select(x => new CodeRedeemModel
+            {
+                Game = game,
+                Code = x
+            })
+            .ToList();
+
+        if (newValidCodes.Count > 0)
+        {
+            m_CodeContext.Codes.AddRange(newValidCodes);
+        }
+
+        try
+        {
+            await m_CodeContext.SaveChangesAsync();
+            Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
+                newValidCodes.Count, codesToRemove.Count, game);
+        }
+        catch (DbUpdateException e)
+        {
+            Logger.LogError(e, "Failed to update Codes for game: {Game}", game);
         }
     }
 }

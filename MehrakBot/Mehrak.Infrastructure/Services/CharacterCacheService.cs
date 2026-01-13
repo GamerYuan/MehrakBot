@@ -64,8 +64,6 @@ public class CharacterCacheService : ICharacterCacheService
 
             if (toAdd.Count == 0) return;
 
-            var newCount = 0;
-
             foreach (var newChar in toAdd)
             {
                 await m_CharacterContext.Characters.AddAsync(new CharacterModel()
@@ -73,15 +71,13 @@ public class CharacterCacheService : ICharacterCacheService
                     Game = gameName,
                     Name = newChar
                 });
-                newCount++;
             }
 
-            if (newCount > 0)
-            {
-                await m_CharacterContext.SaveChangesAsync();
-            }
+            await m_CharacterContext.SaveChangesAsync();
+
 
             await UpdateCharactersAsync(gameName);
+            m_Logger.LogInformation("Updated {Count} names for {Game}", toAdd.Count, gameName);
         }
         catch (Exception e)
         {
