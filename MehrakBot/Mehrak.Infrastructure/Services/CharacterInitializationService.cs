@@ -4,6 +4,7 @@ using System.Text.Json;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -13,16 +14,16 @@ namespace Mehrak.Infrastructure.Services;
 
 public class CharacterInitializationService : IHostedService
 {
-    private readonly CharacterDbContext m_CharacterContext;
+    private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<CharacterInitializationService> m_Logger;
     private readonly string m_AssetsPath;
 
     public CharacterInitializationService(
-        CharacterDbContext characterContext,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<CharacterInitializationService> logger,
         string? assetsPath = null)
     {
-        m_CharacterContext = characterContext;
+        m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_AssetsPath = assetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     }
@@ -75,6 +76,9 @@ public class CharacterInitializationService : IHostedService
     {
         try
         {
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
             m_Logger.LogDebug("Processing character JSON file: {FilePath}", jsonFilePath);
 
             var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
@@ -92,7 +96,7 @@ public class CharacterInitializationService : IHostedService
             var incoming = newCharacters.ToHashSet();
             if (incoming.Count > 0)
             {
-                var existing = await m_CharacterContext.Characters
+                var existing = await characterContext.Characters
                     .Where(x => x.Game == gameName && incoming.Contains(x.Name))
                     .Select(x => x.Name)
                     .ToListAsync();
@@ -108,8 +112,8 @@ public class CharacterInitializationService : IHostedService
                     m_Logger.LogInformation("Upserting {Count} characters for game {Game}",
                         newEntities.Count, gameName);
 
-                    m_CharacterContext.Characters.AddRange(newEntities);
-                    await m_CharacterContext.SaveChangesAsync();
+                    characterContext.Characters.AddRange(newEntities);
+                    await characterContext.SaveChangesAsync();
                 }
             }
 

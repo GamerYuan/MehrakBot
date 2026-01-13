@@ -129,9 +129,9 @@ public class CharacterCacheBackgroundService : BackgroundService
             m_Logger.LogDebug("No character cache changes detected during periodic update");
     }
 
-    public override async Task StopAsync(CancellationToken stoppingToken)
+    public override async Task StopAsync(CancellationToken cancellationToken)
     {
         m_Logger.LogInformation("Character cache background service stopping");
-        await base.StopAsync(stoppingToken);
+        await base.StopAsync(cancellationToken);
     }
 }

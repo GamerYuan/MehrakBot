@@ -4,6 +4,7 @@ using System.Text.Json;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -13,16 +14,16 @@ namespace Mehrak.Infrastructure.Services;
 
 internal class AliasInitializationService : IHostedService
 {
-    private readonly CharacterDbContext m_CharacterContext;
+    private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AliasInitializationService> m_Logger;
     private readonly string m_AssetsPath;
 
     public AliasInitializationService(
-        CharacterDbContext characterContext,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<AliasInitializationService> logger,
         string? assetsPath = null)
     {
-        m_CharacterContext = characterContext;
+        m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_AssetsPath = assetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     }
@@ -75,6 +76,9 @@ internal class AliasInitializationService : IHostedService
     {
         try
         {
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
             m_Logger.LogDebug("Processing alias JSON file {FilePath}", filePath);
 
             var jsonContent = await File.ReadAllTextAsync(filePath);
@@ -94,7 +98,7 @@ internal class AliasInitializationService : IHostedService
             if (aliases.Count > 0)
             {
                 var aliasKeys = aliases.Keys.ToList();
-                var existing = await m_CharacterContext.Aliases
+                var existing = await characterContext.Aliases
                     .Where(x => x.Game == gameName && aliasKeys.Contains(x.Alias))
                     .ToListAsync();
 
@@ -111,13 +115,13 @@ internal class AliasInitializationService : IHostedService
                         if (!string.Equals(model.CharacterName, character, StringComparison.OrdinalIgnoreCase))
                         {
                             model.CharacterName = character;
-                            m_CharacterContext.Aliases.Update(model);
+                            characterContext.Aliases.Update(model);
                             updateCount++;
                         }
                     }
                     else
                     {
-                        m_CharacterContext.Aliases.Add(new AliasModel
+                        characterContext.Aliases.Add(new AliasModel
                         {
                             Game = gameName,
                             Alias = key,
@@ -129,7 +133,7 @@ internal class AliasInitializationService : IHostedService
 
                 if (updateCount > 0 || newCount > 0)
                 {
-                    await m_CharacterContext.SaveChangesAsync();
+                    await characterContext.SaveChangesAsync();
                 }
             }
 
