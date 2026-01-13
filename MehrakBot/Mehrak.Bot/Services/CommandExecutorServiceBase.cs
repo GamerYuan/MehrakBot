@@ -5,6 +5,7 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -85,8 +86,33 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return;
 
-        await m_UserContext.Regions
+        var region = await m_UserContext.Regions
             .Where(x => x.ProfileId == profile.Id && x.Game == game)
-            .ExecuteUpdateAsync(x => x.SetProperty(r => r.Region, server));
+            .FirstOrDefaultAsync();
+
+        try
+        {
+            if (region == null)
+            {
+                await m_UserContext.Regions.AddAsync(new ProfileRegion()
+                {
+                    ProfileId = profile.Id,
+                    Game = game,
+                    Region = server
+                });
+            }
+            else
+            {
+                region.Region = server;
+                m_UserContext.Update(region);
+            }
+
+            await m_UserContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException e)
+        {
+            Logger.LogError(e, "Failed to update last used server for user {UserId}, profile {ProfileId}, game {Game}",
+                user.Id, profileId, game);
+        }
     }
 }
