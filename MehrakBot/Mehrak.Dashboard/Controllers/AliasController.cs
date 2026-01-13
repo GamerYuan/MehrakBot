@@ -1,8 +1,10 @@
 ﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Repositories;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Controllers;
 
@@ -11,12 +13,12 @@ namespace Mehrak.Dashboard.Controllers;
 [Route("alias")]
 public class AliasController : ControllerBase
 {
-    private readonly IAliasRepository m_AliasRepository;
+    private readonly CharacterDbContext m_CharacterContext;
     private readonly ILogger<AliasController> m_Logger;
 
-    public AliasController(IAliasRepository aliasRepository, ILogger<AliasController> logger)
+    public AliasController(CharacterDbContext characterContext, ILogger<AliasController> logger)
     {
-        m_AliasRepository = aliasRepository;
+        m_CharacterContext = characterContext;
         m_Logger = logger;
     }
 
@@ -27,16 +29,14 @@ public class AliasController : ControllerBase
             return BadRequest(new { error });
 
         m_Logger.LogInformation("Listing aliases for game {Game}", gameEnum);
-        var aliases = await m_AliasRepository.GetAliasesAsync(gameEnum);
+        var aliases = await m_CharacterContext.Aliases
+            .AsNoTracking()
+            .Where(x => x.Game == gameEnum)
+            .ToListAsync();
 
-        Dictionary<string, List<string>> result = [];
-
-        foreach (var alias in aliases)
-        {
-            if (!result.ContainsKey(alias.Value))
-                result.Add(alias.Value, []);
-            result[alias.Value].Add(alias.Key);
-        }
+        var result = aliases
+            .GroupBy(x => x.CharacterName)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Alias).ToList());
 
         return Ok(result);
     }
@@ -71,16 +71,29 @@ public class AliasController : ControllerBase
         if (normalizedAliases.Length == 0)
             return BadRequest(new { error = "Aliases list must contain at least one alias." });
 
-        var existing = await m_AliasRepository.GetAliasesAsync(gameEnum);
-        var existingKeys = new HashSet<string>(existing.Keys, StringComparer.OrdinalIgnoreCase);
-        var conflicts = normalizedAliases.Where(existingKeys.Contains).ToArray();
+        var existingKeys = await m_CharacterContext.Aliases
+            .AsNoTracking()
+            .Where(x => x.Game == gameEnum)
+            .Select(x => x.Alias)
+            .ToListAsync();
+
+        var existingSet = new HashSet<string>(existingKeys, StringComparer.OrdinalIgnoreCase);
+        var conflicts = normalizedAliases.Where(existingSet.Contains).ToArray();
         if (conflicts.Length > 0)
             return Conflict(new { error = $"Aliases already exist: {string.Join(", ", conflicts)}" });
 
-        var payload = normalizedAliases.ToDictionary(alias => alias, _ => characterName, StringComparer.OrdinalIgnoreCase);
         m_Logger.LogInformation("Adding {Count} aliases for character {Character} in game {Game}", normalizedAliases.Length,
             characterName, gameEnum);
-        await m_AliasRepository.UpsertAliasAsync(gameEnum, payload);
+
+        var newEntities = normalizedAliases.Select(alias => new AliasModel
+        {
+            Game = gameEnum,
+            Alias = alias,
+            CharacterName = characterName
+        });
+
+        m_CharacterContext.Aliases.AddRange(newEntities);
+        await m_CharacterContext.SaveChangesAsync();
         return NoContent();
     }
 
@@ -98,7 +111,21 @@ public class AliasController : ControllerBase
 
         var normalized = alias.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting alias {Alias} for game {Game}", normalized, gameEnum);
-        await m_AliasRepository.DeleteAliasAsync(gameEnum, normalized);
+
+        var entity = await m_CharacterContext.Aliases
+            .FirstOrDefaultAsync(x => x.Game == gameEnum && x.Alias == normalized);
+
+        if (entity != null)
+        {
+            m_CharacterContext.Aliases.Remove(entity);
+            await m_CharacterContext.SaveChangesAsync();
+            m_Logger.LogInformation("Deleted alias {Alias} for game {Game}", normalized, gameEnum);
+        }
+        else
+        {
+            m_Logger.LogInformation("Alias {Alias} not found for game {Game}; nothing to delete", normalized, gameEnum);
+        }
+
         return NoContent();
     }
 
