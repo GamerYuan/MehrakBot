@@ -2,8 +2,10 @@
 
 using System.Collections.Concurrent;
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -12,20 +14,17 @@ namespace Mehrak.Infrastructure.Services;
 
 public class CharacterCacheService : ICharacterCacheService
 {
-    private readonly ICharacterRepository m_CharacterRepository;
-    private readonly IAliasRepository m_AliasRepository;
+    private readonly CharacterDbContext m_CharacterContext;
     private readonly ILogger<CharacterCacheService> m_Logger;
     private readonly ConcurrentDictionary<Game, List<string>> m_CharacterCache;
     private readonly Dictionary<Game, Dictionary<string, string>> m_AliasCache;
     private readonly SemaphoreSlim m_UpdateSemaphore;
 
     public CharacterCacheService(
-        ICharacterRepository characterRepository,
-        IAliasRepository aliasRepository,
+        CharacterDbContext characterContext,
         ILogger<CharacterCacheService> logger)
     {
-        m_CharacterRepository = characterRepository;
-        m_AliasRepository = aliasRepository;
+        m_CharacterContext = characterContext;
         m_Logger = logger;
         m_AliasCache = [];
         m_CharacterCache = new ConcurrentDictionary<Game, List<string>>();
@@ -54,11 +53,34 @@ public class CharacterCacheService : ICharacterCacheService
     {
         try
         {
-            var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, [])).ToList();
+            var incoming = new HashSet<string>(characters, StringComparer.OrdinalIgnoreCase);
+
+            var existing = await m_CharacterContext.Characters
+                .Where(x => x.Game == gameName && incoming.Contains(x.Name))
+                .Select(x => x.Name)
+                .ToListAsync();
+
+            var toAdd = incoming.Except(existing).ToList();
 
             if (toAdd.Count == 0) return;
 
-            await m_CharacterRepository.UpsertCharactersAsync(gameName, toAdd);
+            var newCount = 0;
+
+            foreach (var newChar in toAdd)
+            {
+                await m_CharacterContext.Characters.AddAsync(new CharacterModel()
+                {
+                    Game = gameName,
+                    Name = newChar
+                });
+                newCount++;
+            }
+
+            if (newCount > 0)
+            {
+                await m_CharacterContext.SaveChangesAsync();
+            }
+
             await UpdateCharactersAsync(gameName);
         }
         catch (Exception e)
@@ -99,8 +121,11 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating character cache for {Game}", gameName);
 
-            var characters = await m_CharacterRepository.GetCharactersAsync(gameName);
-            characters.Sort();
+            var characters = await m_CharacterContext.Characters.AsNoTracking()
+                .Where(x => x.Game == gameName)
+                .Select(x => x.Name)
+                .OrderBy(x => x)
+                .ToListAsync();
 
             if (characters.Count > 0)
             {
@@ -125,8 +150,8 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogDebug("Updating alias cache for {Game}", gameName);
 
-            var aliases = new Dictionary<string, string>(await m_AliasRepository.GetAliasesAsync(gameName),
-                StringComparer.OrdinalIgnoreCase);
+            var aliases = await m_CharacterContext.Aliases.Where(a => a.Game == gameName)
+                .ToDictionaryAsync(a => a.Alias, a => a.CharacterName);
 
             if (aliases.Count > 0)
             {
