@@ -1,9 +1,10 @@
 ﻿#region
 
 using Mehrak.Bot.Authentication;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -34,18 +35,18 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
     private readonly ILogger<AuthModalModule> m_Logger;
     private readonly IEncryptionService m_CookieService;
-    private readonly IUserRepository m_UserRepository;
+    private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
 
     public AuthModalModule(
         IEncryptionService cookieService,
-        IUserRepository userRepository,
+        UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
         ILogger<AuthModalModule> logger)
     {
         m_Logger = logger;
         m_CookieService = cookieService;
-        m_UserRepository = userRepository;
+        m_UserContext = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
     }
 
@@ -58,11 +59,20 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
-            var user = await m_UserRepository.GetUserAsync(Context.User.Id);
-            user ??= new UserDto
+            var user = await m_UserContext.Users
+                .Where(u => u.Id == (long)Context.User.Id)
+                .Include(u => u.Profiles)
+                .SingleOrDefaultAsync();
+            if (user == null)
             {
-                Id = Context.User.Id
-            };
+                user = new UserModel
+                {
+                    Id = (long)Context.User.Id,
+                    Timestamp = DateTime.UtcNow,
+                    Profiles = []
+                };
+                await m_UserContext.Users.AddAsync(user);
+            }
 
             var inputs = Context.Components.OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
@@ -77,8 +87,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
-            user.Profiles ??= [];
-            if (user.Profiles.Any(x => x.LtUid == ltuid))
+            if (user.Profiles.Any(x => x.LtUid == (long)ltuid))
             {
                 m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
                 await Context.Interaction.SendFollowupMessageAsync(
@@ -87,31 +96,31 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
-            UserProfileDto profile = new()
+            UserProfileModel profile = new()
             {
-                ProfileId = (uint)user.Profiles.Count() + 1,
-                LtUid = ltuid,
+                UserId = (long)Context.User.Id,
+                ProfileId = user.Profiles.Count + 1,
+                LtUid = (long)ltuid,
                 LToken = await Task.Run(() =>
-                    m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"])),
-                GameUids = []
+                    m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
             };
 
-            user.Profiles = user.Profiles.Append(profile);
-
-            if (!await m_UserRepository.CreateOrUpdateUserAsync(user))
+            await m_UserContext.UserProfiles.AddAsync(profile);
+            try
             {
-                m_Logger.LogError("Failed to add profile for user {UserId}", Context.User.Id);
+                await m_UserContext.SaveChangesAsync();
+                m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Added profile successfully!")));
+            }
+            catch (DbUpdateException e)
+            {
+                m_Logger.LogError(e, "Failed to add profile for user {UserId}", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("Failed to add profile! Please try again later")));
-                return;
             }
-
-            m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
-
-            await Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Added profile successfully!")));
         }
         catch (Exception e)
         {

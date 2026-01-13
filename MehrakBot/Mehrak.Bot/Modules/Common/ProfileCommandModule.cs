@@ -1,6 +1,7 @@
 ﻿#region
 
-using Mehrak.Domain.Models;
+using System.Text;
+using Mehrak.Domain.Enums;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -52,7 +53,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         if (profileId == 0)
         {
-            await m_UserContext.Users.Where(x => x.Id == (long)Context.Interaction.Id).ExecuteDeleteAsync();
+            await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
 
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -74,8 +75,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             if (profiles[i].ProfileId == profileId)
             {
-                profiles.RemoveAt(i);
                 m_UserContext.UserProfiles.Remove(profiles[i]);
+                profiles.RemoveAt(i);
             }
             else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
         }
@@ -112,26 +113,16 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("list", "List your profiles")]
     public async Task ListProfileCommand()
     {
-        var user = await m_UserContext.Users.AsNoTracking()
-            .Where(x => x.Id == (long)Context.User.Id)
-            .Select(u => new UserDto()
-            {
-                Id = (ulong)u.Id,
-                Profiles = u.Profiles.Select(p => new UserProfileDto()
-                {
-                    ProfileId = p.ProfileId,
-                    LtUid = (ulong)p.LtUid,
-                    GameUids = p.GameUids
-                        .GroupBy(g => g.Game)
-                        .ToDictionary(
-                            g => g.Key,
-                            g => g.ToDictionary(
-                                x => x.Region,
-                                x => x.GameUid))
-                }).ToList()
-            }).FirstOrDefaultAsync();
+        var user = await m_UserContext.Users
+                .AsNoTracking()
+                .Include(u => u.Profiles)
+                    .ThenInclude(p => p.GameUids)
+                .Include(u => u.Profiles)
+                    .ThenInclude(p => p.LastUsedRegions)
+                .SingleOrDefaultAsync(u => u.Id == (long)Context.User.Id);
 
-        if (user?.Profiles == null || !user.Profiles.Any())
+
+        if (user?.Profiles == null || user.Profiles.Count == 0)
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -139,15 +130,30 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        var profileList = user.Profiles.Select(x => new TextDisplayProperties(
-            $"## Profile {x.ProfileId}:\n**HoYoLAB UID:** {x.LtUid}\n### Games:\n" +
-            $"{string.Join('\n', x.GameUids?.Select(y =>
-                                     $"{y.Key}\n{string.Join(", ", y.Value.Select(z =>
-                                         $"{z.Key}: {z.Value}"))}")
-                                 ?? [])}"));
+        ComponentContainerProperties container = [];
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < user.Profiles.Count; i++)
+        {
+            var profile = user.Profiles[i];
+            sb.Append($"## Profile {profile.ProfileId}\n**HoYoLAB UID:** {profile.LtUid}\n### Games: \n");
+            foreach (var gameUid in profile.GameUids.GroupBy(x => x.Game, (key, g) => new { Key = key, Grouping = g }))
+            {
+                sb.AppendLine($"**{gameUid.Key.ToFriendlyString()}**");
+                foreach (var g in gameUid.Grouping)
+                {
+                    sb.AppendLine($"- {g.Region}: {g.GameUid}");
+                }
+            }
+            container.AddComponents([new TextDisplayProperties(sb.ToString())]);
+            sb.Clear();
+
+            if (i + 1 < user.Profiles.Count) container.AddComponents([new ComponentSeparatorProperties()]);
+        }
+
         await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(profileList)));
+                .AddComponents([container])));
     }
 
     public static string GetHelpString(string subcommand)
