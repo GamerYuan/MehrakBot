@@ -4,8 +4,8 @@ namespace Mehrak.Dashboard.Models;
 
 public abstract class ZzzBaseCommandRequest
 {
-    [Range(1, uint.MaxValue)]
-    public uint ProfileId { get; set; } = 1;
+    [Range(1, 10)]
+    public int ProfileId { get; set; } = 1;
 
     [Required]
     [StringLength(32, MinimumLength = 2)]

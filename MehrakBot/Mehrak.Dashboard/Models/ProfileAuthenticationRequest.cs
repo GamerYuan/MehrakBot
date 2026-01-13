@@ -4,8 +4,8 @@ namespace Mehrak.Dashboard.Models;
 
 public sealed class ProfileAuthenticationRequest
 {
-    [Range(1, uint.MaxValue)]
-    public uint ProfileId { get; set; }
+    [Range(1, 10)]
+    public int ProfileId { get; set; }
 
     [Required]
     [StringLength(256, MinimumLength = 1)]
