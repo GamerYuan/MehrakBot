@@ -50,7 +50,7 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
                 if (lastCheckInUtc8.Date == nowUtc8.Date)
                 {
                     m_Logger.LogInformation("User {UserId} has already checked in today for profile {ProfileId}",
-                        context.UserId, profile);
+                        context.UserId, profile.ProfileId);
                     return CommandResult.Success(
                         [new CommandText("You have already checked in today")],
                         isEphemeral: true);
