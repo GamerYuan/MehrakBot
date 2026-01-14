@@ -106,6 +106,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("Failed to add profile! Please try again later")));
+                return;
             }
 
             UserProfileModel profile = new()
