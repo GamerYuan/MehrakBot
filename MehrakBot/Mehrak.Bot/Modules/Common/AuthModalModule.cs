@@ -96,6 +96,22 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
+            try
+            {
+                await m_UserContext.SaveChangesAsync();
+                m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Added profile successfully!")));
+            }
+            catch (DbUpdateException e)
+            {
+                m_Logger.LogError(e, "Failed to add profile for user {UserId}", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Failed to add profile! Please try again later")));
+            }
+
             UserProfileModel profile = new()
             {
                 UserId = (long)Context.User.Id,
