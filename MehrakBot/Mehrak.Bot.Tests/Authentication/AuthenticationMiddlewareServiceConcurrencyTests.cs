@@ -40,14 +40,12 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
     private List<ulong> m_TestUserIds = null!;
     private ConcurrentDictionary<ulong, string> m_UserTokens = null!;
-    private Random m_Random = null!;
 
     [SetUp]
     public void Setup()
     {
         m_MockCacheService = new Mock<ICacheService>();
         m_EncryptionService = new CookieEncryptionService(NullLogger<CookieEncryptionService>.Instance);
-        m_Random = new Random(42); // Fixed seed for reproducibility
 
         // Generate unique test user IDs
         m_TestUserIds = new List<ulong>(NumberOfConcurrentUsers);
@@ -168,7 +166,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                     }
 
                     // Determine if this user will provide wrong password (10% chance)
-                    var useWrongPassword = m_Random.NextDouble() < WrongPasswordProbability;
+                    var useWrongPassword = Random.Shared.NextDouble() < WrongPasswordProbability;
                     var passphrase = useWrongPassword ? WrongPassphrase : CorrectPassphrase;
 
                     if (useWrongPassword)
