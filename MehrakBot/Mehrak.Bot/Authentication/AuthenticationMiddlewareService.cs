@@ -50,11 +50,11 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         var user = await userContext.Users
             .AsNoTracking()
-            .Where(x => x.Id == (long)request.Context.Interaction.User.Id)
-            .Select(x => new UserDto()
+            .Where(u => u.Id == (long)request.Context.Interaction.User.Id)
+            .Select(u => new UserDto()
             {
-                Id = (ulong)x.Id,
-                Profiles = x.Profiles.Where(x => x.ProfileId == request.ProfileId).Select(p => new UserProfileDto()
+                Id = (ulong)u.Id,
+                Profiles = u.Profiles.Where(x => x.ProfileId == request.ProfileId).Select(p => new UserProfileDto()
                 {
                     Id = p.Id,
                     ProfileId = p.ProfileId,
