@@ -31,7 +31,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
     private const int NumberOfConcurrentUsers = 100;
     private const int MaxParallelism = 16;
-    private const uint TestProfileId = 1U;
+    private const int TestProfileId = 1;
     private const ulong BaseLtUid = 100000000UL;
     private const string CorrectPassphrase = "correct-passphrase";
     private const string WrongPassphrase = "wrong-passphrase";
@@ -75,7 +75,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                 {
                     User = user,
                     UserId = user.Id,
-                    ProfileId = (int)TestProfileId,
+                    ProfileId = TestProfileId,
                     LtUid = (long)(BaseLtUid + userId % 1000),
                     LToken = m_EncryptionService.Encrypt(m_UserTokens[userId], CorrectPassphrase)
                 };

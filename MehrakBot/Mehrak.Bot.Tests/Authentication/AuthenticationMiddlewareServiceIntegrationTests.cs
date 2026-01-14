@@ -32,7 +32,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
     private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
-    private const uint TestProfileId = 1U;
+    private const int TestProfileId = 1;
     private const string TestPassphrase = "test-passphrase-123";
     private const string TestLToken = "test-ltoken-value";
 
@@ -73,7 +73,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         InitializeService(context =>
         {
-            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+            context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
         m_MockCacheService
@@ -162,7 +162,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         InitializeService(context =>
         {
-            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+            context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
         m_MockCacheService
@@ -235,7 +235,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         InitializeService(context =>
         {
-            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+            context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
         m_MockCacheService
@@ -280,7 +280,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         InitializeService(context =>
         {
-            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+            context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
         m_MockCacheService
@@ -444,7 +444,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         InitializeService(context =>
         {
-            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+            context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
         m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
@@ -492,7 +492,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         InitializeService(context =>
         {
-            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+            context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
         m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
@@ -540,7 +540,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         InitializeService(context =>
         {
-            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+            context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
         m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);

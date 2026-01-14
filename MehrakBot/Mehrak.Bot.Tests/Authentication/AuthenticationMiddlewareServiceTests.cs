@@ -32,7 +32,7 @@ public class AuthenticationMiddlewareServiceTests
 
     private const ulong TestUserId = 123456789UL;
     private const ulong TestLtUid = 987654321UL;
-    private const uint TestProfileId = 1U;
+    private const int TestProfileId = 1;
     private const string TestPassphrase = "test-passphrase-123";
     private const string TestLToken = "test-ltoken-value";
     private const string TestEncryptedToken = "encrypted-token-base64";
@@ -479,7 +479,7 @@ public class AuthenticationMiddlewareServiceTests
             m_MockLogger.Object);
     }
 
-    private static UserModel BuildUserModel(ulong userId, ulong ltUid, string ltoken, int profileId = (int)TestProfileId)
+    private static UserModel BuildUserModel(ulong userId, ulong ltUid, string ltoken, int profileId = TestProfileId)
     {
         var user = new UserModel
         {
