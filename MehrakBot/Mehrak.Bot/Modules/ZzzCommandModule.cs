@@ -89,7 +89,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     public async Task ShiyuCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
-        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         int profile = 1
     )
     {
@@ -113,7 +113,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     public async Task AssaultCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
-        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1")]
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
         int profile = 1
     )
     {
