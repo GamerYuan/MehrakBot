@@ -430,7 +430,6 @@ public class HsrAnomalyApplicationServiceTests
             .ReturnsAsync(true);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new HsrAnomalyApplicationService(
             cardServiceMock.Object,
@@ -489,7 +488,6 @@ public class HsrAnomalyApplicationServiceTests
         await cardService.InitializeAsync();
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        await userContext.Database.EnsureCreatedAsync();
 
         var service = new HsrAnomalyApplicationService(
             cardService,

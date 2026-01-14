@@ -524,7 +524,6 @@ public class DailyCheckInServiceTests
         ) SetupMocks()
     {
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var gameRecordApiMock = new Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>();
         var checkInApiMock = new Mock<IApiService<CheckInStatus, CheckInApiContext>>();

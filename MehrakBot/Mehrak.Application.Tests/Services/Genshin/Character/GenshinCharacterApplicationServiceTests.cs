@@ -1106,7 +1106,6 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinCharacterApplicationService(
             cardServiceMock.Object,
@@ -1175,7 +1174,6 @@ public class GenshinCharacterApplicationServiceTests
         cardService.InitializeAsync().Wait();
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinCharacterApplicationService(
             cardService,
@@ -1249,7 +1247,6 @@ public class GenshinCharacterApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinCharacterApplicationService(
             cardService,

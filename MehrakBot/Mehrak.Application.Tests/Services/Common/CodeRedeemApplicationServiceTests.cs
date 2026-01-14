@@ -547,9 +547,6 @@ public class CodeRedeemApplicationServiceTests
         var codeContext = m_DbFactory1.CreateDbContext<CodeRedeemDbContext>();
         var userContext = m_DbFactory2.CreateDbContext<UserDbContext>();
 
-        codeContext.Database.EnsureCreated();
-        userContext.Database.EnsureCreated();
-
         var codeRedeemApiMock = new Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var loggerMock = new Mock<ILogger<CodeRedeemApplicationService>>();

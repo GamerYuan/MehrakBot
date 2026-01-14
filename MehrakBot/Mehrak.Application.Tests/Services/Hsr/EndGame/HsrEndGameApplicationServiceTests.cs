@@ -489,7 +489,6 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(true);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new HsrEndGameApplicationService(
             cardServiceMock.Object,
@@ -538,7 +537,6 @@ public class HsrEndGameApplicationServiceTests
         cardService.InitializeAsync().Wait();
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new HsrEndGameApplicationService(
             cardService,
@@ -598,7 +596,6 @@ public class HsrEndGameApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new HsrEndGameApplicationService(
             cardService,

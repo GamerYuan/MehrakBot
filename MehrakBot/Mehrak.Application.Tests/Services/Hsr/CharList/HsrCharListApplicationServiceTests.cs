@@ -466,7 +466,6 @@ public class HsrCharListApplicationServiceTests
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<HsrCharListApplicationService>>();
         var userDbContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userDbContext.Database.EnsureCreated();
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -519,7 +518,6 @@ public class HsrCharListApplicationServiceTests
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<HsrCharListApplicationService>>();
         var userDbContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userDbContext.Database.EnsureCreated();
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -597,7 +595,6 @@ public class HsrCharListApplicationServiceTests
             });
 
         var userDbContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userDbContext.Database.EnsureCreated();
 
         var service = new HsrCharListApplicationService(
             cardService,

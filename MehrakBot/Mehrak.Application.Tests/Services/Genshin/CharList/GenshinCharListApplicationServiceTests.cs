@@ -684,7 +684,6 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError, "Default Mock Behavior"));
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinCharListApplicationService(
             imageUpdaterMock.Object,
@@ -752,7 +751,6 @@ public class GenshinCharListApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinCharListApplicationService(
             imageUpdaterService,
@@ -817,7 +815,6 @@ public class GenshinCharListApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinCharListApplicationService(
             imageUpdaterService,

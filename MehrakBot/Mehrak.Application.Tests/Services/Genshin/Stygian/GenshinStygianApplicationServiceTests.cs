@@ -541,7 +541,6 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(cardStream);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinStygianApplicationService(
             imageUpdaterMock.Object,
@@ -598,7 +597,6 @@ public class GenshinStygianApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         cardService.InitializeAsync().Wait();
 
@@ -655,7 +653,6 @@ public class GenshinStygianApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new GenshinStygianApplicationService(
             imageUpdaterService,

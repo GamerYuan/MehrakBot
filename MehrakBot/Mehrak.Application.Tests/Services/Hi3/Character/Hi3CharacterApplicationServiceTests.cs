@@ -483,7 +483,6 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(new MemoryStream());
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new Hi3CharacterApplicationService(
             cardServiceMock.Object,
@@ -534,7 +533,6 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new Hi3CharacterApplicationService(
             cardService,

@@ -19,7 +19,9 @@ internal sealed class TestDbContextFactory : IDisposable
             .UseSqlite(m_Connection)
             .Options;
 
-        return (TDb)Activator.CreateInstance(typeof(TDb), [contextOptions])!;
+        var dbContext = (TDb)Activator.CreateInstance(typeof(TDb), [contextOptions])!;
+        dbContext.Database.EnsureCreated();
+        return dbContext;
     }
 
     public void Dispose()

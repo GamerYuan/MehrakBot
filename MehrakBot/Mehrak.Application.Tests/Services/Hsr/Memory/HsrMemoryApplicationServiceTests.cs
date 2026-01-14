@@ -529,7 +529,6 @@ public class HsrMemoryApplicationServiceTests
             .ReturnsAsync(true);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new HsrMemoryApplicationService(
             cardServiceMock.Object,
@@ -578,7 +577,6 @@ public class HsrMemoryApplicationServiceTests
         cardService.InitializeAsync().Wait();
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new HsrMemoryApplicationService(
             cardService,
@@ -638,7 +636,6 @@ public class HsrMemoryApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new HsrMemoryApplicationService(
             cardService,

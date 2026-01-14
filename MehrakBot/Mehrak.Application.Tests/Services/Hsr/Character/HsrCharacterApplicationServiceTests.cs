@@ -997,9 +997,6 @@ public class HsrCharacterApplicationServiceTests
         var userContext = m_DbFactory1.CreateDbContext<UserDbContext>();
         var relicContext = m_DbFactory2.CreateDbContext<RelicDbContext>();
 
-        userContext.Database.EnsureCreated();
-        relicContext.Database.EnsureCreated();
-
         var service = new HsrCharacterApplicationService(
             cardServiceMock.Object,
             wikiApiMock.Object,
@@ -1032,9 +1029,6 @@ public class HsrCharacterApplicationServiceTests
     {
         var userContext = m_DbFactory1.CreateDbContext<UserDbContext>();
         var relicContext = m_DbFactory2.CreateDbContext<RelicDbContext>();
-
-        userContext.Database.EnsureCreated();
-        relicContext.Database.EnsureCreated();
 
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
@@ -1106,9 +1100,6 @@ public class HsrCharacterApplicationServiceTests
 
         var userContext = m_DbFactory1.CreateDbContext<UserDbContext>();
         var relicContext = m_DbFactory2.CreateDbContext<RelicDbContext>();
-
-        userContext.Database.EnsureCreated();
-        relicContext.Database.EnsureCreated();
 
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,

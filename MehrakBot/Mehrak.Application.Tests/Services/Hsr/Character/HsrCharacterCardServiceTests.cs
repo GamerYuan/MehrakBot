@@ -138,7 +138,6 @@ public class HsrCharacterCardServiceTests
     {
         var services = new ServiceCollection();
         var dbContext = m_DbFactory.CreateDbContext<RelicDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
 
         services.AddScoped(_ => dbContext);
 

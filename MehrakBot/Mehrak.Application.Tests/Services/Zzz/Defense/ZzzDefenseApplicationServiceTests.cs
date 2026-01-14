@@ -516,7 +516,6 @@ public class ZzzDefenseApplicationServiceTests
             .ReturnsAsync(true);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new ZzzDefenseApplicationService(
             cardServiceMock.Object,
@@ -565,7 +564,6 @@ public class ZzzDefenseApplicationServiceTests
         cardService.InitializeAsync().Wait();
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new ZzzDefenseApplicationService(
             cardService,
@@ -625,7 +623,6 @@ public class ZzzDefenseApplicationServiceTests
             });
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
-        userContext.Database.EnsureCreated();
 
         var service = new ZzzDefenseApplicationService(
             cardService,
