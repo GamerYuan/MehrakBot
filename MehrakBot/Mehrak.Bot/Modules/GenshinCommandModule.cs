@@ -44,7 +44,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",
@@ -68,7 +68,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the notes command with server {Server}, profile {ProfileId}",
@@ -94,7 +94,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
@@ -120,7 +120,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the abyss command with floor {Floor}, server {Server}, profile {ProfileId}",
@@ -144,7 +144,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the theater command with server {Server}, profile {ProfileId}",
@@ -167,7 +167,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the stygian command with server {Server}, profile {ProfileId}",
@@ -190,7 +190,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the charlist command with server {Server}, profile {ProfileId}",

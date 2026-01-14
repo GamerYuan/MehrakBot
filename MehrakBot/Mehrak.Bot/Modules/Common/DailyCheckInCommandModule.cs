@@ -29,7 +29,7 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
     [SlashCommand("checkin", "Perform HoYoLAB Daily Check-In")]
     public async Task DailyCheckInCommand(
         [SlashCommandParameter(Name = "profile", Description = "Profile ID (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation("Executing Daily Check-In command for user {UserId} with profile {ProfileId}",
             Context.User.Id, profile);

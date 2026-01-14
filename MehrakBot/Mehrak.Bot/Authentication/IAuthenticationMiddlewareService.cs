@@ -83,9 +83,9 @@ public class AuthenticationResult
 public class AuthenticationRequest
 {
     public IInteractionContext Context { get; init; }
-    public uint ProfileId { get; init; }
+    public int ProfileId { get; init; }
 
-    public AuthenticationRequest(IInteractionContext context, uint profileId)
+    public AuthenticationRequest(IInteractionContext context, int profileId)
     {
         Context = context;
         ProfileId = profileId;

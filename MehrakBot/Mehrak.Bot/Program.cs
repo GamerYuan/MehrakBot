@@ -140,8 +140,6 @@ public class Program
             host.UseGatewayHandlers();
             logger.LogInformation("Discord gateway initialized");
 
-            var dir = Directory.GetCurrentDirectory();
-
             await host.RunAsync();
         }
         catch (Exception ex)

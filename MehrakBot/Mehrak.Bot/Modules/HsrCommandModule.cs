@@ -41,7 +41,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",
@@ -65,7 +65,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {UserId} used the real-time notes command with server {Server}, profile {ProfileId}",
@@ -91,7 +91,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the codes command with code {Code}, server {Server}, profile {ProfileId}",
@@ -115,7 +115,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the Memory command with server {Server}, profile {ProfileId}",
@@ -137,7 +137,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
@@ -161,7 +161,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
@@ -185,7 +185,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the Character List command with server {Server}, profile {ProfileId}",
@@ -208,7 +208,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
     [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {User} used the Anomaly command with server {Server}, profile {ProfileId}",

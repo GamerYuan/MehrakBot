@@ -30,7 +30,7 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
         m_Service = service;
     }
 
-    public override async Task ExecuteAsync(uint profile)
+    public override async Task ExecuteAsync(int profile)
     {
         Logger.LogInformation(
             "User {User} used command {Command}",

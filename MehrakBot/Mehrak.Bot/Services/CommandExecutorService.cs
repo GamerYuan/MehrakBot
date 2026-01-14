@@ -22,7 +22,7 @@ public interface ICommandExecutorService<TContext> where TContext : IApplication
     TContext ApplicationContext { get; set; }
     bool ValidateServer { get; set; }
 
-    Task ExecuteAsync(uint profile);
+    Task ExecuteAsync(int profile);
 
     void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null);
 }
@@ -47,11 +47,19 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         m_AttachmentService = attachmentService;
     }
 
-    public override async Task ExecuteAsync(uint profile)
+    public override async Task ExecuteAsync(int profile)
     {
         Logger.LogInformation(
             "User {User} used command {Command}",
             Context.Interaction.User.Id, CommandName);
+
+        if (profile <= 0 || profile > 10)
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties("Profile specified is outside of allowed range (1 - 10)"))));
+            return;
+        }
 
         var invalid = Validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
         if (invalid.Any())

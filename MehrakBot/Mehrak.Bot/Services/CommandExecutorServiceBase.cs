@@ -51,7 +51,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         Validators.Add(new ParamValidator<TParam>(paramName, pred, errorMessage));
     }
 
-    public abstract Task ExecuteAsync(uint profile);
+    public abstract Task ExecuteAsync(int profile);
 
     protected async Task<bool> ValidateRateLimitAsync()
     {
@@ -67,7 +67,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         return true;
     }
 
-    protected async Task<string?> GetLastUsedServerAsync(UserDto user, Game game, uint profileId)
+    protected async Task<string?> GetLastUsedServerAsync(UserDto user, Game game, int profileId)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;
@@ -81,7 +81,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         return region?.Region;
     }
 
-    protected async Task UpdateLastUsedServerAsync(UserDto user, uint profileId, Game game, string server)
+    protected async Task UpdateLastUsedServerAsync(UserDto user, int profileId, Game game, string server)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return;
