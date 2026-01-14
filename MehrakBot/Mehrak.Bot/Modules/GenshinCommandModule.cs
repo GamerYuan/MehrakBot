@@ -179,7 +179,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinStygianApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinStygianApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin theater")
+            .WithCommandName("genshin stygian")
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -202,7 +202,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinCharListApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinCharListApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin theater")
+            .WithCommandName("genshin charlist")
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
