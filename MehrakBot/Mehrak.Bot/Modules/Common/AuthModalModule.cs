@@ -99,10 +99,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             try
             {
                 await m_UserContext.SaveChangesAsync();
-                m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
-                await Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Added profile successfully!")));
             }
             catch (DbUpdateException e)
             {
