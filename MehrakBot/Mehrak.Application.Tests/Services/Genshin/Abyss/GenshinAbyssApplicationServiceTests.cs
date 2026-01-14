@@ -355,7 +355,16 @@ public class GenshinAbyssApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        SeedUserProfile(userContext, 1ul, 1, 1ul);
+        var seededProfile = SeedUserProfile(userContext, 1ul, 1, 1ul);
+        userContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = seededProfile.Id,
+            Game = Game.Genshin,
+            Region = Server.Asia.ToString(),
+            GameUid = profile.GameUid
+        });
+        await userContext.SaveChangesAsync();
+        userContext.ChangeTracker.Clear();
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
@@ -825,7 +834,7 @@ public class GenshinAbyssApplicationServiceTests
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
     }
 
-    private static void SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)
+    private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)
     {
         var user = new UserModel
         {
@@ -846,6 +855,8 @@ public class GenshinAbyssApplicationServiceTests
         user.Profiles.Add(profile);
         userContext.Users.Add(user);
         userContext.SaveChanges();
+        userContext.ChangeTracker.Clear();
+        return profile;
     }
     #endregion
 }
