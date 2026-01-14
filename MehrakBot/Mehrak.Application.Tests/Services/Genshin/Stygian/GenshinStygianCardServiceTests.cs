@@ -28,7 +28,7 @@ public class GenshinStygianCardServiceTests
     public async Task Setup()
     {
         m_Service = new GenshinStygianCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>());
         await m_Service.InitializeAsync();
     }

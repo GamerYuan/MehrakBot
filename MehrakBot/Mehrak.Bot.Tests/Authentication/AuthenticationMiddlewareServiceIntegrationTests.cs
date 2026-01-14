@@ -3,10 +3,10 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Mehrak.Bot.Authentication;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -25,10 +25,10 @@ namespace Mehrak.Bot.Tests.Authentication;
 public partial class AuthenticationMiddlewareServiceIntegrationTests
 {
     private Mock<ICacheService> m_MockCacheService = null!;
-    private Mock<IUserRepository> m_MockUserRepository = null!;
     private CookieEncryptionService m_EncryptionService = null!;
     private AuthenticationMiddlewareService m_Service = null!;
     private DiscordTestHelper m_DiscordHelper = null!;
+    private TestDbContextFactory? m_DbFactory;
 
     private ulong m_TestUserId;
     private const ulong TestLtUid = 987654321UL;
@@ -40,25 +40,19 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
     public void Setup()
     {
         m_MockCacheService = new Mock<ICacheService>();
-        m_MockUserRepository = new Mock<IUserRepository>();
         m_EncryptionService = new CookieEncryptionService(NullLogger<CookieEncryptionService>.Instance);
         m_DiscordHelper = new DiscordTestHelper();
         m_DiscordHelper.SetupRequestCapture();
 
-        m_Service = new AuthenticationMiddlewareService(
-            m_MockCacheService.Object,
-            m_EncryptionService,
-            m_MockUserRepository.Object,
-            NullLogger<AuthenticationMiddlewareService>.Instance);
-
         m_TestUserId = (ulong)new Random(DateTime.UtcNow.Microsecond).NextInt64();
+        InitializeService();
     }
 
     [TearDown]
     public void TearDown()
     {
         m_MockCacheService.Reset();
-        m_MockUserRepository.Reset();
+        m_DbFactory?.Dispose();
         m_DiscordHelper?.Dispose();
     }
 
@@ -75,24 +69,12 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         // Encrypt the token with the test passphrase
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfileDto
-        {
-            ProfileId = TestProfileId,
-            LtUid = TestLtUid,
-            LToken = encryptedToken
-        };
-
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [profile]
-        };
-
         var cacheKey = $"bot:ltoken:{m_TestUserId}:{TestLtUid}";
 
-        m_MockUserRepository
-            .Setup(x => x.GetUserAsync(m_TestUserId))
-            .ReturnsAsync(user);
+        InitializeService(context =>
+        {
+            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+        });
 
         m_MockCacheService
             .Setup(x => x.GetAsync<string>(cacheKey))
@@ -147,9 +129,13 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             Assert.That(result.LToken, Is.EqualTo(TestLToken), "Decrypted token should match original");
             Assert.That(result.UserId, Is.EqualTo(m_TestUserId));
             Assert.That(result.LtUid, Is.EqualTo(TestLtUid));
-            Assert.That(result.User, Is.EqualTo(user));
             Assert.That(result.Status, Is.EqualTo(AuthStatus.Success));
             Assert.That(result.Context, Is.EqualTo(mockContext.Object));
+            Assert.That(result.User, Is.Not.Null);
+            Assert.That(result.User!.Id, Is.EqualTo(m_TestUserId));
+            var userProfile = result.User.Profiles?.FirstOrDefault();
+            Assert.That(userProfile, Is.Not.Null);
+            Assert.That(userProfile!.LtUid, Is.EqualTo(TestLtUid));
         });
 
         // Verify the token was cached
@@ -172,24 +158,12 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         // Encrypt the token with the correct passphrase
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfileDto
-        {
-            ProfileId = TestProfileId,
-            LtUid = TestLtUid,
-            LToken = encryptedToken
-        };
-
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [profile]
-        };
-
         var cacheKey = $"bot:ltoken:{m_TestUserId}:{TestLtUid}";
 
-        m_MockUserRepository
-            .Setup(x => x.GetUserAsync(m_TestUserId))
-            .ReturnsAsync(user);
+        InitializeService(context =>
+        {
+            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+        });
 
         m_MockCacheService
             .Setup(x => x.GetAsync<string>(cacheKey))
@@ -257,24 +231,12 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfileDto
-        {
-            ProfileId = TestProfileId,
-            LtUid = TestLtUid,
-            LToken = encryptedToken
-        };
-
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [profile]
-        };
-
         var cacheKey = $"bot:ltoken:{m_TestUserId}:{TestLtUid}";
 
-        m_MockUserRepository
-            .Setup(x => x.GetUserAsync(m_TestUserId))
-            .ReturnsAsync(user);
+        InitializeService(context =>
+        {
+            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+        });
 
         m_MockCacheService
             .Setup(x => x.GetAsync<string>(cacheKey))
@@ -282,18 +244,12 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
-        var service = new AuthenticationMiddlewareService(
-            m_MockCacheService.Object,
-            m_EncryptionService,
-            m_MockUserRepository.Object,
-            NullLogger<AuthenticationMiddlewareService>.Instance);
-
-        var prop = service.GetType()
+        var prop = typeof(AuthenticationMiddlewareService)
             .GetProperty("TimeoutMinutes", BindingFlags.NonPublic | BindingFlags.Instance);
-        prop?.SetValue(service, 0.1f);
+        prop?.SetValue(m_Service, 0.1f);
 
         // Act - Start authentication but don't notify (simulate user not responding)
-        var result = await service.GetAuthenticationAsync(request);
+        var result = await m_Service.GetAuthenticationAsync(request);
 
         // Assert
         Assert.Multiple(() =>
@@ -320,24 +276,12 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         var encryptedToken = m_EncryptionService.Encrypt(TestLToken, TestPassphrase);
 
-        var profile = new UserProfileDto
-        {
-            ProfileId = TestProfileId,
-            LtUid = TestLtUid,
-            LToken = encryptedToken
-        };
-
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [profile]
-        };
-
         var cacheKey = $"bot:ltoken:{m_TestUserId}:{TestLtUid}";
 
-        m_MockUserRepository
-            .Setup(x => x.GetUserAsync(m_TestUserId))
-            .ReturnsAsync(user);
+        InitializeService(context =>
+        {
+            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+        });
 
         m_MockCacheService
             .Setup(x => x.GetAsync<string>(cacheKey))
@@ -412,14 +356,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             var encryptedToken1 = m_EncryptionService.Encrypt("token1", "pass1");
             var encryptedToken2 = m_EncryptionService.Encrypt("token2", "pass2");
 
-            var profile1 = new UserProfileDto { ProfileId = 1, LtUid = 111, LToken = encryptedToken1 };
-            var profile2 = new UserProfileDto { ProfileId = 2, LtUid = 222, LToken = encryptedToken2 };
-
-            var user1 = new UserDto { Id = m_TestUserId, Profiles = [profile1] };
-            var user2 = new UserDto { Id = m_TestUserId + 1, Profiles = [profile2] };
-
-            m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user1);
-            m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId + 1)).ReturnsAsync(user2);
+            InitializeService(context =>
+            {
+                context.Users.Add(CreateUserModel(m_TestUserId, 1, 111, encryptedToken1));
+                context.Users.Add(CreateUserModel(m_TestUserId + 1, 2, 222, encryptedToken2));
+            });
 
             m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
             m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
@@ -501,20 +442,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var emptyToken = "";
         var encryptedToken = m_EncryptionService.Encrypt(emptyToken, TestPassphrase);
 
-        var profile = new UserProfileDto
+        InitializeService(context =>
         {
-            ProfileId = TestProfileId,
-            LtUid = TestLtUid,
-            LToken = encryptedToken
-        };
+            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+        });
 
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [profile]
-        };
-
-        m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user);
         m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
         m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
 
@@ -558,20 +490,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var longToken = new string('x', 10000);
         var encryptedToken = m_EncryptionService.Encrypt(longToken, TestPassphrase);
 
-        var profile = new UserProfileDto
+        InitializeService(context =>
         {
-            ProfileId = TestProfileId,
-            LtUid = TestLtUid,
-            LToken = encryptedToken
-        };
+            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+        });
 
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [profile]
-        };
-
-        m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user);
         m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
         m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
 
@@ -615,20 +538,11 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         var unicodeToken = "测试数据🎮🎯🎲";
         var encryptedToken = m_EncryptionService.Encrypt(unicodeToken, TestPassphrase);
 
-        var profile = new UserProfileDto
+        InitializeService(context =>
         {
-            ProfileId = TestProfileId,
-            LtUid = TestLtUid,
-            LToken = encryptedToken
-        };
+            context.Users.Add(CreateUserModel(m_TestUserId, (int)TestProfileId, TestLtUid, encryptedToken));
+        });
 
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [profile]
-        };
-
-        m_MockUserRepository.Setup(x => x.GetUserAsync(m_TestUserId)).ReturnsAsync(user);
         m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
         m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
 
@@ -667,6 +581,38 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
     [GeneratedRegex(@"auth_modal:([a-f0-9-]{36})", RegexOptions.IgnoreCase)]
     private static partial Regex ModalGuidRegex();
+
+    private void InitializeService(Action<UserDbContext>? seed = null)
+    {
+        m_DbFactory?.Dispose();
+        m_DbFactory = new TestDbContextFactory(seed: seed);
+        m_Service = new AuthenticationMiddlewareService(
+            m_MockCacheService.Object,
+            m_EncryptionService,
+            m_DbFactory.ScopeFactory,
+            NullLogger<AuthenticationMiddlewareService>.Instance);
+    }
+
+    private static UserModel CreateUserModel(ulong userId, int profileId, ulong ltUid, string ltoken)
+    {
+        var user = new UserModel
+        {
+            Id = (long)userId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        var profile = new UserProfileModel
+        {
+            User = user,
+            UserId = user.Id,
+            ProfileId = profileId,
+            LtUid = (long)ltUid,
+            LToken = ltoken
+        };
+
+        user.Profiles.Add(profile);
+        return user;
+    }
 
     #endregion
 }

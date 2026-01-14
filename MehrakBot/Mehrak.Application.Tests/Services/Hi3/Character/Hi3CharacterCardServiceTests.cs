@@ -25,7 +25,7 @@ internal class Hi3CharacterCardServiceTests
     public async Task Setup()
     {
         m_CharacterCardService = new Hi3CharacterCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>());
         await m_CharacterCardService.InitializeAsync();
     }

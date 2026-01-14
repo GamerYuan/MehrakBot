@@ -6,8 +6,10 @@ using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord;
@@ -28,16 +30,19 @@ public class CommandExecutorServiceTests
 {
     private Mock<IServiceProvider> m_MockServiceProvider = null!;
     private Mock<IApplicationService<TestApplicationContext>> m_MockApplicationService = null!;
-    private Mock<IUserRepository> m_MockUserRepository = null!;
     private Mock<ICommandRateLimitService> m_MockRateLimitService = null!;
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
     private Mock<IMetricsService> m_MockMetricsService = null!;
     private Mock<IAttachmentStorageService> m_MockAttachmentService = null!;
     private CommandExecutorService<TestApplicationContext> m_Service = null!;
     private DiscordTestHelper m_DiscordHelper = null!;
+    private TestDbContextFactory? m_DbFactory;
+    private IServiceScope? m_DbScope;
+    private UserDbContext m_UserContext = null!;
 
     private ulong m_TestUserId;
-    private const uint TestProfileId = 1U;
+    private const int TestProfileId = 1;
+    private const long TestProfileEntityId = 10L;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test-ltoken-value";
     private const Game TestGame = Game.Genshin;
@@ -48,13 +53,17 @@ public class CommandExecutorServiceTests
     {
         m_MockServiceProvider = new Mock<IServiceProvider>();
         m_MockApplicationService = new Mock<IApplicationService<TestApplicationContext>>();
-        m_MockUserRepository = new Mock<IUserRepository>();
         m_MockRateLimitService = new Mock<ICommandRateLimitService>();
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
         m_MockMetricsService = new Mock<IMetricsService>();
         m_MockAttachmentService = new Mock<IAttachmentStorageService>();
         m_DiscordHelper = new DiscordTestHelper();
         m_DiscordHelper.SetupRequestCapture();
+
+        m_DbFactory?.Dispose();
+        m_DbFactory = new TestDbContextFactory();
+        m_DbScope = m_DbFactory.ScopeFactory.CreateScope();
+        m_UserContext = m_DbScope.ServiceProvider.GetRequiredService<UserDbContext>();
 
         // Setup service provider to return mocked application service
         m_MockServiceProvider
@@ -63,7 +72,7 @@ public class CommandExecutorServiceTests
 
         m_Service = new CommandExecutorService<TestApplicationContext>(
             m_MockServiceProvider.Object,
-            m_MockUserRepository.Object,
+            m_UserContext,
             m_MockRateLimitService.Object,
             m_MockAuthMiddleware.Object,
             m_MockMetricsService.Object,
@@ -77,19 +86,21 @@ public class CommandExecutorServiceTests
             .Setup(x => x.IsRateLimitedAsync(It.IsAny<ulong>()))
             .ReturnsAsync(false);
 
+        m_MockRateLimitService
+            .Setup(x => x.SetRateLimitAsync(It.IsAny<ulong>()))
+            .Returns(Task.CompletedTask);
+
         m_MockMetricsService
             .Setup(x => x.ObserveCommandDuration(It.IsAny<string>()))
             .Returns(Mock.Of<IDisposable>());
-
-        m_MockUserRepository
-            .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()))
-            .Returns(Task.FromResult(true));
     }
 
     [TearDown]
     public void TearDown()
     {
         m_DiscordHelper?.Dispose();
+        m_DbScope?.Dispose();
+        m_DbFactory?.Dispose();
     }
 
     #region Server Selection Tests
@@ -98,6 +109,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_WithServerParameter_UsesProvidedServer()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -126,17 +139,17 @@ public class CommandExecutorServiceTests
                 ctx.GetParameter<string>("server") == TestServer.ToString())),
             Times.Once);
 
-        // Verify server was updated in user model
-        m_MockUserRepository.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
-                u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == TestServer.ToString())),
-            Times.Once);
+        var region = m_UserContext.Regions.SingleOrDefault(r =>
+            r.ProfileId == TestProfileEntityId && r.Game == TestGame);
+        Assert.That(region?.Region, Is.EqualTo(TestServer.ToString()));
     }
 
     [Test]
     public async Task ExecuteAsync_WithoutServerParameter_UsesLastUsedServer()
     {
         // Arrange
+        SeedUserProfile(TestServer.ToString());
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -171,6 +184,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_NoServerAndNoLastUsed_SendsErrorMessage()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -204,6 +219,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_UpdatesLastUsedServer()
     {
         // Arrange
+        SeedUserProfile(TestServer.ToString());
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -229,10 +246,9 @@ public class CommandExecutorServiceTests
         await m_Service.ExecuteAsync(TestProfileId);
 
         // Assert
-        m_MockUserRepository.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
-                u.Profiles!.First(p => p.ProfileId == TestProfileId).LastUsedRegions![TestGame] == Server.Europe.ToString())),
-            Times.Once);
+        var region = m_UserContext.Regions.SingleOrDefault(r =>
+            r.ProfileId == TestProfileEntityId && r.Game == TestGame);
+        Assert.That(region?.Region, Is.EqualTo(Server.Europe.ToString()));
     }
 
     #endregion
@@ -243,6 +259,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_SuccessWithEphemeralContext_SendsEphemeralFollowup()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -274,6 +292,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_SuccessWithNonEphemeralResult_SendsPublicFollowupWithButton()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -307,6 +327,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ResultWithEphemeralData_OverridesServiceEphemeralSetting()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -413,6 +435,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_AuthenticationSuccess_SetsContextProperties()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -531,6 +555,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceSuccess_TracksMetrics()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -568,6 +594,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceFailure_TracksFailureMetrics()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -601,6 +629,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ApplicationServiceFailure_SendsErrorFollowup()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -637,6 +667,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_ResolvesApplicationServiceFromServiceProvider()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -673,6 +705,8 @@ public class CommandExecutorServiceTests
     public async Task ExecuteAsync_CompleteFlow_ExecutesInCorrectOrder()
     {
         // Arrange
+        SeedUserProfile();
+
         var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
         var mockContext = new Mock<IInteractionContext>();
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -701,11 +735,6 @@ public class CommandExecutorServiceTests
             .Returns(Mock.Of<IDisposable>())
             .Callback(() => callOrder.Add("MetricsStart"));
 
-        m_MockUserRepository
-            .Setup(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()))
-            .Returns(Task.FromResult(true))
-            .Callback(() => callOrder.Add("UpdateLastServer"));
-
         m_MockApplicationService
             .Setup(x => x.ExecuteAsync(It.IsAny<TestApplicationContext>()))
             .ReturnsAsync(CommandResult.Success())
@@ -725,20 +754,24 @@ public class CommandExecutorServiceTests
             Assert.That(callOrder[0], Is.EqualTo("RateLimit"));
             Assert.That(callOrder[1], Is.EqualTo("Authentication"));
             Assert.That(callOrder[2], Is.EqualTo("MetricsStart"));
-            Assert.That(callOrder[3], Is.EqualTo("UpdateLastServer"));
-            Assert.That(callOrder[4], Is.EqualTo("Execute"));
-            Assert.That(callOrder[5], Is.EqualTo("MetricsTrack"));
+            Assert.That(callOrder[3], Is.EqualTo("Execute"));
+            Assert.That(callOrder[4], Is.EqualTo("MetricsTrack"));
         });
+
+        var region = m_UserContext.Regions.SingleOrDefault(r =>
+            r.ProfileId == TestProfileEntityId && r.Game == TestGame);
+        Assert.That(region?.Region, Is.EqualTo(TestServer.ToString()));
     }
 
     #endregion
 
     #region Helper Methods
 
-    private UserDto CreateTestUser(uint profileId, ulong ltUid, Server? lastUsedServer = null)
+    private UserDto CreateTestUser(int profileId, ulong ltUid, Server? lastUsedServer = null)
     {
         var profile = new UserProfileDto
         {
+            Id = TestProfileEntityId,
             ProfileId = profileId,
             LtUid = ltUid,
             LastUsedRegions = lastUsedServer.HasValue
@@ -751,6 +784,58 @@ public class CommandExecutorServiceTests
             Id = m_TestUserId,
             Profiles = [profile]
         };
+    }
+
+    private void SeedUserProfile(string? region = null)
+    {
+        if (!m_UserContext.Users.Any(u => u.Id == (long)m_TestUserId))
+        {
+            var user = new UserModel
+            {
+                Id = (long)m_TestUserId,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var profile = new UserProfileModel
+            {
+                Id = TestProfileEntityId,
+                User = user,
+                UserId = user.Id,
+                ProfileId = TestProfileId,
+                LtUid = (long)TestLtUid,
+                LToken = TestLToken
+            };
+
+            if (region != null)
+            {
+                profile.LastUsedRegions.Add(new ProfileRegion
+                {
+                    ProfileId = TestProfileEntityId,
+                    Game = TestGame,
+                    Region = region,
+                    UserProfile = profile
+                });
+            }
+
+            user.Profiles.Add(profile);
+            m_UserContext.Users.Add(user);
+            m_UserContext.SaveChanges();
+            return;
+        }
+
+        var existingProfile = m_UserContext.UserProfiles.SingleOrDefault(p => p.Id == TestProfileEntityId);
+        if (existingProfile != null && region != null &&
+            !m_UserContext.Regions.Any(r => r.ProfileId == existingProfile.Id && r.Game == TestGame))
+        {
+            m_UserContext.Regions.Add(new ProfileRegion
+            {
+                ProfileId = existingProfile.Id,
+                Game = TestGame,
+                Region = region,
+                UserProfile = existingProfile
+            });
+            m_UserContext.SaveChanges();
+        }
     }
 
     #endregion

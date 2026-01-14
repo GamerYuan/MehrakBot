@@ -28,7 +28,7 @@ public class ZzzDefenseCardServiceTests
     public async Task Setup()
     {
         m_Service = new ZzzDefenseCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzDefenseCardService>>());
         await m_Service.InitializeAsync();
     }

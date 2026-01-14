@@ -4,9 +4,11 @@ using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -14,20 +16,32 @@ using Moq;
 
 namespace Mehrak.Application.Tests.Services.Common;
 
-[Parallelizable(ParallelScope.Self)]
+[Parallelizable(ParallelScope.Self), FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class DailyCheckInServiceTests
 {
+    private TestDbContextFactory m_DbFactory = null!;
+
+    [SetUp]
+    public void Setup()
+    {
+        m_DbFactory = new TestDbContextFactory();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        m_DbFactory.Dispose();
+    }
+
     #region Unit Tests
 
     [Test]
     public async Task ExecuteAsync_AlreadyCheckedInToday_ReturnsAlreadyCheckedInMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, _, _) = SetupMocks();
+        var (service, userContext, _, _) = SetupMocks();
 
-        var user = CreateTestUser(true);
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync(user);
+        SeedTestUser(userContext, hasCheckedInToday: true);
 
         var context = new CheckInApplicationContext(1)
         {
@@ -39,27 +53,22 @@ public class DailyCheckInServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.IsEphemeral, Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
                 Does.Contain("already checked in today"));
-        });
-
-        // Verify no API calls were made
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_NotCheckedInToday_ProceedsWithCheckIn()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        var (service, userContext, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(false);
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync(user);
+        SeedTestUser(userContext, hasCheckedInToday: false);
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -96,20 +105,15 @@ public class DailyCheckInServiceTests
                 Does.Contain("Check-in successful"));
         });
 
-        // Verify user was updated
-        userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u => u.Profiles!.First().LastCheckIn.HasValue)),
-            Times.Once);
+        var profile = await userContext.UserProfiles.SingleAsync();
+        Assert.That(profile.LastCheckIn.HasValue, Is.True);
     }
 
     [Test]
     public async Task ExecuteAsync_NoUserProfile_ProceedsWithCheckIn()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
-
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserDto?)null);
+        var (service, _, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -139,22 +143,19 @@ public class DailyCheckInServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
                 Does.Contain("Check-in successful"));
-        });
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_InvalidCredentials_ReturnsAuthError()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, _) = SetupMocks();
-
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserDto?)null);
+        var (service, _, gameRecordApiMock, _) = SetupMocks();
 
         gameRecordApiMock.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
@@ -169,22 +170,19 @@ public class DailyCheckInServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
             Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
-        });
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_NoGameRecords_ReturnsNoGameRecordsMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, _) = SetupMocks();
-
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserDto?)null);
+        var (service, _, gameRecordApiMock, _) = SetupMocks();
 
         gameRecordApiMock.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success([]));
@@ -199,24 +197,22 @@ public class DailyCheckInServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.IsEphemeral, Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
                 Does.Contain("No game records found"));
-        });
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_MultipleGames_ChecksInAllGames()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        var (service, userContext, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(false);
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync(user);
+        SeedTestUser(userContext, hasCheckedInToday: false);
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -264,27 +260,24 @@ public class DailyCheckInServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             var content = result.Data!.Components.OfType<CommandText>().First().Content;
             Assert.That(content, Does.Contain("Genshin Impact"));
             Assert.That(content, Does.Contain("Honkai: Star Rail"));
             Assert.That(content, Does.Contain("Zenless Zone Zero"));
-        });
+        }
 
-        // Verify check-in was called for each game
         checkInApiMock.Verify(x => x.GetAsync(It.IsAny<CheckInApiContext>()), Times.Exactly(3));
+        Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn.HasValue, Is.True);
     }
 
     [Test]
     public async Task ExecuteAsync_AlreadyCheckedInStatus_ShowsAlreadyCheckedInMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
-
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserDto?)null);
+        var (service, _, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -314,22 +307,19 @@ public class DailyCheckInServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
                 Does.Contain("Already checked in today"));
-        });
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_NoValidProfile_ShowsNoValidAccountMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
-
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserDto?)null);
+        var (service, _, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -371,10 +361,7 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_CheckInApiFails_ShowsErrorMessage()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
-
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((UserDto?)null);
+        var (service, _, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -416,11 +403,9 @@ public class DailyCheckInServiceTests
     public async Task ExecuteAsync_MixedResults_UpdatesUserOnlyIfAllSuccessful()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        var (service, userContext, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
-        var user = CreateTestUser(false);
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync(user);
+        SeedTestUser(userContext, hasCheckedInToday: false);
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -446,7 +431,6 @@ public class DailyCheckInServiceTests
         gameRecordApiMock.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success(gameRecords));
 
-        // First game succeeds, second game fails
         checkInApiMock.SetupSequence(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Success))
             .ReturnsAsync(Result<CheckInStatus>.Failure(StatusCode.ExternalServerError, "API Error"));
@@ -469,40 +453,24 @@ public class DailyCheckInServiceTests
             Assert.That(content, Does.Contain("API Error"));
         });
 
-        // Verify user was NOT updated because not all check-ins succeeded
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn.HasValue, Is.False);
     }
 
     [Test]
     public async Task ExecuteAsync_CheckedInYesterdayUtc8_AllowsCheckInToday()
     {
         // Arrange
-        var (service, userRepositoryMock, gameRecordApiMock, checkInApiMock) = SetupMocks();
+        var (service, userContext, gameRecordApiMock, checkInApiMock) = SetupMocks();
 
-        // Create user who checked in yesterday (UTC+8)
+        var profile = SeedTestUser(userContext, hasCheckedInToday: false);
+
         var cst = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
         var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cst);
         var yesterdayUtc8 = nowUtc8.AddDays(-1);
         var yesterdayUtc = TimeZoneInfo.ConvertTimeToUtc(yesterdayUtc8, cst);
-
-        var user = new UserDto
-        {
-            Id = 1,
-            Timestamp = DateTime.UtcNow,
-            Profiles =
-            [
-                new UserProfileDto
-                {
-                    ProfileId = 1,
-                    LtUid = 12345ul,
-                    LToken = "test_token",
-                    LastCheckIn = yesterdayUtc
-                }
-            ]
-        };
-
-        userRepositoryMock.Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync(user);
+        profile.LastCheckIn = yesterdayUtc;
+        await userContext.SaveChangesAsync();
+        userContext.ChangeTracker.Clear();
 
         var gameRecords = new List<GameRecordDto>
         {
@@ -532,42 +500,46 @@ public class DailyCheckInServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert - should proceed with check-in
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
                 Does.Contain("Check-in successful"));
-        });
 
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Once);
+        }
+
+        Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn.HasValue, Is.True);
+        Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn.Value, Is.GreaterThan(yesterdayUtc));
     }
 
     #endregion
 
     #region Helper Methods
 
-    private static (
+    private (
         DailyCheckInService Service,
-        Mock<IUserRepository> UserRepositoryMock,
+        UserDbContext UserContext,
         Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>> GameRecordApiMock,
         Mock<IApiService<CheckInStatus, CheckInApiContext>> CheckInApiMock
         ) SetupMocks()
     {
-        var userRepositoryMock = new Mock<IUserRepository>();
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+        userContext.Database.EnsureCreated();
+
         var gameRecordApiMock = new Mock<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>>();
         var checkInApiMock = new Mock<IApiService<CheckInStatus, CheckInApiContext>>();
         var loggerMock = new Mock<ILogger<DailyCheckInService>>();
 
         var service = new DailyCheckInService(
-            userRepositoryMock.Object,
+            userContext,
             gameRecordApiMock.Object,
             checkInApiMock.Object,
             loggerMock.Object);
 
-        return (service, userRepositoryMock, gameRecordApiMock, checkInApiMock);
+        return (service, userContext, gameRecordApiMock, checkInApiMock);
     }
 
-    private static UserDto CreateTestUser(bool hasCheckedInToday)
+    private static UserProfileModel SeedTestUser(UserDbContext userContext, bool hasCheckedInToday)
     {
         var cst = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
         var nowUtc8 = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, cst);
@@ -575,26 +547,32 @@ public class DailyCheckInServiceTests
         DateTime? lastCheckIn = null;
         if (hasCheckedInToday)
         {
-            // Set check-in to earlier today (UTC+8)
-            var todayUtc8 = nowUtc8.Date.AddHours(10); // 10 AM today UTC+8
+            var todayUtc8 = nowUtc8.Date.AddHours(10);
             lastCheckIn = TimeZoneInfo.ConvertTimeToUtc(todayUtc8, cst);
         }
 
-        return new UserDto
+        var user = new UserModel
         {
             Id = 1,
-            Timestamp = DateTime.UtcNow,
-            Profiles =
-            [
-                new UserProfileDto
-                {
-                    ProfileId = 1,
-                    LtUid = 12345ul,
-                    LToken = "test_token",
-                    LastCheckIn = lastCheckIn
-                }
-            ]
+            Timestamp = DateTime.UtcNow
         };
+
+        var profile = new UserProfileModel
+        {
+            User = user,
+            UserId = user.Id,
+            ProfileId = 1,
+            LtUid = 12345L,
+            LToken = "test_token",
+            LastCheckIn = lastCheckIn
+        };
+
+        user.Profiles.Add(profile);
+        userContext.Users.Add(user);
+        userContext.SaveChanges();
+        userContext.ChangeTracker.Clear();
+
+        return profile;
     }
 
     #endregion

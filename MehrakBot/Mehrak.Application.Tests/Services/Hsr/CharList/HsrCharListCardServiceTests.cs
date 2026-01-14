@@ -32,7 +32,7 @@ public class HsrCharListCardServiceTests
     public void Setup()
     {
         m_Service = new HsrCharListCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>());
     }
 

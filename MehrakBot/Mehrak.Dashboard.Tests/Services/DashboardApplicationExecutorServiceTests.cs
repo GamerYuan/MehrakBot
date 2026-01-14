@@ -74,9 +74,9 @@ public class DashboardApplicationExecutorServiceTests
         // arrange
         m_Service.ApplicationContext = m_ContextMock.Object;
         m_Service.DiscordUserId = 123;
-        uint profileId = 1;
+        var profileId = 1;
         ulong ltUid = 456;
-        string lToken = "ltoken";
+        var lToken = "ltoken";
 
         var userDto = new UserDto { Id = 123 };
         var authResult = DashboardProfileAuthenticationResult.Success(userDto, ltUid, lToken);
@@ -102,13 +102,13 @@ public class DashboardApplicationExecutorServiceTests
         m_ContextMock.VerifySet(c => c.LToken = lToken);
     }
 
-     [Test]
+    [Test]
     public async Task ExecuteAsync_AuthFailed_ReturnsError()
     {
         // arrange
         m_Service.ApplicationContext = m_ContextMock.Object;
         m_Service.DiscordUserId = 123;
-        uint profileId = 1;
+        var profileId = 1;
 
         var authResult = DashboardProfileAuthenticationResult.InvalidPassphrase("Wrong pass");
 

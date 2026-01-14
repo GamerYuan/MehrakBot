@@ -6,11 +6,13 @@ using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hi3.Types;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -19,9 +21,23 @@ using Moq;
 namespace Mehrak.Application.Tests.Services.Hi3.Character;
 
 [Parallelizable(ParallelScope.Self)]
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class Hi3CharacterApplicationServiceTests
 {
+    private TestDbContextFactory m_DbFactory = null!;
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hi3");
+
+    [SetUp]
+    public void Setup()
+    {
+        m_DbFactory = new TestDbContextFactory();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        m_DbFactory.Dispose();
+    }
 
     #region Unit Tests
 
@@ -73,12 +89,12 @@ public class Hi3CharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("Character data"));
-        });
+        }
     }
 
     [Test]
@@ -104,20 +120,20 @@ public class Hi3CharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.IsEphemeral, Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
                 Does.Contain("NonExistent"));
-        });
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_CharacterFoundByAlias_ReturnsSuccess()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, _, attachmentStorageMock) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -147,11 +163,11 @@ public class Hi3CharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
-        });
+        }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
@@ -172,7 +188,6 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        // Fail first image update
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
@@ -189,12 +204,12 @@ public class Hi3CharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("image"));
-        });
+        }
     }
 
     [Test]
@@ -203,7 +218,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsCardAndTracksMetrics(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, _, attachmentStorageMock) = SetupMocks();
+        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -229,12 +244,12 @@ public class Hi3CharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>().Any(), Is.True);
-        });
+        }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
@@ -280,27 +295,14 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test"
-                    }
-                ]
-            });
+        SeedUserProfile(userContext, 1ul, 1, 1ul);
 
-        // Force early exit after UpdateGameUid: make character API fail
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
 
@@ -314,45 +316,35 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
-            u.Id == 1ul
-            && u.Profiles != null
-            && u.Profiles.Any(p => p.LtUid == 1ul
-                && p.GameUids != null
-                && p.GameUids.ContainsKey(Game.HonkaiImpact3)
-                && p.GameUids[Game.HonkaiImpact3].ContainsKey(Hi3Server.SEA.ToString())
-                && p.GameUids[Game.HonkaiImpact3][Hi3Server.SEA.ToString()] == profile.GameUid)
-        )), Times.Once);
+        var stored = await userContext.GameUids.SingleOrDefaultAsync();
+        Assert.That(stored, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(stored!.GameUid, Is.EqualTo(profile.GameUid));
+            Assert.That(stored.Region, Is.EqualTo(Hi3Server.SEA.ToString()));
+        }
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User already has game uid stored
-        userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = new Dictionary<Game, Dictionary<string, string>>
-                        {
-                            { Game.HonkaiImpact3, new Dictionary<string, string> { { Hi3Server.SEA.ToString(), profile.GameUid } } }
-                        }
-                    }
-                ]
-            });
+        var seededProfile = SeedUserProfile(userContext, 1ul, 1, 1ul);
+        userContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = seededProfile.Id,
+            Game = Game.HonkaiImpact3,
+            Region = Hi3Server.SEA.ToString(),
+            GameUid = profile.GameUid
+        });
+        await userContext.SaveChangesAsync();
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
@@ -366,23 +358,24 @@ public class Hi3CharacterApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(await userContext.GameUids.CountAsync(), Is.EqualTo(1));
+            Assert.That((await userContext.GameUids.SingleAsync()).GameUid, Is.EqualTo(profile.GameUid));
+        }
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
-
-        // User not found
-        userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserDto?)null);
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
@@ -395,21 +388,13 @@ public class Hi3CharacterApplicationServiceTests
 
         // Act
         await service.ExecuteAsync(context);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
 
-        // Assert
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
-
-        // User exists but LtUid mismatch
-        userRepositoryMock.Reset();
-        userRepositoryMock.Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles = [new() { LtUid = 9999ul, LToken = "test" }]
-            });
-
+        SeedUserProfile(userContext, 1ul, 2, 9999ul);
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -422,7 +407,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, gameRoleApiMock, attachmentStorageMock) = SetupIntegrationTest();
+        var (service, characterApiMock, gameRoleApiMock, attachmentStorageMock, _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -431,7 +416,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        var context = new Hi3CharacterApplicationContext(DbTestHelper.Instance.GetUniqueUserId(),
+        var context = new Hi3CharacterApplicationContext(S3TestHelper.Instance.GetUniqueUserId(),
             ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
         {
             LtUid = 1ul,
@@ -442,15 +427,15 @@ public class Hi3CharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
             Assert.That(result.Data, Is.Not.Null);
-        });
+        }
 
         var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
         Assert.That(attachment, Is.Not.Null);
-        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment.FileName));
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -467,16 +452,16 @@ public class Hi3CharacterApplicationServiceTests
 
     #region Helper Methods
 
-    private static (
-        Hi3CharacterApplicationService Service,
-        Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>> CharacterApiMock,
-        Mock<ICharacterCacheService> CharacterCacheMock,
-        Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<IImageUpdaterService> ImageUpdaterMock,
-        Mock<ICardService<Hi3CharacterDetail>> CardServiceMock,
-        Mock<IMetricsService> MetricsServiceMock,
-        Mock<IUserRepository> UserRepositoryMock,
-        Mock<IAttachmentStorageService> AttachmentStorageMock
+    private (
+         Hi3CharacterApplicationService Service,
+         Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>> CharacterApiMock,
+         Mock<ICharacterCacheService> CharacterCacheMock,
+         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
+         Mock<IImageUpdaterService> ImageUpdaterMock,
+         Mock<ICardService<Hi3CharacterDetail>> CardServiceMock,
+         Mock<IMetricsService> MetricsServiceMock,
+         Mock<IAttachmentStorageService> AttachmentStorageMock,
+         UserDbContext UserContext
     ) SetupMocks()
     {
         var characterApiMock = new Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>();
@@ -486,7 +471,6 @@ public class Hi3CharacterApplicationServiceTests
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var cardServiceMock = new Mock<ICardService<Hi3CharacterDetail>>();
         var metricsMock = new Mock<IMetricsService>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();
 
@@ -498,6 +482,9 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+        userContext.Database.EnsureCreated();
+
         var service = new Hi3CharacterApplicationService(
             cardServiceMock.Object,
             characterApiMock.Object,
@@ -505,32 +492,32 @@ public class Hi3CharacterApplicationServiceTests
             characterCacheMock.Object,
             metricsMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, characterApiMock, characterCacheMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, userRepositoryMock, attachmentStorageMock);
+        return (service, characterApiMock, characterCacheMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, userContext);
     }
 
-    private static (
+    private (
         Hi3CharacterApplicationService Service,
         Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>> CharacterApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<IAttachmentStorageService> AttachmentStorageMock
+        Mock<IAttachmentStorageService> AttachmentStorageMock,
+        UserDbContext UserContext
     ) SetupIntegrationTest()
     {
         var characterApiMock = new Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
 
-        // Real card service + real image updater
         var cardService = new Hi3CharacterCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>());
 
         cardService.InitializeAsync().Wait();
 
         var imageUpdaterService = new ImageUpdaterService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             CreateHttpClientFactory(),
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -538,7 +525,6 @@ public class Hi3CharacterApplicationServiceTests
         characterCacheMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
 
         var metricsMock = new Mock<IMetricsService>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();
 
@@ -547,6 +533,9 @@ public class Hi3CharacterApplicationServiceTests
         attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+        userContext.Database.EnsureCreated();
+
         var service = new Hi3CharacterApplicationService(
             cardService,
             characterApiMock.Object,
@@ -554,11 +543,11 @@ public class Hi3CharacterApplicationServiceTests
             characterCacheMock.Object,
             metricsMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, characterApiMock, gameRoleApiMock, attachmentStorageMock);
+        return (service, characterApiMock, gameRoleApiMock, attachmentStorageMock, userContext);
     }
 
     private static IHttpClientFactory CreateHttpClientFactory()
@@ -586,6 +575,30 @@ public class Hi3CharacterApplicationServiceTests
         Nickname = "TestPlayer",
         Level = 88
     };
+
+    private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)
+    {
+        var user = new UserModel
+        {
+            Id = (long)userId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        var profile = new UserProfileModel
+        {
+            Id = profileId,
+            User = user,
+            UserId = user.Id,
+            ProfileId = profileId,
+            LtUid = (long)ltUid,
+            LToken = "test"
+        };
+
+        user.Profiles.Add(profile);
+        userContext.Users.Add(user);
+        userContext.SaveChanges();
+        return profile;
+    }
 
     #endregion
 }
