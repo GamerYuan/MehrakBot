@@ -120,8 +120,9 @@ public class Program
 
             builder.Services.AddBotServices();
 
-            builder.Services.AddHostedService<BotMetricsService>();
+            builder.Services.AddSingleton<BotMetricsService>();
             builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<BotMetricsService>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMetricsService>());
 
             builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
 
