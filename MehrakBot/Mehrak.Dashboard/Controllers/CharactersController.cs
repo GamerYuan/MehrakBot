@@ -74,7 +74,15 @@ public class CharactersController : ControllerBase
         {
             m_Logger.LogInformation("Adding {Count} characters to game {Game}", newEntities.Count, gameEnum);
             m_CharacterContext.Characters.AddRange(newEntities);
-            await m_CharacterContext.SaveChangesAsync();
+
+            try
+            {
+                await m_CharacterContext.SaveChangesAsync();
+            }
+            catch
+            {
+                return StatusCode(500, new { error = "An error occurred while saving characters." });
+            }
         }
 
         return NoContent();
