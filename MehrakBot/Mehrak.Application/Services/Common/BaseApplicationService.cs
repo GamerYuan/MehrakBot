@@ -51,7 +51,6 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
     protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server)
     {
         var profile = await m_UserContext.UserProfiles
-            .AsNoTracking()
             .Where(p => p.UserId == (long)userId && p.LtUid == (long)ltuid)
             .Select(p => new
             {
