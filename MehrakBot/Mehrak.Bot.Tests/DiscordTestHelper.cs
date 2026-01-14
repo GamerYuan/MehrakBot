@@ -20,7 +20,7 @@ namespace Mehrak.Bot.Tests;
 /// </summary>
 public sealed partial class DiscordTestHelper : IDisposable
 {
-    private readonly List<(HttpRequestMessage Request, HttpContent? Content)> m_CapturedRequests = [];
+    public readonly List<(HttpRequestMessage Request, HttpContent? Content)> CapturedRequests = [];
 
     private readonly JsonApplicationCommand m_Command;
     private readonly Mock<IRestRequestHandler> m_RestRequestHandlerMock;
@@ -93,7 +93,7 @@ public sealed partial class DiscordTestHelper : IDisposable
                             clonedContent.Headers.Add(header.Key, header.Value);
                     }
 
-                    m_CapturedRequests.Add((request, clonedContent));
+                    CapturedRequests.Add((request, clonedContent));
                 }
                 catch (Exception)
                 {
@@ -211,7 +211,7 @@ public sealed partial class DiscordTestHelper : IDisposable
     /// </summary>
     public async Task<string> ExtractInteractionResponseDataAsync()
     {
-        var interactionRequest = m_CapturedRequests.LastOrDefault();
+        var interactionRequest = CapturedRequests.LastOrDefault();
 
         if (interactionRequest.Request?.Content == null)
             return string.Empty;
@@ -243,7 +243,7 @@ public sealed partial class DiscordTestHelper : IDisposable
     /// <returns>The file bytes if found, otherwise null</returns>
     public async Task<byte[]?> ExtractInteractionResponseAsBytesAsync()
     {
-        var interactionRequest = m_CapturedRequests.LastOrDefault();
+        var interactionRequest = CapturedRequests.LastOrDefault();
 
         if (interactionRequest.Content == null || interactionRequest.Request.Content == null)
             return null;
@@ -328,7 +328,7 @@ public sealed partial class DiscordTestHelper : IDisposable
     /// </summary>
     public void ClearCapturedRequests()
     {
-        m_CapturedRequests.Clear();
+        CapturedRequests.Clear();
     }
 
     /// <summary>

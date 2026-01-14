@@ -3,6 +3,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -298,29 +299,16 @@ public class AuthenticationMiddlewareServiceTests
     }
 
     [Test]
+    [MaxTime(5000)]
     public async Task NotifyAuthenticate_WithValidGuid_ReturnsTrue()
     {
         // Arrange
-        var mockContext = new Mock<IInteractionContext>();
-        var interaction = new ModalInteraction(new JsonInteraction
-        {
-            Token = "sample_token",
-            Data = new JsonInteractionData
-            {
-                Components = []
-            },
-            User = new JsonUser
-            {
-                Id = TestUserId
-            },
-            Channel = new JsonChannel
-            {
-                Id = 987654321UL,
-                Type = ChannelType.TextGuildChannel
-            },
-            Entitlements = []
-        }, null!, null!, new RestClient());
-        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+        using var discordTestHelper = new DiscordTestHelper();
+        var interaction = discordTestHelper.CreateModalInteraction(TestUserId);
+        discordTestHelper.SetupRequestCapture();
+
+        Mock<IInteractionContext> mockContext = new();
+        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         InitializeService(context =>
         {
@@ -335,11 +323,15 @@ public class AuthenticationMiddlewareServiceTests
 
         _ = Task.Run(() => m_Service.GetAuthenticationAsync(request));
 
-        await Task.Delay(100);
+        while (discordTestHelper.CapturedRequests.Count == 0)
+            await Task.Delay(50);
+
+        var interactionResponse = await discordTestHelper.ExtractInteractionResponseDataAsync();
+        var guid = Regex.Match(interactionResponse, "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}?").Value;
 
         var authResponse = new AuthenticationResponse(
             TestUserId,
-            Guid.NewGuid().ToString(),
+            guid,
             TestPassphrase,
             mockContext.Object);
 
@@ -347,7 +339,7 @@ public class AuthenticationMiddlewareServiceTests
         var result = m_Service.NotifyAuthenticate(authResponse);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.That(result, Is.True);
     }
 
     #endregion
