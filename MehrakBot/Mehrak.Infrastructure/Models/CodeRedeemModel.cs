@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Models;
 
-[Index(nameof(Game), nameof(Code), IsUnique = true)]
+[Index(nameof(Game)), Index(nameof(Game), nameof(Code), IsUnique = true)]
 public class CodeRedeemModel
 {
     [Key]
@@ -16,5 +16,5 @@ public class CodeRedeemModel
 
     public Game Game { get; set; }
 
-    public string Code { get; set; } = string.Empty;
+    public string Code { get; set => field = value.ToUpperInvariant(); } = string.Empty;
 }
