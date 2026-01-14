@@ -67,7 +67,7 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
             {
                 m_UserContext.GameUids.Add(new ProfileGameUid
                 {
-                    ProfileId = profile.ProfileId,
+                    ProfileId = profile.Id,
                     Game = game,
                     GameUid = gameUid,
                     Region = server
