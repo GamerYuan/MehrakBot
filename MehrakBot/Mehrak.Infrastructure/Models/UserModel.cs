@@ -13,7 +13,7 @@ public class UserModel
     public List<UserProfileModel> Profiles { get; set; } = [];
 }
 
-[Index(nameof(LtUid))]
+[Index(nameof(LtUid)), Index(nameof(UserId), nameof(ProfileId), IsUnique = true)]
 public class UserProfileModel
 {
     public long Id { get; set; }
