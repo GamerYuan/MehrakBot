@@ -10,6 +10,9 @@ using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
+using Mehrak.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -26,7 +29,7 @@ namespace Mehrak.Application.Services.Hsr.Character;
 public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IAsyncInitializable
 {
     private readonly IImageRepository m_ImageRepository;
-    private readonly IRelicRepository m_RelicRepository;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ILogger<HsrCharacterCardService> m_Logger;
 
     private Dictionary<int, Image> m_StatImages = null!;
@@ -44,11 +47,11 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
     private readonly Image<Rgba32> m_RelicSlotTemplate;
 
     public HsrCharacterCardService(IImageRepository imageRepository,
-        IRelicRepository relicRepository,
+        IServiceScopeFactory scopeFactory,
         ILogger<HsrCharacterCardService> logger)
     {
         m_ImageRepository = imageRepository;
-        m_RelicRepository = relicRepository;
+        m_ScopeFactory = scopeFactory;
         m_Logger = logger;
 
         var fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
@@ -110,6 +113,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
         try
         {
+            using var scope = m_ScopeFactory.CreateScope();
+            var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
+
             var characterPortraitTask = Image.LoadAsync<Rgba32>(
                 await m_ImageRepository.DownloadFileToStreamAsync(
                     characterInformation.ToImageName()));
@@ -194,7 +200,10 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             Dictionary<string, int> activeRelicSet = [];
             foreach (var setId in characterInformation.Relics!.Select(x => x.GetSetId()))
             {
-                var setName = await m_RelicRepository.GetSetName(setId);
+                var setName = await relicContext.HsrRelics.AsNoTracking()
+                    .Where(x => x.SetId == setId)
+                    .Select(x => x.SetName)
+                    .FirstOrDefaultAsync();
 
                 if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
 
@@ -209,7 +218,10 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             Dictionary<string, int> activeOrnamentSet = [];
             foreach (var setId in characterInformation.Ornaments!.Select(x => x.GetSetId()))
             {
-                var setName = await m_RelicRepository.GetSetName(setId);
+                var setName = await relicContext.HsrRelics.AsNoTracking()
+                    .Where(x => x.SetId == setId)
+                    .Select(x => x.SetName)
+                    .FirstOrDefaultAsync();
 
                 if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
 

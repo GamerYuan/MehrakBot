@@ -12,6 +12,9 @@ using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz;
 using Mehrak.GameApi.Zzz.Types;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,9 +24,24 @@ using Moq;
 namespace Mehrak.Application.Tests.Services.Zzz.Character;
 
 [Parallelizable(ParallelScope.Self)]
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class ZzzCharacterApplicationServiceTests
 {
+    private TestDbContextFactory m_DbFactory = null!;
+
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Zzz");
+
+    [SetUp]
+    public void Setup()
+    {
+        m_DbFactory = new TestDbContextFactory();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        m_DbFactory.Dispose();
+    }
 
     #region Unit Tests
 
@@ -44,13 +62,13 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
             Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
-        });
+        }
     }
 
     [Test]
@@ -75,13 +93,13 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("Character List"));
-        });
+        }
     }
 
     [Test]
@@ -135,14 +153,14 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.IsEphemeral, Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
                 Does.Contain("NonExistentCharacter"));
-        });
+        }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
             Times.Once);
@@ -153,7 +171,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock,
-            _, cardServiceMock, _, _, attachmentStorageMock) = SetupMocks();
+            _, cardServiceMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -178,8 +196,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
-            .ReturnsAsync(cardStream);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>())).ReturnsAsync(cardStream);
 
         var context = new ZzzCharacterApplicationContext(1, ("character", "JD"), ("server", Server.Asia.ToString()))
         {
@@ -190,12 +207,12 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
-        });
+        }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
@@ -235,13 +252,13 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("Character Image"));
-        });
+        }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
             Times.Once);
@@ -281,13 +298,13 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("image"));
-        });
+        }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
             Times.Once);
@@ -299,7 +316,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _,
-            cardServiceMock, metricsMock, _, attachmentStorageMock) = SetupMocks();
+            cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -331,17 +348,16 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
             Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
-        });
+        }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
-        // Verify metrics tracked
         metricsMock.Verify(
             x => x.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), characterName.ToLowerInvariant()),
             Times.Once);
@@ -354,27 +370,13 @@ public class ZzzCharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User exists with matching profile but no stored GameUids
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test",
-                    }
-                ]
-            });
+        SeedUserProfile(userContext, 1ul, 1, 1ul);
 
         // Force early exit after UpdateGameUid by making char API fail
         characterApiMock
@@ -390,52 +392,35 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        // Assert: repository should persist updated user with stored game uid
-        userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
-                u.Id == 1ul
-                && u.Profiles != null
-                && u.Profiles.Any(p => p.LtUid == 1ul
-                                       && p.GameUids != null
-                                       && p.GameUids.ContainsKey(Game.ZenlessZoneZero)
-                                       && p.GameUids[Game.ZenlessZoneZero].ContainsKey(Server.Asia.ToString())
-                                       && p.GameUids[Game.ZenlessZoneZero][Server.Asia.ToString()] == profile.GameUid)
-            )),
-            Times.Once);
+        var stored = await userContext.GameUids.SingleOrDefaultAsync();
+        Assert.That(stored, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(stored!.GameUid, Is.EqualTo(profile.GameUid));
+            Assert.That(stored.Region, Is.EqualTo(Server.Asia.ToString()));
+            Assert.That(stored.Game, Is.EqualTo(Game.ZenlessZoneZero));
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User exists with game uid already stored for this game/server
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = new Dictionary<Game, Dictionary<string, string>>
-                        {
-                            {
-                                Game.ZenlessZoneZero,
-                                new Dictionary<string, string> { { Server.Asia.ToString(), profile.GameUid } }
-                            }
-                        }
-                    }
-                ]
-            });
+        var seededProfile = SeedUserProfile(userContext, 1ul, 1, 1ul);
+        userContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = seededProfile.Id,
+            Game = Game.ZenlessZoneZero,
+            Region = Server.Asia.ToString(),
+            GameUid = profile.GameUid
+        });
+        await userContext.SaveChangesAsync();
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
@@ -450,24 +435,19 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.CountAsync(), Is.EqualTo(1));
+        Assert.That((await userContext.GameUids.SingleAsync()).GameUid, Is.EqualTo(profile.GameUid));
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, userRepositoryMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, _, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
-
-        // Case: user not found
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserDto?)null);
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
@@ -481,25 +461,12 @@ public class ZzzCharacterApplicationServiceTests
 
         // Act
         await service.ExecuteAsync(context);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
 
-        // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
-
-        // Case: user exists but no matching profile
-        userRepositoryMock.Reset();
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new() { LtUid = 99999ul, LToken = "test" }
-                ]
-            });
+        SeedUserProfile(userContext, 1ul, 2, 99999ul);
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
     }
 
     [Test]
@@ -507,7 +474,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
-            cardServiceMock, _, _, attachmentStorageMock) = SetupMocks();
+            cardServiceMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -533,7 +500,6 @@ public class ZzzCharacterApplicationServiceTests
         var cardStream = new MemoryStream();
         cardServiceMock
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
-
             .ReturnsAsync(cardStream);
 
         const string expectedUrl = "https://example.com/zzz_char.png";
@@ -570,11 +536,11 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-        });
+        }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(ctx => ctx.Locale == WikiLocales.EN)), Times.Once);
@@ -607,7 +573,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
         var context = new ZzzCharacterApplicationContext(
-            DbTestHelper.Instance.GetUniqueUserId(),
+            S3TestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
             ("server", Server.Asia.ToString()))
         {
@@ -618,12 +584,12 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
             Assert.That(result.Data, Is.Not.Null);
-        });
+        }
         Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
 
         var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
@@ -650,16 +616,16 @@ public class ZzzCharacterApplicationServiceTests
         var testLToken = config["LToken"];
         var characterName = "Jane"; // Replace with a character you own
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(testLtUid, Is.GreaterThan(0), "LtUid must be set in appsettings.test.json");
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
-        });
+        }
 
-        var (service, attachmentStorage, storedAttachments) = SetupRealApiIntegrationTest();
+        var (service, _, storedAttachments, _) = SetupRealApiIntegrationTest();
 
         var context = new ZzzCharacterApplicationContext(
-            DbTestHelper.Instance.GetUniqueUserId(),
+            S3TestHelper.Instance.GetUniqueUserId(),
             ("character", characterName),
             ("server", Server.Asia.ToString()))
         {
@@ -670,7 +636,6 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        // Assert
         Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
 
         if (result.IsSuccess)
@@ -695,7 +660,7 @@ public class ZzzCharacterApplicationServiceTests
 
     #region Helper Methods
 
-    private static (
+    private (
         ZzzCharacterApplicationService Service,
         Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>> CharacterApiMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
@@ -705,8 +670,8 @@ public class ZzzCharacterApplicationServiceTests
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
         Mock<ICardService<ZzzFullAvatarData>> CardServiceMock,
         Mock<IMetricsService> MetricsMock,
-        Mock<IUserRepository> UserRepositoryMock,
-        Mock<IAttachmentStorageService> AttachmentStorageMock
+        Mock<IAttachmentStorageService> AttachmentStorageMock,
+        UserDbContext UserContext
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<ZzzFullAvatarData>>();
@@ -717,18 +682,17 @@ public class ZzzCharacterApplicationServiceTests
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var metricsMock = new Mock<IMetricsService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<ZzzCharacterApplicationService>>();
 
-        // Setup default empty aliases
-        characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
-            .Returns([]);
+        characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>())).Returns([]);
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new ZzzCharacterApplicationService(
             cardServiceMock.Object,
@@ -739,27 +703,27 @@ public class ZzzCharacterApplicationServiceTests
             wikiApiMock.Object,
             metricsMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock,
-            wikiApiMock, cardServiceMock, metricsMock, userRepositoryMock, attachmentStorageMock);
+            wikiApiMock, cardServiceMock, metricsMock, attachmentStorageMock, userContext);
     }
 
-    private static (
+    private (
         ZzzCharacterApplicationService Service,
         Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>> CharacterApiMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IImageRepository> ImageRepositoryMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
-        Mock<IUserRepository> UserRepositoryMock
+        UserDbContext UserContext
         ) SetupIntegrationTest()
     {
         // Use real card service with MongoTestHelper for image repository
         var cardService = new ZzzCharacterCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>());
 
         var characterCacheMock = new Mock<ICharacterCacheService>();
@@ -767,25 +731,18 @@ public class ZzzCharacterApplicationServiceTests
             ZzzFullAvatarData, CharacterApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
 
-        // Setup default empty aliases
-        characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
-            .Returns([]);
+        characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>())).Returns([]);
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
 
-        // Mock image repository to always return true for FileExists (images are in MongoDB)
-        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
-            .ReturnsAsync(true);
-
-        // Use real image updater service
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<ZzzCharacterApplicationService>>();
 
@@ -794,14 +751,13 @@ public class ZzzCharacterApplicationServiceTests
         attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        // Mock wiki API
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
-
-        // Mock metrics
         var metricsMock = new Mock<IMetricsService>();
 
         // Initialize card service
         cardService.InitializeAsync().Wait();
+
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new ZzzCharacterApplicationService(
             cardService,
@@ -812,18 +768,23 @@ public class ZzzCharacterApplicationServiceTests
             wikiApiMock.Object,
             metricsMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, characterApiMock, characterCacheMock, imageRepositoryMock, gameRoleApiMock, attachmentStorageMock, userRepositoryMock);
+        return (service, characterApiMock, characterCacheMock, imageRepositoryMock, gameRoleApiMock, attachmentStorageMock, userContext);
     }
 
-    private static (ZzzCharacterApplicationService Service, IAttachmentStorageService AttachmentStorageService, Dictionary<string, MemoryStream> StoredAttachments) SetupRealApiIntegrationTest()
+    private (
+        ZzzCharacterApplicationService Service,
+        IAttachmentStorageService AttachmentStorageService,
+        Dictionary<string, MemoryStream> StoredAttachments,
+        UserDbContext UserContext
+        ) SetupRealApiIntegrationTest()
     {
         // Use all real services - no mocks
         var cardService = new ZzzCharacterCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>());
 
         // Real HTTP client factory
@@ -845,8 +806,7 @@ public class ZzzCharacterApplicationServiceTests
 
         // Mock character cache service (we don't need real character/alias data from DB)
         var characterCacheServiceMock = new Mock<ICharacterCacheService>();
-        characterCacheServiceMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
-            .Returns([]);
+        characterCacheServiceMock.Setup(x => x.GetAliases(It.IsAny<Game>())).Returns([]);
 
         // Real wiki API service
         var wikiApiService = new WikiApiService(
@@ -860,7 +820,7 @@ public class ZzzCharacterApplicationServiceTests
 
         // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
@@ -870,7 +830,6 @@ public class ZzzCharacterApplicationServiceTests
         // Initialize card service
         cardService.InitializeAsync().Wait();
 
-        var userRepositoryMock = new Mock<IUserRepository>();
         var storedAttachments = new Dictionary<string, MemoryStream>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -886,20 +845,22 @@ public class ZzzCharacterApplicationServiceTests
                 return true;
             });
 
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+
         var service = new ZzzCharacterApplicationService(
             cardService,
             imageUpdaterService,
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             characterApiService,
             characterCacheServiceMock.Object,
             wikiApiService,
             metricsMock.Object,
             gameRoleApiService,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             Mock.Of<ILogger<ZzzCharacterApplicationService>>());
 
-        return (service, attachmentStorageMock.Object, storedAttachments);
+        return (service, attachmentStorageMock.Object, storedAttachments, userContext);
     }
 
     private static GameProfileDto CreateTestProfile()
@@ -950,6 +911,30 @@ public class ZzzCharacterApplicationServiceTests
         var result = JsonSerializer.Deserialize<ZzzFullAvatarData>(json);
 
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
+    }
+
+    private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)
+    {
+        var user = new UserModel
+        {
+            Id = (long)userId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        var profile = new UserProfileModel
+        {
+            Id = profileId,
+            User = user,
+            UserId = user.Id,
+            ProfileId = profileId,
+            LtUid = (long)ltUid,
+            LToken = "test"
+        };
+
+        user.Profiles.Add(profile);
+        userContext.Users.Add(user);
+        userContext.SaveChanges();
+        return profile;
     }
 
     #endregion

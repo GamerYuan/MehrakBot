@@ -3,8 +3,8 @@
 using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -20,17 +20,17 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
 
     public CheckInExecutorService(
         IApplicationService<CheckInApplicationContext> service,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
         ILogger<CheckInExecutorService> logger)
-        : base(userRepository, commandRateLimitService, authenticationMiddleware, metricsService, logger)
+        : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, logger)
     {
         m_Service = service;
     }
 
-    public override async Task ExecuteAsync(uint profile)
+    public override async Task ExecuteAsync(int profile)
     {
         Logger.LogInformation(
             "User {User} used command {Command}",

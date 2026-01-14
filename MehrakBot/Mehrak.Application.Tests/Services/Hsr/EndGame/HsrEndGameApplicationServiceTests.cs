@@ -6,12 +6,14 @@ using Mehrak.Application.Services.Hsr.EndGame;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr;
 using Mehrak.GameApi.Hsr.Types;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,9 +23,23 @@ using Moq;
 namespace Mehrak.Application.Tests.Services.Hsr.EndGame;
 
 [Parallelizable(ParallelScope.Self)]
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class HsrEndGameApplicationServiceTests
 {
+    private TestDbContextFactory m_DbFactory = null!;
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr");
+
+    [SetUp]
+    public void Setup()
+    {
+        m_DbFactory = new TestDbContextFactory();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        m_DbFactory.Dispose();
+    }
 
     #region Unit Tests
 
@@ -44,13 +60,13 @@ public class HsrEndGameApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
             Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
-        });
+        }
     }
 
     [Test]
@@ -76,13 +92,13 @@ public class HsrEndGameApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain($"{mode.GetString()} data"));
-        });
+        }
     }
 
     [Test]
@@ -119,14 +135,14 @@ public class HsrEndGameApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.IsEphemeral, Is.True);
             Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
                 Does.Contain("no clear records").IgnoreCase);
-        });
+        }
     }
 
     [Test]
@@ -145,7 +161,6 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        // Make image update fail
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
@@ -158,13 +173,13 @@ public class HsrEndGameApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("image"));
-        });
+        }
     }
 
     [Test]
@@ -186,7 +201,7 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(true);
 
         var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>() ))
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>()))
             .ReturnsAsync(cardStream);
 
         var context = new HsrEndGameApplicationContext(1, mode, ("server", Server.Asia.ToString()))
@@ -198,7 +213,7 @@ public class HsrEndGameApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
@@ -207,7 +222,7 @@ public class HsrEndGameApplicationServiceTests
             Assert.That(result.Data.Components.OfType<CommandText>()
                     .Any(x => x.Content.Contains($"{mode.GetString()} Summary")),
                 Is.True);
-        });
+        }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -253,29 +268,14 @@ public class HsrEndGameApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, endGameApiMock, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
+        var (service, endGameApiMock, _, gameRoleApiMock, _, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User exists with matching profile but no stored GameUids
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test"
-                    }
-                ]
-            });
+        SeedUserProfile(userContext, 1ul, 1, 1ul);
 
-        // Force early exit after UpdateGameUid by making API fail
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
@@ -289,52 +289,35 @@ public class HsrEndGameApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        // Assert: repository should persist updated user with stored game uid
-        userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
-                u.Id == 1ul
-                && u.Profiles != null
-                && u.Profiles.Any(p => p.LtUid == 1ul
-                                       && p.GameUids != null
-                                       && p.GameUids.ContainsKey(Game.HonkaiStarRail)
-                                       && p.GameUids[Game.HonkaiStarRail].ContainsKey(Server.Asia.ToString())
-                                       && p.GameUids[Game.HonkaiStarRail][Server.Asia.ToString()] == profile.GameUid)
-            )),
-            Times.Once);
+        var stored = await userContext.GameUids.SingleOrDefaultAsync();
+        Assert.That(stored, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(stored!.GameUid, Is.EqualTo(profile.GameUid));
+            Assert.That(stored.Region, Is.EqualTo(Server.Asia.ToString()));
+            Assert.That(stored.Game, Is.EqualTo(Game.HonkaiStarRail));
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, endGameApiMock, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
+        var (service, endGameApiMock, _, gameRoleApiMock, _, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        // User exists with game uid already stored for this game/server
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = new Dictionary<Game, Dictionary<string, string>>
-                        {
-                            {
-                                Game.HonkaiStarRail,
-                                new Dictionary<string, string> { { Server.Asia.ToString(), profile.GameUid } }
-                            }
-                        }
-                    }
-                ]
-            });
+        var seededProfile = SeedUserProfile(userContext, 1ul, 1, 1ul);
+        userContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = seededProfile.Id,
+            Game = Game.HonkaiStarRail,
+            Region = Server.Asia.ToString(),
+            GameUid = profile.GameUid
+        });
+        await userContext.SaveChangesAsync();
 
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
@@ -349,25 +332,20 @@ public class HsrEndGameApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        // Assert: no persistence since it was already stored
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.CountAsync(), Is.EqualTo(1));
+        Assert.That((await userContext.GameUids.SingleAsync()).GameUid, Is.EqualTo(profile.GameUid));
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, endGameApiMock, _, gameRoleApiMock, _, userRepositoryMock, _) = SetupMocks();
+        var (service, endGameApiMock, _, gameRoleApiMock, _, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
-
-        // Case: user not found
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserDto?)null);
 
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
@@ -379,27 +357,15 @@ public class HsrEndGameApplicationServiceTests
             LToken = "test"
         };
 
-        // Act
+        // Case: user not found
         await service.ExecuteAsync(context);
-
-        // Assert: no persistence
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
 
         // Case: user exists but no matching profile
-        userRepositoryMock.Reset();
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new() { LtUid = 99999ul, LToken = "test" }
-                ]
-            });
+        SeedUserProfile(userContext, 1ul, 2, 99999ul);
 
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
     }
 
     #endregion
@@ -414,7 +380,7 @@ public class HsrEndGameApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(HsrEndGameMode mode, string testDataFile)
     {
         // Arrange
-        var (service, endGameApiMock, _, gameRoleApiMock, attachmentStorageMock) = SetupIntegrationTest();
+        var (service, endGameApiMock, _, gameRoleApiMock, attachmentStorageMock, _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -423,7 +389,7 @@ public class HsrEndGameApplicationServiceTests
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
             .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
 
-        var context = new HsrEndGameApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
+        var context = new HsrEndGameApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -432,12 +398,12 @@ public class HsrEndGameApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
             Assert.That(result.Data, Is.Not.Null);
-        });
+        }
         Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
 
         var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
@@ -453,24 +419,21 @@ public class HsrEndGameApplicationServiceTests
     [Explicit("This test calls real API - only run manually")]
     public async Task IntegrationTest_WithRealApi_FullFlow(HsrEndGameMode mode)
     {
-        // This test requires real credentials and should only be run manually
-        // It demonstrates the full integration with the actual HoYoLab API
-
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
         var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
         var testLToken = config["LToken"];
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(testLtUid, Is.GreaterThan(0), "LtUid must be set in appsettings.test.json");
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
-        });
+        }
 
-        var (service, attachmentStorage, storedAttachments) = SetupRealApiIntegrationTest();
+        var (service, _, storedAttachments, _) = SetupRealApiIntegrationTest();
 
-        var context = new HsrEndGameApplicationContext(DbTestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
+        var context = new HsrEndGameApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), mode, ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -489,7 +452,6 @@ public class HsrEndGameApplicationServiceTests
             Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
             Assert.That(storedStream!.Length, Is.GreaterThan(0));
 
-            // Save output
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
             var outputImagePath = Path.Combine(outputDirectory, $"HsrEndGameRealApi_{mode}.jpg");
@@ -504,13 +466,13 @@ public class HsrEndGameApplicationServiceTests
 
     #region Helper Methods
 
-    private static (
+    private (
         HsrEndGameApplicationService Service,
         Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>> EndGameApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<ICardService<HsrEndInformation>> CardServiceMock,
-        Mock<IUserRepository> UserRepositoryMock,
+        UserDbContext UserContext,
         Mock<IAttachmentStorageService> AttachmentStorageMock
         ) SetupMocks()
     {
@@ -518,7 +480,6 @@ public class HsrEndGameApplicationServiceTests
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<HsrEndGameApplicationService>>();
 
@@ -526,45 +487,45 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(false);
         attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
             cardServiceMock.Object,
             imageUpdaterMock.Object,
             endGameApiMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, endGameApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, userRepositoryMock, attachmentStorageMock);
+        return (service, endGameApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, userContext, attachmentStorageMock);
     }
 
-    private static (
+    private (
         HsrEndGameApplicationService Service,
         Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>> EndGameApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<IAttachmentStorageService> AttachmentStorageMock
+        Mock<IAttachmentStorageService> AttachmentStorageMock,
+        UserDbContext UserContext
         ) SetupIntegrationTest()
     {
-        // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrEndGameCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrEndGameCardService>>());
 
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
 
-        // Use real image updater service
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<HsrEndGameApplicationService>>();
 
@@ -573,53 +534,52 @@ public class HsrEndGameApplicationServiceTests
         attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        // Initialize card service
         cardService.InitializeAsync().Wait();
+
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
             cardService,
             imageUpdaterService,
             endGameApiMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        return (service, endGameApiMock, imageUpdaterMock, gameRoleApiMock, attachmentStorageMock);
+        return (service, endGameApiMock, imageUpdaterMock, gameRoleApiMock, attachmentStorageMock, userContext);
     }
 
-    private static (HsrEndGameApplicationService Service, IAttachmentStorageService AttachmentStorageService, Dictionary<string, MemoryStream> StoredAttachments) SetupRealApiIntegrationTest()
+    private (
+        HsrEndGameApplicationService Service,
+        IAttachmentStorageService AttachmentStorageService,
+        Dictionary<string, MemoryStream> StoredAttachments,
+        UserDbContext UserContext
+        ) SetupRealApiIntegrationTest()
     {
-        // Use all real services - no mocks
         var cardService = new HsrEndGameCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrEndGameCardService>>());
 
-        // Real HTTP client factory
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
-        // Real End Game API service
         var endGameApiService = new HsrEndGameApiService(
             httpClientFactory.Object,
             Mock.Of<ILogger<HsrEndGameApiService>>());
 
-        // Real game role API service
         var gameRoleApiService = new GameRoleApiService(
             httpClientFactory.Object,
             Mock.Of<ILogger<GameRoleApiService>>());
 
-        // Real image updater service
         var imageUpdaterService = new ImageUpdaterService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
-        // Initialize card service
         cardService.InitializeAsync().Wait();
 
-        var userRepositoryMock = new Mock<IUserRepository>();
         var storedAttachments = new Dictionary<string, MemoryStream>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -635,16 +595,18 @@ public class HsrEndGameApplicationServiceTests
                 return true;
             });
 
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+
         var service = new HsrEndGameApplicationService(
             cardService,
             imageUpdaterService,
             endGameApiService,
             gameRoleApiService,
-            userRepositoryMock.Object,
+            userContext,
             attachmentStorageMock.Object,
             Mock.Of<ILogger<HsrEndGameApplicationService>>());
 
-        return (service, attachmentStorageMock.Object, storedAttachments);
+        return (service, attachmentStorageMock.Object, storedAttachments, userContext);
     }
 
     private static GameProfileDto CreateTestProfile()
@@ -669,6 +631,30 @@ public class HsrEndGameApplicationServiceTests
         if (result == null) throw new InvalidOperationException($"Failed to deserialize {filename}");
 
         return result;
+    }
+
+    private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)
+    {
+        var user = new UserModel
+        {
+            Id = (long)userId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        var profile = new UserProfileModel
+        {
+            Id = profileId,
+            User = user,
+            UserId = user.Id,
+            ProfileId = profileId,
+            LtUid = (long)ltUid,
+            LToken = "test"
+        };
+
+        user.Profiles.Add(profile);
+        userContext.Users.Add(user);
+        userContext.SaveChanges();
+        return profile;
     }
 
     #endregion

@@ -24,7 +24,7 @@ internal class HsrAnomalyCardServiceTests
     public async Task Setup()
     {
         m_Service = new HsrAnomalyCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrAnomalyCardService>>());
         await m_Service.InitializeAsync();
     }

@@ -3,9 +3,11 @@
 using System.Security.Cryptography;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -16,15 +18,15 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
     where TContext : IApplicationContext
 {
     private readonly IApiService<GameProfileDto, GameRoleApiContext> m_GameRoleApi;
-    private readonly IUserRepository m_UserRepository;
+    private readonly UserDbContext m_UserContext;
     protected readonly ILogger<BaseApplicationService<TContext>> Logger;
 
     protected BaseApplicationService(IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ILogger<BaseApplicationService<TContext>> logger)
     {
         m_GameRoleApi = gameRoleApi;
-        m_UserRepository = userRepository;
+        m_UserContext = userContext;
         Logger = logger;
     }
 
@@ -46,32 +48,47 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
         return gameProfileResult.Data;
     }
 
-    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, Server server)
-    {
-        var user = await m_UserRepository.GetUserAsync(userId);
-        var profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
-
-        if (user != null && profile != null)
-        {
-            profile.GameUids.TryAdd(game, []);
-            if (profile.GameUids[game].TryAdd(server.ToString(), gameUid))
-            {
-                await m_UserRepository.CreateOrUpdateUserAsync(user);
-            }
-        }
-    }
-
     protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server)
     {
-        var user = await m_UserRepository.GetUserAsync(userId);
-        var profile = user?.Profiles?.FirstOrDefault(p => p.LtUid == ltuid);
-
-        if (user != null && profile != null)
-        {
-            profile.GameUids.TryAdd(game, []);
-            if (profile.GameUids[game].TryAdd(server.ToString(), gameUid))
+        var profile = await m_UserContext.UserProfiles
+            .Where(p => p.UserId == (long)userId && p.LtUid == (long)ltuid)
+            .Select(p => new
             {
-                await m_UserRepository.CreateOrUpdateUserAsync(user);
+                p.Id,
+                p.ProfileId,
+                GameUids = p.GameUids.Where(x => x.Game == game && x.Region == server).ToList()
+            })
+            .FirstOrDefaultAsync();
+
+        if (profile != null)
+        {
+            if (profile.GameUids.Count == 0)
+            {
+                m_UserContext.GameUids.Add(new ProfileGameUid
+                {
+                    ProfileId = profile.Id,
+                    Game = game,
+                    GameUid = gameUid,
+                    Region = server
+                });
+            }
+            else
+            {
+                var gameUidEntry = profile.GameUids[0];
+                gameUidEntry.GameUid = gameUid;
+                gameUidEntry.Region = server;
+                m_UserContext.GameUids.Update(gameUidEntry);
+            }
+
+            try
+            {
+                await m_UserContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException e)
+            {
+                Logger.LogError(e,
+                    "Failed to update GameUid for User {UserId}, LtUid {LtUid}, Game {Game}, GameUid {GameUid}, Server {Server}",
+                    userId, ltuid, game, gameUid, server);
             }
         }
     }
@@ -85,9 +102,9 @@ public abstract class BaseAttachmentApplicationService<TContext> :
 
     protected BaseAttachmentApplicationService(
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
-        ILogger<BaseAttachmentApplicationService<TContext>> logger) : base(gameRoleApi, userRepository, logger)
+        ILogger<BaseAttachmentApplicationService<TContext>> logger) : base(gameRoleApi, userContext, logger)
     {
         m_AttachmentStorageService = attachmentStorageService;
     }

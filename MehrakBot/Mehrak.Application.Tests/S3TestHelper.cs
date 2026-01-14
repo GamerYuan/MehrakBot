@@ -13,9 +13,9 @@ using Testcontainers.LocalStack;
 
 namespace Mehrak.Application.Tests;
 
-public sealed class DbTestHelper : IDisposable
+public sealed class S3TestHelper : IDisposable
 {
-    public static DbTestHelper Instance { get; private set; } = null!;
+    public static S3TestHelper Instance { get; private set; } = null!;
 
     private readonly LocalStackContainer m_LocalStackContainer;
 
@@ -24,7 +24,7 @@ public sealed class DbTestHelper : IDisposable
     private ulong m_TestUserId = 1_000_000_000;
     private readonly AmazonS3Client m_Client;
 
-    public DbTestHelper()
+    public S3TestHelper()
     {
         Instance = this;
 

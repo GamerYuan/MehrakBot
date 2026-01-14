@@ -4,9 +4,9 @@ using Amazon.S3;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Metrics;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -23,10 +23,16 @@ public static class InfrastructureServiceCollectionExtension
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
-        services.AddDbContext<UserDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<CharacterDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<RelicDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<CodeRedeemDbContext>(options => options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<DashboardAuthDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<CharacterDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<UserDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<CodeRedeemDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<RelicDbContext>(options =>
+            options.UseNpgsql(config["Postgres:ConnectionString"]));
 
         IConnectionMultiplexer multiplexer = ConnectionMultiplexer.Connect(
             config["Redis:ConnectionString"] ?? "localhost:6379");
@@ -52,14 +58,9 @@ public static class InfrastructureServiceCollectionExtension
             return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, s3Config);
         });
 
-        services.AddSingleton<IAttachmentStorageService, AttachmentStorageService>();
-
-        services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IImageRepository, ImageRepository>();
-        services.AddSingleton<ICharacterRepository, CharacterRepository>();
-        services.AddSingleton<IAliasRepository, AliasRepository>();
-        services.AddSingleton<ICodeRedeemRepository, CodeRedeemRepository>();
-        services.AddSingleton<IRelicRepository, HsrRelicRepository>();
+
+        services.AddSingleton<IAttachmentStorageService, AttachmentStorageService>();
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 
@@ -68,11 +69,6 @@ public static class InfrastructureServiceCollectionExtension
         services.AddHostedService<AliasInitializationService>();
         services.AddHostedService<CharacterCacheBackgroundService>();
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
-
-        services.AddSingleton<IMetricsService, BotMetricsService>();
-        services.AddHostedService<BotMetricsService>();
-
-        services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
 
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 

@@ -12,6 +12,9 @@ using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin;
 using Mehrak.GameApi.Genshin.Types;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,9 +24,23 @@ using Moq;
 namespace Mehrak.Application.Tests.Services.Genshin.CharList;
 
 [Parallelizable(ParallelScope.Self)]
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class GenshinCharListApplicationServiceTests
 {
+    private TestDbContextFactory m_DbFactory = null!;
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin");
+
+    [SetUp]
+    public void Setup()
+    {
+        m_DbFactory = new TestDbContextFactory();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        m_DbFactory.Dispose();
+    }
 
     #region Unit Tests
 
@@ -45,13 +62,13 @@ public class GenshinCharListApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
             Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
-        });
+        }
     }
 
     [Test]
@@ -78,20 +95,20 @@ public class GenshinCharListApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("Character List"));
-        });
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, _, _, _, imageRepoMock, _, _) = SetupMocks();
+        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, _, _, imageRepoMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -117,20 +134,20 @@ public class GenshinCharListApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("image"));
-        });
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
     {
         // Arrange
-        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, characterCacheMock, imageRepoMock, _, attachmentStorageMock) = SetupMocks();
+        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, characterCacheMock, imageRepoMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -161,13 +178,13 @@ public class GenshinCharListApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
             Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
-        });
+        }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<string>>()), Times.Once);
@@ -177,7 +194,7 @@ public class GenshinCharListApplicationServiceTests
     public async Task ExecuteAsync_VerifyImageUpdatesCalledForAllAssets()
     {
         // Arrange
-        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, _, imageRepoMock, wikiApiMock, _) = SetupMocks();
+        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, imageRepoMock, wikiApiMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -298,8 +315,8 @@ public class GenshinCharListApplicationServiceTests
     public async Task ExecuteAsync_WithAscendedWeapons_UpdatesWeaponImages()
     {
         // Arrange
-        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, _, imageRepositoryMock,
-            wikiApiMock, attachmentStorageMock) = SetupMocks();
+        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, imageRepositoryMock,
+            wikiApiMock, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -414,27 +431,14 @@ public class GenshinCharListApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, userRepositoryMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test"
-                    }
-                ]
-            });
+        SeedUserProfile(userContext, 1ul, 1, 1ul);
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
@@ -450,51 +454,35 @@ public class GenshinCharListApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        userRepositoryMock.Verify(
-            x => x.CreateOrUpdateUserAsync(It.Is<UserDto>(u =>
-                u.Id == 1ul
-                && u.Profiles != null
-                && u.Profiles.Any(p => p.LtUid == 1ul
-                                       && p.GameUids != null
-                                       && p.GameUids.ContainsKey(Game.Genshin)
-                                       && p.GameUids[Game.Genshin].ContainsKey(Server.Asia.ToString())
-                                       && p.GameUids[Game.Genshin][Server.Asia.ToString()] == profile.GameUid)
-            )),
-            Times.Once);
+        var stored = await userContext.GameUids.SingleOrDefaultAsync();
+        Assert.That(stored, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(stored!.GameUid, Is.EqualTo(profile.GameUid));
+            Assert.That(stored.Region, Is.EqualTo(Server.Asia.ToString()));
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, userRepositoryMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
 
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles =
-                [
-                    new()
-                    {
-                        LtUid = 1ul,
-                        LToken = "test",
-                        GameUids = new Dictionary<Game, Dictionary<string, string>>
-                        {
-                            {
-                                Game.Genshin,
-                                new Dictionary<string, string> { { Server.Asia.ToString(), profile.GameUid } }
-                            }
-                        }
-                    }
-                ]
-            });
+        var seededProfile = SeedUserProfile(userContext, 1ul, 1, 1ul);
+        userContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = seededProfile.Id,
+            Game = Game.Genshin,
+            Region = Server.Asia.ToString(),
+            GameUid = profile.GameUid
+        });
+        await userContext.SaveChangesAsync();
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
@@ -510,23 +498,23 @@ public class GenshinCharListApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(await userContext.GameUids.CountAsync(), Is.EqualTo(1));
+            Assert.That((await userContext.GameUids.SingleAsync()).GameUid, Is.EqualTo(profile.GameUid));
+        }
     }
 
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, userRepositoryMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
-
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync((UserDto?)null);
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
@@ -539,20 +527,13 @@ public class GenshinCharListApplicationServiceTests
             LToken = "test"
         };
 
+        // Act
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
 
-        userRepositoryMock.Reset();
-        userRepositoryMock
-            .Setup(x => x.GetUserAsync(1ul))
-            .ReturnsAsync(new UserDto
-            {
-                Id = 1ul,
-                Profiles = [new() { LtUid = 99999ul, LToken = "test" }]
-            });
-
+        SeedUserProfile(userContext, 1ul, 2, 99999ul);
         await service.ExecuteAsync(context);
-        userRepositoryMock.Verify(x => x.CreateOrUpdateUserAsync(It.IsAny<UserDto>()), Times.Never);
+        Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
     }
 
     #endregion
@@ -566,7 +547,7 @@ public class GenshinCharListApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, attachmentStorageMock, storedAttachments) = SetupIntegrationTest();
+        var (service, characterApiMock, _, gameRoleApiMock, _, _, attachmentStorageMock, storedAttachments, _) = SetupIntegrationTest();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -578,7 +559,7 @@ public class GenshinCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
 
         var context = new GenshinCharListApplicationContext(
-            DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+            S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = 1ul,
             LToken = "test"
@@ -587,11 +568,11 @@ public class GenshinCharListApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
             Assert.That(result.Data, Is.Not.Null);
-        });
+        }
         Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
 
         var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
@@ -624,16 +605,16 @@ public class GenshinCharListApplicationServiceTests
         var testLtUid = ulong.Parse(config["LtUid"] ?? "0");
         var testLToken = config["LToken"];
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(testLtUid, Is.GreaterThan(0), "LtUid must be set in appsettings.test.json");
             Assert.That(testLToken, Is.Not.Null.And.Not.Empty, "LToken must be set in appsettings.test.json");
-        });
+        }
 
-        var (service, storedAttachments) = SetupRealApiIntegrationTest();
+        var (service, storedAttachments, _) = SetupRealApiIntegrationTest();
 
         var context = new GenshinCharListApplicationContext(
-            DbTestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
+            S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
         {
             LtUid = testLtUid,
             LToken = testLToken!
@@ -646,9 +627,13 @@ public class GenshinCharListApplicationServiceTests
         if (result.IsSuccess)
         {
             var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
-            Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
             Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
-            Assert.That(storedStream!.Length, Is.GreaterThan(0));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
+                Assert.That(storedStream!.Length, Is.GreaterThan(0));
+            }
 
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
             Directory.CreateDirectory(outputDirectory);
@@ -664,18 +649,18 @@ public class GenshinCharListApplicationServiceTests
 
     #region Helper Methods
 
-    private static (
+    private (
         GenshinCharListApplicationService Service,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<ICardService<IEnumerable<GenshinBasicCharacterData>>> CardServiceMock,
-        Mock<IUserRepository> UserRepositoryMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IImageRepository> ImageRepositoryMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
-        Mock<IAttachmentStorageService> AttachmentStorageMock
+        Mock<IAttachmentStorageService> AttachmentStorageMock,
+        UserDbContext UserContext
         ) SetupMocks()
     {
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
@@ -683,7 +668,6 @@ public class GenshinCharListApplicationServiceTests
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail,
             GenshinCharacterApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var loggerMock = new Mock<ILogger<GenshinCharListApplicationService>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
@@ -699,37 +683,39 @@ public class GenshinCharListApplicationServiceTests
             .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError, "Default Mock Behavior"));
 
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+
         var service = new GenshinCharListApplicationService(
             imageUpdaterMock.Object,
             cardServiceMock.Object,
             characterApiMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             characterCacheMock.Object,
             imageRepositoryMock.Object,
             wikiApiMock.Object,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, userRepositoryMock,
-            characterCacheMock, imageRepositoryMock, wikiApiMock, attachmentStorageMock);
+        return (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, characterCacheMock,
+            imageRepositoryMock, wikiApiMock, attachmentStorageMock, userContext);
     }
 
-    private static (
+    private (
         GenshinCharListApplicationService Service,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<IUserRepository> UserRepositoryMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
-        Dictionary<string, MemoryStream> StoredAttachments
+        Dictionary<string, MemoryStream> StoredAttachments,
+        UserDbContext UserContext
         ) SetupIntegrationTest()
     {
         var cardService = new GenshinCharListCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>());
 
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData,
@@ -739,15 +725,14 @@ public class GenshinCharListApplicationServiceTests
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
         var imageUpdaterService = new ImageUpdaterService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             httpClientFactoryMock.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var loggerMock = new Mock<ILogger<GenshinCharListApplicationService>>();
-        var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
-        var imageRepository = DbTestHelper.Instance.ImageRepository;
+        var imageRepository = S3TestHelper.Instance.ImageRepository;
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var storedAttachments = new Dictionary<string, MemoryStream>();
@@ -765,12 +750,14 @@ public class GenshinCharListApplicationServiceTests
                 return true;
             });
 
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+
         var service = new GenshinCharListApplicationService(
             imageUpdaterService,
             cardService,
             characterApiMock.Object,
             gameRoleApiMock.Object,
-            userRepositoryMock.Object,
+            userContext,
             characterCacheMock.Object,
             imageRepository,
             wikiApiMock.Object,
@@ -778,13 +765,13 @@ public class GenshinCharListApplicationServiceTests
             loggerMock.Object);
 
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        return (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, userRepositoryMock, characterCacheMock, wikiApiMock, attachmentStorageMock, storedAttachments);
+        return (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, characterCacheMock, wikiApiMock, attachmentStorageMock, storedAttachments, userContext);
     }
 
-    private static (GenshinCharListApplicationService Service, Dictionary<string, MemoryStream> StoredAttachments) SetupRealApiIntegrationTest()
+    private (GenshinCharListApplicationService Service, Dictionary<string, MemoryStream> StoredAttachments, UserDbContext UserContext) SetupRealApiIntegrationTest()
     {
         var cardService = new GenshinCharListCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
@@ -805,11 +792,10 @@ public class GenshinCharListApplicationServiceTests
             Mock.Of<ILogger<GameRoleApiService>>());
 
         var imageUpdaterService = new ImageUpdaterService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
-        var userRepositoryMock = new Mock<IUserRepository>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
@@ -828,19 +814,21 @@ public class GenshinCharListApplicationServiceTests
                 return true;
             });
 
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+
         var service = new GenshinCharListApplicationService(
             imageUpdaterService,
             cardService,
             characterApiService,
             gameRoleApiService,
-            userRepositoryMock.Object,
+            userContext,
             characterCacheMock.Object,
             imageRepositoryMock.Object,
             wikiApiMock.Object,
             attachmentStorageMock.Object,
             Mock.Of<ILogger<GenshinCharListApplicationService>>());
 
-        return (service, storedAttachments);
+        return (service, storedAttachments, userContext);
     }
 
     private static GameProfileDto CreateTestProfile()
@@ -859,6 +847,30 @@ public class GenshinCharListApplicationServiceTests
         var json = await File.ReadAllTextAsync(filePath);
         var result = JsonSerializer.Deserialize<T>(json);
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
+    }
+
+    private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)
+    {
+        var user = new UserModel
+        {
+            Id = (long)userId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        var profile = new UserProfileModel
+        {
+            Id = profileId,
+            User = user,
+            UserId = user.Id,
+            ProfileId = profileId,
+            LtUid = (long)ltUid,
+            LToken = "test"
+        };
+
+        user.Profiles.Add(profile);
+        userContext.Users.Add(user);
+        userContext.SaveChanges();
+        return profile;
     }
 
     #endregion

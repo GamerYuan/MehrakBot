@@ -9,6 +9,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -24,9 +25,9 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
         IImageRepository imageRepository,
         IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ILogger<GenshinRealTimeNotesApplicationService> logger)
-        : base(gameRoleApi, userRepository, logger)
+        : base(gameRoleApi, userContext, logger)
     {
         m_ImageRepository = imageRepository;
         m_ApiService = apiService;
@@ -48,7 +49,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
 
             var gameUid = profile.GameUid;
 

@@ -28,7 +28,7 @@ public class HsrMemoryCardServiceTests
     public async Task Setup()
     {
         m_Service = new HsrMemoryCardService(
-            DbTestHelper.Instance.ImageRepository,
+            S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>());
         await m_Service.InitializeAsync();
     }

@@ -4,9 +4,12 @@ using System.Globalization;
 using Mehrak.Application;
 using Mehrak.Application.Services.Common;
 using Mehrak.Bot.Services;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Metrics;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -117,6 +120,12 @@ public class Program
 
             builder.Services.AddBotServices();
 
+            builder.Services.AddSingleton<BotMetricsService>();
+            builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<BotMetricsService>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMetricsService>());
+
+            builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
+
             builder.Services.AddHostedService<AssetInitializationService>();
 
             builder.Services.AddDiscordGateway().AddApplicationCommands()
@@ -131,8 +140,6 @@ public class Program
 
             host.UseGatewayHandlers();
             logger.LogInformation("Discord gateway initialized");
-
-            var dir = Directory.GetCurrentDirectory();
 
             await host.RunAsync();
         }

@@ -1,8 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Mehrak.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Models;
 
+[Index(nameof(Id), IsUnique = true)]
 public class UserModel
 {
     [Key]
@@ -11,6 +13,7 @@ public class UserModel
     public List<UserProfileModel> Profiles { get; set; } = [];
 }
 
+[Index(nameof(LtUid)), Index(nameof(UserId), nameof(ProfileId), IsUnique = true)]
 public class UserProfileModel
 {
     public long Id { get; set; }
@@ -19,6 +22,7 @@ public class UserProfileModel
     public UserModel User { get; set; } = null!;
 
     public int ProfileId { get; set; }
+
     public long LtUid { get; set; }
     public string LToken { get; set; } = string.Empty;
     public DateTime? LastCheckIn { get; set; }

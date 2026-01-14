@@ -1,8 +1,9 @@
 ﻿using System.Security.Cryptography;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Auth;
 
@@ -10,7 +11,7 @@ public interface IDashboardProfileAuthenticationService
 {
     Task<DashboardProfileAuthenticationResult> AuthenticateAsync(
         ulong discordUserId,
-        uint profileId,
+        int profileId,
         string? passphrase,
         CancellationToken ct = default);
 
@@ -19,14 +20,14 @@ public interface IDashboardProfileAuthenticationService
 
 public class DashboardProfileAuthenticationService : IDashboardProfileAuthenticationService
 {
-    private readonly IUserRepository m_UserRepository;
+    private readonly UserDbContext m_UserRepository;
     private readonly IEncryptionService m_EncryptionService;
     private readonly ICacheService m_CacheService;
     private readonly ILogger<DashboardProfileAuthenticationService> m_Logger;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
     public DashboardProfileAuthenticationService(
-        IUserRepository userRepository,
+        UserDbContext userRepository,
         IEncryptionService encryptionService,
         ICacheService cacheService,
         ILogger<DashboardProfileAuthenticationService> logger)
@@ -39,7 +40,7 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
 
     public async Task<DashboardProfileAuthenticationResult> AuthenticateAsync(
         ulong discordUserId,
-        uint profileId,
+        int profileId,
         string? passphrase,
         CancellationToken ct = default)
     {
@@ -48,14 +49,28 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         m_Logger.LogDebug("Dashboard authentication requested for DiscordUserId={UserId}, ProfileId={ProfileId}",
             discordUserId, profileId);
 
-        var user = await m_UserRepository.GetUserAsync(discordUserId);
+        var user = await m_UserRepository.Users.Where(u => u.Id == (long)discordUserId)
+            .Select(u => new UserDto
+            {
+                Id = (ulong)u.Id,
+                Profiles = u.Profiles
+                    .Where(p => p.ProfileId == profileId)
+                    .Select(p => new UserProfileDto
+                    {
+                        Id = p.Id,
+                        ProfileId = p.ProfileId,
+                        LtUid = (ulong)p.LtUid,
+                        LToken = p.LToken
+                    })
+            }).FirstOrDefaultAsync();
+
         if (user == null)
         {
             m_Logger.LogWarning("Dashboard authentication failed: user {UserId} not found", discordUserId);
             return DashboardProfileAuthenticationResult.NotFound("User account not found. Please add a profile first.");
         }
 
-        var profile = user.Profiles?.FirstOrDefault(p => p.ProfileId == profileId);
+        var profile = user.Profiles?.FirstOrDefault();
         if (profile == null)
         {
             m_Logger.LogWarning("Dashboard authentication failed: profile {ProfileId} not found for user {UserId}",

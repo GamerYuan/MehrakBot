@@ -15,7 +15,9 @@ public class UserDto
 
 public class UserProfileDto
 {
-    public uint ProfileId { get; set; }
+    public long Id { get; set; }
+
+    public int ProfileId { get; set; }
 
     public ulong LtUid { get; set; }
 

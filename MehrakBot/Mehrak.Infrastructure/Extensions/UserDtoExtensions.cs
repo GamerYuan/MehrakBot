@@ -13,7 +13,7 @@ internal static class UserDtoExtensions
             Timestamp = model.Timestamp,
             Profiles = [.. model.Profiles.Select(p => new UserProfileDto
             {
-                ProfileId = (uint)p.ProfileId,
+                ProfileId = p.ProfileId,
                 LtUid = (ulong)p.LtUid,
                 LToken = p.LToken,
                 LastCheckIn = p.LastCheckIn,
@@ -51,7 +51,7 @@ internal static class UserDtoExtensions
             var profile = new UserProfileModel
             {
                 UserId = (long)userId,
-                ProfileId = (int)p.ProfileId,
+                ProfileId = p.ProfileId,
                 LtUid = (long)p.LtUid,
                 LToken = p.LToken,
                 LastCheckIn = p.LastCheckIn,

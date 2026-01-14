@@ -3,19 +3,19 @@
 [SetUpFixture]
 public class TestSetup
 {
-    private DbTestHelper m_DbTestHelper;
+    private S3TestHelper m_DbTestHelper;
 
     [OneTimeSetUp]
     public async Task Setup()
     {
-        m_DbTestHelper = new DbTestHelper();
+        m_DbTestHelper = new S3TestHelper();
 
         foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"),
                      "*.png", SearchOption.AllDirectories))
         {
             var fileName = Path.GetFileNameWithoutExtension(image);
             await using var stream = File.OpenRead(image);
-            await DbTestHelper.Instance.ImageRepository.UploadFileAsync(fileName, stream);
+            await S3TestHelper.Instance.ImageRepository.UploadFileAsync(fileName, stream);
         }
     }
 

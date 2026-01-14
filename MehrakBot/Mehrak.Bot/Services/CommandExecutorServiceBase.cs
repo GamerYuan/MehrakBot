@@ -3,8 +3,10 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -24,21 +26,20 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
     internal bool IsResponseEphemeral { get; set; } = false;
 
     protected readonly List<ParamValidator> Validators = [];
-
-    private readonly IUserRepository m_UserRepository;
+    private readonly UserDbContext m_UserContext;
     private readonly ICommandRateLimitService m_CommandRateLimitService;
     protected readonly IAuthenticationMiddlewareService AuthenticationMiddleware;
     protected readonly IMetricsService MetricsService;
     protected readonly ILogger<CommandExecutorServiceBase<TContext>> Logger;
 
     protected CommandExecutorServiceBase(
-        IUserRepository userRepository,
+        UserDbContext userContext,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
         ILogger<CommandExecutorServiceBase<TContext>> logger)
     {
-        m_UserRepository = userRepository;
+        m_UserContext = userContext;
         m_CommandRateLimitService = commandRateLimitService;
         AuthenticationMiddleware = authenticationMiddleware;
         MetricsService = metricsService;
@@ -50,7 +51,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         Validators.Add(new ParamValidator<TParam>(paramName, pred, errorMessage));
     }
 
-    public abstract Task ExecuteAsync(uint profile);
+    public abstract Task ExecuteAsync(int profile);
 
     protected async Task<bool> ValidateRateLimitAsync()
     {
@@ -66,28 +67,52 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         return true;
     }
 
-    protected static string? GetLastUsedServerAsync(UserDto user, Game game, uint profileId)
+    protected async Task<string?> GetLastUsedServerAsync(UserDto user, Game game, int profileId)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return null;
 
-        if (profile.LastUsedRegions?.TryGetValue(game, out var server) ?? false) return server;
+        var region = await m_UserContext.Regions
+            .AsNoTracking()
+            .Where(x => x.ProfileId == profile.Id && x.Game == game)
+            .Select(x => new { x.Region })
+            .FirstOrDefaultAsync();
 
-        return null;
+        return region?.Region;
     }
 
-    protected async Task UpdateLastUsedServerAsync(UserDto user, uint profileId, Game game, string server)
+    protected async Task UpdateLastUsedServerAsync(UserDto user, int profileId, Game game, string server)
     {
         var profile = user.Profiles?.FirstOrDefault(x => x.ProfileId == profileId);
         if (profile == null) return;
 
-        profile.LastUsedRegions ??= [];
-        if (profile.LastUsedRegions.TryGetValue(game, out var stored) && stored == server)
-            return;
+        var region = await m_UserContext.Regions
+            .Where(x => x.ProfileId == profile.Id && x.Game == game)
+            .FirstOrDefaultAsync();
 
-        if (!profile.LastUsedRegions.TryAdd(game, server))
-            profile.LastUsedRegions[game] = server;
+        try
+        {
+            if (region == null)
+            {
+                await m_UserContext.Regions.AddAsync(new ProfileRegion()
+                {
+                    ProfileId = profile.Id,
+                    Game = game,
+                    Region = server
+                });
+            }
+            else
+            {
+                region.Region = server;
+                m_UserContext.Update(region);
+            }
 
-        await m_UserRepository.CreateOrUpdateUserAsync(user);
+            await m_UserContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException e)
+        {
+            Logger.LogError(e, "Failed to update last used server for user {UserId}, profile {ProfileId}, game {Game}",
+                user.Id, profileId, game);
+        }
     }
 }

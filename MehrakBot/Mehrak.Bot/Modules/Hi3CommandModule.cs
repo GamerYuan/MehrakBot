@@ -32,7 +32,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Hi3Server? server = null,
         [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
-        uint profile = 1)
+        int profile = 1)
     {
         m_Logger.LogInformation(
             "User {UserId} used the character command with character {Character}, server {Server}, profile {ProfileId}",

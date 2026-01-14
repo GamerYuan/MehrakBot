@@ -8,10 +8,10 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -29,10 +29,10 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService<Z
         IImageUpdaterService imageUpdaterService,
         IApiService<ZzzDefenseData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ILogger<ZzzDefenseApplicationService> logger)
-        : base(gameRoleApi, userRepository, attachmentStorageService, logger)
+        : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ImageUpdaterService = imageUpdaterService;
@@ -55,7 +55,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService<Z
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server);
+            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
 
             var gameUid = profile.GameUid;
 

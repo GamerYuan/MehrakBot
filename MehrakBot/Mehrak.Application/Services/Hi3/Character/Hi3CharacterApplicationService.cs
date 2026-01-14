@@ -5,10 +5,10 @@ using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hi3.Types;
+using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hi3.Character;
@@ -28,10 +28,10 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         ICharacterCacheService characterCacheService,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
-        IUserRepository userRepository,
+        UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ILogger<Hi3CharacterApplicationService> logger
-    ) : base(gameRoleApi, userRepository, attachmentStorageService, logger)
+    ) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_CharacterApi = characterApi;

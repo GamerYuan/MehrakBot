@@ -2,8 +2,11 @@
 
 using System.Collections.Concurrent;
 using Mehrak.Domain.Enums;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -12,20 +15,17 @@ namespace Mehrak.Infrastructure.Services;
 
 public class CharacterCacheService : ICharacterCacheService
 {
-    private readonly ICharacterRepository m_CharacterRepository;
-    private readonly IAliasRepository m_AliasRepository;
+    private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<CharacterCacheService> m_Logger;
     private readonly ConcurrentDictionary<Game, List<string>> m_CharacterCache;
     private readonly Dictionary<Game, Dictionary<string, string>> m_AliasCache;
     private readonly SemaphoreSlim m_UpdateSemaphore;
 
     public CharacterCacheService(
-        ICharacterRepository characterRepository,
-        IAliasRepository aliasRepository,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<CharacterCacheService> logger)
     {
-        m_CharacterRepository = characterRepository;
-        m_AliasRepository = aliasRepository;
+        m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_AliasCache = [];
         m_CharacterCache = new ConcurrentDictionary<Game, List<string>>();
@@ -54,12 +54,34 @@ public class CharacterCacheService : ICharacterCacheService
     {
         try
         {
-            var toAdd = characters.Except(m_CharacterCache.GetValueOrDefault(gameName, [])).ToList();
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+            var incoming = new HashSet<string>(characters, StringComparer.OrdinalIgnoreCase);
+
+            var existing = await characterContext.Characters
+                .Where(x => x.Game == gameName && incoming.Contains(x.Name))
+                .Select(x => x.Name)
+                .ToListAsync();
+
+            var toAdd = incoming.Except(existing).ToList();
 
             if (toAdd.Count == 0) return;
 
-            await m_CharacterRepository.UpsertCharactersAsync(gameName, toAdd);
+            foreach (var newChar in toAdd)
+            {
+                await characterContext.Characters.AddAsync(new CharacterModel()
+                {
+                    Game = gameName,
+                    Name = newChar
+                });
+            }
+
+            await characterContext.SaveChangesAsync();
+
+
             await UpdateCharactersAsync(gameName);
+            m_Logger.LogInformation("Updated {Count} names for {Game}", toAdd.Count, gameName);
         }
         catch (Exception e)
         {
@@ -97,10 +119,16 @@ public class CharacterCacheService : ICharacterCacheService
     {
         try
         {
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
             m_Logger.LogDebug("Updating character cache for {Game}", gameName);
 
-            var characters = await m_CharacterRepository.GetCharactersAsync(gameName);
-            characters.Sort();
+            var characters = await characterContext.Characters.AsNoTracking()
+                .Where(x => x.Game == gameName)
+                .Select(x => x.Name)
+                .OrderBy(x => x)
+                .ToListAsync();
 
             if (characters.Count > 0)
             {
@@ -123,10 +151,13 @@ public class CharacterCacheService : ICharacterCacheService
     {
         try
         {
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
             m_Logger.LogDebug("Updating alias cache for {Game}", gameName);
 
-            var aliases = new Dictionary<string, string>(await m_AliasRepository.GetAliasesAsync(gameName),
-                StringComparer.OrdinalIgnoreCase);
+            var aliases = await characterContext.Aliases.Where(a => a.Game == gameName)
+                .ToDictionaryAsync(a => a.Alias, a => a.CharacterName);
 
             if (aliases.Count > 0)
             {

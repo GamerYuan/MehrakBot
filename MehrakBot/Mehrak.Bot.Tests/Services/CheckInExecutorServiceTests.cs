@@ -4,8 +4,9 @@ using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord.Services;
@@ -24,15 +25,17 @@ namespace Mehrak.Bot.Tests.Services;
 public class CheckInExecutorServiceTests
 {
     private Mock<IApplicationService<CheckInApplicationContext>> m_MockApplicationService = null!;
-    private Mock<IUserRepository> m_MockUserRepository = null!;
     private Mock<ICommandRateLimitService> m_MockRateLimitService = null!;
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
     private Mock<IMetricsService> m_MockMetricsService = null!;
     private CheckInExecutorService m_Service = null!;
     private DiscordTestHelper m_DiscordHelper = null!;
+    private TestDbContextFactory? m_DbFactory;
+    private IServiceScope? m_DbScope;
+    private UserDbContext m_UserContext = null!;
 
     private ulong m_TestUserId;
-    private const uint TestProfileId = 1U;
+    private const int TestProfileId = 1;
     private const ulong TestLtUid = 987654321UL;
     private const string TestLToken = "test-ltoken-value";
 
@@ -40,16 +43,20 @@ public class CheckInExecutorServiceTests
     public void Setup()
     {
         m_MockApplicationService = new Mock<IApplicationService<CheckInApplicationContext>>();
-        m_MockUserRepository = new Mock<IUserRepository>();
         m_MockRateLimitService = new Mock<ICommandRateLimitService>();
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
         m_MockMetricsService = new Mock<IMetricsService>();
         m_DiscordHelper = new DiscordTestHelper();
         m_DiscordHelper.SetupRequestCapture();
 
+        m_DbFactory?.Dispose();
+        m_DbFactory = new TestDbContextFactory();
+        m_DbScope = m_DbFactory.ScopeFactory.CreateScope();
+        m_UserContext = m_DbScope.ServiceProvider.GetRequiredService<UserDbContext>();
+
         m_Service = new CheckInExecutorService(
             m_MockApplicationService.Object,
-            m_MockUserRepository.Object,
+            m_UserContext,
             m_MockRateLimitService.Object,
             m_MockAuthMiddleware.Object,
             m_MockMetricsService.Object,
@@ -71,11 +78,12 @@ public class CheckInExecutorServiceTests
     public void TearDown()
     {
         m_MockApplicationService.Reset();
-        m_MockUserRepository.Reset();
         m_MockRateLimitService.Reset();
         m_MockAuthMiddleware.Reset();
         m_MockMetricsService.Reset();
         m_DiscordHelper?.Dispose();
+        m_DbScope?.Dispose();
+        m_DbFactory?.Dispose();
     }
 
     #region ExecuteAsync - Validation Tests

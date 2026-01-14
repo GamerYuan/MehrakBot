@@ -14,7 +14,7 @@ public interface IDashboardApplicationExecutorService<TContext> where TContext :
     void AddValidator<TParam>(string paramName, Predicate<TParam> predicate, string? errorMessage = null);
 
     Task<DashboardApplicationExecutionResult> ExecuteAsync(
-        uint profileId,
+        int profileId,
         CancellationToken ct = default);
 }
 
@@ -46,7 +46,7 @@ internal class DashboardApplicationExecutorService<TContext> : IDashboardApplica
     }
 
     public async Task<DashboardApplicationExecutionResult> ExecuteAsync(
-        uint profileId,
+        int profileId,
         CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

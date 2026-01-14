@@ -4,10 +4,9 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Mehrak.Bot.Authentication;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -26,13 +25,13 @@ namespace Mehrak.Bot.Tests.Authentication;
 public partial class AuthenticationMiddlewareServiceConcurrencyTests
 {
     private Mock<ICacheService> m_MockCacheService = null!;
-    private Mock<IUserRepository> m_MockUserRepository = null!;
     private CookieEncryptionService m_EncryptionService = null!;
     private AuthenticationMiddlewareService m_Service = null!;
+    private TestDbContextFactory? m_DbFactory;
 
     private const int NumberOfConcurrentUsers = 100;
     private const int MaxParallelism = 16;
-    private const uint TestProfileId = 1U;
+    private const int TestProfileId = 1;
     private const ulong BaseLtUid = 100000000UL;
     private const string CorrectPassphrase = "correct-passphrase";
     private const string WrongPassphrase = "wrong-passphrase";
@@ -41,21 +40,12 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
     private List<ulong> m_TestUserIds = null!;
     private ConcurrentDictionary<ulong, string> m_UserTokens = null!;
-    private Random m_Random = null!;
 
     [SetUp]
     public void Setup()
     {
         m_MockCacheService = new Mock<ICacheService>();
-        m_MockUserRepository = new Mock<IUserRepository>();
         m_EncryptionService = new CookieEncryptionService(NullLogger<CookieEncryptionService>.Instance);
-        m_Random = new Random(42); // Fixed seed for reproducibility
-
-        m_Service = new AuthenticationMiddlewareService(
-            m_MockCacheService.Object,
-            m_EncryptionService,
-            m_MockUserRepository.Object,
-            NullLogger<AuthenticationMiddlewareService>.Instance);
 
         // Generate unique test user IDs
         m_TestUserIds = new List<ulong>(NumberOfConcurrentUsers);
@@ -69,6 +59,32 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             m_UserTokens[userId] = $"{TestLToken}{userId}";
         }
 
+        // Seed in-memory database with users and encrypted tokens
+        m_DbFactory?.Dispose();
+        m_DbFactory = new TestDbContextFactory(seed: context =>
+        {
+            foreach (var userId in m_TestUserIds)
+            {
+                var user = new UserModel
+                {
+                    Id = (long)userId,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                var profile = new UserProfileModel
+                {
+                    User = user,
+                    UserId = user.Id,
+                    ProfileId = TestProfileId,
+                    LtUid = (long)(BaseLtUid + userId % 1000),
+                    LToken = m_EncryptionService.Encrypt(m_UserTokens[userId], CorrectPassphrase)
+                };
+
+                user.Profiles.Add(profile);
+                context.Users.Add(user);
+            }
+        });
+
         // Setup cache to always return null (force authentication flow)
         m_MockCacheService
             .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
@@ -78,37 +94,18 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()))
             .Returns(Task.CompletedTask);
 
-        // Setup user repository to return users with encrypted tokens
-        m_MockUserRepository
-            .Setup(x => x.GetUserAsync(It.IsAny<ulong>()))
-            .ReturnsAsync((ulong userId) =>
-            {
-                if (!m_UserTokens.ContainsKey(userId))
-                    return null;
-
-                var token = m_UserTokens[userId];
-                var encryptedToken = m_EncryptionService.Encrypt(token, CorrectPassphrase);
-
-                var profile = new UserProfileDto
-                {
-                    ProfileId = TestProfileId,
-                    LtUid = BaseLtUid + userId % 1000,
-                    LToken = encryptedToken
-                };
-
-                return new UserDto
-                {
-                    Id = userId,
-                    Profiles = [profile]
-                };
-            });
+        m_Service = new AuthenticationMiddlewareService(
+            m_MockCacheService.Object,
+            m_EncryptionService,
+            m_DbFactory.ScopeFactory,
+            NullLogger<AuthenticationMiddlewareService>.Instance);
     }
 
     [TearDown]
     public void TearDown()
     {
         m_MockCacheService.Reset();
-        m_MockUserRepository.Reset();
+        m_DbFactory?.Dispose();
     }
 
     [Test]
@@ -169,7 +166,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
                     }
 
                     // Determine if this user will provide wrong password (10% chance)
-                    var useWrongPassword = m_Random.NextDouble() < WrongPasswordProbability;
+                    var useWrongPassword = Random.Shared.NextDouble() < WrongPasswordProbability;
                     var passphrase = useWrongPassword ? WrongPassphrase : CorrectPassphrase;
 
                     if (useWrongPassword)
