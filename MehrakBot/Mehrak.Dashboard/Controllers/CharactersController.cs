@@ -58,13 +58,13 @@ public class CharactersController : ControllerBase
         if (!HasGameWriteAccess(game!))
             return Forbid();
 
-        var incoming = normalizedCharacters.ToHashSet();
+        var incoming = normalizedCharacters.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var existing = await m_CharacterContext.Characters
             .Where(x => x.Game == gameEnum && incoming.Contains(x.Name))
             .Select(x => x.Name)
             .ToListAsync();
 
-        var newEntities = incoming.Except(existing).Select(name => new CharacterModel
+        var newEntities = incoming.Except(existing, StringComparer.OrdinalIgnoreCase).Select(name => new CharacterModel
         {
             Game = gameEnum,
             Name = name
