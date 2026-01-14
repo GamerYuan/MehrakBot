@@ -54,7 +54,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             .Select(x => new UserDto()
             {
                 Id = (ulong)x.Id,
-                Profiles = x.Profiles.Select(p => new UserProfileDto()
+                Profiles = x.Profiles.Where(x => x.ProfileId == request.ProfileId).Select(p => new UserProfileDto()
                 {
                     Id = p.Id,
                     ProfileId = p.ProfileId,
