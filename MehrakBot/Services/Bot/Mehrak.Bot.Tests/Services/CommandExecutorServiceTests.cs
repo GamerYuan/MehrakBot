@@ -6,6 +6,7 @@ using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
@@ -34,6 +35,7 @@ public class CommandExecutorServiceTests
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
     private Mock<IMetricsService> m_MockMetricsService = null!;
     private Mock<IAttachmentStorageService> m_MockAttachmentService = null!;
+    private Mock<IImageRepository> m_MockImageRepository = null!;
     private CommandExecutorService<TestApplicationContext> m_Service = null!;
     private DiscordTestHelper m_DiscordHelper = null!;
     private TestDbContextFactory? m_DbFactory;
@@ -57,6 +59,7 @@ public class CommandExecutorServiceTests
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
         m_MockMetricsService = new Mock<IMetricsService>();
         m_MockAttachmentService = new Mock<IAttachmentStorageService>();
+        m_MockImageRepository = new Mock<IImageRepository>();
         m_DiscordHelper = new DiscordTestHelper();
         m_DiscordHelper.SetupRequestCapture();
 
@@ -77,6 +80,7 @@ public class CommandExecutorServiceTests
             m_MockAuthMiddleware.Object,
             m_MockMetricsService.Object,
             m_MockAttachmentService.Object,
+            m_MockImageRepository.Object,
             NullLogger<CommandExecutorService<TestApplicationContext>>.Instance);
 
         m_TestUserId = (ulong)new Random(DateTime.UtcNow.Microsecond).NextInt64();

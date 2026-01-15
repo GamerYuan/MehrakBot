@@ -4,6 +4,7 @@ using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 {
     private readonly IServiceProvider m_ServiceProvider;
     private readonly IAttachmentStorageService m_AttachmentService;
+    private readonly IImageRepository m_ImageRepository;
 
     public CommandExecutorService(
         IServiceProvider serviceProvider,
@@ -40,11 +42,13 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
         IAttachmentStorageService attachmentService,
+        IImageRepository imageRepository,
         ILogger<CommandExecutorService<TContext>> logger
     ) : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, logger)
     {
         m_ServiceProvider = serviceProvider;
         m_AttachmentService = attachmentService;
+        m_ImageRepository = imageRepository;
     }
 
     public override async Task ExecuteAsync(int profile)
@@ -116,35 +120,42 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             if (commandResult.IsSuccess)
             {
                 var message = commandResult.Data.ToMessage();
-                if (service is IAttachmentApplicationService<TContext>)
+
+                var attachments = commandResult.Data.Components
+                    .OfType<ICommandResultAttachment>()
+                    .Concat(commandResult.Data.Components
+                        .OfType<CommandSection>()
+                        .Select(s => s.Attachment)
+                        .Where(a => a != null));
+
+                foreach (var attachment in attachments)
                 {
-                    if (commandResult.Data.Components.FirstOrDefault(x => x is ICommandResultAttachment) is ICommandResultAttachment attachment)
+                    Stream? stream = null;
+                    if (attachment.SourceType == AttachmentSourceType.ImageStorage)
                     {
-                        var stream = await m_AttachmentService.DownloadAsync(attachment.FileName)!;
-                        if (stream != null)
-                            message.AddAttachments(new AttachmentProperties(attachment!.FileName, stream.Content));
-                        else
+                        try
                         {
-                            Logger.LogWarning("Attachment {Attachment} not found for command {Command}",
-                                attachment.FileName, CommandName);
-                            MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
-                            await authResult.Context!.Interaction.SendFollowupMessageAsync(
-                                new InteractionMessageProperties().WithContent(
-                                        "Attachment not found. Please try again later.")
-                                    .WithFlags(MessageFlags.Ephemeral));
-                            return;
+                            stream = await m_ImageRepository.DownloadFileToStreamAsync(attachment.FileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError(ex, "Failed to download image {FileName} from ImageRepository", attachment.FileName);
                         }
                     }
                     else
                     {
-                        Logger.LogWarning("Attachment not found in command result for command {Command}",
-                            CommandName);
-                        MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
-                        await authResult.Context!.Interaction.SendFollowupMessageAsync(
-                            new InteractionMessageProperties().WithContent(
-                                    "Attachment not found. Please try again later.")
-                                .WithFlags(MessageFlags.Ephemeral));
-                        return;
+                        var downloadResult = await m_AttachmentService.DownloadAsync(attachment.FileName);
+                        stream = downloadResult?.Content;
+                    }
+
+                    if (stream != null)
+                    {
+                        message.AddAttachments(new AttachmentProperties(attachment.FileName, stream));
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Attachment {Attachment} not found for command {Command}",
+                            attachment.FileName, CommandName);
                     }
                 }
 

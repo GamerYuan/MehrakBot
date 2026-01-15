@@ -18,18 +18,15 @@ namespace Mehrak.Application.Services.Genshin.RealTimeNotes;
 
 internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<GenshinRealTimeNotesApplicationContext>
 {
-    private readonly IImageRepository m_ImageRepository;
     private readonly IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     public GenshinRealTimeNotesApplicationService(
-        IImageRepository imageRepository,
         IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         ILogger<GenshinRealTimeNotesApplicationService> logger)
         : base(gameRoleApi, userContext, logger)
     {
-        m_ImageRepository = imageRepository;
         m_ApiService = apiService;
     }
 
@@ -75,12 +72,6 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
     private async Task<CommandResult> BuildRealTimeNotes(GenshinRealTimeNotesData data,
         Server server, string uid)
     {
-        var resinImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_resin");
-        var expeditionImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_expedition");
-        var teapotImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_teapot");
-        var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_weekly");
-        var transformerImage = m_ImageRepository.DownloadFileToStreamAsync("genshin_transformer");
-
         var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var weeklyReset = server.GetNextWeeklyResetUnix();
 
@@ -95,7 +86,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                             : $"Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>",
                         CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("genshin_resin.png", await resinImage)
+                new StoredAttachment("genshin_resin.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandSection([
                     new CommandText("Expeditions", CommandText.TextType.Header3),
@@ -108,7 +99,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                             : "All Expeditions Completed"
                         : "To be dispatched", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("genshin_expedition.png", await expeditionImage)
+                new StoredAttachment("genshin_expedition.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandSection([
                     new CommandText("Serenitea Pot", CommandText.TextType.Header3),
@@ -120,7 +111,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                             : $"Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>",
                         CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("genshin_teapot.png", await teapotImage)
+                new StoredAttachment("genshin_teapot.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandSection([
                     new CommandText("Weekly Bosses", CommandText.TextType.Header3),
@@ -128,7 +119,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                         $"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}"),
                     new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("genshin_weekly.png", await weeklyImage)
+                new StoredAttachment("genshin_weekly.png", AttachmentSourceType.ImageStorage)
             )
         ];
 
@@ -141,7 +132,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
                             : "Claimed!"),
                         new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                     ],
-                    new EmbeddedAttachment("genshin_transformer.png", await transformerImage)
+                    new StoredAttachment("genshin_transformer.png", AttachmentSourceType.ImageStorage)
                 ));
 
         return CommandResult.Success(components, true, true);

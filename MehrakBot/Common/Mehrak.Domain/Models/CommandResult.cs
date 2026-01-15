@@ -8,11 +8,19 @@ namespace Mehrak.Domain.Models;
 
 public interface ICommandResultComponent;
 
+public enum AttachmentSourceType
+{
+    ImageStorage,
+    AttachmentStorage
+}
+
 public interface ICommandResultAttachment
 {
     string FileName { get; init; }
+    AttachmentSourceType SourceType { get; }
 }
 
+[Obsolete("Use ICommandResultAttachment with AttachmentSourceType instead.")]
 public interface ICommandResultEmbedAttachment : ICommandResultComponent
 {
     (string, Stream) GetAttachment();
@@ -74,49 +82,42 @@ public class CommandResult
     }
 }
 
-public class CommandSection : ICommandResultEmbedAttachment
+public class CommandSection : ICommandResultComponent
 {
     public IEnumerable<CommandText> Components { get; }
-    public EmbeddedAttachment Attachment { get; }
+    public ICommandResultAttachment Attachment { get; }
 
-    public CommandSection(IEnumerable<CommandText> components, EmbeddedAttachment attachment)
+    public CommandSection(IEnumerable<CommandText> components, ICommandResultAttachment attachment)
     {
         Components = components;
         Attachment = attachment;
     }
+}
 
-    public (string, Stream) GetAttachment()
+public class StoredAttachment : ICommandResultAttachment
+{
+    public string FileName { get; init; }
+    public AttachmentSourceType SourceType { get; init; }
+
+    public StoredAttachment(string fileName, AttachmentSourceType sourceType)
     {
-        return Attachment.GetAttachment();
+        FileName = fileName;
+        SourceType = sourceType;
     }
 }
 
 public class CommandAttachment : ICommandResultComponent, ICommandResultAttachment
 {
 
-    public CommandAttachment(string fileName)
+    public CommandAttachment(string fileName,
+        AttachmentSourceType sourceType = AttachmentSourceType.AttachmentStorage)
     {
         FileName = fileName;
+        SourceType = sourceType;
     }
 
     public string FileName { get; init; }
-}
-
-public class EmbeddedAttachment : ICommandResultAttachment, ICommandResultEmbedAttachment
-{
-    public string FileName { get; init; }
-    public Stream Content { get; init; }
-
-    public EmbeddedAttachment(string fileName, Stream content)
-    {
-        FileName = fileName;
-        Content = content;
-    }
-
-    public (string, Stream) GetAttachment()
-    {
-        return (FileName, Content);
-    }
+    public AttachmentSourceType SourceType { get; init; }
 }
 
 

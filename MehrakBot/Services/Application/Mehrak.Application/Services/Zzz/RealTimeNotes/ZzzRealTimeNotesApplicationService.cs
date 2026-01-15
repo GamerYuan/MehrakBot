@@ -17,18 +17,15 @@ namespace Mehrak.Application.Services.Zzz.RealTimeNotes;
 
 internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRealTimeNotesApplicationContext>
 {
-    private readonly IImageRepository m_ImageRepository;
     private readonly IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     public ZzzRealTimeNotesApplicationService(
-        IImageRepository imageRepository,
         IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         ILogger<ZzzRealTimeNotesApplicationService> logger)
         : base(gameRoleApi, userContext, logger)
     {
-        m_ImageRepository = imageRepository;
         m_ApiService = apiService;
     }
 
@@ -75,8 +72,6 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
 
     private async Task<CommandResult> BuildRealTimeNotes(ZzzRealTimeNotesData data, string uid)
     {
-        var stamImage = await m_ImageRepository.DownloadFileToStreamAsync("zzz_battery");
-
         var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         var omnicoins = data.TempleManage.CurrencyNextRefreshTs == 0
@@ -102,7 +97,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
                         ? "Fully Recovered!"
                         : $"Recovers <t:{currTime + data.Energy.Restore}:R>", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("zzz_battery.png", stamImage)
+                new StoredAttachment("zzz_battery.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandText("Daily Missions", CommandText.TextType.Header3),
             new CommandText($"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}"),

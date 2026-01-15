@@ -466,10 +466,9 @@ public class CommandResultDataExtensionsTests
         var container = result.Components!.OfType<ComponentContainerProperties>().First();
         var galleries = container.Components!.OfType<MediaGalleryProperties>().ToList();
         Assert.That(galleries, Has.Count.EqualTo(1), "Attachments should be grouped in one gallery");
-        // Only section thumbnail should be in attachments
-        Assert.That(result.Attachments, Is.Not.Null);
-        Assert.That(result.Attachments!.Count(), Is.EqualTo(1), "Should have only section thumbnail in attachments");
-        Assert.That(result.Attachments!.First().FileName, Is.EqualTo("section.png"));
+
+        // Attachments are no longer added by ToMessage
+        Assert.That(result.Attachments, Is.Null.Or.Empty);
     }
 
     #endregion
@@ -511,7 +510,7 @@ public class CommandResultDataExtensionsTests
     }
 
     [Test]
-    public void ToMessage_SectionWithAttachment_IncludesSectionAttachment()
+    public void ToMessage_SectionWithAttachment_DoesNotAddToAttachments()
     {
         // Arrange
         var section = new TestCommandSection(
@@ -524,8 +523,7 @@ public class CommandResultDataExtensionsTests
         var result = data.ToMessage();
 
         // Assert
-        Assert.That(result.Attachments, Is.Not.Null);
-        Assert.That(result.Attachments!.Any(a => a.FileName == "thumbnail.png"), Is.True);
+        Assert.That(result.Attachments, Is.Null.Or.Empty);
     }
 
     #endregion
@@ -615,22 +613,13 @@ public class CommandResultDataExtensionsTests
         }
     }
 
-    private class TestEmbeddedAttachment : EmbeddedAttachment
-    {
-        public TestEmbeddedAttachment(string fileName)
-            : base(fileName, new MemoryStream([1, 2, 3, 4, 5]))
-        {
-        }
-
-    }
-
     /// <summary>
     /// Test implementation of CommandSection for testing purposes
     /// </summary>
     private class TestCommandSection : CommandSection
     {
         public TestCommandSection(string attachmentFileName, IEnumerable<CommandText> components)
-            : base(components, new TestEmbeddedAttachment(attachmentFileName))
+            : base(components, new StoredAttachment(attachmentFileName, AttachmentSourceType.AttachmentStorage))
         {
         }
     }

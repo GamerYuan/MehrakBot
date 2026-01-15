@@ -18,18 +18,15 @@ namespace Mehrak.Application.Services.Hsr.RealTimeNotes;
 
 internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRealTimeNotesApplicationContext>
 {
-    private readonly IImageRepository m_ImageRepository;
     private readonly IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     public HsrRealTimeNotesApplicationService(
-        IImageRepository imageRepository,
         IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         ILogger<HsrRealTimeNotesApplicationService> logger)
         : base(gameRoleApi, userContext, logger)
     {
-        m_ImageRepository = imageRepository;
         m_ApiService = apiService;
     }
 
@@ -77,12 +74,6 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
     private async Task<CommandResult> BuildRealTimeNotes(HsrRealTimeNotesData data,
         Server server, string uid)
     {
-        var tbpImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_tbp");
-        var assignmentImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_assignment");
-        var weeklyImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_weekly");
-        var rogueImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_rogue");
-        var gridFightImage = m_ImageRepository.DownloadFileToStreamAsync("hsr_gridfight");
-
         var weeklyReset = server.GetNextWeeklyResetUnix();
         var nextWeeklyReset = server.GetNextNextWeeklyResetUnix();
 
@@ -103,7 +94,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                         ? "Already Full!"
                         : $"Recovers <t:{data.StaminaFullTs}:R>", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("hsr_tbp.png", await tbpImage)
+                new StoredAttachment("hsr_tbp.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandSection([
                     new CommandText("Assignments", CommandText.TextType.Header3),
@@ -112,7 +103,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                         ? $"{data.AcceptedExpeditionNum}/{data.TotalExpeditionNum}"
                         : "None Accepted!", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("hsr_assignment.png", await assignmentImage)
+                new StoredAttachment("hsr_assignment.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandSection([
                     new CommandText("Echoes of War", CommandText.TextType.Header3),
@@ -121,21 +112,21 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
                         : "Fully Claimed!"),
                     new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("hsr_weekly.png", await weeklyImage)
+                new StoredAttachment("hsr_weekly.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandSection([
                     new CommandText("Simulated Universe", CommandText.TextType.Header3),
                     new CommandText($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
                     new CommandText(isCwReset ? $"Resets <t:{nextWeeklyReset}:R>" : $"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("hsr_rogue.png", await rogueImage)
+                new StoredAttachment("hsr_rogue.png", AttachmentSourceType.ImageStorage)
             ),
             new CommandSection([
                     new CommandText("Currency Wars", CommandText.TextType.Header3),
                     new CommandText($"{data.GridFightWeeklyCur}/{data.GridFightWeeklyMax}"),
                     new CommandText(isCwReset ? $"Resets <t:{weeklyReset}:R>" : $"Resets <t:{nextWeeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new EmbeddedAttachment("hsr_gridfight.png", await gridFightImage)
+                new StoredAttachment("hsr_gridfight.png", AttachmentSourceType.ImageStorage)
             )
         ];
 
