@@ -7,9 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
-        <ProjectReference Include="..\Mehrak.GameApi\Mehrak.GameApi.csproj" />
-        <ProjectReference Include="..\Mehrak.Infrastructure\Mehrak.Infrastructure.csproj" />
+        <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
+        <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+        <ProjectReference Include="../Mehrak.GameApi/Mehrak.GameApi.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -28,9 +28,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\Assets\**\*.*" Exclude="..\Assets\.git\**\*;..\Assets\.gitattributes">
+        <None Include="../../../Assets/**/*.*" Exclude="../../../Assets/.git/**/*;../../../Assets/.gitattributes">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <Link>Assets/%(RecursiveDir)%(Filename)%(Extension)</Link>
         </None>
     </ItemGroup>
 

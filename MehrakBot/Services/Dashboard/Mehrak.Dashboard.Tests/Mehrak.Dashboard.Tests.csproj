@@ -24,8 +24,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Mehrak.Dashboard\Mehrak.Dashboard.csproj" />
-        <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
+        <ProjectReference Include="../Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+        <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>

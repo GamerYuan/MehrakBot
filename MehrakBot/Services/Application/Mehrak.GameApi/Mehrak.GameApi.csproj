@@ -20,7 +20,11 @@
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
-        <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
+        <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

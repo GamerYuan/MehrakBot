@@ -27,9 +27,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Mehrak.Domain/Mehrak.Domain.csproj" />
-    <ProjectReference Include="../Mehrak.Application/Mehrak.Application.csproj" />
-    <ProjectReference Include="../Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+    <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
+    <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+    <ProjectReference Include="../../Application/Mehrak.Application/Mehrak.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

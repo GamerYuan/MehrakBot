@@ -28,7 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Mehrak.Domain\Mehrak.Domain.csproj" />
+        <ProjectReference Include="../Mehrak.Domain/Mehrak.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
