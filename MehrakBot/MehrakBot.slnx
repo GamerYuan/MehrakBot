@@ -1,11 +1,11 @@
 <Solution>
     <Project Path="Services/Application/Mehrak.Application.Tests/Mehrak.Application.Tests.csproj" />
     <Project Path="Services/Application/Mehrak.Application/Mehrak.Application.csproj" />
-    <Project Path="Services/Application/Mehrak.GameApi/Mehrak.GameApi.csproj" />
     <Project Path="Services/Bot/Mehrak.Bot.Tests/Mehrak.Bot.Tests.csproj" />
     <Project Path="Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
     <Project Path="Services/Dashboard/Mehrak.Dashboard.Tests/Mehrak.Dashboard.Tests.csproj" />
     <Project Path="Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+    <Project Path="Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
     <Project Path="Common/Mehrak.Domain/Mehrak.Domain.csproj" />
     <Project Path="Common/Mehrak.Infrastructure.Tests/Mehrak.Infrastructure.Tests.csproj" />
     <Project Path="Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />

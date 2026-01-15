@@ -112,7 +112,10 @@ public class Program
                     UseCookies = false
                 }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
 
-            builder.Services.AddInfrastructureServices(builder.Configuration);
+            builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
+            builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+
+            builder.Services.AddInfrastructureServices();
 
             builder.Services.AddGameApiServices();
 

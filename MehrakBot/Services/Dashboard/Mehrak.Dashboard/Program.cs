@@ -1,13 +1,11 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Threading.RateLimiting;
-using Mehrak.Application;
 using Mehrak.Dashboard.Auth;
 using Mehrak.Dashboard.Metrics;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
@@ -86,6 +84,9 @@ public class Program
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
 
+        builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
+        builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+
         builder.Services.AddSingleton<IDashboardMetrics, DashboardMetricsService>();
         builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<IDashboardMetrics>());
 
@@ -96,9 +97,7 @@ public class Program
         builder.Services.AddScoped<IDashboardProfileAuthenticationService, DashboardProfileAuthenticationService>();
         builder.Services.AddScoped<DashboardCookieEvents>();
 
-        builder.Services.AddApplicationServices();
-        builder.Services.AddGameApiServices();
-        builder.Services.AddInfrastructureServices(builder.Configuration);
+        builder.Services.AddInfrastructureServices();
 
         builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
             new HttpClientHandler

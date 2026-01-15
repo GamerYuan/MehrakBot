@@ -10,7 +10,6 @@ using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Repositories;
 using Mehrak.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -21,26 +20,29 @@ namespace Mehrak.Infrastructure;
 
 public static class InfrastructureServiceCollectionExtension
 {
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
-        services.AddDbContext<DashboardAuthDbContext>(options =>
-            options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<CharacterDbContext>(options =>
-            options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<UserDbContext>(options =>
-            options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<CodeRedeemDbContext>(options =>
-            options.UseNpgsql(config["Postgres:ConnectionString"]));
-        services.AddDbContext<RelicDbContext>(options =>
-            options.UseNpgsql(config["Postgres:ConnectionString"]));
+        services.AddDbContext<DashboardAuthDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+        services.AddDbContext<CharacterDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+        services.AddDbContext<UserDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+        services.AddDbContext<CodeRedeemDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+        services.AddDbContext<RelicDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
 
-        IConnectionMultiplexer multiplexer = ConnectionMultiplexer.Connect(
-            config["Redis:ConnectionString"] ?? "localhost:6379");
-        services.AddSingleton(multiplexer);
+        var redisConfig = services.BuildServiceProvider().GetRequiredService<IOptions<RedisConfig>>().Value;
+        var lazyConnection = new Lazy<IConnectionMultiplexer>(() =>
+        {
+            return ConnectionMultiplexer.Connect(redisConfig.ConnectionString);
+        });
+        services.AddSingleton(sp => lazyConnection.Value);
         services.AddStackExchangeRedisCache(options =>
         {
-            options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
-            options.InstanceName = "MehrakBot_";
+            options.ConnectionMultiplexerFactory = () => Task.FromResult(lazyConnection.Value);
+            options.InstanceName = redisConfig.InstanceName;
         });
 
         services.AddTransient<IDbStatusService, DbStatusService>();
