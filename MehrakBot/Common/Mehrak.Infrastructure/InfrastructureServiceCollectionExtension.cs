@@ -23,15 +23,15 @@ public static class InfrastructureServiceCollectionExtension
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddDbContext<DashboardAuthDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<CharacterDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<UserDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<CodeRedeemDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<RelicDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<PgConfig>().ConnectionString));
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
 
         var redisConfig = services.BuildServiceProvider().GetRequiredService<IOptions<RedisConfig>>().Value;
         var lazyConnection = new Lazy<IConnectionMultiplexer>(() =>
