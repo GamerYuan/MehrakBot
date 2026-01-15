@@ -10,7 +10,7 @@ public class CodeRedeemApplicationContext : ApplicationContextBase
 {
     public Game Game { get; }
 
-    public CodeRedeemApplicationContext(ulong userId, Game game, params IEnumerable<(string, object)> param)
+    public CodeRedeemApplicationContext(ulong userId, Game game, params IEnumerable<(string, string)> param)
         : base(userId, param)
     {
         Game = game;

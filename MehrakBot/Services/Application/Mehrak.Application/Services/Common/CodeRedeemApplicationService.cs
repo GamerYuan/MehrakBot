@@ -41,7 +41,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion(context.Game);
 
             var profile =
@@ -57,7 +57,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
 
             var gameUid = profile.GameUid;
 
-            var codeStr = context.GetParameter<string>("code");
+            var codeStr = context.GetParameter("code");
 
             var codes = RegexExpressions.RedeemCodeSplitRegex().Split(codeStr!).Where(x => !string.IsNullOrEmpty(x))
                 .ToList();

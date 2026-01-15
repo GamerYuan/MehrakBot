@@ -2,7 +2,7 @@
 
 namespace Mehrak.Application.Services.Hsr.Anomaly;
 
-public class HsrAnomalyApplicationContext(ulong userId, params IEnumerable<(string, object)> parameters)
+public class HsrAnomalyApplicationContext(ulong userId, params IEnumerable<(string, string)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }

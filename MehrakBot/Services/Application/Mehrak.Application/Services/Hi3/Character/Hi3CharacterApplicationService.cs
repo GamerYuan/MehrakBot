@@ -42,11 +42,11 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
     public override async Task<CommandResult> ExecuteAsync(Hi3CharacterApplicationContext context)
     {
-        var characterName = context.GetParameter<string>("character")!;
+        var characterName = context.GetParameter("character")!;
 
         try
         {
-            var server = Enum.Parse<Hi3Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Hi3Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,

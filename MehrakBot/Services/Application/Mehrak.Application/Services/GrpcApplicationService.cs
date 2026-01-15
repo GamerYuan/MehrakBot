@@ -110,7 +110,8 @@ public class CommandDispatcher
         TContext appContext;
         try
         {
-            appContext = ActivatorUtilities.CreateInstance<TContext>(scopedProvider, request.DiscordUserId);
+            appContext = ActivatorUtilities.CreateInstance<TContext>(scopedProvider, request.DiscordUserId,
+                request.Parameters.Select(x => (x.Key, x.Value)));
         }
         catch
         {
@@ -120,11 +121,6 @@ public class CommandDispatcher
 
         appContext.LtUid = request.LtUid;
         appContext.LToken = request.LToken;
-
-        foreach (var (key, value) in request.Parameters)
-        {
-            appContext.SetParameter(key, value);
-        }
 
         var service = scopedProvider.GetService<IApplicationService<TContext>>();
 

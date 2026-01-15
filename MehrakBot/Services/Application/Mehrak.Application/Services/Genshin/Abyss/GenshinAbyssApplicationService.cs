@@ -12,7 +12,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
@@ -50,8 +49,8 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService<G
     {
         try
         {
-            var floor = context.GetParameter<uint>("floor");
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var floor = int.Parse(context.GetParameter("floor")!);
+            var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,

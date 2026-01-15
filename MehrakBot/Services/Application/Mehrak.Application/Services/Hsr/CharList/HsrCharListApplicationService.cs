@@ -48,7 +48,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService<Hs
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,

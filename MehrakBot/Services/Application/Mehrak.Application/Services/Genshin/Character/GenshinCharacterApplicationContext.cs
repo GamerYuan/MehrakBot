@@ -8,7 +8,7 @@ namespace Mehrak.Application.Services.Genshin.Character;
 
 public class GenshinCharacterApplicationContext : ApplicationContextBase
 {
-    public GenshinCharacterApplicationContext(ulong userId, params IEnumerable<(string, object)> parameters)
+    public GenshinCharacterApplicationContext(ulong userId, params IEnumerable<(string, string)> parameters)
         : base(userId, parameters)
     {
     }

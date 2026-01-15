@@ -15,7 +15,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -63,9 +62,9 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
-            var characterName = context.GetParameter<string>("character")!;
+            var characterName = context.GetParameter("character")!;
 
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);

@@ -59,7 +59,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
     {
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
+            var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
             var profile =

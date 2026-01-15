@@ -19,12 +19,8 @@ public class CheckInApplicationContext : IApplicationContext
         UserId = userId;
     }
 
-    public T? GetParameter<T>(string key)
+    public string? GetParameter(string key)
     {
         return default;
-    }
-
-    public void SetParameter<T>(string key, T value)
-    {
     }
 }

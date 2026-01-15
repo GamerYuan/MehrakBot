@@ -13,7 +13,6 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
@@ -41,11 +40,12 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
 
     public override async Task<CommandResult> ExecuteAsync(HsrEndGameApplicationContext context)
     {
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var mode = Enum.Parse<HsrEndGameMode>(context.GetParameter("mode")!);
+        var region = server.ToRegion();
+
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter<string>("server")!);
-            var region = server.ToRegion();
-
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
 
@@ -59,32 +59,32 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
 
             var challengeResponse = await m_ApiService.GetAsync(
                 new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
-                    context.Mode));
+                    mode));
             if (!challengeResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, context.Mode.GetString(), context.UserId, profile.GameUid,
+                Logger.LogError(LogMessage.ApiError, mode.GetString(), context.UserId, profile.GameUid,
                     challengeResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, $"{context.Mode.GetString()} data"));
+                    string.Format(ResponseMessage.ApiError, $"{mode.GetString()} data"));
             }
 
             var challengeData = challengeResponse.Data;
             if (!challengeData.HasData)
             {
-                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId,
+                Logger.LogInformation(LogMessage.NoClearRecords, mode.GetString(), context.UserId,
                     profile.GameUid);
                 return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))],
+                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, mode.GetString()))],
                     isEphemeral: true);
             }
 
             var nonNull = challengeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null }).ToList();
             if (nonNull.Count == 0)
             {
-                Logger.LogInformation(LogMessage.NoClearRecords, context.Mode.GetString(), context.UserId,
+                Logger.LogInformation(LogMessage.NoClearRecords, mode.GetString(), context.UserId,
                     profile.GameUid);
                 return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, context.Mode.GetString()))],
+                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, mode.GetString()))],
                     isEphemeral: true);
             }
 
@@ -99,7 +99,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
             if (await AttachmentExistsAsync(fileName))
             {
                 return CommandResult.Success([
-                        new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary",
+                        new CommandText($"<@{context.UserId}>'s {mode.GetString()} Summary",
                             CommandText.TextType.Header3),
                         new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
                         new CommandAttachment(fileName),
@@ -122,7 +122,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
 
             if (completed.Any(x => !x))
             {
-                Logger.LogError(LogMessage.ImageUpdateError, context.Mode.GetString(), context.UserId,
+                Logger.LogError(LogMessage.ImageUpdateError, mode.GetString(), context.UserId,
                     JsonSerializer.Serialize(challengeData));
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
@@ -130,7 +130,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
             var cardContext = new BaseCardGenerationContext<HsrEndInformation>(
                 context.UserId, challengeData, profile);
             cardContext.SetParameter("server", server);
-            cardContext.SetParameter("mode", context.Mode);
+            cardContext.SetParameter("mode", mode);
 
             await using var card = await m_CardService.GetCardAsync(cardContext);
 
@@ -142,7 +142,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
             }
 
             return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>'s {context.Mode.GetString()} Summary",
+                    new CommandText($"<@{context.UserId}>'s {mode.GetString()} Summary",
                         CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
                     new CommandAttachment(fileName),
@@ -153,13 +153,13 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
         }
         catch (CommandException e)
         {
-            Logger.LogError(e, LogMessage.UnknownError, context.Mode.GetString(), context.UserId, e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, mode.GetString(), context.UserId, e.Message);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, context.Mode.GetString()));
+                string.Format(ResponseMessage.CardGenError, mode.GetString()));
         }
         catch (Exception e)
         {
-            Logger.LogError(e, LogMessage.UnknownError, context.Mode.GetString(), context.UserId, e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, mode.GetString(), context.UserId, e.Message);
             return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }

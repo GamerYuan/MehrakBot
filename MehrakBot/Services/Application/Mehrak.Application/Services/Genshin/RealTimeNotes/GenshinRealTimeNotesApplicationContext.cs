@@ -6,7 +6,7 @@ using Mehrak.Application.Models.Context;
 
 namespace Mehrak.Application.Services.Genshin.RealTimeNotes;
 
-public class GenshinRealTimeNotesApplicationContext(ulong userId, params IEnumerable<(string, object)> parameters)
+public class GenshinRealTimeNotesApplicationContext(ulong userId, params IEnumerable<(string, string)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }

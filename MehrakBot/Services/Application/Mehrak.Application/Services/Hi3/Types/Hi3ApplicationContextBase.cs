@@ -8,22 +8,16 @@ public class Hi3ApplicationContextBase : IApplicationContext
     public ulong LtUid { get; set; }
     public string LToken { get; set; } = string.Empty;
 
-    private Dictionary<string, object> Parameters { get; } = [];
+    private Dictionary<string, string> Parameters { get; } = [];
 
-    public Hi3ApplicationContextBase(ulong userId, params IEnumerable<(string, object)> parameters)
+    public Hi3ApplicationContextBase(ulong userId, params IEnumerable<(string, string)> parameters)
     {
         UserId = userId;
         foreach (var (key, value) in parameters) Parameters[key] = value;
     }
 
-    public T? GetParameter<T>(string key)
+    public string? GetParameter(string key)
     {
-        return Parameters.TryGetValue(key, out var value) && value is T tValue ? tValue : default;
-    }
-
-    public void SetParameter<T>(string key, T value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        Parameters.TryAdd(key, value);
+        return Parameters.GetValueOrDefault(key);
     }
 }

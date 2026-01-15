@@ -6,7 +6,5 @@ public interface IApplicationContext
     ulong LtUid { get; set; }
     string LToken { get; set; }
 
-    T? GetParameter<T>(string key);
-
-    void SetParameter<T>(string key, T value);
+    string? GetParameter(string key);
 }

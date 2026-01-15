@@ -6,7 +6,7 @@ using Mehrak.Application.Models.Context;
 
 namespace Mehrak.Application.Services.Zzz.Defense;
 
-public class ZzzDefenseApplicationContext(ulong userId, params IEnumerable<(string, object)> parameters)
+public class ZzzDefenseApplicationContext(ulong userId, params IEnumerable<(string, string)> parameters)
     : ApplicationContextBase(userId, parameters)
 {
 }
