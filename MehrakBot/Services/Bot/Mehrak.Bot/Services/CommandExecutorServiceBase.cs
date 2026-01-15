@@ -2,7 +2,9 @@
 
 using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Extensions;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
@@ -31,18 +33,21 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
     protected readonly IAuthenticationMiddlewareService AuthenticationMiddleware;
     protected readonly IMetricsService MetricsService;
     protected readonly ILogger<CommandExecutorServiceBase<TContext>> Logger;
+    private readonly ApplicationService.ApplicationServiceClient m_ApplicationClient;
 
     protected CommandExecutorServiceBase(
         UserDbContext userContext,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
+        ApplicationService.ApplicationServiceClient applicationClient,
         ILogger<CommandExecutorServiceBase<TContext>> logger)
     {
         m_UserContext = userContext;
         m_CommandRateLimitService = commandRateLimitService;
         AuthenticationMiddleware = authenticationMiddleware;
         MetricsService = metricsService;
+        m_ApplicationClient = applicationClient;
         Logger = logger;
     }
 
@@ -52,6 +57,21 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
     }
 
     public abstract Task ExecuteAsync(int profile);
+
+    protected async Task<Domain.Models.CommandResult> DispatchCommand(
+        string commandName,
+        ulong discordUserId,
+        ulong ltUid,
+        string lToken,
+        IEnumerable<(string Key, object Value)> parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var request = ProtobufMappingExtensions.ToExecuteRequest(commandName, discordUserId, ltUid, lToken, parameters);
+        var response = await m_ApplicationClient.ExecuteCommandAsync(request, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return response.ToDomain();
+    }
 
     protected async Task<bool> ValidateRateLimitAsync()
     {

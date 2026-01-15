@@ -4,6 +4,7 @@ using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
@@ -41,10 +42,11 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
+        ApplicationService.ApplicationServiceClient applicationClient,
         IAttachmentStorageService attachmentService,
         IImageRepository imageRepository,
         ILogger<CommandExecutorService<TContext>> logger
-    ) : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, logger)
+    ) : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, applicationClient, logger)
     {
         m_ServiceProvider = serviceProvider;
         m_AttachmentService = attachmentService;
@@ -124,14 +126,14 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                 var attachments = commandResult.Data.Components
                     .OfType<ICommandResultAttachment>()
                     .Concat(commandResult.Data.Components
-                        .OfType<CommandSection>()
+                        .OfType<Domain.Models.CommandSection>()
                         .Select(s => s.Attachment)
                         .Where(a => a != null));
 
                 foreach (var attachment in attachments)
                 {
                     Stream? stream = null;
-                    if (attachment.SourceType == AttachmentSourceType.ImageStorage)
+                    if (attachment.SourceType == Domain.Models.AttachmentSourceType.ImageStorage)
                     {
                         try
                         {

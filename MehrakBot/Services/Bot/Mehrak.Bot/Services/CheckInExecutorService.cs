@@ -3,6 +3,7 @@
 using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
+using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
@@ -21,11 +22,12 @@ internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplic
     public CheckInExecutorService(
         IApplicationService<CheckInApplicationContext> service,
         UserDbContext userContext,
+        ApplicationService.ApplicationServiceClient applicationClient,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
         ILogger<CheckInExecutorService> logger)
-        : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, logger)
+        : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, applicationClient, logger)
     {
         m_Service = service;
     }

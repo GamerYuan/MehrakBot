@@ -4,6 +4,7 @@ using System.Globalization;
 using Mehrak.Application.Services.Common;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Metrics;
@@ -107,6 +108,11 @@ public class Program
 
             builder.Services.AddInfrastructureServices();
             builder.Services.AddBotServices();
+            builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
+            {
+                var address = builder.Configuration["Application:ConnectionString"];
+                options.Address = new Uri(address ?? "http://localhost:5000");
+            });
 
             builder.Services.AddSingleton<BotMetricsService>();
             builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<BotMetricsService>());
