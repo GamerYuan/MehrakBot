@@ -1,12 +1,12 @@
 <Solution>
-    <Project Path="Mehrak.Application.Tests/Mehrak.Application.Tests.csproj" />
-    <Project Path="Mehrak.Application/Mehrak.Application.csproj" />
-    <Project Path="Mehrak.Bot.Tests/Mehrak.Bot.Tests.csproj" />
-    <Project Path="Mehrak.Bot/Mehrak.Bot.csproj" />
-    <Project Path="Mehrak.Dashboard.Tests/Mehrak.Dashboard.Tests.csproj" />
-    <Project Path="Mehrak.Dashboard/Mehrak.Dashboard.csproj" Id="9d4737b5-ae56-4fff-b882-fcb59687e9b3" />
-    <Project Path="Mehrak.Domain/Mehrak.Domain.csproj" />
-    <Project Path="Mehrak.GameApi/Mehrak.GameApi.csproj" />
-    <Project Path="Mehrak.Infrastructure.Tests/Mehrak.Infrastructure.Tests.csproj" />
-    <Project Path="Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+    <Project Path="Services/Application/Mehrak.Application.Tests/Mehrak.Application.Tests.csproj" />
+    <Project Path="Services/Application/Mehrak.Application/Mehrak.Application.csproj" />
+    <Project Path="Services/Application/Mehrak.GameApi/Mehrak.GameApi.csproj" />
+    <Project Path="Services/Bot/Mehrak.Bot.Tests/Mehrak.Bot.Tests.csproj" />
+    <Project Path="Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
+    <Project Path="Services/Dashboard/Mehrak.Dashboard.Tests/Mehrak.Dashboard.Tests.csproj" />
+    <Project Path="Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+    <Project Path="Common/Mehrak.Domain/Mehrak.Domain.csproj" />
+    <Project Path="Common/Mehrak.Infrastructure.Tests/Mehrak.Infrastructure.Tests.csproj" />
+    <Project Path="Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
 </Solution>
