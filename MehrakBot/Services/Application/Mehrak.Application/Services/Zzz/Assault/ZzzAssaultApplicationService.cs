@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Models;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -15,7 +16,6 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
@@ -24,7 +24,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Zzz.Assault;
 
-internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService<ZzzAssaultApplicationContext>
+internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<ZzzAssaultData> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -45,7 +45,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService<Z
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(ZzzAssaultApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

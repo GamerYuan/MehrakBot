@@ -1,21 +1,20 @@
 ﻿#region
 
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Zzz.RealTimeNotes;
 
-internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRealTimeNotesApplicationContext>
+internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
 {
     private readonly IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
@@ -29,7 +28,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService<ZzzRe
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(ZzzRealTimeNotesApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

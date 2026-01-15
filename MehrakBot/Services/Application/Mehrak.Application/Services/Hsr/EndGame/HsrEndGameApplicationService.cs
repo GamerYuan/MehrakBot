@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -18,7 +19,7 @@ using Mehrak.Infrastructure.Context;
 
 namespace Mehrak.Application.Services.Hsr.EndGame;
 
-public class HsrEndGameApplicationService : BaseAttachmentApplicationService<HsrEndGameApplicationContext>
+public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<HsrEndInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -38,7 +39,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService<Hsr
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(HsrEndGameApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var mode = Enum.Parse<HsrEndGameMode>(context.GetParameter("mode")!);

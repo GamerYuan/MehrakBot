@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Application.Services.Abstractions;
 
 namespace Mehrak.Application.Services.Hi3.Types;
 

@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Types;
@@ -15,7 +16,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -23,7 +23,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.CharList;
 
-public class GenshinCharListApplicationService : BaseAttachmentApplicationService<GenshinCharListApplicationContext>
+public class GenshinCharListApplicationService : BaseAttachmentApplicationService
 {
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICardService<IEnumerable<GenshinBasicCharacterData>> m_CardService;
@@ -55,7 +55,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         m_WikiApi = wikiApi;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(GenshinCharListApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {
@@ -195,7 +195,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
     }
 
     private async Task<Result<string>>
-        GetWeaponUrlsAsync(GenshinCharListApplicationContext context, GameProfileDto profile,
+        GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
             string weaponName, string wikiEntry)
     {
         foreach (var locale in Enum.GetValues<WikiLocales>())

@@ -1,4 +1,4 @@
-﻿namespace Mehrak.Domain.Services.Abstractions;
+﻿namespace Mehrak.Application.Services.Abstractions;
 
 public interface IApplicationContext
 {

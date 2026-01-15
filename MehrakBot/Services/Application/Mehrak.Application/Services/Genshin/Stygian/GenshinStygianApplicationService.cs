@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -12,13 +13,12 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Genshin.Stygian;
 
-public class GenshinStygianApplicationService : BaseAttachmentApplicationService<GenshinStygianApplicationContext>
+public class GenshinStygianApplicationService : BaseAttachmentApplicationService
 {
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICardService<StygianData> m_CardService;
@@ -39,7 +39,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(GenshinStygianApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

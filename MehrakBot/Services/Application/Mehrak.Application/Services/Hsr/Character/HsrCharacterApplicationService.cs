@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -20,7 +21,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Application.Services.Hsr.Character;
 
-public class HsrCharacterApplicationService : BaseAttachmentApplicationService<HsrCharacterApplicationContext>
+public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<HsrCharacterInformation> m_CardService;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
@@ -58,7 +59,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService<H
         m_RelicContext = relicContext;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(HsrCharacterApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         var characterName = context.GetParameter("character")!;
 

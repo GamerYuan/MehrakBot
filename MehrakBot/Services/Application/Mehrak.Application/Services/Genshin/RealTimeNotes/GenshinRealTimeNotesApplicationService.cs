@@ -1,22 +1,21 @@
 ﻿#region
 
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Genshin.RealTimeNotes;
 
-internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<GenshinRealTimeNotesApplicationContext>
+internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
 {
     private readonly IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
@@ -30,7 +29,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService<G
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(GenshinRealTimeNotesApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

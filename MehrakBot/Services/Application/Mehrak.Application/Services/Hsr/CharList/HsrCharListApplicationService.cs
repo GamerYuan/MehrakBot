@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -12,13 +13,12 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Hsr.CharList;
 
-public class HsrCharListApplicationService : BaseAttachmentApplicationService<HsrCharListApplicationContext>
+public class HsrCharListApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<IEnumerable<HsrCharacterInformation>> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -44,7 +44,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService<Hs
         m_CharacterCache = characterCache;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(HsrCharListApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

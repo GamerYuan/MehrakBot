@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -17,7 +18,7 @@ using Mehrak.Infrastructure.Context;
 
 namespace Mehrak.Application.Services.Genshin.Abyss;
 
-public class GenshinAbyssApplicationService : BaseAttachmentApplicationService<GenshinAbyssApplicationContext>
+public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<GenshinAbyssInformation> m_CardService;
 
@@ -45,7 +46,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService<G
         m_ImageUpdaterService = imageUpdaterService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(GenshinAbyssApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

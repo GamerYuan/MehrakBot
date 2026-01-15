@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -9,11 +10,10 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hi3.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hi3.Character;
 
-internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService<Hi3CharacterApplicationContext>
+internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<Hi3CharacterDetail> m_CardService;
     private readonly ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> m_CharacterApi;
@@ -40,7 +40,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_MetricsService = metricsService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(Hi3CharacterApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         var characterName = context.GetParameter("character")!;
 

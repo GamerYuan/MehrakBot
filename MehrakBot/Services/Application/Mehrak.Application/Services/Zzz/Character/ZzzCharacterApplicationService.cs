@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -14,13 +15,12 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Zzz.Character;
 
-internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService<ZzzCharacterApplicationContext>
+internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<ZzzFullAvatarData> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -53,7 +53,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_MetricsService = metricsService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(ZzzCharacterApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         var characterName = context.GetParameter("character")!;
 
@@ -204,7 +204,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         }
     }
 
-    private async Task<Result<string>> GetCharacterImageUrlAsync(ZzzCharacterApplicationContext context, string gameUid,
+    private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, string gameUid,
         ZzzAvatarData charInfo, string entryPage)
     {
         string? url = null;

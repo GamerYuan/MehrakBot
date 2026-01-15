@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Types;
@@ -22,7 +23,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.Character;
 
-internal class GenshinCharacterApplicationService : BaseAttachmentApplicationService<GenshinCharacterApplicationContext>
+internal class GenshinCharacterApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<GenshinCharacterInformation> m_CardService;
     private readonly ICharacterCacheService m_CharacterCacheService;
@@ -58,7 +59,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_MetricsService = metricsService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(GenshinCharacterApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {
@@ -243,7 +244,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         }
     }
 
-    private async Task<Result<string>> GetCharacterImageUrlAsync(GenshinCharacterApplicationContext context, GameProfileDto profile,
+    private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, GameProfileDto profile,
         GenshinCharacterInformation charData, string wikiEntry)
     {
         string? url = null;
@@ -276,7 +277,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     }
 
     private async Task<Result<string>>
-        GetWeaponUrlsAsync(GenshinCharacterApplicationContext context, GameProfileDto profile,
+        GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
             GenshinCharacterInformation charData, string wikiEntry)
     {
         foreach (var locale in Enum.GetValues<WikiLocales>())

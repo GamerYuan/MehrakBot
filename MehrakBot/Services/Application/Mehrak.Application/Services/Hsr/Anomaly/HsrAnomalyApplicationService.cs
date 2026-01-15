@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -11,11 +12,10 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Application.Services.Hsr.Anomaly;
 
-internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService<HsrAnomalyApplicationContext>
+internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<HsrAnomalyInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -36,7 +36,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService<H
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(HsrAnomalyApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

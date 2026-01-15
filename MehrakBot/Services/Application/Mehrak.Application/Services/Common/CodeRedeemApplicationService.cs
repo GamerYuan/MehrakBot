@@ -1,7 +1,7 @@
 ﻿#region
 
 using System.Text;
-using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -12,13 +12,12 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Common;
 
-public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApplicationContext>
+public class CodeRedeemApplicationService : BaseApplicationService
 {
     private readonly CodeRedeemDbContext m_CodeContext;
     private readonly IApiService<CodeRedeemResult, CodeRedeemApiContext> m_ApiService;
@@ -37,15 +36,16 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(CodeRedeemApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
+        var game = Enum.Parse<Game>(context.GetParameter("game")!);
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion(game);
+
         try
         {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion(context.Game);
-
             var profile =
-                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, context.Game, region);
+                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, game, region);
 
             if (profile == null)
             {
@@ -53,7 +53,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, context.Game, profile.GameUid, server.ToString());
+            await UpdateGameUidAsync(context.UserId, context.LtUid, game, profile.GameUid, server.ToString());
 
             var gameUid = profile.GameUid;
 
@@ -64,7 +64,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
 
             if (codes.Count == 0)
                 codes = await m_CodeContext.Codes.AsNoTracking()
-                    .Where(x => x.Game == context.Game)
+                    .Where(x => x.Game == game)
                     .Select(x => x.Code)
                     .ToListAsync();
 
@@ -87,7 +87,7 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
                 var trimmedCode = code.ToUpperInvariant().Trim();
                 var response = await m_ApiService.GetAsync(
                     new CodeRedeemApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
-                        context.Game, code.ToUpperInvariant().Trim()));
+                        game, code.ToUpperInvariant().Trim()));
                 if (response.IsSuccess)
                 {
                     Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
@@ -106,13 +106,13 @@ public class CodeRedeemApplicationService : BaseApplicationService<CodeRedeemApp
             }
 
             if (successfulCodes.Count > 0)
-                await UpdateCodesAsync(context.Game, successfulCodes).ConfigureAwait(false);
+                await UpdateCodesAsync(game, successfulCodes).ConfigureAwait(false);
 
             return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
         }
         catch (Exception e)
         {
-            Logger.LogError(e, LogMessage.UnknownError, $"Codes {context.Game}", context.UserId, e.Message);
+            Logger.LogError(e, LogMessage.UnknownError, $"{game} Codes", context.UserId, e.Message);
             return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
         }
     }

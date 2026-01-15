@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
@@ -12,13 +13,12 @@ using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Hsr.Memory;
 
-internal class HsrMemoryApplicationService : BaseAttachmentApplicationService<HsrMemoryApplicationContext>
+internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<HsrMemoryInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -39,7 +39,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService<Hs
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(HsrMemoryApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Security.Cryptography;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
@@ -8,29 +9,27 @@ using Mehrak.GameApi.Common.Types;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Common;
 
-public abstract class BaseApplicationService<TContext> : IApplicationService<TContext>
-    where TContext : IApplicationContext
+public abstract class BaseApplicationService : IApplicationService
 {
     private readonly IApiService<GameProfileDto, GameRoleApiContext> m_GameRoleApi;
     private readonly UserDbContext m_UserContext;
-    protected readonly ILogger<BaseApplicationService<TContext>> Logger;
+    protected readonly ILogger<BaseApplicationService> Logger;
 
     protected BaseApplicationService(IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
-        ILogger<BaseApplicationService<TContext>> logger)
+        ILogger<BaseApplicationService> logger)
     {
         m_GameRoleApi = gameRoleApi;
         m_UserContext = userContext;
         Logger = logger;
     }
 
-    public abstract Task<CommandResult> ExecuteAsync(TContext context);
+    public abstract Task<CommandResult> ExecuteAsync(IApplicationContext context);
 
     protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
         string region)
@@ -94,9 +93,7 @@ public abstract class BaseApplicationService<TContext> : IApplicationService<TCo
     }
 }
 
-public abstract class BaseAttachmentApplicationService<TContext> :
-    BaseApplicationService<TContext>, IAttachmentApplicationService<TContext>
-    where TContext : IApplicationContext
+public abstract class BaseAttachmentApplicationService : BaseApplicationService
 {
     private readonly IAttachmentStorageService m_AttachmentStorageService;
 
@@ -104,7 +101,7 @@ public abstract class BaseAttachmentApplicationService<TContext> :
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
-        ILogger<BaseAttachmentApplicationService<TContext>> logger) : base(gameRoleApi, userContext, logger)
+        ILogger<BaseAttachmentApplicationService> logger) : base(gameRoleApi, userContext, logger)
     {
         m_AttachmentStorageService = attachmentStorageService;
     }

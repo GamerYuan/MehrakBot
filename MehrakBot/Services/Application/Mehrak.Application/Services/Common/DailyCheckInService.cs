@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -8,13 +8,12 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Common;
 
-public class DailyCheckInService : IApplicationService<CheckInApplicationContext>
+public class DailyCheckInService : IApplicationService
 {
     private readonly UserDbContext m_UserContext;
     private readonly IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext> m_GameRecordApiService;
@@ -33,7 +32,7 @@ public class DailyCheckInService : IApplicationService<CheckInApplicationContext
         m_Logger = logger;
     }
 
-    public async Task<CommandResult> ExecuteAsync(CheckInApplicationContext context)
+    public async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {

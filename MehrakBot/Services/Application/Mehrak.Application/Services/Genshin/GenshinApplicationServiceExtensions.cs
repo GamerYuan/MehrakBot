@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Genshin.Abyss;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Application.Services.Genshin.CharList;
@@ -7,9 +8,9 @@ using Mehrak.Application.Services.Genshin.RealTimeNotes;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Domain;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
-using Microsoft.Extensions.DependencyInjection;
 
 #endregion
 
@@ -25,34 +26,26 @@ internal static class GenshinApplicationServiceExtensions
         services.RegisterAsyncInitializableFor<
             ICardService<GenshinAbyssInformation>,
             GenshinAbyssCardService>();
-        services.AddTransient<IApplicationService<GenshinAbyssApplicationContext>, GenshinAbyssApplicationService>();
+        services.AddKeyedTransient<IApplicationService, GenshinAbyssApplicationService>(CommandName.Genshin.Abyss);
 
         services.AddSingleton<ICardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
         services
             .RegisterAsyncInitializableFor<ICardService<GenshinCharacterInformation>, GenshinCharacterCardService>();
-        services
-            .AddTransient<IApplicationService<GenshinCharacterApplicationContext>,
-                GenshinCharacterApplicationService>();
+        services.AddKeyedTransient<IApplicationService, GenshinCharacterApplicationService>(CommandName.Genshin.Character);
 
         services.AddSingleton<ICardService<IEnumerable<GenshinBasicCharacterData>>, GenshinCharListCardService>();
-        services
-            .AddTransient<IApplicationService<GenshinCharListApplicationContext>, GenshinCharListApplicationService>();
+        services.AddKeyedTransient<IApplicationService, GenshinCharListApplicationService>(CommandName.Genshin.CharList);
 
         services.AddSingleton<ICardService<StygianData>, GenshinStygianCardService>();
         services.RegisterAsyncInitializableFor<ICardService<StygianData>, GenshinStygianCardService>();
-        services
-            .AddTransient<IApplicationService<GenshinStygianApplicationContext>, GenshinStygianApplicationService>();
+        services.AddKeyedTransient<IApplicationService, GenshinStygianApplicationService>(CommandName.Genshin.Stygian);
 
-        services
-            .AddSingleton<ICardService<GenshinTheaterInformation>,
+        services.AddSingleton<ICardService<GenshinTheaterInformation>,
                 GenshinTheaterCardService>();
         services.RegisterAsyncInitializableFor<ICardService<GenshinTheaterInformation>, GenshinTheaterCardService>();
-        services
-            .AddTransient<IApplicationService<GenshinTheaterApplicationContext>, GenshinTheaterApplicationService>();
+        services.AddKeyedTransient<IApplicationService, GenshinTheaterApplicationService>(CommandName.Genshin.Theater);
 
-        services
-            .AddTransient<IApplicationService<GenshinRealTimeNotesApplicationContext>,
-                GenshinRealTimeNotesApplicationService>();
+        services.AddKeyedTransient<IApplicationService, GenshinRealTimeNotesApplicationService>(CommandName.Genshin.RealTimeNotes);
 
         return services;
     }

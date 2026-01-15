@@ -1,22 +1,21 @@
 ﻿#region
 
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.Application.Services.Hsr.RealTimeNotes;
 
-internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRealTimeNotesApplicationContext>
+internal class HsrRealTimeNotesApplicationService : BaseApplicationService
 {
     private readonly IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
@@ -30,7 +29,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService<HsrRe
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(HsrRealTimeNotesApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
         try
         {
