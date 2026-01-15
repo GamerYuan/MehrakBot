@@ -13,6 +13,7 @@ using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Application.Services.Hsr.RealTimeNotes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
@@ -53,7 +54,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<HsrCharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrCharacterApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("hsr character")
+            .WithCommandName(CommandName.Hsr.Character)
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 
@@ -77,7 +78,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<HsrRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrRealTimeNotesApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("hsr notes")
+            .WithCommandName(CommandName.Hsr.RealTimeNotes)
             .WithEphemeralResponse(true)
             .Build();
 
@@ -103,7 +104,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.HonkaiStarRail, parameters))
-            .WithCommandName("hsr codes")
+            .WithCommandName(CommandName.Hsr.Codes)
             .WithEphemeralResponse(true)
             .Build();
 
@@ -126,7 +127,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<HsrMemoryApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrMemoryApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("hsr moc")
+            .WithCommandName(CommandName.Hsr.Memory)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -150,7 +151,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrEndGameApplicationContext(Context.User.Id, HsrEndGameMode.PureFiction,
                 parameters))
-            .WithCommandName("hsr pf")
+            .WithCommandName(CommandName.Hsr.PureFiction)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -174,7 +175,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrEndGameApplicationContext(Context.User.Id, HsrEndGameMode.ApocalypticShadow,
                 parameters))
-            .WithCommandName("hsr as")
+            .WithCommandName(CommandName.Hsr.ApocalypticShadow)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -197,7 +198,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<HsrCharListApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrCharListApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("hsr charlist")
+            .WithCommandName(CommandName.Hsr.CharList)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -220,7 +221,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<HsrAnomalyApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new HsrAnomalyApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("hsr aa")
+            .WithCommandName(CommandName.Hsr.Anomaly)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);

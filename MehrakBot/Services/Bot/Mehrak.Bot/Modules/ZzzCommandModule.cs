@@ -11,6 +11,7 @@ using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Application.Services.Zzz.RealTimeNotes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Zzz;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
@@ -52,7 +53,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.ZenlessZoneZero, parameters))
-            .WithCommandName("zzz codes")
+            .WithCommandName(CommandName.Zzz.Codes)
             .WithEphemeralResponse(true)
             .Build();
 
@@ -79,7 +80,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<ZzzCharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new ZzzCharacterApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("zzz character")
+            .WithCommandName(CommandName.Zzz.Character)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -103,7 +104,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<ZzzDefenseApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new ZzzDefenseApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("zzz shiyu")
+            .WithCommandName(CommandName.Zzz.Defense)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -127,7 +128,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<ZzzAssaultApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new ZzzAssaultApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("zzz da")
+            .WithCommandName(CommandName.Zzz.Assault)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -150,7 +151,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<ZzzRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new ZzzRealTimeNotesApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("zzz notes")
+            .WithCommandName(CommandName.Zzz.RealTimeNotes)
             .WithEphemeralResponse(true)
             .Build();
 

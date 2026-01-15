@@ -1,6 +1,7 @@
 ﻿using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -44,7 +45,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
         var executor = m_Builder.For<Hi3CharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new Hi3CharacterApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("hi3 battlesuit")
+            .WithCommandName(CommandName.Hi3.Character)
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 

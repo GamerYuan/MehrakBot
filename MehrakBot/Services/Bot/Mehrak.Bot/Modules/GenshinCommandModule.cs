@@ -9,6 +9,7 @@ using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -56,7 +57,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinCharacterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinCharacterApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin character")
+            .WithCommandName(CommandName.Genshin.Character)
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
 
@@ -80,7 +81,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinRealTimeNotesApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinRealTimeNotesApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin notes")
+            .WithCommandName(CommandName.Genshin.RealTimeNotes)
             .WithEphemeralResponse(true)
             .Build();
 
@@ -106,7 +107,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<CodeRedeemApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.Genshin, parameters))
-            .WithCommandName("genshin codes")
+            .WithCommandName(CommandName.Genshin.Codes)
             .WithEphemeralResponse(true)
             .Build();
 
@@ -132,7 +133,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinAbyssApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinAbyssApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin abyss")
+            .WithCommandName(CommandName.Genshin.Abyss)
             .AddValidator<uint>(nameof(floor), x => x is >= 9 and <= 12, "floor must be between 9 and 12")
             .Build();
 
@@ -156,7 +157,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinTheaterApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinTheaterApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin theater")
+            .WithCommandName(CommandName.Genshin.Theater)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -179,7 +180,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinStygianApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinStygianApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin stygian")
+            .WithCommandName(CommandName.Genshin.Stygian)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
@@ -202,7 +203,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         var executor = m_Builder.For<GenshinCharListApplicationContext>()
             .WithInteractionContext(Context)
             .WithApplicationContext(new GenshinCharListApplicationContext(Context.User.Id, parameters))
-            .WithCommandName("genshin charlist")
+            .WithCommandName(CommandName.Genshin.CharList)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);

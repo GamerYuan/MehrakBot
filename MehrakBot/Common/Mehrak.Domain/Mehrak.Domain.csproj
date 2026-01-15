@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protos/mehrak.proto" GrpcServices="Client" />
+        <Protobuf Include="Protos/mehrak.proto" GrpcServices="Both" />
     </ItemGroup>
 
 </Project>

@@ -16,7 +16,7 @@ namespace Mehrak.Bot.Services;
 internal class CheckInExecutorService : CommandExecutorServiceBase<CheckInApplicationContext>
 {
     private readonly IApplicationService<CheckInApplicationContext> m_Service;
-    internal override string CommandName { get; set; } = "checkin";
+    internal override string CommandName { get; set; } = Domain.Common.CommandName.Common.CheckIn;
 
     public CheckInExecutorService(
         IApplicationService<CheckInApplicationContext> service,

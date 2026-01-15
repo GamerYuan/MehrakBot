@@ -51,8 +51,8 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.development.json')">
-        <None Include="appsettings.development.json">
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.Development.json')">
+        <None Include="appsettings.Development.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

@@ -1,11 +1,9 @@
 ﻿#region
 
 using System.Globalization;
-using Mehrak.Application;
 using Mehrak.Application.Services.Common;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Metrics;
@@ -50,7 +48,7 @@ public class Program
         if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
-            builder.Configuration.AddJsonFile("appsettings.development.json");
+            builder.Configuration.AddJsonFile("appsettings.Development.json");
         }
 
         var logLevels = builder.Configuration.GetSection("Logging:LogLevel");
@@ -104,23 +102,10 @@ public class Program
             // Database Services
             builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
-
-            // Api Services
-            builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
-                new HttpClientHandler
-                {
-                    UseCookies = false
-                }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
-
             builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
             builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
 
             builder.Services.AddInfrastructureServices();
-
-            builder.Services.AddGameApiServices();
-
-            builder.Services.AddApplicationServices();
-
             builder.Services.AddBotServices();
 
             builder.Services.AddSingleton<BotMetricsService>();

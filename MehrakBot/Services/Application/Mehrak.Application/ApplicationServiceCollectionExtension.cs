@@ -7,15 +7,14 @@ using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Zzz;
 using Mehrak.Domain.Services.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
 
 #endregion
 
 namespace Mehrak.Application;
 
-public static class ApplicationServiceCollectionExtension
+internal static class ApplicationServiceCollectionExtension
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    internal static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddTransient<IApplicationService<CheckInApplicationContext>, DailyCheckInService>();
         services.AddTransient<IApplicationService<CodeRedeemApplicationContext>, CodeRedeemApplicationService>();
