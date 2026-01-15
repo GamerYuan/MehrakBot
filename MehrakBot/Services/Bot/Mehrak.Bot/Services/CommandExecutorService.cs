@@ -8,7 +8,6 @@ using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
@@ -18,26 +17,23 @@ using NetCord.Services;
 
 namespace Mehrak.Bot.Services;
 
-public interface ICommandExecutorService<TContext> where TContext : IApplicationContext
+public interface ICommandExecutorService
 {
     IInteractionContext Context { get; set; }
-    TContext ApplicationContext { get; set; }
     bool ValidateServer { get; set; }
+    Dictionary<string, object> Parameters { get; set; }
 
     Task ExecuteAsync(int profile);
 
     void AddValidator<TParam>(string paramName, Predicate<TParam> pred, string? errorMessage = null);
 }
 
-internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TContext>
-    where TContext : IApplicationContext
+internal class CommandExecutorService : CommandExecutorServiceBase
 {
-    private readonly IServiceProvider m_ServiceProvider;
     private readonly IAttachmentStorageService m_AttachmentService;
     private readonly IImageRepository m_ImageRepository;
 
     public CommandExecutorService(
-        IServiceProvider serviceProvider,
         UserDbContext userContext,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
@@ -45,10 +41,9 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
         ApplicationService.ApplicationServiceClient applicationClient,
         IAttachmentStorageService attachmentService,
         IImageRepository imageRepository,
-        ILogger<CommandExecutorService<TContext>> logger
+        ILogger<CommandExecutorService> logger
     ) : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, applicationClient, logger)
     {
-        m_ServiceProvider = serviceProvider;
         m_AttachmentService = attachmentService;
         m_ImageRepository = imageRepository;
     }
@@ -67,7 +62,7 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
             return;
         }
 
-        var invalid = Validators.Where(x => !x.IsValid(ApplicationContext)).Select(x => x.ErrorMessage);
+        var invalid = Validators.Where(x => !x.IsValid(this)).Select(x => x.ErrorMessage);
         if (invalid.Any())
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
@@ -88,8 +83,8 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
 
             if (ValidateServer)
             {
-                var server = ApplicationContext.GetParameter<string?>("server");
-                var game = ApplicationContext.GetParameter<Game>("game");
+                var server = GetParam<string?>("server");
+                var game = GetParam<Game>("game");
 
                 if (server == null)
                 {
@@ -103,21 +98,14 @@ internal class CommandExecutorService<TContext> : CommandExecutorServiceBase<TCo
                         return;
                     }
 
-                    ApplicationContext.SetParameter("server", server);
+                    Parameters.Add("server", server);
                 }
 
                 await UpdateLastUsedServerAsync(authResult.User, profile, game, server);
             }
 
-            ApplicationContext.LToken = authResult.LToken;
-            ApplicationContext.LtUid = authResult.LtUid;
-
-            var service =
-                m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();
-            var commandResult = await service
-                .ExecuteAsync(ApplicationContext)
-                .ConfigureAwait(false);
-
+            var commandResult = await DispatchCommand(CommandName, Context.Interaction.User.Id, authResult.LtUid, authResult.LToken,
+                Parameters.Select(x => (x.Key, x.Value)));
 
             if (commandResult.IsSuccess)
             {

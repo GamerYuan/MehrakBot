@@ -1,7 +1,5 @@
 ﻿#region
 
-using Mehrak.Domain.Services.Abstractions;
-
 #endregion
 
 namespace Mehrak.Bot.Services;
@@ -18,7 +16,7 @@ internal abstract class ParamValidator
     }
 
     // Abstract method to validate a parameter (passed as object)
-    public abstract bool IsValid(IApplicationContext context);
+    public abstract bool IsValid(ICommandExecutorService svc);
 }
 
 // Generic implementation
@@ -32,9 +30,9 @@ internal class ParamValidator<TParam> : ParamValidator
         m_Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
     }
 
-    public override bool IsValid(IApplicationContext context)
+    public override bool IsValid(ICommandExecutorService svc)
     {
-        var param = context.GetParameter<TParam>(ParamName);
+        if (!svc.Parameters.TryGetValue(ParamName, out var param)) throw new ArgumentException($"Param {ParamName} not found");
         if (param is not TParam typedParam) return false;
 
         return m_Predicate(typedParam);

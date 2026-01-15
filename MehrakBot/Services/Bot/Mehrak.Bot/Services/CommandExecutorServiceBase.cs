@@ -18,21 +18,20 @@ using NetCord.Services;
 
 namespace Mehrak.Bot.Services;
 
-internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorService<TContext>
-    where TContext : IApplicationContext
+internal abstract class CommandExecutorServiceBase : ICommandExecutorService
 {
     public IInteractionContext Context { get; set; } = default!;
-    public TContext ApplicationContext { get; set; } = default!;
     public bool ValidateServer { get; set; } = true;
     internal virtual string CommandName { get; set; } = string.Empty;
     internal bool IsResponseEphemeral { get; set; } = false;
+    public Dictionary<string, object> Parameters { get; set; } = [];
 
     protected readonly List<ParamValidator> Validators = [];
     private readonly UserDbContext m_UserContext;
     private readonly ICommandRateLimitService m_CommandRateLimitService;
     protected readonly IAuthenticationMiddlewareService AuthenticationMiddleware;
     protected readonly IMetricsService MetricsService;
-    protected readonly ILogger<CommandExecutorServiceBase<TContext>> Logger;
+    protected readonly ILogger<CommandExecutorServiceBase> Logger;
     private readonly ApplicationService.ApplicationServiceClient m_ApplicationClient;
 
     protected CommandExecutorServiceBase(
@@ -41,7 +40,7 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
         IAuthenticationMiddlewareService authenticationMiddleware,
         IMetricsService metricsService,
         ApplicationService.ApplicationServiceClient applicationClient,
-        ILogger<CommandExecutorServiceBase<TContext>> logger)
+        ILogger<CommandExecutorServiceBase> logger)
     {
         m_UserContext = userContext;
         m_CommandRateLimitService = commandRateLimitService;
@@ -134,5 +133,10 @@ internal abstract class CommandExecutorServiceBase<TContext> : ICommandExecutorS
             Logger.LogError(e, "Failed to update last used server for user {UserId}, profile {ProfileId}, game {Game}",
                 user.Id, profileId, game);
         }
+    }
+
+    protected TParam? GetParam<TParam>(string key)
+    {
+        return Parameters.TryGetValue(key, out var value) && value is TParam tValue ? tValue : default;
     }
 }

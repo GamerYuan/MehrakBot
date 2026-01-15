@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider;
@@ -21,8 +20,6 @@ internal static class BotServiceCollectionExtensions
         services.AddSingleton<ICommandRateLimitService, CommandRateLimitService>();
 
         services.AddSingleton<ICharacterAutocompleteService, CharacterAutocompleteService>();
-
-        services.AddTransient<ICommandExecutorService<CheckInApplicationContext>, CheckInExecutorService>();
 
         services.AddHostedService<BotLatencyService>();
 

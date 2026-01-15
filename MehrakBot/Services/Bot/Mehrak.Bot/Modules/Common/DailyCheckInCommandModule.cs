@@ -4,8 +4,8 @@
 
 #region
 
-using Mehrak.Application.Models.Context;
-using Mehrak.Bot.Services;
+using Mehrak.Bot.Builders;
+using Mehrak.Domain.Common;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
 
@@ -15,14 +15,14 @@ namespace Mehrak.Bot.Modules.Common;
 
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
-    private readonly ICommandExecutorService<CheckInApplicationContext> m_Executor;
+    private readonly ICommandExecutorBuilder m_Builder;
     private readonly ILogger<DailyCheckInCommandModule> m_Logger;
 
     public DailyCheckInCommandModule(
-        ICommandExecutorService<CheckInApplicationContext> executor,
+        ICommandExecutorBuilder builder,
         ILogger<DailyCheckInCommandModule> logger)
     {
-        m_Executor = executor;
+        m_Builder = builder;
         m_Logger = logger;
     }
 
@@ -34,10 +34,13 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
         m_Logger.LogInformation("Executing Daily Check-In command for user {UserId} with profile {ProfileId}",
             Context.User.Id, profile);
 
-        m_Executor.ApplicationContext = new CheckInApplicationContext(Context.User.Id);
-        m_Executor.Context = Context;
+        var executor = m_Builder
+            .WithInteractionContext(Context)
+            .ValidateServer(false)
+            .WithCommandName(CommandName.Genshin.Character)
+            .Build();
 
-        await m_Executor.ExecuteAsync(profile).ConfigureAwait(false);
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
     public static string GetHelpString()

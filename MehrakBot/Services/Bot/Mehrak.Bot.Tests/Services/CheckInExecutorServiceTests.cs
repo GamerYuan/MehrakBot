@@ -1,9 +1,11 @@
 ﻿#region
 
+using Grpc.Core;
 using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +26,7 @@ namespace Mehrak.Bot.Tests.Services;
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class CheckInExecutorServiceTests
 {
-    private Mock<IApplicationService<CheckInApplicationContext>> m_MockApplicationService = null!;
+    private Mock<ApplicationService.ApplicationServiceClient> m_MockApplicationClient = null!;
     private Mock<ICommandRateLimitService> m_MockRateLimitService = null!;
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
     private Mock<IMetricsService> m_MockMetricsService = null!;
@@ -42,7 +44,7 @@ public class CheckInExecutorServiceTests
     [SetUp]
     public void Setup()
     {
-        m_MockApplicationService = new Mock<IApplicationService<CheckInApplicationContext>>();
+        m_MockApplicationClient = new Mock<ApplicationService.ApplicationServiceClient>();
         m_MockRateLimitService = new Mock<ICommandRateLimitService>();
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
         m_MockMetricsService = new Mock<IMetricsService>();
@@ -54,9 +56,17 @@ public class CheckInExecutorServiceTests
         m_DbScope = m_DbFactory.ScopeFactory.CreateScope();
         m_UserContext = m_DbScope.ServiceProvider.GetRequiredService<UserDbContext>();
 
+        m_MockApplicationClient
+            .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
+            .Returns(CreateUnaryCall(new CommandResult
+            {
+                IsSuccess = true,
+                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
+            }));
+
         m_Service = new CheckInExecutorService(
-            m_MockApplicationService.Object,
             m_UserContext,
+            m_MockApplicationClient.Object,
             m_MockRateLimitService.Object,
             m_MockAuthMiddleware.Object,
             m_MockMetricsService.Object,
@@ -77,7 +87,7 @@ public class CheckInExecutorServiceTests
     [TearDown]
     public void TearDown()
     {
-        m_MockApplicationService.Reset();
+        m_MockApplicationClient.Reset();
         m_MockRateLimitService.Reset();
         m_MockAuthMiddleware.Reset();
         m_MockMetricsService.Reset();
@@ -139,7 +149,7 @@ public class CheckInExecutorServiceTests
 
         // Verify authentication was not attempted
         m_MockAuthMiddleware.Verify(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()), Times.Never);
-        m_MockApplicationService.Verify(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()), Times.Never);
+        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
     }
 
     [Test]
@@ -163,10 +173,6 @@ public class CheckInExecutorServiceTests
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Success());
 
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
@@ -201,19 +207,16 @@ public class CheckInExecutorServiceTests
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
 
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Success());
-
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
 
         // Assert
-        m_MockApplicationService.Verify(
-            x => x.ExecuteAsync(It.Is<CheckInApplicationContext>(ctx =>
-                ctx.UserId == m_TestUserId &&
-                ctx.LToken == TestLToken &&
-                ctx.LtUid == TestLtUid)),
+        m_MockApplicationClient.Verify(
+            x => x.ExecuteCommandAsync(It.Is<ExecuteRequest>(req =>
+                req.CommandName == "checkin" &&
+                req.DiscordUserId == m_TestUserId &&
+                req.LToken == TestLToken &&
+                req.LtUid == TestLtUid), null, null, default),
             Times.Once);
     }
 
@@ -237,10 +240,6 @@ public class CheckInExecutorServiceTests
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Success());
 
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
@@ -276,7 +275,7 @@ public class CheckInExecutorServiceTests
         Assert.That(response, Does.Contain(errorMessage));
 
         // Verify application service was not called
-        m_MockApplicationService.Verify(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()), Times.Never);
+        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
     }
 
     [Test]
@@ -298,7 +297,7 @@ public class CheckInExecutorServiceTests
         await m_Service.ExecuteAsync(TestProfileId);
 
         // Assert - With timeout, context is null so no response should be sent
-        m_MockApplicationService.Verify(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()), Times.Never);
+        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
     }
 
     #endregion
@@ -326,15 +325,11 @@ public class CheckInExecutorServiceTests
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
 
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Success());
-
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
 
         // Assert
-        m_MockApplicationService.Verify(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()), Times.Once);
+        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Once);
     }
 
     [Test]
@@ -360,15 +355,20 @@ public class CheckInExecutorServiceTests
 
         const string errorMessage = "Check-in failed: Already checked in today";
 
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Failure(CommandFailureReason.ApiError, errorMessage));
+        m_MockApplicationClient
+            .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
+            .Returns(CreateUnaryCall(new CommandResult
+            {
+                IsSuccess = false,
+                ErrorMessage = errorMessage,
+                FailureReason = CommandFailureReason.ApiError
+            }));
 
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
 
         // Assert
-        m_MockApplicationService.Verify(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()), Times.Once);
+        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Once);
     }
 
     #endregion
@@ -395,10 +395,6 @@ public class CheckInExecutorServiceTests
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Success());
 
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
@@ -434,9 +430,14 @@ public class CheckInExecutorServiceTests
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
 
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Failure(CommandFailureReason.ApiError, "Error"));
+        m_MockApplicationClient
+            .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
+            .Returns(CreateUnaryCall(new CommandResult
+            {
+                IsSuccess = false,
+                ErrorMessage = "Error",
+                FailureReason = CommandFailureReason.ApiError
+            }));
 
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
@@ -467,10 +468,6 @@ public class CheckInExecutorServiceTests
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Success());
 
         var mockDisposable = new Mock<IDisposable>();
         m_MockMetricsService
@@ -522,9 +519,13 @@ public class CheckInExecutorServiceTests
             .Returns(Mock.Of<IDisposable>())
             .Callback(() => callOrder.Add("MetricsStart"));
 
-        m_MockApplicationService
-            .Setup(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()))
-            .ReturnsAsync(CommandResult.Success())
+        m_MockApplicationClient
+            .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
+            .Returns(CreateUnaryCall(new CommandResult
+            {
+                IsSuccess = true,
+                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
+            }))
             .Callback(() => callOrder.Add("Execute"));
 
         m_MockMetricsService
@@ -565,7 +566,7 @@ public class CheckInExecutorServiceTests
 
         // Assert - Verify no downstream calls were made
         m_MockAuthMiddleware.Verify(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()), Times.Never);
-        m_MockApplicationService.Verify(x => x.ExecuteAsync(It.IsAny<CheckInApplicationContext>()), Times.Never);
+        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
         m_MockMetricsService.Verify(x => x.TrackCommand(It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<bool>()),
             Times.Never);
     }
@@ -606,6 +607,16 @@ public class CheckInExecutorServiceTests
         // Assert
         Assert.That(m_Service.ApplicationContext, Is.EqualTo(context));
         Assert.That(m_Service.ApplicationContext.UserId, Is.EqualTo(m_TestUserId));
+    }
+
+    private static AsyncUnaryCall<CommandResult> CreateUnaryCall(CommandResult result)
+    {
+        return new AsyncUnaryCall<CommandResult>(
+            Task.FromResult(result),
+            Task.FromResult(new Metadata()),
+            () => Status.DefaultSuccess,
+            () => new Metadata(),
+            () => { });
     }
 
     #endregion

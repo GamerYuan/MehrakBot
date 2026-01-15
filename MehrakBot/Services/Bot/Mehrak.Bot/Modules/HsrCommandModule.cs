@@ -4,13 +4,6 @@
 
 #region
 
-using Mehrak.Application.Models.Context;
-using Mehrak.Application.Services.Hsr.Anomaly;
-using Mehrak.Application.Services.Hsr.Character;
-using Mehrak.Application.Services.Hsr.CharList;
-using Mehrak.Application.Services.Hsr.EndGame;
-using Mehrak.Application.Services.Hsr.Memory;
-using Mehrak.Application.Services.Hsr.RealTimeNotes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
 using Mehrak.Domain.Common;
@@ -51,9 +44,9 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.HonkaiStarRail)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<HsrCharacterApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new HsrCharacterApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.Character)
             .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
             .Build();
@@ -75,9 +68,9 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<HsrRealTimeNotesApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new HsrRealTimeNotesApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.RealTimeNotes)
             .WithEphemeralResponse(true)
             .Build();
@@ -101,9 +94,9 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.HonkaiStarRail)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<CodeRedeemApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.HonkaiStarRail, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.Codes)
             .WithEphemeralResponse(true)
             .Build();
@@ -124,9 +117,9 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<HsrMemoryApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new HsrMemoryApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.Memory)
             .Build();
 
@@ -144,13 +137,12 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail), ("mode", HsrEndGameMode.PureFiction)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<HsrEndGameApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new HsrEndGameApplicationContext(Context.User.Id, HsrEndGameMode.PureFiction,
-                parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.PureFiction)
             .Build();
 
@@ -168,13 +160,12 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "User {User} used the Fiction command with server {Server}, profile {ProfileId}",
             Context.User.Id, server, profile);
 
-        List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
+        List<(string, object)> parameters = [("game", Game.HonkaiStarRail), ("mode", HsrEndGameMode.ApocalypticShadow)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<HsrEndGameApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new HsrEndGameApplicationContext(Context.User.Id, HsrEndGameMode.ApocalypticShadow,
-                parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.ApocalypticShadow)
             .Build();
 
@@ -195,9 +186,9 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<HsrCharListApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new HsrCharListApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.CharList)
             .Build();
 
@@ -218,9 +209,9 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [("game", Game.HonkaiStarRail)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<HsrAnomalyApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new HsrAnomalyApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Hsr.Anomaly)
             .Build();
 

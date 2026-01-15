@@ -1,10 +1,9 @@
 ﻿#region
 
 using System.Globalization;
-using Mehrak.Application.Services.Common;
 using Mehrak.Bot.Services;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Protobuf;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Metrics;
@@ -119,8 +118,6 @@ public class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMetricsService>());
 
             builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
-
-            builder.Services.AddHostedService<AssetInitializationService>();
 
             builder.Services.AddDiscordGateway().AddApplicationCommands()
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()

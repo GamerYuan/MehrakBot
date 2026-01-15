@@ -4,11 +4,6 @@
 
 #region
 
-using Mehrak.Application.Models.Context;
-using Mehrak.Application.Services.Zzz.Assault;
-using Mehrak.Application.Services.Zzz.Character;
-using Mehrak.Application.Services.Zzz.Defense;
-using Mehrak.Application.Services.Zzz.RealTimeNotes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Zzz;
 using Mehrak.Domain.Common;
@@ -50,9 +45,9 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [(nameof(code), code), ("game", Game.ZenlessZoneZero)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<CodeRedeemApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new CodeRedeemApplicationContext(Context.User.Id, Game.ZenlessZoneZero, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Zzz.Codes)
             .WithEphemeralResponse(true)
             .Build();
@@ -77,9 +72,9 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [(nameof(character), character), ("game", Game.ZenlessZoneZero)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<ZzzCharacterApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new ZzzCharacterApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Zzz.Character)
             .Build();
 
@@ -101,9 +96,9 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<ZzzDefenseApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new ZzzDefenseApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Zzz.Defense)
             .Build();
 
@@ -125,9 +120,9 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<ZzzAssaultApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new ZzzAssaultApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Zzz.Assault)
             .Build();
 
@@ -148,9 +143,9 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
 
-        var executor = m_Builder.For<ZzzRealTimeNotesApplicationContext>()
+        var executor = m_Builder
             .WithInteractionContext(Context)
-            .WithApplicationContext(new ZzzRealTimeNotesApplicationContext(Context.User.Id, parameters))
+            .WithParameters(parameters)
             .WithCommandName(CommandName.Zzz.RealTimeNotes)
             .WithEphemeralResponse(true)
             .Build();

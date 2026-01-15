@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using Mehrak.Application;
 using Mehrak.Application.Services;
+using Mehrak.Application.Services.Common;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
@@ -75,6 +76,8 @@ public class Program
             {
                 UseCookies = false
             }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
+
+        builder.Services.AddHostedService<AssetInitializationService>();
 
         // Add services to the container.
         builder.Services.AddGrpc();
