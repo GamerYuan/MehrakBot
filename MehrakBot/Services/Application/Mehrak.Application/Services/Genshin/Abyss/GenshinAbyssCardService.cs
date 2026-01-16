@@ -77,7 +77,7 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
         List<IDisposable> disposableResources = [];
         var abyssData = context.Data;
         var constMap = context.GetParameter<Dictionary<int, int>>("constMap");
-        var floor = context.GetParameter<uint>("floor");
+        var floor = context.GetParameter<int>("floor");
         var server = context.GetParameter<Server>("server");
 
         if (constMap == null)
