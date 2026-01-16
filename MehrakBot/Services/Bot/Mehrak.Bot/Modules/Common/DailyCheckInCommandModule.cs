@@ -37,7 +37,8 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
         var executor = m_Builder
             .WithInteractionContext(Context)
             .ValidateServer(false)
-            .WithCommandName(CommandName.Genshin.Character)
+            .WithEphemeralResponse(true)
+            .WithCommandName(CommandName.Common.CheckIn)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
