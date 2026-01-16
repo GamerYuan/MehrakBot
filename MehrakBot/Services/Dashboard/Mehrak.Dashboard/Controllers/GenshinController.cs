@@ -1,11 +1,7 @@
 ﻿using System.Security.Claims;
-using Mehrak.Application.Services.Genshin.Abyss;
-using Mehrak.Application.Services.Genshin.Character;
-using Mehrak.Application.Services.Genshin.CharList;
-using Mehrak.Application.Services.Genshin.Stygian;
-using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -44,9 +40,10 @@ public class GenshinController : ControllerBase
         var parameters = BuildParameters(Game.Genshin, server,
             (nameof(request.Character).ToLowerInvariant(), request.Character.Trim()));
 
-        var executor = m_ExecutorBuilder.For<GenshinCharacterApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new GenshinCharacterApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Genshin.Character)
+            .WithParameters(parameters)
             .AddValidator<string>(nameof(request.Character).ToLowerInvariant(), value => !string.IsNullOrWhiteSpace(value))
             .Build();
 
@@ -69,9 +66,10 @@ public class GenshinController : ControllerBase
 
         var parameters = BuildParameters(Game.Genshin, server, (nameof(request.Floor).ToLowerInvariant(), request.Floor));
 
-        var executor = m_ExecutorBuilder.For<GenshinAbyssApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new GenshinAbyssApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Genshin.Abyss)
+            .WithParameters(parameters)
             .AddValidator<uint>(nameof(request.Floor).ToLowerInvariant(), floor => floor is >= 9 and <= 12)
             .Build();
 
@@ -94,9 +92,10 @@ public class GenshinController : ControllerBase
 
         var parameters = BuildParameters(Game.Genshin, server);
 
-        var executor = m_ExecutorBuilder.For<GenshinTheaterApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new GenshinTheaterApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Genshin.Theater)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
@@ -118,9 +117,10 @@ public class GenshinController : ControllerBase
 
         var parameters = BuildParameters(Game.Genshin, server);
 
-        var executor = m_ExecutorBuilder.For<GenshinStygianApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new GenshinStygianApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Genshin.Stygian)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
@@ -142,9 +142,10 @@ public class GenshinController : ControllerBase
 
         var parameters = BuildParameters(Game.Genshin, server);
 
-        var executor = m_ExecutorBuilder.For<GenshinCharListApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new GenshinCharListApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Genshin.CharList)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);

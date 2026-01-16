@@ -5,6 +5,7 @@ using Mehrak.Dashboard.Auth;
 using Mehrak.Dashboard.Metrics;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
+using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Auth;
@@ -104,6 +105,14 @@ public class Program
             {
                 UseCookies = false
             }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
+
+        builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
+        {
+            var address = builder.Configuration["Application:ConnectionString"] ??
+                throw new ArgumentException("gRPC Connection String cannot be empty!");
+            options.Address = new Uri(address);
+        });
+
         builder.Services.AddDashboardApplicationExecutor();
 
         builder.Services
@@ -129,11 +138,14 @@ public class Program
                         c.Type == "perm" &&
                         c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))));
 
-        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        if (builder.Environment.IsProduction())
         {
-            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-            options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Nginx:KnownProxy"] ?? "127.0.0.1"));
-        });
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Nginx:KnownProxy"] ?? "127.0.0.1"));
+            });
+        }
 
         builder.Services.AddRateLimiter(options =>
         {

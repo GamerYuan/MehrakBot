@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
-using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,9 +40,10 @@ public sealed class Hi3Controller : ControllerBase
         var parameters = BuildParameters(Game.HonkaiImpact3, server,
             ("character", request.Battlesuit.Trim()));
 
-        var executor = m_ExecutorBuilder.For<Hi3CharacterApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new Hi3CharacterApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Hi3.Character)
+            .WithParameters(parameters)
             .AddValidator<string>("character", value => !string.IsNullOrWhiteSpace(value))
             .Build();
 

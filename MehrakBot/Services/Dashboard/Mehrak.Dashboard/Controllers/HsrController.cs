@@ -1,11 +1,7 @@
 ﻿using System.Security.Claims;
-using Mehrak.Application.Services.Hsr.Anomaly;
-using Mehrak.Application.Services.Hsr.Character;
-using Mehrak.Application.Services.Hsr.CharList;
-using Mehrak.Application.Services.Hsr.EndGame;
-using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -44,9 +40,10 @@ public sealed class HsrController : ControllerBase
         var parameters = BuildParameters(Game.HonkaiStarRail, server,
             (nameof(request.Character).ToLowerInvariant(), request.Character.Trim()));
 
-        var executor = m_ExecutorBuilder.For<HsrCharacterApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new HsrCharacterApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Hsr.Character)
+            .WithParameters(parameters)
             .AddValidator<string>(nameof(request.Character).ToLowerInvariant(), value => !string.IsNullOrWhiteSpace(value))
             .Build();
 
@@ -69,9 +66,10 @@ public sealed class HsrController : ControllerBase
 
         var parameters = BuildParameters(Game.HonkaiStarRail, server);
 
-        var executor = m_ExecutorBuilder.For<HsrMemoryApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new HsrMemoryApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Hsr.Memory)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
@@ -93,9 +91,10 @@ public sealed class HsrController : ControllerBase
 
         var parameters = BuildParameters(Game.HonkaiStarRail, server);
 
-        var executor = m_ExecutorBuilder.For<HsrEndGameApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new HsrEndGameApplicationContext(discordUserId, HsrEndGameMode.PureFiction, parameters))
+            .WithCommandName(CommandName.Hsr.PureFiction)
+            .WithParameters(parameters.Concat([("mode", HsrEndGameMode.PureFiction)]))
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
@@ -117,9 +116,10 @@ public sealed class HsrController : ControllerBase
 
         var parameters = BuildParameters(Game.HonkaiStarRail, server);
 
-        var executor = m_ExecutorBuilder.For<HsrEndGameApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new HsrEndGameApplicationContext(discordUserId, HsrEndGameMode.ApocalypticShadow, parameters))
+            .WithCommandName(CommandName.Hsr.ApocalypticShadow)
+            .WithParameters(parameters.Concat([("mode", HsrEndGameMode.ApocalypticShadow)]))
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
@@ -141,9 +141,10 @@ public sealed class HsrController : ControllerBase
 
         var parameters = BuildParameters(Game.HonkaiStarRail, server);
 
-        var executor = m_ExecutorBuilder.For<HsrCharListApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new HsrCharListApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Hsr.CharList)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
@@ -165,9 +166,10 @@ public sealed class HsrController : ControllerBase
 
         var parameters = BuildParameters(Game.HonkaiStarRail, server);
 
-        var executor = m_ExecutorBuilder.For<HsrAnomalyApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new HsrAnomalyApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Hsr.Anomaly)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);

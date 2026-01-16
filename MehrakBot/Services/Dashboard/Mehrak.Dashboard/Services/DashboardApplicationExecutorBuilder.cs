@@ -1,92 +1,78 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Dashboard.Auth;
 
 namespace Mehrak.Dashboard.Services;
 
 public interface IDashboardApplicationExecutorBuilder
 {
-    IDashboardApplicationExecutorBuilder<TContext> For<TContext>() where TContext : IApplicationContext;
-}
+    IDashboardApplicationExecutorBuilder WithDiscordUserId(ulong userId);
 
-public interface IDashboardApplicationExecutorBuilder<TContext>
-    where TContext : IApplicationContext
-{
-    IDashboardApplicationExecutorBuilder<TContext> WithDiscordUserId(ulong userId);
+    IDashboardApplicationExecutorBuilder WithParameters(IEnumerable<(string Key, object Value)> parameters);
 
-    IDashboardApplicationExecutorBuilder<TContext> WithApplicationContext(TContext context);
+    IDashboardApplicationExecutorBuilder WithCommandName(string commandName);
 
-    IDashboardApplicationExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
+    IDashboardApplicationExecutorBuilder AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
         string? errorMessage = null);
 
-    IDashboardApplicationExecutorService<TContext> Build();
+    IDashboardApplicationExecutorService Build();
 }
 
 internal class DashboardApplicationExecutorBuilder : IDashboardApplicationExecutorBuilder
 {
     private readonly IServiceProvider m_ServiceProvider;
-
-    public DashboardApplicationExecutorBuilder(IServiceProvider serviceProvider)
-    {
-        m_ServiceProvider = serviceProvider;
-    }
-
-    public IDashboardApplicationExecutorBuilder<TContext> For<TContext>() where TContext : IApplicationContext
-    {
-        return ActivatorUtilities.CreateInstance<DashboardApplicationExecutorBuilder<TContext>>(m_ServiceProvider);
-    }
-}
-
-internal class DashboardApplicationExecutorBuilder<TContext> : IDashboardApplicationExecutorBuilder<TContext>
-    where TContext : IApplicationContext
-{
-    private readonly IServiceProvider m_ServiceProvider;
-    private readonly List<Action<DashboardApplicationExecutorService<TContext>>> m_Configurators = [];
+    private readonly List<Action<DashboardApplicationExecutorService>> m_Configurators = [];
+    private readonly Dictionary<string, object> m_Parameters = [];
 
     private ulong m_DiscordUserId;
-    private TContext? m_ApplicationContext;
+    private string? m_CommandName;
 
     public DashboardApplicationExecutorBuilder(IServiceProvider serviceProvider)
     {
         m_ServiceProvider = serviceProvider;
     }
 
-    public IDashboardApplicationExecutorBuilder<TContext> WithDiscordUserId(ulong userId)
+    public IDashboardApplicationExecutorBuilder WithDiscordUserId(ulong userId)
     {
-        if (userId == 0)
-            throw new ArgumentOutOfRangeException(nameof(userId));
-
         m_DiscordUserId = userId;
         return this;
     }
 
-    public IDashboardApplicationExecutorBuilder<TContext> WithApplicationContext(TContext context)
+    public IDashboardApplicationExecutorBuilder WithParameters(IEnumerable<(string Key, object Value)> parameters)
     {
-        m_ApplicationContext = context ?? throw new ArgumentNullException(nameof(context));
+        foreach (var (key, value) in parameters)
+        {
+            m_Parameters[key] = value;
+        }
         return this;
     }
 
-    public IDashboardApplicationExecutorBuilder<TContext> AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
+    public IDashboardApplicationExecutorBuilder WithCommandName(string commandName)
+    {
+        m_CommandName = commandName;
+        return this;
+    }
+
+    public IDashboardApplicationExecutorBuilder AddValidator<TParam>(string paramName, Predicate<TParam> predicate,
         string? errorMessage = null)
     {
-        if (string.IsNullOrWhiteSpace(paramName))
-            throw new ArgumentException("Parameter name cannot be null or whitespace.", nameof(paramName));
-        if (predicate is null)
-            throw new ArgumentNullException(nameof(predicate));
-
-        m_Configurators.Add(exec => exec.AddValidator(paramName, predicate, errorMessage));
+        m_Configurators.Add(service => service.AddValidator(paramName, predicate, errorMessage));
         return this;
     }
 
-    public IDashboardApplicationExecutorService<TContext> Build()
+    public IDashboardApplicationExecutorService Build()
     {
-        if (m_DiscordUserId == 0)
-            throw new InvalidOperationException("Discord user id must be provided before building an executor.");
-        if (m_ApplicationContext is null)
-            throw new InvalidOperationException("Application context must be provided before building an executor.");
+        var profileAuthService = m_ServiceProvider.GetRequiredService<IDashboardProfileAuthenticationService>();
+        var logger = m_ServiceProvider.GetRequiredService<ILogger<DashboardApplicationExecutorService>>();
 
-        var executor = ActivatorUtilities.CreateInstance<DashboardApplicationExecutorService<TContext>>(m_ServiceProvider);
-
-        executor.DiscordUserId = m_DiscordUserId;
-        executor.ApplicationContext = m_ApplicationContext;
+        var executor = new DashboardApplicationExecutorService(
+            m_ServiceProvider,
+            profileAuthService,
+            logger
+        )
+        {
+            DiscordUserId = m_DiscordUserId,
+            CommandName = m_CommandName ?? throw new InvalidOperationException("Command name must be set."),
+            Parameters = m_Parameters
+        };
 
         foreach (var configure in m_Configurators)
             configure(executor);
@@ -100,8 +86,7 @@ public static class DashboardApplicationExecutorServiceCollectionExtensions
     public static IServiceCollection AddDashboardApplicationExecutor(this IServiceCollection services)
     {
         services.AddTransient<IDashboardApplicationExecutorBuilder, DashboardApplicationExecutorBuilder>();
-        services.AddTransient(typeof(IDashboardApplicationExecutorBuilder<>), typeof(DashboardApplicationExecutorBuilder<>));
-        services.AddTransient(typeof(IDashboardApplicationExecutorService<>), typeof(DashboardApplicationExecutorService<>));
+        services.AddTransient<IDashboardApplicationExecutorService, DashboardApplicationExecutorService>();
         return services;
     }
 }

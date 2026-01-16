@@ -1,9 +1,7 @@
 ﻿using System.Security.Claims;
-using Mehrak.Application.Services.Zzz.Assault;
-using Mehrak.Application.Services.Zzz.Character;
-using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,9 +40,10 @@ public sealed class ZzzController : ControllerBase
         var parameters = BuildParameters(Game.ZenlessZoneZero, server,
             (nameof(request.Character).ToLowerInvariant(), request.Character.Trim()));
 
-        var executor = m_ExecutorBuilder.For<ZzzCharacterApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new ZzzCharacterApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Zzz.Character)
+            .WithParameters(parameters)
             .AddValidator<string>(nameof(request.Character).ToLowerInvariant(), value => !string.IsNullOrWhiteSpace(value))
             .Build();
 
@@ -67,9 +66,10 @@ public sealed class ZzzController : ControllerBase
 
         var parameters = BuildParameters(Game.ZenlessZoneZero, server);
 
-        var executor = m_ExecutorBuilder.For<ZzzDefenseApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new ZzzDefenseApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Zzz.Defense)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
@@ -91,9 +91,10 @@ public sealed class ZzzController : ControllerBase
 
         var parameters = BuildParameters(Game.ZenlessZoneZero, server);
 
-        var executor = m_ExecutorBuilder.For<ZzzAssaultApplicationContext>()
+        var executor = m_ExecutorBuilder
             .WithDiscordUserId(discordUserId)
-            .WithApplicationContext(new ZzzAssaultApplicationContext(discordUserId, parameters))
+            .WithCommandName(CommandName.Zzz.Assault)
+            .WithParameters(parameters)
             .Build();
 
         var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);

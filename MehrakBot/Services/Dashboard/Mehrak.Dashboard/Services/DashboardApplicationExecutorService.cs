@@ -1,15 +1,17 @@
 ﻿using Mehrak.Dashboard.Auth;
 using Mehrak.Dashboard.Models;
+using Mehrak.Domain.Extensions;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Mvc;
+using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Dashboard.Services;
 
-public interface IDashboardApplicationExecutorService<TContext> where TContext : IApplicationContext
+public interface IDashboardApplicationExecutorService
 {
     ulong DiscordUserId { get; set; }
-    TContext ApplicationContext { get; set; }
+    string CommandName { get; set; }
+    IReadOnlyDictionary<string, object> Parameters { get; set; }
 
     void AddValidator<TParam>(string paramName, Predicate<TParam> predicate, string? errorMessage = null);
 
@@ -18,18 +20,17 @@ public interface IDashboardApplicationExecutorService<TContext> where TContext :
         CancellationToken ct = default);
 }
 
-internal class DashboardApplicationExecutorService<TContext> : IDashboardApplicationExecutorService<TContext>
-    where TContext : IApplicationContext
+internal class DashboardApplicationExecutorService : IDashboardApplicationExecutorService
 {
     private readonly IServiceProvider m_ServiceProvider;
     private readonly IDashboardProfileAuthenticationService m_ProfileAuthenticationService;
-    private readonly ILogger<DashboardApplicationExecutorService<TContext>> m_Logger;
+    private readonly ILogger<DashboardApplicationExecutorService> m_Logger;
     private readonly List<ParamValidator> m_Validators = [];
 
     public DashboardApplicationExecutorService(
         IServiceProvider serviceProvider,
         IDashboardProfileAuthenticationService profileAuthenticationService,
-        ILogger<DashboardApplicationExecutorService<TContext>> logger)
+        ILogger<DashboardApplicationExecutorService> logger)
     {
         m_ServiceProvider = serviceProvider;
         m_ProfileAuthenticationService = profileAuthenticationService;
@@ -38,7 +39,9 @@ internal class DashboardApplicationExecutorService<TContext> : IDashboardApplica
 
     public ulong DiscordUserId { get; set; }
 
-    public TContext ApplicationContext { get; set; } = default!;
+    public string CommandName { get; set; } = string.Empty;
+
+    public IReadOnlyDictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
 
     public void AddValidator<TParam>(string paramName, Predicate<TParam> predicate, string? errorMessage = null)
     {
@@ -51,12 +54,12 @@ internal class DashboardApplicationExecutorService<TContext> : IDashboardApplica
     {
         ct.ThrowIfCancellationRequested();
 
-        if (ApplicationContext is null)
-            throw new InvalidOperationException("ApplicationContext must be provided before executing.");
         if (DiscordUserId == 0)
             throw new InvalidOperationException("Discord user ID must be provided before executing.");
+        if (string.IsNullOrWhiteSpace(CommandName))
+            throw new InvalidOperationException("Command name must be provided before executing.");
 
-        var invalid = m_Validators.Where(v => !v.IsValid(ApplicationContext)).Select(v => v.ErrorMessage).ToArray();
+        var invalid = m_Validators.Where(v => !v.IsValid(Parameters)).Select(v => v.ErrorMessage).ToArray();
         if (invalid.Length > 0)
         {
             m_Logger.LogWarning(
@@ -97,16 +100,29 @@ internal class DashboardApplicationExecutorService<TContext> : IDashboardApplica
         DashboardProfileAuthenticationResult authResult,
         CancellationToken ct)
     {
-        ApplicationContext.LtUid = authResult.LtUid;
-        ApplicationContext.LToken = authResult.LToken!;
+        // Note: ApplicationContext set logic removed as we use direct params now
+        // If we need to pass LtUid/LToken to gRPC, we pass them in request.
 
         m_Logger.LogInformation(
-            "Executing dashboard application service for user {UserId}, profile {LtUid}",
+            "Executing dashboard application service for user {UserId}, profile {LtUid}, command {Command}",
             DiscordUserId,
-            authResult.LtUid);
+            authResult.LtUid,
+            CommandName);
 
-        var applicationService = m_ServiceProvider.GetRequiredService<IApplicationService<TContext>>();
-        var commandResult = await applicationService.ExecuteAsync(ApplicationContext).ConfigureAwait(false);
+        var applicationService = m_ServiceProvider.GetRequiredService<Proto.ApplicationService.ApplicationServiceClient>();
+
+        var request = ProtobufMappingExtensions.ToExecuteRequest(
+            CommandName,
+            DiscordUserId,
+            authResult.LtUid,
+            authResult.LToken!,
+            Parameters.Select(kv => (kv.Key, kv.Value))
+        );
+
+        var response = await applicationService.ExecuteCommandAsync(request, cancellationToken: ct)
+            .ConfigureAwait(false);
+
+        var commandResult = response.ToDomain();
 
         ct.ThrowIfCancellationRequested();
 

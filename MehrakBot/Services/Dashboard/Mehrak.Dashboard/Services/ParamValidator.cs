@@ -13,7 +13,7 @@ internal abstract class ParamValidator
         ErrorMessage = errorMessage;
     }
 
-    public abstract bool IsValid(IApplicationContext context);
+    public abstract bool IsValid(IReadOnlyDictionary<string, object> parameters);
 }
 
 internal sealed class ParamValidator<TParam> : ParamValidator
@@ -26,10 +26,9 @@ internal sealed class ParamValidator<TParam> : ParamValidator
         m_Predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
     }
 
-    public override bool IsValid(IApplicationContext context)
+    public override bool IsValid(IReadOnlyDictionary<string, object> parameters)
     {
-        var value = context.GetParameter<TParam>(ParamName);
-        if (value is not TParam typedValue)
+        if (!parameters.TryGetValue(ParamName, out var value) || value is not TParam typedValue)
             return false;
 
         return m_Predicate(typedValue);
