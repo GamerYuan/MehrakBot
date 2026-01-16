@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Hsr.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -55,11 +56,7 @@ public class HsrCharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -85,11 +82,7 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -115,11 +108,7 @@ public class HsrCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -143,11 +132,7 @@ public class HsrCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "NonExistentCharacter"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "NonExistentCharacter"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -191,11 +176,7 @@ public class HsrCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "TB"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "TB"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -232,11 +213,7 @@ public class HsrCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -272,11 +249,7 @@ public class HsrCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Game == Game.HonkaiStarRail)))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -318,11 +291,7 @@ public class HsrCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -410,11 +379,7 @@ public class HsrCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -466,11 +431,7 @@ public class HsrCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -522,11 +483,7 @@ public class HsrCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -563,11 +520,7 @@ public class HsrCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -603,11 +556,7 @@ public class HsrCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -631,11 +580,7 @@ public class HsrCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -690,11 +635,7 @@ public class HsrCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new HsrCharacterApplicationContext(1, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         var result = await service.ExecuteAsync(context);
 
@@ -749,11 +690,7 @@ public class HsrCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new HsrCharacterApplicationContext(2, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 2ul,
-            LToken = "test"
-        };
+        var context = CreateContext(2, 2ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         var result = await service.ExecuteAsync(context);
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
@@ -803,11 +740,7 @@ public class HsrCharacterApplicationServiceTests
         wikiApiMock1.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Success(partialResponse!));
 
-        var context1 = new HsrCharacterApplicationContext(3, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 3ul,
-            LToken = "test"
-        };
+        var context1 = CreateContext(3, 3ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         var firstResult = await service1.ExecuteAsync(context1);
         Assert.That(firstResult.IsSuccess, Is.True, firstResult.ErrorMessage);
@@ -850,11 +783,8 @@ public class HsrCharacterApplicationServiceTests
         wikiApiMock2.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Success(fullResponse!));
 
-        var context2 = new HsrCharacterApplicationContext(3, ("character", "Trailblazer"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 3ul,
-            LToken = "test"
-        };
+        var context2 = CreateContext(3, 3ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
+
         var secondResult = await service2.ExecuteAsync(context2);
         Assert.That(secondResult.IsSuccess, Is.True, secondResult.ErrorMessage);
 
@@ -880,13 +810,8 @@ public class HsrCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharacterApplicationContext(
-            S3TestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test",
+            ("character", characterName), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -925,13 +850,8 @@ public class HsrCharacterApplicationServiceTests
 
         var (service, _, storedAttachments, _) = SetupRealApiIntegrationTest();
 
-        var context = new HsrCharacterApplicationContext(
-            S3TestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName), ("server", Server.Asia.ToString()))
-        {
-            LtUid = testLtUid,
-            LToken = testLToken!
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), testLtUid, testLToken!,
+            ("character", characterName), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -1169,6 +1089,20 @@ public class HsrCharacterApplicationServiceTests
             Mock.Of<ILogger<HsrCharacterApplicationService>>());
 
         return (service, attachmentStorageMock.Object, storedAttachments, userContext);
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     private static GameProfileDto CreateTestProfile()

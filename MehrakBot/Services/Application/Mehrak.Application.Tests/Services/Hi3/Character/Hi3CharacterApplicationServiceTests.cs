@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -49,11 +50,7 @@ public class Hi3CharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "Kiana"), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "bad"
-        };
+        var context = CreateContext(1, 1ul, "bad", ("character", "Kiana"), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -79,11 +76,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "Kiana"), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Kiana"), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -110,11 +103,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "NonExistent"), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "NonExistent"), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -153,11 +142,7 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "AliasName"), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "AliasName"), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -194,11 +179,7 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -234,11 +215,7 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -276,11 +253,7 @@ public class Hi3CharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -306,11 +279,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "any"), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "any"), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -349,11 +318,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "any"), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "any"), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -380,11 +345,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new Hi3CharacterApplicationContext(1, ("character", "any"), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "any"), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -416,12 +377,8 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        var context = new Hi3CharacterApplicationContext(S3TestHelper.Instance.GetUniqueUserId(),
-            ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test",
+            ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -546,6 +503,20 @@ public class Hi3CharacterApplicationServiceTests
             loggerMock.Object);
 
         return (service, characterApiMock, gameRoleApiMock, attachmentStorageMock, userContext);
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     private static IHttpClientFactory CreateHttpClientFactory()

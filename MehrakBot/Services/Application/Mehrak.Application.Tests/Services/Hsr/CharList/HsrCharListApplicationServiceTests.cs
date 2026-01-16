@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Hsr.CharList;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -50,11 +51,7 @@ public class HsrCharListApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -81,11 +78,7 @@ public class HsrCharListApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -116,11 +109,7 @@ public class HsrCharListApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -154,11 +143,7 @@ public class HsrCharListApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<HsrCharacterInformation>>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -196,11 +181,7 @@ public class HsrCharListApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<HsrCharacterInformation>>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -235,11 +216,7 @@ public class HsrCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -283,11 +260,7 @@ public class HsrCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -318,11 +291,7 @@ public class HsrCharListApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrCharListApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -367,11 +336,7 @@ public class HsrCharListApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
 
-        var context = new HsrCharListApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -412,11 +377,8 @@ public class HsrCharListApplicationServiceTests
 
         var (service, _, storedAttachments, _) = SetupRealApiIntegrationTest();
 
-        var context = new HsrCharListApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
-        {
-            LtUid = testLtUid,
-            LToken = testLToken!
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), testLtUid, testLToken!,
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -607,6 +569,20 @@ public class HsrCharListApplicationServiceTests
             Mock.Of<ILogger<HsrCharListApplicationService>>());
 
         return (service, attachmentStorageMock.Object, storedAttachments, userDbContext);
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     private static GameProfileDto CreateTestProfile()

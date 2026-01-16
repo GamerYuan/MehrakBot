@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -47,12 +47,9 @@ public class CodeRedeemApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "TESTCODE123"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "invalid_token"
-        };
+        var context = CreateContext(1, 12345ul, "invalid_token",
+            ("game", Game.Genshin), ("code", "TESTCODE123"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -79,12 +76,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "TESTCODE123"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", "TESTCODE123"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -114,12 +108,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1, CODE2, CODE3"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", "CODE1, CODE2, CODE3"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -157,12 +148,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", ""),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", ""),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -188,12 +176,9 @@ public class CodeRedeemApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", ""),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", ""),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -225,12 +210,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Code already redeemed", CodeStatus.Invalid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "ALREADYUSED"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", "ALREADYUSED"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -261,12 +243,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                 "API temporarily unavailable"));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "ERRORCODE"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", "ERRORCODE"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -295,12 +274,9 @@ public class CodeRedeemApplicationServiceTests
                 new CodeRedeemResult("Success", CodeStatus.Valid)))
             .ReturnsAsync(Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError, "Error"));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "SUCCESS, FAIL"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", "SUCCESS, FAIL"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -331,12 +307,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", " lowercase123 "),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", " lowercase123 "),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -372,12 +345,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, game, ("code", "GAMECODE"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", game), ("code", "GAMECODE"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -404,12 +374,9 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
                 new CodeRedeemResult("Success", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin,
-            ("code", "CODE1, , CODE2, , CODE3"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", "CODE1, , CODE2, , CODE3"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -437,12 +404,9 @@ public class CodeRedeemApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 12345ul, "test",
+            ("game", Game.Genshin), ("code", "CODE1"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -482,12 +446,9 @@ public class CodeRedeemApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 12345ul, "test",
+            ("game", Game.Genshin), ("code", "CODE1"),
+            ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -515,12 +476,9 @@ public class CodeRedeemApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
 
-        var context = new CodeRedeemApplicationContext(1, Game.Genshin, ("code", "CODE1"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 12345ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 12345ul, "test",
+            ("game", Game.Genshin), ("code", "CODE1"),
+            ("server", Server.Asia.ToString()));
 
         // Act - user not found
         await service.ExecuteAsync(context);
@@ -559,6 +517,20 @@ public class CodeRedeemApplicationServiceTests
             loggerMock.Object);
 
         return (service, codeContext, codeRedeemApiMock, gameRoleApiMock, userContext);
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     private static GameProfileDto CreateTestProfile()

@@ -51,7 +51,7 @@ public class GenshinAbyssCardServiceTests
         var profile = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(TestUserId, testData, profile);
-        cardContext.SetParameter("floor", 12u);
+        cardContext.SetParameter("floor", 12);
         cardContext.SetParameter("server", Server.Asia);
         cardContext.SetParameter("constMap", GetConstMap());
 

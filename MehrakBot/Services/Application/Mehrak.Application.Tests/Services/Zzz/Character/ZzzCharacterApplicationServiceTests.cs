@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -53,11 +54,7 @@ public class ZzzCharacterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -84,11 +81,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -115,11 +108,7 @@ public class ZzzCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -144,11 +133,7 @@ public class ZzzCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "NonExistentCharacter"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "NonExistentCharacter"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -198,11 +183,7 @@ public class ZzzCharacterApplicationServiceTests
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>())).ReturnsAsync(cardStream);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "JD"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "JD"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -243,11 +224,7 @@ public class ZzzCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -289,11 +266,7 @@ public class ZzzCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -339,11 +312,7 @@ public class ZzzCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", characterName), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", characterName), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -383,11 +352,7 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "any"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -426,11 +391,7 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "any"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -453,11 +414,7 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "any"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "any"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -527,11 +484,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not found"))
             .ReturnsAsync(Result<JsonNode>.Success(wikiSuccessNode));
 
-        var context = new ZzzCharacterApplicationContext(1, ("character", "Jane"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -572,14 +525,9 @@ public class ZzzCharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
 
-        var context = new ZzzCharacterApplicationContext(
-            S3TestHelper.Instance.GetUniqueUserId(),
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test",
             ("character", characterName),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -624,14 +572,9 @@ public class ZzzCharacterApplicationServiceTests
 
         var (service, _, storedAttachments, _) = SetupRealApiIntegrationTest();
 
-        var context = new ZzzCharacterApplicationContext(
-            S3TestHelper.Instance.GetUniqueUserId(),
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), testLtUid, testLToken!,
             ("character", characterName),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = testLtUid,
-            LToken = testLToken!
-        };
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -861,6 +804,20 @@ public class ZzzCharacterApplicationServiceTests
             Mock.Of<ILogger<ZzzCharacterApplicationService>>());
 
         return (service, attachmentStorageMock.Object, storedAttachments, userContext);
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     private static GameProfileDto CreateTestProfile()

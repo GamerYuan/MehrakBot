@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -49,11 +50,7 @@ public class GenshinTheaterApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -78,11 +75,7 @@ public class GenshinTheaterApplicationServiceTests
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -108,11 +101,7 @@ public class GenshinTheaterApplicationServiceTests
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
                 "Imaginarium Theater is not unlocked yet"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -146,11 +135,7 @@ public class GenshinTheaterApplicationServiceTests
         theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -181,11 +166,7 @@ public class GenshinTheaterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "Character API Error"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -218,11 +199,7 @@ public class GenshinTheaterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -255,11 +232,7 @@ public class GenshinTheaterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -297,11 +270,7 @@ public class GenshinTheaterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -327,11 +296,7 @@ public class GenshinTheaterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -370,11 +335,7 @@ public class GenshinTheaterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -400,11 +361,7 @@ public class GenshinTheaterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinTheaterApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -443,11 +400,7 @@ public class GenshinTheaterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinTheaterApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -497,11 +450,8 @@ public class GenshinTheaterApplicationServiceTests
 
         var (service, storedAttachments, _) = SetupRealApiIntegrationTest();
 
-        var context = new GenshinTheaterApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
-        {
-            LtUid = testLtUid,
-            LToken = testLToken!
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), testLtUid, testLToken!,
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -802,6 +752,20 @@ public class GenshinTheaterApplicationServiceTests
         userContext.Users.Add(user);
         userContext.SaveChanges();
         return profile;
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     #endregion

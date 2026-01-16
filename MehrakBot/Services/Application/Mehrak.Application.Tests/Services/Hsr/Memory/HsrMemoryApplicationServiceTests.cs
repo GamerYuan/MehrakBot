@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -50,11 +51,7 @@ public class HsrMemoryApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -80,11 +77,7 @@ public class HsrMemoryApplicationServiceTests
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -124,11 +117,7 @@ public class HsrMemoryApplicationServiceTests
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -169,11 +158,7 @@ public class HsrMemoryApplicationServiceTests
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -204,11 +189,7 @@ public class HsrMemoryApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -243,11 +224,7 @@ public class HsrMemoryApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrMemoryInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -287,11 +264,7 @@ public class HsrMemoryApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrMemoryInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -319,11 +292,7 @@ public class HsrMemoryApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -363,11 +332,7 @@ public class HsrMemoryApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -391,11 +356,7 @@ public class HsrMemoryApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new HsrMemoryApplicationContext(1, ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -427,11 +388,7 @@ public class HsrMemoryApplicationServiceTests
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
             .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
 
-        var context = new HsrMemoryApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test", ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -472,11 +429,8 @@ public class HsrMemoryApplicationServiceTests
 
         var (service, _, storedAttachments, _) = SetupRealApiIntegrationTest();
 
-        var context = new HsrMemoryApplicationContext(S3TestHelper.Instance.GetUniqueUserId(), ("server", Server.Asia.ToString()))
-        {
-            LtUid = testLtUid,
-            LToken = testLToken!
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), testLtUid, testLToken!,
+            ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -647,6 +601,20 @@ public class HsrMemoryApplicationServiceTests
             Mock.Of<ILogger<HsrMemoryApplicationService>>());
 
         return (service, attachmentStorageMock.Object, storedAttachments, userContext);
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     private static GameProfileDto CreateTestProfile()

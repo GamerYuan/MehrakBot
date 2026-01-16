@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Genshin.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -53,14 +54,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -88,14 +82,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                 "API Error"));
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -124,14 +111,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -158,14 +138,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "NonExistentCharacter"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "NonExistentCharacter"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -217,14 +190,7 @@ public class GenshinCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "MC"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "MC"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -259,14 +225,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -311,14 +270,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Wiki API Error"));
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -367,14 +319,7 @@ public class GenshinCharacterApplicationServiceTests
         wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
             .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -413,14 +358,7 @@ public class GenshinCharacterApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -468,14 +406,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -546,14 +477,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -631,14 +555,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -695,14 +612,7 @@ public class GenshinCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = new GenshinCharacterApplicationContext(
-            1,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -733,11 +643,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharacterApplicationContext(1, ("character", "Traveler"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -777,11 +683,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharacterApplicationContext(1, ("character", "Traveler"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         // Act
         await service.ExecuteAsync(context);
@@ -806,11 +708,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(
                 Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError, "err"));
 
-        var context = new GenshinCharacterApplicationContext(1, ("character", "Traveler"), ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         await service.ExecuteAsync(context);
         Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
@@ -870,14 +768,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new GenshinCharacterApplicationContext(
-            7,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 7ul,
-            LToken = "test"
-        };
+        var context = CreateContext(7, 7ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         var result = await service.ExecuteAsync(context);
 
@@ -937,14 +828,7 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
             .ReturnsAsync(new MemoryStream());
 
-        var context = new GenshinCharacterApplicationContext(
-            8,
-            ("character", "Traveler"),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 8ul,
-            LToken = "test"
-        };
+        var context = CreateContext(8, 8ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
 
         var result = await service.ExecuteAsync(context);
 
@@ -981,14 +865,8 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
 
-        var context = new GenshinCharacterApplicationContext(
-            S3TestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName),
-            ("server", Server.Asia.ToString()))
-        {
-            LtUid = 1ul,
-            LToken = "test"
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test",
+            ("character", characterName), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -1030,13 +908,8 @@ public class GenshinCharacterApplicationServiceTests
 
         var (service, storedAttachments, _) = SetupRealApiIntegrationTest();
 
-        var context = new GenshinCharacterApplicationContext(
-            S3TestHelper.Instance.GetUniqueUserId(),
-            ("character", characterName), ("server", Server.Asia.ToString()))
-        {
-            LtUid = testLtUid,
-            LToken = testLToken
-        };
+        var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), testLtUid, testLToken,
+             ("character", characterName), ("server", Server.Asia.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -1322,6 +1195,20 @@ public class GenshinCharacterApplicationServiceTests
         userContext.Users.Add(user);
         userContext.SaveChanges();
         return profile;
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+
+        var paramDict = parameters.ToDictionary(k => k.Key, v => v.Value?.ToString());
+        mock.Setup(x => x.GetParameter(It.IsAny<string>()))
+            .Returns((string key) => paramDict.GetValueOrDefault(key));
+
+        return mock.Object;
     }
 
     #endregion

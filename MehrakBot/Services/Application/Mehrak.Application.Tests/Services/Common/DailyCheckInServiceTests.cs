@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -43,11 +43,7 @@ public class DailyCheckInServiceTests
 
         SeedTestUser(userContext, hasCheckedInToday: true);
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -88,11 +84,7 @@ public class DailyCheckInServiceTests
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Success));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -133,11 +125,7 @@ public class DailyCheckInServiceTests
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Success));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -160,11 +148,7 @@ public class DailyCheckInServiceTests
         gameRecordApiMock.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "invalid_token"
-        };
+        var context = CreateContext(1, 12345ul, "invalid_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -187,11 +171,7 @@ public class DailyCheckInServiceTests
         gameRecordApiMock.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success([]));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -250,11 +230,7 @@ public class DailyCheckInServiceTests
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Success));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -297,11 +273,7 @@ public class DailyCheckInServiceTests
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -339,11 +311,7 @@ public class DailyCheckInServiceTests
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -381,11 +349,7 @@ public class DailyCheckInServiceTests
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Failure(StatusCode.ExternalServerError, "API temporarily unavailable"));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -435,11 +399,7 @@ public class DailyCheckInServiceTests
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Success))
             .ReturnsAsync(Result<CheckInStatus>.Failure(StatusCode.ExternalServerError, "API Error"));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -490,11 +450,7 @@ public class DailyCheckInServiceTests
         checkInApiMock.Setup(x => x.GetAsync(It.IsAny<CheckInApiContext>()))
             .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Success));
 
-        var context = new CheckInApplicationContext(1)
-        {
-            LtUid = 12345ul,
-            LToken = "test_token"
-        };
+        var context = CreateContext(1, 12345ul, "test_token");
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -536,6 +492,15 @@ public class DailyCheckInServiceTests
             loggerMock.Object);
 
         return (service, userContext, gameRecordApiMock, checkInApiMock);
+    }
+
+    private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken)
+    {
+        var mock = new Mock<IApplicationContext>();
+        mock.Setup(x => x.UserId).Returns(userId);
+        mock.SetupGet(x => x.LtUid).Returns(ltUid);
+        mock.SetupGet(x => x.LToken).Returns(lToken);
+        return mock.Object;
     }
 
     private static UserProfileModel SeedTestUser(UserDbContext userContext, bool hasCheckedInToday)
