@@ -2,7 +2,6 @@
 
 using Amazon.S3;
 using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Config;

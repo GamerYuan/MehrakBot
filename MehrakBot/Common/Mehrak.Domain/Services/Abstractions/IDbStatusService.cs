@@ -1,4 +1,4 @@
-﻿namespace Mehrak.Domain.Services;
+﻿namespace Mehrak.Domain.Services.Abstractions;
 
 public interface IDbStatusService
 {

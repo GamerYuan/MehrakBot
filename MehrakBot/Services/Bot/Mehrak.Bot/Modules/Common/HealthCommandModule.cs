@@ -5,7 +5,7 @@
 #region
 
 using System.Net.NetworkInformation;
-using Mehrak.Domain.Services;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure.Metrics;
 using NetCord;

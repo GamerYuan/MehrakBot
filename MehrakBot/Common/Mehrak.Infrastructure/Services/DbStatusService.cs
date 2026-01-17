@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Services;
+﻿using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 
 namespace Mehrak.Infrastructure.Services;

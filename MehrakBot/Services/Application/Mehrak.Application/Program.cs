@@ -6,7 +6,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Metrics;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.Grafana.Loki;
@@ -88,7 +87,7 @@ public class Program
         builder.Services.AddApplicationServices();
         builder.Services.AddSingleton<CommandDispatcher>();
 
-        builder.Services.AddSingleton<IMetricsService, BotMetricsService>();
+        builder.Services.AddSingleton<IMetricsService, ApplicationMetricsService>();
 
         var app = builder.Build();
 
