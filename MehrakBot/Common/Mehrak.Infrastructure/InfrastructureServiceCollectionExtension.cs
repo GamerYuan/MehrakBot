@@ -70,6 +70,7 @@ public static class InfrastructureServiceCollectionExtension
         services.AddHostedService<AliasInitializationService>();
         services.AddHostedService<CharacterCacheBackgroundService>();
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
+        services.AddSingleton<IAliasService, AliasService>();
 
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 

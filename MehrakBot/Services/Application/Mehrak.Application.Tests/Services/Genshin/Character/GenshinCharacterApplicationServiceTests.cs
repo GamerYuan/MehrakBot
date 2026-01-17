@@ -49,7 +49,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
@@ -72,7 +72,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -100,7 +100,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_UpdatesCharacterCache_WhenCharacterListFetched()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -127,7 +127,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -159,7 +159,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterFoundByAlias_ReturnsSuccess()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, imageRepositoryMock,
+        var (service, characterApiMock, characterCacheMock, aliasServiceMock, _, imageRepositoryMock,
             imageUpdaterMock, cardMock, gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
@@ -172,7 +172,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
 
         var aliases = new Dictionary<string, string> { { "MC", "Traveler" } };
-        characterCacheMock
+        aliasServiceMock
             .Setup(x => x.GetAliases(Game.Genshin))
             .Returns(aliases);
 
@@ -210,7 +210,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterDetailApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -245,7 +245,8 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiApiError_WhenCharacterImageNotExists_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _) =
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, _, _,
+            gameRoleApiMock, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock
@@ -288,7 +289,8 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiApiReturnsEmptyImageUrl_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, _, _) =
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, _, _,
+            gameRoleApiMock, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock
@@ -337,7 +339,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _) =
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock
@@ -376,7 +378,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+        var (service, characterApiMock, characterCacheMock, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
             gameRoleApiMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
@@ -430,7 +432,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_WithWikiImageDownload_ReturnsSuccessWithCard()
     {
         // Arrange
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
             gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
@@ -496,7 +498,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_WhenWeaponImagesMissing_FetchesFromWikiAndUpdates()
     {
         // Arrange
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
             gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
@@ -534,7 +536,6 @@ public class GenshinCharacterApplicationServiceTests
                                           ]
                                           }
                                           ]
-                                          }
                                           }
                                           }
                                           """);
@@ -585,7 +586,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_VerifyImageUpdatesCalledForAllAssets()
     {
         // Arrange
-        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
             gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock
@@ -629,7 +630,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -661,7 +662,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -696,7 +697,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -721,7 +722,7 @@ public class GenshinCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_WikiFallback_WhenCnFails_UsesAlternateLocale()
     {
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
             gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
@@ -782,7 +783,7 @@ public class GenshinCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_WikiFallback_WhenCnReturnsEmpty_UsesAlternateLocale()
     {
-        var (service, characterApiMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
             gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock
@@ -947,6 +948,7 @@ public class GenshinCharacterApplicationServiceTests
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
         CharacterApiMock,
         Mock<ICharacterCacheService> CharacterCacheMock,
+        Mock<IAliasService> AliasServiceMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
         Mock<IImageRepository> ImageRepositoryMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
@@ -959,6 +961,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         var cardServiceMock = new Mock<ICardService<GenshinCharacterInformation>>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
+        var aliasServiceMock = new Mock<IAliasService>();
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail,
             GenshinCharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
@@ -969,7 +972,7 @@ public class GenshinCharacterApplicationServiceTests
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<GenshinCharacterApplicationService>>();
 
-        characterCacheMock
+        aliasServiceMock
             .Setup(x => x.GetAliases(It.IsAny<Game>()))
             .Returns([]);
 
@@ -983,6 +986,7 @@ public class GenshinCharacterApplicationServiceTests
         var service = new GenshinCharacterApplicationService(
             cardServiceMock.Object,
             characterCacheMock.Object,
+            aliasServiceMock.Object,
             characterApiMock.Object,
             wikiApiMock.Object,
             imageRepositoryMock.Object,
@@ -993,7 +997,7 @@ public class GenshinCharacterApplicationServiceTests
             attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
+        return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
             cardServiceMock, gameRoleApiMock, metricsMock, attachmentStorageMock, userContext);
     }
 
@@ -1021,9 +1025,6 @@ public class GenshinCharacterApplicationServiceTests
         var imageRepositoryMock = new Mock<IImageRepository>();
         var metricsMock = new Mock<IMetricsService>();
 
-        characterCacheMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
-            .Returns([]);
-
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(true);
 
@@ -1038,6 +1039,8 @@ public class GenshinCharacterApplicationServiceTests
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<GenshinCharacterApplicationService>>();
+        var aliasServiceMock = new Mock<IAliasService>();
+        aliasServiceMock.Setup(x => x.GetAliases(It.IsAny<Game>())).Returns([]);
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -1051,6 +1054,7 @@ public class GenshinCharacterApplicationServiceTests
         var service = new GenshinCharacterApplicationService(
             cardService,
             characterCacheMock.Object,
+            aliasServiceMock.Object,
             characterApiMock.Object,
             wikiApiMock.Object,
             imageRepositoryMock.Object,
@@ -1084,9 +1088,6 @@ public class GenshinCharacterApplicationServiceTests
             Mock.Of<ILogger<GenshinCharacterApiService>>());
 
         var characterCacheServiceMock = new Mock<ICharacterCacheService>();
-        characterCacheServiceMock.Setup(x => x.GetAliases(It.IsAny<Game>()))
-            .Returns([]);
-
         var wikiApiService = new WikiApiService(
             httpClientFactory.Object,
             Mock.Of<ILogger<WikiApiService>>());
@@ -1119,11 +1120,15 @@ public class GenshinCharacterApplicationServiceTests
                 return true;
             });
 
+        var aliasServiceMock = new Mock<IAliasService>();
+        aliasServiceMock.Setup(x => x.GetAliases(It.IsAny<Game>())).Returns([]);
+
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new GenshinCharacterApplicationService(
             cardService,
             characterCacheServiceMock.Object,
+            aliasServiceMock.Object,
             characterApiService,
             wikiApiService,
             S3TestHelper.Instance.ImageRepository,

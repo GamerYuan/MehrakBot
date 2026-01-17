@@ -1,6 +1,5 @@
 ﻿#region
 
-using System.Collections.Concurrent;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
@@ -8,6 +7,7 @@ using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 #endregion
 
@@ -17,27 +17,37 @@ public class CharacterCacheService : ICharacterCacheService
 {
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<CharacterCacheService> m_Logger;
-    private readonly ConcurrentDictionary<Game, List<string>> m_CharacterCache;
-    private readonly Dictionary<Game, Dictionary<string, string>> m_AliasCache;
+    private readonly IConnectionMultiplexer m_Redis;
+    private readonly IAliasService m_AliasService;
     private readonly SemaphoreSlim m_UpdateSemaphore;
+    private const string InstanceName = "Mehrak_";
 
     public CharacterCacheService(
         IServiceScopeFactory serviceScopeFactory,
-        ILogger<CharacterCacheService> logger)
+        ILogger<CharacterCacheService> logger,
+        IConnectionMultiplexer redis,
+        IAliasService aliasService)
     {
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
-        m_AliasCache = [];
-        m_CharacterCache = new ConcurrentDictionary<Game, List<string>>();
+        m_Redis = redis;
+        m_AliasService = aliasService;
         m_UpdateSemaphore = new SemaphoreSlim(1, 1);
     }
 
+    private IDatabase Db => m_Redis.GetDatabase();
+
+    private static string GetCharacterKey(Game game) => $"{InstanceName}characters:{game}";
+
     public List<string> GetCharacters(Game gameName)
     {
-        if (m_CharacterCache.TryGetValue(gameName, out var characters))
+        var key = GetCharacterKey(gameName);
+        var characters = Db.SetMembers(key);
+
+        if (characters.Length > 0)
         {
-            m_Logger.LogDebug("Retrieved {Count} characters for {Game} from cache", characters.Count, gameName);
-            return characters;
+            m_Logger.LogDebug("Retrieved {Count} characters for {Game} from cache", characters.Length, gameName);
+            return [.. characters.Select(c => c.ToString())];
         }
 
         m_Logger.LogWarning("No cached characters found for {Game}, returning empty list", gameName);
@@ -45,28 +55,21 @@ public class CharacterCacheService : ICharacterCacheService
         return [];
     }
 
-    public Dictionary<string, string> GetAliases(Game gameName)
-    {
-        return m_AliasCache.GetValueOrDefault(gameName, []);
-    }
-
     public async Task UpsertCharacters(Game gameName, IEnumerable<string> characters)
     {
         try
         {
-            using var scope = m_ServiceScopeFactory.CreateScope();
-            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-
             var incoming = new HashSet<string>(characters, StringComparer.OrdinalIgnoreCase);
+            var key = GetCharacterKey(gameName);
+            var cachedMembers = await Db.SetMembersAsync(key);
+            var cached = cachedMembers.Select(x => x.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            var existing = await characterContext.Characters
-                .Where(x => x.Game == gameName && incoming.Contains(x.Name))
-                .Select(x => x.Name)
-                .ToListAsync();
-
-            var toAdd = incoming.Except(existing).ToList();
+            var toAdd = incoming.Except(cached).ToList();
 
             if (toAdd.Count == 0) return;
+
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
             foreach (var newChar in toAdd)
             {
@@ -78,14 +81,46 @@ public class CharacterCacheService : ICharacterCacheService
             }
 
             await characterContext.SaveChangesAsync();
+            await Db.SetAddAsync(key, toAdd.Select(x => (RedisValue)x).ToArray());
 
-
-            await UpdateCharactersAsync(gameName);
             m_Logger.LogInformation("Updated {Count} names for {Game}", toAdd.Count, gameName);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, "An error occurred while upserting characters for {Game}", gameName);
+        }
+    }
+    public async Task DeleteCharacter(Game gameName, string characterName)
+    {
+        try
+        {
+            var normalized = characterName.ReplaceLineEndings("").Trim();
+
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+            var entity = await characterContext.Characters
+                .FirstOrDefaultAsync(x => x.Game == gameName && x.Name == normalized);
+
+            if (entity != null)
+            {
+                characterContext.Characters.Remove(entity);
+                await characterContext.SaveChangesAsync();
+
+                // Remove from Redis
+                var key = GetCharacterKey(gameName);
+                await Db.SetRemoveAsync(key, normalized);
+
+                m_Logger.LogInformation("Deleted character {Character} from game {Game}", normalized, gameName);
+            }
+            else
+            {
+                m_Logger.LogInformation("Character {Character} not found for game {Game}; nothing to delete", normalized, gameName);
+            }
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Error occurred while deleting character {Character} for {Game}", characterName, gameName);
         }
     }
 
@@ -98,7 +133,7 @@ public class CharacterCacheService : ICharacterCacheService
 
             var games = Enum.GetValues<Game>();
             var updateTasks = games.Select(UpdateCharactersAsync);
-            var aliasTasks = games.Select(UpdateAliasesAsync);
+            var aliasTasks = games.Select(m_AliasService.UpdateAliasesAsync);
 
             await Task.WhenAll(updateTasks);
             await Task.WhenAll(aliasTasks);
@@ -132,7 +167,10 @@ public class CharacterCacheService : ICharacterCacheService
 
             if (characters.Count > 0)
             {
-                m_CharacterCache.AddOrUpdate(gameName, characters, (_, _) => characters);
+                var key = GetCharacterKey(gameName);
+                await Db.KeyDeleteAsync(key);
+                await Db.SetAddAsync(key, [.. characters.Select(x => (RedisValue)x)]);
+
                 m_Logger.LogDebug("Updated character cache for {Game} with {Count} characters", gameName,
                     characters.Count);
             }
@@ -147,51 +185,32 @@ public class CharacterCacheService : ICharacterCacheService
         }
     }
 
-    private async Task UpdateAliasesAsync(Game gameName)
-    {
-        try
-        {
-            using var scope = m_ServiceScopeFactory.CreateScope();
-            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-
-            m_Logger.LogDebug("Updating alias cache for {Game}", gameName);
-
-            var aliases = await characterContext.Aliases.Where(a => a.Game == gameName)
-                .ToDictionaryAsync(a => a.Alias, a => a.CharacterName);
-
-            if (aliases.Count > 0)
-            {
-                if (!m_AliasCache.TryAdd(gameName, aliases)) m_AliasCache[gameName] = aliases;
-
-                m_Logger.LogDebug("Updated alias cache for {Game} with {Count} aliases", gameName, aliases.Count);
-            }
-            else
-            {
-                m_Logger.LogWarning("No aliases found for {Game} in database", gameName);
-            }
-        }
-        catch (Exception ex)
-        {
-            m_Logger.LogError(ex, "Error occurred while updating alias cache for {Game}", gameName);
-        }
-    }
-
     public Dictionary<Game, int> GetCacheStatus()
     {
-        return m_CharacterCache.ToDictionary(
-            kvp => kvp.Key,
-            kvp => kvp.Value.Count);
+        var status = new Dictionary<Game, int>();
+        foreach (var game in Enum.GetValues<Game>())
+        {
+            var count = Db.SetLength(GetCharacterKey(game));
+            if (count > 0) status[game] = (int)count;
+        }
+
+        return status;
     }
 
     public void ClearCache()
     {
         m_Logger.LogInformation("Clearing character cache for all games");
-        m_CharacterCache.Clear();
+        var db = Db;
+        foreach (var game in Enum.GetValues<Game>())
+        {
+            db.KeyDelete(GetCharacterKey(game));
+        }
     }
 
     public void ClearCache(Game gameName)
     {
-        if (m_CharacterCache.TryRemove(gameName, out _))
-            m_Logger.LogInformation("Cleared character cache for {Game}", gameName);
+        var db = Db;
+        db.KeyDelete(GetCharacterKey(gameName));
+        m_Logger.LogInformation("Cleared character cache for {Game}", gameName);
     }
 }

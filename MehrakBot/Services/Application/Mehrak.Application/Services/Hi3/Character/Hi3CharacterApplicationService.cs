@@ -19,6 +19,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> m_CharacterApi;
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly IAliasService m_AliasService;
     private readonly IMetricsService m_MetricsService;
 
     public Hi3CharacterApplicationService(
@@ -26,6 +27,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         ICharacterCacheService characterCacheService,
+        IAliasService aliasService,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
@@ -37,6 +39,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_CharacterApi = characterApi;
         m_ImageUpdaterService = imageUpdaterService;
         m_CharacterCacheService = characterCacheService;
+        m_AliasService = aliasService;
         m_MetricsService = metricsService;
     }
 
@@ -80,7 +83,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
             if (characterInfo == null)
             {
-                m_CharacterCacheService.GetAliases(Game.HonkaiImpact3).TryGetValue(characterName, out var alias);
+                m_AliasService.GetAliases(Game.HonkaiImpact3).TryGetValue(characterName, out var alias);
                 if (alias == null ||
                     (characterInfo = characterList.FirstOrDefault(x =>
                         x.Avatar.Name.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)

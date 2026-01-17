@@ -27,6 +27,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IImageRepository m_ImageRepository;
     private readonly ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly IAliasService m_AliasService;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
     private readonly IMetricsService m_MetricsService;
 
@@ -36,6 +37,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         IImageRepository imageRepository,
         ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> characterApi,
         ICharacterCacheService characterCacheService,
+        IAliasService aliasService,
         IApiService<JsonNode, WikiApiContext> wikiApi,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -49,6 +51,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_ImageRepository = imageRepository;
         m_CharacterApi = characterApi;
         m_CharacterCacheService = characterCacheService;
+        m_AliasService = aliasService;
         m_WikiApi = wikiApi;
         m_MetricsService = metricsService;
     }
@@ -94,7 +97,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
             if (character == null)
             {
-                m_CharacterCacheService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out var name);
+                m_AliasService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out var name);
 
                 if (name == null ||
                     (character =

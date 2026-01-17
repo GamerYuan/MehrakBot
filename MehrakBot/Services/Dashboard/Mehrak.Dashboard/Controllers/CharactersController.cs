@@ -1,7 +1,6 @@
 ﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Enums;
-using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,12 +12,12 @@ namespace Mehrak.Dashboard.Controllers;
 [Route("characters")]
 public class CharactersController : ControllerBase
 {
-    private readonly CharacterDbContext m_CharacterContext;
+    private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly ILogger<CharactersController> m_Logger;
 
-    public CharactersController(CharacterDbContext characterContext, ILogger<CharactersController> logger)
+    public CharactersController(ICharacterCacheService characterCacheService, ILogger<CharactersController> logger)
     {
-        m_CharacterContext = characterContext;
+        m_CharacterCacheService = characterCacheService;
         m_Logger = logger;
     }
 
@@ -29,11 +28,7 @@ public class CharactersController : ControllerBase
             return BadRequest(new { error });
 
         m_Logger.LogInformation("Listing characters for game {Game}", gameEnum);
-        var characters = await m_CharacterContext.Characters
-            .AsNoTracking()
-            .Where(x => x.Game == gameEnum)
-            .Select(x => x.Name)
-            .ToListAsync();
+        var characters = m_CharacterCacheService.GetCharacters(gameEnum);
         return Ok(characters);
     }
 
@@ -58,32 +53,8 @@ public class CharactersController : ControllerBase
         if (!HasGameWriteAccess(game!))
             return Forbid();
 
-        var incoming = normalizedCharacters.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var existing = await m_CharacterContext.Characters
-            .Where(x => x.Game == gameEnum && incoming.Contains(x.Name))
-            .Select(x => x.Name)
-            .ToListAsync();
-
-        var newEntities = incoming.Except(existing, StringComparer.OrdinalIgnoreCase).Select(name => new CharacterModel
-        {
-            Game = gameEnum,
-            Name = name
-        }).ToList();
-
-        if (newEntities.Count > 0)
-        {
-            m_Logger.LogInformation("Adding {Count} characters to game {Game}", newEntities.Count, gameEnum);
-            m_CharacterContext.Characters.AddRange(newEntities);
-
-            try
-            {
-                await m_CharacterContext.SaveChangesAsync();
-            }
-            catch
-            {
-                return StatusCode(500, new { error = "An error occurred while saving characters." });
-            }
-        }
+        m_Logger.LogInformation("Adding {Count} characters to game {Game}", normalizedCharacters.Length, gameEnum);
+        await m_CharacterCacheService.UpsertCharacters(gameEnum, normalizedCharacters);
 
         return NoContent();
     }
@@ -103,14 +74,7 @@ public class CharactersController : ControllerBase
         var normalized = character.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting character {Character} from game {Game}", normalized, gameEnum);
 
-        var entity = await m_CharacterContext.Characters
-            .FirstOrDefaultAsync(x => x.Game == gameEnum && x.Name == normalized);
-
-        if (entity != null)
-        {
-            m_CharacterContext.Characters.Remove(entity);
-            await m_CharacterContext.SaveChangesAsync();
-        }
+        await m_CharacterCacheService.DeleteCharacter(gameEnum, normalized);
 
         return NoContent();
     }

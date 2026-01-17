@@ -12,7 +12,7 @@ public interface ICharacterCacheService
 
     Task UpsertCharacters(Game gameName, IEnumerable<string> characters);
 
-    Dictionary<string, string> GetAliases(Game gameName);
+    Task DeleteCharacter(Game gameName, string characterName);
 
     Task UpdateCharactersAsync(Game gameName);
 

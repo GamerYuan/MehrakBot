@@ -28,6 +28,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IImageRepository m_ImageRepository;
     private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly IAliasService m_AliasService;
 
     private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
         m_CharacterApi;
@@ -41,6 +42,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         IImageUpdaterService imageUpdaterService,
         IImageRepository imageRepository,
         ICharacterCacheService characterCacheService,
+        IAliasService aliasService,
         ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
         IMetricsService metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -54,6 +56,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_ImageUpdaterService = imageUpdaterService;
         m_ImageRepository = imageRepository;
         m_CharacterCacheService = characterCacheService;
+        m_AliasService = aliasService;
         m_CharacterApi = characterApi;
         m_MetricsService = metricsService;
         m_RelicContext = relicContext;
@@ -100,7 +103,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
             if (characterInfo == null)
             {
-                m_CharacterCacheService.GetAliases(Game.HonkaiStarRail).TryGetValue(characterName, out var alias);
+                m_AliasService.GetAliases(Game.HonkaiStarRail).TryGetValue(characterName, out var alias);
                 if (alias == null ||
                     (characterInfo = characterList.AvatarList?.FirstOrDefault(x =>
                         x.Name!.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)

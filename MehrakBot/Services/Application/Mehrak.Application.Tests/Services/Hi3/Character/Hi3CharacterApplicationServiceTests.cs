@@ -46,7 +46,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
+        var (service, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -68,7 +68,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -94,7 +94,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterNotFound_ReturnsEphemeralMessage()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -122,7 +122,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterFoundByAlias_ReturnsSuccess()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, aliasServiceMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -132,7 +132,7 @@ public class Hi3CharacterApplicationServiceTests
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
-        characterCacheMock.Setup(x => x.GetAliases(Game.HonkaiImpact3))
+        aliasServiceMock.Setup(x => x.GetAliases(Game.HonkaiImpact3))
             .Returns(new Dictionary<string, string> { { "AliasName", character.Avatar.Name } });
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
@@ -163,7 +163,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, _, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -199,7 +199,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsCardAndTracksMetrics(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -238,7 +238,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_VerifyAllImagesUpdated(string testDataFile)
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -268,7 +268,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -299,7 +299,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -336,7 +336,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, gameRoleApiMock, _, _, _, attachmentStorageMock, userContext) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -410,10 +410,11 @@ public class Hi3CharacterApplicationServiceTests
     #region Helper Methods
 
     private (
-         Hi3CharacterApplicationService Service,
-         Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>> CharacterApiMock,
-         Mock<ICharacterCacheService> CharacterCacheMock,
-         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
+          Hi3CharacterApplicationService Service,
+          Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>> CharacterApiMock,
+          Mock<ICharacterCacheService> CharacterCacheMock,
+          Mock<IAliasService> AliasServiceMock,
+          Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
          Mock<IImageUpdaterService> ImageUpdaterMock,
          Mock<ICardService<Hi3CharacterDetail>> CardServiceMock,
          Mock<IMetricsService> MetricsServiceMock,
@@ -423,7 +424,8 @@ public class Hi3CharacterApplicationServiceTests
     {
         var characterApiMock = new Mock<ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext>>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
-        characterCacheMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
+        var aliasServiceMock = new Mock<IAliasService>();
+        aliasServiceMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var cardServiceMock = new Mock<ICardService<Hi3CharacterDetail>>();
@@ -446,13 +448,14 @@ public class Hi3CharacterApplicationServiceTests
             characterApiMock.Object,
             imageUpdaterMock.Object,
             characterCacheMock.Object,
+            aliasServiceMock.Object,
             metricsMock.Object,
             gameRoleApiMock.Object,
             userContext,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
-        return (service, characterApiMock, characterCacheMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, userContext);
+        return (service, characterApiMock, characterCacheMock, aliasServiceMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, userContext);
     }
 
     private (
@@ -478,7 +481,9 @@ public class Hi3CharacterApplicationServiceTests
             Mock.Of<ILogger<ImageUpdaterService>>());
 
         var characterCacheMock = new Mock<ICharacterCacheService>();
-        characterCacheMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
+
+        var aliasServiceMock = new Mock<IAliasService>();
+        aliasServiceMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
 
         var metricsMock = new Mock<IMetricsService>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -496,6 +501,7 @@ public class Hi3CharacterApplicationServiceTests
             characterApiMock.Object,
             imageUpdaterService,
             characterCacheMock.Object,
+            aliasServiceMock.Object,
             metricsMock.Object,
             gameRoleApiMock.Object,
             userContext,

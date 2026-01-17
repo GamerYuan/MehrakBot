@@ -27,6 +27,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 {
     private readonly ICardService<GenshinCharacterInformation> m_CardService;
     private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly IAliasService m_AliasService;
 
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApi;
@@ -39,6 +40,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
         ICharacterCacheService characterCacheService,
+        IAliasService aliasService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IApiService<JsonNode, WikiApiContext> wikiApi,
         IImageRepository imageRepository,
@@ -52,6 +54,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     {
         m_CardService = cardService;
         m_CharacterCacheService = characterCacheService;
+        m_AliasService = aliasService;
         m_CharacterApi = characterApi;
         m_WikiApi = wikiApi;
         m_ImageRepository = imageRepository;
@@ -99,7 +102,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 characters.FirstOrDefault(x => x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
             if (character == null)
             {
-                m_CharacterCacheService.GetAliases(Game.Genshin).TryGetValue(characterName, out var name);
+                m_AliasService.GetAliases(Game.Genshin).TryGetValue(characterName, out var name);
 
                 if (name == null ||
                     (character =
