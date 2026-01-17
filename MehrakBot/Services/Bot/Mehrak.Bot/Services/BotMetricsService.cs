@@ -1,151 +1,104 @@
 ﻿#region
 
+using System.Diagnostics.Metrics;
 using Mehrak.Bot.Services.Abstractions;
-using Mehrak.Infrastructure.Config;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Prometheus;
 
 #endregion
 
 namespace Mehrak.Infrastructure.Metrics;
 
-public class BotMetricsService : IBotMetrics, IHostedService
+public sealed class BotMetricsService : IBotMetrics, IDisposable
 {
-    private readonly Counter m_CommandsTotal = Prometheus.Metrics.CreateCounter(
-        "discord_commands_total",
-        "Total number of commands executed"
-    );
+    private readonly Meter m_Meter;
 
-    private readonly Counter m_CommandsByName = Prometheus.Metrics.CreateCounter(
-        "discord_commands_by_name",
-        "Commands executed by name",
-        new CounterConfiguration { LabelNames = ["command_name"] }
-    );
+    private readonly Counter<long> m_CommandsTotal;
+    private readonly Counter<long> m_CommandResults;
+    private readonly Histogram<double> m_CommandExecutionTime;
+    private readonly Counter<long> m_CommandsByUser;
 
-    private readonly Counter m_CommandResults = Prometheus.Metrics.CreateCounter(
-        "discord_command_results",
-        "Results of command execution",
-        new CounterConfiguration { LabelNames = ["command_name", "result"] }
-    );
+    private double m_CurrentLatency;
 
-    private readonly Histogram m_CommandExecutionTime = Prometheus.Metrics.CreateHistogram(
-        "discord_command_exec_time",
-        "Execution time of commands",
-        new HistogramConfiguration { LabelNames = ["command_name"] }
-    );
-
-    private readonly Counter m_CommandsByUser = Prometheus.Metrics.CreateCounter(
-        "discord_commands_by_user",
-        "Commands executed by user",
-        new CounterConfiguration { LabelNames = ["user_id"] }
-    );
-
-    private readonly Counter m_CharacterSelection = Prometheus.Metrics.CreateCounter(
-        "discord_character_selections_total",
-        "Total number of character selections by game",
-        new CounterConfiguration { LabelNames = ["game", "character"] }
-    );
-
-    private readonly Gauge m_MemoryUsage = Prometheus.Metrics.CreateGauge(
-        "discord_memory_bytes",
-        "Current memory usage of the bot"
-    );
-
-    private readonly Gauge m_BotLatency = Prometheus.Metrics.CreateGauge(
-        "discord_bot_latency_ms",
-        "Current Discord gateway latency in milliseconds"
-    );
-
-    private readonly IOptions<MetricsConfig> m_MetricsOptions;
-    private readonly ILogger<BotMetricsService> m_Logger;
-    private IHost? m_MetricsServer;
-    private readonly CancellationTokenSource m_Cts = new();
-
-    public BotMetricsService(IOptions<MetricsConfig> metricsOptions, ILogger<BotMetricsService> logger)
+    public BotMetricsService()
     {
-        m_MetricsOptions = metricsOptions;
-        m_Logger = logger;
+        // TODO: Add env var for bot version
+        m_Meter = new Meter("MehrakBot", "1.0.0");
+
+        m_CommandsTotal = m_Meter.CreateCounter<long>(
+            "bot_command_total",
+            description: "Total number of commands executed"
+        );
+
+        m_CommandResults = m_Meter.CreateCounter<long>(
+            "bot_command_results",
+            description: "Results of command execution"
+        );
+
+        m_CommandExecutionTime = m_Meter.CreateHistogram<double>(
+            "bot_command_exec_time",
+            unit: "ms",
+            description: "Execution time of commands"
+        );
+
+        m_CommandsByUser = m_Meter.CreateCounter<long>(
+            "bot_command_by_user",
+            description: "Commands executed by user"
+        );
+
+        m_Meter.CreateObservableGauge(
+            "bot_latency_ms",
+            () => m_CurrentLatency,
+            unit: "ms",
+            description: "Current Discord gateway latency in milliseconds"
+        );
     }
 
     public void TrackCommand(string commandName, ulong userId, bool isSuccess)
     {
-        m_CommandsTotal.Inc();
-        m_CommandsByName.WithLabels(commandName).Inc();
-        m_CommandResults.WithLabels(commandName, isSuccess ? "success" : "failure").Inc();
-        m_CommandsByUser.WithLabels(userId.ToString()).Inc();
-    }
-
-    public void TrackCharacterSelection(string game, string character)
-    {
-        m_CharacterSelection.WithLabels(game, character.ToLowerInvariant()).Inc();
+        m_CommandsTotal.Add(1);
+        m_CommandResults.Add(1,
+            new KeyValuePair<string, object?>("command_name", commandName),
+            new KeyValuePair<string, object?>("result", isSuccess ? "success" : "failure"));
+        m_CommandsByUser.Add(1, new KeyValuePair<string, object?>("user_id", userId));
     }
 
     public void TrackDiscordLatency(double latencyMs)
     {
-        m_BotLatency.Set(latencyMs);
+        m_CurrentLatency = latencyMs;
     }
 
     public IDisposable ObserveCommandDuration(string commandName)
     {
-        return m_CommandExecutionTime.WithLabels(commandName).NewTimer();
+        return new CommandTimer(this, commandName);
     }
 
     public void RecordCommandDuration(string commandName, TimeSpan duration)
     {
-        m_CommandExecutionTime.WithLabels(commandName).Observe(duration.TotalMilliseconds);
+        m_CommandExecutionTime.Record(duration.TotalMilliseconds,
+            new KeyValuePair<string, object?>("command_name", commandName));
     }
 
-    private async Task TrackGCMemoryTask(CancellationToken token = default)
+    public void Dispose()
     {
-        while (!token.IsCancellationRequested)
+        m_Meter.Dispose();
+    }
+
+    private sealed class CommandTimer : IDisposable
+    {
+        private readonly BotMetricsService m_Service;
+        private readonly string m_CommandName;
+        private readonly long m_StartTime;
+
+        public CommandTimer(BotMetricsService service, string commandName)
         {
-            m_MemoryUsage.Set(GC.GetTotalMemory(false));
-            await Task.Delay(TimeSpan.FromSeconds(30), token);
+            m_Service = service;
+            m_CommandName = commandName;
+            m_StartTime = System.Diagnostics.Stopwatch.GetTimestamp();
         }
-    }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        var metricsConfig = m_MetricsOptions.Value;
-        if (!metricsConfig.Enabled)
+        public void Dispose()
         {
-            m_Logger.LogInformation("Metrics service disabled");
-            return;
-        }
-
-        m_MetricsServer = Host.CreateDefaultBuilder()
-            .ConfigureWebHost(x => x.UseKestrel().UseUrls($"http://{metricsConfig.Host}:{metricsConfig.Port}")
-                .Configure(app =>
-                {
-                    app.UseMetricServer(metricsConfig.Endpoint);
-                    app.Map("/health", builder => builder.Run(async context =>
-                    {
-                        context.Response.StatusCode = 200;
-                        await context.Response.WriteAsync("Healthy", context.RequestAborted);
-                    }));
-                })).Build();
-
-        await m_MetricsServer.StartAsync(cancellationToken).ConfigureAwait(false);
-
-        _ = Task.Run(() => TrackGCMemoryTask(m_Cts.Token), CancellationToken.None);
-
-        m_Logger.LogInformation("Metrics service started on {Host}:{Port} with endpoint {Endpoint}",
-            metricsConfig.Host, metricsConfig.Port, metricsConfig.Endpoint);
-    }
-
-    public async Task StopAsync(CancellationToken cancellationToken)
-    {
-        await m_Cts.CancelAsync();
-        m_Cts.Dispose();
-        if (m_MetricsServer != null)
-        {
-            await m_MetricsServer.StopAsync(cancellationToken);
-            m_MetricsServer.Dispose();
+            var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(m_StartTime);
+            m_Service.RecordCommandDuration(m_CommandName, elapsed);
         }
     }
 }
