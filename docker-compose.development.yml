@@ -3,40 +3,62 @@ services:
   bot:
     image: mehrak:latest
     build:
-      context: ./MehrakBot
+      context: ./MehrakBot/Services/Bot
       dockerfile: Dockerfile
-      target: bot
       args:
         DOTNET_ENVIRONMENT: Development
-        OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
     depends_on:
       - postgres
       - redis
+      - loki
+      - otel-collector
     networks:
       - mehrak-network
-    volumes:
-      - app-logs:/app/logs
     environment:
       - DOTNET_ENVIRONMENT=Development
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakBot
 
   dashboard:
     image: mehrak-dashboard:latest
     build:
-      context: ./MehrakBot
+      context: ./MehrakBot/Services/Dashboard
       dockerfile: Dockerfile
-      target: dashboard
       args:
         ASPNETCORE_ENVIRONMENT: Development
-        OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
     ports:
       - "5000:5000"
     depends_on:
       - postgres
       - redis
+      - loki
+      - otel-collector
     networks:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakDashboard
+
+  application:
+    image: mehrak-application:latest
+    build:
+      context: ./MehrakBot/Services/Application
+      dockerfile: Dockerfile
+      args:
+        ASPNETCORE_ENVIRONMENT: Development
+        OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
+    depends_on:
+      - postgres
+      - redis
+      - loki
+      - otel-collector
+    networks:
+      - mehrak-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakApplication
 
   postgres:
     image: postgres:18.1
@@ -49,17 +71,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=mehrak_dev
       - PGDATA=/data/postgres
-    networks:
-      - mehrak-network
-
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27018:27017"
-    volumes:
-      - mongo_data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=Mehrak-Dev
     networks:
       - mehrak-network
 
@@ -200,6 +211,42 @@ services:
       - seaweed-network
       - mehrak-network
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse/
+      - clickhouse_logs:/var/log/clickhouse-server/
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      # Mount host filesystems to read system metrics
+      - /proc:/hostfs/proc:ro
+      - /sys:/hostfs/sys:ro
+      - /:/rootfs:ro
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    ports:
+      - "4317:4317" # OTEL gRPC
+      - "4318:4318" # OTEL HTTP
+    depends_on:
+      - clickhouse
+
 networks:
   mehrak-network:
     driver: bridge
@@ -207,14 +254,9 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
   pgdata:
   redis_data:
   prometheus-data:
   grafana-data:
-  app-logs:
-    driver: local
-    driver_opts:
-      type: none
-      device: ./MehrakBot/logs
-      o: bind
+  clickhouse-data:
+  clickhouse-logs:

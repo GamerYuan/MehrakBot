@@ -1,0 +1,32 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+  # Replacement for node_exporter
+  hostmetrics:
+    root_path: /hostfs
+    collection_interval: 30s
+    scrapers:
+      cpu:
+      memory:
+      network:
+      disk:
+      load:
+      processes:
+
+exporters:
+  clickhouse:
+    endpoint: tcp://clickhouse:9000
+    database: default
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [clickhouse]
+
+    metrics:
+      receivers: [otlp, hostmetrics]
+      exporters: [clickhouse]
