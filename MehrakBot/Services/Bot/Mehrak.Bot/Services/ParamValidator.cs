@@ -32,7 +32,7 @@ internal class ParamValidator<TParam> : ParamValidator
 
     public override bool IsValid(ICommandExecutorService svc)
     {
-        if (!svc.Parameters.TryGetValue(ParamName, out var param)) throw new ArgumentException($"Param {ParamName} not found");
+        if (!svc.Parameters.TryGetValue(ParamName, out var param)) return false;
         if (param is not TParam typedParam) return false;
 
         return m_Predicate(typedParam);

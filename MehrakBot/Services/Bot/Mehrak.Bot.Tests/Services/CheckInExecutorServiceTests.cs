@@ -1,13 +1,13 @@
 ﻿#region
 
 using Grpc.Core;
-using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
+using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -18,7 +18,7 @@ using NetCord.Services;
 namespace Mehrak.Bot.Tests.Services;
 
 /// <summary>
-/// Unit tests for CheckInExecutorService validating command execution flow,
+/// Unit tests for CommandExecutorService validating checkin command execution flow,
 /// authentication integration, validation, and error handling.
 /// </summary>
 [TestFixture]
@@ -30,7 +30,9 @@ public class CheckInExecutorServiceTests
     private Mock<ICommandRateLimitService> m_MockRateLimitService = null!;
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
     private Mock<IMetricsService> m_MockMetricsService = null!;
-    private CheckInExecutorService m_Service = null!;
+    private Mock<IAttachmentStorageService> m_MockAttachmentService = null!;
+    private Mock<IImageRepository> m_MockImageRepository = null!;
+    private CommandExecutorService m_Service = null!;
     private DiscordTestHelper m_DiscordHelper = null!;
     private TestDbContextFactory? m_DbFactory;
     private IServiceScope? m_DbScope;
@@ -48,6 +50,8 @@ public class CheckInExecutorServiceTests
         m_MockRateLimitService = new Mock<ICommandRateLimitService>();
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
         m_MockMetricsService = new Mock<IMetricsService>();
+        m_MockAttachmentService = new Mock<IAttachmentStorageService>();
+        m_MockImageRepository = new Mock<IImageRepository>();
         m_DiscordHelper = new DiscordTestHelper();
         m_DiscordHelper.SetupRequestCapture();
 
@@ -58,19 +62,26 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
+            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
             {
                 IsSuccess = true,
-                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
+                Data = new Mehrak.Domain.Protobuf.CommandResultData { IsContainer = false, IsEphemeral = false }
             }));
 
-        m_Service = new CheckInExecutorService(
+        m_Service = new CommandExecutorService(
             m_UserContext,
-            m_MockApplicationClient.Object,
             m_MockRateLimitService.Object,
             m_MockAuthMiddleware.Object,
             m_MockMetricsService.Object,
-            NullLogger<CheckInExecutorService>.Instance);
+            m_MockApplicationClient.Object,
+            m_MockAttachmentService.Object,
+            m_MockImageRepository.Object,
+            NullLogger<CommandExecutorService>.Instance)
+        {
+            CommandName = "checkin",
+            ValidateServer = false,
+            IsResponseEphemeral = true
+        };
 
         m_TestUserId = (ulong)new Random(DateTime.UtcNow.Microsecond).NextInt64();
 
@@ -91,6 +102,8 @@ public class CheckInExecutorServiceTests
         m_MockRateLimitService.Reset();
         m_MockAuthMiddleware.Reset();
         m_MockMetricsService.Reset();
+        m_MockAttachmentService.Reset();
+        m_MockImageRepository.Reset();
         m_DiscordHelper?.Dispose();
         m_DbScope?.Dispose();
         m_DbFactory?.Dispose();
@@ -107,7 +120,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         // Setup rate limit to trigger (so we can verify it was checked)
         m_MockRateLimitService
@@ -134,7 +146,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         m_MockRateLimitService
             .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
@@ -161,7 +172,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         m_MockRateLimitService
             .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
@@ -195,7 +205,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var user = new UserDto
         {
@@ -229,7 +238,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var user = new UserDto
         {
@@ -259,7 +267,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         const string errorMessage = "Authentication failed - invalid credentials";
 
@@ -287,7 +294,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         m_MockAuthMiddleware
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
@@ -313,7 +319,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var user = new UserDto
         {
@@ -341,7 +346,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var user = new UserDto
         {
@@ -357,11 +361,11 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
+            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
             {
                 IsSuccess = false,
                 ErrorMessage = errorMessage,
-                FailureReason = CommandFailureReason.ApiError
+                FailureReason = Mehrak.Domain.Protobuf.CommandFailureReason.ApiError
             }));
 
         // Act
@@ -384,7 +388,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var user = new UserDto
         {
@@ -418,7 +421,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var user = new UserDto
         {
@@ -432,11 +434,11 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
+            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
             {
                 IsSuccess = false,
                 ErrorMessage = "Error",
-                FailureReason = CommandFailureReason.ApiError
+                FailureReason = Mehrak.Domain.Protobuf.CommandFailureReason.ApiError
             }));
 
         // Act
@@ -457,7 +459,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var user = new UserDto
         {
@@ -494,7 +495,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         var callOrder = new List<string>();
 
@@ -521,10 +521,10 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
+            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
             {
                 IsSuccess = true,
-                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
+                Data = new Mehrak.Domain.Protobuf.CommandResultData { IsContainer = false, IsEphemeral = false }
             }))
             .Callback(() => callOrder.Add("Execute"));
 
@@ -555,7 +555,6 @@ public class CheckInExecutorServiceTests
         mockContext.SetupGet(x => x.Interaction).Returns(interaction);
 
         m_Service.Context = mockContext.Object;
-        m_Service.ApplicationContext = new CheckInApplicationContext(m_TestUserId);
 
         m_MockRateLimitService
             .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
@@ -595,23 +594,9 @@ public class CheckInExecutorServiceTests
         Assert.That(m_Service.Context, Is.EqualTo(mockContext.Object));
     }
 
-    [Test]
-    public void ApplicationContext_CanBeSetAndRetrieved()
+    private static AsyncUnaryCall<Mehrak.Domain.Protobuf.CommandResult> CreateUnaryCall(Mehrak.Domain.Protobuf.CommandResult result)
     {
-        // Arrange
-        var context = new CheckInApplicationContext(m_TestUserId);
-
-        // Act
-        m_Service.ApplicationContext = context;
-
-        // Assert
-        Assert.That(m_Service.ApplicationContext, Is.EqualTo(context));
-        Assert.That(m_Service.ApplicationContext.UserId, Is.EqualTo(m_TestUserId));
-    }
-
-    private static AsyncUnaryCall<CommandResult> CreateUnaryCall(CommandResult result)
-    {
-        return new AsyncUnaryCall<CommandResult>(
+        return new AsyncUnaryCall<Mehrak.Domain.Protobuf.CommandResult>(
             Task.FromResult(result),
             Task.FromResult(new Metadata()),
             () => Status.DefaultSuccess,

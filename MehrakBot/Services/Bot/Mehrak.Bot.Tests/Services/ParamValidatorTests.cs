@@ -1,8 +1,7 @@
 ﻿#region
 
-using Mehrak.Application.Models.Context;
 using Mehrak.Bot.Services;
-using Mehrak.Domain.Services.Abstractions;
+using Moq;
 
 #endregion
 
@@ -657,9 +656,12 @@ public class ParamValidatorTests
 
     #region Helper Methods
 
-    private static ApplicationContextBase CreateContext(params (string key, object value)[] parameters)
+    private static ICommandExecutorService CreateContext(params (string key, object value)[] parameters)
     {
-        return new ApplicationContextBase(TestUserId, parameters);
+        var mock = new Mock<ICommandExecutorService>();
+        var dict = parameters.ToDictionary(k => k.key, v => v.value);
+        mock.Setup(x => x.Parameters).Returns(dict);
+        return mock.Object;
     }
 
     #endregion
@@ -673,7 +675,7 @@ public class ParamValidatorTests
         {
         }
 
-        public override bool IsValid(IApplicationContext context)
+        public override bool IsValid(ICommandExecutorService svc)
         {
             return true; // Simple implementation for testing base class
         }
