@@ -1,0 +1,13 @@
+﻿{
+  "profiles": {
+    "Mehrak.Application": {
+      "commandName": "Project",
+      "workingDirectory": "bin\\Debug\\net10.0",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:55823;http://localhost:55824"
+    }
+  }
+}

@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package mehrak.v1;
+
+option csharp_namespace = "Mehrak.Domain.Protobuf";
+
+enum AttachmentSourceType {
+  ATTACHMENT_SOURCE_TYPE_UNSPECIFIED = 0;
+  ATTACHMENT_SOURCE_TYPE_IMAGE_STORAGE = 1;
+  ATTACHMENT_SOURCE_TYPE_ATTACHMENT_STORAGE = 2;
+}
+
+message AttachmentReference {
+  string file_name = 1;
+  AttachmentSourceType source_type = 2;
+}
+
+message CommandText {
+  string content = 1;
+  int32 type_flags = 2; // Maps to TextType [Flags]
+}
+
+message CommandSection {
+  repeated CommandText components = 1;
+  AttachmentReference attachment = 2;
+}
+
+message CommandComponent {
+  oneof component {
+    CommandText text = 1;
+    CommandSection section = 2;
+    AttachmentReference attachment = 3;
+  }
+}
+
+message CommandResultData {
+  repeated CommandComponent components = 1;
+  bool is_container = 2;
+  bool is_ephemeral = 3;
+}
+
+enum CommandFailureReason {
+  COMMAND_FAILURE_REASON_UNKNOWN = 0;
+  COMMAND_FAILURE_REASON_AUTH_ERROR = 1;
+  COMMAND_FAILURE_REASON_API_ERROR = 2;
+  COMMAND_FAILURE_REASON_BOT_ERROR = 3;
+}
+
+message CommandResult {
+  bool is_success = 1;
+  string error_message = 2;
+  CommandFailureReason failure_reason = 3;
+  CommandResultData data = 4;
+}
+
+message ExecuteRequest {
+    string command_name = 1;
+    map<string, string> parameters = 2; 
+    uint64 discord_user_id = 3;
+    uint64 lt_uid = 4;
+    string l_token = 5;
+}
+
+service ApplicationService {
+  rpc ExecuteCommand (ExecuteRequest) returns (CommandResult);
+}
