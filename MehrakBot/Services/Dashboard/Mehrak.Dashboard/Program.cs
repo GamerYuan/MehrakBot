@@ -2,11 +2,9 @@
 using System.Net;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.Auth;
-using Mehrak.Dashboard.Metrics;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Protobuf;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
@@ -16,9 +14,12 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.Grafana.Loki;
+using Serilog.Sinks.OpenTelemetry;
 
 namespace Mehrak.Dashboard;
 
@@ -64,12 +65,16 @@ public class Program
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture
             )
-            .WriteTo.GrafanaLoki(
-                builder.Configuration["Loki:ConnectionString"] ?? "http://localhost:3100",
-                [
-                    new LokiLabel { Key = "app", Value = "MehrakDashboard" },
-                    new LokiLabel { Key = "environment", Value = builder.Environment.EnvironmentName }
-                ]);
+            .WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = "MehrakDashboard",
+                    ["deployment.environment"] = builder.Environment.EnvironmentName
+                };
+            });
 
         if (builder.Environment.IsDevelopment())
             loggerConfig.MinimumLevel.Debug();
@@ -87,8 +92,6 @@ public class Program
 
         builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
-
-        builder.Services.AddSingleton<IDashboardMetrics, DashboardMetricsService>();
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
@@ -111,6 +114,22 @@ public class Program
                 throw new ArgumentException("gRPC Connection String cannot be empty!");
             options.Address = new Uri(address);
         });
+
+        builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource
+                .AddService(serviceName: "MehrakDashboard", serviceInstanceId: Environment.MachineName))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddGrpcClientInstrumentation()
+                .AddSource("MehrakDashboard")
+                .AddOtlpExporter())
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddRuntimeInstrumentation()
+                .AddMeter("MehrakDashboard")
+                .AddOtlpExporter());
 
         builder.Services.AddDashboardApplicationExecutor();
 

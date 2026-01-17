@@ -2,7 +2,6 @@
 using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
-using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -19,13 +18,11 @@ public class AuthController : ControllerBase
     private const string PermissionClaim = "perm";
     private readonly IDashboardAuthService m_AuthService;
     private readonly ILogger<AuthController> m_Logger;
-    private readonly IDashboardMetrics m_Metrics;
 
-    public AuthController(IDashboardAuthService authService, ILogger<AuthController> logger, IDashboardMetrics metrics)
+    public AuthController(IDashboardAuthService authService, ILogger<AuthController> logger)
     {
         m_AuthService = authService;
         m_Logger = logger;
-        m_Metrics = metrics;
     }
 
     [AllowAnonymous]
@@ -76,7 +73,6 @@ public class AuthController : ControllerBase
                 AllowRefresh = false
             });
 
-        m_Metrics.TrackUserLogin(result.UserId.ToString());
 
         return Ok(new
         {
@@ -95,8 +91,6 @@ public class AuthController : ControllerBase
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await HttpContext.SignOutAsync();
-        if (!string.IsNullOrEmpty(userId))
-            m_Metrics.TrackUserLogout(userId);
         return Ok();
     }
 
@@ -126,10 +120,11 @@ public class AuthController : ControllerBase
 
         m_Logger.LogInformation("Password updated for user {UserId}. Sessions invalidated: {Invalidated}", userId, result.SessionsInvalidated);
 
+
         if (result.SessionsInvalidated)
         {
             await HttpContext.SignOutAsync();
-            m_Metrics.TrackUserLogout(userId.ToString());
+            // m_Metrics.TrackUserLogout(userId.ToString());
         }
 
         return Ok(new { requiresPasswordReset = false });
@@ -162,8 +157,9 @@ public class AuthController : ControllerBase
 
         m_Logger.LogInformation("Forced password reset completed for user {UserId}", userId);
 
+
         await HttpContext.SignOutAsync();
-        m_Metrics.TrackUserLogout(userId.ToString());
+        // m_Metrics.TrackUserLogout(userId.ToString());
         return Ok(new { requiresPasswordReset = false });
     }
 }
