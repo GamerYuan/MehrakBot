@@ -1,6 +1,5 @@
+﻿using Mehrak.Domain.Models;
 using Proto = Mehrak.Domain.Protobuf;
-using Mehrak.Domain.Extensions;
-using Mehrak.Domain.Models;
 
 namespace Mehrak.Domain.Extensions;
 
@@ -92,7 +91,7 @@ public static class ProtobufMappingExtensions
         };
     }
 
-    public static Proto.ExecuteRequest ToExecuteRequest(string commandName, ulong userId, ulong ltUid, string lToken, IEnumerable<(string Key, object Value)> parameters)
+    public static Proto.ExecuteRequest ToExecuteRequest(string commandName, ulong userId, ulong ltUid, string lToken, IEnumerable<(string Key, object Value)> commandParams)
     {
         var request = new Proto.ExecuteRequest
         {
@@ -102,7 +101,7 @@ public static class ProtobufMappingExtensions
             LToken = lToken ?? string.Empty
         };
 
-        foreach (var (key, value) in parameters)
+        foreach (var (key, value) in commandParams)
         {
             request.Parameters.Add(key, value?.ToString() ?? string.Empty);
         }
