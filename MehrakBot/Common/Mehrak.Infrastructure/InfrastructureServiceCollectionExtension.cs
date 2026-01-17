@@ -32,7 +32,9 @@ public static class InfrastructureServiceCollectionExtension
         services.AddDbContext<RelicDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
 
-        var redisConfig = services.BuildServiceProvider().GetRequiredService<IOptions<RedisConfig>>().Value;
+        using var serviceProvider = services.BuildServiceProvider();
+
+        var redisConfig = serviceProvider.GetRequiredService<IOptions<RedisConfig>>().Value;
         var lazyConnection = new Lazy<IConnectionMultiplexer>(() =>
         {
             return ConnectionMultiplexer.Connect(redisConfig.ConnectionString);
@@ -68,7 +70,6 @@ public static class InfrastructureServiceCollectionExtension
         // Character Cache Services
         services.AddHostedService<CharacterInitializationService>();
         services.AddHostedService<AliasInitializationService>();
-        services.AddHostedService<CharacterCacheBackgroundService>();
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
         services.AddSingleton<IAliasService, AliasService>();
 
