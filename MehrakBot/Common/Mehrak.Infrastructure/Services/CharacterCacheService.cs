@@ -20,7 +20,6 @@ public class CharacterCacheService : ICharacterCacheService
     private readonly IConnectionMultiplexer m_Redis;
     private readonly IAliasService m_AliasService;
     private readonly SemaphoreSlim m_UpdateSemaphore;
-    private const string InstanceName = "Mehrak_";
 
     public CharacterCacheService(
         IServiceScopeFactory serviceScopeFactory,
@@ -37,7 +36,7 @@ public class CharacterCacheService : ICharacterCacheService
 
     private IDatabase Db => m_Redis.GetDatabase();
 
-    private static string GetCharacterKey(Game game) => $"{InstanceName}characters:{game}";
+    private static string GetCharacterKey(Game game) => $"characters:{game}";
 
     public List<string> GetCharacters(Game gameName)
     {

@@ -18,7 +18,6 @@ public class AliasService : IAliasService
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AliasService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
-    private const string InstanceName = "Mehrak_";
 
     public AliasService(
         IServiceScopeFactory serviceScopeFactory,
@@ -32,7 +31,7 @@ public class AliasService : IAliasService
 
     private IDatabase Db => m_Redis.GetDatabase();
 
-    private static string GetAliasKey(Game game) => $"{InstanceName}aliases:{game}";
+    private static string GetAliasKey(Game game) => $"aliases:{game}";
 
     public Dictionary<string, string> GetAliases(Game gameName)
     {
