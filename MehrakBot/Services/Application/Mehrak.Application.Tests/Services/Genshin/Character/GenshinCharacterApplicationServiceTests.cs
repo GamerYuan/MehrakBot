@@ -538,6 +538,7 @@ public class GenshinCharacterApplicationServiceTests
                                           ]
                                           }
                                           }
+                                          }
                                           """);
         wikiApiMock
             .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
