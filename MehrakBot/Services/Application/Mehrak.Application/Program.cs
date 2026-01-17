@@ -6,9 +6,12 @@ using Mehrak.Application.Services.Common;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.Grafana.Loki;
+using Serilog.Sinks.OpenTelemetry;
 
 public class Program
 {
@@ -51,12 +54,16 @@ public class Program
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture
             )
-            .WriteTo.GrafanaLoki(
-                builder.Configuration["Loki:ConnectionString"] ?? "http://localhost:3100",
-                [
-                    new LokiLabel { Key = "app", Value = "MehrakApplication" },
-                    new LokiLabel { Key = "environment", Value = builder.Environment.EnvironmentName }
-                ]);
+            .WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = "MehrakApplication",
+                    ["deployment.environment"] = builder.Environment.EnvironmentName
+                };
+            });
 
         if (builder.Environment.IsDevelopment())
             loggerConfig.MinimumLevel.Debug();
@@ -88,6 +95,21 @@ public class Program
         builder.Services.AddSingleton<CommandDispatcher>();
 
         builder.Services.AddSingleton<IApplicationMetrics, ApplicationMetricsService>();
+
+        builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource
+                .AddService(serviceName: "MehrakApplication", serviceInstanceId: Environment.MachineName))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddSource("MehrakApplication")
+                .AddOtlpExporter())
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddRuntimeInstrumentation()
+                .AddMeter("MehrakApplication")
+                .AddOtlpExporter());
 
         var app = builder.Build();
 

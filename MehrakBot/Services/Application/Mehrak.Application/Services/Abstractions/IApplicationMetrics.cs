@@ -2,14 +2,16 @@
 
 public interface IApplicationMetrics
 {
-    void TrackCommand(string commandName, ulong userId, bool isSuccess);
-
     void TrackCharacterSelection(string game, string character);
-
-    void TrackDiscordLatency(double latencyMs);
 
     IDisposable ObserveCommandDuration(string commandName);
 
     void RecordCommandDuration(string commandName, TimeSpan duration);
+
+    IDisposable ObserveCardGenerationDuration(string cardType);
+
+    void RecordCardGenerationDuration(string cardType, TimeSpan duration);
+
+    void TrackPopularParty(string game, string mode, string cycle, IEnumerable<(string Character, int CharacterId)> party);
 }
 
