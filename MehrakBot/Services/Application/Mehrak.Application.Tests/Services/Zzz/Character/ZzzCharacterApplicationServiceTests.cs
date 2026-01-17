@@ -613,7 +613,7 @@ public class ZzzCharacterApplicationServiceTests
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
         Mock<ICardService<ZzzFullAvatarData>> CardServiceMock,
-        Mock<IMetricsService> MetricsMock,
+        Mock<IApplicationMetrics> MetricsMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
         UserDbContext UserContext
         ) SetupMocks()
@@ -625,7 +625,7 @@ public class ZzzCharacterApplicationServiceTests
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<ZzzCharacterApplicationService>>();
@@ -699,7 +699,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
 
         // Initialize card service
         cardService.InitializeAsync().Wait();
@@ -774,7 +774,7 @@ public class ZzzCharacterApplicationServiceTests
             Mock.Of<ILogger<ImageUpdaterService>>());
 
         // Mock metrics (don't want to send real metrics in tests)
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
 
         // Initialize card service
         cardService.InitializeAsync().Wait();

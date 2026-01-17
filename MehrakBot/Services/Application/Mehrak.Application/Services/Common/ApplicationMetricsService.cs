@@ -1,9 +1,9 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Application.Services.Abstractions;
 
 namespace Mehrak.Application.Services.Common;
 
 // TODO: To replace with proper impl after migration to ClickHouse
-public class ApplicationMetricsService : IMetricsService
+public class ApplicationMetricsService : IApplicationMetrics
 {
     public IDisposable ObserveCommandDuration(string commandName)
     {

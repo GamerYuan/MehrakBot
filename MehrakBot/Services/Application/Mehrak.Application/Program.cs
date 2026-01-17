@@ -1,8 +1,8 @@
 ﻿using System.Globalization;
 using Mehrak.Application;
 using Mehrak.Application.Services;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
@@ -87,7 +87,7 @@ public class Program
         builder.Services.AddApplicationServices();
         builder.Services.AddSingleton<CommandDispatcher>();
 
-        builder.Services.AddSingleton<IMetricsService, ApplicationMetricsService>();
+        builder.Services.AddSingleton<IApplicationMetrics, ApplicationMetricsService>();
 
         var app = builder.Build();
 

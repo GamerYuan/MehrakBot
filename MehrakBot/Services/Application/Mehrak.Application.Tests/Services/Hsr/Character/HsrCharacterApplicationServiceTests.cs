@@ -891,7 +891,7 @@ public class HsrCharacterApplicationServiceTests
          Mock<IImageUpdaterService> ImageUpdaterMock,
          Mock<ICardService<HsrCharacterInformation>> CardServiceMock,
          Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-         Mock<IMetricsService> MetricsMock,
+         Mock<IApplicationMetrics> MetricsMock,
          RelicDbContext RelicContext,
          Mock<IAttachmentStorageService> AttachmentStorageMock,
          UserDbContext UserContext
@@ -905,7 +905,7 @@ public class HsrCharacterApplicationServiceTests
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<HsrCharacterApplicationService>>();
@@ -947,7 +947,7 @@ public class HsrCharacterApplicationServiceTests
          Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
          Mock<IImageRepository> ImageRepositoryMock,
          Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-         Mock<IMetricsService> MetricsMock,
+         Mock<IApplicationMetrics> MetricsMock,
          Mock<IAttachmentStorageService> AttachmentStorageMock,
          UserDbContext UserContext
         ) SetupIntegrationTest()
@@ -966,7 +966,7 @@ public class HsrCharacterApplicationServiceTests
             HsrCharacterInformation, CharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -1064,7 +1064,7 @@ public class HsrCharacterApplicationServiceTests
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
 
         cardService.InitializeAsync().Wait();
 

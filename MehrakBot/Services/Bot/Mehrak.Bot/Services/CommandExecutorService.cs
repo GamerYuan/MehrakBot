@@ -2,6 +2,7 @@
 
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Protobuf;
@@ -37,7 +38,7 @@ internal class CommandExecutorService : CommandExecutorServiceBase
         UserDbContext userContext,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        IMetricsService metricsService,
+        IBotMetrics metricsService,
         ApplicationService.ApplicationServiceClient applicationClient,
         IAttachmentStorageService attachmentService,
         IImageRepository imageRepository,

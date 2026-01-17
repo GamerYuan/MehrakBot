@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -14,7 +14,7 @@ using Prometheus;
 
 namespace Mehrak.Infrastructure.Metrics;
 
-public class BotMetricsService : IMetricsService, IHostedService
+public class BotMetricsService : IBotMetrics, IHostedService
 {
     private readonly Counter m_CommandsTotal = Prometheus.Metrics.CreateCounter(
         "discord_commands_total",

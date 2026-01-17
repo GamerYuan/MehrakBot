@@ -955,7 +955,7 @@ public class GenshinCharacterApplicationServiceTests
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICardService<GenshinCharacterInformation>> CardServiceMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<IMetricsService> MetricsMock,
+        Mock<IApplicationMetrics> MetricsMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
         UserDbContext UserContext
         ) SetupMocks()
@@ -968,7 +968,7 @@ public class GenshinCharacterApplicationServiceTests
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<GenshinCharacterApplicationService>>();
@@ -1010,7 +1010,7 @@ public class GenshinCharacterApplicationServiceTests
         Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
         Mock<IImageRepository> ImageRepositoryMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
-        Mock<IMetricsService> MetricsMock,
+        Mock<IApplicationMetrics> MetricsMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
         UserDbContext UserContext
         ) SetupIntegrationTest()
@@ -1024,7 +1024,7 @@ public class GenshinCharacterApplicationServiceTests
             GenshinCharacterDetail, GenshinCharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
 
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(true);
@@ -1102,7 +1102,7 @@ public class GenshinCharacterApplicationServiceTests
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
 
         cardService.InitializeAsync().Wait();
 

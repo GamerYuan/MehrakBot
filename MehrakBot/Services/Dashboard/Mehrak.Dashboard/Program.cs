@@ -89,7 +89,6 @@ public class Program
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
 
         builder.Services.AddSingleton<IDashboardMetrics, DashboardMetricsService>();
-        builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<IDashboardMetrics>());
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();

@@ -1,6 +1,6 @@
-﻿namespace Mehrak.Domain.Services.Abstractions;
+﻿namespace Mehrak.Application.Services.Abstractions;
 
-public interface IDashboardMetrics
+public interface IApplicationMetrics
 {
     void TrackCommand(string commandName, ulong userId, bool isSuccess);
 
@@ -11,8 +11,5 @@ public interface IDashboardMetrics
     IDisposable ObserveCommandDuration(string commandName);
 
     void RecordCommandDuration(string commandName, TimeSpan duration);
-
-    void TrackUserLogin(string userId);
-
-    void TrackUserLogout(string userId);
 }
+

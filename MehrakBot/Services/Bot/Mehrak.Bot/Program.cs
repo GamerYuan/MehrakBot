@@ -2,8 +2,8 @@
 
 using System.Globalization;
 using Mehrak.Bot.Services;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Protobuf;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Metrics;
@@ -113,8 +113,7 @@ public class Program
                 options.Address = new Uri(address ?? "http://localhost:5000");
             });
 
-            builder.Services.AddSingleton<BotMetricsService>();
-            builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<BotMetricsService>());
+            builder.Services.AddSingleton<IBotMetrics, BotMetricsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMetricsService>());
 
             builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
