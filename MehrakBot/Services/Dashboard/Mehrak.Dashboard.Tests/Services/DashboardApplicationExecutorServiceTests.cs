@@ -1,9 +1,10 @@
-﻿using Mehrak.Dashboard.Auth;
+﻿using Grpc.Core;
+using Mehrak.Dashboard.Auth;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Dashboard.Tests.Services;
 
@@ -12,19 +13,22 @@ public class DashboardApplicationExecutorServiceTests
 {
     private Mock<IServiceProvider> m_ServiceProviderMock;
     private Mock<IDashboardProfileAuthenticationService> m_AuthServiceMock;
-    private Mock<ILogger<DashboardApplicationExecutorService<IApplicationContext>>> m_LoggerMock;
-    private DashboardApplicationExecutorService<IApplicationContext> m_Service;
-    private Mock<IApplicationContext> m_ContextMock;
+    private Mock<ILogger<DashboardApplicationExecutorService>> m_LoggerMock;
+    private Mock<Proto.ApplicationService.ApplicationServiceClient> m_ApplicationClientMock;
+    private DashboardApplicationExecutorService m_Service;
 
     [SetUp]
     public void SetUp()
     {
         m_ServiceProviderMock = new Mock<IServiceProvider>();
         m_AuthServiceMock = new Mock<IDashboardProfileAuthenticationService>();
-        m_LoggerMock = new Mock<ILogger<DashboardApplicationExecutorService<IApplicationContext>>>();
-        m_ContextMock = new Mock<IApplicationContext>();
+        m_LoggerMock = new Mock<ILogger<DashboardApplicationExecutorService>>();
+        m_ApplicationClientMock = new Mock<Proto.ApplicationService.ApplicationServiceClient>();
 
-        m_Service = new DashboardApplicationExecutorService<IApplicationContext>(
+        m_ServiceProviderMock.Setup(sp => sp.GetService(typeof(Proto.ApplicationService.ApplicationServiceClient)))
+            .Returns(m_ApplicationClientMock.Object);
+
+        m_Service = new DashboardApplicationExecutorService(
             m_ServiceProviderMock.Object,
             m_AuthServiceMock.Object,
             m_LoggerMock.Object
@@ -32,18 +36,10 @@ public class DashboardApplicationExecutorServiceTests
     }
 
     [Test]
-    public void ExecuteAsync_ThrowsIfContextNotProvided()
-    {
-        // act & assert
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.ExecuteAsync(1));
-        Assert.That(ex.Message, Does.Contain("ApplicationContext must be provided"));
-    }
-
-    [Test]
     public void ExecuteAsync_ThrowsIfDiscordUserIdNotProvided()
     {
         // arrange
-        m_Service.ApplicationContext = m_ContextMock.Object;
+        m_Service.CommandName = "testCommand";
 
         // act & assert
         var ex = Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.ExecuteAsync(1));
@@ -51,14 +47,25 @@ public class DashboardApplicationExecutorServiceTests
     }
 
     [Test]
+    public void ExecuteAsync_ThrowsIfCommandNameNotProvided()
+    {
+        // arrange
+        m_Service.DiscordUserId = 123;
+        m_Service.CommandName = "";
+
+        // act & assert
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.ExecuteAsync(1));
+        Assert.That(ex.Message, Does.Contain("Command name must be provided"));
+    }
+
+    [Test]
     public async Task ExecuteAsync_ValidationFailed()
     {
         // arrange
-        m_Service.ApplicationContext = m_ContextMock.Object;
         m_Service.DiscordUserId = 123;
+        m_Service.CommandName = "testCommand";
         m_Service.AddValidator<string>("testParam", s => false, "Test validation error");
-
-        m_ContextMock.Setup(c => c.GetParameter<string>("testParam")).Returns("someValue");
+        m_Service.Parameters = new Dictionary<string, object> { { "testParam", "someValue" } };
 
         // act
         var result = await m_Service.ExecuteAsync(1);
@@ -72,8 +79,9 @@ public class DashboardApplicationExecutorServiceTests
     public async Task ExecuteAsync_AuthSuccess_ExecutesApplication()
     {
         // arrange
-        m_Service.ApplicationContext = m_ContextMock.Object;
         m_Service.DiscordUserId = 123;
+        m_Service.CommandName = "testCommand";
+
         var profileId = 1;
         ulong ltUid = 456;
         var lToken = "ltoken";
@@ -84,30 +92,37 @@ public class DashboardApplicationExecutorServiceTests
         m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(authResult);
 
-        var appServiceMock = new Mock<IApplicationService<IApplicationContext>>();
-        var commandResult = CommandResult.Success();
-        appServiceMock.Setup(s => s.ExecuteAsync(m_ContextMock.Object))
-            .ReturnsAsync(commandResult);
-
-        m_ServiceProviderMock.Setup(sp => sp.GetService(typeof(IApplicationService<IApplicationContext>)))
-            .Returns(appServiceMock.Object);
+        var commandResultProto = new Proto.CommandResult
+        {
+            IsSuccess = true,
+            Data = new Proto.CommandResultData { IsContainer = false, IsEphemeral = false }
+        };
+        m_ApplicationClientMock.Setup(c => c.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()))
+            .Returns(CreateUnaryCall(commandResultProto));
 
         // act
         var result = await m_Service.ExecuteAsync(profileId);
 
         // assert
         Assert.That(result.Status, Is.EqualTo(DashboardExecutionStatus.Success));
-        Assert.That(result.CommandResult, Is.EqualTo(commandResult));
-        m_ContextMock.VerifySet(c => c.LtUid = ltUid);
-        m_ContextMock.VerifySet(c => c.LToken = lToken);
+        Assert.That(result.CommandResult, Is.Not.Null);
+        Assert.That(result.CommandResult!.IsSuccess, Is.True);
+
+        m_ApplicationClientMock.Verify(c => c.ExecuteCommandAsync(
+            It.Is<Proto.ExecuteRequest>(req =>
+                req.DiscordUserId == 123 &&
+                req.CommandName == "testCommand" &&
+                req.LtUid == ltUid &&
+                req.LToken == lToken),
+            null, null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
     public async Task ExecuteAsync_AuthFailed_ReturnsError()
     {
         // arrange
-        m_Service.ApplicationContext = m_ContextMock.Object;
         m_Service.DiscordUserId = 123;
+        m_Service.CommandName = "testCommand";
         var profileId = 1;
 
         var authResult = DashboardProfileAuthenticationResult.InvalidPassphrase("Wrong pass");
@@ -121,5 +136,17 @@ public class DashboardApplicationExecutorServiceTests
         // assert
         Assert.That(result.Status, Is.EqualTo(DashboardExecutionStatus.AuthenticationFailed));
         Assert.That(result.ErrorMessage, Is.EqualTo("Wrong pass"));
+
+        m_ApplicationClientMock.Verify(c => c.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static AsyncUnaryCall<Proto.CommandResult> CreateUnaryCall(Proto.CommandResult result)
+    {
+        return new AsyncUnaryCall<Proto.CommandResult>(
+            Task.FromResult(result),
+            Task.FromResult(new Metadata()),
+            () => Status.DefaultSuccess,
+            () => [],
+            () => { });
     }
 }
