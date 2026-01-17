@@ -1,8 +1,4 @@
-﻿#region
-
-using Mehrak.Domain.Enums;
-
-#endregion
+﻿using Mehrak.Domain.Enums;
 
 namespace Mehrak.Domain.Services.Abstractions;
 
@@ -14,13 +10,5 @@ public interface ICharacterCacheService
 
     Task DeleteCharacter(Game gameName, string characterName);
 
-    Task UpdateCharactersAsync(Game gameName);
-
     Task UpdateAllCharactersAsync();
-
-    Dictionary<Game, int> GetCacheStatus();
-
-    void ClearCache();
-
-    void ClearCache(Game gameName);
 }

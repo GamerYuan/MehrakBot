@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Hosting;
@@ -11,50 +10,51 @@ using Microsoft.Extensions.Options;
 
 namespace Mehrak.Infrastructure.Services;
 
-public class CharacterCacheBackgroundService : BackgroundService
+public class CharacterCacheBackgroundService : IHostedService
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly IAliasService m_AliasService;
     private readonly ILogger<CharacterCacheBackgroundService> m_Logger;
     private readonly CharacterCacheConfig m_Config;
 
+    private readonly CancellationTokenSource m_Cts = new();
+
     public CharacterCacheBackgroundService(
         ICharacterCacheService characterCacheService,
+        IAliasService aliasService,
         ILogger<CharacterCacheBackgroundService> logger,
         IOptions<CharacterCacheConfig> config)
     {
         m_CharacterCacheService = characterCacheService;
+        m_AliasService = aliasService;
         m_Logger = logger;
         m_Config = config.Value;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!m_Config.EnablePeriodicUpdates)
-        {
-            m_Logger.LogInformation("Character cache background service disabled via configuration");
-            return;
-        }
+        if (m_Config.EnableInitialPopulation)
+            await PerformInitialUpdate(cancellationToken);
 
-        m_Logger.LogInformation(
-            "Character cache background service started with update interval of {UpdateInterval}",
-            m_Config.UpdateInterval);
-
-        if (m_Config.EnableInitialPopulation) await PerformInitialUpdate(stoppingToken);
-
-        await PeriodicUpdateLoop(stoppingToken);
+        if (m_Config.EnablePeriodicUpdates)
+            _ = PerformPeriodicUpdateAsync(m_Cts.Token);
     }
 
-    private async Task PerformInitialUpdate(CancellationToken stoppingToken)
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        m_Cts.Cancel();
+        m_Cts.Dispose();
+        return Task.CompletedTask;
+    }
+
+    private async Task PerformInitialUpdate(CancellationToken cancellationToken)
     {
         try
         {
             m_Logger.LogInformation("Performing initial character cache population");
             await m_CharacterCacheService.UpdateAllCharactersAsync();
-            stoppingToken.ThrowIfCancellationRequested();
-
-            var cacheStatus = m_CharacterCacheService.GetCacheStatus();
-            m_Logger.LogInformation("Initial character cache populated: {CacheStatus}",
-                string.Join(", ", cacheStatus.Select(kvp => $"{kvp.Key}={kvp.Value}")));
+            await m_AliasService.UpdateAllAliasesAsync();
+            cancellationToken.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException)
         {
@@ -66,72 +66,25 @@ public class CharacterCacheBackgroundService : BackgroundService
         }
     }
 
-    private async Task PeriodicUpdateLoop(CancellationToken stoppingToken)
+    private async Task PerformPeriodicUpdateAsync(CancellationToken token)
     {
         try
         {
             while (true)
             {
-                await Task.Delay(m_Config.UpdateInterval, stoppingToken);
-                stoppingToken.ThrowIfCancellationRequested();
-                await PerformPeriodicUpdate();
+                token.ThrowIfCancellationRequested();
+                await m_CharacterCacheService.UpdateAllCharactersAsync();
+                await m_AliasService.UpdateAllAliasesAsync();
+                await Task.Delay(m_Config.UpdateInterval, token);
             }
         }
         catch (OperationCanceledException)
         {
-            m_Logger.LogInformation("Character cache background service stopped");
-        }
-        catch (Exception ex)
-        {
-            m_Logger.LogError(ex, "Unexpected error in character cache background service");
-        }
-    }
-
-    private async Task PerformPeriodicUpdate()
-    {
-        try
-        {
-            m_Logger.LogDebug("Performing periodic character cache update");
-
-            var beforeStatus = m_CharacterCacheService.GetCacheStatus();
-            await m_CharacterCacheService.UpdateAllCharactersAsync();
-            var afterStatus = m_CharacterCacheService.GetCacheStatus();
-
-            LogCacheChanges(beforeStatus, afterStatus);
+            m_Logger.LogInformation("Periodic character cache update canceled");
         }
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error occurred during periodic character cache update");
         }
-    }
-
-    private void LogCacheChanges(Dictionary<Game, int> beforeStatus, Dictionary<Game, int> afterStatus)
-    {
-        List<string> changes = [];
-
-        foreach ((var game, var afterCount) in afterStatus)
-            if (beforeStatus.TryGetValue(game, out var beforeCount))
-            {
-                if (beforeCount != afterCount) changes.Add($"{game}: {beforeCount} -> {afterCount}");
-            }
-            else
-            {
-                changes.Add($"{game}: new -> {afterCount}");
-            }
-
-        foreach ((var game, var beforeCount) in beforeStatus)
-            if (!afterStatus.ContainsKey(game))
-                changes.Add($"{game}: {beforeCount} -> removed");
-
-        if (changes.Count > 0)
-            m_Logger.LogInformation("Character cache changes detected: {Changes}", string.Join(", ", changes));
-        else
-            m_Logger.LogDebug("No character cache changes detected during periodic update");
-    }
-
-    public override async Task StopAsync(CancellationToken cancellationToken)
-    {
-        m_Logger.LogInformation("Character cache background service stopping");
-        await base.StopAsync(cancellationToken);
     }
 }

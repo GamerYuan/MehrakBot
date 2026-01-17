@@ -18,8 +18,8 @@ public class CharacterCacheService : ICharacterCacheService
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<CharacterCacheService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
-    private readonly IAliasService m_AliasService;
-    private readonly SemaphoreSlim m_UpdateSemaphore;
+
+    private readonly Lock m_UpdateLock = new();
 
     public CharacterCacheService(
         IServiceScopeFactory serviceScopeFactory,
@@ -30,8 +30,6 @@ public class CharacterCacheService : ICharacterCacheService
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_Redis = redis;
-        m_AliasService = aliasService;
-        m_UpdateSemaphore = new SemaphoreSlim(1, 1);
     }
 
     private IDatabase Db => m_Redis.GetDatabase();
@@ -89,6 +87,7 @@ public class CharacterCacheService : ICharacterCacheService
             m_Logger.LogError(e, "An error occurred while upserting characters for {Game}", gameName);
         }
     }
+
     public async Task DeleteCharacter(Game gameName, string characterName)
     {
         try
@@ -125,17 +124,15 @@ public class CharacterCacheService : ICharacterCacheService
 
     public async Task UpdateAllCharactersAsync()
     {
-        await m_UpdateSemaphore.WaitAsync();
+        m_UpdateLock.Enter();
         try
         {
             m_Logger.LogInformation("Starting character cache update for all games");
 
             var games = Enum.GetValues<Game>();
             var updateTasks = games.Select(UpdateCharactersAsync);
-            var aliasTasks = games.Select(m_AliasService.UpdateAliasesAsync);
 
             await Task.WhenAll(updateTasks);
-            await Task.WhenAll(aliasTasks);
 
             m_Logger.LogInformation("Completed character and alias cache update for all games");
         }
@@ -145,7 +142,7 @@ public class CharacterCacheService : ICharacterCacheService
         }
         finally
         {
-            m_UpdateSemaphore.Release();
+            m_UpdateLock.Exit();
         }
     }
 
@@ -182,34 +179,5 @@ public class CharacterCacheService : ICharacterCacheService
         {
             m_Logger.LogError(ex, "Error occurred while updating character cache for {Game}", gameName);
         }
-    }
-
-    public Dictionary<Game, int> GetCacheStatus()
-    {
-        var status = new Dictionary<Game, int>();
-        foreach (var game in Enum.GetValues<Game>())
-        {
-            var count = Db.SetLength(GetCharacterKey(game));
-            if (count > 0) status[game] = (int)count;
-        }
-
-        return status;
-    }
-
-    public void ClearCache()
-    {
-        m_Logger.LogInformation("Clearing character cache for all games");
-        var db = Db;
-        foreach (var game in Enum.GetValues<Game>())
-        {
-            db.KeyDelete(GetCharacterKey(game));
-        }
-    }
-
-    public void ClearCache(Game gameName)
-    {
-        var db = Db;
-        db.KeyDelete(GetCharacterKey(gameName));
-        m_Logger.LogInformation("Cleared character cache for {Game}", gameName);
     }
 }

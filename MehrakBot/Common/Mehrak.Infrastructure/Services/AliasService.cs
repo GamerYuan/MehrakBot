@@ -19,6 +19,8 @@ public class AliasService : IAliasService
     private readonly ILogger<AliasService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
 
+    private readonly Lock m_UpdateLock = new();
+
     public AliasService(
         IServiceScopeFactory serviceScopeFactory,
         ILogger<AliasService> logger,
@@ -155,7 +157,29 @@ public class AliasService : IAliasService
         }
     }
 
-    public async Task UpdateAliasesAsync(Game gameName)
+    public async Task UpdateAllAliasesAsync()
+    {
+        m_UpdateLock.Enter();
+        try
+        {
+            m_Logger.LogInformation("Starting character cache update for all games");
+
+            var games = Enum.GetValues<Game>();
+            var updateTasks = games.Select(UpdateAliasesAsync);
+
+            await Task.WhenAll(updateTasks);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogError(ex, "Error occurred during UpdateAllAliasesAsync");
+        }
+        finally
+        {
+            m_UpdateLock.Exit();
+        }
+    }
+
+    private async Task UpdateAliasesAsync(Game gameName)
     {
         try
         {
