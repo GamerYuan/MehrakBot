@@ -29,7 +29,8 @@ public class GenshinAbyssCardServiceTests
     public async Task Setup()
     {
         m_Service = new GenshinAbyssCardService(S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinAbyssCardService>>());
+            Mock.Of<ILogger<GenshinAbyssCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

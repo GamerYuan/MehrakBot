@@ -471,7 +471,8 @@ public class Hi3CharacterApplicationServiceTests
 
         var cardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<Hi3CharacterCardService>>());
+            Mock.Of<ILogger<Hi3CharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         cardService.InitializeAsync().Wait();
 

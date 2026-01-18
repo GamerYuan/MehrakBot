@@ -1,8 +1,8 @@
 ﻿#region
 
-using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -10,7 +10,6 @@ using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Zzz.Types;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -27,6 +26,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<ZzzCharacterCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private Dictionary<string, Image> m_StatImages = [];
     private Dictionary<int, Image> m_SkillImages = [];
@@ -51,10 +51,11 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
     private static readonly Color BackgroundColor = Color.FromRgb(69, 69, 69);
     private static readonly Color OverlayColor = Color.FromRgb(36, 36, 36);
 
-    public ZzzCharacterCardService(IImageRepository imageRepository, ILogger<ZzzCharacterCardService> logger)
+    public ZzzCharacterCardService(IImageRepository imageRepository, ILogger<ZzzCharacterCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         var fontFamily = new FontCollection().Add("Assets/Fonts/zzz.ttf");
 
@@ -141,8 +142,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzFullAvatarData> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("zzz character");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         List<IDisposable> disposables = [];
 
@@ -389,8 +390,7 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
             await background.SaveAsJpegAsync(stream, m_JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId);
             return stream;
         }
         catch (Exception e)

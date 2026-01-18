@@ -33,7 +33,8 @@ public class HsrCharListCardServiceTests
     {
         m_Service = new HsrCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrCharListCardService>>());
+            Mock.Of<ILogger<HsrCharListCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
     }
 
     [Test]

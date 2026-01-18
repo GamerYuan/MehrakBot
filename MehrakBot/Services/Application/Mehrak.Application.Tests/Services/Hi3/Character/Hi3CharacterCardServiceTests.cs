@@ -26,7 +26,8 @@ internal class Hi3CharacterCardServiceTests
     {
         m_CharacterCardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<Hi3CharacterCardService>>());
+            Mock.Of<ILogger<Hi3CharacterCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
         await m_CharacterCardService.InitializeAsync();
     }
 

@@ -29,7 +29,8 @@ public class GenshinCharacterCardServiceTests
     {
         m_GenshinCharacterCardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinCharacterCardService>>());
+            Mock.Of<ILogger<GenshinCharacterCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
         await m_GenshinCharacterCardService.InitializeAsync();
     }
 

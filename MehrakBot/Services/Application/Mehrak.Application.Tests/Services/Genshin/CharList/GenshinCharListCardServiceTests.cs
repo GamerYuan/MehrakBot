@@ -29,7 +29,8 @@ public class GenshinCharListCardServiceTests
     {
         m_Service = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinCharListCardService>>());
+            Mock.Of<ILogger<GenshinCharListCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
     }
 
     [Test]

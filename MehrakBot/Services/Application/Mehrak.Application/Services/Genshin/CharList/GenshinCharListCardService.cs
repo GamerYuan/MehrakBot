@@ -1,15 +1,14 @@
 ﻿#region
 
-using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -26,6 +25,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharListCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -88,10 +88,11 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
         { "Dendro", Color.FromRgba(128, 175, 18, 128) }
     };
 
-    public GenshinCharListCardService(IImageRepository imageRepository, ILogger<GenshinCharListCardService> logger)
+    public GenshinCharListCardService(IImageRepository imageRepository, ILogger<GenshinCharListCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
@@ -103,8 +104,8 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("genshin charlist");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
@@ -254,8 +255,7 @@ public class GenshinCharListCardService : ICardService<IEnumerable<GenshinBasicC
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "CharList", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "CharList", context.UserId);
             return stream;
         }
         catch (Exception ex)

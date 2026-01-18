@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using Mehrak.Application.Services.Abstractions;
 using System.Text.Json;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -21,6 +21,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<Hi3CharacterCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -47,10 +48,11 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
     private static readonly Color OverlayColor = Color.FromRgba(47, 87, 126, 196);
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
-        ILogger<Hi3CharacterCardService> logger)
+        ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         var fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
 
@@ -81,8 +83,8 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<Hi3CharacterDetail> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("hi3 character");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var characterInformation = context.Data;
 
@@ -186,8 +188,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
             await image.SaveAsJpegAsync(stream, m_JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId);
 
             return stream;
 

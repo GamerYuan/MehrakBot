@@ -25,7 +25,8 @@ internal class HsrAnomalyCardServiceTests
     {
         m_Service = new HsrAnomalyCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrAnomalyCardService>>());
+            Mock.Of<ILogger<HsrAnomalyCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

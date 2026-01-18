@@ -1,9 +1,9 @@
 ﻿#region
 
-using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -37,6 +37,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
 
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinStygianCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -44,10 +45,11 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
     private Image[] m_DifficultyLogo = [];
     private Image m_Background = null!;
 
-    public GenshinStygianCardService(IImageRepository imageRepository, ILogger<GenshinStygianCardService> logger)
+    public GenshinStygianCardService(IImageRepository imageRepository, ILogger<GenshinStygianCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
@@ -68,8 +70,8 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<StygianData> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("genshin stygian");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Stygian", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var stygianInfo = context.Data;
 
@@ -189,8 +191,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Stygian", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Stygian", context.UserId);
             return stream;
         }
         catch (Exception ex)

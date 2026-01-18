@@ -958,7 +958,8 @@ public class HsrCharacterApplicationServiceTests
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             CreateRelicScopeFactory(relicContext),
-            Mock.Of<ILogger<HsrCharacterCardService>>());
+            Mock.Of<ILogger<HsrCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var aliasServiceMock = new Mock<IAliasService>();
@@ -1031,7 +1032,8 @@ public class HsrCharacterApplicationServiceTests
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             CreateRelicScopeFactory(relicContext),
-            Mock.Of<ILogger<HsrCharacterCardService>>());
+            Mock.Of<ILogger<HsrCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

@@ -520,7 +520,8 @@ public class GenshinStygianApplicationServiceTests
     {
         var cardService = new GenshinStygianCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinStygianCardService>>());
+            Mock.Of<ILogger<GenshinStygianCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var stygianApiMock = new Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>>();
 
@@ -571,7 +572,8 @@ public class GenshinStygianApplicationServiceTests
     {
         var cardService = new GenshinStygianCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinStygianCardService>>());
+            Mock.Of<ILogger<GenshinStygianCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

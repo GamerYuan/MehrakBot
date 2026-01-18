@@ -1,9 +1,9 @@
 ﻿#region
 
-using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -11,7 +11,6 @@ using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -28,6 +27,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinCharacterCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private Dictionary<int, Image> m_StatImages = null!;
 
@@ -41,10 +41,11 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
     private readonly JpegEncoder m_JpegEncoder;
     private readonly Image<Rgba32> m_RelicSlotTemplate;
 
-    public GenshinCharacterCardService(IImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger)
+    public GenshinCharacterCardService(IImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
@@ -99,8 +100,8 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinCharacterInformation> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("genshin character");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var charInfo = context.Data;
 
@@ -425,8 +426,7 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
             await background.SaveAsJpegAsync(stream, m_JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId);
             return stream;
         }
         catch (Exception ex)

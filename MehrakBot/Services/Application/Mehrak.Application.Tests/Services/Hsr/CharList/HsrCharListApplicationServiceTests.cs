@@ -461,7 +461,8 @@ public class HsrCharListApplicationServiceTests
         // Use real card service with MongoTestHelper for image repository
         var cardService = new HsrCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrCharListCardService>>());
+            Mock.Of<ILogger<HsrCharListCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var characterApiMock = new Mock<ICharacterApiService<HsrBasicCharacterData,
             HsrCharacterInformation, CharacterApiContext>>();
@@ -510,7 +511,8 @@ public class HsrCharListApplicationServiceTests
         // Use all real services - no mocks
         var cardService = new HsrCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrCharListCardService>>());
+            Mock.Of<ILogger<HsrCharListCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         // Real HTTP client factory
         var httpClientFactory = new Mock<IHttpClientFactory>();

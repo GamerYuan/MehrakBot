@@ -29,7 +29,8 @@ public class ZzzDefenseCardServiceTests
     {
         m_Service = new ZzzDefenseCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<ZzzDefenseCardService>>());
+            Mock.Of<ILogger<ZzzDefenseCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

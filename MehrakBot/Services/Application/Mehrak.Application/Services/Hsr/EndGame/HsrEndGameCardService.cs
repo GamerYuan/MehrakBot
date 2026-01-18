@@ -1,6 +1,6 @@
 ﻿#region
 
-using System.Diagnostics;
+using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
@@ -27,6 +27,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<HsrEndGameCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
@@ -45,10 +46,11 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    public HsrEndGameCardService(IImageRepository imageRepository, ILogger<HsrEndGameCardService> logger)
+    public HsrEndGameCardService(IImageRepository imageRepository, ILogger<HsrEndGameCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
@@ -87,8 +89,8 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
     {
         var gameMode = context.GetParameter<HsrEndGameMode>("mode");
 
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration($"hsr {gameMode.GetString().ToLowerInvariant()}");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, gameMode.GetString(), context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var gameModeData = context.Data;
         List<IDisposable> disposables = [];
@@ -360,7 +362,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
             stream.Position = 0;
 
             m_Logger.LogInformation(LogMessage.CardGenSuccess, gameMode.GetString(),
-                context.UserId, stopwatch.ElapsedMilliseconds);
+                context.UserId);
             return stream;
         }
         catch (Exception e)

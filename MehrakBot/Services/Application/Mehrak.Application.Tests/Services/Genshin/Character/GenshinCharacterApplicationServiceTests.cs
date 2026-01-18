@@ -1015,16 +1015,17 @@ public class GenshinCharacterApplicationServiceTests
         UserDbContext UserContext
         ) SetupIntegrationTest()
     {
+        var metricsMock = new Mock<IApplicationMetrics>();
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinCharacterCardService>>());
+            Mock.Of<ILogger<GenshinCharacterCardService>>(),
+            metricsMock.Object);
 
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData,
             GenshinCharacterDetail, GenshinCharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
-        var metricsMock = new Mock<IApplicationMetrics>();
 
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync(true);
@@ -1074,7 +1075,8 @@ public class GenshinCharacterApplicationServiceTests
     {
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinCharacterCardService>>());
+            Mock.Of<ILogger<GenshinCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
