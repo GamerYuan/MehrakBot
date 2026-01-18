@@ -9,7 +9,6 @@ public sealed class ApplicationMetricsService : IApplicationMetrics, IDisposable
     private readonly Histogram<double> m_CommandExecutionTime;
     private readonly Histogram<double> m_CardGenerationTime;
     private readonly Counter<long> m_CharacterSelections;
-    private readonly Counter<long> m_PopularParties;
 
     public ApplicationMetricsService()
     {
@@ -30,11 +29,6 @@ public sealed class ApplicationMetricsService : IApplicationMetrics, IDisposable
         m_CharacterSelections = m_Meter.CreateCounter<long>(
             "application_character_selections_total",
             description: "Total number of character selections by game"
-        );
-
-        m_PopularParties = m_Meter.CreateCounter<long>(
-            "application_card_popular_party",
-            description: "Popular party compositions by game, mode, and cycle"
         );
     }
 
