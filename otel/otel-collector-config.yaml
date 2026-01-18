@@ -2,7 +2,9 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
 
   # Replacement for node_exporter
   hostmetrics:
@@ -20,6 +22,8 @@ exporters:
   clickhouse:
     endpoint: tcp://clickhouse:9000
     database: default
+    username: ${CLICKHOUSE_USER}
+    password: ${CLICKHOUSE_PASSWORD}
 
 service:
   pipelines:
@@ -29,4 +33,8 @@ service:
 
     metrics:
       receivers: [otlp, hostmetrics]
+      exporters: [clickhouse]
+
+    logs:
+      receivers: [otlp]
       exporters: [clickhouse]
