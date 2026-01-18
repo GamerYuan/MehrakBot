@@ -4,5 +4,5 @@ namespace Mehrak.Domain.Services.Abstractions;
 
 public interface ISystemResourceClientService
 {
-    ValueTask<SystemResource> GetSystemResourceAsync();
+    ValueTask<SystemResource> GetSystemResourceAsync(CancellationToken token = default);
 }

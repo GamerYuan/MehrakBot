@@ -16,13 +16,13 @@ public class ClickhouseSystemClientService : ISystemResourceClientService
         m_Config = config.Value;
     }
 
-    public async ValueTask<SystemResource> GetSystemResourceAsync()
+    public async ValueTask<SystemResource> GetSystemResourceAsync(CancellationToken token = default)
     {
         try
         {
             using DbConnection connection =
                 new ClickHouseConnection($"Host={m_Config.Host};Protocol=http;Username={m_Config.Username};Password={m_Config.Password}");
-            await connection.OpenAsync();
+            await connection.OpenAsync(token);
 
             // Calculate CPU usage: 100 * (1 - avg(idle_rate))
             // idle_rate = (max(value) - min(value)) / duration
@@ -63,9 +63,9 @@ public class ClickhouseSystemClientService : ISystemResourceClientService
                     GROUP BY Attributes['state']
                 )";
 
-            var cpuUsage = await ExecuteScalarAsync<double>(connection, cpuQuery);
-            var memoryTotal = await ExecuteScalarAsync<long>(connection, memTotalQuery);
-            var memoryAvailable = await ExecuteScalarAsync<long>(connection, memAvailableQuery);
+            var cpuUsage = await ExecuteScalarAsync<double>(connection, cpuQuery, token);
+            var memoryTotal = await ExecuteScalarAsync<long>(connection, memTotalQuery, token);
+            var memoryAvailable = await ExecuteScalarAsync<long>(connection, memAvailableQuery, token);
 
             return new SystemResource
             {
@@ -85,13 +85,13 @@ public class ClickhouseSystemClientService : ISystemResourceClientService
         }
     }
 
-    private static async Task<T> ExecuteScalarAsync<T>(DbConnection connection, string query) where T : struct
+    private static async Task<T> ExecuteScalarAsync<T>(DbConnection connection, string query, CancellationToken token = default) where T : struct
     {
         try
         {
             using var command = connection.CreateCommand();
             command.CommandText = query;
-            var result = await command.ExecuteScalarAsync();
+            var result = await command.ExecuteScalarAsync(token);
 
             if (result == null || result == DBNull.Value)
                 return (T)Convert.ChangeType(-1, typeof(T));

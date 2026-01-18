@@ -23,7 +23,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     private readonly IDbStatusService m_DbStatus;
     private readonly IConnectionMultiplexer m_RedisConnection;
     private readonly GatewayClient m_GatewayClient;
-    private readonly ISystemResourceClientService m_PrometheusClientService;
+    private readonly ISystemResourceClientService m_SystemMetricsClient;
     private readonly IAmazonS3 m_S3;
     private static readonly Dictionary<string, string> HealthCheckComponents = new()
     {
@@ -54,7 +54,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         m_DbStatus = dbStatus;
         m_RedisConnection = redisConnection;
         m_GatewayClient = gatewayClient;
-        m_PrometheusClientService = prometheusClientService;
+        m_SystemMetricsClient = prometheusClientService;
         m_S3 = s3;
     }
 
@@ -65,12 +65,15 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
 
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(5));
+
         InteractionMessageProperties response = new();
         var container = new ComponentContainerProperties();
         response.WithFlags(MessageFlags.IsComponentsV2);
         response.AddComponents([container]);
 
-        var systemUsageTask = m_PrometheusClientService.GetSystemResourceAsync();
+        var systemUsageTask = m_SystemMetricsClient.GetSystemResourceAsync(cts.Token);
 
         var dbStatus = await m_DbStatus.GetDbStatus();
 
@@ -111,7 +114,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
                 "```"));
         }
 
-        var s3Status = await CheckS3ConnectionAsync();
+        var s3Status = await CheckS3ConnectionAsync(cts.Token);
 
         container.AddComponents(new ComponentSeparatorProperties());
         container.AddComponents(new TextDisplayProperties($"### __System Status__\n" +
@@ -146,14 +149,14 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         await Context.Interaction.SendFollowupMessageAsync(response);
     }
 
-    private async ValueTask<bool> CheckS3ConnectionAsync()
+    private async ValueTask<bool> CheckS3ConnectionAsync(CancellationToken token = default)
     {
         try
         {
-            await m_S3.ListBucketsAsync();
+            await m_S3.ListBucketsAsync(token);
             return true;
         }
-        catch (AmazonS3Exception)
+        catch (Exception e) when (e is AmazonS3Exception or HttpRequestException or OperationCanceledException)
         {
             return false;
         }
