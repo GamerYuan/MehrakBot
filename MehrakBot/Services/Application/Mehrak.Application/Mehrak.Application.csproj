@@ -21,7 +21,6 @@
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.11.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.11.1" />
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
-        <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.0" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     </ItemGroup>
 
@@ -59,9 +58,7 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Debug' 
-        and $([System.OperatingSystem]::IsLinux())
-        and Exists('appsettings.DockerDev.json')">
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' &#xD;&#xA;        and $([System.OperatingSystem]::IsLinux())&#xD;&#xA;        and Exists('appsettings.DockerDev.json')">
         <None Include="appsettings.DockerDev.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
