@@ -4,6 +4,7 @@ using System.Globalization;
 using Mehrak.Bot.Services;
 using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Protobuf;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Metrics;
@@ -117,6 +118,7 @@ public class Program
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
             builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
             builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+            builder.Services.Configure<ClickhouseConfig>(builder.Configuration.GetSection("Clickhouse"));
 
             builder.Services.AddInfrastructureServices();
             builder.Services.AddBotServices();
@@ -129,7 +131,7 @@ public class Program
 
             builder.Services.AddSingleton<IBotMetrics, BotMetricsService>();
 
-            builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
+            builder.Services.AddSingleton<ISystemResourceClientService, ClickhouseSystemClientService>();
 
             var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 

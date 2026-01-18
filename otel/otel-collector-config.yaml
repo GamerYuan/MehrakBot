@@ -13,6 +13,9 @@ receivers:
     scrapers:
       cpu:
       memory:
+        metrics:
+          system.memory.limit:
+            enabled: true
       network:
       disk:
       load:
