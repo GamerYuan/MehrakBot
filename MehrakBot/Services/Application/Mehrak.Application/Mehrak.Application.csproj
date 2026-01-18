@@ -59,4 +59,12 @@
         </None>
     </ItemGroup>
 
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' 
+        and $([System.OperatingSystem]::IsLinux())
+        and Exists('appsettings.DockerDev.json')">
+        <None Include="appsettings.DockerDev.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

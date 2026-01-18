@@ -52,11 +52,20 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup
+    Condition="'$(Configuration)' == 'Debug' 
+        and $([System.OperatingSystem]::IsLinux())
+        and Exists('appsettings.DockerDev.json')">
+    <None Include="appsettings.DockerDev.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>Mehrak.Dashboard.Tests</_Parameter1>
     </AssemblyAttribute>
-      <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>

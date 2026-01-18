@@ -33,7 +33,12 @@ public class Program
             .AddUserSecrets<Program>()
             .AddEnvironmentVariables();
 
-        if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment() && File.Exists("/.dockerenv"))
+        {
+            Console.WriteLine("Docker environment detected");
+            builder.Configuration.AddJsonFile("appsettings.DockerDev.json");
+        }
+        else if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
             builder.Configuration.AddJsonFile("appsettings.Development.json");
@@ -115,6 +120,8 @@ public class Program
             options.Address = new Uri(address);
         });
 
+        var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
+
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
                 .AddService(serviceName: "MehrakDashboard", serviceInstanceId: Environment.MachineName))
@@ -123,13 +130,13 @@ public class Program
                 .AddHttpClientInstrumentation()
                 .AddGrpcClientInstrumentation()
                 .AddSource("MehrakDashboard")
-                .AddOtlpExporter())
+                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddMeter("MehrakDashboard")
-                .AddOtlpExporter());
+                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
 
         builder.Services.AddDashboardApplicationExecutor();
 

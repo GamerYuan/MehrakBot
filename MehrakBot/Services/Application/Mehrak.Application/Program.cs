@@ -19,14 +19,19 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Configuration.AddJsonFile("appsettings.json", optional: true)
+        builder.Configuration.AddJsonFile("appsettings.json")
             .AddUserSecrets<Program>()
             .AddEnvironmentVariables();
 
-        if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment() && File.Exists("/.dockerenv"))
+        {
+            Console.WriteLine("Docker environment detected");
+            builder.Configuration.AddJsonFile("appsettings.DockerDev.json");
+        }
+        else if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
-            builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
+            builder.Configuration.AddJsonFile("appsettings.Development.json");
         }
 
         var logLevels = builder.Configuration.GetSection("Logging:LogLevel");
@@ -96,6 +101,8 @@ public class Program
 
         builder.Services.AddSingleton<IApplicationMetrics, ApplicationMetricsService>();
 
+        var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
+
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
                 .AddService(serviceName: "MehrakApplication", serviceInstanceId: Environment.MachineName))
@@ -103,13 +110,13 @@ public class Program
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddSource("MehrakApplication")
-                .AddOtlpExporter())
+                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddMeter("MehrakApplication")
-                .AddOtlpExporter());
+                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
 
         var app = builder.Build();
 

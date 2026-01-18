@@ -48,7 +48,13 @@ public class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
-        if (builder.Environment.IsDevelopment())
+
+        if (builder.Environment.IsDevelopment() && File.Exists("/.dockerenv"))
+        {
+            Console.WriteLine("Docker environment detected");
+            builder.Configuration.AddJsonFile("appsettings.DockerDev.json");
+        }
+        else if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
             builder.Configuration.AddJsonFile("appsettings.Development.json");
@@ -122,9 +128,10 @@ public class Program
 
 
             builder.Services.AddSingleton<IBotMetrics, BotMetricsService>();
-            //builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMetricsService>());
 
             builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
+
+            var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource
@@ -134,13 +141,13 @@ public class Program
                     .AddHttpClientInstrumentation()
                     .AddGrpcClientInstrumentation()
                     .AddSource("MehrakBot")
-                    .AddOtlpExporter())
+                    .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
                 .WithMetrics(metrics => metrics
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddMeter("MehrakBot")
-                    .AddOtlpExporter());
+                    .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
 
             builder.Services.AddDiscordGateway().AddApplicationCommands()
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
