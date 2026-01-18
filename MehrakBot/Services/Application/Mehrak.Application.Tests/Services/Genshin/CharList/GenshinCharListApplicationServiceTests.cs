@@ -672,7 +672,8 @@ public class GenshinCharListApplicationServiceTests
     {
         var cardService = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinCharListCardService>>());
+            Mock.Of<ILogger<GenshinCharListCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData,
             GenshinCharacterDetail, GenshinCharacterApiContext>>();
@@ -728,7 +729,8 @@ public class GenshinCharListApplicationServiceTests
     {
         var cardService = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinCharListCardService>>());
+            Mock.Of<ILogger<GenshinCharListCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

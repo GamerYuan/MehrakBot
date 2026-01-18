@@ -1,14 +1,17 @@
 ﻿using System.Globalization;
 using Mehrak.Application;
 using Mehrak.Application.Services;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.Grafana.Loki;
+using Serilog.Sinks.OpenTelemetry;
 
 public class Program
 {
@@ -16,14 +19,19 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Configuration.AddJsonFile("appsettings.json", optional: true)
+        builder.Configuration.AddJsonFile("appsettings.json")
             .AddUserSecrets<Program>()
             .AddEnvironmentVariables();
 
-        if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment() && File.Exists("/.dockerenv"))
+        {
+            Console.WriteLine("Docker environment detected");
+            builder.Configuration.AddJsonFile("appsettings.DockerDev.json");
+        }
+        else if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
-            builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true);
+            builder.Configuration.AddJsonFile("appsettings.Development.json");
         }
 
         var logLevels = builder.Configuration.GetSection("Logging:LogLevel");
@@ -51,12 +59,16 @@ public class Program
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture
             )
-            .WriteTo.GrafanaLoki(
-                builder.Configuration["Loki:ConnectionString"] ?? "http://localhost:3100",
-                [
-                    new LokiLabel { Key = "app", Value = "MehrakApplication" },
-                    new LokiLabel { Key = "environment", Value = builder.Environment.EnvironmentName }
-                ]);
+            .WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = "MehrakApplication",
+                    ["deployment.environment"] = builder.Environment.EnvironmentName
+                };
+            });
 
         if (builder.Environment.IsDevelopment())
             loggerConfig.MinimumLevel.Debug();
@@ -87,7 +99,24 @@ public class Program
         builder.Services.AddApplicationServices();
         builder.Services.AddSingleton<CommandDispatcher>();
 
-        builder.Services.AddSingleton<IMetricsService, ApplicationMetricsService>();
+        builder.Services.AddSingleton<IApplicationMetrics, ApplicationMetricsService>();
+
+        var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
+
+        builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource
+                .AddService(serviceName: "MehrakApplication", serviceInstanceId: Environment.MachineName))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddSource("MehrakApplication")
+                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddRuntimeInstrumentation()
+                .AddMeter("MehrakApplication")
+                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
 
         var app = builder.Build();
 

@@ -148,7 +148,8 @@ public class HsrCharacterCardServiceTests
         var characterCardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             scopeFactory,
-            Mock.Of<ILogger<HsrCharacterCardService>>());
+            Mock.Of<ILogger<HsrCharacterCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
         await characterCardService.InitializeAsync();
 
         return (relicContext, characterCardService);

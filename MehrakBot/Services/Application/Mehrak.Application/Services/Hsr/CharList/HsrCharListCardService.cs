@@ -1,6 +1,6 @@
 ﻿#region
 
-using System.Diagnostics;
+using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Utility;
@@ -26,6 +26,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<HsrCharListCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -84,10 +85,11 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
         { "Physical", Color.FromRgba(191, 195, 190, 128) }
     };
 
-    public HsrCharListCardService(IImageRepository imageRepository, ILogger<HsrCharListCardService> logger)
+    public HsrCharListCardService(IImageRepository imageRepository, ILogger<HsrCharListCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
@@ -99,8 +101,8 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<HsrCharacterInformation>> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("hsr charlist");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var charData = context.Data.ToList();
         List<IDisposable> disposables = [];
@@ -233,8 +235,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "CharList", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "CharList", context.UserId);
             return stream;
         }
         catch (Exception e)

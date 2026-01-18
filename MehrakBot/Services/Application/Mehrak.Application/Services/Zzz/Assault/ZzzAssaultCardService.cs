@@ -1,6 +1,6 @@
 ﻿#region
 
-using System.Diagnostics;
+using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
@@ -27,6 +27,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<ZzzAssaultCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -46,10 +47,11 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
     private static readonly Color OverlayColor = Color.FromRgb(69, 69, 69);
     private static readonly Color BackgroundColor = Color.FromRgb(30, 30, 30);
 
-    public ZzzAssaultCardService(IImageRepository imageRepository, ILogger<ZzzAssaultCardService> logger)
+    public ZzzAssaultCardService(IImageRepository imageRepository, ILogger<ZzzAssaultCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/zzz.ttf");
@@ -79,8 +81,8 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzAssaultData> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("zzz assault");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Assault", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var data = context.Data;
         List<IDisposable> disposables = [];
@@ -212,8 +214,7 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
             await background.SaveAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Assault", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Assault", context.UserId);
             return stream;
         }
         catch (Exception e)

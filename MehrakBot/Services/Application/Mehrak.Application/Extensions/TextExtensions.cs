@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Processing;
 
 #endregion
 
-namespace Mehrak.Application.Utility;
+namespace Mehrak.Application.Extensions;
 
 public static class TextExtensions
 {

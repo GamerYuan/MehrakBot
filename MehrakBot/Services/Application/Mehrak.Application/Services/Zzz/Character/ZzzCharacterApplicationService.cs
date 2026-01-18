@@ -29,7 +29,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly IAliasService m_AliasService;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
-    private readonly IMetricsService m_MetricsService;
+    private readonly IApplicationMetrics m_MetricsService;
 
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
@@ -39,7 +39,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         ICharacterCacheService characterCacheService,
         IAliasService aliasService,
         IApiService<JsonNode, WikiApiContext> wikiApi,
-        IMetricsService metricsService,
+        IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,

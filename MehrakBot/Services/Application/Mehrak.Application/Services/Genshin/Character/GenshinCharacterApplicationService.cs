@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -35,7 +36,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
     private readonly IImageRepository m_ImageRepository;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly IMetricsService m_MetricsService;
+    private readonly IApplicationMetrics m_MetricsService;
 
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
@@ -45,7 +46,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         IApiService<JsonNode, WikiApiContext> wikiApi,
         IImageRepository imageRepository,
         IImageUpdaterService imageUpdaterService,
-        IMetricsService metricsService,
+        IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorage,

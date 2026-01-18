@@ -33,10 +33,12 @@ public class GrpcApplicationService(
 public class CommandDispatcher
 {
     private readonly IServiceProvider m_ServiceProvider;
+    private readonly IApplicationMetrics m_Metrics;
 
-    public CommandDispatcher(IServiceProvider serviceProvider)
+    public CommandDispatcher(IServiceProvider serviceProvider, IApplicationMetrics metrics)
     {
         m_ServiceProvider = serviceProvider;
+        m_Metrics = metrics;
     }
 
     public async Task<Domain.Models.CommandResult> DispatchAsync(Proto.ExecuteRequest request, CancellationToken cancellationToken)
@@ -58,6 +60,7 @@ public class CommandDispatcher
                 $"No service registered for command {request.CommandName}");
         }
 
+        using var time = m_Metrics.ObserveCommandDuration(request.CommandName);
         return await service.ExecuteAsync(appContext);
     }
 }

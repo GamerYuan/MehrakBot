@@ -417,7 +417,7 @@ public class Hi3CharacterApplicationServiceTests
           Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
          Mock<IImageUpdaterService> ImageUpdaterMock,
          Mock<ICardService<Hi3CharacterDetail>> CardServiceMock,
-         Mock<IMetricsService> MetricsServiceMock,
+         Mock<IApplicationMetrics> MetricsServiceMock,
          Mock<IAttachmentStorageService> AttachmentStorageMock,
          UserDbContext UserContext
     ) SetupMocks()
@@ -429,7 +429,7 @@ public class Hi3CharacterApplicationServiceTests
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var cardServiceMock = new Mock<ICardService<Hi3CharacterDetail>>();
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();
 
@@ -471,7 +471,8 @@ public class Hi3CharacterApplicationServiceTests
 
         var cardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<Hi3CharacterCardService>>());
+            Mock.Of<ILogger<Hi3CharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         cardService.InitializeAsync().Wait();
 
@@ -485,7 +486,7 @@ public class Hi3CharacterApplicationServiceTests
         var aliasServiceMock = new Mock<IAliasService>();
         aliasServiceMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
 
-        var metricsMock = new Mock<IMetricsService>();
+        var metricsMock = new Mock<IApplicationMetrics>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();
 

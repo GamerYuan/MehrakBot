@@ -1,10 +1,8 @@
-﻿namespace Mehrak.Domain.Services.Abstractions;
+﻿namespace Mehrak.Bot.Services.Abstractions;
 
-public interface IMetricsService
+public interface IBotMetrics
 {
     void TrackCommand(string commandName, ulong userId, bool isSuccess);
-
-    void TrackCharacterSelection(string game, string character);
 
     void TrackDiscordLatency(double latencyMs);
 

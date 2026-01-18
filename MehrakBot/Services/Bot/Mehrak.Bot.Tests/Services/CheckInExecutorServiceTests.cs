@@ -3,11 +3,12 @@
 using Grpc.Core;
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Protobuf;
+using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -29,7 +30,7 @@ public class CheckInExecutorServiceTests
     private Mock<ApplicationService.ApplicationServiceClient> m_MockApplicationClient = null!;
     private Mock<ICommandRateLimitService> m_MockRateLimitService = null!;
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
-    private Mock<IMetricsService> m_MockMetricsService = null!;
+    private Mock<IBotMetrics> m_MockMetricsService = null!;
     private Mock<IAttachmentStorageService> m_MockAttachmentService = null!;
     private Mock<IImageRepository> m_MockImageRepository = null!;
     private CommandExecutorService m_Service = null!;
@@ -49,7 +50,7 @@ public class CheckInExecutorServiceTests
         m_MockApplicationClient = new Mock<ApplicationService.ApplicationServiceClient>();
         m_MockRateLimitService = new Mock<ICommandRateLimitService>();
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
-        m_MockMetricsService = new Mock<IMetricsService>();
+        m_MockMetricsService = new Mock<IBotMetrics>();
         m_MockAttachmentService = new Mock<IAttachmentStorageService>();
         m_MockImageRepository = new Mock<IImageRepository>();
         m_DiscordHelper = new DiscordTestHelper();
@@ -600,7 +601,7 @@ public class CheckInExecutorServiceTests
             Task.FromResult(result),
             Task.FromResult(new Metadata()),
             () => Status.DefaultSuccess,
-            () => new Metadata(),
+            () => [],
             () => { });
     }
 

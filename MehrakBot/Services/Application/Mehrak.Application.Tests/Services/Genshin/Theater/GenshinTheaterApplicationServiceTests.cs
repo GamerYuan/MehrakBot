@@ -543,7 +543,8 @@ public class GenshinTheaterApplicationServiceTests
     {
         var cardService = new GenshinTheaterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinTheaterCardService>>());
+            Mock.Of<ILogger<GenshinTheaterCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var theaterApiMock = new Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>();
         var characterApiMock =
@@ -601,7 +602,8 @@ public class GenshinTheaterApplicationServiceTests
     {
         var cardService = new GenshinTheaterCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinTheaterCardService>>());
+            Mock.Of<ILogger<GenshinTheaterCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

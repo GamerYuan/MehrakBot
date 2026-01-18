@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Services.Abstractions;
+﻿using Mehrak.Bot.Services.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
@@ -8,11 +8,11 @@ namespace Mehrak.Bot.Services;
 internal class BotLatencyService : IHostedService
 {
     private readonly CancellationTokenSource m_Cts;
-    private readonly IMetricsService m_MetricsService;
+    private readonly IBotMetrics m_MetricsService;
     private readonly GatewayClient m_Client;
     private readonly ILogger<BotLatencyService> m_Logger;
 
-    public BotLatencyService(IMetricsService metricsService, GatewayClient client, ILogger<BotLatencyService> logger)
+    public BotLatencyService(IBotMetrics metricsService, GatewayClient client, ILogger<BotLatencyService> logger)
     {
         m_Cts = new CancellationTokenSource();
         m_MetricsService = metricsService;

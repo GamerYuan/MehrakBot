@@ -494,7 +494,8 @@ public class ZzzDefenseApplicationServiceTests
     {
         var cardService = new ZzzDefenseCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<ZzzDefenseCardService>>());
+            Mock.Of<ILogger<ZzzDefenseCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var defenseApiMock = new Mock<IApiService<ZzzDefenseData, BaseHoYoApiContext>>();
 
@@ -541,7 +542,8 @@ public class ZzzDefenseApplicationServiceTests
     {
         var cardService = new ZzzDefenseCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<ZzzDefenseCardService>>());
+            Mock.Of<ILogger<ZzzDefenseCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

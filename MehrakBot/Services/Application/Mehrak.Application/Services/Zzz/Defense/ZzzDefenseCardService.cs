@@ -1,6 +1,6 @@
 ﻿#region
 
-using System.Diagnostics;
+using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
@@ -28,6 +28,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<ZzzDefenseCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
@@ -48,10 +49,11 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
 
     private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
 
-    public ZzzDefenseCardService(IImageRepository imageRepository, ILogger<ZzzDefenseCardService> logger)
+    public ZzzDefenseCardService(IImageRepository imageRepository, ILogger<ZzzDefenseCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/zzz.ttf");
@@ -85,8 +87,8 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzDefenseData> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("zzz defense");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Defense", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var data = context.Data;
         List<IDisposable> disposables = [];
@@ -341,8 +343,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Defense", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Defense", context.UserId);
             return stream;
         }
         catch (Exception e)

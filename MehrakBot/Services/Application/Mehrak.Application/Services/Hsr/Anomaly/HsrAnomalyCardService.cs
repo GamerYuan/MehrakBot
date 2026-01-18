@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
@@ -23,6 +23,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<HsrAnomalyCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -44,10 +45,11 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
     private Image m_CycleIcon = null!;
     private Image m_Background = null!;
 
-    public HsrAnomalyCardService(IImageRepository imageRepository, ILogger<HsrAnomalyCardService> logger)
+    public HsrAnomalyCardService(IImageRepository imageRepository, ILogger<HsrAnomalyCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
@@ -87,8 +89,8 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrAnomalyInformation> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("hsr anomaly");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Anomaly Arbitration", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var anomalyData = context.Data;
         List<IDisposable> disposableResources = [];
@@ -187,8 +189,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Anomaly Arbitration", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Anomaly Arbitration", context.UserId);
             return stream;
         }
         catch (Exception e)

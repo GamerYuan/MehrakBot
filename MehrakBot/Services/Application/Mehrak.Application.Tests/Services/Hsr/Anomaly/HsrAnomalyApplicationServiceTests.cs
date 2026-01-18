@@ -420,7 +420,8 @@ public class HsrAnomalyApplicationServiceTests
     {
         var cardService = new HsrAnomalyCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrAnomalyCardService>>());
+            Mock.Of<ILogger<HsrAnomalyCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var apiMock = new Mock<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>>();
 

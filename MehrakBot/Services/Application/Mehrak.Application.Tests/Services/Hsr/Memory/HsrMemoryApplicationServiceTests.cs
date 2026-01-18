@@ -507,7 +507,8 @@ public class HsrMemoryApplicationServiceTests
     {
         var cardService = new HsrMemoryCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrMemoryCardService>>());
+            Mock.Of<ILogger<HsrMemoryCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var memoryApiMock = new Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>>();
 
@@ -554,7 +555,8 @@ public class HsrMemoryApplicationServiceTests
     {
         var cardService = new HsrMemoryCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrMemoryCardService>>());
+            Mock.Of<ILogger<HsrMemoryCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

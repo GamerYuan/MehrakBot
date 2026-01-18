@@ -33,7 +33,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
         m_CharacterApi;
 
-    private readonly IMetricsService m_MetricsService;
+    private readonly IApplicationMetrics m_MetricsService;
     private readonly RelicDbContext m_RelicContext;
 
     public HsrCharacterApplicationService(
@@ -44,7 +44,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         ICharacterCacheService characterCacheService,
         IAliasService aliasService,
         ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
-        IMetricsService metricsService,
+        IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         RelicDbContext relicContext,

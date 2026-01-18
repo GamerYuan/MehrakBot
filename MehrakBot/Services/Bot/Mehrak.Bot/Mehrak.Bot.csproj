@@ -11,16 +11,23 @@
         <PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
         <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
         <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
         <PackageReference Include="NetCord" Version="1.0.0-alpha.410" />
         <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.410" />
         <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.410" />
         <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.410" />
         <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.410" />
+        <PackageReference Include="OpenTelemetry" Version="1.14.0" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
         <PackageReference Include="Serilog" Version="4.3.0" />
         <PackageReference Include="Serilog.Enrichers.HttpContext" Version="8.0.9" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
@@ -29,7 +36,7 @@
         <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-        <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.1" />
+        <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -55,6 +62,12 @@
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.Development.json')">
         <None Include="appsettings.Development.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' &#xD;&#xA;        and $([System.OperatingSystem]::IsLinux())&#xD;&#xA;        and Exists('appsettings.DockerDev.json')">
+        <None Include="appsettings.DockerDev.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

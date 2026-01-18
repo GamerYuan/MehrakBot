@@ -2,11 +2,13 @@
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 #endregion
@@ -18,14 +20,17 @@ public class AliasService : IAliasService
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AliasService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
+    private readonly string m_RedisInstanceName;
 
     private readonly Lock m_UpdateLock = new();
 
     public AliasService(
+        IOptions<RedisConfig> redisConfig,
         IServiceScopeFactory serviceScopeFactory,
-        ILogger<AliasService> logger,
-        IConnectionMultiplexer redis)
+        IConnectionMultiplexer redis,
+        ILogger<AliasService> logger)
     {
+        m_RedisInstanceName = redisConfig.Value.InstanceName;
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_Redis = redis;
@@ -33,7 +38,7 @@ public class AliasService : IAliasService
 
     private IDatabase Db => m_Redis.GetDatabase();
 
-    private static string GetAliasKey(Game game) => $"aliases:{game}";
+    private string GetAliasKey(Game game) => $"{m_RedisInstanceName}aliases:{game}";
 
     public Dictionary<string, string> GetAliases(Game gameName)
     {

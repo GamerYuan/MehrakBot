@@ -1,4 +1,4 @@
-﻿namespace Mehrak.Application.Utility;
+﻿namespace Mehrak.Application.Extensions;
 
 using OpenCvSharp;
 using SixLabors.ImageSharp;

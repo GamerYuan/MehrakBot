@@ -1,6 +1,6 @@
 ﻿#region
 
-using System.Diagnostics;
+using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
@@ -27,6 +27,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<HsrMemoryCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -45,10 +46,11 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
-    public HsrMemoryCardService(IImageRepository imageRepository, ILogger<HsrMemoryCardService> logger)
+    public HsrMemoryCardService(IImageRepository imageRepository, ILogger<HsrMemoryCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
@@ -81,8 +83,8 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrMemoryInformation> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("hsr moc");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Memory of Chaos", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var memoryData = context.Data;
         List<IDisposable> disposableResources = [];
@@ -250,8 +252,7 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Memory of Chaos", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Memory of Chaos", context.UserId);
             return stream;
         }
         catch (Exception e)

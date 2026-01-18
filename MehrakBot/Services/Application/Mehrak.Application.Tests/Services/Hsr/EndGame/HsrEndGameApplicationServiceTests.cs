@@ -471,7 +471,8 @@ public class HsrEndGameApplicationServiceTests
     {
         var cardService = new HsrEndGameCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrEndGameCardService>>());
+            Mock.Of<ILogger<HsrEndGameCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
 
@@ -518,7 +519,8 @@ public class HsrEndGameApplicationServiceTests
     {
         var cardService = new HsrEndGameCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrEndGameCardService>>());
+            Mock.Of<ILogger<HsrEndGameCardService>>(),
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

@@ -1,4 +1,4 @@
-﻿namespace Mehrak.Infrastructure.Models;
+﻿namespace Mehrak.Domain.Models;
 
 public struct SystemResource
 {

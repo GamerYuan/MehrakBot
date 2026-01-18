@@ -35,7 +35,8 @@ public class HsrEndGameCardServiceTests
     {
         m_Service = new HsrEndGameCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrEndGameCardService>>());
+            Mock.Of<ILogger<HsrEndGameCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

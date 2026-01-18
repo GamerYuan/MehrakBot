@@ -4,18 +4,11 @@ services:
     image: mehrak:latest
     build:
       context: ./MehrakBot
-      dockerfile: Dockerfile
-      target: bot
-      args:
-        OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
-    ports:
-      - "5000:9090"
+      dockerfile: Services/Bot/Dockerfile
     depends_on:
-      - mongodb
       - postgres
       - redis
-    volumes:
-      - app-logs:/app/logs
+      - otel-collector
     networks:
       - mehrak-network
 
@@ -23,13 +16,26 @@ services:
     image: mehrak-dashboard:latest
     build:
       context: ./MehrakBot
-      dockerfile: Dockerfile
-      target: dashboard
+      dockerfile: Services/Dashboard/Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      - otel-collector
+    networks:
+      - mehrak-network
+
+  application:
+    image: mehrak-application:latest
+    build:
+      context: ./MehrakBot
+      dockerfile: Services/Application/Dockerfile
       args:
         OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
     depends_on:
       - postgres
       - redis
+      - otel-collector
+      - seaweed-s3
     networks:
       - mehrak-network
 
@@ -47,38 +53,12 @@ services:
     networks:
       - mehrak-network
 
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27018:27017"
-    volumes:
-      - mongo_data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=MehrakBot
-    networks:
-      - mehrak-network
-
   redis:
     image: redis:alpine
     volumes:
       - redis_data:/data
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    networks:
-      - mehrak-network
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    restart: unless-stopped
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.size=10GB"
-      - "--storage.tsdb.retention.time=2y"
     networks:
       - mehrak-network
 
@@ -129,15 +109,6 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    networks:
-      - mehrak-network
-
-  loki:
-    image: grafana/loki:3.5.8
-    command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - ./grafana/loki-config.yaml:/etc/loki/local-config.yaml
-      - ./grafana/loki-data:/tmp/loki
     networks:
       - mehrak-network
 
@@ -197,6 +168,54 @@ services:
       - seaweed-network
       - mehrak-network
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--password",
+          "${CLICKHOUSE_PASSWORD}",
+          "--query",
+          "SELECT 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse/
+      - clickhouse_logs:/var/log/clickhouse-server/
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    networks:
+      - mehrak-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - /proc:/hostfs/proc:ro
+      - /sys:/hostfs/sys:ro
+      - /:/rootfs:ro
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - mehrak-network
+
 networks:
   mehrak-network:
     driver: bridge
@@ -204,14 +223,8 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
   pgdata:
   redis_data:
-  prometheus-data:
   grafana-data:
-  app-logs:
-    driver: local
-    driver_opts:
-      type: none
-      device: ./MehrakBot/logs
-      o: bind
+  clickhouse_data:
+  clickhouse_logs:

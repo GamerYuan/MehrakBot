@@ -11,7 +11,7 @@ internal static class LogMessage
     public const string CardGenStartInfo = "Start generating {CardType} Card for User {UserId}";
 
     public const string CardGenSuccess =
-        "Successfully generated {CardType} Card for User {UserId} in {ElapsedMilliseconds} ms";
+        "Successfully generated {CardType} Card for User {UserId}";
 
     public const string CardGenError = "Failed to generate {CardType} Card for User {UserId}, Data:\n{Data}";
 

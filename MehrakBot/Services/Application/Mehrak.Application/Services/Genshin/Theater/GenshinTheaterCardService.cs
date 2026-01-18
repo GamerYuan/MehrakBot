@@ -1,9 +1,9 @@
 ﻿#region
 
-using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -26,6 +26,7 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinTheaterCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -44,10 +45,11 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
-    public GenshinTheaterCardService(IImageRepository imageRepository, ILogger<GenshinTheaterCardService> logger)
+    public GenshinTheaterCardService(IImageRepository imageRepository, ILogger<GenshinTheaterCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
@@ -75,8 +77,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinTheaterInformation> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("genshin theater");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Theater", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         var theaterData = context.Data;
 
@@ -407,8 +409,7 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Theater", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Theater", context.UserId);
             return stream;
         }
         catch (Exception e)

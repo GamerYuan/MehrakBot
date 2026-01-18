@@ -551,7 +551,8 @@ public class GenshinAbyssApplicationServiceTests
     {
         var cardService = new GenshinAbyssCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinAbyssCardService>>());
+            Mock.Of<ILogger<GenshinAbyssCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
         var characterApiMock =
@@ -609,7 +610,8 @@ public class GenshinAbyssApplicationServiceTests
         ) SetupRealApiIntegrationTest()
     {
         var cardService = new GenshinAbyssCardService(S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<GenshinAbyssCardService>>());
+            Mock.Of<ILogger<GenshinAbyssCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

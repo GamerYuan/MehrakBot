@@ -1,9 +1,9 @@
 ﻿#region
 
-using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -28,6 +28,7 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<GenshinAbyssCardService> m_Logger;
+    private readonly IApplicationMetrics m_Metrics;
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -45,10 +46,11 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
 
-    public GenshinAbyssCardService(IImageRepository imageRepository, ILogger<GenshinAbyssCardService> logger)
+    public GenshinAbyssCardService(IImageRepository imageRepository, ILogger<GenshinAbyssCardService> logger, IApplicationMetrics metrics)
     {
         m_ImageRepository = imageRepository;
         m_Logger = logger;
+        m_Metrics = metrics;
 
         FontCollection collection = new();
         var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
@@ -60,19 +62,19 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         m_AbyssStarIconLit =
-            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars"),
+            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars", cancellationToken),
                 cancellationToken);
         m_AbyssStarIconUnlit = m_AbyssStarIconLit.CloneAs<Rgba32>();
         m_AbyssStarIconUnlit.Mutate(ctx => ctx.Brightness(0.35f));
 
-        m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg"),
+        m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg", cancellationToken),
             cancellationToken);
     }
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<GenshinAbyssInformation> context)
     {
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("genshin abyss");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Abyss", context.UserId);
-        var stopwatch = Stopwatch.StartNew();
 
         List<IDisposable> disposableResources = [];
         var abyssData = context.Data;
@@ -329,8 +331,7 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
             await background.SaveAsJpegAsync(stream, JpegEncoder);
             stream.Position = 0;
 
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Abyss", context.UserId,
-                stopwatch.ElapsedMilliseconds);
+            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Abyss", context.UserId);
             return stream;
         }
         catch (Exception e)

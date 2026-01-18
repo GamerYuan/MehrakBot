@@ -20,7 +20,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly IAliasService m_AliasService;
-    private readonly IMetricsService m_MetricsService;
+    private readonly IApplicationMetrics m_MetricsService;
 
     public Hi3CharacterApplicationService(
         ICardService<Hi3CharacterDetail> cardService,
@@ -28,7 +28,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         IImageUpdaterService imageUpdaterService,
         ICharacterCacheService characterCacheService,
         IAliasService aliasService,
-        IMetricsService metricsService,
+        IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,

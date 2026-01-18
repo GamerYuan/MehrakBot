@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using Mehrak.Bot.Services;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
@@ -18,10 +19,13 @@ using NetCord.Hosting.Services;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions;
-using Serilog.Sinks.Grafana.Loki;
+using Serilog.Sinks.OpenTelemetry;
 
 #endregion
 
@@ -45,7 +49,13 @@ public class Program
 
         var builder = Host.CreateApplicationBuilder(args);
 
-        if (builder.Environment.IsDevelopment())
+
+        if (builder.Environment.IsDevelopment() && File.Exists("/.dockerenv"))
+        {
+            Console.WriteLine("Docker environment detected");
+            builder.Configuration.AddJsonFile("appsettings.DockerDev.json");
+        }
+        else if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
             builder.Configuration.AddJsonFile("appsettings.Development.json");
@@ -79,12 +89,16 @@ public class Program
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture
             )
-            .WriteTo.GrafanaLoki(
-                builder.Configuration["Loki:ConnectionString"] ?? "http://localhost:3100",
-                [
-                    new LokiLabel { Key = "app", Value = "MehrakBot" },
-                    new LokiLabel { Key = "environment", Value = builder.Environment.EnvironmentName }
-                ]);
+            .WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = "MehrakBot",
+                    ["deployment.environment"] = builder.Environment.EnvironmentName
+                };
+            });
 
         if (builder.Environment.IsDevelopment())
             loggerConfig.MinimumLevel.Debug();
@@ -104,6 +118,7 @@ public class Program
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
             builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
             builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+            builder.Services.Configure<ClickhouseConfig>(builder.Configuration.GetSection("Clickhouse"));
 
             builder.Services.AddInfrastructureServices();
             builder.Services.AddBotServices();
@@ -113,11 +128,28 @@ public class Program
                 options.Address = new Uri(address ?? "http://localhost:5000");
             });
 
-            builder.Services.AddSingleton<BotMetricsService>();
-            builder.Services.AddSingleton<IMetricsService>(sp => sp.GetRequiredService<BotMetricsService>());
-            builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMetricsService>());
 
-            builder.Services.AddSingleton<ISystemResourceClientService, PrometheusClientService>();
+            builder.Services.AddSingleton<IBotMetrics, BotMetricsService>();
+
+            builder.Services.AddSingleton<ISystemResourceClientService, ClickhouseSystemClientService>();
+
+            var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
+
+            builder.Services.AddOpenTelemetry()
+                .ConfigureResource(resource => resource
+                    .AddService(serviceName: "MehrakBot", serviceInstanceId: Environment.MachineName))
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddGrpcClientInstrumentation()
+                    .AddSource("MehrakBot")
+                    .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddMeter("MehrakBot")
+                    .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
 
             builder.Services.AddDiscordGateway().AddApplicationCommands()
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()

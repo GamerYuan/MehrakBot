@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Bot.Authentication;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Extensions;
 using Mehrak.Domain.Models;
@@ -30,7 +31,7 @@ internal abstract class CommandExecutorServiceBase : ICommandExecutorService
     private readonly UserDbContext m_UserContext;
     private readonly ICommandRateLimitService m_CommandRateLimitService;
     protected readonly IAuthenticationMiddlewareService AuthenticationMiddleware;
-    protected readonly IMetricsService MetricsService;
+    protected readonly IBotMetrics MetricsService;
     protected readonly ILogger<CommandExecutorServiceBase> Logger;
     private readonly ApplicationService.ApplicationServiceClient m_ApplicationClient;
 
@@ -38,7 +39,7 @@ internal abstract class CommandExecutorServiceBase : ICommandExecutorService
         UserDbContext userContext,
         ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        IMetricsService metricsService,
+        IBotMetrics metricsService,
         ApplicationService.ApplicationServiceClient applicationClient,
         ILogger<CommandExecutorServiceBase> logger)
     {

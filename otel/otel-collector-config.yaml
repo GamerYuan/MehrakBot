@@ -1,0 +1,43 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Replacement for node_exporter
+  hostmetrics:
+    root_path: /hostfs
+    collection_interval: 30s
+    scrapers:
+      cpu:
+      memory:
+        metrics:
+          system.memory.limit:
+            enabled: true
+      network:
+      disk:
+      load:
+      processes:
+
+exporters:
+  clickhouse:
+    endpoint: tcp://clickhouse:9000
+    database: default
+    username: ${CLICKHOUSE_USER}
+    password: ${CLICKHOUSE_PASSWORD}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [clickhouse]
+
+    metrics:
+      receivers: [otlp, hostmetrics]
+      exporters: [clickhouse]
+
+    logs:
+      receivers: [otlp]
+      exporters: [clickhouse]
