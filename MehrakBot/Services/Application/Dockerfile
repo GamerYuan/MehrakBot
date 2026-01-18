@@ -120,8 +120,8 @@ RUN apt update && apt install -y clang
 COPY . .
 
 ARG ASPNETCORE_ENVIRONMENT=Production
-RUN dotnet restore --runtime linux-x64 Mehrak.Application/Mehrak.Application.csproj
-RUN dotnet publish Mehrak.Application/Mehrak.Application.csproj \
+RUN dotnet restore --runtime linux-x64 Services/Application/Mehrak.Application/Mehrak.Application.csproj
+RUN dotnet publish Services/Application/Mehrak.Application/Mehrak.Application.csproj \
     -c $([ "$ASPNETCORE_ENVIRONMENT" = "Development" ] && echo "Debug" || echo "Release" ) \
     -r linux-x64 -o /app/out
 

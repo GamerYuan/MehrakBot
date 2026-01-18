@@ -1,13 +1,11 @@
 ﻿FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /app
 
-RUN apt update && apt install -y clang
-
 COPY . .
 
 ARG ASPNETCORE_ENVIRONMENT=Production
-RUN dotnet restore --runtime linux-x64 Mehrak.Bot/Mehrak.Bot.csproj
-RUN dotnet publish Mehrak.Bot/Mehrak.Bot.csproj \
+RUN dotnet restore --runtime linux-x64 Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj
+RUN dotnet publish Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj \
     -c $([ "$ASPNETCORE_ENVIRONMENT" = "Development" ] && echo "Debug" || echo "Release" ) \
     -r linux-x64 -o /app/out
 

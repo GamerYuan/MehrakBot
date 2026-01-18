@@ -3,14 +3,15 @@ services:
   bot:
     image: mehrak:latest
     build:
-      context: ./MehrakBot/Services/Bot
-      dockerfile: Dockerfile
+      context: ./MehrakBot
+      dockerfile: Services/Bot/Dockerfile
       args:
         DOTNET_ENVIRONMENT: Development
     depends_on:
       - postgres
       - redis
       - otel-collector
+
     networks:
       - mehrak-network
     environment:
@@ -21,8 +22,8 @@ services:
   dashboard:
     image: mehrak-dashboard:latest
     build:
-      context: ./MehrakBot/Services/Dashboard
-      dockerfile: Dockerfile
+      context: ./MehrakBot
+      dockerfile: Services/Dashboard/Dockerfile
       args:
         ASPNETCORE_ENVIRONMENT: Development
     ports:
@@ -41,8 +42,8 @@ services:
   application:
     image: mehrak-application:latest
     build:
-      context: ./MehrakBot/Services/Application
-      dockerfile: Dockerfile
+      context: ./MehrakBot
+      dockerfile: Services/Application/Dockerfile
       args:
         ASPNETCORE_ENVIRONMENT: Development
         OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
@@ -178,6 +179,10 @@ services:
     volumes:
       - clickhouse_data:/var/lib/clickhouse/
       - clickhouse_logs:/var/log/clickhouse-server/
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     networks:
       - mehrak-network
 
@@ -185,8 +190,7 @@ services:
     image: otel/opentelemetry-collector-contrib:latest
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
-      # Mount host filesystems to read system metrics
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
       - /proc:/hostfs/proc:ro
       - /sys:/hostfs/sys:ro
       - /:/rootfs:ro
@@ -197,6 +201,8 @@ services:
       - HOST_VAR=/hostfs/var
       - HOST_RUN=/hostfs/run
       - HOST_DEV=/hostfs/dev
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
     ports:
       - "4317:4317" # OTEL gRPC
       - "4318:4318" # OTEL HTTP
@@ -215,5 +221,5 @@ volumes:
   pgdata:
   redis_data:
   grafana-data:
-  clickhouse-data:
-  clickhouse-logs:
+  clickhouse_data:
+  clickhouse_logs:
