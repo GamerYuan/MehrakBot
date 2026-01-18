@@ -11,7 +11,5 @@ public interface IApplicationMetrics
     IDisposable ObserveCardGenerationDuration(string cardType);
 
     void RecordCardGenerationDuration(string cardType, TimeSpan duration);
-
-    void TrackPopularParty(string game, string mode, string cycle, IEnumerable<(string Character, int CharacterId)> party);
 }
 

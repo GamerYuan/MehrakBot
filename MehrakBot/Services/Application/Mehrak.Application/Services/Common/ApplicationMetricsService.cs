@@ -67,16 +67,6 @@ public sealed class ApplicationMetricsService : IApplicationMetrics, IDisposable
             new KeyValuePair<string, object?>("character", character.ToLowerInvariant()));
     }
 
-    public void TrackPopularParty(string game, string mode, string cycle, IEnumerable<(string Character, int CharacterId)> party)
-    {
-        var partyString = string.Join(",", party.OrderBy(x => x.Character).Select(x => $"{x.Character}:{x.CharacterId}"));
-        m_PopularParties.Add(1,
-            new KeyValuePair<string, object?>("game", game),
-            new KeyValuePair<string, object?>("mode", mode),
-            new KeyValuePair<string, object?>("cycle", cycle),
-            new KeyValuePair<string, object?>("party", partyString));
-    }
-
     public void Dispose()
     {
         m_Meter.Dispose();
