@@ -5,9 +5,9 @@
 #region
 
 using System.Net.NetworkInformation;
+using Amazon.S3;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
-using Mehrak.Infrastructure.Metrics;
 using NetCord;
 using NetCord.Gateway;
 using NetCord.Rest;
@@ -24,7 +24,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     private readonly IConnectionMultiplexer m_RedisConnection;
     private readonly GatewayClient m_GatewayClient;
     private readonly ISystemResourceClientService m_PrometheusClientService;
-
+    private readonly IAmazonS3 m_S3;
     private static readonly Dictionary<string, string> HealthCheckComponents = new()
     {
         { "HoYoLAB API", new Uri(HoYoLabDomains.PublicApi).Host },
@@ -49,12 +49,13 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     }
 
     public HealthCommandModule(IDbStatusService dbStatus, IConnectionMultiplexer redisConnection,
-        GatewayClient gatewayClient, ISystemResourceClientService prometheusClientService)
+        GatewayClient gatewayClient, ISystemResourceClientService prometheusClientService, IAmazonS3 s3)
     {
         m_DbStatus = dbStatus;
         m_RedisConnection = redisConnection;
         m_GatewayClient = gatewayClient;
         m_PrometheusClientService = prometheusClientService;
+        m_S3 = s3;
     }
 
     [SlashCommand("health", "Check the health of the bot and its services.",
@@ -110,10 +111,12 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
                 "```"));
         }
 
+        var s3Status = await CheckS3ConnectionAsync();
+
         container.AddComponents(new ComponentSeparatorProperties());
         container.AddComponents(new TextDisplayProperties($"### __System Status__\n" +
                                                           "```ansi\n" +
-                                                          GetFormattedStatus("Database",
+                                                          GetFormattedStatus("PostgreSQL",
                                                               dbStatus
                                                                   ? "Online"
                                                                   : "Offline", dbStatus) + "\n" +
@@ -121,10 +124,15 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
                                                               cacheStatus
                                                                   ? "Online"
                                                                   : "Offline", cacheStatus) + "\n" +
-                                                          GetFormattedStatus("Prometheus",
+                                                          GetFormattedStatus("ClickHouse",
                                                               systemUsage.CpuUsage > 0
                                                                   ? "Online"
                                                                   : "Offline", systemUsage.CpuUsage > 0) +
+                                                          "\n" +
+                                                          GetFormattedStatus("SeaweedFS",
+                                                            s3Status
+                                                                ? "Online"
+                                                                : "Offline", s3Status) +
                                                           "\n" +
                                                           GetFormattedStatus("Discord Latency",
                                                               $"{m_GatewayClient.Latency.TotalMilliseconds:N0} ms",
@@ -136,6 +144,19 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
                                                           $"```ansi\n{apiStatus}```"));
 
         await Context.Interaction.SendFollowupMessageAsync(response);
+    }
+
+    private async ValueTask<bool> CheckS3ConnectionAsync()
+    {
+        try
+        {
+            await m_S3.ListBucketsAsync();
+            return true;
+        }
+        catch (AmazonS3Exception)
+        {
+            return false;
+        }
     }
 
     private static string GetFormattedStatus(string serviceName, string value, bool threshold)
