@@ -11,13 +11,10 @@ services:
       - postgres
       - redis
       - otel-collector
-
     networks:
       - mehrak-network
     environment:
       - DOTNET_ENVIRONMENT=Development
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_SERVICE_NAME=MehrakBot
 
   dashboard:
     image: mehrak-dashboard:latest
@@ -36,8 +33,6 @@ services:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_SERVICE_NAME=MehrakDashboard
 
   application:
     image: mehrak-application:latest
@@ -51,12 +46,11 @@ services:
       - postgres
       - redis
       - otel-collector
+      - seaweed-s3
     networks:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_SERVICE_NAME=MehrakApplication
 
   postgres:
     image: postgres:18.1
@@ -172,7 +166,15 @@ services:
       - "8123:8123"
       - "9000:9000"
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--password",
+          "${CLICKHOUSE_PASSWORD}",
+          "--query",
+          "SELECT 1",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -207,7 +209,8 @@ services:
       - "4317:4317" # OTEL gRPC
       - "4318:4318" # OTEL HTTP
     depends_on:
-      - clickhouse
+      clickhouse:
+        condition: service_healthy
     networks:
       - mehrak-network
 
