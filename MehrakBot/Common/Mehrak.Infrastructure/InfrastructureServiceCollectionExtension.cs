@@ -43,7 +43,7 @@ public static class InfrastructureServiceCollectionExtension
         services.AddStackExchangeRedisCache(options =>
         {
             options.ConnectionMultiplexerFactory = () => Task.FromResult(lazyConnection.Value);
-            options.InstanceName = "Mehrak_";
+            options.InstanceName = redisConfig.InstanceName;
         });
 
         services.AddTransient<IDbStatusService, DbStatusService>();

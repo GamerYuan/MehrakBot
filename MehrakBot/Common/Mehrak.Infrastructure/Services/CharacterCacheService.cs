@@ -2,11 +2,13 @@
 
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 #endregion
@@ -15,6 +17,7 @@ namespace Mehrak.Infrastructure.Services;
 
 public class CharacterCacheService : ICharacterCacheService
 {
+    private readonly string m_RedisInstanceName;
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<CharacterCacheService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
@@ -22,11 +25,13 @@ public class CharacterCacheService : ICharacterCacheService
     private readonly Lock m_UpdateLock = new();
 
     public CharacterCacheService(
+        IOptions<RedisConfig> redisConfig,
         IServiceScopeFactory serviceScopeFactory,
-        ILogger<CharacterCacheService> logger,
         IConnectionMultiplexer redis,
-        IAliasService aliasService)
+        ILogger<CharacterCacheService> logger)
+
     {
+        m_RedisInstanceName = redisConfig.Value.InstanceName;
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_Redis = redis;
@@ -34,7 +39,7 @@ public class CharacterCacheService : ICharacterCacheService
 
     private IDatabase Db => m_Redis.GetDatabase();
 
-    private static string GetCharacterKey(Game game) => $"characters:{game}";
+    private string GetCharacterKey(Game game) => $"{m_RedisInstanceName}characters:{game}";
 
     public List<string> GetCharacters(Game gameName)
     {
