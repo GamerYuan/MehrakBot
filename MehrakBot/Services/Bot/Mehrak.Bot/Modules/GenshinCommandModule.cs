@@ -2,6 +2,7 @@
 
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
+using Mehrak.Bot.Services.Preconditions;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace Mehrak.Bot.Modules;
     [
         InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
     ])]
+[RateLimit<ApplicationCommandContext>]
 public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;

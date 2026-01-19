@@ -6,6 +6,7 @@
 
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
+using Mehrak.Bot.Services.Preconditions;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ using NetCord.Services.ApplicationCommands;
 namespace Mehrak.Bot.Modules;
 
 [SlashCommand("hsr", "Honkai: Star Rail Toolbox")]
+[RateLimit<ApplicationCommandContext>]
 public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;
