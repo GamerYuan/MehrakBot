@@ -50,6 +50,13 @@ public class CommandDispatcher : BackgroundService
         }
     }
 
+    public override void Dispose()
+    {
+        base.Dispose();
+        m_Semaphore.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     private async Task ProcessCommandAsync(QueuedCommand command)
     {
         try
