@@ -1,7 +1,9 @@
 ﻿using System.Threading.Channels;
+using Mehrak.Application.Models;
 using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Domain.Models;
+using Microsoft.Extensions.Options;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Application.Services;
@@ -14,10 +16,13 @@ public class CommandDispatcher : BackgroundService
     private readonly IApplicationMetrics m_Metrics;
     private readonly ILogger<CommandDispatcher> m_Logger;
 
-    private readonly SemaphoreSlim m_Semaphore = new(10);
+    private readonly SemaphoreSlim m_Semaphore;
 
-    public CommandDispatcher(IServiceProvider serviceProvider, IApplicationMetrics metrics, ILogger<CommandDispatcher> logger)
+    public CommandDispatcher(IOptions<CommandDispatcherConfig> config, IServiceProvider serviceProvider,
+        IApplicationMetrics metrics, ILogger<CommandDispatcher> logger)
     {
+        m_Semaphore = new(config.Value.MaxConcurrency);
+
         m_ServiceProvider = serviceProvider;
         m_Metrics = metrics;
         m_Logger = logger;

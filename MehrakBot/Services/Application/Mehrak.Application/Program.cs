@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using Mehrak.Application;
+using Mehrak.Application.Models;
 using Mehrak.Application.Services;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
@@ -81,6 +82,7 @@ public class Program
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+        builder.Services.Configure<CommandDispatcherConfig>(builder.Configuration.GetSection("CommandDispatcher"));
 
         builder.Host.UseSerilog();
 
