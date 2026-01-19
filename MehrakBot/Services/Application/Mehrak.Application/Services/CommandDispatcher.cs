@@ -32,6 +32,8 @@ public class CommandDispatcher : BackgroundService
 
     public async Task DispatchAsync(QueuedCommand command)
     {
+        if (command.CancellationToken.IsCancellationRequested) throw new TaskCanceledException();
+
         await m_Channel.Writer.WriteAsync(command, command.CancellationToken);
     }
 
@@ -54,7 +56,7 @@ public class CommandDispatcher : BackgroundService
         {
             if (command.CancellationToken.IsCancellationRequested)
             {
-                command.CompletionSource.TrySetCanceled();
+                command.CompletionSource.TrySetCanceled(command.CancellationToken);
                 return;
             }
 
