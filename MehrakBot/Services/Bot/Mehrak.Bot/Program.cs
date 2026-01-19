@@ -4,6 +4,7 @@ using System.Globalization;
 using Mehrak.Bot.Modules;
 using Mehrak.Bot.Services;
 using Mehrak.Bot.Services.Abstractions;
+using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
@@ -121,6 +122,7 @@ public class Program
             builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
             builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
             builder.Services.Configure<ClickhouseConfig>(builder.Configuration.GetSection("Clickhouse"));
+            builder.Services.Configure<RateLimiterConfig>(builder.Configuration.GetSection("RateLimit"));
 
             builder.Services.AddInfrastructureServices();
             builder.Services.AddBotServices();
