@@ -21,9 +21,9 @@ internal class CommandRateLimitService : ICommandRateLimitService
 
     private const string GCRAScript = @"
         local key = KEYS[1]
-        local now = tonumber(ARGV[1])        -- Current Unix MS
-        local leak_interval = tonumber(ARGV[2]) -- MS per 1 unit (30,000)
-        local burst_offset = tonumber(ARGV[3])  -- leak_interval * capacity (300,000)
+        local now = tonumber(ARGV[1])
+        local leak_interval = tonumber(ARGV[2])
+        local burst_offset = tonumber(ARGV[3])
 
         -- Get the Theoretical Arrival Time (TAT)
         local tat = tonumber(redis.call('GET', key))
@@ -65,17 +65,12 @@ internal class CommandRateLimitService : ICommandRateLimitService
         var burstOffsetMs = leakMs * m_Config.Capacity;
 
         var result = await m_Redis.ScriptEvaluateAsync(
-            m_LuaScript,
-            new
-            {
-                key = (RedisKey)key,
-                now = nowMs,
-                leak_interval = leakMs,
-                burst_offset = burstOffsetMs
-            });
+            GCRAScript,
+            keys: [(RedisKey)key],
+            values: [nowMs, leakMs, burstOffsetMs]);
 
         var allowed = (int)result == 1;
-        m_Logger.LogDebug("User {UserId} is allowed: {Allowed}", allowed);
+        m_Logger.LogDebug("User {UserId} is allowed: {Allowed}", userId, allowed);
 
         return allowed;
     }
