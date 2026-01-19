@@ -98,6 +98,7 @@ public class Program
         builder.Services.AddInfrastructureServices();
         builder.Services.AddApplicationServices();
         builder.Services.AddSingleton<CommandDispatcher>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<CommandDispatcher>());
 
         builder.Services.AddSingleton<IApplicationMetrics, ApplicationMetricsService>();
 
