@@ -8,12 +8,14 @@ internal class RateLimitAttribute<TContext> : PreconditionAttribute<TContext> wh
 {
     public override async ValueTask<PreconditionResult> EnsureCanExecuteAsync(TContext context, IServiceProvider? serviceProvider)
     {
-        if (serviceProvider == null) return PreconditionResult.Fail("Cannot validate rate limit. Please try again later");
+        if (serviceProvider == null)
+            return PreconditionResult.Fail("Rate limiting is temporarily unavailable. Please try again later.");
+
         var rateLimiter = serviceProvider.GetRequiredService<ICommandRateLimitService>();
 
         var isAllowed = await rateLimiter.IsAllowedAsync(context.User.Id);
 
-        if (!isAllowed) return PreconditionResult.Fail("Used command too frequent! Please try again later");
+        if (!isAllowed) return PreconditionResult.Fail("Used command too frequently! Please try again later");
         return PreconditionResult.Success;
     }
 }
