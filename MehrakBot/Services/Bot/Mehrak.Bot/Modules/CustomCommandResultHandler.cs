@@ -38,7 +38,7 @@ internal class CustomCommandResultHandler<TContext>(MessageFlags? messageFlags =
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Unable to send interaction response");
+            logger.LogDebug(e, "Unable to send interaction response");
             await interaction.SendFollowupMessageAsync(message);
         }
     }
