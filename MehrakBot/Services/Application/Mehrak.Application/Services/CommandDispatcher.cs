@@ -81,7 +81,8 @@ public class CommandDispatcher : BackgroundService
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, "An error occurred while dispatching command {@Command}", command);
+            m_Logger.LogError(e, "An error occurred while dispatching command {CommandName} for user {UserId}",
+                command.Request.CommandName, command.Request.DiscordUserId);
             command.CompletionSource.TrySetException(e);
         }
     }
