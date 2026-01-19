@@ -16,12 +16,13 @@ internal class CommandRateLimitService : ICommandRateLimitService
     private readonly RateLimiterConfig m_Config;
 
     private readonly string m_InstanceName;
+    private readonly LuaScript m_LuaScript;
 
     private const string GCRAScript = @"
-        local key = KEYS[1]
-        local now = tonumber(ARGV[1])
-        local leak_interval = tonumber(ARGV[2])
-        local burst_offset = tonumber(ARGV[3])
+        local key = @inputKey
+        local now = @inputNow
+        local leak_interval = @inputLeak
+        local burst_offset = @inputBurst
 
         -- Get the Theoretical Arrival Time (TAT)
         local tat = tonumber(redis.call('GET', key))
@@ -50,6 +51,8 @@ internal class CommandRateLimitService : ICommandRateLimitService
         m_Redis = redisConnection.GetDatabase();
         m_Config = rateLimitConfig.Value;
         m_Logger = logger;
+
+        m_LuaScript = LuaScript.Prepare(GCRAScript);
     }
 
     public async Task<bool> IsAllowedAsync(ulong userId)
@@ -61,9 +64,14 @@ internal class CommandRateLimitService : ICommandRateLimitService
         var burstOffsetMs = leakMs * m_Config.Capacity;
 
         var result = await m_Redis.ScriptEvaluateAsync(
-            GCRAScript,
-            keys: [(RedisKey)key],
-            values: [nowMs, leakMs, burstOffsetMs]);
+            m_LuaScript,
+            new
+            {
+                inputKey = (RedisKey)key,
+                inputNow = nowMs,
+                inputLeak = leakMs,
+                inputBurst = burstOffsetMs
+            });
 
         var allowed = (int)result == 1;
         m_Logger.LogDebug("User {UserId} is allowed: {Allowed}", userId, allowed);
@@ -72,7 +80,7 @@ internal class CommandRateLimitService : ICommandRateLimitService
     }
 }
 
-public class RateLimiterConfig
+internal class RateLimiterConfig
 {
     public TimeSpan LeakInterval { get; set; } = TimeSpan.FromSeconds(30);
     public int Capacity { get; set; } = 10;
