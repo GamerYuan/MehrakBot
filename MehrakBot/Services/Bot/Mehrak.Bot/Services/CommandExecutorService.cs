@@ -121,6 +121,8 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                             .Select(s => s.Attachment)
                             .Where(a => a != null));
 
+                    List<IDisposable> disposable = [];
+
                     foreach (var attachment in attachments)
                     {
                         Stream? stream = null;
@@ -144,6 +146,7 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                         if (stream != null)
                         {
                             message.AddAttachments(new AttachmentProperties(attachment.FileName, stream));
+                            disposable.Add(stream);
                         }
                         else
                         {
@@ -167,6 +170,8 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                                 new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
                             ])));
                     }
+
+                    disposable.ForEach(x => x.Dispose());
                 }
                 else
                 {
