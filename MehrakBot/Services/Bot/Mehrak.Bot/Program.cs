@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Globalization;
+using Mehrak.Bot.Modules;
 using Mehrak.Bot.Services;
 using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Protobuf;
@@ -18,6 +19,7 @@ using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
+using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -151,7 +153,8 @@ public class Program
                     .AddMeter("MehrakBot")
                     .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
 
-            builder.Services.AddDiscordGateway().AddApplicationCommands()
+            builder.Services.AddDiscordGateway().AddApplicationCommands(a => a.ResultHandler =
+                new CustomCommandResultHandler<ApplicationCommandContext>())
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
                 .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 
