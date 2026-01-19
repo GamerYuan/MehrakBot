@@ -1,0 +1,95 @@
+﻿using System.Threading.Channels;
+using Mehrak.Application.Models.Context;
+using Mehrak.Application.Services.Abstractions;
+using Proto = Mehrak.Domain.Protobuf;
+
+namespace Mehrak.Application.Services;
+
+public class CommandDispatcher : BackgroundService
+{
+    private readonly Channel<QueuedCommand> m_Channel;
+
+    private readonly IServiceProvider m_ServiceProvider;
+    private readonly IApplicationMetrics m_Metrics;
+    private readonly ILogger<CommandDispatcher> m_Logger;
+
+    private readonly SemaphoreSlim m_Semaphore = new(10);
+
+    public CommandDispatcher(IServiceProvider serviceProvider, IApplicationMetrics metrics, ILogger<CommandDispatcher> logger)
+    {
+        m_ServiceProvider = serviceProvider;
+        m_Metrics = metrics;
+        m_Logger = logger;
+        m_Channel = Channel.CreateUnbounded<QueuedCommand>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false
+        });
+    }
+
+    public async Task DispatchAsync(QueuedCommand command)
+    {
+        await m_Channel.Writer.WriteAsync(command, command.CancellationToken);
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await foreach (var queuedCommand in m_Channel.Reader.ReadAllAsync(stoppingToken))
+        {
+            await m_Semaphore.WaitAsync(stoppingToken);
+
+            _ = ProcessCommandAsync(queuedCommand).ContinueWith(t =>
+            {
+                m_Semaphore.Release();
+            }, TaskContinuationOptions.None);
+        }
+    }
+
+    private async Task ProcessCommandAsync(QueuedCommand command)
+    {
+        try
+        {
+            if (command.CancellationToken.IsCancellationRequested)
+            {
+                command.CompletionSource.TrySetCanceled();
+                return;
+            }
+
+            using var scope = m_ServiceProvider.CreateScope();
+            var scopedProvider = scope.ServiceProvider;
+
+            ApplicationContextBase appContext = new(command.Request.DiscordUserId, command.Request.Parameters.Select(x => (x.Key, x.Value)))
+            {
+                LtUid = command.Request.LtUid,
+                LToken = command.Request.LToken
+            };
+
+            var service = scopedProvider.GetKeyedService<IApplicationService>(command.Request.CommandName);
+
+            if (service == null)
+            {
+                m_Logger.LogWarning("No service registered for command {CommandName}", command.Request.CommandName);
+                var failure = Domain.Models.CommandResult.Failure(Domain.Models.CommandFailureReason.BotError,
+                    $"No service registered for command {command.Request.CommandName}");
+                command.CompletionSource.TrySetResult(failure);
+                return;
+            }
+
+            using var time = m_Metrics.ObserveCommandDuration(command.Request.CommandName);
+            var result = await service.ExecuteAsync(appContext);
+            command.CompletionSource.TrySetResult(result);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "An error occurred while dispatching command {@Command}", command);
+            command.CompletionSource.TrySetException(e);
+        }
+    }
+
+}
+
+public record QueuedCommand(
+    Proto.ExecuteRequest Request,
+    TaskCompletionSource<Domain.Models.CommandResult> CompletionSource,
+    CancellationToken CancellationToken
+);

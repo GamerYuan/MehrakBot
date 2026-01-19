@@ -1,7 +1,6 @@
 ﻿using Grpc.Core;
-using Mehrak.Application.Models.Context;
-using Mehrak.Application.Services.Abstractions;
 using Mehrak.Domain.Extensions;
+using Mehrak.Domain.Models;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Application.Services;
@@ -14,8 +13,19 @@ public class GrpcApplicationService(
     {
         try
         {
-            var result = await dispatcher.DispatchAsync(request, context.CancellationToken);
+            var tcs = new TaskCompletionSource<CommandResult>();
+
+            var queuedItem = new QueuedCommand(request, tcs, context.CancellationToken);
+
+            await dispatcher.DispatchAsync(queuedItem);
+
+            var result = await tcs.Task;
+
             return result.ToProto();
+        }
+        catch (TaskCanceledException)
+        {
+            throw new RpcException(new Status(Grpc.Core.StatusCode.Cancelled, "Request cancelled by client"));
         }
         catch (Exception ex)
         {
@@ -27,40 +37,5 @@ public class GrpcApplicationService(
                 FailureReason = Proto.CommandFailureReason.BotError
             };
         }
-    }
-}
-
-public class CommandDispatcher
-{
-    private readonly IServiceProvider m_ServiceProvider;
-    private readonly IApplicationMetrics m_Metrics;
-
-    public CommandDispatcher(IServiceProvider serviceProvider, IApplicationMetrics metrics)
-    {
-        m_ServiceProvider = serviceProvider;
-        m_Metrics = metrics;
-    }
-
-    public async Task<Domain.Models.CommandResult> DispatchAsync(Proto.ExecuteRequest request, CancellationToken cancellationToken)
-    {
-        using var scope = m_ServiceProvider.CreateScope();
-        var scopedProvider = scope.ServiceProvider;
-
-        ApplicationContextBase appContext = new(request.DiscordUserId, request.Parameters.Select(x => (x.Key, x.Value)))
-        {
-            LtUid = request.LtUid,
-            LToken = request.LToken
-        };
-
-        var service = scopedProvider.GetKeyedService<IApplicationService>(request.CommandName);
-
-        if (service == null)
-        {
-            return Domain.Models.CommandResult.Failure(Domain.Models.CommandFailureReason.BotError,
-                $"No service registered for command {request.CommandName}");
-        }
-
-        using var time = m_Metrics.ObserveCommandDuration(request.CommandName);
-        return await service.ExecuteAsync(appContext);
     }
 }
