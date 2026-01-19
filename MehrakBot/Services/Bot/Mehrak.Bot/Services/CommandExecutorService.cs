@@ -105,71 +105,88 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                 await UpdateLastUsedServerAsync(authResult.User, profile, game, server);
             }
 
-            var commandResult = await DispatchCommand(CommandName, Context.Interaction.User.Id, authResult.LtUid, authResult.LToken,
+            List<IDisposable> disposable = [];
+
+            try
+            {
+                var commandResult = await DispatchCommand(CommandName, Context.Interaction.User.Id, authResult.LtUid, authResult.LToken,
                 Parameters.Select(x => (x.Key, x.Value)));
 
-            if (commandResult.IsSuccess)
-            {
-                var message = commandResult.Data.ToMessage();
-
-                var attachments = commandResult.Data.Components
-                    .OfType<ICommandResultAttachment>()
-                    .Concat(commandResult.Data.Components
-                        .OfType<Domain.Models.CommandSection>()
-                        .Select(s => s.Attachment)
-                        .Where(a => a != null));
-
-                foreach (var attachment in attachments)
+                if (commandResult.IsSuccess)
                 {
-                    Stream? stream = null;
-                    if (attachment.SourceType == Domain.Models.AttachmentSourceType.ImageStorage)
+                    var message = commandResult.Data.ToMessage();
+
+                    var attachments = commandResult.Data.Components
+                        .OfType<ICommandResultAttachment>()
+                        .Concat(commandResult.Data.Components
+                            .OfType<Domain.Models.CommandSection>()
+                            .Select(s => s.Attachment)
+                            .Where(a => a != null));
+
+                    foreach (var attachment in attachments)
                     {
-                        try
+                        Stream? stream = null;
+                        if (attachment.SourceType == Domain.Models.AttachmentSourceType.ImageStorage)
                         {
-                            stream = await m_ImageRepository.DownloadFileToStreamAsync(attachment.FileName);
+                            try
+                            {
+                                stream = await m_ImageRepository.DownloadFileToStreamAsync(attachment.FileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError(ex, "Failed to download image {FileName} from ImageRepository", attachment.FileName);
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Logger.LogError(ex, "Failed to download image {FileName} from ImageRepository", attachment.FileName);
+                            var downloadResult = await m_AttachmentService.DownloadAsync(attachment.FileName);
+                            stream = downloadResult?.Content;
                         }
+
+                        if (stream != null)
+                        {
+                            message.AddAttachments(new AttachmentProperties(attachment.FileName, stream));
+                            disposable.Add(stream);
+                        }
+                        else
+                        {
+                            Logger.LogWarning("Attachment {Attachment} not found for command {Command}",
+                                attachment.FileName, CommandName);
+                        }
+                    }
+
+                    MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, true);
+
+                    if (IsResponseEphemeral || commandResult.Data.IsEphemeral)
+                    {
+                        await authResult.Context!.Interaction.SendFollowupMessageAsync(message
+                            .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
                     }
                     else
                     {
-                        var downloadResult = await m_AttachmentService.DownloadAsync(attachment.FileName);
-                        stream = downloadResult?.Content;
+                        await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
+                        await authResult.Context.Interaction.SendFollowupMessageAsync(message
+                            .AddComponents(new ActionRowProperties([
+                                new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
+                            ])));
                     }
-
-                    if (stream != null)
-                    {
-                        message.AddAttachments(new AttachmentProperties(attachment.FileName, stream));
-                    }
-                    else
-                    {
-                        Logger.LogWarning("Attachment {Attachment} not found for command {Command}",
-                            attachment.FileName, CommandName);
-                    }
-                }
-
-                MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, true);
-
-                if (IsResponseEphemeral || commandResult.Data.IsEphemeral)
-                {
-                    await authResult.Context!.Interaction.SendFollowupMessageAsync(message
-                        .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
                 }
                 else
                 {
-                    await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
-                    await authResult.Context.Interaction.SendFollowupMessageAsync(message
-                        .AddComponents(new ActionRowProperties([
-                            new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
-                        ])));
+                    MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
+                    await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
                 }
             }
-            else
+            catch (Exception e)
             {
                 MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
-                await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
+                disposable.ForEach(x => x.Dispose());
+                Logger.LogError(e, "Error executing command {Command} for user {User}", CommandName,
+                    Context.Interaction.User.Id);
+                await authResult.Context!.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithContent(
+                            "An unexpected error occurred while executing the command. Please try again later.")
+                        .WithFlags(MessageFlags.Ephemeral));
             }
         }
         else if (authResult.Status == AuthStatus.Failure)
