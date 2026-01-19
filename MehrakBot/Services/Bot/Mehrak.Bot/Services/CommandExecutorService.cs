@@ -36,14 +36,13 @@ internal class CommandExecutorService : CommandExecutorServiceBase
 
     public CommandExecutorService(
         UserDbContext userContext,
-        ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IBotMetrics metricsService,
         ApplicationService.ApplicationServiceClient applicationClient,
         IAttachmentStorageService attachmentService,
         IImageRepository imageRepository,
         ILogger<CommandExecutorService> logger
-    ) : base(userContext, commandRateLimitService, authenticationMiddleware, metricsService, applicationClient, logger)
+    ) : base(userContext, authenticationMiddleware, metricsService, applicationClient, logger)
     {
         m_AttachmentService = attachmentService;
         m_ImageRepository = imageRepository;
@@ -72,8 +71,6 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                     $"Error when validating input:\n{string.Join("\n", invalid)}"))));
             return;
         }
-
-        if (!await ValidateRateLimitAsync()) return;
 
         var authResult =
             await AuthenticationMiddleware.GetAuthenticationAsync(new AuthenticationRequest(Context, profile));
