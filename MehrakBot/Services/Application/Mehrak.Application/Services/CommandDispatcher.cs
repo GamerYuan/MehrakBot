@@ -1,6 +1,7 @@
 ﻿using System.Threading.Channels;
 using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Domain.Models;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Application.Services;
@@ -20,11 +21,13 @@ public class CommandDispatcher : BackgroundService
         m_ServiceProvider = serviceProvider;
         m_Metrics = metrics;
         m_Logger = logger;
-        m_Channel = Channel.CreateUnbounded<QueuedCommand>(new UnboundedChannelOptions
+        m_Channel = Channel.CreateBounded<QueuedCommand>(new BoundedChannelOptions(100)
         {
             SingleReader = true,
-            SingleWriter = false
-        });
+            SingleWriter = false,
+            FullMode = BoundedChannelFullMode.DropWrite
+        }, item => item.CompletionSource
+            .TrySetResult(CommandResult.Failure(CommandFailureReason.BotError, "Server under high load")));
     }
 
     public async Task DispatchAsync(QueuedCommand command)
