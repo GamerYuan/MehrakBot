@@ -11,11 +11,11 @@ namespace Mehrak.Bot.Modules;
 internal class CustomCommandResultHandler<TContext>(MessageFlags? messageFlags = null) : IApplicationCommandResultHandler<TContext>
     where TContext : IApplicationCommandContext
 {
-    public ValueTask HandleResultAsync(IExecutionResult result, TContext context,
+    public async ValueTask HandleResultAsync(IExecutionResult result, TContext context,
         GatewayClient? client, ILogger logger, IServiceProvider services)
     {
         if (result is not IFailResult failResult)
-            return default;
+            return;
 
         var resultMessage = failResult.Message;
 
@@ -32,6 +32,13 @@ internal class CustomCommandResultHandler<TContext>(MessageFlags? messageFlags =
             Flags = (messageFlags ?? 0) | MessageFlags.Ephemeral,
         };
 
-        return new(interaction.SendResponseAsync(InteractionCallback.Message(message)));
+        try
+        {
+            await interaction.SendResponseAsync(InteractionCallback.Message(message)); // Throws error if already responded to
+        }
+        catch (Exception)
+        {
+            await interaction.SendFollowupMessageAsync(message);
+        }
     }
 }
