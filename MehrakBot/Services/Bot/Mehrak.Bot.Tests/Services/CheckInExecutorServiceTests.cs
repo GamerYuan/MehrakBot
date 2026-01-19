@@ -441,7 +441,7 @@ public class CheckInExecutorServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(callOrder, Has.Count.GreaterThanOrEqualTo(4));
-            Assert.That(callOrder[0], Is.EqualTo("Authentication"), "Authentication should be second");
+            Assert.That(callOrder[0], Is.EqualTo("Authentication"), "Authentication should be first");
             Assert.That(callOrder[1], Is.EqualTo("MetricsStart"), "Metrics observer should start before execution");
             Assert.That(callOrder[2], Is.EqualTo("Execute"), "Application service should execute after metrics start");
         });
