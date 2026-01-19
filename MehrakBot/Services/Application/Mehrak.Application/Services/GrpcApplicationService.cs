@@ -33,7 +33,7 @@ public class GrpcApplicationService(
             return new Proto.CommandResult
             {
                 IsSuccess = false,
-                ErrorMessage = $"Internal Server Error: {ex.Message}",
+                ErrorMessage = $"Internal Server Error",
                 FailureReason = Proto.CommandFailureReason.BotError
             };
         }
