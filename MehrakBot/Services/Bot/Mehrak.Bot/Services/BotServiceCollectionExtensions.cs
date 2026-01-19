@@ -3,7 +3,7 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Bot.Services.RateLimit;
 using Microsoft.Extensions.DependencyInjection;
 
 #endregion

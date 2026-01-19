@@ -6,7 +6,7 @@
 
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
-using Mehrak.Bot.Services.Preconditions;
+using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;

@@ -5,7 +5,7 @@
 #region
 
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Services.Preconditions;
+using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;

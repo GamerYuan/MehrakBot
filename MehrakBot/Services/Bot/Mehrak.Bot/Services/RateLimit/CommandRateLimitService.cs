@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -8,7 +7,7 @@ using StackExchange.Redis;
 
 #endregion
 
-namespace Mehrak.Bot.Services;
+namespace Mehrak.Bot.Services.RateLimit;
 
 internal class CommandRateLimitService : ICommandRateLimitService
 {
@@ -17,7 +16,6 @@ internal class CommandRateLimitService : ICommandRateLimitService
     private readonly RateLimiterConfig m_Config;
 
     private readonly string m_InstanceName;
-    private readonly LuaScript m_LuaScript;
 
     private const string GCRAScript = @"
         local key = KEYS[1]
@@ -52,8 +50,6 @@ internal class CommandRateLimitService : ICommandRateLimitService
         m_Redis = redisConnection.GetDatabase();
         m_Config = rateLimitConfig.Value;
         m_Logger = logger;
-
-        m_LuaScript = LuaScript.Prepare(GCRAScript);
     }
 
     public async Task<bool> IsAllowedAsync(ulong userId)

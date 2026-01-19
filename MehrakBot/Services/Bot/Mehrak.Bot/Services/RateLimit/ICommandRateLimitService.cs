@@ -1,4 +1,4 @@
-﻿namespace Mehrak.Domain.Services.Abstractions;
+﻿namespace Mehrak.Bot.Services.RateLimit;
 
 public interface ICommandRateLimitService
 {
