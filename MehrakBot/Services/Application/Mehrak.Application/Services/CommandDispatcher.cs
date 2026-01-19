@@ -21,6 +21,8 @@ public class CommandDispatcher : BackgroundService
     public CommandDispatcher(IOptions<CommandDispatcherConfig> config, IServiceProvider serviceProvider,
         IApplicationMetrics metrics, ILogger<CommandDispatcher> logger)
     {
+        if (config.Value.MaxConcurrency <= 0)
+            throw new ArgumentException("MaxConcurrency must be greater than zero", nameof(config));
         m_Semaphore = new(config.Value.MaxConcurrency);
 
         m_ServiceProvider = serviceProvider;
