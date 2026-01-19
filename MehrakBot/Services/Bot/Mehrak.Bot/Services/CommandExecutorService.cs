@@ -105,6 +105,8 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                 await UpdateLastUsedServerAsync(authResult.User, profile, game, server);
             }
 
+            List<IDisposable> disposable = [];
+
             try
             {
                 var commandResult = await DispatchCommand(CommandName, Context.Interaction.User.Id, authResult.LtUid, authResult.LToken,
@@ -120,8 +122,6 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                             .OfType<Domain.Models.CommandSection>()
                             .Select(s => s.Attachment)
                             .Where(a => a != null));
-
-                    List<IDisposable> disposable = [];
 
                     foreach (var attachment in attachments)
                     {
@@ -170,8 +170,6 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                                 new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
                             ])));
                     }
-
-                    disposable.ForEach(x => x.Dispose());
                 }
                 else
                 {
@@ -182,6 +180,7 @@ internal class CommandExecutorService : CommandExecutorServiceBase
             catch (Exception e)
             {
                 MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
+                disposable.ForEach(x => x.Dispose());
                 Logger.LogError(e, "Error executing command {Command} for user {User}", CommandName,
                     Context.Interaction.User.Id);
                 await authResult.Context!.Interaction.SendFollowupMessageAsync(
