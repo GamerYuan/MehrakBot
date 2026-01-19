@@ -25,10 +25,7 @@ public class RateLimitAttributeTests
         // Create a JsonUser with the ID we want
         var jsonUser = new JsonUser { Id = 12345ul };
 
-        // Attempt to create User mock with partial arguments.
-        // We pass 'null' for client, hoping it's not dereferenced in constructor.
-        // If it is, we might need to mock RestClient or provide a dummy one.
-        _userMock = new Mock<User>(MockBehavior.Loose, new object[] { jsonUser, null });
+        _userMock = new Mock<User>(MockBehavior.Loose, [jsonUser, null!]);
 
         _attribute = new RateLimitAttribute<IUserContext>();
 
@@ -39,10 +36,7 @@ public class RateLimitAttributeTests
 
         // Setup user context
         _userContextMock.Setup(x => x.User).Returns(_userMock.Object);
-        // Note: We don't need to setup .Id if the base User class reads it from JsonUser correctly.
-        // But if it's virtual, Moq overrides it.
-        // Let's keep the setup if needed, or rely on base.
-        // Usually safer to setup if virtual.
+
         _userMock.Setup(x => x.Id).Returns(12345ul);
     }
 
