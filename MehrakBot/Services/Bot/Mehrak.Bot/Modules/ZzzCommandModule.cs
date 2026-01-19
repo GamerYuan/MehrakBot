@@ -6,6 +6,7 @@
 
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Zzz;
+using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ using NetCord.Services.ApplicationCommands;
 namespace Mehrak.Bot.Modules;
 
 [SlashCommand("zzz", "Zenless Zone Zero Toolbox")]
+[RateLimit<ApplicationCommandContext>]
 public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;

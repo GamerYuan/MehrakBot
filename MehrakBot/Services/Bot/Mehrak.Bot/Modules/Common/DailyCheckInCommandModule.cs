@@ -5,6 +5,7 @@
 #region
 
 using Mehrak.Bot.Builders;
+using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
@@ -13,6 +14,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace Mehrak.Bot.Modules.Common;
 
+[RateLimit<ApplicationCommandContext>]
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;

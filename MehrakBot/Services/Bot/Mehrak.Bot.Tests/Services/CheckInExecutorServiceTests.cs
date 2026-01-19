@@ -28,7 +28,6 @@ namespace Mehrak.Bot.Tests.Services;
 public class CheckInExecutorServiceTests
 {
     private Mock<ApplicationService.ApplicationServiceClient> m_MockApplicationClient = null!;
-    private Mock<ICommandRateLimitService> m_MockRateLimitService = null!;
     private Mock<IAuthenticationMiddlewareService> m_MockAuthMiddleware = null!;
     private Mock<IBotMetrics> m_MockMetricsService = null!;
     private Mock<IAttachmentStorageService> m_MockAttachmentService = null!;
@@ -48,7 +47,6 @@ public class CheckInExecutorServiceTests
     public void Setup()
     {
         m_MockApplicationClient = new Mock<ApplicationService.ApplicationServiceClient>();
-        m_MockRateLimitService = new Mock<ICommandRateLimitService>();
         m_MockAuthMiddleware = new Mock<IAuthenticationMiddlewareService>();
         m_MockMetricsService = new Mock<IBotMetrics>();
         m_MockAttachmentService = new Mock<IAttachmentStorageService>();
@@ -71,7 +69,6 @@ public class CheckInExecutorServiceTests
 
         m_Service = new CommandExecutorService(
             m_UserContext,
-            m_MockRateLimitService.Object,
             m_MockAuthMiddleware.Object,
             m_MockMetricsService.Object,
             m_MockApplicationClient.Object,
@@ -86,11 +83,6 @@ public class CheckInExecutorServiceTests
 
         m_TestUserId = (ulong)new Random(DateTime.UtcNow.Microsecond).NextInt64();
 
-        // Setup default mock behaviors
-        m_MockRateLimitService
-            .Setup(x => x.IsRateLimitedAsync(It.IsAny<ulong>()))
-            .ReturnsAsync(false);
-
         m_MockMetricsService
             .Setup(x => x.ObserveCommandDuration(It.IsAny<string>()))
             .Returns(Mock.Of<IDisposable>());
@@ -100,7 +92,6 @@ public class CheckInExecutorServiceTests
     public void TearDown()
     {
         m_MockApplicationClient.Reset();
-        m_MockRateLimitService.Reset();
         m_MockAuthMiddleware.Reset();
         m_MockMetricsService.Reset();
         m_MockAttachmentService.Reset();
@@ -109,91 +100,6 @@ public class CheckInExecutorServiceTests
         m_DbScope?.Dispose();
         m_DbFactory?.Dispose();
     }
-
-    #region ExecuteAsync - Validation Tests
-
-    [Test]
-    public async Task ExecuteAsync_WithValidValidation_ProceedsToRateLimit()
-    {
-        // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
-        var mockContext = new Mock<IInteractionContext>();
-        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
-
-        m_Service.Context = mockContext.Object;
-
-        // Setup rate limit to trigger (so we can verify it was checked)
-        m_MockRateLimitService
-            .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
-            .ReturnsAsync(true);
-
-        // Act
-        await m_Service.ExecuteAsync(TestProfileId);
-
-        // Assert
-        m_MockRateLimitService.Verify(x => x.IsRateLimitedAsync(m_TestUserId), Times.Once);
-    }
-
-    #endregion
-
-    #region ExecuteAsync - Rate Limit Tests
-
-    [Test]
-    public async Task ExecuteAsync_WhenRateLimited_SendsRateLimitMessage()
-    {
-        // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
-        var mockContext = new Mock<IInteractionContext>();
-        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
-
-        m_Service.Context = mockContext.Object;
-
-        m_MockRateLimitService
-            .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
-            .ReturnsAsync(true);
-
-        // Act
-        await m_Service.ExecuteAsync(TestProfileId);
-
-        // Assert
-        var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("used command too frequent").IgnoreCase);
-
-        // Verify authentication was not attempted
-        m_MockAuthMiddleware.Verify(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()), Times.Never);
-        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
-    }
-
-    [Test]
-    public async Task ExecuteAsync_WhenNotRateLimited_ProceedsToAuthentication()
-    {
-        // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
-        var mockContext = new Mock<IInteractionContext>();
-        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
-
-        m_Service.Context = mockContext.Object;
-
-        m_MockRateLimitService
-            .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
-            .ReturnsAsync(false);
-
-        var user = new UserDto
-        { Id = m_TestUserId, Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }] };
-
-        m_MockAuthMiddleware
-            .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
-            .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        // Act
-        await m_Service.ExecuteAsync(TestProfileId);
-
-        // Assert
-        m_MockRateLimitService.Verify(x => x.IsRateLimitedAsync(m_TestUserId), Times.Once);
-        m_MockAuthMiddleware.Verify(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()), Times.Once);
-    }
-
-    #endregion
 
     #region ExecuteAsync - Authentication Tests
 
@@ -499,11 +405,6 @@ public class CheckInExecutorServiceTests
 
         var callOrder = new List<string>();
 
-        m_MockRateLimitService
-            .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
-            .ReturnsAsync(false)
-            .Callback(() => callOrder.Add("RateLimit"));
-
         var user = new UserDto
         {
             Id = m_TestUserId,
@@ -540,35 +441,10 @@ public class CheckInExecutorServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(callOrder, Has.Count.GreaterThanOrEqualTo(4));
-            Assert.That(callOrder[0], Is.EqualTo("RateLimit"), "Rate limit should be checked first");
-            Assert.That(callOrder[1], Is.EqualTo("Authentication"), "Authentication should be second");
-            Assert.That(callOrder[2], Is.EqualTo("MetricsStart"), "Metrics observer should start before execution");
-            Assert.That(callOrder[3], Is.EqualTo("Execute"), "Application service should execute after metrics start");
+            Assert.That(callOrder[0], Is.EqualTo("Authentication"), "Authentication should be first");
+            Assert.That(callOrder[1], Is.EqualTo("MetricsStart"), "Metrics observer should start before execution");
+            Assert.That(callOrder[2], Is.EqualTo("Execute"), "Application service should execute after metrics start");
         });
-    }
-
-    [Test]
-    public async Task ExecuteAsync_WithRateLimit_StopsAtRateLimitCheck()
-    {
-        // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
-        var mockContext = new Mock<IInteractionContext>();
-        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
-
-        m_Service.Context = mockContext.Object;
-
-        m_MockRateLimitService
-            .Setup(x => x.IsRateLimitedAsync(m_TestUserId))
-            .ReturnsAsync(true);
-
-        // Act
-        await m_Service.ExecuteAsync(TestProfileId);
-
-        // Assert - Verify no downstream calls were made
-        m_MockAuthMiddleware.Verify(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()), Times.Never);
-        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
-        m_MockMetricsService.Verify(x => x.TrackCommand(It.IsAny<string>(), It.IsAny<ulong>(), It.IsAny<bool>()),
-            Times.Never);
     }
 
     #endregion

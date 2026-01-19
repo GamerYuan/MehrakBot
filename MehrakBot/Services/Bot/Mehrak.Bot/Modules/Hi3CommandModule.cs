@@ -1,5 +1,6 @@
 ﻿using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
+using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ namespace Mehrak.Bot.Modules;
     [
         InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
     ])]
+[RateLimit<ApplicationCommandContext>]
 public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;

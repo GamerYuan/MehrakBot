@@ -1,8 +1,10 @@
 ﻿#region
 
 using System.Globalization;
+using Mehrak.Bot.Modules;
 using Mehrak.Bot.Services;
 using Mehrak.Bot.Services.Abstractions;
+using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
@@ -18,6 +20,7 @@ using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
+using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -119,6 +122,7 @@ public class Program
             builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
             builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
             builder.Services.Configure<ClickhouseConfig>(builder.Configuration.GetSection("Clickhouse"));
+            builder.Services.Configure<RateLimiterConfig>(builder.Configuration.GetSection("RateLimit"));
 
             builder.Services.AddInfrastructureServices();
             builder.Services.AddBotServices();
@@ -151,7 +155,8 @@ public class Program
                     .AddMeter("MehrakBot")
                     .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
 
-            builder.Services.AddDiscordGateway().AddApplicationCommands()
+            builder.Services.AddDiscordGateway().AddApplicationCommands(a => a.ResultHandler =
+                new CustomCommandResultHandler<ApplicationCommandContext>())
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
                 .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 

@@ -6,13 +6,10 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Extensions;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Protobuf;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using NetCord;
-using NetCord.Rest;
 using NetCord.Services;
 
 #endregion
@@ -29,7 +26,6 @@ internal abstract class CommandExecutorServiceBase : ICommandExecutorService
 
     protected readonly List<ParamValidator> Validators = [];
     private readonly UserDbContext m_UserContext;
-    private readonly ICommandRateLimitService m_CommandRateLimitService;
     protected readonly IAuthenticationMiddlewareService AuthenticationMiddleware;
     protected readonly IBotMetrics MetricsService;
     protected readonly ILogger<CommandExecutorServiceBase> Logger;
@@ -37,14 +33,12 @@ internal abstract class CommandExecutorServiceBase : ICommandExecutorService
 
     protected CommandExecutorServiceBase(
         UserDbContext userContext,
-        ICommandRateLimitService commandRateLimitService,
         IAuthenticationMiddlewareService authenticationMiddleware,
         IBotMetrics metricsService,
         ApplicationService.ApplicationServiceClient applicationClient,
         ILogger<CommandExecutorServiceBase> logger)
     {
         m_UserContext = userContext;
-        m_CommandRateLimitService = commandRateLimitService;
         AuthenticationMiddleware = authenticationMiddleware;
         MetricsService = metricsService;
         m_ApplicationClient = applicationClient;
@@ -71,20 +65,6 @@ internal abstract class CommandExecutorServiceBase : ICommandExecutorService
             .ConfigureAwait(false);
 
         return response.ToDomain();
-    }
-
-    protected async Task<bool> ValidateRateLimitAsync()
-    {
-        if (await m_CommandRateLimitService.IsRateLimitedAsync(Context.Interaction.User.Id))
-        {
-            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent("Used command too frequent! Please try again later")
-                    .WithFlags(MessageFlags.Ephemeral)));
-            return false;
-        }
-
-        await m_CommandRateLimitService.SetRateLimitAsync(Context.Interaction.User.Id);
-        return true;
     }
 
     protected async Task<string?> GetLastUsedServerAsync(UserDto user, Game game, int profileId)
