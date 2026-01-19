@@ -13,7 +13,7 @@ public class GrpcApplicationService(
     {
         try
         {
-            var tcs = new TaskCompletionSource<CommandResult>();
+            var tcs = new TaskCompletionSource<CommandResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var queuedItem = new QueuedCommand(request, tcs, context.CancellationToken);
 
