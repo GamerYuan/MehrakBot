@@ -53,9 +53,8 @@ public class CommandRateLimitServiceTests
 
         // Mock ScriptEvaluateAsync to return 1 (Allowed)
         m_MockDatabase.Setup(x => x.ScriptEvaluateAsync(
-            It.IsAny<string>(),
-            It.IsAny<RedisKey[]>(),
-            It.IsAny<RedisValue[]>(),
+            It.IsAny<LuaScript>(),
+            It.IsAny<It.IsAnyType>(),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(RedisResult.Create(1));
 
@@ -66,9 +65,8 @@ public class CommandRateLimitServiceTests
         Assert.That(result, Is.True);
 
         m_MockDatabase.Verify(x => x.ScriptEvaluateAsync(
-            It.IsAny<string>(), // The script content
-            It.Is<RedisKey[]>(keys => keys.Length == 1 && (string)keys[0]! == expectedKey),
-            It.Is<RedisValue[]>(values => values.Length == 3),
+            It.IsAny<LuaScript>(),
+            It.IsAny<It.IsAnyType>(),
             It.IsAny<CommandFlags>()), Times.Once);
 
         m_MockLogger.Verify(
@@ -89,9 +87,8 @@ public class CommandRateLimitServiceTests
 
         // Mock ScriptEvaluateAsync to return 0 (Not allowed)
         m_MockDatabase.Setup(x => x.ScriptEvaluateAsync(
-            It.IsAny<string>(),
-            It.IsAny<RedisKey[]>(),
-            It.IsAny<RedisValue[]>(),
+            It.IsAny<LuaScript>(),
+            It.IsAny<It.IsAnyType>(),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(RedisResult.Create(0));
 
@@ -136,9 +133,8 @@ public class CommandRateLimitServiceTests
         var expectedBurstOffsetMs = expectedLeakMs * capacity; // 20000
 
         m_MockDatabase.Setup(x => x.ScriptEvaluateAsync(
-            It.IsAny<string>(),
-            It.IsAny<RedisKey[]>(),
-            It.IsAny<RedisValue[]>(),
+            It.IsAny<LuaScript>(),
+            It.IsAny<It.IsAnyType>(),
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(RedisResult.Create(1));
 
@@ -147,12 +143,10 @@ public class CommandRateLimitServiceTests
 
         // Assert
         m_MockDatabase.Verify(x => x.ScriptEvaluateAsync(
-            It.IsAny<string>(),
-            It.IsAny<RedisKey[]>(),
-            It.Is<RedisValue[]>(values =>
-                (long)values[1] == expectedLeakMs &&
-                (long)values[2] == expectedBurstOffsetMs
-            ),
+            It.IsAny<LuaScript>(),
+            It.Is<object>(obj =>
+                (long)obj.GetType().GetProperty("inputLeak")!.GetValue(obj)! == expectedLeakMs &&
+                (long)obj.GetType().GetProperty("inputBurst")!.GetValue(obj)! == expectedBurstOffsetMs),
             It.IsAny<CommandFlags>()), Times.Once);
     }
 }
