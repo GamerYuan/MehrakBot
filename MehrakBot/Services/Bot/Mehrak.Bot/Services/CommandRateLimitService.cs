@@ -1,8 +1,10 @@
 ﻿#region
 
 using Mehrak.Domain.Services.Abstractions;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 #endregion
 
@@ -10,32 +12,77 @@ namespace Mehrak.Bot.Services;
 
 internal class CommandRateLimitService : ICommandRateLimitService
 {
-    private readonly ICacheService m_CacheService;
+    private readonly IDatabase m_Redis;
     private readonly ILogger<CommandRateLimitService> m_Logger;
+    private readonly RateLimiterConfig m_Config;
 
-    private static readonly TimeSpan DefaultExpirationTime = TimeSpan.FromSeconds(10);
+    private readonly string m_InstanceName;
+    private readonly LuaScript m_LuaScript;
 
-    public CommandRateLimitService(ICacheService cacheService, ILogger<CommandRateLimitService> logger)
+    private const string GCRAScript = @"
+        local key = KEYS[1]
+        local now = tonumber(ARGV[1])        -- Current Unix MS
+        local leak_interval = tonumber(ARGV[2]) -- MS per 1 unit (30,000)
+        local burst_offset = tonumber(ARGV[3])  -- leak_interval * capacity (300,000)
+
+        -- Get the Theoretical Arrival Time (TAT)
+        local tat = tonumber(redis.call('GET', key))
+
+        if not tat then
+            tat = now
+        end
+
+        -- Calculate the new TAT
+        local new_tat = math.max(now, tat) + leak_interval
+
+        -- If the new TAT is too far in the future, the bucket is full
+        if new_tat <= (now + burst_offset) then
+            redis.call('SET', key, new_tat, 'PX', burst_offset + leak_interval)
+            return 1
+        else
+            return 0
+        end";
+
+    public CommandRateLimitService(IOptions<RedisConfig> redisConfig,
+        IOptions<RateLimiterConfig> rateLimitConfig,
+        IConnectionMultiplexer redisConnection,
+        ILogger<CommandRateLimitService> logger)
     {
-        m_CacheService = cacheService;
+        m_InstanceName = redisConfig.Value.InstanceName;
+        m_Redis = redisConnection.GetDatabase();
+        m_Config = rateLimitConfig.Value;
         m_Logger = logger;
+
+        m_LuaScript = LuaScript.Prepare(GCRAScript);
     }
 
-    public async Task<bool> IsRateLimitedAsync(ulong userId)
+    public async Task<bool> IsAllowedAsync(ulong userId)
     {
-        var cacheKey = $"cmd_rate_limit:{userId}";
-        var val = await m_CacheService.GetAsync<string>(cacheKey);
+        var key = $"{m_InstanceName}cmd_rate_limit:{userId}";
 
-        if (val == null) return false;
+        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var leakMs = (long)m_Config.LeakInterval.TotalMilliseconds;
+        var burstOffsetMs = leakMs * m_Config.Capacity;
 
-        m_Logger.LogDebug("User {UserId} is rate limited", userId);
-        return true;
+        var result = await m_Redis.ScriptEvaluateAsync(
+            m_LuaScript,
+            new
+            {
+                key = (RedisKey)key,
+                now = nowMs,
+                leak_interval = leakMs,
+                burst_offset = burstOffsetMs
+            });
+
+        var allowed = (int)result == 1;
+        m_Logger.LogDebug("User {UserId} is allowed: {Allowed}", allowed);
+
+        return allowed;
     }
+}
 
-    public async Task SetRateLimitAsync(ulong userId)
-    {
-        var cacheKey = $"cmd_rate_limit:{userId}";
-        await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, "1", DefaultExpirationTime));
-        m_Logger.LogDebug("Set rate limit for user {UserId}", userId);
-    }
+public class RateLimiterConfig
+{
+    public TimeSpan LeakInterval { get; set; } = TimeSpan.FromSeconds(30);
+    public int Capacity { get; set; } = 10;
 }
