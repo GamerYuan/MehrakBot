@@ -36,8 +36,9 @@ internal class CustomCommandResultHandler<TContext>(MessageFlags? messageFlags =
         {
             await interaction.SendResponseAsync(InteractionCallback.Message(message)); // Throws error if already responded to
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            logger.LogError(e, "Unable to send interaction response");
             await interaction.SendFollowupMessageAsync(message);
         }
     }
