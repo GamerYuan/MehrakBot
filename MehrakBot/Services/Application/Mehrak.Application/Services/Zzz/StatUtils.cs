@@ -39,6 +39,21 @@ internal static partial class StatUtils
             };
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static string GetProfessionNameFromId(int professionId)
+    {
+        return professionId switch
+        {
+            1 => "Attack",
+            2 => "Stun",
+            3 => "Anomaly",
+            4 => "Support",
+            5 => "Defense",
+            6 => "Rupture",
+            _ => "Unknown"
+        };
+    }
+
     [GeneratedRegex(@"\sDMG\sBonus")]
     private static partial Regex DamageBonusRegex();
 }
