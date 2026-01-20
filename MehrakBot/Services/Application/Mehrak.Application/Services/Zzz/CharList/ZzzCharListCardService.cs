@@ -39,20 +39,20 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
 
     private static readonly Dictionary<string, Color> ElementForeground = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "Physical", Color.FromRgb(244, 163, 111) },
-        { "Fire", Color.FromRgb(7, 229, 252) },
-        { "Ice", Color.FromRgb(203, 253, 253) },
-        { "Electric", Color.FromRgb(222, 186, 255) },
-        { "Ether", Color.FromRgb(163, 238, 202) },
+        { "Physical", Color.FromRgb(255, 226, 0) },
+        { "Fire", Color.FromRgb(254, 120, 26) },
+        { "Ice", Color.FromRgb(126, 233, 232) },
+        { "Electric", Color.FromRgb(37, 218, 250) },
+        { "Ether", Color.FromRgb(252, 23, 40) },
     };
 
     private static readonly Dictionary<string, Color> ElementBackground = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "Physical", Color.FromRgba(198, 90, 21, 128) },
-        { "Fire", Color.FromRgba(25, 156, 198, 128) },
-        { "Ice", Color.FromRgba(108, 192, 192, 128) },
-        { "Electric", Color.FromRgba(177, 117, 217, 128) },
-        { "Ether", Color.FromRgba(56, 185, 145, 128) },
+        { "Physical", Color.FromRgba(226, 137, 3, 128) },
+        { "Fire", Color.FromRgba(240, 25, 2, 128) },
+        { "Ice", Color.FromRgba(11, 207, 213, 128) },
+        { "Electric", Color.FromRgba(2, 121, 254, 128) },
+        { "Ether", Color.FromRgba(132, 99, 240, 128) },
     };
 
     private static readonly char[] RarityOrder = ['S', 'A'];
