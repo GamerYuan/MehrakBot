@@ -1,6 +1,9 @@
 ﻿#region
 
 using System.Text.Json.Serialization;
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 
 #endregion
 
@@ -43,4 +46,14 @@ public class ZzzBasicAvatarData
     [JsonPropertyName("sub_element_type")] public int SubElementType { get; init; }
 
     [JsonPropertyName("awaken_state")] public required string AwakenState { get; init; }
+
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.AvatarName, Id);
+    }
+
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), RoleSquareUrl);
+    }
 }
