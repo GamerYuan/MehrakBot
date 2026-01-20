@@ -387,4 +387,156 @@ public static class ImageUtility
 
         return positions;
     }
+
+    public static GridLayout CalculateSplitGridLayout(int topImageCount,
+        int bottomImageCount,
+        int imageWidth,
+        int imageHeight,
+        int[] padding,
+        int imageSpacing = 20,
+        int sectionGap = 40)
+    {
+        if (topImageCount < 0 || bottomImageCount < 0)
+            throw new ArgumentException("Image counts cannot be negative");
+
+        if (topImageCount + bottomImageCount == 0)
+            throw new ArgumentException("Total image count must be greater than 0");
+
+        if (imageWidth <= 0 || imageHeight <= 0)
+            throw new ArgumentException("Image dimensions must be greater than 0");
+
+        if (padding == null || padding.Length != 4)
+            throw new ArgumentException("Padding array must contain exactly 4 values: top, right, bottom, left");
+
+        if (padding.Any(p => p < 0))
+            throw new ArgumentException("Padding values cannot be negative");
+
+        if (imageSpacing < 0 || sectionGap < 0)
+            throw new ArgumentException("Spacing and gap values cannot be negative");
+
+        var layout = new GridLayout((int[])padding.Clone())
+        {
+            ImageWidth = imageWidth,
+            ImageHeight = imageHeight,
+            ImageSpacing = imageSpacing
+        };
+
+        var (bestColumns, topRows, bottomRows) = FindOptimalSplitGridDimensions(topImageCount,
+            bottomImageCount,
+            imageWidth,
+            imageHeight,
+            padding,
+            imageSpacing,
+            sectionGap);
+
+        layout.Columns = bestColumns;
+        layout.Rows = topRows + bottomRows;
+
+        layout.OutputWidth = layout.PaddingLeft + layout.PaddingRight +
+                             layout.Columns * imageWidth +
+                             (layout.Columns - 1) * imageSpacing;
+
+        var topH = topRows > 0 ? topRows * imageHeight + (topRows - 1) * imageSpacing : 0;
+        var bottomH = bottomRows > 0 ? bottomRows * imageHeight + (bottomRows - 1) * imageSpacing : 0;
+        var gap = (topRows > 0 && bottomRows > 0) ? sectionGap : 0;
+
+        layout.OutputHeight = layout.PaddingTop + layout.PaddingBottom + topH + gap + bottomH;
+
+        layout.ImagePositions = CalculateSplitImagePositions(bestColumns,
+            topImageCount,
+            bottomImageCount,
+            imageWidth,
+            imageHeight,
+            padding,
+            imageSpacing,
+            sectionGap);
+
+        return layout;
+    }
+
+    private static (int columns, int topRows, int bottomRows) FindOptimalSplitGridDimensions(int topImageCount,
+        int bottomImageCount,
+        int imageWidth,
+        int imageHeight,
+        int[] padding,
+        int imageSpacing,
+        int sectionGap)
+    {
+        var totalImages = topImageCount + bottomImageCount;
+        var bestColumns = 1;
+        var bestTopRows = topImageCount;
+        var bestBottomRows = bottomImageCount;
+        var bestRatioDifference = double.MaxValue;
+
+        for (var columns = 1; columns <= totalImages; columns++)
+        {
+            var topRows = (int)Math.Ceiling((double)topImageCount / columns);
+            var bottomRows = (int)Math.Ceiling((double)bottomImageCount / columns);
+
+            var gridWidth = padding[3] + padding[1] +
+                            columns * imageWidth +
+                            (columns - 1) * imageSpacing;
+
+            var topH = topRows > 0 ? topRows * imageHeight + (topRows - 1) * imageSpacing : 0;
+            var bottomH = bottomRows > 0 ? bottomRows * imageHeight + (bottomRows - 1) * imageSpacing : 0;
+            var gap = (topRows > 0 && bottomRows > 0) ? sectionGap : 0;
+
+            var gridHeight = padding[0] + padding[2] + topH + gap + bottomH;
+
+            var currentRatio = (double)gridWidth / gridHeight;
+            var ratioDifference = Math.Abs(currentRatio - 4.0 / 3.0);
+
+            if (ratioDifference < bestRatioDifference)
+            {
+                bestRatioDifference = ratioDifference;
+                bestColumns = columns;
+                bestTopRows = topRows;
+                bestBottomRows = bottomRows;
+            }
+        }
+
+        return (bestColumns, bestTopRows, bestBottomRows);
+    }
+
+    private static List<ImagePosition> CalculateSplitImagePositions(int columns,
+        int topImageCount,
+        int bottomImageCount,
+        int imageWidth,
+        int imageHeight,
+        int[] padding,
+        int imageSpacing,
+        int sectionGap)
+    {
+        var positions = new List<ImagePosition>();
+        var currentIndex = 0;
+
+        for (var i = 0; i < topImageCount; i++)
+        {
+            var column = i % columns;
+            var row = i / columns;
+
+            var x = padding[3] + column * (imageWidth + imageSpacing);
+            var y = padding[0] + row * (imageHeight + imageSpacing);
+
+            positions.Add(new ImagePosition(x, y, currentIndex++));
+        }
+
+        var topRows = (int)Math.Ceiling((double)topImageCount / columns);
+        var topH = topRows > 0 ? topRows * imageHeight + (topRows - 1) * imageSpacing : 0;
+        var gap = (topImageCount > 0 && bottomImageCount > 0) ? sectionGap : 0;
+        var bottomStartY = padding[0] + topH + gap;
+
+        for (var i = 0; i < bottomImageCount; i++)
+        {
+            var column = i % columns;
+            var row = i / columns;
+
+            var x = padding[3] + column * (imageWidth + imageSpacing);
+            var y = bottomStartY + row * (imageHeight + imageSpacing);
+
+            positions.Add(new ImagePosition(x, y, currentIndex++));
+        }
+
+        return positions;
+    }
 }
