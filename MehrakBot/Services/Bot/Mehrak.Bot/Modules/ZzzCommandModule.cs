@@ -83,6 +83,29 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
+    [SubSlashCommand("charlist", "Get character list")]
+    public async Task CharListCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Server? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        int profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the charlist command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
+
+        var executor = m_Builder
+            .WithInteractionContext(Context)
+            .WithParameters(parameters)
+            .WithCommandName(CommandName.Zzz.CharList)
+            .Build();
+
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
+    }
+
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
     public async Task ShiyuCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
