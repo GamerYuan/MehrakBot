@@ -2,6 +2,7 @@
 
 using Mehrak.Application.Models;
 using Mehrak.Application.Utility;
+using Mehrak.GameApi.Zzz.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -68,5 +69,19 @@ internal static class AvatarImageUtility
         });
 
         return avatarImage;
+    }
+
+    public static Image<Rgba32> GetStyledBuddyImage(this ZzzBuddyData buddy, Image buddyImage)
+    {
+        Image<Rgba32> background = new(150, 160);
+        background.Mutate(ctx =>
+        {
+            ctx.Clear(Color.FromRgb(24, 24, 24));
+            ctx.DrawImage(buddyImage, new Point(-45, -20), 1f);
+            var border = ImageUtility.CreateRoundedRectanglePath(150, 100, 15);
+            ctx.Draw(Color.Black, 4, border);
+            ctx.ApplyRoundedCorners(15);
+        });
+        return background;
     }
 }
