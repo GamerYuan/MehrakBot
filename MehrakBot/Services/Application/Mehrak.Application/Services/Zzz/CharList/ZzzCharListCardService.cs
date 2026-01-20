@@ -34,7 +34,6 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
-    private readonly Font m_SmallFont;
 
     private Dictionary<int, Image> m_StarImages = [];
 
@@ -76,7 +75,6 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
-        m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
