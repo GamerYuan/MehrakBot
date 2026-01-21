@@ -34,6 +34,7 @@ internal static partial class StatUtils
             {
                 1 => "frost",
                 2 => "auricink",
+                4 => "honededge",
                 _ => throw new ArgumentOutOfRangeException(nameof(subElementId),
                     subElementId, null)
             };
