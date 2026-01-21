@@ -101,7 +101,7 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
 
     public async Task<Stream> GetCardAsync(ICardGenerationContext<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)> context)
     {
-        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("genshin charlist");
+        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("zzz charlist");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
 
         var charData = context.Data.Item1.ToList();
