@@ -107,7 +107,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
             if (completed.Any(x => !x))
             {
                 Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId,
-                    "One or more images failed to update");
+                    $"{JsonSerializer.Serialize(characters)}\n{JsonSerializer.Serialize(buddies)}");
                 return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.ImageUpdateError);
             }
 
