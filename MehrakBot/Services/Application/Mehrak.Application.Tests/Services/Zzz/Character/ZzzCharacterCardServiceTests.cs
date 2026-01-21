@@ -86,7 +86,7 @@ public class ZzzCharacterCardServiceTests
         };
     }
 
-    /*
+    [Explicit]
     [Test]
     [TestCase("Jane_TestData.json", "Jane_GoldenImage.jpg")]
     [TestCase("Miyabi_TestData.json", "Miyabi_GoldenImage.jpg")]
@@ -94,18 +94,19 @@ public class ZzzCharacterCardServiceTests
     public async Task GenerateGoldenImage(string testDataFileName, string
         goldenImageFileName)
     {
-        ZzzFullAvatarData? characterDetail =
+        var characterDetail =
             JsonSerializer.Deserialize<ZzzFullAvatarData>(await
             File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
         Assert.That(characterDetail, Is.Not.Null);
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
-        Stream image = await m_Service.GetCardAsync(new
-            TestCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail,
-            Server.Asia, profile));
+        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
 
-        FileStream fileStream = File.OpenWrite(
+        var image = await m_Service.GetCardAsync(cardContext);
+
+        var fileStream = File.OpenWrite(
             Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
         goldenImageFileName));
         await image.CopyToAsync(fileStream);
@@ -113,5 +114,5 @@ public class ZzzCharacterCardServiceTests
 
         Assert.That(image, Is.Not.Null);
     }
-    */
+
 }
