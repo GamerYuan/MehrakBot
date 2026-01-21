@@ -34,6 +34,7 @@ public static class CommandName
     {
         public const string Assault = "zzz da";
         public const string Character = "zzz character";
+        public const string CharList = "zzz charlist";
         public const string Codes = "zzz codes";
         public const string Defense = "zzz shiyu";
         public const string RealTimeNotes = "zzz notes";

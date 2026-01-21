@@ -83,6 +83,29 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
+    [SubSlashCommand("charlist", "Get character list")]
+    public async Task CharListCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Server? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        int profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the charlist command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
+
+        var executor = m_Builder
+            .WithInteractionContext(Context)
+            .WithParameters(parameters)
+            .WithCommandName(CommandName.Zzz.CharList)
+            .Build();
+
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
+    }
+
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
     public async Task ShiyuCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
@@ -169,6 +192,15 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
                            "```/zzz character Miyabi\n/zzz character Jane Doe America\n/zzz character Nekomata Asia 3```",
+            "charlist" => "## Zenless Zone Zero Character List\n" +
+                           "Get character list from Zenless Zone Zero\n" +
+                           "### Usage\n" +
+                           "```/zzz charlist [server] [profile]```\n" +
+                           "### Parameters\n" +
+                           "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                           "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                           "### Examples\n" +
+                           "```/zzz charlist\n/zzz charlist Asia\n/zzz charlist America 2```",
             "codes" => "## Redemption Codes\n" +
                        "Redeem Zenless Zone Zero codes\n" +
                        "### Usage\n" +
@@ -209,6 +241,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Zenless Zone Zero Toolbox\n" +
                  "Zenless Zone Zero related commands and utilities.\n" +
                  "### Subcommands\n" +
+                 "- `charlist`: Get character list from Zenless Zone Zero\n" +
                  "- `character`: Get character card from Zenless Zone Zero\n" +
                  "- `codes`: Redeem Zenless Zone Zero codes\n" +
                  "- `da`: Get Deadly Assault summary card\n" +

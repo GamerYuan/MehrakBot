@@ -2,7 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Zzz.Character;
+using Mehrak.Application.Services.Zzz.CharList;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Zzz.Types;
@@ -11,14 +11,14 @@ using Moq;
 
 #endregion
 
-namespace Mehrak.Application.Tests.Services.Zzz.Character;
+namespace Mehrak.Application.Tests.Services.Zzz.CharList;
 
 [Parallelizable(ParallelScope.Fixtures)]
-public class ZzzCharacterCardServiceTests
+public class ZzzCharListCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Zzz");
 
-    private ZzzCharacterCardService m_Service;
+    private ZzzCharListCardService m_Service;
 
     private const string TestNickName = "Test";
     private const string TestUid = "1300000000";
@@ -27,32 +27,38 @@ public class ZzzCharacterCardServiceTests
     [SetUp]
     public async Task Setup()
     {
-        m_Service = new ZzzCharacterCardService(
+        m_Service = new ZzzCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<ZzzCharacterCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<Application.Services.Abstractions.IApplicationMetrics>(),
+            Mock.Of<ILogger<ZzzCharListCardService>>());
         await m_Service.InitializeAsync();
     }
 
     [Test]
-    [TestCase("Jane_TestData.json", "Jane_GoldenImage.jpg", "Jane")]
-    [TestCase("Miyabi_TestData.json", "Miyabi_GoldenImage.jpg", "Miyabi")]
-    [TestCase("Yixuan_TestData.json", "Yixuan_GoldenImage.jpg", "Yixuan")]
-    public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string testDataFileName,
+    [TestCase("CharList_TestData_1.json", "BangbooList_TestData_1.json", "CharList_GoldenImage_1.jpg", "CharList_1")]
+    public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string charTestDataFile, string bangbooTestDataFile,
         string goldenImageFileName, string testName)
     {
         var characterDetail =
-            JsonSerializer.Deserialize<ZzzFullAvatarData>(
-                await File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
-        Assert.That(characterDetail, Is.Not.Null);
+            JsonSerializer.Deserialize<ZzzBasicAvatarResponse>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, charTestDataFile)));
+        var bangbooDetail =
+            JsonSerializer.Deserialize<ZzzBuddyResponse>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, bangbooTestDataFile)));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(characterDetail, Is.Not.Null);
+            Assert.That(bangbooDetail, Is.Not.Null);
+        }
 
         var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
-            "TestAssets",
-            goldenImageFileName));
+            "TestAssets", goldenImageFileName));
 
         var profile = GetTestUserGameData();
 
-        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
+        var cardContext = new
+            BaseCardGenerationContext<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)>(
+                TestUserId, (characterDetail.AvatarList, bangbooDetail.List), profile);
         cardContext.SetParameter("server", Server.Asia);
 
         var image = await m_Service.GetCardAsync(cardContext);
@@ -86,34 +92,41 @@ public class ZzzCharacterCardServiceTests
         };
     }
 
+
     [Explicit]
     [Test]
-    [TestCase("Jane_TestData.json", "Jane_GoldenImage.jpg")]
-    [TestCase("Miyabi_TestData.json", "Miyabi_GoldenImage.jpg")]
-    [TestCase("Yixuan_TestData.json", "Yixuan_GoldenImage.jpg")]
-    public async Task GenerateGoldenImage(string testDataFileName, string
-        goldenImageFileName)
+    [TestCase("CharList_TestData_1.json", "BangbooList_TestData_1.json", "CharList_GoldenImage_1.jpg")]
+    [TestCase("CharList_TestData_2.json", "BangbooList_TestData_2.json", "CharList_GoldenImage_2.jpg")]
+    [TestCase("CharList_TestData_3.json", "BangbooList_TestData_3.json", "CharList_GoldenImage_3.jpg")]
+    public async Task GenerateGoldenImage(string charTestDataFile, string bangbooTestDataFile,
+        string goldenImageFileName)
     {
         var characterDetail =
-            JsonSerializer.Deserialize<ZzzFullAvatarData>(await
-            File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
-        Assert.That(characterDetail, Is.Not.Null);
+            JsonSerializer.Deserialize<ZzzBasicAvatarResponse>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, charTestDataFile)));
+        var bangbooDetail =
+            JsonSerializer.Deserialize<ZzzBuddyResponse>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, bangbooTestDataFile)));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(characterDetail, Is.Not.Null);
+            Assert.That(bangbooDetail, Is.Not.Null);
+        }
 
         var profile = GetTestUserGameData();
 
-        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
-        cardContext.SetParameter("server", Server.Asia);
+        var cardContext = new
+            BaseCardGenerationContext<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)>(
+                TestUserId, (characterDetail.AvatarList, bangbooDetail.List), profile);
 
         var image = await m_Service.GetCardAsync(cardContext);
 
         var fileStream = File.OpenWrite(
             Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
-            goldenImageFileName));
+        goldenImageFileName));
         await image.CopyToAsync(fileStream);
         await fileStream.FlushAsync();
-        await fileStream.DisposeAsync();
 
         Assert.That(image, Is.Not.Null);
     }
-
 }
