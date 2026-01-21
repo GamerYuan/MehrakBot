@@ -82,8 +82,10 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
         List<Task<(int x, Image)>> starTasks =
         [
             .. Enumerable.Range(1, 5)
-                .Select(async i => (i, await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}"))))
+                .Select(async i => {
+                    await using var stream = await m_ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}");
+                    return (i, await Image.LoadAsync(stream));
+                })
         ];
 
         var starImage = await Task.WhenAll(starTasks);
