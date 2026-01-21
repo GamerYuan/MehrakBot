@@ -111,7 +111,7 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
         try
         {
             m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
-                context.GameProfile.GameUid, charData.Count);
+                context.UserId, charData.Count);
 
             var avatarImages = await charData
                 .OrderByDescending(x => x.Level)
