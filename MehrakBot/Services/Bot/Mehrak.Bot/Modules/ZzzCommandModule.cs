@@ -192,6 +192,15 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
                            "```/zzz character Miyabi\n/zzz character Jane Doe America\n/zzz character Nekomata Asia 3```",
+            "charlist" => "## Zenless Zone Zero Character List\n" +
+                           "Get character list from Zenless Zone Zero\n" +
+                           "### Usage\n" +
+                           "```/zzz charlist [server] [profile]```\n" +
+                           "### Parameters\n" +
+                           "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                           "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                           "### Examples\n" +
+                           "```/zzz charlist\n/zzz charlist Asia\n/zzz charlist America 2```",
             "codes" => "## Redemption Codes\n" +
                        "Redeem Zenless Zone Zero codes\n" +
                        "### Usage\n" +
