@@ -241,6 +241,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Zenless Zone Zero Toolbox\n" +
                  "Zenless Zone Zero related commands and utilities.\n" +
                  "### Subcommands\n" +
+                 "- `charlist`: Get character list from Zenless Zone Zero\n" +
                  "- `character`: Get character card from Zenless Zone Zero\n" +
                  "- `codes`: Redeem Zenless Zone Zero codes\n" +
                  "- `da`: Get Deadly Assault summary card\n" +
