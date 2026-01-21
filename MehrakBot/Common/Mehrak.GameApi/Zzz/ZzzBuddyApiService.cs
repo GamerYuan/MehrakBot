@@ -117,7 +117,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}/basic", context.UserId);
+                $"{HoYoLabDomains.PublicApi}{BasePath}", context.UserId);
             return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character data");
         }
