@@ -108,9 +108,10 @@ public class ZzzCharacterCardServiceTests
 
         var fileStream = File.OpenWrite(
             Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
-        goldenImageFileName));
+            goldenImageFileName));
         await image.CopyToAsync(fileStream);
         await fileStream.FlushAsync();
+        await fileStream.DisposeAsync();
 
         Assert.That(image, Is.Not.Null);
     }
