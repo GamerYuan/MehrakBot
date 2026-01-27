@@ -1,4 +1,7 @@
 ﻿using System.Text.Json.Serialization;
+using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
+using Mehrak.Domain.Models.Abstractions;
 
 namespace Mehrak.GameApi.Zzz.Types;
 
@@ -6,7 +9,7 @@ public class ZzzTowerData
 {
     [JsonPropertyName("layer_info")] public required LayerInfo LayerInfo { get; set; }
     [JsonPropertyName("mvp_info")] public required MvpInfo MvpInfo { get; set; }
-    [JsonPropertyName("display_avatar_rank_list")] public required ZzzTowerAvatar DisplayAvatarRankList { get; set; }
+    [JsonPropertyName("display_avatar_rank_list")] public required List<ZzzTowerAvatar> DisplayAvatarRankList { get; set; }
 }
 
 public class LayerInfo
@@ -32,4 +35,14 @@ public class ZzzTowerAvatar
     [JsonPropertyName("score")] public int Score { get; set; }
     [JsonPropertyName("display_rank")] public bool DisplayRank { get; set; }
     [JsonPropertyName("selected")] public bool Selected { get; set; }
+
+    public string ToImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.AvatarName, AvatarId);
+    }
+
+    public IImageData ToImageData()
+    {
+        return new ImageData(ToImageName(), Icon);
+    }
 }

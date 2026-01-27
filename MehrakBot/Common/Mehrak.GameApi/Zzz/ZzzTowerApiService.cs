@@ -82,15 +82,9 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             }
 
             var towerData = json["data"]!["climbing_tower_s3"].Deserialize<ZzzTowerData>();
-            if (towerData == null)
-            {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
-                return Result<ZzzTowerData>.Failure(StatusCode.Unauthorized,
-                    "No Simulated Battle Trial data found", requestUri);
-            }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-            return Result<ZzzTowerData>.Success(towerData, requestUri: requestUri);
+            return Result<ZzzTowerData>.Success(towerData!, requestUri: requestUri);
         }
         catch (Exception e)
         {
