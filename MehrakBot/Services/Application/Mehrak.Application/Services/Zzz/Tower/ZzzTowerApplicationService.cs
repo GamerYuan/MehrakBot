@@ -17,6 +17,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<ZzzTowerData> m_CardService;
     private readonly IApiService<ZzzTowerData, BaseHoYoApiContext> m_ApiService;
+    private readonly ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> m_CharacterApi;
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
     public ZzzTowerApplicationService(
@@ -25,12 +26,14 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         IAttachmentStorageService attachmentStorageService,
         ICardService<ZzzTowerData> cardService,
         IApiService<ZzzTowerData, BaseHoYoApiContext> apiService,
+        ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         ILogger<ZzzTowerApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_ApiService = apiService;
+        m_CharacterApi = characterApi;
         m_ImageUpdaterService = imageUpdaterService;
     }
 
@@ -74,6 +77,17 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                     isEphemeral: true);
             }
 
+
+            var characterResponse = await m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+
+            if (!characterResponse.IsSuccess)
+            {
+                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, towerResponse);
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Character List data"));
+            }
+
             var fileName = GetFileName(JsonSerializer.Serialize(towerData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
@@ -100,8 +114,11 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
+            var rankMap = characterResponse.Data.ToDictionary(x => x.Id, x => x.Rank);
+
             var cardContext = new BaseCardGenerationContext<ZzzTowerData>(context.UserId, towerData, profile);
             cardContext.SetParameter("server", server);
+            cardContext.SetParameter("rankMap", rankMap);
 
             await using var card = await m_CardService.GetCardAsync(cardContext);
 
