@@ -114,11 +114,11 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var rankMap = characterResponse.Data.ToDictionary(x => x.Id, x => x.Rank);
+            var charMap = characterResponse.Data.ToDictionary(x => x.Id, x => (x.Level, x.Rank));
 
             var cardContext = new BaseCardGenerationContext<ZzzTowerData>(context.UserId, towerData, profile);
             cardContext.SetParameter("server", server);
-            cardContext.SetParameter("rankMap", rankMap);
+            cardContext.SetParameter("charMap", charMap);
 
             await using var card = await m_CardService.GetCardAsync(cardContext);
 

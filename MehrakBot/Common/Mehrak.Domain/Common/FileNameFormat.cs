@@ -123,6 +123,11 @@ public static class FileNameFormat
         /// ZZZ assault buff name, where {0} is the buff name space removed
         /// </summary>
         public const string AssaultBuffName = "zzz_assault_buff_{0}";
+
+        /// <summary>
+        /// ZZZ tower medal name, where {0} is the medal icon name
+        /// </summary>
+        public const string TowerMedal = "zzz_tower_medal_{0}";
     }
 
     public static class Hi3
