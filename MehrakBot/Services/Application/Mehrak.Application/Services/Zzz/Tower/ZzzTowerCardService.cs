@@ -26,10 +26,9 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
-    private readonly Font m_SmallFont;
 
     private Image m_MedalIcon = null!;
-
+    private Image m_MvpIcon = null!;
     private static readonly JpegEncoder JpegEncoder = new()
     {
         Quality = 90,
@@ -57,7 +56,6 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
 
         m_TitleFont = fontFamily.CreateFont(48, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
-        m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
 
         m_DisplayScoreOptions = new RichTextOptions(m_TitleFont)
         {
@@ -77,6 +75,9 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
     {
         m_MedalIcon = await Image.LoadAsync(await
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.TowerMedal, "s3"),
+                cancellationToken), cancellationToken);
+        m_MvpIcon = await Image.LoadAsync(await
+            m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.FileName, "tower_mvp"),
                 cancellationToken), cancellationToken);
 
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzTowerCardService));
@@ -169,6 +170,7 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
                 }, FormatNumberWithSuffix(context.Data.LayerInfo.TotalScore), Color.White);
 
                 ctx.Fill(OverlayColor, statOverlay.Translate(550, 0));
+                ctx.DrawImage(m_MvpIcon, new Point(610, 200 + (200 - m_MvpIcon.Height) / 2), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
                     Origin = new Vector2(790, 260),
