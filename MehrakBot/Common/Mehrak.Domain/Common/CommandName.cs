@@ -38,6 +38,7 @@ public static class CommandName
         public const string Codes = "zzz codes";
         public const string Defense = "zzz shiyu";
         public const string RealTimeNotes = "zzz notes";
+        public const string Tower = "zzz tower";
     }
 
     public static class Hi3
