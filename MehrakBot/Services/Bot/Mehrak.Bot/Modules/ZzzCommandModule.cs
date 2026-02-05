@@ -178,6 +178,30 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
+    [SubSlashCommand("tower", "Get Simulated Battle Trial summary card")]
+    public async Task TowerCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Server? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id (Defaults to 1)")]
+        int profile = 1)
+    {
+        m_Logger.LogInformation(
+    "User {User} used the notes command with server {Server}, profile {ProfileId}",
+    Context.User.Id, server, profile);
+
+        List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
+
+        var executor = m_Builder
+            .WithInteractionContext(Context)
+            .WithParameters(parameters)
+            .WithCommandName(CommandName.Zzz.Tower)
+            .WithEphemeralResponse(true)
+            .Build();
+
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
+    }
+
     public static string GetHelpString(string subcommand = "")
     {
         return subcommand switch
@@ -238,6 +262,15 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
                        "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                        "### Examples\n" +
                        "```/zzz notes\n/zzz notes Asia\n/zzz notes America 3```",
+            "tower" => "## Simulated Battle Trial\n" +
+                       "Get Simulated Battle Trial summary card\n" +
+                       "### Usage\n" +
+                       "```/zzz tower [server] [profile]```\n" +
+                       "### Parameters\n" +
+                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
+                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
+                       "### Examples\n" +
+                       "```/zzz tower\n/zzz tower Asia\n/zzz tower America 2```",
             _ => "## Zenless Zone Zero Toolbox\n" +
                  "Zenless Zone Zero related commands and utilities.\n" +
                  "### Subcommands\n" +
@@ -246,7 +279,8 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
                  "- `codes`: Redeem Zenless Zone Zero codes\n" +
                  "- `da`: Get Deadly Assault summary card\n" +
                  "- `shiyu`: Get Shiyu Defense summary card\n" +
-                 "- `notes`: Get real-time notes for Zenless Zone Zero"
+                 "- `notes`: Get real-time notes for Zenless Zone Zero\n" +
+                 "- `tower`: Get Simulated Battle Trial summary card\n"
         };
     }
 }
