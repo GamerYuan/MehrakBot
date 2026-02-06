@@ -83,7 +83,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 
             if (!characterResponse.IsSuccess)
             {
-                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, towerResponse);
+                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, characterResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
                     string.Format(ResponseMessage.ApiError, "Character List data"));
             }
