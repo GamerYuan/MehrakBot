@@ -97,6 +97,6 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
     private static ZzzTowerData GetEmptyData()
     {
-        return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() }
+        return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() };
     }
 }
