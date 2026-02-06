@@ -56,7 +56,7 @@ public class ZzzTowerCardServiceTests
 
         var image = await m_Service.GetCardAsync(context);
 
-        var goldenImage = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+        using var goldenImage = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
             "TestAssets", $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
         Assert.That(image, Is.Not.Null);
