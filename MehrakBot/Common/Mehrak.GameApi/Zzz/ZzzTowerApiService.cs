@@ -84,7 +84,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             var towerData = json["data"]!["climbing_tower_s3"].Deserialize<ZzzTowerData>();
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-            return Result<ZzzTowerData>.Success(towerData!, requestUri: requestUri);
+            return Result<ZzzTowerData>.Success(towerData ?? GetEmptyData(), requestUri: requestUri);
         }
         catch (Exception e)
         {
@@ -93,5 +93,10 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             return Result<ZzzTowerData>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving tower data");
         }
+    }
+
+    private static ZzzTowerData GetEmptyData()
+    {
+        return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() }
     }
 }

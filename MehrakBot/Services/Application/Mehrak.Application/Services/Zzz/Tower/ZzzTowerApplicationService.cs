@@ -69,7 +69,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 
             var towerData = towerResponse.Data;
 
-            if (towerData == null)
+            if (towerData.DisplayAvatarRankList.Count == 0)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, "Simulated Battle Trial", context.UserId, gameUid);
                 return CommandResult.Success(
