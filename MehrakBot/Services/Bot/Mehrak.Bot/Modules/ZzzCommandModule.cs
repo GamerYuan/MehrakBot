@@ -186,8 +186,8 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         int profile = 1)
     {
         m_Logger.LogInformation(
-    "User {User} used the notes command with server {Server}, profile {ProfileId}",
-    Context.User.Id, server, profile);
+            "User {User} used the tower command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
 
         List<(string, object)> parameters = [("game", Game.ZenlessZoneZero)];
         if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));

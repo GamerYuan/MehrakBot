@@ -91,7 +91,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
             return Result<ZzzTowerData>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving assault data");
+                "An error occurred while retrieving tower data");
         }
     }
 }
