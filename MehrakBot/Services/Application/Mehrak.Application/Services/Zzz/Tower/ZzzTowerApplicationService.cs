@@ -88,6 +88,18 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                     string.Format(ResponseMessage.ApiError, "Character List data"));
             }
 
+            var charMap = characterResponse.Data.ToDictionary(x => x.Id, x => (x.Level, x.Rank));
+
+            foreach (var avatar in towerData.DisplayAvatarRankList)
+            {
+                if (!charMap.ContainsKey(avatar.AvatarId))
+                {
+                    Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, characterResponse);
+                    return CommandResult.Failure(CommandFailureReason.ApiError,
+                        string.Format(ResponseMessage.ApiError, "Character List data"));
+                }
+            }
+
             var fileName = GetFileName(JsonSerializer.Serialize(towerData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
@@ -113,8 +125,6 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                     JsonSerializer.Serialize(towerData));
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
-
-            var charMap = characterResponse.Data.ToDictionary(x => x.Id, x => (x.Level, x.Rank));
 
             var cardContext = new BaseCardGenerationContext<ZzzTowerData>(context.UserId, towerData, profile);
             cardContext.SetParameter("server", server);
