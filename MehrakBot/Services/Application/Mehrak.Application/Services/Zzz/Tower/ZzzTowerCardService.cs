@@ -115,7 +115,7 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
 
             const int width = 2 * DisplayEntryWidth + 150;
             var height = 500 + (int)Math.Ceiling(context.Data.DisplayAvatarRankList.Count / 2f) * DisplayEntryHeight;
-            var background = new Image<Rgba32>(width, height);
+            using var background = new Image<Rgba32>(width, height);
 
             background.Mutate(ctx =>
             {
