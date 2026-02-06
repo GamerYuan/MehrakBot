@@ -1,0 +1,93 @@
+﻿{
+  "layer_info": {
+    "climbing_tower_layer": 54,
+    "total_score": 2,
+    "medal_icon": "https://act-webstatic.hoyoverse.com/darkmatter/nap/prod_gf_cn/item_icon_u43ejc/eefbc63fddb29669f7c57ed31d63d7cb.png"
+  },
+  "mvp_info": {
+    "floor_mvp_num": 2,
+    "rank_percent": 10000
+  },
+  "display_avatar_rank_list": [
+    {
+      "avatar_id": 1091,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1371.png",
+      "name": "Miyabi",
+      "rarity": "S",
+      "rank_percent": 1138,
+      "score": 43808,
+      "display_rank": true,
+      "selected": false
+    },
+    {
+      "avatar_id": 1091,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1371.png",
+      "name": "Miyabi",
+      "rarity": "S",
+      "rank_percent": 1138,
+      "score": 43808,
+      "display_rank": true,
+      "selected": false
+    },
+    {
+      "avatar_id": 1091,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1371.png",
+      "name": "Miyabi",
+      "rarity": "S",
+      "rank_percent": 1138,
+      "score": 43808,
+      "display_rank": true,
+      "selected": false
+    },
+    {
+      "avatar_id": 1091,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1371.png",
+      "name": "Miyabi",
+      "rarity": "S",
+      "rank_percent": 1138,
+      "score": 43808,
+      "display_rank": true,
+      "selected": false
+    },
+    {
+      "avatar_id": 1091,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1371.png",
+      "name": "Miyabi",
+      "rarity": "S",
+      "rank_percent": 1138,
+      "score": 43808,
+      "display_rank": true,
+      "selected": false
+    },
+    {
+      "avatar_id": 1091,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1371.png",
+      "name": "Miyabi",
+      "rarity": "S",
+      "rank_percent": 1138,
+      "score": 43808,
+      "display_rank": true,
+      "selected": false
+    },
+    {
+      "avatar_id": 1011,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1411_3114111.png",
+      "name": "Anby",
+      "rarity": "A",
+      "rank_percent": 1536,
+      "score": 9440,
+      "display_rank": true,
+      "selected": false
+    },
+    {
+      "avatar_id": 1011,
+      "icon": "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1421.png",
+      "name": "Anby",
+      "rarity": "A",
+      "rank_percent": 2408,
+      "score": 2945,
+      "display_rank": true,
+      "selected": false
+    }
+  ]
+}

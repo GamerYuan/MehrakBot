@@ -101,6 +101,31 @@ public sealed class ZzzController : ControllerBase
         return result.MapToActionResult();
     }
 
+    [HttpPost("tower")]
+    public async Task<IActionResult> ExecuteTower([FromBody] ZzzSimpleCommandRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        if (!TryGetDiscordUserId(out var discordUserId, out var errorResult))
+            return errorResult!;
+        if (!TryParseServer(request.Server, out var server, out errorResult))
+            return errorResult!;
+
+        m_Logger.LogInformation("Executing ZZZ tower command for user {UserId}", discordUserId);
+
+        var parameters = BuildParameters(Game.ZenlessZoneZero, server);
+
+        var executor = m_ExecutorBuilder
+            .WithDiscordUserId(discordUserId)
+            .WithCommandName(CommandName.Zzz.Tower)
+            .WithParameters(parameters)
+            .Build();
+
+        var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
+        return result.MapToActionResult();
+    }
+
     private bool TryGetDiscordUserId(out ulong discordUserId, out IActionResult? errorResult)
     {
         discordUserId = 0;

@@ -6,6 +6,7 @@ using Mehrak.Application.Services.Zzz.Character;
 using Mehrak.Application.Services.Zzz.CharList;
 using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Application.Services.Zzz.RealTimeNotes;
+using Mehrak.Application.Services.Zzz.Tower;
 using Mehrak.Domain;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Services.Abstractions;
@@ -36,6 +37,10 @@ internal static class ZzzApplicationServiceExtensions
         services.AddKeyedTransient<IApplicationService, ZzzCharListApplicationService>(CommandName.Zzz.CharList);
         services.AddSingleton<ICardService<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)>, ZzzCharListCardService>();
         services.RegisterAsyncInitializableFor<ICardService<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)>, ZzzCharListCardService>();
+
+        services.AddKeyedTransient<IApplicationService, ZzzTowerApplicationService>(CommandName.Zzz.Tower);
+        services.AddSingleton<ICardService<ZzzTowerData>, ZzzTowerCardService>();
+        services.RegisterAsyncInitializableFor<ICardService<ZzzTowerData>, ZzzTowerCardService>();
 
         return services;
     }

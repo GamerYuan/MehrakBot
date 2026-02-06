@@ -37,7 +37,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
                  "- `/genshin [abyss|character|charlist|codes|notes|stygian|theater]`\n" +
                  "- `/hi3 [battlesuit]`\n" +
                  "- `/hsr [aa|as|character|charlist|codes|moc|notes|pf]`\n" +
-                 "- `/zzz [character|charlist|codes|da|shiyu]`\n" +
+                 "- `/zzz [character|charlist|codes|da|shiyu|notes|tower]`\n" +
                  "Use `/help <command>` to get help about a specific command or subcommand.\n" +
                  "For example: `/help genshin` or `/help genshin character`"
         };
