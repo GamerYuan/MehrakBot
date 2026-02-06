@@ -210,9 +210,9 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
 
                 for (var i = 0; i < avatarImages.Count; i++)
                 {
-                    var odd = i % 2 == 0;
-                    ctx.DrawImage(avatarImages[i], new Point(odd ? 50 : xOffset, yOffset), 1f);
-                    if (!odd) yOffset += DisplayEntryHeight + 20;
+                    var even = i % 2 == 0;
+                    ctx.DrawImage(avatarImages[i], new Point(even ? 50 : xOffset, yOffset), 1f);
+                    if (!even) yOffset += DisplayEntryHeight + 20;
                 }
             });
 
