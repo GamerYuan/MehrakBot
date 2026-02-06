@@ -114,8 +114,9 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
                 .ToAsyncEnumerable()
                 .Select(async (ZzzTowerAvatar x, CancellationToken token) =>
                 {
+                    using var stream = await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
                     using var avatar = new ZzzAvatar(x.AvatarId, charMap[x.AvatarId].Level, x.Rarity[0], charMap[x.AvatarId].Rank,
-                        await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token));
+                        await Image.LoadAsync(stream, token));
                     return GetStyledDisplayEntry(x, avatar);
                 })
                 .ToListAsync();
