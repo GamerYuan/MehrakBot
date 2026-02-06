@@ -93,7 +93,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(null!));
+            .ReturnsAsync(Result<ZzzTowerData>.Success(GetEmptyData()));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -464,11 +464,11 @@ public class ZzzTowerApplicationServiceTests
         [
             new ZzzBasicAvatarData
             {
-                Id = 1,
-                Name = "Jane",
-                FullName = "Jane Doe",
+                Id = 1011,
+                Name = "Anby",
+                FullName = "Anby Demara",
                 CampName = "Unknown",
-                Rarity = "S",
+                Rarity = "A",
                 GroupIconPath = "icon",
                 HollowIconPath = "hollow",
                 RoleSquareUrl = "url",
@@ -478,7 +478,7 @@ public class ZzzTowerApplicationServiceTests
             },
             new ZzzBasicAvatarData
             {
-                Id = 2,
+                Id = 1091,
                 Name = "Miyabi",
                 FullName = "Hoshimi Miyabi",
                 CampName = "Section 6",
@@ -487,8 +487,8 @@ public class ZzzTowerApplicationServiceTests
                 HollowIconPath = "hollow",
                 RoleSquareUrl = "url",
                 AwakenState = "0",
-                Level = 50,
-                Rank = 2
+                Level = 60,
+                Rank = 6
             }
         ];
     }
@@ -524,6 +524,11 @@ public class ZzzTowerApplicationServiceTests
         userContext.Users.Add(user);
         userContext.SaveChanges();
         return profile;
+    }
+
+    private static ZzzTowerData GetEmptyData()
+    {
+        return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() };
     }
 
     #endregion
