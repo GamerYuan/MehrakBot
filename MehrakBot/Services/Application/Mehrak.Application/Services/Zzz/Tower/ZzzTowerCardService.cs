@@ -73,12 +73,20 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        m_MedalIcon = await Image.LoadAsync(await
+        using (var medalStream = await
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.TowerMedal, "s3"),
-                cancellationToken), cancellationToken);
-        m_MvpIcon = await Image.LoadAsync(await
+                cancellationToken))
+        {
+            m_MedalIcon = await Image.LoadAsync(medalStream, cancellationToken);
+
+        }
+
+        using (var mvpStream = await
             m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.FileName, "tower_mvp"),
-                cancellationToken), cancellationToken);
+                cancellationToken))
+        {
+            m_MvpIcon = await Image.LoadAsync(mvpStream, cancellationToken);
+        }
 
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzTowerCardService));
     }
