@@ -35,7 +35,7 @@ public class ZzzTowerCardServiceTests
     [TestCase("Tower_TestData_1.json")]
     [TestCase("Tower_TestData_2.json")]
     [TestCase("Tower_TestData_3.json")]
-    public async Task GetDefenseCardAsync_TestData_ShouldMatchGoldenImage(string testData)
+    public async Task GetTowerCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         var towerData =
             JsonSerializer.Deserialize<ZzzTowerData>(await
