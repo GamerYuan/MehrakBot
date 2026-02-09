@@ -25,7 +25,8 @@ public class GenshinCharacterAutocompleteProvider(
             for (var i = 0; i < commaSeparated.Length - 1; i++)
             {
                 sb.Append(commaSeparated[i]);
-                sb.Append(", ");
+                sb.Append(',');
+                sb.Append(' ');
             }
         }
 
