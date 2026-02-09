@@ -24,7 +24,7 @@ internal class CharacterAutocompleteService : ICharacterAutocompleteService
         return
         [
             .. characterNames
-                .Where(x => x.Contains(query, StringComparison.InvariantCultureIgnoreCase))
+                .Where(x => x.Contains(query.Trim(), StringComparison.InvariantCultureIgnoreCase))
                 .Take(Limit)
         ];
     }

@@ -15,8 +15,19 @@ public class GenshinCharacterAutocompleteProvider(
     public ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> GetChoicesAsync(
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
-        return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(Domain.Enums.Game.Genshin, option.Value ?? string.Empty)
-            .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
+        var commaSeparated = option.Value?.Split(',');
+        var prefix = string.Join(", ", commaSeparated?[..^1].Select(x => x.Trim()) ?? []);
+
+        prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix + ", ";
+
+        var choices = autocompleteService
+            .FindCharacter(Domain.Enums.Game.Genshin, commaSeparated?[^1] ?? string.Empty)
+            .Select(x =>
+            {
+                var choice = prefix + x;
+                return new ApplicationCommandOptionChoiceProperties(choice, choice);
+            });
+
+        return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(choices);
     }
 }
