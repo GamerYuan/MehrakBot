@@ -18,7 +18,10 @@ public class GenshinCharacterAutocompleteProvider(
         var commaSeparated = option.Value?.Split(',');
         var prefix = string.Join(", ", commaSeparated?[..^1].Select(x => x.Trim()) ?? []);
 
-        prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix + ", ";
+        if (!string.IsNullOrEmpty(prefix))
+        {
+            prefix += ", ";
+        }
 
         var choices = autocompleteService
             .FindCharacter(Domain.Enums.Game.Genshin, commaSeparated?[^1] ?? string.Empty)
