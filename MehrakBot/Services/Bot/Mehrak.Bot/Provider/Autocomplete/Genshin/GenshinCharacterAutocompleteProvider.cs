@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -16,18 +17,27 @@ public class GenshinCharacterAutocompleteProvider(
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         var commaSeparated = option.Value?.Split(',');
-        var prefix = string.Join(", ", commaSeparated?[..^1].Select(x => x.Trim()) ?? []);
 
-        if (!string.IsNullOrEmpty(prefix))
+        StringBuilder sb = new();
+
+        if (commaSeparated != null)
         {
-            prefix += ", ";
+            for (var i = 0; i < commaSeparated.Length - 1; i++)
+            {
+                sb.Append(commaSeparated[i]);
+                sb.Append(", ");
+            }
         }
 
+        var query = commaSeparated?.Length > 0 ? commaSeparated[^1] : string.Empty;
+
         var choices = autocompleteService
-            .FindCharacter(Domain.Enums.Game.Genshin, commaSeparated?[^1] ?? string.Empty)
+            .FindCharacter(Domain.Enums.Game.Genshin, query)
             .Select(x =>
             {
-                var choice = prefix + x;
+                sb.Append(x);
+                var choice = sb.ToString();
+                sb.Length -= x.Length;
                 return new ApplicationCommandOptionChoiceProperties(choice, choice);
             });
 
