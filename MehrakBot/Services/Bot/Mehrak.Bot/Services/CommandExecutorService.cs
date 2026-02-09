@@ -161,7 +161,8 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                     }
                     else
                     {
-                        await authResult.Context!.Interaction.SendFollowupMessageAsync("Command Execution Completed");
+                        await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.Data.EphemeralMessage ??
+                            "Command Execution Completed");
                         await authResult.Context.Interaction.SendFollowupMessageAsync(message
                             .AddComponents(new ActionRowProperties([
                                 new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
