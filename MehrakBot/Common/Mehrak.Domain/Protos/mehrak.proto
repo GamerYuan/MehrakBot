@@ -1,4 +1,4 @@
-syntax = "proto3";
+﻿syntax = "proto3";
 
 package mehrak.v1;
 
@@ -37,6 +37,7 @@ message CommandResultData {
   repeated CommandComponent components = 1;
   bool is_container = 2;
   bool is_ephemeral = 3;
+  string ephemeral_message = 4;
 }
 
 enum CommandFailureReason {
