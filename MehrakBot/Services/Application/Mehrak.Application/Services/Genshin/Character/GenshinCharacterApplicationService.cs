@@ -71,7 +71,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
-            var input = context.GetParameter("character")!.Split(',');
+            var input = context.GetParameter("character")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             if (input.Length > MaxRequestCount)
             {
@@ -114,18 +114,17 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
             foreach (var c in input)
             {
-                var characterName = c.Trim();
-                var character = names.GetValueOrDefault(characterName);
+                var character = names.GetValueOrDefault(c);
 
                 if (character == null)
                 {
-                    m_AliasService.GetAliases(Game.Genshin).TryGetValue(characterName, out var name);
+                    m_AliasService.GetAliases(Game.Genshin).TryGetValue(c, out var name);
 
                     if (name == null ||
                         (character = names.GetValueOrDefault(name)) == null)
                     {
-                        Logger.LogInformation(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
-                        failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, characterName));
+                        Logger.LogInformation(LogMessage.CharNotFoundInfo, c, context.UserId, gameUid);
+                        failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, c));
                     }
                 }
 
