@@ -29,15 +29,15 @@ public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService auto
             }
         }
 
+        var prefix = sb.ToString();
+
         var query = commaSeparated?.Length > 0 ? commaSeparated[^1] : string.Empty;
 
         var choices = autocompleteService
             .FindCharacter(Domain.Enums.Game.HonkaiStarRail, query)
             .Select(x =>
             {
-                sb.Append(x);
-                var choice = sb.ToString();
-                sb.Length -= x.Length;
+                var choice = prefix + x;
                 return new ApplicationCommandOptionChoiceProperties(choice, choice);
             });
 
