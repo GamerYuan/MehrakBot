@@ -34,7 +34,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Name or Alias (Case-insensitive)",
+        [SlashCommandParameter(Name = "character", Description = "Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)",
             AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
