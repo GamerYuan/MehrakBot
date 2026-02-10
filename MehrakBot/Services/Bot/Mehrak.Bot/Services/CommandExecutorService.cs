@@ -178,13 +178,16 @@ internal class CommandExecutorService : CommandExecutorServiceBase
             catch (Exception e)
             {
                 MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
-                disposable.ForEach(x => x.Dispose());
                 Logger.LogError(e, "Error executing command {Command} for user {User}", CommandName,
                     Context.Interaction.User.Id);
                 await authResult.Context!.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithContent(
                             "An unexpected error occurred while executing the command. Please try again later.")
                         .WithFlags(MessageFlags.Ephemeral));
+            }
+            finally
+            {
+                disposable.ForEach(x => x.Dispose());
             }
         }
         else if (authResult.Status == AuthStatus.Failure)
