@@ -117,7 +117,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
                 if (character == null)
                 {
-                    m_AliasService.GetAliases(Game.Genshin).TryGetValue(characterName, out var name);
+                    m_AliasService.GetAliases(Game.HonkaiStarRail).TryGetValue(characterName, out var name);
 
                     if (name == null ||
                         (character = names.GetValueOrDefault(name)) == null)
