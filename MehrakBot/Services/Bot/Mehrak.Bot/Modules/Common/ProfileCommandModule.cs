@@ -215,6 +215,10 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
                       "Lists all your HoYoLAB profiles.\n" +
                       "### Usage\n" +
                       "```/profile list```",
+            "update" => "## Profile Update\n" +
+                        "Update the HoYoLAB Cookies and Passphrase for a selected HoYoLAB profile.\n" +
+                        "### Usage\n" +
+                        "```/profile update 1```",
             _ => "## Profile\n" +
                  "Manage your HoYoLAB profiles.\n" +
                  "### Usage\n" +
