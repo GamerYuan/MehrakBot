@@ -169,6 +169,12 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 }
             }
 
+            if (attachments.Count == 0)
+            {
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Join('\n', failureMessages));
+            }
+
             List<ICommandResultComponent> components = [];
             components.Add(new CommandText($"<@{context.UserId}>"));
             components.AddRange(attachments.Select(x => new CommandAttachment(x)));
