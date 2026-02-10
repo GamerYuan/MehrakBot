@@ -87,7 +87,10 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await m_UserContext.Users.AddAsync(user);
             }
 
-            var inputs = Context.Components.OfType<TextInput>()
+            var inputs = Context.Components
+                .OfType<Label>()
+                .Select(l => l.Component)
+                .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
             if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
@@ -193,7 +196,10 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
-            var inputs = Context.Components.OfType<TextInput>()
+            var inputs = Context.Components
+                .OfType<Label>()
+                .Select(l => l.Component)
+                .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
             var newLToken = await Task.Run(() => m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]));
@@ -228,7 +234,10 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     [ComponentInteraction("auth_modal")]
     public async Task AuthModalCallback(string guid)
     {
-        var passphrase = Context.Components.OfType<TextInput>()
+        var passphrase = Context.Components
+            .OfType<Label>()
+            .Select(l => l.Component)
+            .OfType<TextInput>()
             .First(x => x.CustomId == "passphrase").Value;
 
         if (!m_AuthenticationMiddleware.NotifyAuthenticate(new AuthenticationResponse(Context.User.Id, guid, passphrase,
