@@ -23,6 +23,8 @@ namespace Mehrak.Application.Services.Hsr.Character;
 
 public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 {
+    private const int MaxRequestCount = 4;
+
     private readonly ICardService<HsrCharacterInformation> m_CardService;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
     private readonly IImageUpdaterService m_ImageUpdaterService;
@@ -64,12 +66,18 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
     public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
     {
-        var characterName = context.GetParameter("character")!;
-
         try
         {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
+            var input = context.GetParameter("character")!.Split(',');
+
+            if (input.Length > MaxRequestCount)
+            {
+                return CommandResult.Success(
+                    [new CommandText("Exceeded the maximum number of characters per request! (Max 4)")],
+                    isEphemeral: true);
+            }
 
             var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
                 region);
@@ -98,190 +106,62 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiStarRail,
                 characterList.AvatarList.Select(x => x.Name));
 
-            var characterInfo = characterList.AvatarList.FirstOrDefault(x =>
-                x.Name!.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+            var names = characterList.AvatarList.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
+            Dictionary<int, HsrCharacterInformation> validCharacters = [];
+            List<string> failureMessages = [];
 
-            if (characterInfo == null)
+            foreach (var c in input)
             {
-                m_AliasService.GetAliases(Game.HonkaiStarRail).TryGetValue(characterName, out var alias);
-                if (alias == null ||
-                    (characterInfo = characterList.AvatarList?.FirstOrDefault(x =>
-                        x.Name!.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
-                {
-                    Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
-                    return CommandResult.Success([
-                        new CommandText(
-                            string.Format(ResponseMessage.CharacterNotFound, characterName))
-                    ], isEphemeral: true);
-                }
-            }
+                var characterName = c.Trim();
+                var character = names.GetValueOrDefault(characterName);
 
-            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", gameUid);
-            if (await AttachmentExistsAsync(fileName))
-            {
-                return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>")
-                    , new CommandAttachment(fileName)
-                ]);
-            }
-
-            var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
-                .DistinctBy(x => x.GetSetId())
-                .ToAsyncEnumerable()
-                .Where(async (x, token) =>
+                if (character == null)
                 {
-                    int start = 1, end = 4;
-                    if (x.Pos >= 5)
+                    m_AliasService.GetAliases(Game.Genshin).TryGetValue(characterName, out var name);
+
+                    if (name == null ||
+                        (character = names.GetValueOrDefault(name)) == null)
                     {
-                        start = 5;
-                        end = 6;
+                        Logger.LogInformation(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
+                        failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, characterName));
                     }
-
-                    var setId = x.GetSetId();
-
-                    for (var i = start; i <= end; i++)
-                    {
-                        if (characterList.RelicWiki.ContainsKey(x.Id.ToString()) &&
-                            !await m_ImageRepository.FileExistsAsync(
-                                string.Format(FileNameFormat.Hsr.FileName, $"{setId}{i}")))
-                            return true;
-                    }
-
-                    return false;
-                })
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
-                    async (x, token) =>
-                    {
-                        var url = characterList.RelicWiki[x.Id.ToString()];
-                        var entryPage = url.Split('/')[^1];
-                        string? jsonStr = null;
-
-                        var setId = x.GetSetId();
-
-                        foreach (var locale in Enum.GetValues<WikiLocales>())
-                        {
-                            var wikiResponse =
-                                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
-                                    entryPage, locale));
-                            if (!wikiResponse.IsSuccess)
-                            {
-                                Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
-                                continue;
-                            }
-
-                            if (locale == WikiLocales.EN)
-                            {
-                                var setName = wikiResponse.Data["data"]?["page"]?["name"]?.GetValue<string>();
-                                if (setName != null) await AddSetName(setId, setName);
-                            }
-
-                            jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
-                                .SelectMany(x => x?["components"]?.AsArray() ?? [])
-                                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "set")
-                                ?["data"]?.GetValue<string>();
-
-                            if (!string.IsNullOrEmpty(jsonStr)) break;
-
-                            Logger.LogWarning("Character wiki image URL is empty for RelicId: {RelicId}, Locale: {Locale}, Data:\n{Data}",
-                                setId, locale, wikiResponse.Data.ToJsonString());
-                        }
-
-                        if (string.IsNullOrEmpty(jsonStr)) return null;
-
-                        return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
-                    });
-
-            var uniqueRelicSetId = uniqueRelicSet.Where(x => x.Value != null).Select(x => x.Key.GetSetId()).ToHashSet();
-
-            List<Task<bool>> tasks = [];
-
-            var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
-
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
-                new ImageProcessorBuilder().Resize(1000, 0).Build()));
-            tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null)
-                .SelectMany(x => x.Value!.Select((e, i) =>
-                    new ImageData(
-                        string.Format(FileNameFormat.Hsr.FileName, $"{x.Key.GetSetId()}{(x.Key.Pos < 5 ? i + 1 : i + 5)}"),
-                        e?["icon_url"]?.GetValue<string>() ?? string.Empty))
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor))));
-            tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments)
-                .Where(x => !uniqueRelicSetId.Contains(x.GetSetId()))
-                .Select(r => new ImageData(r.ToImageName(), r.Icon))
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor)));
-
-            if (characterInfo.Equip != null &&
-                characterList.EquipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
-                !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName,
-                    characterInfo.Equip.Id)))
-            {
-                var entryPage = wikiEntry.Split('/')[^1];
-                var wikiResponse =
-                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage));
-
-                if (!wikiResponse.IsSuccess)
-                {
-                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid, wikiResponse);
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 
-                var iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
-
-                if (iconUrl == null)
+                if (character != null)
                 {
-                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, gameUid,
-                        "Failed to retrieve Icon Url");
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                    validCharacters.TryAdd(character.Id, character);
                 }
-
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
-                    new ImageData(string.Format(FileNameFormat.Hsr.FileName, characterInfo.Equip.Id), iconUrl),
-                    new ImageProcessorBuilder().Resize(300, 0).Build()));
             }
 
-            tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build())));
-
-            if (characterInfo.ServantDetail != null)
+            if (validCharacters.Count == 0)
             {
-                tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                        new ImageProcessorBuilder().Resize(80, 0).Build())) ?? []);
+                return CommandResult.Success(
+                    [new CommandText(string.Join('\n', failureMessages))],
+                    isEphemeral: true);
             }
 
-            tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(80, 0).Build())));
+            List<string> attachments = [];
 
-            var completed = await Task.WhenAll(tasks);
-
-            if (completed.Any(x => !x))
+            foreach (var charData in validCharacters.Values)
             {
-                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
-                    JsonSerializer.Serialize(characterInfo));
-                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+                var result = await ProcessCharacterAsync(context, server, profile, charData,
+                    characterList.RelicWiki, characterList.EquipWiki);
+                if (result.IsSuccess)
+                {
+                    attachments.Add(result.Data);
+                }
+                else
+                {
+                    failureMessages.Add($"{charData.Name}: {result.ErrorMessage}");
+                }
             }
 
-            var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
-            cardContext.SetParameter("server", server);
+            List<ICommandResultComponent> components = [];
+            components.Add(new CommandText($"<@{context.UserId}>"));
+            components.AddRange(attachments.Select(x => new CommandAttachment(x)));
 
-            await using var card = await m_CardService.GetCardAsync(cardContext);
-
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError,
-                    ResponseMessage.AttachmentStoreError);
-            }
-
-            m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
-                characterInfo.Name.ToLowerInvariant());
-
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>")
-                , new CommandAttachment(fileName)
-            ]);
+            return CommandResult.Success(components,
+                ephemeralMessage: string.Join('\n', failureMessages));
         }
         catch (CommandException e)
         {
@@ -296,6 +176,172 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         }
     }
 
+    private async Task<Result<string>> ProcessCharacterAsync(
+        IApplicationContext context, Server server,
+        GameProfileDto profile, HsrCharacterInformation characterInfo,
+        Dictionary<string, string> relicWiki, Dictionary<string, string> equipWiki
+    )
+    {
+        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
+        if (await AttachmentExistsAsync(fileName))
+        {
+            return Result<string>.Success(fileName);
+        }
+
+        var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
+            .DistinctBy(x => x.GetSetId())
+            .ToAsyncEnumerable()
+            .Where(async (x, token) =>
+            {
+                int start = 1, end = 4;
+                if (x.Pos >= 5)
+                {
+                    start = 5;
+                    end = 6;
+                }
+
+                var setId = x.GetSetId();
+
+                for (var i = start; i <= end; i++)
+                {
+                    if (relicWiki.ContainsKey(x.Id.ToString()) &&
+                        !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName, $"{setId}{i}"), token))
+                        return true;
+                }
+
+                return false;
+            })
+            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
+                async (x, token) =>
+                {
+                    var url = relicWiki[x.Id.ToString()];
+                    var entryPage = url.Split('/')[^1];
+                    string? jsonStr = null;
+
+                    var setId = x.GetSetId();
+
+                    foreach (var locale in Enum.GetValues<WikiLocales>())
+                    {
+                        var wikiResponse =
+                            await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
+                                entryPage, locale));
+                        if (!wikiResponse.IsSuccess)
+                        {
+                            Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
+                            continue;
+                        }
+
+                        if (locale == WikiLocales.EN)
+                        {
+                            var setName = wikiResponse.Data["data"]?["page"]?["name"]?.GetValue<string>();
+                            if (setName != null) await AddSetName(setId, setName);
+                        }
+
+                        jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
+                            .SelectMany(x => x?["components"]?.AsArray() ?? [])
+                            .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "set")
+                            ?["data"]?.GetValue<string>();
+
+                        if (!string.IsNullOrEmpty(jsonStr)) break;
+
+                        Logger.LogWarning("Character wiki image URL is empty for RelicId: {RelicId}, Locale: {Locale}, Data:\n{Data}",
+                            setId, locale, wikiResponse.Data.ToJsonString());
+                    }
+
+                    if (string.IsNullOrEmpty(jsonStr)) return null;
+
+                    return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
+                });
+
+        var uniqueRelicSetId = uniqueRelicSet.Where(x => x.Value != null).Select(x => x.Key.GetSetId()).ToHashSet();
+
+        List<Task<bool>> tasks = [];
+
+        var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
+
+        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
+            new ImageProcessorBuilder().Resize(1000, 0).Build()));
+        tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null)
+            .SelectMany(x => x.Value!.Select((e, i) =>
+                new ImageData(
+                    string.Format(FileNameFormat.Hsr.FileName, $"{x.Key.GetSetId()}{(x.Key.Pos < 5 ? i + 1 : i + 5)}"),
+                    e?["icon_url"]?.GetValue<string>() ?? string.Empty))
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor))));
+        tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments)
+            .Where(x => !uniqueRelicSetId.Contains(x.GetSetId()))
+            .Select(r => new ImageData(r.ToImageName(), r.Icon))
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor)));
+
+        if (characterInfo.Equip != null &&
+            equipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
+            !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName,
+                characterInfo.Equip.Id)))
+        {
+            var entryPage = wikiEntry.Split('/')[^1];
+            var wikiResponse =
+                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage));
+
+            if (!wikiResponse.IsSuccess)
+            {
+                Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
+                return Result<string>.Failure(StatusCode.ExternalServerError,
+                    string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+            }
+
+            var iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+
+            if (iconUrl == null)
+            {
+                Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
+                    "Failed to retrieve Icon Url");
+                return Result<string>.Failure(StatusCode.ExternalServerError,
+                    string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+            }
+
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
+                new ImageData(string.Format(FileNameFormat.Hsr.FileName, characterInfo.Equip.Id), iconUrl),
+                new ImageProcessorBuilder().Resize(300, 0).Build()));
+        }
+
+        tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+            new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build())));
+
+        if (characterInfo.ServantDetail != null)
+        {
+            tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                    new ImageProcessorBuilder().Resize(80, 0).Build())) ?? []);
+        }
+
+        tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+            new ImageProcessorBuilder().Resize(80, 0).Build())));
+
+        var completed = await Task.WhenAll(tasks);
+
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
+                JsonSerializer.Serialize(characterInfo));
+            return Result<string>.Failure(StatusCode.ExternalServerError, ResponseMessage.ImageUpdateError);
+        }
+
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
+        cardContext.SetParameter("server", server);
+
+        await using var card = await m_CardService.GetCardAsync(cardContext);
+
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+            return Result<string>.Failure(StatusCode.BotError,
+                ResponseMessage.AttachmentStoreError);
+        }
+
+        m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
+            characterInfo.Name.ToLowerInvariant());
+
+        return Result<string>.Success(fileName);
+    }
     private async Task AddSetName(int setId, string setName)
     {
         try
