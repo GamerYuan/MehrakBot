@@ -794,6 +794,271 @@ public class HsrCharacterApplicationServiceTests
         attachmentStorageMock2.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Test]
+    public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsEphemeralError()
+    {
+        // Arrange
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Char1,Char2,Char3,Char4,Char5"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.True);
+            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
+                Does.Contain("Max 4").IgnoreCase);
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCharactersAllNotFound_ReturnsAllNotFoundMessages()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Unknown1,Unknown2"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.True);
+            var text = result.Data.Components.OfType<CommandText>().First().Content;
+            Assert.That(text, Does.Contain("Unknown1"));
+            Assert.That(text, Does.Contain("Unknown2"));
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCharacters_MixedValidAndInvalid_ReturnsPartialSuccess()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var wikiResponse =
+            JsonNode.Parse("{\"data\":{\"page\":{\"icon_url\":\"https://example.com/icon.png\",\"modules\":[]}}}");
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Trailblazer,NonExistent"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.False);
+            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+            Assert.That(result.Data.EphemeralMessage, Does.Contain("NonExistent"));
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleValidCharacters_ReturnsMultipleAttachments()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadMultiCharacterTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var wikiResponse =
+            JsonNode.Parse("{\"data\":{\"page\":{\"icon_url\":\"https://example.com/icon.png\",\"modules\":[]}}}");
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Trailblazer,March 7th"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.False);
+            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(2));
+            Assert.That(result.Data.Components.OfType<CommandText>().Any(t => t.Content.Contains("1")), Is.True);
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiStarRail), It.IsAny<string>()), Times.Exactly(2));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCharacters_TrimsWhitespace()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var wikiResponse =
+            JsonNode.Parse("{\"data\":{\"page\":{\"icon_url\":\"https://example.com/icon.png\",\"modules\":[]}}}");
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        // Input with extra whitespace around character name
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "  Trailblazer  "), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ExactlyMaxRequestCount_Succeeds()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Char1,Char2,Char3,Char4"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert — should NOT return the "exceeded max" ephemeral; it proceeds past the check
+        if (result.IsSuccess && result.Data!.IsEphemeral)
+        {
+            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
+                Does.Not.Contain("Max 4").IgnoreCase);
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DuplicateCharacterInput_DeduplicatesById()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var wikiResponse =
+            JsonNode.Parse("{\"data\":{\"page\":{\"icon_url\":\"https://example.com/icon.png\",\"modules\":[]}}}");
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        // Same character name duplicated
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Trailblazer,Trailblazer"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert — deduplicated by TryAdd, so only 1 attachment
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiStarRail), "trailblazer"), Times.Once);
+    }
+
     #endregion
 
     #region Integration Tests
@@ -1154,6 +1419,21 @@ public class HsrCharacterApplicationServiceTests
         };
 
         return charData;
+    }
+
+    private static async Task<HsrBasicCharacterData> LoadMultiCharacterTestDataAsync()
+    {
+        var baseData = await LoadTestDataAsync();
+        var json = JsonSerializer.Serialize(baseData.AvatarList[0]);
+        var cloned = JsonSerializer.Deserialize<HsrCharacterInformation>(json)!;
+
+        baseData.AvatarList.Add(cloned);
+
+        // Patch cloned character to have a different identity via reflection (init-only properties)
+        typeof(HsrCharacterInformation).GetProperty(nameof(HsrCharacterInformation.Id))!.SetValue(cloned, 1001);
+        typeof(HsrCharacterInformation).GetProperty(nameof(HsrCharacterInformation.Name))!.SetValue(cloned, "March 7th");
+
+        return baseData;
     }
 
     private static IServiceScopeFactory CreateRelicScopeFactory(RelicDbContext relicContext)

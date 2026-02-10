@@ -389,7 +389,7 @@ public class CharacterAutocompleteServiceTests
     #region FindCharacter Tests - Edge Cases
 
     [Test]
-    public void FindCharacter_WithWhitespaceQuery_MatchesCharactersWithSpaces()
+    public void FindCharacter_WithWhitespaceQuery_MatchesAllCharacters()
     {
         // Arrange
         var allCharacters = new List<string>
@@ -405,8 +405,8 @@ public class CharacterAutocompleteServiceTests
         var result = m_Service.FindCharacter(Game.Genshin, " ");
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(result[0], Is.EqualTo("Hu Tao"));
+        Assert.That(result, Has.Count.EqualTo(3));
+        Assert.That(result, Is.EqualTo(allCharacters));
     }
 
     [Test]

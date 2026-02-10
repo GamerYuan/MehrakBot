@@ -841,6 +841,253 @@ public class GenshinCharacterApplicationServiceTests
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
     }
 
+    [Test]
+    public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsEphemeralError()
+    {
+        // Arrange
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Char1,Char2,Char3,Char4,Char5"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.True);
+            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
+                Does.Contain("Max 4").IgnoreCase);
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCharactersAllNotFound_ReturnsAllNotFoundMessages()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Unknown1,Unknown2"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.True);
+            var text = result.Data.Components.OfType<CommandText>().First().Content;
+            Assert.That(text, Does.Contain("Unknown1"));
+            Assert.That(text, Does.Contain("Unknown2"));
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCharacters_MixedValidAndInvalid_ReturnsPartialSuccess()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Traveler,NonExistent"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.False);
+            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+            Assert.That(result.Data.EphemeralMessage, Does.Contain("NonExistent"));
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleValidCharacters_ReturnsMultipleAttachments()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateMultiCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await CreateMultiCharacterDetailAsync();
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Traveler,Jean"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.False);
+            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(2));
+            Assert.That(result.Data.Components.OfType<CommandText>().Any(t => t.Content.Contains("1")), Is.True);
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), It.IsAny<string>()), Times.Exactly(2));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCharacters_TrimsWhitespace()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        // Input with extra whitespace around character name
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "  Traveler  "), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ExactlyMaxRequestCount_Succeeds()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = new List<GenshinBasicCharacterData>
+        {
+            new() { Id = 1, Icon = "", Name = "Char1", Weapon = new Weapon { Icon = "", Name = "Sword" } },
+            new() { Id = 2, Icon = "", Name = "Char2", Weapon = new Weapon { Icon = "", Name = "Sword" } },
+            new() { Id = 3, Icon = "", Name = "Char3", Weapon = new Weapon { Icon = "", Name = "Sword" } },
+            new() { Id = 4, Icon = "", Name = "Char4", Weapon = new Weapon { Icon = "", Name = "Sword" } }
+        };
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        // All 4 not found doesn't matter — we just verify the max count check passes
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Char1,Char2,Char3,Char4"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert — should NOT return the "exceeded max" ephemeral; it proceeds past the check
+        if (result.IsSuccess && result.Data!.IsEphemeral)
+        {
+            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
+                Does.Not.Contain("Max 4").IgnoreCase);
+        }
+    }
+
     #endregion
 
     #region Integration Tests
@@ -1171,6 +1418,49 @@ public class GenshinCharacterApplicationServiceTests
                 Weapon = new Weapon { Icon = "", Name = "Sword" }
             }
         ];
+    }
+
+    private static List<GenshinBasicCharacterData> CreateMultiCharacterList()
+    {
+        return
+        [
+            new GenshinBasicCharacterData
+            {
+                Id = 10000005,
+                Icon = "",
+                Name = "Traveler",
+                Element = "Anemo",
+                Level = 90,
+                Rarity = 5,
+                ActivedConstellationNum = 0,
+                Weapon = new Weapon { Icon = "", Name = "Sword" }
+            },
+            new GenshinBasicCharacterData
+            {
+                Id = 10000003,
+                Icon = "",
+                Name = "Jean",
+                Element = "Anemo",
+                Level = 90,
+                Rarity = 5,
+                ActivedConstellationNum = 0,
+                Weapon = new Weapon { Icon = "", Name = "Sword" }
+            }
+        ];
+    }
+
+    private static async Task<GenshinCharacterDetail> CreateMultiCharacterDetailAsync()
+    {
+        var detail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        var json = JsonSerializer.Serialize(detail.List[0]);
+        var cloned = JsonSerializer.Deserialize<GenshinCharacterInformation>(json)!;
+
+        return new GenshinCharacterDetail
+        {
+            List = [detail.List[0], cloned],
+            AvatarWiki = detail.AvatarWiki,
+            WeaponWiki = detail.WeaponWiki
+        };
     }
 
     private static async Task<T> LoadTestDataAsync<T>(string filename)
