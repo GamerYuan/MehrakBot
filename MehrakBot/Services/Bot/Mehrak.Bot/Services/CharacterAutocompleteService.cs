@@ -20,11 +20,12 @@ internal class CharacterAutocompleteService : ICharacterAutocompleteService
 
     public IReadOnlyList<string> FindCharacter(Game game, string query)
     {
+        query = query.Trim();
         var characterNames = m_CharacterCacheService.GetCharacters(game);
         return
         [
             .. characterNames
-                .Where(x => x.Contains(query.Trim(), StringComparison.InvariantCultureIgnoreCase))
+                .Where(x => x.Contains(query, StringComparison.InvariantCultureIgnoreCase))
                 .Take(Limit)
         ];
     }
