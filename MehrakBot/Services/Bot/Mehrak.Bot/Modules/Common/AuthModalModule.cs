@@ -182,7 +182,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                         {
                             Id = p.Id,
                             ProfileId = p.ProfileId,
-                            LtUid = (uint)p.LtUid
+                            LtUid = (ulong)p.LtUid
                         }).ToList()
                 }).FirstOrDefaultAsync();
 
@@ -216,6 +216,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("Failed to update profile! Please try again later")));
+                return;
             }
 
             await m_AuthenticationMiddleware.RevokeAuthenticate(Context.User.Id, profile.LtUid);
