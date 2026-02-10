@@ -402,20 +402,20 @@ public class GenshinCharacterAutocompleteProviderTests
     #region Edge Cases
 
     [Test]
-    public async Task GetChoicesAsync_WithWhitespaceQuery_PassesToService()
+    public async Task GetChoicesAsync_WithWhitespaceQuery_PassesTrimmedToService()
     {
         // Arrange
         var (option, context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.Genshin, "   "))
+            .Setup(x => x.FindCharacter(Game.Genshin, "   ".Trim()))
             .Returns([]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, "   "), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, "   ".Trim()), Times.Once);
     }
 
     [Test]

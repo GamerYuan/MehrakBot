@@ -405,20 +405,20 @@ public class HsrCharacterAutocompleteProviderTests
     #region Edge Cases
 
     [Test]
-    public async Task GetChoicesAsync_WithWhitespaceQuery_PassesToService()
+    public async Task GetChoicesAsync_WithWhitespaceQuery_PassesTrimmedToService()
     {
         // Arrange
         var (option, context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "   "))
+            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "   ".Trim()))
             .Returns([]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, "   "), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, "   ".Trim()), Times.Once);
     }
 
     [Test]

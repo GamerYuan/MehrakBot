@@ -29,7 +29,8 @@ public static class ProtobufMappingExtensions
         var proto = new Proto.CommandResultData
         {
             IsContainer = domain.IsContainer,
-            IsEphemeral = domain.IsEphemeral
+            IsEphemeral = domain.IsEphemeral,
+            EphemeralMessage = domain.EphemeralMessage ?? string.Empty
         };
 
         foreach (var component in domain.Components)
@@ -122,7 +123,8 @@ public static class ProtobufMappingExtensions
             .Where(c => c != null)
             .Cast<ICommandResultComponent>();
 
-        return CommandResult.Success(components, proto.Data.IsContainer, proto.Data.IsEphemeral);
+        return CommandResult.Success(components, proto.Data.IsContainer, proto.Data.IsEphemeral, string.IsNullOrEmpty(proto.Data.EphemeralMessage)
+            ? null : proto.Data.EphemeralMessage);
     }
 
     public static ICommandResultComponent? ToDomain(this Proto.CommandComponent proto)

@@ -20,12 +20,6 @@ public interface ICommandResultAttachment
     AttachmentSourceType SourceType { get; }
 }
 
-[Obsolete("Use ICommandResultAttachment with AttachmentSourceType instead.")]
-public interface ICommandResultEmbedAttachment : ICommandResultComponent
-{
-    (string, Stream) GetAttachment();
-}
-
 public enum CommandFailureReason
 {
     Unknown,
@@ -48,12 +42,12 @@ public class CommandResult
     public CommandResultData? Data { get; init; }
 
     public static CommandResult Success(IEnumerable<ICommandResultComponent>? components = null,
-        bool isContainer = false, bool isEphemeral = false)
+        bool isContainer = false, bool isEphemeral = false, string? ephemeralMessage = null)
     {
         return new CommandResult
         {
             IsSuccess = true,
-            Data = new CommandResultData(components, isContainer, isEphemeral)
+            Data = new CommandResultData(components, isContainer, isEphemeral, ephemeralMessage)
         };
     }
 
@@ -69,15 +63,18 @@ public class CommandResult
 
     public class CommandResultData
     {
+        public string? EphemeralMessage { get; }
         public IEnumerable<ICommandResultComponent> Components { get; }
         public bool IsContainer { get; }
         public bool IsEphemeral { get; }
 
-        public CommandResultData(IEnumerable<ICommandResultComponent>? components, bool isContainer, bool isEphemeral)
+        public CommandResultData(IEnumerable<ICommandResultComponent>? components, bool isContainer, bool isEphemeral,
+            string? ephemeralMessage = null)
         {
             Components = components ?? [];
             IsContainer = isContainer;
             IsEphemeral = isEphemeral;
+            EphemeralMessage = ephemeralMessage;
         }
     }
 }
