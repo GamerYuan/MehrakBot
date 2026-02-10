@@ -219,6 +219,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             await m_AuthenticationMiddleware.RevokeAuthenticate(Context.User.Id, profile.LtUid);
+            await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("Profile successfully updated!")));
         }
         catch (Exception e)
         {
