@@ -245,13 +245,13 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             "character" => "## HSR Character\n" +
                            "Get character card from Honkai: Star Rail\n" +
                            "### Usage\n" +
-                           "```/hsr character <character> [server] [profile]```\n" +
+                           "```/hsr character <characters> [server] [profile]```\n" +
                            "### Parameters\n" +
-                           "- `character`: Character Name or Alias (Case-insensitive)\n" +
+                           "- `characters`: Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)\n" +
                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
-                           "```/hsr character Trailblazer\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```" +
+                           "```/hsr character Trailblazer\n/hsr character Acheron, Tribbie\n/hsr character Acheron America\n/hsr character Tribbie Asia 3```" +
                            "-# [List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/honkai-star-rail-commands/character/supported-alias)",
             "charlist" => "## Character List\n" +
                           "Get character list from Honkai: Star Rail\n" +
@@ -302,7 +302,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             _ => "## Honkai: Star Rail Toolbox\n" +
                  "Honkai: Star Rail related commands and utilities.\n" +
                  "### Subcommands\n" +
-                 "- aa: Get Anomaly Arbitration summary card\n" +
+                 "- `aa`: Get Anomaly Arbitration summary card\n" +
                  "- `as`: Get Apocalyptic Shadow summary card\n" +
                  "- `character`: Get character card from Honkai: Star Rail\n" +
                  "- `charlist`: Get character list from Honkai: Star Rail\n" +

@@ -221,13 +221,13 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             "character" => "## Genshin Character\n" +
                            "Get character card from Genshin Impact\n" +
                            "### Usage\n" +
-                           "```/genshin character <character> [server] [profile]```\n" +
+                           "```/genshin character <characters> [server] [profile]```\n" +
                            "### Parameters\n" +
-                           "- `character`: Character Name or Alias (Case-insensitive)\n" +
+                           "- `characters`: Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)\n" +
                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
                            "### Examples\n" +
-                           "```/genshin character Fischl\n/genshin character Traveler America\n/genshin character Nahida Asia 3```\n" +
+                           "```/genshin character Fischl\n/genshin character Fischl, Nahida\n/genshin character Traveler America\n/genshin character Nahida Asia 3```" +
                            "-# [List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/genshin-impact-commands/character/supported-alias)",
             "charlist" => "## Character List\n" +
                           "Get character list from Genshin Impact\n" +
@@ -278,7 +278,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             _ => "## Genshin Toolbox\n" +
                  "Genshin Impact related commands and utilities.\n" +
                  "### Subcommands\n" +
-                 "- `abyss`: Get Spiral Abyss summary card" +
+                 "- `abyss`: Get Spiral Abyss summary card\n" +
                  "- `character`: Get character card from Genshin Impact\n" +
                  "- `charlist`: Get character list from Genshin Impact\n" +
                  "- `codes`: Redeem Genshin Impact codes\n" +
