@@ -31,7 +31,7 @@ public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService auto
 
         var prefix = sb.ToString();
 
-        var query = commaSeparated?.Length > 0 ? commaSeparated[^1] : string.Empty;
+        var query = commaSeparated?.Length > 0 ? commaSeparated[^1].Trim() : string.Empty;
 
         var choices = autocompleteService
             .FindCharacter(Domain.Enums.Game.HonkaiStarRail, query)
