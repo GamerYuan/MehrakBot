@@ -226,7 +226,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
                  "### Parameters\n" +
                  "[add]: Adds a new HoYoLAB profile to your account.\n" +
                  "[delete]: Deletes a HoYoLAB profile from your account.\n" +
-                 "[list]: Lists all your HoYoLAB profiles."
+                 "[list]: Lists all your HoYoLAB profiles.\n" +
+                 "[update]: Update the HoYoLAB Cookies and Passphrase for a selected HoYoLAB profile."
         };
     }
 }
