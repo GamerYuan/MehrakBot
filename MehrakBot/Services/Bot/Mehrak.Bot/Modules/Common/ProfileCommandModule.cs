@@ -2,6 +2,7 @@
 
 using System.Text;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -154,6 +155,37 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
             new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents([container])));
+    }
+
+    [SubSlashCommand("update", "Update the HoYoLAB Cookies and Passphrase for a selected profile")]
+    public async Task UpdateProfile([SlashCommandParameter(Name = "profile", Description = "The ID of the profile you want to update.")] uint profileId)
+    {
+        var user = await m_UserContext.Users
+            .AsNoTracking()
+            .Where(u => u.Id == (long)Context.User.Id)
+            .Select(u => new UserDto()
+            {
+                Id = (ulong)u.Id,
+                Profiles = u.Profiles.Where(p => p.ProfileId == profileId)
+                    .Select(p => new UserProfileDto
+                    {
+                        ProfileId = p.ProfileId,
+                        LtUid = (uint)p.LtUid
+                    })
+                    .ToList()
+            }).FirstOrDefaultAsync();
+
+        var profile = user?.Profiles?.FirstOrDefault();
+
+        if (profile == null)
+        {
+            await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties($"No profile with ID {profileId} found!"))));
+            return;
+        }
+
+        await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.UpdateAuthModal(profile)));
     }
 
     public static string GetHelpString(string subcommand)
