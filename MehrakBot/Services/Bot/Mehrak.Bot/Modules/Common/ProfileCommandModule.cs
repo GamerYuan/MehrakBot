@@ -222,7 +222,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             _ => "## Profile\n" +
                  "Manage your HoYoLAB profiles.\n" +
                  "### Usage\n" +
-                 "```/profile [add|delete|list]```\n" +
+                 "```/profile [add|delete|list|update]```\n" +
                  "### Parameters\n" +
                  "[add]: Adds a new HoYoLAB profile to your account.\n" +
                  "[delete]: Deletes a HoYoLAB profile from your account.\n" +
