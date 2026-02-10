@@ -59,7 +59,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     }
 
     [SlashCommand("health", "Check the health of the bot and its services.",
-        DefaultGuildUserPermissions = Permissions.ManageGuild | Permissions.Administrator,
+        DefaultGuildPermissions = Permissions.ManageGuild | Permissions.Administrator,
         Contexts = [InteractionContextType.Guild])]
     public async Task CheckHealthAsync()
     {

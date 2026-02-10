@@ -18,18 +18,18 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 {
     public static ModalProperties AddAuthModal => new ModalProperties("add_auth_modal", "Authenticate")
         .WithComponents([
-            new TextInputProperties("ltuid", TextInputStyle.Short, "HoYoLAB UID"),
-            new TextInputProperties("ltoken", TextInputStyle.Paragraph, "HoYoLAB Cookies"),
-            new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
-                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
+            new LabelProperties("HoYoLAB UID", new TextInputProperties("ltuid", TextInputStyle.Short)),
+            new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
+            new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64))
         ]);
 
     public static ModalProperties AuthModal(string guid)
     {
         return new ModalProperties($"auth_modal:{guid}", "Authenticate")
             .AddComponents(
-                new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
-                    .WithPlaceholder("Your Passphrase").WithMaxLength(64)
+                new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                    .WithPlaceholder("Your Passphrase").WithMaxLength(64))
             );
     }
 
