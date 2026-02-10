@@ -31,7 +31,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     [SubSlashCommand("character", "Get character card")]
     public async Task CharacterCommand(
-        [SlashCommandParameter(Name = "character", Description = "Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)",
+        [SlashCommandParameter(Name = "characters", Description = "Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)",
             AutocompleteProviderType = typeof(HsrCharacterAutocompleteProvider))]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
