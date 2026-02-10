@@ -163,7 +163,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
 
     [ComponentInteraction("update_auth_modal")]
-    public async Task UpdateModalCallback(int profileId)
+    public async Task UpdateModalCallback(uint profileId)
     {
         try
         {
