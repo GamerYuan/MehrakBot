@@ -148,6 +148,13 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         return m_NotifiedRequests.TryAdd(request.Guid, request);
     }
 
+    public async Task RevokeAuthenticate(ulong userId, ulong ltUid)
+    {
+        var cacheKey = CacheKeys.BotLToken(userId, ltUid);
+        m_Logger.LogDebug("Revoking authentication. UserId={UserId}, LtUid={LtUid}", userId, ltUid);
+        await m_CacheService.RemoveAsync(cacheKey);
+    }
+
     private async Task<AuthenticationResponse?> WaitForAuthenticationAsync(string guid, CancellationToken token)
     {
         try
