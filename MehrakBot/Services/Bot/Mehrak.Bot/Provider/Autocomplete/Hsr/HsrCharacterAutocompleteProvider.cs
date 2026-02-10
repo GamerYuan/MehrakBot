@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -14,8 +15,32 @@ public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService auto
     public ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?> GetChoicesAsync(
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
-        return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(Domain.Enums.Game.HonkaiStarRail, option.Value ?? string.Empty)
-            .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
+        var commaSeparated = option.Value?.Split(',');
+
+        StringBuilder sb = new();
+
+        if (commaSeparated != null)
+        {
+            for (var i = 0; i < commaSeparated.Length - 1; i++)
+            {
+                sb.Append(commaSeparated[i]);
+                sb.Append(',');
+                sb.Append(' ');
+            }
+        }
+
+        var query = commaSeparated?.Length > 0 ? commaSeparated[^1] : string.Empty;
+
+        var choices = autocompleteService
+            .FindCharacter(Domain.Enums.Game.HonkaiStarRail, query)
+            .Select(x =>
+            {
+                sb.Append(x);
+                var choice = sb.ToString();
+                sb.Length -= x.Length;
+                return new ApplicationCommandOptionChoiceProperties(choice, choice);
+            });
+
+        return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(choices);
     }
 }
