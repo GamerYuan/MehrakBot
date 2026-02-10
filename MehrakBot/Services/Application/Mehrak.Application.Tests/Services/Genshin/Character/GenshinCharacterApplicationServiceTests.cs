@@ -1055,8 +1055,8 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_ExactlyMaxRequestCount_Succeeds()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _,
+            gameRoleApiMock, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
