@@ -166,7 +166,6 @@ public class Program
 
             host.AddModules(typeof(Program).Assembly);
 
-            host.UseGatewayHandlers();
             logger.LogInformation("Discord gateway initialized");
 
             await host.RunAsync();

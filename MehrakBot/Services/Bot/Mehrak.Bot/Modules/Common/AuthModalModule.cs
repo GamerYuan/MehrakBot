@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Bot.Authentication;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
@@ -18,19 +19,31 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 {
     public static ModalProperties AddAuthModal => new ModalProperties("add_auth_modal", "Authenticate")
         .WithComponents([
-            new TextInputProperties("ltuid", TextInputStyle.Short, "HoYoLAB UID"),
-            new TextInputProperties("ltoken", TextInputStyle.Paragraph, "HoYoLAB Cookies"),
-            new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
-                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64)
+            new LabelProperties("HoYoLAB UID", new TextInputProperties("ltuid", TextInputStyle.Short)),
+            new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
+            new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64))
         ]);
 
     public static ModalProperties AuthModal(string guid)
     {
         return new ModalProperties($"auth_modal:{guid}", "Authenticate")
             .AddComponents(
-                new TextInputProperties("passphrase", TextInputStyle.Paragraph, "Passphrase")
-                    .WithPlaceholder("Your Passphrase").WithMaxLength(64)
+                new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                    .WithPlaceholder("Your Passphrase").WithMaxLength(64))
             );
+    }
+
+    public static ModalProperties UpdateAuthModal(UserProfileDto profile)
+    {
+        return new ModalProperties($"update_auth_modal:{profile.ProfileId}", "Update Authentication")
+            .WithComponents([
+                new TextDisplayProperties($"## Profile {profile.ProfileId}\n### HoYoLAB UID: {profile.LtUid}"),
+                new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
+                new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                    .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64))
+            ]);
+
     }
 
     private readonly ILogger<AuthModalModule> m_Logger;
@@ -74,7 +87,10 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await m_UserContext.Users.AddAsync(user);
             }
 
-            var inputs = Context.Components.OfType<TextInput>()
+            var inputs = Context.Components
+                .OfType<Label>()
+                .Select(l => l.Component)
+                .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
             if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
@@ -145,10 +161,87 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         }
     }
 
+
+    [ComponentInteraction("update_auth_modal")]
+    public async Task UpdateModalCallback(uint profileId)
+    {
+        try
+        {
+            m_Logger.LogInformation("Processing update auth modal submission from user {UserId}", Context.User.Id);
+
+            await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+
+            var user = await m_UserContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == (long)Context.User.Id)
+                .Select(u => new UserDto()
+                {
+                    Id = (ulong)u.Id,
+                    Profiles = u.Profiles.Where(p => p.ProfileId == profileId)
+                        .Select(p => new UserProfileDto()
+                        {
+                            Id = p.Id,
+                            ProfileId = p.ProfileId,
+                            LtUid = (ulong)p.LtUid
+                        }).ToList()
+                }).FirstOrDefaultAsync();
+
+            var profile = user?.Profiles?.FirstOrDefault();
+
+            if (profile == null)
+            {
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("No profile found!")));
+                return;
+            }
+
+            var inputs = Context.Components
+                .OfType<Label>()
+                .Select(l => l.Component)
+                .OfType<TextInput>()
+                .ToDictionary(x => x.CustomId, x => x.Value);
+
+            var newLToken = await Task.Run(() => m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]));
+
+            try
+            {
+                await m_UserContext.UserProfiles
+                    .Where(p => p.Id == profile.Id)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.LToken, newLToken));
+            }
+            catch (DbUpdateException e)
+            {
+                m_Logger.LogError(e, "Failed to update profile for user {UserId}", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Failed to update profile! Please try again later")));
+                return;
+            }
+
+            await m_AuthenticationMiddleware.RevokeAuthenticate(Context.User.Id, profile.LtUid);
+            await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("Profile successfully updated!")));
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Error processing update auth modal for user {UserId}", Context.User.Id);
+
+            await Context.Interaction.SendFollowupMessageAsync(
+                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("An error occurred while processing your request. Please try again later")));
+        }
+    }
+
+
     [ComponentInteraction("auth_modal")]
     public async Task AuthModalCallback(string guid)
     {
-        var passphrase = Context.Components.OfType<TextInput>()
+        var passphrase = Context.Components
+            .OfType<Label>()
+            .Select(l => l.Component)
+            .OfType<TextInput>()
             .First(x => x.CustomId == "passphrase").Value;
 
         if (!m_AuthenticationMiddleware.NotifyAuthenticate(new AuthenticationResponse(Context.User.Id, guid, passphrase,

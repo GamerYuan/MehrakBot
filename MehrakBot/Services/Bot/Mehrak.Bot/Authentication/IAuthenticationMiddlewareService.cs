@@ -13,6 +13,8 @@ public interface IAuthenticationMiddlewareService
     Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request);
 
     bool NotifyAuthenticate(AuthenticationResponse request);
+
+    Task RevokeAuthenticate(ulong userId, ulong ltUid);
 }
 
 public class AuthenticationResult
