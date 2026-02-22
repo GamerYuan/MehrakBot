@@ -1,10 +1,10 @@
 ﻿#region
 
 using Mehrak.Bot.Authentication;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Metrics;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -51,13 +51,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly IEncryptionService m_CookieService;
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
-    private readonly BotMetricsService m_Metrics;
+    private readonly IBotMetrics m_Metrics;
 
     public AuthModalModule(
         IEncryptionService cookieService,
         UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        BotMetricsService metrics,
+        IBotMetrics metrics,
         ILogger<AuthModalModule> logger)
     {
         m_Logger = logger;

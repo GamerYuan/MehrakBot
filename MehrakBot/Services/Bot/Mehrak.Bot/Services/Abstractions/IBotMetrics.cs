@@ -9,4 +9,6 @@ public interface IBotMetrics
     IDisposable ObserveCommandDuration(string commandName);
 
     void RecordCommandDuration(string commandName, TimeSpan duration);
+
+    void AdjustUniqueUserCount(long delta);
 }

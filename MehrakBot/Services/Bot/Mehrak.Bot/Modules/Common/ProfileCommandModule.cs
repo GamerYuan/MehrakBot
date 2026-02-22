@@ -1,10 +1,10 @@
 ﻿#region
 
 using System.Text;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Metrics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -20,10 +20,10 @@ namespace Mehrak.Bot.Modules.Common;
 public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserDbContext m_UserContext;
-    private readonly BotMetricsService m_Metrics;
+    private readonly IBotMetrics m_Metrics;
     private readonly ILogger<ProfileCommandModule> m_Logger;
 
-    public ProfileCommandModule(UserDbContext userContext, BotMetricsService metrics, ILogger<ProfileCommandModule> logger)
+    public ProfileCommandModule(UserDbContext userContext, IBotMetrics metrics, ILogger<ProfileCommandModule> logger)
     {
         m_UserContext = userContext;
         m_Metrics = metrics;
