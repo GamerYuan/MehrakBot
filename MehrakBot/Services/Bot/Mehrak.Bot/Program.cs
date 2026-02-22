@@ -6,11 +6,9 @@ using Mehrak.Bot.Services;
 using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Metrics;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -135,7 +133,9 @@ public class Program
 
             builder.Services.AddSingleton<IBotMetrics, BotMetricsService>();
 
-            builder.Services.AddSingleton<ISystemResourceClientService, ClickhouseSystemClientService>();
+            builder.Services.AddHostedService<BotRichStatusService>();
+
+            builder.Services.AddSingleton<ClickhouseClientService>();
 
             var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 

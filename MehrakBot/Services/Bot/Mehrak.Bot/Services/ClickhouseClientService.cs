@@ -1,19 +1,41 @@
 ﻿using System.Data.Common;
 using ClickHouse.Driver.ADO;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Options;
 
-namespace Mehrak.Infrastructure.Metrics;
+namespace Mehrak.Bot.Services;
 
-public class ClickhouseSystemClientService : ISystemResourceClientService
+public class ClickhouseClientService
 {
     private readonly ClickhouseConfig m_Config;
 
-    public ClickhouseSystemClientService(IOptions<ClickhouseConfig> config)
+    public ClickhouseClientService(IOptions<ClickhouseConfig> config)
     {
         m_Config = config.Value;
+    }
+
+    public async ValueTask<long> GetUniqueUserCountAsync(CancellationToken token = default)
+    {
+        try
+        {
+            using DbConnection connection =
+                new ClickHouseConnection($"Host={m_Config.Host};Protocol=http;Username={m_Config.Username};Password={m_Config.Password}");
+            await connection.OpenAsync(token);
+
+            var query = @"
+                SELECT argMax(Value, TimeUnix) as val
+                FROM otel_metrics_sum
+                WHERE MetricName = 'bot_num_users'
+                  AND TimeUnix >= (now() - INTERVAL 5 MINUTE)";
+
+            var result = await ExecuteScalarAsync<long>(connection, query, token);
+            return result >= 0 ? result : -1;
+        }
+        catch
+        {
+            return -1;
+        }
     }
 
     public async ValueTask<SystemResource> GetSystemResourceAsync(CancellationToken token = default)
