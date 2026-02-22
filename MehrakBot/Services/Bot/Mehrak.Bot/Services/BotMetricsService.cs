@@ -15,6 +15,7 @@ public sealed class BotMetricsService : IBotMetrics, IDisposable
     private readonly Counter<long> m_CommandResults;
     private readonly Histogram<double> m_CommandExecutionTime;
     private readonly Counter<long> m_CommandsByUser;
+    private readonly UpDownCounter<long> m_NumUsers;
 
     private double m_CurrentLatency;
 
@@ -44,6 +45,11 @@ public sealed class BotMetricsService : IBotMetrics, IDisposable
             description: "Commands executed by user"
         );
 
+        m_NumUsers = m_Meter.CreateUpDownCounter<long>(
+            "bot_num_users",
+            description: "Number of unique users interacting with the bot"
+        );
+
         m_Meter.CreateObservableGauge(
             "bot_latency_ms",
             () => m_CurrentLatency,
@@ -64,6 +70,14 @@ public sealed class BotMetricsService : IBotMetrics, IDisposable
     public void TrackDiscordLatency(double latencyMs)
     {
         m_CurrentLatency = latencyMs;
+    }
+
+    public void AdjustUniqueUserCount(long delta)
+    {
+        if (delta == 0)
+            return;
+
+        m_NumUsers.Add(delta);
     }
 
     public IDisposable ObserveCommandDuration(string commandName)
