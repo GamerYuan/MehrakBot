@@ -6,6 +6,7 @@
 
 using System.Net.NetworkInformation;
 using Amazon.S3;
+using Mehrak.Bot.Config;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
@@ -146,6 +147,8 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
         container.AddComponents(new ComponentSeparatorProperties());
         container.AddComponents(new TextDisplayProperties($"### __API Status__\n" +
                                                           $"```ansi\n{apiStatus}```"));
+        container.AddComponents(new ComponentSeparatorProperties());
+        container.AddComponents(new TextDisplayProperties($"-# v{AppInfo.Version}"));
 
         await Context.Interaction.SendFollowupMessageAsync(response);
     }
