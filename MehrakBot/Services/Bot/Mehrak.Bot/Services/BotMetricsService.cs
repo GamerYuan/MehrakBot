@@ -5,7 +5,7 @@ using Mehrak.Bot.Services.Abstractions;
 
 #endregion
 
-namespace Mehrak.Infrastructure.Metrics;
+namespace Mehrak.Bot.Services;
 
 public sealed class BotMetricsService : IBotMetrics, IDisposable
 {
