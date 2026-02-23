@@ -67,12 +67,22 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         if (profileId == 0)
         {
-            var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+            try
+            {
+                var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
 
-            if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
-            await Context.Interaction.SendFollowupMessageAsync(
-                new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
+                if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
+            }
+            catch (DbUpdateException e)
+            {
+                m_Logger.LogError(e, "Failed to delete all profiles for user {UserId}", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Failed to delete profiles! Please try again later")));
+            }
             return;
         }
 
