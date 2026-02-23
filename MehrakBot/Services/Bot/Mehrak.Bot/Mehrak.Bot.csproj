@@ -5,6 +5,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <Version>1.0.0-alpha.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
@@ -86,4 +87,25 @@
         <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       </EmbeddedResource>
     </ItemGroup>
+
+    <Target Name="GenerateVersionFile" BeforeTargets="CoreCompile">
+        <PropertyGroup>
+            <GeneratedVersionFilePath>$(IntermediateOutputPath)AppInfo.g.cs</GeneratedVersionFilePath>
+        </PropertyGroup>
+        
+        <ItemGroup>
+            <VersionFileLines Include="// &lt;auto-generated/&gt;" />
+            <VersionFileLines Include="namespace Mehrak.Bot.Config%3B" />
+            <VersionFileLines Include="public static class AppInfo { public const string Version = &quot;$(Version)&quot;%3B }" />
+        </ItemGroup>
+
+        <WriteLinesToFile File="$(GeneratedVersionFilePath)"
+                          Lines="@(VersionFileLines)"
+                          Overwrite="true"
+                          WriteOnlyWhenDifferent="true" />
+
+        <ItemGroup>
+            <Compile Include="$(GeneratedVersionFilePath)" />
+        </ItemGroup>
+    </Target>
 </Project>
