@@ -21,17 +21,12 @@ internal class BotRichStatusService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _ = UpdateStatusTask(stoppingToken);
-    }
-
-    private async Task UpdateStatusTask(CancellationToken token)
-    {
         while (m_Client.Status != WebSocketStatus.Ready)
         {
-            await Task.Delay(50, token);
+            await Task.Delay(50, stoppingToken);
         }
 
-        while (!token.IsCancellationRequested)
+        while (!stoppingToken.IsCancellationRequested)
         {
             var userCount = await m_UserTracker.GetUserCountAsync();
             m_Logger.LogDebug("Updating presence with {UserCount} users", userCount);
@@ -43,10 +38,10 @@ internal class BotRichStatusService : BackgroundService
                     [
                         new UserActivityProperties($"with {userCount} users", UserActivityType.Playing)
                     ]
-                }, cancellationToken: token);
+                }, cancellationToken: stoppingToken);
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(RefreshMinutes), token);
+            await Task.Delay(TimeSpan.FromMinutes(RefreshMinutes), stoppingToken);
         }
     }
 }
