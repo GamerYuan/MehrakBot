@@ -80,6 +80,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .Where(u => u.Id == (long)Context.User.Id)
                 .Include(u => u.Profiles)
                 .SingleOrDefaultAsync();
+            var isNewUser = user == null;
+
             if (user == null)
             {
                 user = new UserModel
@@ -88,7 +90,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     Timestamp = DateTime.UtcNow,
                     Profiles = []
                 };
-                await m_UserTracker.AdjustUserCountAsync(1);
                 await m_UserContext.Users.AddAsync(user);
             }
 
@@ -120,6 +121,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             try
             {
                 await m_UserContext.SaveChangesAsync();
+                if (isNewUser) await m_UserTracker.AdjustUserCountAsync(1);
             }
             catch (DbUpdateException e)
             {
