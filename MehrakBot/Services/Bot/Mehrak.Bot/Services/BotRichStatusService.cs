@@ -21,9 +21,20 @@ internal class BotRichStatusService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (m_Client.Status != WebSocketStatus.Ready)
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        try
         {
-            await Task.Delay(50, stoppingToken);
+            while (m_Client.Status != WebSocketStatus.Ready)
+            {
+                await Task.Delay(50, cts.Token);
+            }
+        }
+        catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+        {
+            m_Logger.LogWarning("Timed out waiting for gateway client to become ready.");
+            return;
         }
 
         while (!stoppingToken.IsCancellationRequested)
