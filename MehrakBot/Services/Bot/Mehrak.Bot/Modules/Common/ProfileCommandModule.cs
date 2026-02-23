@@ -67,9 +67,9 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         if (profileId == 0)
         {
-            await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+            var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
 
-            await m_UserTracker.AdjustUserCountAsync(-1);
+            if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
@@ -102,8 +102,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
             if (profiles.Count == 0)
             {
-                await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
-                await m_UserTracker.AdjustUserCountAsync(-1);
+                var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+                if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("All profiles deleted!")));
