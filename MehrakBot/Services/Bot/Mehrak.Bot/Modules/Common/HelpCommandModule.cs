@@ -4,6 +4,7 @@
 
 #region
 
+using Mehrak.Bot.Config;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -43,10 +44,12 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         };
 
         return new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-            .AddComponents([
-                new ComponentContainerProperties().AddComponents(new TextDisplayProperties(helpMessage))
-                    .AddComponents(new TextDisplayProperties(
-                        "-# Check out the bot's documentation at https://gameryuan.gitbook.io/mehrak for more information!"))
-            ]);
+            .AddComponents(
+                new ComponentContainerProperties().AddComponents(
+                    new TextDisplayProperties(helpMessage),
+                    new ComponentSeparatorProperties(),
+                    new TextDisplayProperties(
+                        $"-# v{AppInfo.Version}  |  [Click](https://gameryuan.gitbook.io/mehrak) for documentation"))
+            );
     }
 }
