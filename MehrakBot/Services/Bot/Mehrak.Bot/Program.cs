@@ -3,14 +3,10 @@
 using System.Globalization;
 using Mehrak.Bot.Modules;
 using Mehrak.Bot.Services;
-using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Metrics;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -132,10 +128,7 @@ public class Program
                 options.Address = new Uri(address ?? "http://localhost:5000");
             });
 
-
-            builder.Services.AddSingleton<IBotMetrics, BotMetricsService>();
-
-            builder.Services.AddSingleton<ISystemResourceClientService, ClickhouseSystemClientService>();
+            builder.Services.AddHostedService<UserTrackerBackfillService>();
 
             var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 
@@ -153,7 +146,11 @@ public class Program
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddMeter("MehrakBot")
-                    .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
+                    .AddOtlpExporter((o, m) =>
+                    {
+                        o.Endpoint = otlpEndpoint;
+                        m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
+                    }));
 
             builder.Services.AddDiscordGateway().AddApplicationCommands(a => a.ResultHandler =
                 new CustomCommandResultHandler<ApplicationCommandContext>())

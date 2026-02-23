@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Bot.Authentication;
+using Mehrak.Bot.Services;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
@@ -50,17 +51,20 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly IEncryptionService m_CookieService;
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly UserCountTrackerService m_UserTracker;
 
     public AuthModalModule(
         IEncryptionService cookieService,
         UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
+        UserCountTrackerService userTracker,
         ILogger<AuthModalModule> logger)
     {
         m_Logger = logger;
         m_CookieService = cookieService;
         m_UserContext = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
+        m_UserTracker = userTracker;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -76,6 +80,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .Where(u => u.Id == (long)Context.User.Id)
                 .Include(u => u.Profiles)
                 .SingleOrDefaultAsync();
+            var isNewUser = user == null;
+
             if (user == null)
             {
                 user = new UserModel
@@ -115,6 +121,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             try
             {
                 await m_UserContext.SaveChangesAsync();
+                if (isNewUser) await m_UserTracker.AdjustUserCountAsync(1);
             }
             catch (DbUpdateException e)
             {

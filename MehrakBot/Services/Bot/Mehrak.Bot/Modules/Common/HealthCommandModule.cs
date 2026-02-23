@@ -6,6 +6,7 @@
 
 using System.Net.NetworkInformation;
 using Amazon.S3;
+using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi;
 using NetCord;
@@ -23,7 +24,7 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     private readonly IDbStatusService m_DbStatus;
     private readonly IConnectionMultiplexer m_RedisConnection;
     private readonly GatewayClient m_GatewayClient;
-    private readonly ISystemResourceClientService m_SystemMetricsClient;
+    private readonly ClickhouseClientService m_SystemMetricsClient;
     private readonly IAmazonS3 m_S3;
     private static readonly Dictionary<string, string> HealthCheckComponents = new()
     {
@@ -49,12 +50,12 @@ public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandCo
     }
 
     public HealthCommandModule(IDbStatusService dbStatus, IConnectionMultiplexer redisConnection,
-        GatewayClient gatewayClient, ISystemResourceClientService prometheusClientService, IAmazonS3 s3)
+        GatewayClient gatewayClient, ClickhouseClientService clickhouseClientService, IAmazonS3 s3)
     {
         m_DbStatus = dbStatus;
         m_RedisConnection = redisConnection;
         m_GatewayClient = gatewayClient;
-        m_SystemMetricsClient = prometheusClientService;
+        m_SystemMetricsClient = clickhouseClientService;
         m_S3 = s3;
     }
 

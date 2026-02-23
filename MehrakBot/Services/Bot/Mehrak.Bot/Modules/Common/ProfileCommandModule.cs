@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text;
+using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Infrastructure.Context;
@@ -19,11 +20,13 @@ namespace Mehrak.Bot.Modules.Common;
 public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserDbContext m_UserContext;
+    private readonly UserCountTrackerService m_UserTracker;
     private readonly ILogger<ProfileCommandModule> m_Logger;
 
-    public ProfileCommandModule(UserDbContext userContext, ILogger<ProfileCommandModule> logger)
+    public ProfileCommandModule(UserDbContext userContext, UserCountTrackerService userTracker, ILogger<ProfileCommandModule> logger)
     {
         m_UserContext = userContext;
+        m_UserTracker = userTracker;
         m_Logger = logger;
     }
 
@@ -52,17 +55,36 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
-        if (profileId == 0)
-        {
-            await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+        var profiles = await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).ToListAsync();
 
+        if (profiles.Count == 0)
+        {
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
+                    .AddComponents(new TextDisplayProperties("No profiles found!")));
             return;
         }
 
-        var profiles = await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).ToListAsync();
+        if (profileId == 0)
+        {
+            try
+            {
+                var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+
+                if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
+            }
+            catch (DbUpdateException e)
+            {
+                m_Logger.LogError(e, "Failed to delete all profiles for user {UserId}", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Failed to delete profiles! Please try again later")));
+            }
+            return;
+        }
 
         if (profiles.All(x => x.ProfileId != profileId))
         {
@@ -90,7 +112,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
             if (profiles.Count == 0)
             {
-                await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+                var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+                if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("All profiles deleted!")));

@@ -1,17 +1,16 @@
 ﻿using System.Data.Common;
 using ClickHouse.Driver.ADO;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Options;
 
-namespace Mehrak.Infrastructure.Metrics;
+namespace Mehrak.Bot.Services;
 
-public class ClickhouseSystemClientService : ISystemResourceClientService
+public class ClickhouseClientService
 {
     private readonly ClickhouseConfig m_Config;
 
-    public ClickhouseSystemClientService(IOptions<ClickhouseConfig> config)
+    public ClickhouseClientService(IOptions<ClickhouseConfig> config)
     {
         m_Config = config.Value;
     }

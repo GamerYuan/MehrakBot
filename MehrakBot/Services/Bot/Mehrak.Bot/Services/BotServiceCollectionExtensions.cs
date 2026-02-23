@@ -3,6 +3,7 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider;
+using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Bot.Services.RateLimit;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +21,13 @@ internal static class BotServiceCollectionExtensions
         services.AddSingleton<ICommandRateLimitService, CommandRateLimitService>();
 
         services.AddSingleton<ICharacterAutocompleteService, CharacterAutocompleteService>();
+
+        services.AddSingleton<IBotMetrics, BotMetricsService>();
+        services.AddSingleton<UserCountTrackerService>();
+
+        services.AddHostedService<BotRichStatusService>();
+
+        services.AddSingleton<ClickhouseClientService>();
 
         services.AddHostedService<BotLatencyService>();
 

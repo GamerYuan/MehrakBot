@@ -42,7 +42,6 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
-          tools: https://github.com/dsp-testing/codeql-cli-nightlies/releases/download/codeql-bundle-20251111/codeql-bundle.tar.zst
 
       # Manual build for C#
       - name: Build with dotnet (manual build for C#)
