@@ -49,7 +49,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
                     new TextDisplayProperties(helpMessage),
                     new ComponentSeparatorProperties(),
                     new TextDisplayProperties(
-                        $"-# v{AppInfo.Version}  |  [Click](https://gameryuan.gitbook.io/mehrak) for more information!"))
+                        $"-# v{AppInfo.Version}  |  [Click](https://gameryuan.gitbook.io/mehrak) for documentation"))
             );
     }
 }
