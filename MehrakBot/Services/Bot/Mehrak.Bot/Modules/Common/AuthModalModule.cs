@@ -1,7 +1,7 @@
 ﻿#region
 
 using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Services.Abstractions;
+using Mehrak.Bot.Services;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
@@ -51,20 +51,20 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly IEncryptionService m_CookieService;
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
-    private readonly IBotMetrics m_Metrics;
+    private readonly UserCountTrackerService m_UserTracker;
 
     public AuthModalModule(
         IEncryptionService cookieService,
         UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        IBotMetrics metrics,
+        UserCountTrackerService userTracker,
         ILogger<AuthModalModule> logger)
     {
         m_Logger = logger;
         m_CookieService = cookieService;
         m_UserContext = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
-        m_Metrics = metrics;
+        m_UserTracker = userTracker;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -88,7 +88,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     Timestamp = DateTime.UtcNow,
                     Profiles = []
                 };
-                m_Metrics.AdjustUniqueUserCount(1);
+                await m_UserTracker.AdjustUserCountAsync(1);
                 await m_UserContext.Users.AddAsync(user);
             }
 

@@ -9,13 +9,13 @@ internal class BotRichStatusService : BackgroundService
     private const int RefreshMinutes = 60;
 
     private readonly GatewayClient m_Client;
-    private readonly ClickhouseClientService m_ClickhouseClient;
+    private readonly UserCountTrackerService m_UserTracker;
     private readonly ILogger<BotRichStatusService> m_Logger;
 
-    public BotRichStatusService(GatewayClient gatewayClient, ClickhouseClientService clickhouseClient, ILogger<BotRichStatusService> logger)
+    public BotRichStatusService(GatewayClient gatewayClient, UserCountTrackerService userTracker, ILogger<BotRichStatusService> logger)
     {
         m_Client = gatewayClient;
-        m_ClickhouseClient = clickhouseClient;
+        m_UserTracker = userTracker;
         m_Logger = logger;
     }
 
@@ -33,7 +33,7 @@ internal class BotRichStatusService : BackgroundService
 
         while (!token.IsCancellationRequested)
         {
-            var userCount = await m_ClickhouseClient.GetUniqueUserCountAsync();
+            var userCount = await m_UserTracker.GetUserCountAsync();
             m_Logger.LogDebug("Updating presence with {UserCount} users", userCount);
             if (userCount > 0)
             {
