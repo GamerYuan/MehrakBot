@@ -28,17 +28,24 @@ internal class BotRichStatusService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var userCount = await m_UserTracker.GetUserCountAsync();
-            m_Logger.LogDebug("Updating presence with {UserCount} users", userCount);
-            if (userCount > 0)
+            try
             {
-                await m_Client.UpdatePresenceAsync(new PresenceProperties(NetCord.UserStatusType.Online)
+                var userCount = await m_UserTracker.GetUserCountAsync();
+                m_Logger.LogDebug("Updating presence with {UserCount} users", userCount);
+                if (userCount > 0)
                 {
-                    Activities =
-                    [
-                        new UserActivityProperties($"with {userCount} users", UserActivityType.Playing)
-                    ]
-                }, cancellationToken: stoppingToken);
+                    await m_Client.UpdatePresenceAsync(new PresenceProperties(NetCord.UserStatusType.Online)
+                    {
+                        Activities =
+                        [
+                            new UserActivityProperties($"with {userCount} users", UserActivityType.Playing)
+                        ]
+                    }, cancellationToken: stoppingToken);
+                }
+            }
+            catch (Exception e)
+            {
+                m_Logger.LogError(e, "Failed to update presence");
             }
 
             await Task.Delay(TimeSpan.FromMinutes(RefreshMinutes), stoppingToken);
