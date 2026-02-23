@@ -54,7 +54,7 @@ internal class BotRichStatusService : BackgroundService
                     }, cancellationToken: stoppingToken);
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException || !stoppingToken.IsCancellationRequested)
             {
                 m_Logger.LogError(e, "Failed to update presence");
             }
