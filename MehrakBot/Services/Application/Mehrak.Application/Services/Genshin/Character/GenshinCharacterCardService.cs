@@ -262,8 +262,19 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
 
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, Color.Black, new PointF(73, 58));
                 ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(70, 55));
-                ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, Color.Black, new PointF(73, 138));
-                ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(70, 135));
+
+                var ascLevel = context.GetParameter<int?>("ascension");
+
+                if (ascLevel != null)
+                {
+                    ctx.DrawText($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", m_NormalFont, Color.Black, new PointF(73, 138));
+                    ctx.DrawText($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", m_NormalFont, textColor, new PointF(70, 135));
+                }
+                else
+                {
+                    ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, Color.Black, new PointF(73, 138));
+                    ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(70, 135));
+                }
 
                 for (var i = 0; i < skillIcons.Length; i++)
                 {
