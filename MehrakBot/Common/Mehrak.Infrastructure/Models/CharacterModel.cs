@@ -15,4 +15,7 @@ public class CharacterModel
     [Required]
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    public float? BaseVal { get; set; }
+    public float? MaxAscVal { get; set; }
 }
