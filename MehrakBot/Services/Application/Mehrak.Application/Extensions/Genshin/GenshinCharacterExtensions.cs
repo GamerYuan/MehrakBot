@@ -49,8 +49,14 @@ public static class GenshinCharacterExtensions
 
         var boundary = AscensionBoundaries.IndexOf(charData.Base.Level);
 
-        var statVal = float.Parse(charData.BaseProperties.First(x => x.PropertyType == 2000).Base, CultureInfo.InvariantCulture);
-        var ascVal = statVal - baseVal * LevelMultiplier[charData.Base.Rarity][boundary];
+        var statProp = charData.BaseProperties.FirstOrDefault(x => x.PropertyType == 2000);
+        if (statProp is null || !LevelMultiplier.TryGetValue(charData.Base.Rarity, out var multipliers))
+            return false;
+
+        if (!float.TryParse(statProp.Base, CultureInfo.InvariantCulture, out var statVal))
+            return false;
+
+        var ascVal = statVal - baseVal * multipliers[boundary];
 
         if (ascVal < 0) return false;
 
