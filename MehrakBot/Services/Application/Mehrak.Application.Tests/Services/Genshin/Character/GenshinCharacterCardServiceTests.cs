@@ -157,7 +157,7 @@ public class GenshinCharacterCardServiceTests
     [Explicit]
     [Test]
     [TestCase("Aether_TestData.json", "GoldenImage_NoAsc.jpg")]
-    public async Task GeneratGoldenImage_NoAsc(string testDataFileName, string goldenImageFileName)
+    public async Task GenerateGoldenImage_NoAsc(string testDataFileName, string goldenImageFileName)
     {
         var characterDetail =
             JsonSerializer.Deserialize<GenshinCharacterDetail>(await
