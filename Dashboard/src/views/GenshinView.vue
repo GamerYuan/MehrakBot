@@ -75,7 +75,7 @@ const fetchCharacters = async () => {
       const data = await response.json().catch(() => ({}));
       showErrorToast(
         data.error || "Failed to fetch characters",
-        response.status
+        response.status,
       );
     }
   } catch (err) {
@@ -111,7 +111,7 @@ const fetchAliases = async () => {
 const searchCharacter = (event) => {
   const query = event.query.toLowerCase();
   filteredCharacters.value = allCharacters.value.filter((char) =>
-    char.toLowerCase().includes(query)
+    char.toLowerCase().includes(query),
   );
 };
 
@@ -159,6 +159,14 @@ const aliasSearchQuery = ref("");
 const manageLoading = ref(false);
 const manageError = ref("");
 
+// Edit Stat Modal Data
+const showEditStatModal = ref(false);
+const editStatCharacter = ref("");
+const editStatBase = ref(null);
+const editStatMax = ref(null);
+const editStatFetching = ref(false);
+const editStatLoading = ref(false);
+
 // Add Alias Modal Data
 const showAddAliasModal = ref(false);
 const newAliasCharacter = ref("");
@@ -194,7 +202,7 @@ const filteredManageCharacters = computed(() => {
   if (!manageSearchQuery.value) return allCharacters.value;
   const query = manageSearchQuery.value.toLowerCase();
   return allCharacters.value.filter((char) =>
-    char.toLowerCase().includes(query)
+    char.toLowerCase().includes(query),
   );
 });
 
@@ -204,7 +212,7 @@ const filteredAliases = computed(() => {
   return aliases.value.filter(
     (item) =>
       item.name.toLowerCase().includes(query) ||
-      item.aliases.some((alias) => alias.toLowerCase().includes(query))
+      item.aliases.some((alias) => alias.toLowerCase().includes(query)),
   );
 });
 
@@ -213,6 +221,87 @@ const filteredCodes = computed(() => {
   const query = codesSearchQuery.value.toLowerCase();
   return codes.value.filter((c) => c.code.toLowerCase().includes(query));
 });
+
+const openEditStatModal = async (char) => {
+  editStatCharacter.value = char;
+  editStatBase.value = null;
+  editStatMax.value = null;
+  showEditStatModal.value = true;
+  editStatFetching.value = true;
+
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(
+      `${backendUrl}/characters/stat?game=Genshin&character=${encodeURIComponent(char)}`,
+      {
+        credentials: "include",
+      },
+    );
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+    if (response.ok) {
+      const data = await response.json();
+      editStatBase.value = data.baseVal;
+      editStatMax.value = data.maxAscVal;
+    } else {
+      const data = await response.json().catch(() => ({}));
+      showErrorToast(
+        data.error || "Failed to fetch character stats",
+        response.status,
+      );
+    }
+  } catch (err) {
+    showErrorToast(err.message, err.status);
+  } finally {
+    editStatFetching.value = false;
+  }
+};
+
+const handleStatSubmit = async () => {
+  editStatLoading.value = true;
+  try {
+    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    const response = await fetch(
+      `${backendUrl}/characters/stat?game=Genshin&character=${encodeURIComponent(editStatCharacter.value)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          baseVal: editStatBase.value,
+          maxAscVal: editStatMax.value,
+        }),
+      },
+    );
+
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw buildError(
+        data.error || "Failed to update character stats",
+        response.status,
+      );
+    }
+
+    showEditStatModal.value = false;
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "Character stats updated successfully",
+      life: 3000,
+    });
+  } catch (err) {
+    showErrorToast(err.message, err.status);
+  } finally {
+    editStatLoading.value = false;
+  }
+};
 
 const addCharacter = async () => {
   if (!newCharacterName.value) return;
@@ -234,7 +323,7 @@ const addCharacter = async () => {
       const data = await response.json();
       throw buildError(
         data.error || "Failed to add character",
-        response.status
+        response.status,
       );
     }
     newCharacterName.value = "";
@@ -272,12 +361,12 @@ const executeDeleteCharacter = async (name) => {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
       `${backendUrl}/characters/delete?game=Genshin&character=${encodeURIComponent(
-        name
+        name,
       )}`,
       {
         method: "DELETE",
         credentials: "include",
-      }
+      },
     );
     if (response.status === 401) {
       router.push("/login");
@@ -287,7 +376,7 @@ const executeDeleteCharacter = async (name) => {
       const data = await response.json();
       throw buildError(
         data.error || "Failed to delete character",
-        response.status
+        response.status,
       );
     }
     await fetchCharacters();
@@ -312,10 +401,10 @@ const handleAliasSubmit = async () => {
 
     if (isEditingAlias.value) {
       const addedAliases = currentAliasesArray.filter(
-        (a) => !originalAliases.value.includes(a)
+        (a) => !originalAliases.value.includes(a),
       );
       const removedAliases = originalAliases.value.filter(
-        (a) => !currentAliasesArray.includes(a)
+        (a) => !currentAliasesArray.includes(a),
       );
 
       const promises = [];
@@ -339,10 +428,10 @@ const handleAliasSubmit = async () => {
               const data = await res.json();
               throw buildError(
                 data.error || "Failed to add new aliases",
-                res.status
+                res.status,
               );
             }
-          })
+          }),
         );
       }
 
@@ -350,12 +439,12 @@ const handleAliasSubmit = async () => {
         promises.push(
           fetch(
             `${backendUrl}/alias/delete?game=Genshin&alias=${encodeURIComponent(
-              alias
+              alias,
             )}`,
             {
               method: "DELETE",
               credentials: "include",
-            }
+            },
           ).then(async (res) => {
             if (res.status === 401) {
               router.push("/login");
@@ -365,10 +454,10 @@ const handleAliasSubmit = async () => {
               const data = await res.json();
               throw buildError(
                 data.error || `Failed to delete alias ${alias}`,
-                res.status
+                res.status,
               );
             }
-          })
+          }),
         );
       }
 
@@ -393,7 +482,7 @@ const handleAliasSubmit = async () => {
         const data = await response.json();
         throw buildError(
           data.error || "Failed to add aliases",
-          response.status
+          response.status,
         );
       }
     }
@@ -526,7 +615,7 @@ const executeDeleteCodes = async (codesList) => {
       {
         method: "DELETE",
         credentials: "include",
-      }
+      },
     );
 
     if (response.status === 401) {
@@ -608,9 +697,8 @@ const executeCommand = async () => {
     }
 
     if (data.storageFileName) {
-      resultImages.value[
-        activeTab.value
-      ] = `${backendUrl}/attachments/${data.storageFileName}`;
+      resultImages.value[activeTab.value] =
+        `${backendUrl}/attachments/${data.storageFileName}`;
     }
   } catch (err) {
     error.value = err.message;
@@ -712,13 +800,22 @@ const handleAuth = async () => {
                       class="flex justify-between items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                       <span>{{ char }}</span>
-                      <Button
-                        icon="pi pi-trash"
-                        severity="danger"
-                        text
-                        @click="deleteCharacter(char)"
-                        :loading="manageLoading"
-                      />
+                      <div class="flex gap-2">
+                        <Button
+                          icon="pi pi-pencil"
+                          severity="info"
+                          text
+                          @click="openEditStatModal(char)"
+                          :loading="manageLoading"
+                        />
+                        <Button
+                          icon="pi pi-trash"
+                          severity="danger"
+                          text
+                          @click="deleteCharacter(char)"
+                          :loading="manageLoading"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1021,6 +1118,85 @@ const handleAuth = async () => {
           </div>
         </div>
       </form>
+    </Dialog>
+
+    <!-- Edit Stat Modal -->
+    <Dialog
+      v-model:visible="showEditStatModal"
+      modal
+      header="Edit Character Stats"
+      :style="{ width: '30rem' }"
+    >
+      <div class="relative">
+        <div
+          v-if="editStatFetching"
+          class="absolute inset-0 z-10 flex items-center justify-center rounded bg-black/20"
+        >
+          <i class="pi pi-spin pi-spinner text-xl"></i>
+        </div>
+        <form @submit.prevent="handleStatSubmit">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <label for="stat-char">Character Name</label>
+              <InputText
+                id="stat-char"
+                v-model="editStatCharacter"
+                disabled
+                fluid
+              />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label for="stat-base">Base Stat (HP)</label>
+              <div class="flex gap-2">
+                <InputNumber
+                  id="stat-base"
+                  v-model="editStatBase"
+                  :minFractionDigits="0"
+                  :maxFractionDigits="5"
+                  fluid
+                  class="flex-1"
+                />
+                <Button
+                  type="button"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  @click="editStatBase = null"
+                />
+              </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label for="stat-max">Max Ascension Value (HP)</label>
+              <div class="flex gap-2">
+                <InputNumber
+                  id="stat-max"
+                  v-model="editStatMax"
+                  :minFractionDigits="0"
+                  :maxFractionDigits="5"
+                  fluid
+                  class="flex-1"
+                />
+                <Button
+                  type="button"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  @click="editStatMax = null"
+                />
+              </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-2">
+              <Button
+                type="button"
+                label="Cancel"
+                severity="secondary"
+                @click="showEditStatModal = false"
+              />
+              <Button type="submit" label="Update" :loading="editStatLoading" />
+            </div>
+          </div>
+        </form>
+      </div>
     </Dialog>
   </div>
 </template>
