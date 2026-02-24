@@ -280,21 +280,25 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 {
                     var skill = skillIcons[i];
                     var offset = i * 150;
-                    EllipsePolygon skillEllipse = new(120, 920 - offset, 60);
+                    EllipsePolygon skillEllipse = new(120, 900 - offset, 60);
                     ctx.Fill(Color.DarkSlateGray, skillEllipse);
-                    ctx.DrawImage(skill.Image, new Point(70, 870 - offset), 1f);
+                    ctx.DrawImage(skill.Image, new Point(70, 850 - offset), 1f);
                     ctx.Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
-                    EllipsePolygon talentEllipse = new(120, 980 - offset, 25);
+                    EllipsePolygon talentEllipse = new(120, 960 - offset, 25);
                     ctx.Fill(skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
                         TextAlignment = TextAlignment.Center,
-                        Origin = new Vector2(120, 983 - offset)
+                        Origin = new Vector2(120, 963 - offset)
                     }, skill.Data.Level.ToString()!, textColor);
                 }
 
+                ctx.DrawText(context.GameProfile.Nickname, m_NormalFont, Color.Black, new PointF(63, 1003));
+                ctx.DrawText(context.GameProfile.Nickname, m_NormalFont, textColor, new PointF(60, 1000));
+
+                ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.Black, new PointF(62, 1042));
                 ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, textColor, new PointF(60, 1040));
 
                 for (var i = 0; i < constellationIcons.Length; i++)
