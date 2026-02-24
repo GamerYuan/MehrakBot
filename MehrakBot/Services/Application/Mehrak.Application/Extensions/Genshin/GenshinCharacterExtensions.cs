@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Mehrak.GameApi.Genshin.Types;
 
 namespace Mehrak.Application.Extensions.Genshin;
@@ -48,7 +49,7 @@ public static class GenshinCharacterExtensions
 
         var boundary = AscensionBoundaries.IndexOf(charData.Base.Level);
 
-        var statVal = float.Parse(charData.BaseProperties.First(x => x.PropertyType == 2000).Base);
+        var statVal = float.Parse(charData.BaseProperties.First(x => x.PropertyType == 2000).Base, CultureInfo.InvariantCulture);
         var ascVal = statVal - baseVal * LevelMultiplier[charData.Base.Rarity][boundary];
 
         if (ascVal < 0) return false;
