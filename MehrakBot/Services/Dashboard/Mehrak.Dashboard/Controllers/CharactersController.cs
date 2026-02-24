@@ -1,6 +1,7 @@
 ﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Infrastructure.Context;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,14 @@ namespace Mehrak.Dashboard.Controllers;
 public class CharactersController : ControllerBase
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly CharacterDbContext m_CharacterContext;
     private readonly ILogger<CharactersController> m_Logger;
 
-    public CharactersController(ICharacterCacheService characterCacheService, ILogger<CharactersController> logger)
+    public CharactersController(ICharacterCacheService characterCacheService, CharacterDbContext characterContext,
+        ILogger<CharactersController> logger)
     {
         m_CharacterCacheService = characterCacheService;
+        m_CharacterContext = characterContext;
         m_Logger = logger;
     }
 
@@ -75,6 +79,36 @@ public class CharactersController : ControllerBase
         m_Logger.LogInformation("Deleting character {Character} from game {Game}", normalized, gameEnum);
 
         await m_CharacterCacheService.DeleteCharacter(gameEnum, normalized);
+
+        return NoContent();
+    }
+
+    [HttpPatch("stat")]
+    public async Task<IActionResult> UpdateCharacterStat([FromQuery] string? game, [FromQuery] string? character,
+        [FromBody] UpdateCharacterStatRequest request)
+    {
+        if (!TryParseGame(game, out var gameEnum, out var error))
+            return BadRequest(new { error });
+
+        if (string.IsNullOrWhiteSpace(character))
+            return BadRequest(new { error = "Character parameter is required." });
+
+        if (!HasGameWriteAccess(game!))
+            return Forbid();
+
+        var normalized = character.ReplaceLineEndings("").Trim();
+        m_Logger.LogInformation("Updating stats for character {Character} in game {Game}", normalized, gameEnum);
+
+        var charModel = await m_CharacterContext.Characters
+            .FirstOrDefaultAsync(c => c.Game == gameEnum && c.Name == normalized);
+
+        if (charModel == null)
+            return NotFound(new { error = "Character not found." });
+
+        charModel.BaseVal = request.BaseVal;
+        charModel.MaxAscVal = request.MaxAscVal;
+
+        await m_CharacterContext.SaveChangesAsync();
 
         return NoContent();
     }
