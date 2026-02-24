@@ -1,7 +1,6 @@
 ﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
-using Mehrak.Infrastructure.Context;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,15 +12,13 @@ namespace Mehrak.Dashboard.Controllers;
 public class CharactersController : ControllerBase
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
-    private readonly CharacterDbContext m_CharacterContext;
     private readonly ICharacterStatService m_CharacterStatService;
     private readonly ILogger<CharactersController> m_Logger;
 
-    public CharactersController(ICharacterCacheService characterCacheService, CharacterDbContext characterContext,
+    public CharactersController(ICharacterCacheService characterCacheService,
         ICharacterStatService characterStatService, ILogger<CharactersController> logger)
     {
         m_CharacterCacheService = characterCacheService;
-        m_CharacterContext = characterContext;
         m_CharacterStatService = characterStatService;
         m_Logger = logger;
     }
