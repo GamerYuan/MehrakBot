@@ -19,9 +19,9 @@ internal class CharacterStatService : ICharacterStatService
         m_Cache = cache;
     }
 
-    public async Task<(float? BaseVal, float? MaxAscVal)> GetCharAscStatAsync(string characterName)
+    public async Task<(float? BaseVal, float? MaxAscVal)> GetCharAscStatAsync(Game gameName, string characterName)
     {
-        var cacheKey = $"char_stat_{characterName}";
+        var cacheKey = $"char_stat_{gameName}_{characterName}";
         var cachedData = await m_Cache.GetStringAsync(cacheKey);
 
         if (!string.IsNullOrEmpty(cachedData))
@@ -36,7 +36,7 @@ internal class CharacterStatService : ICharacterStatService
         using var scope = m_ScopeFactory.CreateScope();
         using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
         var charDto = await characterContext.Characters.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Name == characterName);
+            .FirstOrDefaultAsync(c => c.Game == gameName && c.Name == characterName);
 
         if (charDto != null)
         {
@@ -114,7 +114,7 @@ internal class CharacterStatService : ICharacterStatService
 
         await characterContext.SaveChangesAsync();
 
-        var cacheKey = $"char_stat_{characterName}";
+        var cacheKey = $"char_stat_{game}_{characterName}";
         var cacheModel = new CharacterStatCacheModel
         {
             BaseVal = baseVal,

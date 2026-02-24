@@ -284,7 +284,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             return Result<string>.Failure(StatusCode.ExternalServerError, ResponseMessage.ImageUpdateError);
         }
 
-        var (baseVal, maxAscVal) = await m_CharacterStatService.GetCharAscStatAsync(charData.Base.Name);
+        var (baseVal, maxAscVal) = await m_CharacterStatService.GetCharAscStatAsync(Game.Genshin, charData.Base.Name);
 
         var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(context.UserId, charData, profile);
         cardContext.SetParameter("server", server);

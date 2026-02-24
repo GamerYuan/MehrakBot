@@ -458,7 +458,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         characterStatMock
-            .Setup(x => x.GetCharAscStatAsync(characterName))
+            .Setup(x => x.GetCharAscStatAsync(Game.Genshin, characterName))
             .ReturnsAsync((500f, 182f));
 
         cardServiceMock
@@ -510,7 +510,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         characterStatMock
-            .Setup(x => x.GetCharAscStatAsync(characterName))
+            .Setup(x => x.GetCharAscStatAsync(Game.Genshin, characterName))
             .ReturnsAsync((null, null));
 
         cardServiceMock

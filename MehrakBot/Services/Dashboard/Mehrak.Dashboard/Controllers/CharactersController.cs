@@ -93,7 +93,7 @@ public class CharactersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(character))
         {
             var normalized = character.ReplaceLineEndings("").Trim();
-            var (BaseVal, MaxAscVal) = await m_CharacterStatService.GetCharAscStatAsync(normalized);
+            var (BaseVal, MaxAscVal) = await m_CharacterStatService.GetCharAscStatAsync(Game.Genshin, normalized);
             return Ok(new { BaseVal, MaxAscVal });
         }
 
