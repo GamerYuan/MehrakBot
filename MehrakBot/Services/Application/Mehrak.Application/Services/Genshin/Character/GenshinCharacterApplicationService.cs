@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Extensions;
+using Mehrak.Application.Extensions.Genshin;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -17,6 +18,7 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -39,6 +41,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly IImageRepository m_ImageRepository;
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApplicationMetrics m_MetricsService;
+    private readonly CharacterDbContext m_CharacterContext;
 
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
@@ -51,6 +54,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
+        CharacterDbContext characterContext,
         IAttachmentStorageService attachmentStorage,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorage, logger)
@@ -63,6 +67,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_ImageRepository = imageRepository;
         m_ImageUpdaterService = imageUpdaterService;
         m_MetricsService = metricsService;
+        m_CharacterContext = characterContext;
     }
 
     public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
@@ -280,8 +285,21 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             return Result<string>.Failure(StatusCode.ExternalServerError, ResponseMessage.ImageUpdateError);
         }
 
+        var charDto = await m_CharacterContext.Characters.AsNoTracking()
+            .Where(c => c.Name.Equals(charData.Base.Name))
+            .Select(x => new
+            {
+                x.BaseVal,
+                x.MaxAscVal
+            }).FirstOrDefaultAsync();
+
         var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(context.UserId, charData, profile);
         cardContext.SetParameter("server", server);
+
+        if (charData.TryGetAscensionLevelCap(charDto?.BaseVal, charDto?.MaxAscVal, out var ascLevel))
+        {
+            cardContext.SetParameter("ascension", ascLevel.Value);
+        }
 
         using var card = await m_CardService.GetCardAsync(cardContext);
         if (!await StoreAttachmentAsync(context.UserId, filename, card))
