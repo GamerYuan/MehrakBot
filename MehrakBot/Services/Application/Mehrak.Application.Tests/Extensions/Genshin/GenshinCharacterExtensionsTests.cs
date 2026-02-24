@@ -117,7 +117,7 @@ public class GenshinCharacterExtensionsTests
 
     private static GenshinCharacterInformation CreateCharacter(int level, int rarity, float statValue)
     {
-        var stat = statValue.ToString(CultureInfo.CurrentCulture);
+        var stat = statValue.ToString(CultureInfo.InvariantCulture);
 
         return new GenshinCharacterInformation
         {
