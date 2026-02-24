@@ -4,17 +4,18 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Mehrak.Infrastructure.Services;
 
 internal class CharacterStatService : ICharacterStatService
 {
-    private readonly CharacterDbContext m_CharacterContext;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly IDistributedCache m_Cache;
 
-    public CharacterStatService(CharacterDbContext characterContext, IDistributedCache cache)
+    public CharacterStatService(IServiceScopeFactory scopeFactory, IDistributedCache cache)
     {
-        m_CharacterContext = characterContext;
+        m_ScopeFactory = scopeFactory;
         m_Cache = cache;
     }
 
@@ -32,7 +33,9 @@ internal class CharacterStatService : ICharacterStatService
             }
         }
 
-        var charDto = await m_CharacterContext.Characters.AsNoTracking()
+        using var scope = m_ScopeFactory.CreateScope();
+        using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        var charDto = await characterContext.Characters.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Name == characterName);
 
         if (charDto != null)
@@ -70,7 +73,10 @@ internal class CharacterStatService : ICharacterStatService
             }
         }
 
-        var chars = await m_CharacterContext.Characters.AsNoTracking()
+        using var scope = m_ScopeFactory.CreateScope();
+        using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var chars = await characterContext.Characters.AsNoTracking()
             .Where(c => c.Game == game)
             .ToListAsync();
 
@@ -94,7 +100,10 @@ internal class CharacterStatService : ICharacterStatService
 
     public async Task<bool> UpdateCharAscStatAsync(Game game, string characterName, float? baseVal, float? maxAscVal)
     {
-        var charModel = await m_CharacterContext.Characters
+        using var scope = m_ScopeFactory.CreateScope();
+        using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var charModel = await characterContext.Characters
             .FirstOrDefaultAsync(c => c.Game == game && c.Name == characterName);
 
         if (charModel == null)
@@ -103,7 +112,7 @@ internal class CharacterStatService : ICharacterStatService
         charModel.BaseVal = baseVal;
         charModel.MaxAscVal = maxAscVal;
 
-        await m_CharacterContext.SaveChangesAsync();
+        await characterContext.SaveChangesAsync();
 
         var cacheKey = $"char_stat_{characterName}";
         var cacheModel = new CharacterStatCacheModel
