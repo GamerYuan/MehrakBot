@@ -282,7 +282,7 @@ const handleStatSubmit = async () => {
     }
 
     if (!response.ok) {
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       throw buildError(
         data.error || "Failed to update character stats",
         response.status,
