@@ -49,7 +49,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
         // Arrange
-        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
@@ -72,7 +72,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -100,7 +100,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_UpdatesCharacterCache_WhenCharacterListFetched()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -127,7 +127,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterNotFound_ReturnsNotFoundMessage()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -160,7 +160,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, aliasServiceMock, _, imageRepositoryMock,
-            imageUpdaterMock, cardMock, gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+            imageUpdaterMock, cardMock, gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -210,7 +210,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterDetailApiError_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -246,7 +246,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, _, _,
-            gameRoleApiMock, _, _, _) =
+            gameRoleApiMock, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock
@@ -290,7 +290,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, _, _,
-            gameRoleApiMock, _, _, _) =
+            gameRoleApiMock, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock
@@ -339,7 +339,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _) =
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock
@@ -379,7 +379,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, characterCacheMock, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -429,11 +429,115 @@ public class GenshinCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_ValidRequest_WithBoundaryLevelAndValidAscensionStats_SetsAscensionParameter()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _, characterStatMock) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        const string characterName = "Test Traveler";
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(CreateSingleCharacterList(characterName)));
+
+        var characterDetail = CreateSingleCharacterDetail(characterName, level: 20, rarity: 5, statBase: "1479");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        characterStatMock
+            .Setup(x => x.GetCharAscStatAsync(Game.Genshin, characterName))
+            .ReturnsAsync((500f, 182f));
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", characterName), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+
+        cardServiceMock.Verify(x => x.GetCardAsync(
+            It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
+                ctx.GetParameter<int>("ascension") == 90)), Times.Once);
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ValidRequest_WithNonBoundaryLevel_SetsAscensionParameter()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _, characterStatMock) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        const string characterName = "Test Traveler";
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(CreateSingleCharacterList(characterName)));
+
+        var characterDetail = CreateSingleCharacterDetail(characterName, level: 65, rarity: 5, statBase: "1000");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        characterStatMock
+            .Setup(x => x.GetCharAscStatAsync(Game.Genshin, characterName))
+            .ReturnsAsync((null, null));
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", characterName), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+
+        cardServiceMock.Verify(x => x.GetCardAsync(
+            It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
+                ctx.GetParameter<int>("ascension") == 70)), Times.Once);
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task ExecuteAsync_ValidRequest_WithWikiImageDownload_ReturnsSuccessWithCard()
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -499,7 +603,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -588,7 +692,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, _) = SetupMocks();
+            gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -631,7 +735,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -663,7 +767,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -698,7 +802,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -724,7 +828,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiFallback_WhenCnFails_UsesAlternateLocale()
     {
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -785,7 +889,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_WikiFallback_WhenCnReturnsEmpty_UsesAlternateLocale()
     {
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -845,7 +949,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsEphemeralError()
     {
         // Arrange
-        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -870,7 +974,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task ExecuteAsync_MultipleCharactersAllNotFound_ReturnsAllNotFoundMessages()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -903,7 +1007,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -954,7 +1058,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -1006,7 +1110,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -1056,7 +1160,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, _, _, _, _,
-            gameRoleApiMock, _, _, _) = SetupMocks();
+            gameRoleApiMock, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -1098,7 +1202,7 @@ public class GenshinCharacterApplicationServiceTests
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile, string characterName)
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, attachmentStorageMock, _) = SetupIntegrationTest();
+        var (service, characterApiMock, _, _, _, gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupIntegrationTest();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -1204,7 +1308,8 @@ public class GenshinCharacterApplicationServiceTests
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IApplicationMetrics> MetricsMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
-        UserDbContext UserContext
+        UserDbContext UserContext,
+        Mock<ICharacterStatService> CharacterStat
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<GenshinCharacterInformation>>();
@@ -1219,6 +1324,7 @@ public class GenshinCharacterApplicationServiceTests
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<GenshinCharacterApplicationService>>();
+        var characterStatService = new Mock<ICharacterStatService>();
 
         aliasServiceMock
             .Setup(x => x.GetAliases(It.IsAny<Game>()))
@@ -1242,11 +1348,12 @@ public class GenshinCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiMock.Object,
             userContext,
+            characterStatService.Object,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
-            cardServiceMock, gameRoleApiMock, metricsMock, attachmentStorageMock, userContext);
+            cardServiceMock, gameRoleApiMock, metricsMock, attachmentStorageMock, userContext, characterStatService);
     }
 
     private (
@@ -1259,7 +1366,8 @@ public class GenshinCharacterApplicationServiceTests
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IApplicationMetrics> MetricsMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
-        UserDbContext UserContext
+        UserDbContext UserContext,
+        Mock<ICharacterStatService> CharacterStat
         ) SetupIntegrationTest()
     {
         var metricsMock = new Mock<IApplicationMetrics>();
@@ -1299,6 +1407,7 @@ public class GenshinCharacterApplicationServiceTests
         cardService.InitializeAsync().Wait();
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+        var characterStatService = new Mock<ICharacterStatService>();
 
         var service = new GenshinCharacterApplicationService(
             cardService,
@@ -1311,11 +1420,12 @@ public class GenshinCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiMock.Object,
             userContext,
+            characterStatService.Object,
             attachmentStorageMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, gameRoleApiMock,
-            metricsMock, attachmentStorageMock, userContext);
+            metricsMock, attachmentStorageMock, userContext, characterStatService);
     }
 
     private (GenshinCharacterApplicationService Service, Dictionary<string, MemoryStream> StoredAttachments, UserDbContext UserContext) SetupRealApiIntegrationTest()
@@ -1374,6 +1484,7 @@ public class GenshinCharacterApplicationServiceTests
         aliasServiceMock.Setup(x => x.GetAliases(It.IsAny<Game>())).Returns([]);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+        var characterStatService = new Mock<ICharacterStatService>();
 
         var service = new GenshinCharacterApplicationService(
             cardService,
@@ -1386,6 +1497,7 @@ public class GenshinCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiService,
             userContext,
+            characterStatService.Object,
             attachmentStorageMock.Object,
             Mock.Of<ILogger<GenshinCharacterApplicationService>>());
 
@@ -1447,6 +1559,81 @@ public class GenshinCharacterApplicationServiceTests
                 Weapon = new Weapon { Icon = "", Name = "Sword" }
             }
         ];
+    }
+
+    private static List<GenshinBasicCharacterData> CreateSingleCharacterList(string characterName)
+    {
+        return
+        [
+            new GenshinBasicCharacterData
+            {
+                Id = 10000005,
+                Icon = "",
+                Name = characterName,
+                Element = "Anemo",
+                Level = 90,
+                Rarity = 5,
+                ActivedConstellationNum = 0,
+                Weapon = new Weapon { Icon = "", Name = "Sword" }
+            }
+        ];
+    }
+
+    private static GenshinCharacterDetail CreateSingleCharacterDetail(string characterName, int level, int rarity, string statBase)
+    {
+        return new GenshinCharacterDetail
+        {
+            List =
+            [
+                new GenshinCharacterInformation
+                {
+                    Base = new BaseCharacterDetail
+                    {
+                        Id = 10000005,
+                        Icon = "",
+                        Name = characterName,
+                        Level = level,
+                        Rarity = rarity,
+                        Image = "",
+                        Weapon = new Weapon
+                        {
+                            Id = 11401,
+                            Icon = "",
+                            Name = "Sword"
+                        }
+                    },
+                    Weapon = new WeaponDetail
+                    {
+                        Id = 11401,
+                        Icon = "",
+                        Name = "Sword",
+                        TypeName = "Sword",
+                        MainProperty = new StatProperty
+                        {
+                            Base = "100",
+                            Final = "100"
+                        }
+                    },
+                    Relics = [],
+                    Constellations = [],
+                    SelectedProperties = [],
+                    BaseProperties =
+                    [
+                        new StatProperty
+                        {
+                            PropertyType = 2000,
+                            Base = statBase,
+                            Final = statBase
+                        }
+                    ],
+                    ExtraProperties = [],
+                    ElementProperties = [],
+                    Skills = []
+                }
+            ],
+            AvatarWiki = [],
+            WeaponWiki = []
+        };
     }
 
     private static async Task<GenshinCharacterDetail> CreateMultiCharacterDetailAsync()

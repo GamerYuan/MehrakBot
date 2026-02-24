@@ -73,6 +73,8 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
         services.AddSingleton<IAliasService, AliasService>();
 
+        services.AddSingleton<ICharacterStatService, CharacterStatService>();
+
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 
         return services;

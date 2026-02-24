@@ -52,6 +52,45 @@ public class GenshinCharacterCardServiceTests
 
         var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], profile);
         cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("ascension", 80);
+
+        // Act
+        var image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
+        using MemoryStream file = new();
+        await image.CopyToAsync(file);
+
+        // Save generated image to output folder for comparison
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, file.ToArray());
+
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+            "TestAssets", goldenImageFileName));
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{outputPrefix}_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
+
+        // Assert
+        Assert.That(file.ToArray(), Is.EqualTo(goldenImage));
+    }
+
+    [Test]
+    [TestCase("Aether_TestData.json", "GoldenImage_NoAsc.jpg", "GenshinCharacter_NoAsc")]
+    public async Task GenerateCharacterCard_NoAsc_MatchesGoldenImage(string testDataFileName, string goldenImageFileName,
+        string outputPrefix)
+    {
+        // Arrange
+        var characterDetail =
+            JsonSerializer.Deserialize<GenshinCharacterDetail>(
+                await File.ReadAllTextAsync($"{TestDataPath}/Genshin/{testDataFileName}"));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId, characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
 
         // Act
         var image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
@@ -93,6 +132,32 @@ public class GenshinCharacterCardServiceTests
     [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg")]
     [TestCase("Aether_ConstActive_TestData.json", "GoldenImage_ConstActive.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var characterDetail =
+            JsonSerializer.Deserialize<GenshinCharacterDetail>(await
+                File.ReadAllTextAsync($"{TestDataPath}/Genshin/{testDataFileName}"));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+
+        // Act
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(TestUserId,
+            characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("ascension", 80);
+
+        var image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
+        using var file = new MemoryStream();
+        await image.CopyToAsync(file);
+        await File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/{goldenImageFileName}", file.ToArray());
+
+        Assert.That(image, Is.Not.Null);
+    }
+
+    [Explicit]
+    [Test]
+    [TestCase("Aether_TestData.json", "GoldenImage_NoAsc.jpg")]
+    public async Task GenerateGoldenImage_NoAsc(string testDataFileName, string goldenImageFileName)
     {
         var characterDetail =
             JsonSerializer.Deserialize<GenshinCharacterDetail>(await

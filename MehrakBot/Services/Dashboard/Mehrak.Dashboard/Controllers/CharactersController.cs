@@ -3,7 +3,6 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Controllers;
 
@@ -13,11 +12,14 @@ namespace Mehrak.Dashboard.Controllers;
 public class CharactersController : ControllerBase
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
+    private readonly ICharacterStatService m_CharacterStatService;
     private readonly ILogger<CharactersController> m_Logger;
 
-    public CharactersController(ICharacterCacheService characterCacheService, ILogger<CharactersController> logger)
+    public CharactersController(ICharacterCacheService characterCacheService,
+        ICharacterStatService characterStatService, ILogger<CharactersController> logger)
     {
         m_CharacterCacheService = characterCacheService;
+        m_CharacterStatService = characterStatService;
         m_Logger = logger;
     }
 
@@ -75,6 +77,48 @@ public class CharactersController : ControllerBase
         m_Logger.LogInformation("Deleting character {Character} from game {Game}", normalized, gameEnum);
 
         await m_CharacterCacheService.DeleteCharacter(gameEnum, normalized);
+
+        return NoContent();
+    }
+
+    [HttpGet("stat")]
+    public async Task<IActionResult> GetCharacterStat([FromQuery] string? game, [FromQuery] string? character)
+    {
+        if (!TryParseGame(game, out var gameEnum, out var error))
+            return BadRequest(new { error });
+
+        if (!string.IsNullOrWhiteSpace(character))
+        {
+            var normalized = character.ReplaceLineEndings("").Trim();
+            var (BaseVal, MaxAscVal) = await m_CharacterStatService.GetCharAscStatAsync(gameEnum, normalized);
+            return Ok(new { BaseVal, MaxAscVal });
+        }
+
+        var allStats = await m_CharacterStatService.GetAllCharAscStatsAsync(gameEnum);
+        var result = allStats.ToDictionary(k => k.Key, v => new { v.Value.BaseVal, v.Value.MaxAscVal });
+        return Ok(result);
+    }
+
+    [HttpPatch("stat")]
+    public async Task<IActionResult> UpdateCharacterStat([FromQuery] string? game, [FromQuery] string? character,
+        [FromBody] UpdateCharacterStatRequest request)
+    {
+        if (!TryParseGame(game, out var gameEnum, out var error))
+            return BadRequest(new { error });
+
+        if (string.IsNullOrWhiteSpace(character))
+            return BadRequest(new { error = "Character parameter is required." });
+
+        if (!HasGameWriteAccess(game!))
+            return Forbid();
+
+        var normalized = character.ReplaceLineEndings("").Trim();
+        m_Logger.LogInformation("Updating stats for character {Character} in game {Game}", normalized, gameEnum);
+
+        var success = await m_CharacterStatService.UpdateCharAscStatAsync(gameEnum, normalized, request.BaseVal, request.MaxAscVal);
+
+        if (!success)
+            return NotFound(new { error = "Character not found." });
 
         return NoContent();
     }
