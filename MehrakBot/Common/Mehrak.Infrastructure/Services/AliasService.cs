@@ -197,18 +197,16 @@ public class AliasService : IAliasService
                 .ToDictionaryAsync(a => a.Alias, a => a.CharacterName);
 
             var key = GetAliasKey(gameName);
-            await Db.KeyDeleteAsync(key);
-
             if (aliases.Count > 0)
             {
                 var hashEntries = aliases.Select(a => new HashEntry(a.Key, a.Value)).ToArray();
                 await Db.HashSetAsync(key, hashEntries);
 
-                m_Logger.LogDebug("Updated alias cache for {Game} with {Count} aliases", gameName, aliases.Count);
+                m_Logger.LogDebug("Upserted alias cache for {Game} with {Count} aliases", gameName, aliases.Count);
             }
             else
             {
-                m_Logger.LogWarning("No aliases found for {Game} in database", gameName);
+                m_Logger.LogWarning("No aliases found for {Game} in database; skipping Redis upsert", gameName);
             }
         }
         catch (Exception ex)

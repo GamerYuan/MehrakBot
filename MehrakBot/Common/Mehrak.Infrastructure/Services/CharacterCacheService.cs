@@ -169,7 +169,6 @@ public class CharacterCacheService : ICharacterCacheService
             if (characters.Count > 0)
             {
                 var key = GetCharacterKey(gameName);
-                await Db.KeyDeleteAsync(key);
                 await Db.SetAddAsync(key, [.. characters.Select(x => (RedisValue)x)]);
 
                 m_Logger.LogDebug("Updated character cache for {Game} with {Count} characters", gameName,
