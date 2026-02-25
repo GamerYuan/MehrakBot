@@ -52,8 +52,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          lfs: true
-          submodules: recursive
           token: ${{ secrets.ASSETS_PAT }}
 
       - name: Setup Node.js
@@ -68,6 +66,8 @@ jobs:
 
       - name: Build dashboard
         working-directory: ./Dashboard
+        env:
+          VITE_APP_BACKEND_URL: ${{ secrets.BACKEND_URL }}
         run: npm run build
 
       - name: Deploy Cloudflare Pages
