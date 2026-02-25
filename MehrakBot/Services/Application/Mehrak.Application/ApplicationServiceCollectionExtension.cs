@@ -7,6 +7,7 @@ using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Zzz;
 using Mehrak.Domain.Common;
+using Mehrak.Infrastructure.Services;
 
 #endregion
 
@@ -22,6 +23,7 @@ internal static class ApplicationServiceCollectionExtension
         services.AddKeyedTransient<IApplicationService, CodeRedeemApplicationService>(CommandName.Zzz.Codes);
 
         services.AddHostedService<AsyncInitializationHostedService>();
+        services.AddHostedService<CharacterCacheBackgroundService>();
 
         services.AddGenshinApplicationServices();
         services.AddHsrApplicationServices();
