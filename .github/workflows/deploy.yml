@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     concurrency:
-      group: production-deploy
+      group: dashboard-production-deploy
       cancel-in-progress: false
 
     steps:
