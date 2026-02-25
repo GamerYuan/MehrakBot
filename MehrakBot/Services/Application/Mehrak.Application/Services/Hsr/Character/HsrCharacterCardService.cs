@@ -1,8 +1,8 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -12,8 +12,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -80,13 +78,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        int[] statIds =
-        [
-            1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-            31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60
-        ];
-
-        m_StatImages = await statIds.ToAsyncEnumerable().Where(x => x != 8).Select(async (x, token) =>
+        m_StatImages = await StatMappingUtility.HsrMapping.Keys.ToAsyncEnumerable().Where(x => x != 8).Select(async (x, token) =>
         {
             var path = string.Format(StatsPath, x);
             var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(path), token);
@@ -137,9 +129,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             ];
 
             Skill[] baseSkill =
-                [.. characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")];
+                [.. characterInformation.Skills!.Where(x => (x.PointType == 2 && x.Remake != "Technique") || x.PointType == 4)];
             var skillChains =
-                BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2)]);
+                BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2 && x.PointType != 4)]);
 
             Task<(Skill Data, Image Image)>[] baseSkillTasks =
             [
@@ -345,10 +337,15 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 for (var i = 0; i < baseSkillImages.Length; i++)
                 {
                     var offset = i * 100;
+                    var skillColor = baseSkillImages[i].Data.Remake switch
+                    {
+                        "Elation Skill" => Color.FromRgb(255, 176, 161),
+                        _ => accentColor
+                    };
                     EllipsePolygon ellipse = new(new PointF(900, 80 + offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
-                    ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
+                    ctx.Draw(skillColor, 5, ellipse.AsClosedPath());
 
                     EllipsePolygon levelEllipse = new(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
@@ -389,9 +386,11 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     }
                 }
 
+                var type4Skill = characterInformation.Skills.Count(x => x.PointType == 4);
+
                 for (var i = 0; i < servantImages.Length; i++)
                 {
-                    var offset = i * 120;
+                    var offset = (i + type4Skill) * 120;
                     EllipsePolygon ellipse = new(new PointF(900 + offset, 480), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);

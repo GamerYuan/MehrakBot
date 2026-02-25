@@ -111,7 +111,8 @@ public static class StatMappingUtility
             { 57, "Effect RES" },
             { 58, "Break Effect" },
             { 59, "Break Effect" },
-            { 60, "Max Energy" }
+            { 60, "Max Energy" },
+            { 71, "Elation" }
         });
 
         GenshinDefaultValues = new ReadOnlyDictionary<int, float>(new Dictionary<int, float>

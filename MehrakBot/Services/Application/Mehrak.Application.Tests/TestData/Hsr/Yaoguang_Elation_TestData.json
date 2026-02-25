@@ -1,0 +1,737 @@
+﻿{
+  "id": 1502,
+  "level": 80,
+  "name": "Yao Guang",
+  "element": "physical",
+  "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/24a8a666a67fb7c587839602e41df09e.png",
+  "rarity": 5,
+  "rank": 0,
+  "image": "https://act-webstatic.hoyoverse.com/game_record/hkrpg/custom/avatar_image/1502@2x.png",
+  "equip": {
+    "id": 21064,
+    "level": 80,
+    "rank": 5,
+    "name": "Mushy Shroomy's Adventures",
+    "desc": "<i>\"Marchshroom, welcome to the flowery realm~♥~\"</i>\n<i>\"Danshroom, don't be so stiff, give us a smile!\"</i>\n<i>\"Grayie Shroom, have you already fallen for my irresistible charm? Wonderful!\"</i>\n<i>\"And as for Hoot-Hoot Shroom... I'll choose you, you're looking quite delicious~\"</i>\n\nRun, run, the desires of a human are a bottomless rabbit hole.\nCome, come, put on a smile, become part of the flowery world!\n\n<i>\"Welcome to Sparxie's special show: Everyone Can Become a Cute Sparxie!\"</i>",
+    "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/40ffc25d309a715b719f0218d01790b5.png",
+    "rarity": 4
+  },
+  "relics": [],
+  "ornaments": [],
+  "ranks": [
+    {
+      "id": 150201,
+      "pos": 1,
+      "name": "Chuckle Chimes Where Jade Falls",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/98fb0313c678f534099367f73d8a903a.png",
+      "desc": "In Aha's extra turn triggered by Ultimate, the fixed amount of Punchline taken into account increases to 40. When dealing Elation DMG, all ally targets ignore 20% of the target's DEF.",
+      "is_unlocked": false
+    },
+    {
+      "id": 150202,
+      "pos": 2,
+      "name": "Blind Arrows Guided by Feathers",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/3c9800171ae72bc42c65a09e7e0012c0.png",
+      "desc": "While the Zone is active, increases all ally targets' SPD by 12%, and additionally increases Elation by 16%.",
+      "is_unlocked": false
+    },
+    {
+      "id": 150203,
+      "pos": 3,
+      "name": "Auspices Mirrored In Decalight",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/353256bf297550643c7f05664617fb90.png",
+      "desc": "Skill Lv. +2, up to a maximum of Lv. 15.\nBasic ATK Lv. +1, up to a maximum of Lv. 10.\nElation Skill Lv. +1, up to a maximum of Lv. 15.",
+      "is_unlocked": false
+    },
+    {
+      "id": 150204,
+      "pos": 4,
+      "name": "Threads of Fate Colored by Plumes",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/5871a18110e9f6878d93c35b0283da6b.png",
+      "desc": "In Aha's extra turn triggered by Yao Guang's Ultimate, the DMG dealt by all ally characters' Elation Skill becomes 150% of the original DMG.",
+      "is_unlocked": false
+    },
+    {
+      "id": 150205,
+      "pos": 5,
+      "name": "Bejeweled in Radiant Grace",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/a63140e0e1851874b2f4253c76e9de6b.png",
+      "desc": "Ultimate Lv. +2, up to a maximum of Lv. 15.\nTalent Lv. +2, up to a maximum of Lv. 15.\nElation Skill Lv. +1, up to a maximum of Lv. 15.",
+      "is_unlocked": false
+    },
+    {
+      "id": 150206,
+      "pos": 6,
+      "name": "Ferried Along the Astral Arc",
+      "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/c01bc57101b5777d640adc410ca134b8.png",
+      "desc": "All ally targets' Elation DMG merrymakes by 25%. Increases the DMG multiplier of Yao Guang's Elation Skill by 100% of its original multiplier.",
+      "is_unlocked": false
+    }
+  ],
+  "properties": [
+    {
+      "property_type": 1,
+      "base": "2088",
+      "add": "902",
+      "final": "2990"
+    },
+    {
+      "property_type": 2,
+      "base": "941",
+      "add": "109",
+      "final": "1051"
+    },
+    {
+      "property_type": 3,
+      "base": "1051",
+      "add": "295",
+      "final": "1347"
+    },
+    {
+      "property_type": 4,
+      "base": "101",
+      "add": "9",
+      "final": "110"
+    },
+    {
+      "property_type": 5,
+      "base": "23.7%",
+      "add": "0.0%",
+      "final": "23.7%"
+    },
+    {
+      "property_type": 6,
+      "base": "67.4%",
+      "add": "0.0%",
+      "final": "67.4%"
+    },
+    {
+      "property_type": 12,
+      "base": "0.0%",
+      "add": "0.0%",
+      "final": "0.0%"
+    },
+    {
+      "property_type": 58,
+      "base": "5.1%",
+      "add": "0.0%",
+      "final": "5.1%"
+    },
+    {
+      "property_type": 71,
+      "base": "30.0%",
+      "add": "0.0%",
+      "final": "30.0%"
+    },
+    {
+      "property_type": 7,
+      "base": "0.0%",
+      "add": "0.0%",
+      "final": "0.0%"
+    },
+    {
+      "property_type": 9,
+      "base": "124.4%",
+      "add": "0.0%",
+      "final": "124.4%"
+    },
+    {
+      "property_type": 10,
+      "base": "12.5%",
+      "add": "0.0%",
+      "final": "12.5%"
+    },
+    {
+      "property_type": 11,
+      "base": "0.0%",
+      "add": "0.0%",
+      "final": "0.0%"
+    }
+  ],
+  "skills": [
+    {
+      "point_id": "1502001",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/024b0a17408cfd6332a071907be50ed5.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point01",
+      "remake": "Basic ATK",
+      "skill_stages": [
+        {
+          "desc": "Deals Physical DMG equal to 45% of Yao Guang's ATK to one designated enemy and Physical DMG equal to 15% of Yao Guang's ATK to targets adjacent to it. The Energy regenerated from Basic ATK increases to 30.",
+          "name": "Whistlebolt Sings Joy",
+          "level": 1,
+          "remake": "Basic ATK",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/99b379a95b118a6d418ce6695f7c88f4.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "150201",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502002",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/c76b6464a6d0a90f060459fa3e38d640.png",
+      "level": 10,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point02",
+      "remake": "Skill",
+      "skill_stages": [
+        {
+          "desc": "Deploys a Zone for 3 turn(s). This duration decreases by 1 at the start of this unit's every turn. While the Zone is active, increases all allies' Elation by an amount equal to 20.0% of Yao Guang's Elation. After Yao Guang uses Basic ATK or Skill, gains 3 Punchline.",
+          "name": "Decalight Unveils All",
+          "level": 10,
+          "remake": "Skill",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/dd43ebdd4815ac2829797f2d5a32aeef.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "150202",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502003",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/06bb764b75d1bfc856bb3da1d1c66768.png",
+      "level": 9,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point03",
+      "remake": "Ultimate",
+      "skill_stages": [
+        {
+          "desc": "Gains 5 Punchline. Aha immediately gains 1 extra turn where a fixed amount of 20 Punchline is taken into account. This turn, does not consume Punchline, and increases all allies' All-Type RES PEN by 18.7% for 3 turn(s).",
+          "name": "Hexagram of Feathered Fortune",
+          "level": 9,
+          "remake": "Ultimate",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/7c8a3ef71d61b41f37dd60cd61a56d2e.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "150203",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502004",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/36a56993d19467ce921fa848396f10cd.png",
+      "level": 7,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point04",
+      "remake": "Talent",
+      "skill_stages": [
+        {
+          "desc": "While Yao Guang holds \"Certified Banger\":\nAfter an ally target uses an attack, triggers the \"Great Boon\" effect, dealing 1 additional instance of 16.2% Elation DMG of the corresponding Type to 1 random hit target. If this attack consumes Skill Points, then additionally triggers \"Great Boon\" 1 time.\nWhen triggering the \"Great Boon\" effect, if the attacker's Elation is lower than that of Yao Guang, then this instance of Elation DMG will take Yao Guang's Elation into calculation.\nTriggering the \"Great Boon\" effect is not considered as using 1 instance of attack.",
+          "name": "Behold Wherever Light Unfolds",
+          "level": 7,
+          "remake": "Talent",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27a047f8794f0fbd55ed3edf13d641d.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "150204",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502007",
+      "point_type": 2,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/c7c06d783f4ca8ff783052f5f1ac25f4.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point05",
+      "remake": "Technique",
+      "skill_stages": [
+        {
+          "desc": "After using Technique, automatically triggers Skill 1 time at the start of the next battle without consuming any Skill Points. When Yao Guang is in the team, breaking destructible objects immediately grants Fortune Pouch, up to 8 within every Earth Week.",
+          "name": "Untethered Glimmer Sails Far",
+          "level": 1,
+          "remake": "Technique",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f15329c2fc3a59ccb9e5405143da164b.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "150207",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502101",
+      "point_type": 3,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/39785f249cf56931d3d10adb543c7bcf.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point06",
+      "remake": "Bonus Ability",
+      "skill_stages": [
+        {
+          "desc": "When Yao Guang's SPD is 120 or higher, increases this unit's Elation by 30%. For every 1 SPD exceeded, increases this unit's Elation by 1%. Up to a max of 200 excess SPD can be taken into account for this effect.",
+          "name": "Amaze-In Grace",
+          "level": 1,
+          "remake": "Bonus Ability",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/39785f249cf56931d3d10adb543c7bcf.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502102",
+      "point_type": 3,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/93622bd0957e65e7fd52ddbd2db53722.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point07",
+      "remake": "Bonus Ability",
+      "skill_stages": [
+        {
+          "desc": "Increases this unit's CRIT DMG by 60%. After using Elation Skill, recovers 1 Skill Point(s) for the team.",
+          "name": "Poised and Sated",
+          "level": 1,
+          "remake": "Bonus Ability",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/93622bd0957e65e7fd52ddbd2db53722.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502103",
+      "point_type": 3,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/b05e3d607c44d547cafd792e5145f592.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point08",
+      "remake": "Bonus Ability",
+      "skill_stages": [
+        {
+          "desc": "When Yao Guang gains \"Certified Banger,\" its duration increases by 1 turn(s).",
+          "name": "Felicity Ensemble",
+          "level": 1,
+          "remake": "Bonus Ability",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/b05e3d607c44d547cafd792e5145f592.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502201",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point09",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "CRIT Rate Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502203",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502101",
+      "anchor": "Point11",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "CRIT Rate Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502205",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502102",
+      "anchor": "Point13",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "CRIT Rate Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502207",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502206",
+      "anchor": "Point15",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "CRIT Rate Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502210",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502209",
+      "anchor": "Point18",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "CRIT Rate Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/f27ec721b2e7803ee9da42159d8e484b.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502202",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/77f3d19c599a7fc1754842d7f28d6588.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point10",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "SPD Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/77f3d19c599a7fc1754842d7f28d6588.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502206",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/77f3d19c599a7fc1754842d7f28d6588.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502205",
+      "anchor": "Point14",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "SPD Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/77f3d19c599a7fc1754842d7f28d6588.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502209",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/77f3d19c599a7fc1754842d7f28d6588.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502208",
+      "anchor": "Point17",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "SPD Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/77f3d19c599a7fc1754842d7f28d6588.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502204",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/35c912e43e04c9d3b481bfef9df43e05.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502101",
+      "anchor": "Point12",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Elation Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/35c912e43e04c9d3b481bfef9df43e05.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502208",
+      "point_type": 1,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/35c912e43e04c9d3b481bfef9df43e05.png",
+      "level": 1,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "1502103",
+      "anchor": "Point16",
+      "remake": "Stat Bonus",
+      "skill_stages": [
+        {
+          "desc": "",
+          "name": "Elation Boost",
+          "level": 1,
+          "remake": "Stat Bonus",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/35c912e43e04c9d3b481bfef9df43e05.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "0"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    },
+    {
+      "point_id": "1502420",
+      "point_type": 4,
+      "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/4eac0a0c94017a508ca1f82b1121a94a.png",
+      "level": 10,
+      "is_activated": true,
+      "is_rank_work": false,
+      "pre_point": "0",
+      "anchor": "Point22",
+      "remake": "Elation Skill",
+      "skill_stages": [
+        {
+          "desc": "Inflicts \"Woe's Whisper\" on all enemies, lasting for 3 turn(s). Enemy targets under the \"Woe's Whisper\" state take 16.0% increased DMG. Deals 100% Physical Elation DMG to all enemies. Then, deals 5 instance(s) of 20% Physical Elation DMG to one random enemy.",
+          "name": "Let Thy Fortune Burst in Flames",
+          "level": 10,
+          "remake": "Elation Skill",
+          "item_url": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/7e10fa3ff9012b7c1aad52727d963c2a.png",
+          "is_activated": true,
+          "is_rank_work": false,
+          "exclusive_skill": {
+            "name": "",
+            "desc": ""
+          },
+          "skill_id": "0",
+          "special_point_type": "PointTypeNormal",
+          "elation_skill_priority": "116"
+        }
+      ],
+      "special_point_type": "PointTypeNormal"
+    }
+  ],
+  "base_type": 9,
+  "figure_path": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u65dyd/75d2386cdcb2373d947342e246273e68.png",
+  "element_id": 1,
+  "servant_detail": {
+    "servant_id": "0",
+    "servant_name": "",
+    "servant_icon": "",
+    "servant_properties": [],
+    "servant_skills": [],
+    "is_health_secret": false
+  },
+  "avatar_ld_type": "AvatarLDTypeNone",
+  "cur_enhanced_id": 0,
+  "special_skills": []
+}
