@@ -3,6 +3,7 @@ using System;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehrak.Infrastructure.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    partial class UserDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260225151926_Indexing")]
+    partial class Indexing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -48,7 +51,7 @@ namespace Mehrak.Infrastructure.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("GameUids", (string)null);
+                    b.ToTable("GameUids");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.ProfileRegion", b =>
@@ -73,7 +76,7 @@ namespace Mehrak.Infrastructure.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("Regions", (string)null);
+                    b.ToTable("Regions");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.UserModel", b =>
@@ -92,7 +95,7 @@ namespace Mehrak.Infrastructure.Migrations
                     b.HasIndex("Id")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.UserProfileModel", b =>
@@ -126,7 +129,7 @@ namespace Mehrak.Infrastructure.Migrations
                     b.HasIndex("UserId", "ProfileId")
                         .IsUnique();
 
-                    b.ToTable("UserProfiles", (string)null);
+                    b.ToTable("UserProfiles");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.ProfileGameUid", b =>
