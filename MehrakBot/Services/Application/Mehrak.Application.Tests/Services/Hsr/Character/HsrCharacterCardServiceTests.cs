@@ -7,7 +7,6 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -42,6 +41,7 @@ public class HsrCharacterCardServiceTests
     [TestCase("Stelle_TestData.json", "Stelle_GoldenImage.jpg", "Stelle")]
     [TestCase("Stelle_NoEquip_NoRelic_TestData.json", "Stelle_NoEquip_NoRelic_GoldenImage.jpg", "StelleNoEquipNoRelic")]
     [TestCase("Stelle_Remembrance_TestData.json", "Stelle_Remembrance_GoldenImage.jpg", "StelleRemembrance")]
+    [TestCase("Yaoguang_Elation_TestData.json", "Yaoguang_Elation_GoldenImage.jpg", "YaoguangElation")]
     public async Task GenerateCharacterCardAsync_ShouldMatchGoldenImage(string testDataFileName,
         string goldenImageFileName, string testName)
     {
@@ -165,5 +165,36 @@ public class HsrCharacterCardServiceTests
             new HsrRelicModel { SetId = 310, SetName = "Broken Keel" }
         );
         relicContext.SaveChanges();
+    }
+
+    [Explicit]
+    [Test]
+    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage.jpg")]
+    [TestCase("Stelle_NoEquip_NoRelic_TestData.json", "Stelle_NoEquip_NoRelic_GoldenImage.jpg")]
+    [TestCase("Stelle_Remembrance_TestData.json", "Stelle_Remembrance_GoldenImage.jpg")]
+    [TestCase("Yaoguang_Elation_TestData.json", "Yaoguang_Elation_GoldenImage.jpg")]
+    public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var (relicContext, characterCardService) = await SetupTest();
+        SeedRelicData(relicContext);
+
+        var testDataPath = Path.Combine(TestDataPath, testDataFileName);
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+            await File.ReadAllTextAsync(testDataPath));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+        using var memoryStream = new MemoryStream();
+        await generatedImageStream.CopyToAsync(memoryStream);
+
+        var outputPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName);
+        await File.WriteAllBytesAsync(outputPath, memoryStream.ToArray());
+
+        Assert.That(generatedImageStream, Is.Not.Null);
     }
 }
