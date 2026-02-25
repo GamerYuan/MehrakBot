@@ -1,8 +1,8 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -12,8 +12,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -137,9 +135,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
             ];
 
             Skill[] baseSkill =
-                [.. characterInformation.Skills!.Where(x => x.PointType == 2 && x.Remake != "Technique")];
+                [.. characterInformation.Skills!.Where(x => (x.PointType == 2 && x.Remake != "Technique") || x.PointType == 4)];
             var skillChains =
-                BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2)]);
+                BuildSkillTree([.. characterInformation.Skills!.Where(x => x.PointType != 2 && x.PointType != 4)]);
 
             Task<(Skill Data, Image Image)>[] baseSkillTasks =
             [
@@ -345,10 +343,15 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 for (var i = 0; i < baseSkillImages.Length; i++)
                 {
                     var offset = i * 100;
+                    var skillColor = baseSkillImages[i].Data.Remake switch
+                    {
+                        "Elation Skill" => Color.FromRgb(255, 176, 161),
+                        _ => accentColor
+                    };
                     EllipsePolygon ellipse = new(new PointF(900, 80 + offset), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
-                    ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
+                    ctx.Draw(skillColor, 5, ellipse.AsClosedPath());
 
                     EllipsePolygon levelEllipse = new(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
