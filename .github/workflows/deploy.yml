@@ -10,11 +10,15 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to Server
+    name: Deploy
     runs-on: ubuntu-24.04
 
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+
     steps:
-      - name: Deploy via SSH
+      - name: Deploy to server
         uses: appleboy/ssh-action@v1
         env:
           TAG_NAME: ${{ github.ref_name }}
@@ -34,3 +38,42 @@ jobs:
             docker compose build --pull
             docker compose up -d --remove-orphans
             docker image prune -af --filter "until=24h"
+
+  deploy-dashboard:
+    name: Deploy Dashboard
+    runs-on: ubuntu-24.04
+    needs: deploy
+
+    concurrency:
+      group: dashboard-production-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ASSETS_PAT }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: Dashboard/package-lock.json
+
+      - name: Install dependencies (Node.js)
+        working-directory: ./Dashboard
+        run: npm ci
+
+      - name: Build dashboard
+        working-directory: ./Dashboard
+        env:
+          VITE_APP_BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: npm run build
+
+      - name: Deploy Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: ./Dashboard
+          command: pages deploy ./dist/ --project-name mehrak-site
