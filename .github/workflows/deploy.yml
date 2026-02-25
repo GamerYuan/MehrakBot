@@ -42,6 +42,7 @@ jobs:
   deploy-dashboard:
     name: Deploy Dashboard
     runs-on: ubuntu-24.04
+    needs: deploy
 
     concurrency:
       group: dashboard-production-deploy
