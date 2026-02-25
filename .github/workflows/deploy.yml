@@ -10,11 +10,11 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to Server
+    name: Deploy
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Deploy via SSH
+      - name: Deploy to server
         uses: appleboy/ssh-action@v1
         env:
           TAG_NAME: ${{ github.ref_name }}
@@ -34,3 +34,31 @@ jobs:
             docker compose build --pull
             docker compose up -d --remove-orphans
             docker image prune -af --filter "until=24h"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+          token: ${{ secrets.ASSETS_PAT }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies (Node.js)
+        working-directory: ./Dashboard
+        run: npm ci
+
+      - name: Build dashboard
+        working-directory: ./Dashboard
+        run: npm run build
+
+      - name: Deploy Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: ./Dashboard
+          command: pages deploy ./dist/ --branch mehrak-site-prod
