@@ -283,19 +283,28 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 characterInfo.Equip.Id)))
         {
             var entryPage = wikiEntry.Split('/')[^1];
-            var wikiResponse =
-                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage));
+            string? iconUrl = null;
 
-            if (!wikiResponse.IsSuccess)
+            foreach (var locale in Enum.GetValues<WikiLocales>())
             {
-                Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
-                return Result<string>.Failure(StatusCode.ExternalServerError,
-                    string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                var wikiResponse =
+                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale));
+
+                if (!wikiResponse.IsSuccess)
+                {
+                    Logger.LogWarning(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
+                    continue;
+                }
+
+                iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+
+                if (!string.IsNullOrEmpty(iconUrl)) break;
+
+                Logger.LogWarning("Character wiki image URL is empty for EquipId: {EquipId}, Locale: {Locale}, Data:\n{Data}",
+                    characterInfo.Equip.Id, locale, wikiResponse.Data.ToJsonString());
             }
 
-            var iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
-
-            if (iconUrl == null)
+            if (string.IsNullOrEmpty(iconUrl))
             {
                 Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
                     "Failed to retrieve Icon Url");
