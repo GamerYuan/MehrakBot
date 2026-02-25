@@ -392,9 +392,11 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     }
                 }
 
+                var type4Skill = characterInformation.Skills.Count(x => x.PointType == 4);
+
                 for (var i = 0; i < servantImages.Length; i++)
                 {
-                    var offset = i * 120;
+                    var offset = (i + type4Skill) * 120;
                     EllipsePolygon ellipse = new(new PointF(900 + offset, 480), 45);
                     ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);
