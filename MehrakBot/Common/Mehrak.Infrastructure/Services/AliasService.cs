@@ -198,11 +198,12 @@ public class AliasService : IAliasService
 
             var key = GetAliasKey(gameName);
             var tran = Db.CreateTransaction();
-            _ = tran.KeyDeleteAsync(key);
+            List<Task> transactions = [];
+            transactions.Add(tran.KeyDeleteAsync(key));
             if (aliases.Count > 0)
             {
                 var hashEntries = aliases.Select(a => new HashEntry(a.Key, a.Value)).ToArray();
-                _ = tran.HashSetAsync(key, hashEntries);
+                transactions.Add(tran.HashSetAsync(key, hashEntries));
 
                 m_Logger.LogDebug("Upserted alias cache for {Game} with {Count} aliases", gameName, aliases.Count);
             }
@@ -211,6 +212,7 @@ public class AliasService : IAliasService
                 m_Logger.LogWarning("No aliases found for {Game} in database", gameName);
             }
             await tran.ExecuteAsync();
+            await Task.WhenAll(transactions);
         }
         catch (Exception ex)
         {
