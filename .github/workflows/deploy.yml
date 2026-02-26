@@ -77,4 +77,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: ./Dashboard
-          command: pages deploy ./dist/ --project-name mehrak-site
+          command: pages deploy ./dist/ --project-name mehrak-site --branch mehrak-site-prod
