@@ -22,8 +22,6 @@ public class CharacterCacheService : ICharacterCacheService
     private readonly ILogger<CharacterCacheService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
 
-    private readonly Lock m_UpdateLock = new();
-
     public CharacterCacheService(
         IOptions<RedisConfig> redisConfig,
         IServiceScopeFactory serviceScopeFactory,
@@ -129,7 +127,6 @@ public class CharacterCacheService : ICharacterCacheService
 
     public async Task UpdateAllCharactersAsync()
     {
-        m_UpdateLock.Enter();
         try
         {
             m_Logger.LogInformation("Starting character cache update for all games");
@@ -144,10 +141,6 @@ public class CharacterCacheService : ICharacterCacheService
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error occurred while updating character and alias cache for all games");
-        }
-        finally
-        {
-            m_UpdateLock.Exit();
         }
     }
 

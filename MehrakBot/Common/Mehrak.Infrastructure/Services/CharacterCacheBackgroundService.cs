@@ -72,10 +72,10 @@ public class CharacterCacheBackgroundService : IHostedService
         {
             while (true)
             {
+                await Task.Delay(m_Config.UpdateInterval, token);
                 token.ThrowIfCancellationRequested();
                 await m_CharacterCacheService.UpdateAllCharactersAsync();
                 await m_AliasService.UpdateAllAliasesAsync();
-                await Task.Delay(m_Config.UpdateInterval, token);
             }
         }
         catch (OperationCanceledException)
