@@ -17,14 +17,6 @@ public class HsrRealTimeNotesData
 
     [JsonPropertyName("stamina_full_ts")] public int StaminaFullTs { get; init; }
 
-    [JsonPropertyName("accepted_epedition_num")]
-    public int AcceptedExpeditionNum { get; init; }
-
-    [JsonPropertyName("total_expedition_num")]
-    public int TotalExpeditionNum { get; init; }
-
-    [JsonPropertyName("expeditions")] public List<Expedition>? Expeditions { get; init; }
-
     [JsonPropertyName("current_train_score")]
     public int CurrentTrainScore { get; init; }
 
@@ -66,19 +58,4 @@ public class HsrRealTimeNotesData
 
     [JsonPropertyName("grid_fight_weekly_max")]
     public int GridFightWeeklyMax { get; init; }
-}
-
-public class Expedition
-{
-    [JsonPropertyName("avatars")] public List<string>? Avatars { get; init; }
-
-    [JsonPropertyName("status")] public string? Status { get; init; }
-
-    [JsonPropertyName("remaining_time")] public int RemainingTime { get; init; }
-
-    [JsonPropertyName("name")] public string? Name { get; init; }
-
-    [JsonPropertyName("item_url")] public string? ItemUrl { get; init; }
-
-    [JsonPropertyName("finish_ts")] public int FinishTs { get; init; }
 }

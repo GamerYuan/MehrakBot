@@ -96,15 +96,6 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
                 new CommandAttachment("hsr_tbp.png", AttachmentSourceType.ImageStorage, "hsr_tbp")
             ),
             new CommandSection([
-                    new CommandText("Assignments", CommandText.TextType.Header3),
-                    new CommandText($"{data.AcceptedExpeditionNum}/{data.TotalExpeditionNum}"),
-                    new CommandText(data.AcceptedExpeditionNum > 0
-                        ? $"{data.AcceptedExpeditionNum}/{data.TotalExpeditionNum}"
-                        : "None Accepted!", CommandText.TextType.Footer)
-                ],
-                new CommandAttachment("hsr_assignment.png", AttachmentSourceType.ImageStorage, "hsr_assignment")
-            ),
-            new CommandSection([
                     new CommandText("Echoes of War", CommandText.TextType.Header3),
                     new CommandText(data.WeeklyCocoonCnt > 0
                         ? $"Claimed {data.WeeklyCocoonLimit - data.WeeklyCocoonCnt}/{data.WeeklyCocoonLimit}"
