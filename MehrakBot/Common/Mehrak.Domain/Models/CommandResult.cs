@@ -18,6 +18,7 @@ public interface ICommandResultAttachment
 {
     string FileName { get; init; }
     AttachmentSourceType SourceType { get; }
+    string? StorageFileName { get; }
 }
 
 public enum CommandFailureReason
@@ -91,30 +92,21 @@ public class CommandSection : ICommandResultComponent
     }
 }
 
-public class StoredAttachment : ICommandResultAttachment
-{
-    public string FileName { get; init; }
-    public AttachmentSourceType SourceType { get; init; }
-
-    public StoredAttachment(string fileName, AttachmentSourceType sourceType)
-    {
-        FileName = fileName;
-        SourceType = sourceType;
-    }
-}
-
 public class CommandAttachment : ICommandResultComponent, ICommandResultAttachment
 {
 
     public CommandAttachment(string fileName,
-        AttachmentSourceType sourceType = AttachmentSourceType.AttachmentStorage)
+        AttachmentSourceType sourceType = AttachmentSourceType.AttachmentStorage,
+        string? storageFileName = null)
     {
         FileName = fileName;
         SourceType = sourceType;
+        StorageFileName = storageFileName;
     }
 
     public string FileName { get; init; }
     public AttachmentSourceType SourceType { get; init; }
+    public string? StorageFileName { get; init; }
 }
 
 
