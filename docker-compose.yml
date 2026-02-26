@@ -97,21 +97,6 @@ services:
     networks:
       - mehrak-network
 
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: unless-stopped
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    networks:
-      - mehrak-network
-
   seaweed-master:
     image: chrislusf/seaweedfs:latest
     command: "master -mdir=/data -ip=seaweed-master -ip.bind=0.0.0.0"
