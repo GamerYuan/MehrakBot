@@ -166,11 +166,14 @@ public class CharacterCacheService : ICharacterCacheService
                 .OrderBy(x => x)
                 .ToListAsync();
 
+            var key = GetCharacterKey(gameName);
+            var tran = Db.CreateTransaction();
+            List<Task> transactions = [];
+            transactions.Add(tran.KeyDeleteAsync(key));
+
             if (characters.Count > 0)
             {
-                var key = GetCharacterKey(gameName);
-                await Db.KeyDeleteAsync(key);
-                await Db.SetAddAsync(key, [.. characters.Select(x => (RedisValue)x)]);
+                transactions.Add(tran.SetAddAsync(key, [.. characters.Select(x => (RedisValue)x)]));
 
                 m_Logger.LogDebug("Updated character cache for {Game} with {Count} characters", gameName,
                     characters.Count);
@@ -179,6 +182,8 @@ public class CharacterCacheService : ICharacterCacheService
             {
                 m_Logger.LogWarning("No characters found for {Game} in database", gameName);
             }
+            await tran.ExecuteAsync();
+            await Task.WhenAll(transactions);
         }
         catch (Exception ex)
         {
