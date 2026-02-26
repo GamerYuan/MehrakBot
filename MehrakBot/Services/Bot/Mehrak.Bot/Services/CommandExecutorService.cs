@@ -127,11 +127,12 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                         {
                             try
                             {
-                                stream = await m_ImageRepository.DownloadFileToStreamAsync(attachment.FileName);
+                                stream = await m_ImageRepository.DownloadFileToStreamAsync(attachment.StorageFileName ?? attachment.FileName);
                             }
                             catch (Exception ex)
                             {
-                                Logger.LogError(ex, "Failed to download image {FileName} from ImageRepository", attachment.FileName);
+                                Logger.LogError(ex, "Failed to download image {FileName} from ImageRepository",
+                                    attachment.StorageFileName ?? attachment.FileName);
                             }
                         }
                         else
