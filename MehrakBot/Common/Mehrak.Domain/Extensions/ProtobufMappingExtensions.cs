@@ -88,7 +88,8 @@ public static class ProtobufMappingExtensions
         return new Proto.AttachmentReference
         {
             FileName = attachment.FileName,
-            SourceType = (Proto.AttachmentSourceType)attachment.SourceType
+            SourceType = (Proto.AttachmentSourceType)attachment.SourceType,
+            StorageFileName = attachment.StorageFileName ?? string.Empty
         };
     }
 
@@ -137,9 +138,10 @@ public static class ProtobufMappingExtensions
             case Proto.CommandComponent.ComponentOneofCase.Section:
                 var sectionTexts = proto.Section.Components.Select(t => new CommandText(t.Content, (CommandText.TextType)t.TypeFlags));
                 // Use StoredAttachment for the attachment inside a section
-                var sectionAttachment = new StoredAttachment(
+                var sectionAttachment = new CommandAttachment(
                     proto.Section.Attachment.FileName,
-                    (AttachmentSourceType)proto.Section.Attachment.SourceType);
+                    (AttachmentSourceType)proto.Section.Attachment.SourceType,
+                    string.IsNullOrEmpty(proto.Section.Attachment.StorageFileName) ? null : proto.Section.Attachment.StorageFileName);
 
                 return new CommandSection(sectionTexts, sectionAttachment);
 
@@ -147,7 +149,8 @@ public static class ProtobufMappingExtensions
                 // Standalone attachment component must be CommandAttachment
                 return new CommandAttachment(
                     proto.Attachment.FileName,
-                    (AttachmentSourceType)proto.Attachment.SourceType);
+                    (AttachmentSourceType)proto.Attachment.SourceType,
+                    string.IsNullOrEmpty(proto.Attachment.StorageFileName) ? null : proto.Attachment.StorageFileName);
 
             default:
                 return null;
