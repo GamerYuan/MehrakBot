@@ -96,7 +96,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
                         ? "Fully Recovered!"
                         : $"Recovers <t:{currTime + data.Energy.Restore}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("zzz_battery.png", AttachmentSourceType.ImageStorage)
+                new CommandAttachment("zzz_battery.png", AttachmentSourceType.ImageStorage, "zzz_battery")
             ),
             new CommandText("Daily Missions", CommandText.TextType.Header3),
             new CommandText($"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}"),
