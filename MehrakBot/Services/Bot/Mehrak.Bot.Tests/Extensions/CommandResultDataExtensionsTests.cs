@@ -619,7 +619,7 @@ public class CommandResultDataExtensionsTests
     private class TestCommandSection : CommandSection
     {
         public TestCommandSection(string attachmentFileName, IEnumerable<CommandText> components)
-            : base(components, new StoredAttachment(attachmentFileName, AttachmentSourceType.AttachmentStorage))
+            : base(components, new CommandAttachment(attachmentFileName, AttachmentSourceType.AttachmentStorage))
         {
         }
     }

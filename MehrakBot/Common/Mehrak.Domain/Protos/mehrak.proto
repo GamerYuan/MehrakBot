@@ -13,6 +13,7 @@ enum AttachmentSourceType {
 message AttachmentReference {
   string file_name = 1;
   AttachmentSourceType source_type = 2;
+  string storage_file_name = 3;
 }
 
 message CommandText {
