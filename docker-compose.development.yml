@@ -9,9 +9,14 @@ services:
         DOTNET_ENVIRONMENT: Development
         VERSION: ${VERSION:-0.0.0}
     depends_on:
-      - postgres
-      - redis
-      - otel-collector
+      application:
+        condition: service_started
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      seaweed-s3:
+        condition: service_healthy
     networks:
       - mehrak-network
     environment:
@@ -28,9 +33,14 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - postgres
-      - redis
-      - otel-collector
+      application:
+        condition: service_started
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      seaweed-s3:
+        condition: service_healthy
     networks:
       - mehrak-network
     environment:
@@ -46,17 +56,19 @@ services:
         OPENCV_VERSION: ${OPENCV_VERSION:-4.12.0}
         VERSION: ${VERSION:-0.0.0}
     depends_on:
-      - postgres
-      - redis
-      - otel-collector
-      - seaweed-s3
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      seaweed-s3:
+        condition: service_healthy
     networks:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
 
   postgres:
-    image: postgres:18.1
+    image: postgres:18.3
     ports:
       - "5433:5432"
     volumes:
@@ -70,7 +82,7 @@ services:
       - mehrak-network
 
   redis:
-    image: redis:alpine
+    image: redis:8.6
     volumes:
       - redis_data:/data
     ports:
@@ -81,7 +93,7 @@ services:
       - mehrak-network
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.3
     container_name: grafana
     restart: unless-stopped
     ports:
@@ -92,7 +104,7 @@ services:
       - mehrak-network
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.29
     container_name: nginx
     restart: unless-stopped
     ports:
@@ -108,7 +120,7 @@ services:
       - mehrak-network
 
   seaweed-master:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.13
     command: "master -mdir=/data -ip=seaweed-master -ip.bind=0.0.0.0"
     restart: unless-stopped
     ports:
@@ -121,7 +133,7 @@ services:
       - seaweed-network
 
   seaweed-volume:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.13
     command: "volume -mserver=seaweed-master:9333 -dir=/data -ip=seaweed-volume -preStopSeconds=1"
     restart: unless-stopped
     depends_on:
@@ -135,7 +147,7 @@ services:
       - seaweed-network
 
   seaweed-filer:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.13
     command: 'filer -master="seaweed-master:9333" -ip=seaweed-filer'
     restart: unless-stopped
     depends_on:
@@ -150,13 +162,18 @@ services:
       - seaweed-network
 
   seaweed-s3:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.13
     command: 's3 -filer="seaweed-filer:8888" -ip.bind=0.0.0.0 -port=8333 -config=/etc/seaweedfs/s3.json'
     restart: unless-stopped
     depends_on:
       - seaweed-filer
     ports:
       - "8333:8333"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8333/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - ./seaweed-s3/s3.json:/etc/seaweedfs/s3.json:ro
     networks:
@@ -164,7 +181,7 @@ services:
       - mehrak-network
 
   clickhouse:
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server:26.2
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -192,7 +209,7 @@ services:
       - mehrak-network
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.146.1
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
