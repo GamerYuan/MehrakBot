@@ -35,6 +35,7 @@ jobs:
             git checkout "$TAG_NAME"
             git submodule sync
             git submodule update --init --recursive
+            export VERSION=${TAG_NAME#v}
             docker compose build --pull
             docker compose up -d --remove-orphans
             docker image prune -af --filter "until=24h"
