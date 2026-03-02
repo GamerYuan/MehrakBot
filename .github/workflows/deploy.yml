@@ -8,37 +8,72 @@ on:
     tags:
       - "v*"
 
+env:
+  TAG_NAME: ${{ github.ref_name }}
+
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     concurrency:
       group: production-deploy
       cancel-in-progress: false
 
     steps:
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        uses: docker/bake-action@v6
         env:
-          TAG_NAME: ${{ github.ref_name }}
+          VERSION: ${{ env.TAG_NAME }}
+          OPENCV_VERSION: 4.12.0
+          BUILDX_BAKE_GIT_AUTH_TOKEN: ${{ secrets.ASSETS_PAT }}
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || '22' }}
-          envs: TAG_NAME
-          script: |
-            set -e
-            cd ${{ secrets.BOT_CORE_PATH }}
-            git fetch --tags
-            git checkout "$TAG_NAME"
-            git submodule sync
-            git submodule update --init --recursive
-            export VERSION=${TAG_NAME#v}
-            docker compose build --pull
-            docker compose up -d --remove-orphans
-            docker image prune -af --filter "until=24h"
+          load: true
+          pull: true
+
+      - name: Export Docker images
+        run: |
+          set -euo pipefail
+          docker image save \
+            mehrak:latest \
+            mehrak-dashboard:latest \
+            mehrak-application:latest \
+            -o mehrak-images.tar
+
+      - name: Save Docker images as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mehrak-images
+          path: mehrak-images.tar
+
+      # - name: Upload image archive to server
+      #   uses: appleboy/scp-action@v0.1.7
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     port: ${{ secrets.SSH_PORT || '22' }}
+      #     source: mehrak-images.tar
+      #     target: /tmp
+
+      # - name: Deploy to server
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     port: ${{ secrets.SSH_PORT || '22' }}
+      #     script: |
+      #       set -euo pipefail
+      #       docker load -i /tmp/mehrak-images.tar
+      #       rm -f /tmp/mehrak-images.tar
+      #       docker compose up -d --remove-orphans --no-build
+      #       docker image prune -af --filter "until=24h"
 
   deploy-dashboard:
     name: Deploy Dashboard
