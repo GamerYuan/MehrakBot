@@ -11,9 +11,9 @@ services:
       application:
         condition: service_started
       postgres:
-        condition: service_started
+        condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       seaweed-s3:
         condition: service_healthy
     networks:
@@ -39,9 +39,9 @@ services:
       application:
         condition: service_started
       postgres:
-        condition: service_started
+        condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       seaweed-s3:
         condition: service_healthy
     networks:
@@ -68,9 +68,9 @@ services:
         VERSION: ${VERSION:-0.0.1}
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       seaweed-s3:
         condition: service_healthy
     networks:
@@ -86,6 +86,11 @@ services:
     image: postgres:18.3
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d mehrak_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     volumes:
       - pgdata:/data/postgres
     environment:
@@ -98,6 +103,11 @@ services:
 
   redis:
     image: redis:8.6
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     volumes:
       - redis_data:/data
     restart: unless-stopped
