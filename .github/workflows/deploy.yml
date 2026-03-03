@@ -25,6 +25,16 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+          token: ${{ secrets.ASSETS_PAT }}
+
+      - name: Checkout LFS
+        run: git lfs pull
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -37,6 +47,7 @@ jobs:
         with:
           load: true
           pull: true
+          source: .
 
       - name: Export Docker images
         run: |
