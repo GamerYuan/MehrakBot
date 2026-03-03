@@ -2,17 +2,13 @@ name: Deploy
 permissions:
   contents: read
 
-# Triggered when tags starting with 'v' are pushed
 on:
   push:
     tags:
       - "v*"
-  pull_request:
-    branches: [master]
 
 env:
-  # TAG_NAME: ${{ github.ref_name }}
-  TAG_NAME: 0.0.0
+  TAG_NAME: ${{ github.ref_name }}
 
 jobs:
   deploy:
@@ -61,39 +57,32 @@ jobs:
             mehrak-application:latest \
             -o mehrak-images.tar
 
-      - name: Save Docker images as artifact
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Upload image archive to server
+        uses: appleboy/scp-action@v0.1.7
         with:
-          name: mehrak-images
-          path: mehrak-images.tar
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          source: mehrak-images.tar
+          target: /tmp
 
-      # - name: Upload image archive to server
-      #   uses: appleboy/scp-action@v0.1.7
-      #   with:
-      #     host: ${{ secrets.SSH_HOST }}
-      #     username: ${{ secrets.SSH_USER }}
-      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     port: ${{ secrets.SSH_PORT || '22' }}
-      #     source: mehrak-images.tar
-      #     target: /tmp
-
-      # - name: Deploy to server
-      #   uses: appleboy/ssh-action@v1
-      #   with:
-      #     host: ${{ secrets.SSH_HOST }}
-      #     username: ${{ secrets.SSH_USER }}
-      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     port: ${{ secrets.SSH_PORT || '22' }}
-      #     script: |
-      #       set -euo pipefail
-      #       docker load -i /tmp/mehrak-images.tar
-      #       rm -f /tmp/mehrak-images.tar
-      #       cd ${{ secrets.BOT_CORE_PATH }}
-      #       git fetch --tags
-      #       git checkout ${{ env.TAG_NAME }}
-      #       docker compose up -d --remove-orphans --no-build
-      #       docker image prune -af --filter "until=24h"
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script: |
+            set -euo pipefail
+            docker load -i /tmp/mehrak-images.tar
+            rm -f /tmp/mehrak-images.tar
+            cd ${{ secrets.BOT_CORE_PATH }}
+            git fetch --tags
+            git checkout ${{ env.TAG_NAME }}
+            docker compose up -d --remove-orphans --no-build
+            docker image prune -af --filter "until=24h"
 
   deploy-dashboard:
     name: Deploy Dashboard
