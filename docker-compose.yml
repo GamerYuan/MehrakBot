@@ -190,6 +190,11 @@ services:
       - seaweed-filer
     ports:
       - "8333:8333"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8333/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - ./seaweed-s3/s3.json:/etc/seaweedfs/s3.json:ro
     networks:
