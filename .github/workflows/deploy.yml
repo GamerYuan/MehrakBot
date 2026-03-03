@@ -11,7 +11,8 @@ on:
     branches: [master]
 
 env:
-  TAG_NAME: ${{ github.ref_name }}
+  # TAG_NAME: ${{ github.ref_name }}
+  TAG_NAME: 0.0.0
 
 jobs:
   deploy:
@@ -74,6 +75,9 @@ jobs:
       #       set -euo pipefail
       #       docker load -i /tmp/mehrak-images.tar
       #       rm -f /tmp/mehrak-images.tar
+      #       cd ${{ secrets.BOT_CORE_PATH }}
+      #       git fetch --tags
+      #       git checkout ${{ env.TAG_NAME }}
       #       docker compose up -d --remove-orphans --no-build
       #       docker image prune -af --filter "until=24h"
 
