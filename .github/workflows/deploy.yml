@@ -48,6 +48,9 @@ jobs:
           load: true
           pull: true
           source: .
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
 
       - name: Export Docker images
         run: |
