@@ -24,15 +24,9 @@ public class Program
             .AddUserSecrets<Program>()
             .AddEnvironmentVariables();
 
-        if (builder.Environment.IsDevelopment() && File.Exists("/.dockerenv"))
-        {
-            Console.WriteLine("Docker environment detected");
-            builder.Configuration.AddJsonFile("appsettings.DockerDev.json");
-        }
-        else if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
-            builder.Configuration.AddJsonFile("appsettings.Development.json");
         }
 
         var logLevels = builder.Configuration.GetSection("Logging:LogLevel");

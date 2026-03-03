@@ -491,8 +491,7 @@ logs/
 *_key.pem
 *_token.txt
 
-appsettings**.json
-/MehrakBot/Mehrak.Application.Tests/appsettings.test.json
+appsettings.**.json
 
 /grafana/loki-data
 
