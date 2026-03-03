@@ -21,6 +21,15 @@ services:
       - mehrak-network
     environment:
       - DOTNET_ENVIRONMENT=Development
+      - Discord__Token=${DISCORD_TOKEN}
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
+      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ClickHouse__Host=clickhouse
+      - ClickHouse__Username=${CLICKHOUSE_USER}
+      - ClickHouse__Password=${CLICKHOUSE_PASSWORD}
+      - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - Storage__ServiceURL=http://seaweed-s3:8333
+      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   dashboard:
     image: mehrak-dashboard:latest
@@ -45,6 +54,16 @@ services:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - Dashboard__AdminUsername=${DASHBOARD_ADMIN_USERNAME}
+      - Dashboard__AdminPassword=${DASHBOARD_ADMIN_PASSWORD}
+      - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
+      - Dashboard__Origin=${DASHBOARD_ORIGIN}
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
+      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - Storage__ServiceURL=http://seaweed-s3:8333
+      - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
+      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   application:
     image: mehrak-application:latest
@@ -66,6 +85,11 @@ services:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
+      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - Storage__ServiceURL=http://seaweed-s3:8333
+      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   postgres:
     image: postgres:18.3

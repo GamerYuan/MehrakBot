@@ -18,6 +18,15 @@ services:
         condition: service_healthy
     networks:
       - mehrak-network
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - Discord__Token=${DISCORD_TOKEN}
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
+      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ClickHouse__Username=${CLICKHOUSE_USER}
+      - ClickHouse__Password=${CLICKHOUSE_PASSWORD}
+      - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   dashboard:
     image: mehrak-dashboard:latest
@@ -37,6 +46,17 @@ services:
         condition: service_healthy
     networks:
       - mehrak-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Dashboard__AdminUsername=${DASHBOARD_ADMIN_USERNAME}
+      - Dashboard__AdminPassword=${DASHBOARD_ADMIN_PASSWORD}
+      - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
+      - Dashboard__Origin=${DASHBOARD_ORIGIN}
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
+      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
+      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   application:
     image: mehrak-application:latest
@@ -55,6 +75,12 @@ services:
         condition: service_healthy
     networks:
       - mehrak-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
+      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   postgres:
     image: postgres:18.3
@@ -89,8 +115,8 @@ services:
       - grafana-data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
-      - GF_SERVER_DOMAIN=${DOMAIN}
-      - GF_SERVER_ROOT_URL=https://${DOMAIN}
+      - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN}
+      - GF_SERVER_ROOT_URL=https://${GRAFANA_DOMAIN}
       - GF_SECURITY_COOKIE_SECURE=true
       - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
       - GF_USERS_ALLOW_SIGN_UP=false
