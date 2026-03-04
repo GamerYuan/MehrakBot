@@ -120,7 +120,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
                 .SelectMany(x => x.Buff)
                 .DistinctBy(x => x.Name)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Build()));
+                    new ImageProcessorBuilder().Resize(80, 0).Build()));
 
             var completed =
                 await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));
