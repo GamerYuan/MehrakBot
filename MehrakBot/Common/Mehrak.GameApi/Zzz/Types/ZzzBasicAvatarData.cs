@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -49,7 +50,11 @@ public class ZzzBasicAvatarData
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.AvatarName, Id);
+        var hasSkin = Regex.Match(RoleSquareUrl.Split('/')[^1], $@".*_({Id}_\d+)\.png$");
+        if (hasSkin.Success)
+            return string.Format(FileNameFormat.Zzz.AvatarName, hasSkin.Groups[1].Value);
+        else
+            return string.Format(FileNameFormat.Zzz.AvatarName, Id);
     }
 
     public IImageData ToImageData()

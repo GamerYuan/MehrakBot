@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
@@ -38,7 +39,11 @@ public class ZzzTowerAvatar
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.AvatarName, AvatarId);
+        var hasSkin = Regex.Match(Icon.Split('/')[^1], $@".*_({AvatarId}_\d+)\.png$");
+        if (hasSkin.Success)
+            return string.Format(FileNameFormat.Zzz.AvatarName, hasSkin.Groups[1].Value);
+        else
+            return string.Format(FileNameFormat.Zzz.AvatarName, AvatarId);
     }
 
     public IImageData ToImageData()
