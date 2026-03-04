@@ -82,7 +82,7 @@ public class CharacterInitializationService : IHostedService
             m_Logger.LogDebug("Processing character JSON file: {FilePath}", jsonFilePath);
 
             var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
-            var characterJsonModel = JsonSerializer.Deserialize<CharacterJsonModel>(jsonContent);
+            var characterJsonModel = JsonSerializer.Deserialize<CharacterJson>(jsonContent);
 
             if (characterJsonModel == null)
             {
@@ -93,26 +93,66 @@ public class CharacterInitializationService : IHostedService
             var gameName = characterJsonModel.Game;
             var newCharacters = characterJsonModel.Characters;
 
-            var incoming = newCharacters.ToHashSet();
-            if (incoming.Count > 0)
+            if (newCharacters.Count > 0)
             {
+                var incomingNames = newCharacters.Select(c => c.Name).ToList();
                 var existing = await characterContext.Characters
-                    .Where(x => x.Game == gameName && incoming.Contains(x.Name))
-                    .Select(x => x.Name)
-                    .ToListAsync();
+                    .Where(x => x.Game == gameName && incomingNames.Contains(x.Name))
+                    .ToDictionaryAsync(x => x.Name, x => x);
 
-                var newEntities = incoming.Except(existing).Select(name => new CharacterModel
+                var newEntities = new List<CharacterModel>();
+                var updatedCount = 0;
+
+                foreach (var incoming in newCharacters)
                 {
-                    Game = gameName,
-                    Name = name
-                }).ToList();
+                    var existingEntity = existing.GetValueOrDefault(incoming.Name);
+                    if (existingEntity != null)
+                    {
+                        var update = false;
 
-                if (newEntities.Count > 0)
+                        if (existingEntity.BaseVal == null && incoming.BaseHp != null)
+                        {
+                            existingEntity.BaseVal = incoming.BaseHp;
+                            update = true;
+                        }
+
+                        if (existingEntity.MaxAscVal == null && incoming.MaxAscHp != null)
+                        {
+                            existingEntity.MaxAscVal = incoming.MaxAscHp;
+                            update = true;
+                        }
+
+                        if (update)
+                        {
+                            updatedCount++;
+                        }
+                    }
+                    else
+                    {
+                        newEntities.Add(new CharacterModel
+                        {
+                            Game = gameName,
+                            Name = incoming.Name,
+                            BaseVal = incoming.BaseHp,
+                            MaxAscVal = incoming.MaxAscHp
+                        });
+                    }
+                }
+
+                if (newEntities.Count > 0 || updatedCount > 0)
                 {
-                    m_Logger.LogInformation("Upserting {Count} characters for game {Game}",
-                        newEntities.Count, gameName);
+                    if (newEntities.Count > 0)
+                    {
+                        m_Logger.LogInformation("Inserting {Count} new characters for game {Game}",
+                            newEntities.Count, gameName);
+                        characterContext.Characters.AddRange(newEntities);
+                    }
+                    if (updatedCount > 0)
+                    {
+                        m_Logger.LogInformation("Updating {Count} characters for game {Game}",
+                            updatedCount, gameName);
+                    }
 
-                    characterContext.Characters.AddRange(newEntities);
                     await characterContext.SaveChangesAsync();
                 }
             }

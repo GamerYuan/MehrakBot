@@ -21,9 +21,6 @@ public class AliasService : IAliasService
     private readonly ILogger<AliasService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
     private readonly string m_RedisInstanceName;
-
-    private readonly Lock m_UpdateLock = new();
-
     public AliasService(
         IOptions<RedisConfig> redisConfig,
         IServiceScopeFactory serviceScopeFactory,
@@ -164,7 +161,6 @@ public class AliasService : IAliasService
 
     public async Task UpdateAllAliasesAsync()
     {
-        m_UpdateLock.Enter();
         try
         {
             m_Logger.LogInformation("Starting character cache update for all games");
@@ -177,10 +173,6 @@ public class AliasService : IAliasService
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error occurred during UpdateAllAliasesAsync");
-        }
-        finally
-        {
-            m_UpdateLock.Exit();
         }
     }
 

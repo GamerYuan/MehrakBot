@@ -7,8 +7,17 @@ using Mehrak.Domain.Enums;
 
 namespace Mehrak.Infrastructure.Models;
 
-internal class CharacterJsonModel
+internal class CharacterJson
 {
     [JsonPropertyName("game")] public required Game Game { get; init; }
-    [JsonPropertyName("characters")] public required List<string> Characters { get; init; }
+    [JsonPropertyName("characters")] public required List<CharacterJsonModel> Characters { get; init; }
 }
+
+internal class CharacterJsonModel
+{
+    [JsonPropertyName("name")] public required string Name { get; init; }
+    [JsonPropertyName("baseHp")] public float? BaseHp { get; set; }
+    [JsonPropertyName("maxAscHp")] public float? MaxAscHp { get; set; }
+}
+
+

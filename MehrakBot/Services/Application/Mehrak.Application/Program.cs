@@ -20,10 +20,6 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Configuration.AddJsonFile("appsettings.json")
-            .AddUserSecrets<Program>()
-            .AddEnvironmentVariables();
-
         if (builder.Environment.IsDevelopment())
         {
             Console.WriteLine("Development environment detected");
