@@ -126,7 +126,11 @@ public class Program
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddMeter("MehrakDashboard")
-                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
+                .AddOtlpExporter((o, m) =>
+                {
+                    o.Endpoint = otlpEndpoint;
+                    m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
+                }));
 
         builder.Services.AddDashboardApplicationExecutor();
 

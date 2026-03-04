@@ -109,7 +109,11 @@ public class Program
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddMeter("MehrakApplication")
-                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint));
+                .AddOtlpExporter((o, m) =>
+                {
+                    o.Endpoint = otlpEndpoint;
+                    m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
+                }));
 
         var app = builder.Build();
 
