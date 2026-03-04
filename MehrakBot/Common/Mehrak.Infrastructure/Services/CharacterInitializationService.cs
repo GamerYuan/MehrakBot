@@ -98,14 +98,14 @@ public class CharacterInitializationService : IHostedService
                 var incomingNames = newCharacters.Select(c => c.Name).ToList();
                 var existing = await characterContext.Characters
                     .Where(x => x.Game == gameName && incomingNames.Contains(x.Name))
-                    .ToListAsync();
+                    .ToDictionaryAsync(x => x.Name, x => x);
 
                 var newEntities = new List<CharacterModel>();
                 var updatedCount = 0;
 
                 foreach (var incoming in newCharacters)
                 {
-                    var existingEntity = existing.FirstOrDefault(x => x.Name == incoming.Name);
+                    var existingEntity = existing.GetValueOrDefault(incoming.Name);
                     if (existingEntity != null)
                     {
                         var update = false;
@@ -124,7 +124,6 @@ public class CharacterInitializationService : IHostedService
 
                         if (update)
                         {
-                            characterContext.Characters.Update(existingEntity);
                             updatedCount++;
                         }
                     }
