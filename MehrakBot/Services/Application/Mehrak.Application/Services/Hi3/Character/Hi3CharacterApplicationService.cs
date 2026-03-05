@@ -105,15 +105,20 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             }
 
             List<Task<bool>> tasks = [];
+            var costumeTasks = characterInfo.Costumes
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None))
+                .ToList();
 
             tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None)));
-            tasks.AddRange(characterInfo.Costumes.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None)));
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), ImageProcessors.None));
 
-            var completed = await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks.Concat(costumeTasks));
 
-            if (completed.Any(x => !x))
+            var hasNonCostumeFailure = tasks.Any(x => !x.Result);
+            var baseCostumeUpdated = costumeTasks.Count == 0 || costumeTasks[^1].Result;
+
+            if (hasNonCostumeFailure || !baseCostumeUpdated)
             {
                 Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
                     JsonSerializer.Serialize(characterInfo));
