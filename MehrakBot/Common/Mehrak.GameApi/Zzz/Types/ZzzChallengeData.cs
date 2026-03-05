@@ -25,7 +25,7 @@ public class ZzzChallengeAvatar
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.AvatarName, Id);
+        return ZzzAvatarUtility.GetAvatarImageName(Id, RoleSquareUrl);
     }
 
     public IImageData ToImageData()

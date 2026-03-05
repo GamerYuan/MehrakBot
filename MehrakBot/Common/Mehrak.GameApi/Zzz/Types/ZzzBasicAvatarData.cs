@@ -1,7 +1,6 @@
 ﻿#region
 
 using System.Text.Json.Serialization;
-using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 
@@ -49,7 +48,7 @@ public class ZzzBasicAvatarData
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.AvatarName, Id);
+        return ZzzAvatarUtility.GetAvatarImageName(Id, RoleSquareUrl);
     }
 
     public IImageData ToImageData()

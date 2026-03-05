@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 
@@ -38,7 +37,7 @@ public class ZzzTowerAvatar
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.AvatarName, AvatarId);
+        return ZzzAvatarUtility.GetAvatarImageName(AvatarId, Icon);
     }
 
     public IImageData ToImageData()
