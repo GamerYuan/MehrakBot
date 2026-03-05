@@ -20,10 +20,11 @@ Mehrak also features a simple CRUD maintainer dashboard, aimed to allow contribu
 We're looking for passionate contributors to the project! If you're interested, please join our [Discord server](https://discord.gg/3GYvRD4u9a) and contact us!
 
 Available Roles:
-[ ] C#/.NET Programmers
-[ ] Vue.js Programmers
-[ ] Designers
-[ ] Translators
+
+- [ ] C#/.NET Programmers
+- [ ] Vue.js Programmers
+- [ ] Designers
+- [ ] Translators
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
 
