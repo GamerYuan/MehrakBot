@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -106,12 +107,12 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
             List<Task<bool>> tasks = [];
             var costumeTasks = characterInfo.Costumes
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None))
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(960, 0).Build()))
                 .ToList();
 
             tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None)));
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), ImageProcessors.None));
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build())));
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build()));
 
             await Task.WhenAll(tasks.Concat(costumeTasks));
 
