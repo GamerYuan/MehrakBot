@@ -10,7 +10,13 @@ public class ZzzBasicAvatarDataTests
         "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491_3114911.png",
         "1491_3114911")]
     [TestCase(
+        "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491_3114911.png?x=1",
+        "1491_3114911")]
+    [TestCase(
         "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491.png",
+        "1491")]
+    [TestCase(
+        "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491.png?x=1",
         "1491")]
     public void ToImageName_ReturnsExpectedValue(string roleSquareUrl, string expectedIdPart)
     {
@@ -46,7 +52,13 @@ public class ZzzChallengeAvatarTests
         "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491_3114911.png",
         "1491_3114911")]
     [TestCase(
+        "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491_3114911.png?x=1",
+        "1491_3114911")]
+    [TestCase(
         "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491.png",
+        "1491")]
+    [TestCase(
+        "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491.png?x=1",
         "1491")]
     public void ToImageName_ReturnsExpectedValue(string roleSquareUrl, string expectedIdPart)
     {
@@ -75,7 +87,13 @@ public class ZzzTowerAvatarTests
         "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491_3114911.png",
         "1491_3114911")]
     [TestCase(
+        "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491_3114911.png?x=1",
+        "1491_3114911")]
+    [TestCase(
         "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491.png",
+        "1491")]
+    [TestCase(
+        "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1491.png?x=1",
         "1491")]
     public void ToImageName_ReturnsExpectedValue(string iconUrl, string expectedIdPart)
     {
