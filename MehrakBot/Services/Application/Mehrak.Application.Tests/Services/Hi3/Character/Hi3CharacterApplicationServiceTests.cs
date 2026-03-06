@@ -122,7 +122,7 @@ public class Hi3CharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterFoundByAlias_ReturnsSuccess()
     {
         // Arrange
-        var (service, characterApiMock, characterCacheMock, aliasServiceMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
+        var (service, characterApiMock, _, aliasServiceMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -191,6 +191,77 @@ public class Hi3CharacterApplicationServiceTests
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
             Assert.That(result.ErrorMessage, Does.Contain("image"));
         }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_NonBaseCostumeImageUpdateFails_ReturnsSuccess()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, attachmentStorageMock, _) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
+
+        var nonBaseCostumeImageName = character.Costumes[0].ToImageName();
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync((IImageData imageData, IImageProcessor _) => imageData.Name != nonBaseCostumeImageName);
+
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_BaseCostumeImageUpdateFails_ReturnsApiError()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, _, _) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+
+        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
+
+        var baseCostumeImageName = character.Costumes[^1].ToImageName();
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync((IImageData imageData, IImageProcessor _) => imageData.Name != baseCostumeImageName);
+
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
+            Assert.That(result.ErrorMessage, Does.Contain("image").IgnoreCase);
+        }
+
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()), Times.Never);
     }
 
     [Test]

@@ -1,12 +1,11 @@
-﻿using Mehrak.Application.Services.Abstractions;
-using System.Text.Json;
+﻿using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -92,8 +91,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
 
         try
         {
-            var characterImage = await Image.LoadAsync(
-                await m_ImageRepository.DownloadFileToStreamAsync(characterInformation.Costumes[0].ToImageName()));
+            var characterImage = await LoadFirstAvailableCostumeImageAsync(characterInformation);
             disposableResources.Add(characterImage);
 
             var weaponImage = await Image.LoadAsync(
@@ -193,7 +191,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
             return stream;
 
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not CommandException)
         {
             m_Logger.LogError(e, LogMessage.CardGenError, "Character", context.UserId,
                 JsonSerializer.Serialize(context.Data));
@@ -203,6 +201,20 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
         {
             disposableResources.ForEach(x => x.Dispose());
         }
+    }
+
+    private async Task<Image> LoadFirstAvailableCostumeImageAsync(Hi3CharacterDetail characterInformation)
+    {
+        foreach (var costume in characterInformation.Costumes)
+        {
+            var imageName = costume.ToImageName();
+            var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
+            if (stream == Stream.Null) continue;
+
+            return await Image.LoadAsync(stream);
+        }
+
+        throw new CommandException("No splash art image found for character");
     }
 
     private Image GetStigmataIcon(Image stigmataImage, Hi3Stigmata info)

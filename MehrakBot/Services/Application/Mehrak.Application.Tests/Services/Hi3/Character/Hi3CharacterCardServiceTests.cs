@@ -2,8 +2,10 @@
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hi3.Character;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
+using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hi3.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -61,6 +63,56 @@ internal class Hi3CharacterCardServiceTests
 
         // Assert
         await AssertImageMatches(generatedImageStream, goldenImagePath, testName);
+    }
+
+    [Test]
+    public async Task GetCardAsync_WhenNoCostumeImageExists_ThrowsCommandException()
+    {
+        // Arrange
+        JsonSerializerOptions options = new()
+        {
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+
+        var characterDetail = JsonSerializer.Deserialize<Hi3CharacterDetail>(
+            await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Character_TestData_1.json")), options);
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var imageRepositoryMock = new Mock<IImageRepository>();
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Stream.Null);
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_bg", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync("hi3_bg"));
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_stigmata_slot", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync("hi3_stigmata_slot"));
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_star_icon", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync("hi3_star_icon"));
+
+        foreach (var rank in new[] { 1, 2, 3, 4, 5 })
+        {
+            var rankFileName = $"hi3_rank_{rank}";
+            imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(rankFileName, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync(rankFileName));
+        }
+
+        var service = new Hi3CharacterCardService(
+            imageRepositoryMock.Object,
+            Mock.Of<ILogger<Hi3CharacterCardService>>(),
+            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+
+        await service.InitializeAsync();
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail!, profile);
+        cardContext.SetParameter("server", Hi3Server.SEA);
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<CommandException>(async () => await service.GetCardAsync(cardContext));
+        Assert.That(ex!.Message, Is.EqualTo("No splash art image found for character"));
     }
 
     private static GameProfileDto GetTestUserGameData()
