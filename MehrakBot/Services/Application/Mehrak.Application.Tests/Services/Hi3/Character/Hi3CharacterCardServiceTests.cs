@@ -83,6 +83,8 @@ internal class Hi3CharacterCardServiceTests
         imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Stream.Null);
         imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_bg", It.IsAny<CancellationToken>()))
             .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync("hi3_bg"));
         imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_stigmata_slot", It.IsAny<CancellationToken>()))
