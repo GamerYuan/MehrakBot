@@ -166,7 +166,7 @@ internal class Hi3CharacterCardServiceTests
             $"Generated image should match golden image for {testName}");
     }
 
-    /*
+    [Explicit]
     [Test]
     [TestCase("Character_TestData_1.json", "Character_GoldenImage_1.jpg")]
     [TestCase("Character_TestData_2.json", "Character_GoldenImage_2.jpg")]
@@ -182,11 +182,12 @@ internal class Hi3CharacterCardServiceTests
                 File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)), options);
         Assert.That(characterDetail, Is.Not.Null);
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
-        var image = await m_CharacterCardService.GetCardAsync(new
-            Hi3CardGenerationContext<Hi3CharacterDetail>(TestUserId,
-            characterDetail, Hi3Server.SEA, profile));
+        var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Hi3Server.SEA);
+
+        var image = await m_CharacterCardService.GetCardAsync(cardContext);
         using var stream = new MemoryStream();
         await image.CopyToAsync(stream);
         await File.WriteAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets",
@@ -194,5 +195,5 @@ internal class Hi3CharacterCardServiceTests
 
         Assert.That(image, Is.Not.Null);
     }
-    */
+
 }

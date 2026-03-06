@@ -169,8 +169,12 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                     ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 168), 1f);
                 }
 
-                ctx.DrawText(characterInformation.Weapon.Name, m_NormalFont, Color.White, new PointF(900, 90));
-                ctx.DrawText($"Lv. {characterInformation.Weapon.Level}", m_NormalFont, Color.White, new PointF(900, 120));
+                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                {
+                    Origin = new PointF(900, 120),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    WrappingLength = 400
+                }, $"{characterInformation.Weapon.Name}\nLv. {characterInformation.Weapon.Level}", Color.White);
 
                 var yOffset = 0;
                 foreach (var entry in stigmataImages)
