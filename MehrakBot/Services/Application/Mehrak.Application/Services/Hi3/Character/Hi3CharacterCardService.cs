@@ -208,9 +208,10 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
         foreach (var costume in characterInformation.Costumes)
         {
             var imageName = costume.ToImageName();
-            if (!await m_ImageRepository.FileExistsAsync(imageName)) continue;
+            var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
+            if (stream == Stream.Null) continue;
 
-            return await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(imageName));
+            return await Image.LoadAsync(stream);
         }
 
         throw new CommandException("No splash art image found for character");
