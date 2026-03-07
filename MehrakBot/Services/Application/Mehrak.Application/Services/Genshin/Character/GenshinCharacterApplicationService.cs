@@ -206,6 +206,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid);
         if (await AttachmentExistsAsync(filename))
         {
+            m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
             return Result<string>.Success(filename);
         }
 
