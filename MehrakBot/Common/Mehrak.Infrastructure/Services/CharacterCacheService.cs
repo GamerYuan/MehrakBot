@@ -95,7 +95,7 @@ public class CharacterCacheService : ICharacterCacheService
             await characterContext.SaveChangesAsync();
             await Db.SetAddAsync(key, [.. existingInDb.Concat(toAddToDb).Distinct().OrderBy(x => x).Select(x => (RedisValue)x)]);
 
-            m_Logger.LogInformation("Updated {Count} names for {Game}", toAddToDb.Count, gameName);
+            m_Logger.LogInformation("Added {Count} names for {Game}", toAddToDb.Count, gameName);
         }
         catch (Exception e)
         {
