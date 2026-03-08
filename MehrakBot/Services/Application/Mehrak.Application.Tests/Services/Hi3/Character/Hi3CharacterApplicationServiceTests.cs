@@ -305,6 +305,42 @@ public class Hi3CharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WhenAttachmentAlreadyExists_TracksCharacterSelectionMetrics()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock,
+            attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
+
+        attachmentStorageMock
+            .Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
+            character.Avatar.Name.ToLowerInvariant()), Times.Once);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()), Times.Never);
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()), Times.Never);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     [TestCase("Character_TestData_1.json")]
     public async Task ExecuteAsync_VerifyAllImagesUpdated(string testDataFile)
     {

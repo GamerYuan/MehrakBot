@@ -284,6 +284,45 @@ public class ZzzCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WhenAttachmentAlreadyExists_TracksCharacterSelectionMetrics()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, _, gameRoleApiMock, _, cardServiceMock, metricsMock,
+            attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        attachmentStorageMock
+            .Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), "jane"), Times.Once);
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()), Times.Never);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     [TestCase("Jane_TestData.json", "Jane")]
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(string testDataFile, string characterName)
     {

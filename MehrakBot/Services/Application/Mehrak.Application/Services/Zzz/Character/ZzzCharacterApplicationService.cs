@@ -128,6 +128,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
             {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
                 return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
                     new CommandAttachment(fileName)

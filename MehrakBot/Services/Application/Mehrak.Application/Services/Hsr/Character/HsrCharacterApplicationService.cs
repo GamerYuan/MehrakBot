@@ -190,6 +190,8 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
         if (await AttachmentExistsAsync(fileName))
         {
+            m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
+                characterInfo.Name.ToLowerInvariant());
             return Result<string>.Success(fileName);
         }
 

@@ -100,6 +100,8 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
             if (await AttachmentExistsAsync(fileName))
             {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
+                    characterInfo.Avatar.Name.ToLowerInvariant());
                 return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
                 ]);
