@@ -59,7 +59,8 @@ public class CharacterCacheService : ICharacterCacheService
     {
         try
         {
-            var incoming = new HashSet<string>(characters, StringComparer.OrdinalIgnoreCase);
+            var normalised = characters.Select(c => c.ReplaceLineEndings("").Trim()).Where(c => !string.IsNullOrEmpty(c));
+            var incoming = new HashSet<string>(normalised, StringComparer.OrdinalIgnoreCase);
             if (incoming.Count == 0) return;
 
             var key = GetCharacterKey(gameName);
@@ -92,7 +93,7 @@ public class CharacterCacheService : ICharacterCacheService
             }
 
             await characterContext.SaveChangesAsync();
-            await Db.SetAddAsync(key, incoming.Select(x => (RedisValue)x).ToArray());
+            await Db.SetAddAsync(key, [.. existingInDb.Concat(toAddToDb).Distinct().OrderBy(x => x).Select(x => (RedisValue)x)]);
 
             m_Logger.LogInformation("Updated {Count} names for {Game}", toAddToDb.Count, gameName);
         }
