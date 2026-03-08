@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Amazon.Runtime.Internal;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -209,16 +210,23 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
 
     private async Task<Image> LoadFirstAvailableCostumeImageAsync(Hi3CharacterDetail characterInformation)
     {
-        foreach (var costume in characterInformation.Costumes)
+        try
         {
-            var imageName = costume.ToImageName();
-            var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
-            if (stream == Stream.Null) continue;
+            foreach (var costume in characterInformation.Costumes)
+            {
+                var imageName = costume.ToImageName();
+                var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
+                if (stream == Stream.Null) continue;
 
-            return await Image.LoadAsync(stream);
+                return await Image.LoadAsync(stream);
+            }
+            throw new CommandException("No splash art image found for character");
+
         }
-
-        throw new CommandException("No splash art image found for character");
+        catch (HttpErrorResponseException e)
+        {
+            throw new CommandException("No splash art image found for character");
+        }
     }
 
     private Image GetStigmataIcon(Image stigmataImage, Hi3Stigmata info)
