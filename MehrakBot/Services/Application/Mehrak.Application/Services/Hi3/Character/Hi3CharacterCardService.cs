@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using Amazon.Runtime.Internal;
+using Amazon.S3;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -223,7 +223,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
             throw new CommandException("No splash art image found for character");
 
         }
-        catch (HttpErrorResponseException e)
+        catch (AmazonS3Exception e)
         {
             throw new CommandException("No splash art image found for character");
         }
