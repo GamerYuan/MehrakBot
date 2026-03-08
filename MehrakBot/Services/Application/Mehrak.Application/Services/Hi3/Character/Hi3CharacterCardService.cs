@@ -210,23 +210,27 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
 
     private async Task<Image> LoadFirstAvailableCostumeImageAsync(Hi3CharacterDetail characterInformation)
     {
-        try
+        foreach (var costume in characterInformation.Costumes)
         {
-            foreach (var costume in characterInformation.Costumes)
+            try
             {
                 var imageName = costume.ToImageName();
                 var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
-                if (stream == Stream.Null) continue;
+                if (stream != Stream.Null)
+                {
+                    return await Image.LoadAsync(stream);
+                }
 
-                return await Image.LoadAsync(stream);
             }
-            throw new CommandException("No splash art image found for character");
+            catch (AmazonS3Exception e)
+            {
+                m_Logger.LogWarning(e, "Failed to load costume image for costume {CostumeId} of character {CharacterId}",
+                    costume.Id, characterInformation.Avatar.Id);
+            }
+        }
 
-        }
-        catch (AmazonS3Exception e)
-        {
-            throw new CommandException("No splash art image found for character");
-        }
+
+        throw new CommandException("No splash art image found for character");
     }
 
     private Image GetStigmataIcon(Image stigmataImage, Hi3Stigmata info)
