@@ -143,7 +143,7 @@
           "pluginVersion": "4.13.0",
           "queryType": "table",
           "rawSql": "SELECT\r\n  TimeUnix as time,\r\n  Attributes['cpu'] AS cpu_core,\r\n  100 * (1 - avg(Value)) AS cpu_utilization\r\nFROM otel_metrics_gauge\r\nWHERE\r\n  $__timeFilter(TimeUnix)\r\n  AND MetricName = 'system.cpu.utilization'\r\n  AND Attributes['state'] = 'idle'\r\nGROUP BY \r\n  time,\r\n  cpu_core\r\nORDER BY \r\n  TimeUnix,\r\n  cpu_core ASC",
-          "refId": "A"
+          "refId": "CPU Utilization"
         }
       ],
       "title": "System CPU Usage",
@@ -561,7 +561,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Commands/sec",
+            "axisLabel": "Commands/min",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -620,7 +620,7 @@
       "options": {
         "alertThreshold": true,
         "legend": {
-          "calcs": ["lastNotNull"],
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -655,7 +655,7 @@
           "pluginVersion": "4.13.0",
           "queryType": "table",
           "rawSql": "SELECT\r\n    toStartOfInterval(TimeUnix, INTERVAL $__interval_s second) AS time,\r\n    sum(Value) / ($__interval_s / 60) AS commands_per_min\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'bot_command_by_user'\r\n  AND $__timeFilter(TimeUnix)\r\nGROUP BY time\r\nORDER BY time ASC WITH FILL STEP $__interval_s",
-          "refId": "A"
+          "refId": "Commands Per Min"
         }
       ],
       "title": "Command Rate",
@@ -1093,7 +1093,6 @@
           "mode": "single",
           "sort": "none"
         },
-        "xField": "Time",
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
@@ -1660,5 +1659,5 @@
   "timezone": "",
   "title": "Mehrak Dashboard",
   "uid": "mehrak",
-  "version": 85
+  "version": 91
 }
