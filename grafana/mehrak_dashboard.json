@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 0,
   "links": [],
   "panels": [
     {
@@ -36,7 +36,8 @@
     },
     {
       "datasource": {
-        "uid": "Prometheus"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "CPU usage percentage of the VPS",
       "fieldConfig": {
@@ -53,7 +54,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -67,7 +68,8 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -84,7 +86,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -104,40 +107,60 @@
       },
       "id": 2,
       "options": {
-        "alertThreshold": true,
         "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "multi",
+          "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "datasource": {
             "uid": "Prometheus"
           },
+          "editorType": "sql",
           "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)",
+          "format": 1,
           "interval": "",
           "legendFormat": "CPU Usage %",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
+          "rawSql": "SELECT\r\n  TimeUnix as time,\r\n  Attributes['cpu'] AS cpu_core,\r\n  100 * (1 - avg(Value)) AS cpu_utilization\r\nFROM otel_metrics_gauge\r\nWHERE\r\n  $__timeFilter(TimeUnix)\r\n  AND MetricName = 'system.cpu.utilization'\r\n  AND Attributes['state'] = 'idle'\r\nGROUP BY \r\n  time,\r\n  cpu_core\r\nORDER BY \r\n  TimeUnix,\r\n  cpu_core ASC",
           "refId": "A"
         }
       ],
       "title": "System CPU Usage",
+      "transformations": [
+        {
+          "id": "prepareTimeSeries",
+          "options": {
+            "format": "multi"
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
       "datasource": {
-        "uid": "Prometheus"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Memory usage of the VPS",
       "fieldConfig": {
@@ -169,6 +192,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -184,7 +208,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -206,10 +231,7 @@
       "options": {
         "alertThreshold": true,
         "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
+          "calcs": ["lastNotNull", "max"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -220,25 +242,54 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "datasource": {
             "uid": "Prometheus"
           },
+          "editorType": "sql",
           "expr": "node_memory_MemTotal_bytes - node_memory_MemFree_bytes - node_memory_Buffers_bytes - node_memory_Cached_bytes",
+          "format": 0,
           "interval": "",
           "legendFormat": "Used Memory",
-          "refId": "A"
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\r\n    TimeUnix,\r\n    Value\r\nFROM \r\n    otel_metrics_sum\r\nWHERE\r\n    $__timeFilter(TimeUnix)\r\n    AND MetricName = 'system.memory.usage'\r\n    AND Attributes['state'] = 'used'",
+          "refId": "Memory Usage"
         },
         {
           "datasource": {
-            "uid": "Prometheus"
+            "type": "grafana-clickhouse-datasource",
+            "uid": "cfecw6gaio6bke"
           },
-          "expr": "node_memory_MemTotal_bytes",
-          "interval": "",
-          "legendFormat": "Total Memory",
-          "refId": "B"
+          "editorType": "sql",
+          "format": 0,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\r\n    TimeUnix,\r\n    avg(Value) AS value\r\nFROM \r\n    otel_metrics_sum\r\nWHERE\r\n    $__timeFilter(TimeUnix)\r\n    AND MetricName = 'system.memory.limit'\r\nGROUP BY \r\n    TimeUnix\r\nORDER BY \r\n    TimeUnix",
+          "refId": "Memory Limit"
         }
       ],
       "title": "System Memory Usage",
@@ -259,8 +310,8 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "beo6w7fwsvz7kc"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Discord Gateway client latency (ms)",
       "fieldConfig": {
@@ -292,6 +343,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -306,7 +358,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -320,7 +373,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 12,
         "x": 0,
         "y": 10
       },
@@ -338,16 +391,31 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "disableTextWrap": false,
           "editorMode": "builder",
+          "editorType": "sql",
           "expr": "discord_bot_latency_ms",
+          "format": 0,
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "timeseries",
           "range": true,
+          "rawSql": "SELECT \r\n    TimeUnix,\r\n    Value\r\nFROM otel_metrics_gauge\r\nWHERE\r\n    $__timeFilter(TimeUnix)\r\n    AND MetricName = 'bot_latency_ms'",
           "refId": "A",
           "useBackend": false
         }
@@ -357,131 +425,8 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "beo6w7fwsvz7kc"
-      },
-      "description": "Application Memory Usage",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "{__name__=\"discord_memory_bytes\", instance=\"mehrakcore-bot-1:9090\", job=\"mehrakcore-bot\"}"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 6,
-        "y": 10
-      },
-      "id": 17,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.0.1",
-      "targets": [
-        {
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "discord_memory_bytes",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "interval": "",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Memory Usage",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "uid": "Prometheus"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Success rate of command execution",
       "fieldConfig": {
@@ -513,6 +458,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -526,10 +472,11 @@
           "max": 100,
           "min": 0,
           "thresholds": {
-            "mode": "absolute",
+            "mode": "percentage",
             "steps": [
               {
-                "color": "red"
+                "color": "red",
+                "value": 0
               },
               {
                 "color": "orange",
@@ -554,13 +501,8 @@
       "id": 8,
       "options": {
         "legend": {
-          "calcs": [
-            "min",
-            "mean",
-            "last",
-            "max"
-          ],
-          "displayMode": "table",
+          "calcs": [],
+          "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
@@ -570,32 +512,35 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "datasource": {
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(discord_command_results{result=\"success\"}) / sum(discord_command_results) * 100",
+          "editorType": "sql",
+          "exemplar": false,
+          "expr": "(\r\n  sum(rate(discord_command_results{result=\"success\"}[5m])) \r\n  / \r\n  (sum(rate(discord_command_results[5m])) > 0) * 100\r\n) OR on() vector(100)",
+          "format": 1,
+          "instant": false,
           "interval": "",
           "legendFormat": "Success",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ceo47tv1387pce"
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
           },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(discord_command_results{result=\"failure\"}) / sum(discord_command_results) * 100",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "Error",
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
           "range": true,
-          "refId": "B"
+          "rawSql": "SELECT\r\n    time,\r\n    if(total_commands > 0, (success_commands / total_commands) * 100, 100) AS success_rate\r\nFROM\r\n(\r\n    SELECT\r\n        toStartOfInterval(TimeUnix, INTERVAL $__interval_s second) AS time,\r\n        sumIf(Value, Attributes['result'] = 'success') AS success_commands,\r\n        sum(Value) AS total_commands\r\n    FROM otel_metrics_sum\r\n    WHERE MetricName = 'bot_command_results'\r\n      AND $__timeFilter(TimeUnix)\r\n    GROUP BY time\r\n    ORDER BY time ASC WITH FILL STEP $__interval_s\r\n)",
+          "refId": "A"
         }
       ],
       "title": "Command Success Rate",
@@ -603,7 +548,8 @@
     },
     {
       "datasource": {
-        "uid": "Prometheus"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Total commands executed over time",
       "fieldConfig": {
@@ -635,6 +581,7 @@
               "type": "linear"
             },
             "showPoints": "never",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -650,7 +597,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
                 "color": "red",
@@ -672,9 +620,7 @@
       "options": {
         "alertThreshold": true,
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -685,15 +631,30 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "datasource": {
             "uid": "Prometheus"
           },
+          "editorType": "sql",
           "expr": "rate(discord_commands_total[5m])",
+          "format": 1,
           "interval": "",
           "legendFormat": "Commands per second",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
+          "rawSql": "SELECT\r\n    toStartOfInterval(TimeUnix, INTERVAL $__interval_s second) AS time,\r\n    sum(Value) / ($__interval_s / 60) AS commands_per_min\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'bot_command_by_user'\r\n  AND $__timeFilter(TimeUnix)\r\nGROUP BY time\r\nORDER BY time ASC WITH FILL STEP $__interval_s",
           "refId": "A"
         }
       ],
@@ -702,7 +663,8 @@
     },
     {
       "datasource": {
-        "uid": "Prometheus"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Top commands used",
       "fieldConfig": {
@@ -711,121 +673,291 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
             }
           },
           "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
           "unit": "none"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 12,
         "x": 12,
         "y": 18
       },
       "id": 14,
       "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "pieType": "pie",
-        "reduceOptions": {
-          "calcs": [
-            "max"
-          ],
-          "fields": "",
-          "values": false
-        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
           "sort": "none"
-        }
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "datasource": {
             "uid": "Prometheus"
           },
           "editorMode": "code",
+          "editorType": "sql",
           "exemplar": false,
           "expr": "sum by (command_name) (floor(increase(discord_commands_by_name[$__range])))",
-          "format": "time_series",
+          "format": 1,
           "instant": false,
           "interval": "",
           "legendFormat": "{{command_name}}",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
           "range": true,
+          "rawSql": "SELECT\r\n    Attributes['command_name'] AS command_name,\r\n    sum(Value) AS total_executions\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'bot_command_results'\r\n  AND $__timeFilter(TimeUnix)\r\nGROUP BY command_name\r\nORDER BY total_executions DESC\r\nLIMIT 10",
           "refId": "A"
         }
       ],
       "title": "Top Commands",
-      "type": "piechart"
+      "type": "barchart"
     },
     {
       "datasource": {
-        "uid": "Prometheus"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 10000
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 24,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.3.4",
+      "targets": [
+        {
+          "editorMode": "code",
+          "editorType": "sql",
+          "exemplar": false,
+          "expr": "histogram_quantile(0.95, \r\n  sum by (command_name, le) (\r\n    rate(discord_command_exec_time_bucket[5m])\r\n  )\r\n)",
+          "format": 1,
+          "instant": false,
+          "legendFormat": "{{command_name}}",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
+          "range": true,
+          "rawSql": "SELECT\r\n  Avg(Min) as average,\r\n  Attributes['command_name'] as command\r\nFROM otel_metrics_histogram\r\nWHERE\r\n  MetricName = 'bot_command_exec_time'\r\n  AND $__timeFilter(TimeUnix)\r\nGROUP BY command\r\nLIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "Command Execution Time",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Top users by command usage",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
             }
           },
           "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
           "unit": "none"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 18
+        "w": 12,
+        "x": 12,
+        "y": 26
       },
       "id": 16,
       "options": {
-        "displayLabels": [],
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
         "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "percent",
-            "value"
-          ]
-        },
-        "pieType": "donut",
-        "reduceOptions": {
           "calcs": [],
-          "fields": "",
-          "values": false
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
           "sort": "none"
-        }
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "datasource": {
@@ -833,15 +965,29 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
+          "editorType": "sql",
           "exemplar": false,
           "expr": "topk(10, sum by (user_id) (floor(increase(discord_commands_by_user[$__range]))))",
-          "format": "time_series",
+          "format": 1,
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
           "interval": "",
           "legendFormat": "{{user_id}}",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
           "range": true,
+          "rawSql": "SELECT\r\n    Attributes['user_id'] AS user_id,\r\n    sum(Value) AS total_invocations\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'bot_command_by_user'\r\n  AND $__timeFilter(TimeUnix)\r\nGROUP BY user_id\r\nORDER BY total_invocations DESC\r\nLIMIT 10",
           "refId": "A",
           "useBackend": false
         }
@@ -860,7 +1006,7 @@
           }
         }
       ],
-      "type": "piechart"
+      "type": "barchart"
     },
     {
       "collapsed": false,
@@ -868,7 +1014,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 34
       },
       "id": 19,
       "panels": [],
@@ -877,8 +1023,8 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "beo6w7fwsvz7kc"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Most popular character in Genshin among users",
       "fieldConfig": {
@@ -912,7 +1058,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -923,7 +1070,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 27
+        "y": 35
       },
       "id": 20,
       "options": {
@@ -946,35 +1093,49 @@
           "mode": "single",
           "sort": "none"
         },
-        "xField": "character",
+        "xField": "Time",
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "disableTextWrap": false,
           "editorMode": "code",
+          "editorType": "sql",
           "exemplar": false,
           "expr": "topk(10, sum by (character) (increase(discord_character_selections_total{game=\"Genshin\"}[$__range])))",
-          "format": "time_series",
+          "format": 1,
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
           "instant": true,
           "legendFormat": "{{character}}",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
           "range": false,
+          "rawSql": "SELECT\r\n    Attributes['character'] AS character,\r\n    sum(Value) AS total_count\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'application_character_selections_total'\r\n  AND $__timeFilter(TimeUnix)\r\n  AND Attributes['game'] = 'Genshin'\r\nGROUP BY character\r\nORDER BY total_count DESC\r\nLIMIT 10",
           "refId": "A",
           "useBackend": false
         }
       ],
-      "title": "Most popular character (Genshin)",
+      "title": "Popular Characters (Genshin)",
       "type": "barchart"
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "beo6w7fwsvz7kc"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "description": "Most popular character in HSR among users",
       "fieldConfig": {
@@ -1008,7 +1169,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           }
@@ -1019,7 +1181,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 35
       },
       "id": 18,
       "options": {
@@ -1044,18 +1206,33 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "disableTextWrap": false,
           "editorMode": "code",
+          "editorType": "sql",
           "exemplar": false,
           "expr": "topk(10, sum by (character) (increase(discord_character_selections_total{game=\"HonkaiStarRail\"}[$__range])))",
+          "format": 1,
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": true,
           "legendFormat": "{{character}}",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
           "range": false,
+          "rawSql": "SELECT\r\n    Attributes['character'] AS character,\r\n    sum(Value) AS total_count\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'application_character_selections_total'\r\n  AND $__timeFilter(TimeUnix)\r\n  AND Attributes['game'] = 'HonkaiStarRail'\r\nGROUP BY character\r\nORDER BY total_count DESC\r\nLIMIT 10",
           "refId": "A",
           "useBackend": false
         }
@@ -1070,12 +1247,220 @@
       "type": "barchart"
     },
     {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 45
+      },
+      "id": 25,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "Time",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.3.4",
+      "targets": [
+        {
+          "editorMode": "code",
+          "editorType": "sql",
+          "exemplar": false,
+          "expr": "topk(10, sum by (character) (increase(discord_character_selections_total{game=\"ZenlessZoneZero\"}[$__range])))",
+          "format": 1,
+          "instant": true,
+          "legendFormat": "{{character}}",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
+          "range": false,
+          "rawSql": "SELECT\r\n    Attributes['character'] AS character,\r\n    sum(Value) AS total_count\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'application_character_selections_total'\r\n  AND $__timeFilter(TimeUnix)\r\n  AND Attributes['game'] = 'ZenlessZoneZero'\r\nGROUP BY character\r\nORDER BY total_count DESC\r\nLIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "Popular Characters (Zenless Zone Zero)",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 45
+      },
+      "id": 26,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "Time",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.3.4",
+      "targets": [
+        {
+          "editorMode": "code",
+          "editorType": "sql",
+          "exemplar": false,
+          "expr": "topk(10, sum by (character) (increase(discord_character_selections_total{game=\"HonkaiImpact3\"}[$__range])))",
+          "format": 1,
+          "instant": true,
+          "legendFormat": "{{character}}",
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "table",
+          "range": false,
+          "rawSql": "SELECT\r\n    Attributes['character'] AS character,\r\n    sum(Value) AS total_count\r\nFROM otel_metrics_sum\r\nWHERE MetricName = 'application_character_selections_total'\r\n  AND $__timeFilter(TimeUnix)\r\n  AND Attributes['game'] = 'HonkaiImpact3'\r\nGROUP BY character\r\nORDER BY total_count DESC\r\nLIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "Popular Characters (Honkai Impact 3rd)",
+      "type": "barchart"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 53
       },
       "id": 22,
       "panels": [],
@@ -1084,8 +1469,8 @@
     },
     {
       "datasource": {
-        "type": "loki",
-        "uid": "cesa3vv9ht14we"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "cfecw6gaio6bke"
       },
       "fieldConfig": {
         "defaults": {},
@@ -1095,21 +1480,22 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 54
       },
       "id": 23,
       "options": {
         "dedupStrategy": "none",
         "enableInfiniteScrolling": false,
         "enableLogDetails": true,
-        "prettifyLogMessage": true,
+        "prettifyLogMessage": false,
         "showCommonLabels": false,
+        "showControls": false,
         "showLabels": false,
         "showTime": true,
         "sortOrder": "Descending",
         "wrapLogMessage": true
       },
-      "pluginVersion": "12.0.1",
+      "pluginVersion": "12.3.4",
       "targets": [
         {
           "datasource": {
@@ -1118,33 +1504,127 @@
           },
           "direction": "backward",
           "editorMode": "code",
+          "editorType": "sql",
           "expr": "{app=\"MehrakBot\"} | json | level=~\"${log_level:regex}\" | line_format \"[{{.SourceContext}}]: {{.Message}}\"",
-          "queryType": "range",
+          "format": 2,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.13.0",
+          "queryType": "logs",
+          "rawSql": "SELECT\r\n    Timestamp AS time,\r\n    Body AS message,\r\n    SeverityText AS level,\r\n    ServiceName,\r\n    TraceId AS traceID,\r\n    toJSONString(LogAttributes) as attributes\r\nFROM \r\n    otel_logs\r\nWHERE \r\n    $__timeFilter(Timestamp)\r\n    AND SeverityText IN (${log_level:singlequote})\r\nORDER BY \r\n    Timestamp DESC\r\nLIMIT 1000",
           "refId": "A"
         }
       ],
       "title": "Logs",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "delimiter": ",",
+            "format": "json",
+            "keepTime": false,
+            "replace": false,
+            "source": "attributes"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "ServiceName": false,
+              "attributes": true,
+              "traceID": false
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Attachment": 55,
+              "CacheKey": 49,
+              "Character": 52,
+              "Command": 50,
+              "ConnectionId": 7,
+              "ContentLength": 8,
+              "ContentType": 9,
+              "ElapsedMilliseconds": 10,
+              "Endpoint": 31,
+              "EndpointName": 30,
+              "EventId": 11,
+              "FileName": 56,
+              "Game": 34,
+              "GrpcMethodType": 22,
+              "GrpcUri": 23,
+              "Host": 12,
+              "HttpMethod": 24,
+              "Key": 48,
+              "Method": 13,
+              "Minutes": 47,
+              "ParentId": 25,
+              "Path": 14,
+              "PathBase": 15,
+              "ProfileId": 53,
+              "Protocol": 16,
+              "QueryString": 17,
+              "RequestId": 18,
+              "RequestPath": 19,
+              "Retcode": 33,
+              "Scheme": 20,
+              "Scope": 26,
+              "Server": 54,
+              "ServiceName": 3,
+              "SpanId": 27,
+              "StatusCode": 21,
+              "TraceId": 28,
+              "Uri": 29,
+              "User": 51,
+              "UserId": 32,
+              "attributes": 5,
+              "commandText": 41,
+              "commandTimeout": 42,
+              "commandType": 43,
+              "contextType": 38,
+              "elapsed": 44,
+              "error": 39,
+              "exception.message": 35,
+              "exception.stacktrace": 36,
+              "exception.type": 37,
+              "level": 2,
+              "message": 1,
+              "message_template.text": 6,
+              "newLine": 45,
+              "newline": 40,
+              "parameters": 46,
+              "time": 0,
+              "traceID": 4
+            },
+            "renameByName": {
+              "exception.message": "ExceptionMessage",
+              "exception.stacktrace": "ExceptionStackTrace",
+              "exception.type": "ExceptionType",
+              "message_template.text": "Template"
+            }
+          }
+        }
+      ],
       "type": "logs"
     }
   ],
   "preload": false,
   "refresh": "5m",
-  "schemaVersion": 41,
+  "schemaVersion": 42,
   "tags": [],
   "templating": {
     "list": [
       {
         "current": {
-          "text": [
-            "warn",
-            "error",
-            "info"
-          ],
-          "value": [
-            "warn",
-            "error",
-            "info"
-          ]
+          "text": ["Information"],
+          "value": ["Information"]
         },
         "includeAll": false,
         "label": "Log Level",
@@ -1154,31 +1634,31 @@
           {
             "selected": true,
             "text": "Information",
-            "value": "info"
+            "value": "Information"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "Warning",
-            "value": "warn"
+            "value": "Warning"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "Error",
-            "value": "error"
+            "value": "Error"
           }
         ],
-        "query": "Information : info, Warning : warn, Error : error",
+        "query": "Information, Warning, Error",
         "type": "custom"
       }
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Mehrak Dashboard",
   "uid": "mehrak",
-  "version": 38
+  "version": 84
 }
