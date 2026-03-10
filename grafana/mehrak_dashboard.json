@@ -875,7 +875,7 @@
           "pluginVersion": "4.13.0",
           "queryType": "table",
           "range": true,
-          "rawSql": "SELECT\r\n  Avg(Min) as average,\r\n  Attributes['command_name'] as command\r\nFROM otel_metrics_histogram\r\nWHERE\r\n  MetricName = 'bot_command_exec_time'\r\n  AND $__timeFilter(TimeUnix)\r\nGROUP BY command\r\nLIMIT 10",
+          "rawSql": "SELECT\r\n  quantile(0.95)(Min) as average,\r\n  Attributes['command_name'] as command\r\nFROM otel_metrics_histogram\r\nWHERE\r\n  MetricName = 'bot_command_exec_time'\r\n  AND $__timeFilter(TimeUnix)\r\nGROUP BY command\r\nLIMIT 10",
           "refId": "A"
         }
       ],
@@ -1653,12 +1653,12 @@
     ]
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-2d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Mehrak Dashboard",
   "uid": "mehrak",
-  "version": 84
+  "version": 85
 }
