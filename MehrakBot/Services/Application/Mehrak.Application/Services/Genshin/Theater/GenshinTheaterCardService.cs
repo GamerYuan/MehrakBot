@@ -294,6 +294,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                 var alternateLookup =
                     avatarImages.GetAlternateLookup<int>();
 
+                var roundsData = GetCleanedRoundsData(theaterData);
+
                 for (var i = 0; i < maxRound; i++)
                 {
                     var xOffset = i == maxRound - 1 &&
@@ -301,8 +303,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                         ? 512
                         : 50 + (i % 2 == 0 ? 0 : 945);
                     var yOffset = 660 + i / 2 * 300;
-                    var roundData = i < theaterData.Detail.RoundsData.Count
-                        ? theaterData.Detail.RoundsData[i]
+                    var roundData = i < roundsData.Count
+                        ? roundsData[i]
                         : null;
 
                     var avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
@@ -481,5 +483,31 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
             true => $"Arcana {floorNumber}",
             false => $"Act {floorNumber}"
         };
+    }
+
+    private static List<RoundsData> GetCleanedRoundsData(GenshinTheaterInformation theaterData)
+    {
+        var roundsData = theaterData.Detail.RoundsData;
+        var medalRoundList = theaterData.Stat.GetMedalRoundList;
+
+        Dictionary<int, RoundsData> selectedArcanaRounds = [];
+        for (var i = roundsData.Count - 1; i >= 0; i--)
+        {
+            var roundData = roundsData[i];
+            if (!roundData.IsTarot || roundData.TarotSerialNumber is < 1 or > 2 || selectedArcanaRounds.ContainsKey(roundData.TarotSerialNumber))
+                continue;
+
+            var medalIndex = roundData.TarotSerialNumber + 9;
+            if (medalRoundList.Count <= medalIndex)
+                continue;
+
+            var expectedMedal = medalRoundList[medalIndex] == 1;
+            if (roundData.IsGetMedal != expectedMedal)
+                continue;
+
+            selectedArcanaRounds[roundData.TarotSerialNumber] = roundData;
+        }
+
+        return [.. roundsData.Where(x => !x.IsTarot || selectedArcanaRounds.TryGetValue(x.TarotSerialNumber, out var roundData) && ReferenceEquals(x, roundData))];
     }
 }

@@ -261,6 +261,8 @@ public class Stat
     [JsonPropertyName("avatar_bonus_num")] public int AvatarBonusNum { get; init; }
 
     [JsonPropertyName("rent_cnt")] public int RentCnt { get; init; }
+
+    [JsonPropertyName("tarot_finished_cnt")] public int TarotFinishedCnt { get; init; }
 }
 
 public class Summary
