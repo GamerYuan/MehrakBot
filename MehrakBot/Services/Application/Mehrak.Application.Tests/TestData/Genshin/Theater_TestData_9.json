@@ -336,7 +336,7 @@
             "rarity": 5
           }
         ],
-        "is_get_medal": true,
+        "is_get_medal": false,
         "round_id": 5,
         "finish_time": "1746088095",
         "finish_date_time": {
@@ -1025,7 +1025,8 @@
     "medal_num": 10,
     "coin_num": 1140,
     "avatar_bonus_num": 0,
-    "rent_cnt": 0
+    "rent_cnt": 0,
+    "tarot_finished_cnt": 2
   },
   "schedule": {
     "start_time": "1746043200",

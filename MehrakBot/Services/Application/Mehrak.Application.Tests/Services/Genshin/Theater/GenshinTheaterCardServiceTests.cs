@@ -44,6 +44,7 @@ public class GenshinTheaterCardServiceTests
     [TestCase("Theater_TestData_7.json")]
     [TestCase("Theater_TestData_8.json")]
     [TestCase("Theater_TestData_9.json")]
+    [TestCase("Theater_TestData_10.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
@@ -105,7 +106,7 @@ public class GenshinTheaterCardServiceTests
         };
     }
 
-    /*
+    [Explicit]
     [Test]
     [TestCase("Theater_TestData_1.json")]
     [TestCase("Theater_TestData_2.json")]
@@ -116,22 +117,27 @@ public class GenshinTheaterCardServiceTests
     [TestCase("Theater_TestData_7.json")]
     [TestCase("Theater_TestData_8.json")]
     [TestCase("Theater_TestData_9.json")]
-    public async Task GenerateGoldenImage(string testData)
+    [TestCase("Theater_TestData_10.json")]
+    public async Task GenerateGoldenImage(string filename)
     {
-        GenshinTheaterInformation? testData1 = await
+        var testData = await
             JsonSerializer.DeserializeAsync<GenshinTheaterInformation>(
-    File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-         "Genshin", testData)));
-        Assert.That(testData1, Is.Not.Null, "Test data should not be null");
+                File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
+            "Genshin", filename)));
+        Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-        GameProfileDto userGameData = GetTestUserGameData();
- Stream stream = await m_Service.GetCardAsync(
-        new GenshinEndGameGenerationContext<GenshinTheaterInformation>(
-         TestUserId, 12, testData1!, Server.Asia, userGameData, GetTestConstDictionary()));
-     FileStream fs = File.OpenWrite(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-            "TestAssets", testData.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<GenshinTheaterInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("constMap", GetTestConstDictionary());
+
+        var stream = await m_Service.GetCardAsync(cardContext);
+        var fs = File.OpenWrite(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+               "TestAssets", filename.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
         await stream.CopyToAsync(fs);
- await fs.FlushAsync();
+        await fs.FlushAsync();
+        await fs.DisposeAsync();
     }
-    */
+
 }

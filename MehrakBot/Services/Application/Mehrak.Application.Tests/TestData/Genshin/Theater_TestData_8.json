@@ -949,7 +949,8 @@
     "medal_num": 10,
     "coin_num": 1140,
     "avatar_bonus_num": 0,
-    "rent_cnt": 0
+    "rent_cnt": 0,
+    "tarot_finished_cnt": 1
   },
   "schedule": {
     "start_time": "1746043200",
