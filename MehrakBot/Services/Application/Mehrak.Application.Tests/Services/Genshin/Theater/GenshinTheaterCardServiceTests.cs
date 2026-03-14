@@ -133,7 +133,7 @@ public class GenshinTheaterCardServiceTests
         cardContext.SetParameter("constMap", GetTestConstDictionary());
 
         var stream = await m_Service.GetCardAsync(cardContext);
-        var fs = File.OpenWrite(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+        var fs = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
                "TestAssets", filename.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
         await stream.CopyToAsync(fs);
         await fs.FlushAsync();
