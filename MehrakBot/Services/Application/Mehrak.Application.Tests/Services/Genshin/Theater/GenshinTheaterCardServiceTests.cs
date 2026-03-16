@@ -72,13 +72,14 @@ public class GenshinTheaterCardServiceTests
         // Save generated image to output folder for comparison
         var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
+        var testDataNumber = Path.GetFileNameWithoutExtension(testDataFileName).Replace("Theater_TestData_", "");
         var outputImagePath = Path.Combine(outputDirectory,
-            $"GenshinTheater_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
+            $"GenshinTheater_Data{testDataNumber}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, bytes);
 
         // Save golden image to output folder for comparison
         var outputGoldenImagePath = Path.Combine(outputDirectory,
-            $"GenshinTheater_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
+            $"GenshinTheater_Data{testDataNumber}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
