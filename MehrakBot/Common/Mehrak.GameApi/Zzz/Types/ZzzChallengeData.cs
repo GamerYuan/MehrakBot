@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models;
@@ -54,6 +55,15 @@ public class ZzzBuddy
     }
 }
 
+public class ZzzDefenseDataWrapper
+{
+    [JsonPropertyName("hadal_ver")] public required string HadalVer { get; init; }
+    [JsonPropertyName("hadal_info_v2")] public required ZzzDefenseDataV2 HadalInfoV2 { get; init; }
+    [JsonPropertyName("nickname")] public required string Nickname { get; init; }
+    [JsonPropertyName("icon")] public required string Icon { get; init; }
+}
+
+[Obsolete("This class is deprecated. Use ZzzDefenseDataV2 instead.")]
 public class ZzzDefenseData
 {
     [JsonPropertyName("begin_time")] public required string BeginTime { get; init; }
@@ -61,6 +71,52 @@ public class ZzzDefenseData
     [JsonPropertyName("rating_list")] public required List<RatingData> RatingList { get; init; }
     [JsonPropertyName("has_data")] public bool HasData { get; init; }
     [JsonPropertyName("all_floor_detail")] public required List<FloorDetail> AllFloorDetail { get; init; }
+}
+
+
+public class ZzzDefenseDataV2
+{
+    [JsonPropertyName("zone_id")] public int ZoneId { get; init; }
+    [JsonPropertyName("hadal_begin_time")] public required ScheduleTime HadalBeginTime { get; init; }
+    [JsonPropertyName("hadal_end_time")] public required ScheduleTime HadalEndTime { get; init; }
+    [JsonPropertyName("pass_fifth_floor")] public bool PassFifthFloor { get; init; }
+    [JsonPropertyName("brief"), MemberNotNullWhen(true, nameof(PassFifthFloor))] public HadalBrief? Brief { get; init; }
+    [JsonPropertyName("fifth_layer_detail"), MemberNotNullWhen(true, nameof(PassFifthFloor))] public HadalFloorDetail? FifthLayerDetail { get; init; }
+    [JsonPropertyName("fourth_layer_detail"), MemberNotNullWhen(true, nameof(PassFifthFloor))] public HadalFloorDetail? FourthLayerDetail { get; init; }
+    [JsonPropertyName("begin_time")] public long BeginTime { get; init; }
+    [JsonPropertyName("end_time")] public long EndTime { get; init; }
+}
+
+public class HadalBrief
+{
+    [JsonPropertyName("cur_period_zone_layer_count")] public int ZoneLayerCount { get; init; }
+    [JsonPropertyName("score")] public int Score { get; init; }
+    [JsonPropertyName("rank_percent")] public int RankPercent { get; init; }
+    [JsonPropertyName("rating")] public required string Rating { get; init; }
+    [JsonPropertyName("challenge_time")] public required ScheduleTime ChallengeTime { get; init; }
+    [JsonPropertyName("max_score")] public int MaxScore { get; init; }
+}
+
+public class HadalFloorDetail
+{
+    [JsonPropertyName("layer_challenge_info_list")] public required List<HadalLayerChallengeInfo> LayerChallengeInfoList { get; init; }
+}
+
+public class HadalLayerChallengeInfo
+{
+    [JsonPropertyName("layer_id")] public int LayerId { get; init; }
+    [JsonPropertyName("rating")] public required string Rating { get; init; }
+    [JsonPropertyName("score")] public int Score { get; init; }
+    [JsonPropertyName("avatar_list")] public required List<ZzzChallengeAvatar> AvatarList { get; init; }
+    [JsonPropertyName("buddy")] public required ZzzBuddy? Buddy { get; init; }
+    [JsonPropertyName("battle_time")] public int BattleTime { get; init; }
+    [JsonPropertyName("monster_pic")] public required string MonsterPic { get; init; }
+    [JsonPropertyName("max_score")] public int MaxScore { get; init; }
+
+    public string ToMonsterImageName()
+    {
+        return string.Format(FileNameFormat.Zzz.HadalBossName, LayerId);
+    }
 }
 
 public class ZzzAssaultData
@@ -80,6 +136,7 @@ public class RatingData
     [JsonPropertyName("rating")] public required string Rating { get; init; }
 }
 
+[Obsolete]
 public class FloorDetail
 {
     [JsonPropertyName("layer_index")] public int LayerIndex { get; init; }
@@ -89,6 +146,7 @@ public class FloorDetail
     [JsonPropertyName("zone_name")] public required string ZoneName { get; init; }
 }
 
+[Obsolete]
 public class NodeData
 {
     [JsonPropertyName("avatars")] public required List<ZzzChallengeAvatar> Avatars { get; init; }
