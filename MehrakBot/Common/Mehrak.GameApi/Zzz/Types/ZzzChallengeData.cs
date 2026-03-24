@@ -117,6 +117,11 @@ public class HadalLayerChallengeInfo
     {
         return string.Format(FileNameFormat.Zzz.HadalBossName, LayerId);
     }
+
+    public IImageData ToMonsterImageData()
+    {
+        return new ImageData(ToMonsterImageName(), MonsterPic);
+    }
 }
 
 public class ZzzAssaultData

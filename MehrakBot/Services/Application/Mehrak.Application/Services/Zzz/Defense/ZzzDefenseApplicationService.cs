@@ -20,14 +20,14 @@ namespace Mehrak.Application.Services.Zzz.Defense;
 
 internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 {
-    private readonly ICardService<ZzzDefenseData> m_CardService;
+    private readonly ICardService<ZzzDefenseDataV2> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly IApiService<ZzzDefenseData, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<ZzzDefenseDataV2, BaseHoYoApiContext> m_ApiService;
 
     public ZzzDefenseApplicationService(
-        ICardService<ZzzDefenseData> cardService,
+        ICardService<ZzzDefenseDataV2> cardService,
         IImageUpdaterService imageUpdaterService,
-        IApiService<ZzzDefenseData, BaseHoYoApiContext> apiService,
+        IApiService<ZzzDefenseDataV2, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -72,7 +72,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
             var defenseData = defenseResponse.Data!;
 
-            if (!defenseData.HasData)
+            if (defenseData.Brief != null)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
                 return CommandResult.Success(
@@ -80,9 +80,9 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                     isEphemeral: true);
             }
 
-            FloorDetail[] nonNull =
-                [.. defenseData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null })];
-            if (nonNull.Length == 0)
+            var nonNull = defenseData.FifthLayerDetail?.LayerChallengeInfoList
+                .Concat(defenseData.FourthLayerDetail?.LayerChallengeInfoList ?? []).ToArray();
+            if (nonNull == null || nonNull.Length == 0)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
                 return CommandResult.Success(
@@ -103,18 +103,20 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                     true);
             }
 
-            var updateImageTask = nonNull.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            var updateImageTask = nonNull.SelectMany(x => x.AvatarList)
                 .DistinctBy(x => x!.Id)
                 .Select(avatar =>
                     m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
             var updateBuddyTask = nonNull
-                .SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
+                .Select(x => x.Buddy)
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
                 .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
                     new ImageProcessorBuilder().Resize(300, 0).Build()));
+            var bossTask = nonNull
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToMonsterImageData(), ImageProcessors.None));
 
-            var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask));
+            var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask).Concat(bossTask));
 
             if (completed.Any(x => !x))
             {
@@ -122,7 +124,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                 return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
             }
 
-            var cardContext = new BaseCardGenerationContext<ZzzDefenseData>(context.UserId, defenseData, profile);
+            var cardContext = new BaseCardGenerationContext<ZzzDefenseDataV2>(context.UserId, defenseData, profile);
             cardContext.SetParameter("server", server);
 
             await using var card = await m_CardService.GetCardAsync(cardContext);
