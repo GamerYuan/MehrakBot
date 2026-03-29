@@ -40,7 +40,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
     private Image m_BaseBuddyImage = null!;
     private Image m_BackgroundImage = null!;
 
-    private static readonly DrawingOptions m_RankIconTextDrawingOptions = new()
+    private static readonly DrawingOptions RankIconTextDrawingOptions = new()
     {
         GraphicsOptions = new GraphicsOptions()
         {
@@ -82,7 +82,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
                 return (Rating: x, Image: image);
             })
             .ToDictionaryAsync(x => x.Rating, x => x.Image, cancellationToken: cancellationToken);
-        m_SmallRatingImages = m_RatingImages.Select(x => (x.Key, x.Value.Clone(y => y.Resize(0, 50))))
+        m_SmallRatingImages = m_RatingImages.Select(x => (x.Key, x.Value.Clone(y => y.Resize(0, 40))))
             .ToDictionary();
         m_BaseBuddyImage = await Image.LoadAsync(await
                 m_ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base")),
@@ -141,10 +141,16 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
                 .ToDictionaryAsync(async (x, token) => await Task.FromResult(x!.Id),
                     async (x, token) =>
                         await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x!.ToImageName()), token));
+            var bossImages = await data.FifthLayerDetail.LayerChallengeInfoList
+                .ToAsyncEnumerable()
+                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.LayerId),
+                    async (x, token) => await Image.LoadAsync(
+                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToMonsterImageName(), token), token));
 
             disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);
             disposables.AddRange(buddyImages.Values);
+            disposables.AddRange(bossImages.Values);
 
             var lookup = avatarImages.GetAlternateLookup<int>();
 
@@ -152,7 +158,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
                 ctx.Resize(new ResizeOptions
                 {
                     CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
-                    Size = new Size(1050, 1050),
+                    Size = new Size(1000, 1050),
                     Mode = ResizeMode.Crop,
                     Sampler = KnownResamplers.Bicubic
                 }));
@@ -180,19 +186,19 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(1000, 80),
+                    Origin = new Vector2(950, 80),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(1000, 110),
+                    Origin = new Vector2(950, 110),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
                 },
                     $"{context.GameProfile.GameUid}", Color.White);
 
-                var briefModule = ImageUtility.CreateRoundedRectanglePath(950, 80, 15).Translate(50, 120);
+                var briefModule = ImageUtility.CreateRoundedRectanglePath(900, 80, 15).Translate(50, 120);
                 ctx.Fill(OverlayColor, briefModule);
 
                 var totalScoreText = $"Total Score: {data.Brief.Score}";
@@ -205,16 +211,18 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
                     TextMeasurer.MeasureBounds(totalScoreText, totalScoreTextOptions);
 
                 ctx.DrawText(totalScoreTextOptions, totalScoreText, Color.White);
-                //ctx.DrawImage(m_RankIcons.First(x => data.Brief.RankPercent <= x.Boundary).Icon,
-                //    new Point(15 + (int)totalScoreBounds.Right, 135), 1f);
-                //ctx.DrawText(new RichTextOptions(m_SmallFont)
-                //{
-                //    Origin = new Vector2(25 + (int)totalScoreBounds.Right, 152),
-                //    VerticalAlignment = VerticalAlignment.Top,
-                //}, $"{(float)data.Brief.RankPercent / 100:N2}%", Color.Black);
                 using var rankIcon = GetRankIcon(data.Brief);
                 ctx.DrawImage(rankIcon, new Point(15 + (int)totalScoreBounds.Right, 135), 1f);
-                ctx.DrawImage(m_RatingImages[data.Brief.Rating], new Point(900, 140), 1f);
+                ctx.DrawImage(m_RatingImages[data.Brief.Rating], new Point(850, 140), 1f);
+
+                var i = 0;
+                foreach (var floor in data.FifthLayerDetail.LayerChallengeInfoList)
+                {
+                    using var floorImage = GetFloorImage(floor, lookup, bossImages[floor.LayerId],
+                        floor.Buddy is not null ? buddyImages[floor.Buddy!.Id] : null);
+                    ctx.DrawImage(floorImage, new Point(50, 220 + i * 270), 1f);
+                    i++;
+                }
             });
 
             MemoryStream stream = new();
@@ -242,7 +250,38 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
         image.Mutate(ctx =>
         {
             var rankText = $"{(float)brief.RankPercent / 100:N2}%";
-            ctx.DrawText(m_RankIconTextDrawingOptions, rankText, m_SmallFont, Color.White, new PointF(10, 17));
+            ctx.DrawText(RankIconTextDrawingOptions, rankText, m_SmallFont, Color.White, new PointF(10, 17));
+        });
+        return image;
+    }
+
+    private Image<Rgba32> GetFloorImage(HadalChallengeInfo floor,
+        Dictionary<ZzzAvatar, Image<Rgba32>>.AlternateLookup<int> avatarLookup,
+        Image bossImage,
+        Image? buddyImage = null)
+    {
+        Image<Rgba32> image = new(900, 260);
+        image.Mutate(ctx =>
+        {
+            ctx.Clear(OverlayColor);
+            ctx.DrawText(new RichTextOptions(m_NormalFont)
+            {
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Origin = new Vector2(800, 25)
+            }, floor.Score.ToString(), Color.White);
+            ctx.DrawText(new RichTextOptions(m_NormalFont)
+            {
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Origin = new Vector2(680, 25)
+            }, $"{floor.BattleTime}s", Color.White);
+            ctx.DrawImage(m_SmallRatingImages[floor.Rating], new Point(800, 10), 1f);
+
+            ctx.DrawImage(bossImage, new Point(0, 0), 1f);
+            using var rosterImage =
+                GetRosterImage([.. floor.AvatarList.Select(x => avatarLookup[x.Id])], buddyImage);
+            ctx.DrawImage(rosterImage, new Point(220, 60), 1f);
+
+            ctx.ApplyRoundedCorners(15);
         });
         return image;
     }
@@ -280,10 +319,5 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
         });
 
         return rosterImage;
-    }
-
-    private static bool IsSmallBlob(FloorDetail? detail)
-    {
-        return detail is null || detail.LayerIndex == 7;
     }
 }
