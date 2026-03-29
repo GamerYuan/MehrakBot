@@ -72,7 +72,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
             var defenseData = defenseResponse.Data!;
 
-            if (defenseData.Brief != null)
+            if (defenseData.Brief == null)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
                 return CommandResult.Success(

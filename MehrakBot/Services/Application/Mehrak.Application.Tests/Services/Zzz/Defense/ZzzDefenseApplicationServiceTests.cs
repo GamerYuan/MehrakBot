@@ -168,7 +168,7 @@ public class ZzzDefenseApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ImageUpdateFails_ReturnsBotError()
+    public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
         // Arrange
         var (service, defenseApiMock, imageUpdaterMock, gameRoleApiMock, _, _, _) = SetupMocks();
