@@ -32,14 +32,21 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
 
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
+    private readonly Font m_SmallFont;
 
-    private Dictionary<char, Image> m_RatingImages = [];
-    private Dictionary<char, Image> m_SmallRatingImages = [];
+    private readonly List<(int Boundary, Image Icon)> m_RankIcons = [];
+    private Dictionary<string, Image> m_RatingImages = [];
+    private Dictionary<string, Image> m_SmallRatingImages = [];
     private Image m_BaseBuddyImage = null!;
     private Image m_BackgroundImage = null!;
 
-    private static readonly string[] FrontierNames =
-        ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh"];
+    private static readonly DrawingOptions m_RankIconTextDrawingOptions = new()
+    {
+        GraphicsOptions = new GraphicsOptions()
+        {
+            AlphaCompositionMode = PixelAlphaCompositionMode.Xor
+        }
+    };
 
     private static readonly JpegEncoder JpegEncoder = new()
     {
@@ -60,16 +67,17 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
 
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
+        m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        char[] rating = ['S', 'A', 'B'];
+        string[] rating = ["S+", "S", "A", "B"];
         m_RatingImages = await rating.ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
                 var image = await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}"), token);
+                    await m_ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}", token), token);
                 image.Mutate(ctx => ctx.Resize(80, 0));
                 return (Rating: x, Image: image);
             })
@@ -82,6 +90,22 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
         m_BackgroundImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg"),
             cancellationToken);
 
+        m_RankIcons.Add((199, await Image.LoadAsync(
+            await m_ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_1", cancellationToken),
+            cancellationToken)));
+        m_RankIcons.Add((299, await Image.LoadAsync(
+            await m_ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_2", cancellationToken),
+            cancellationToken)));
+        m_RankIcons.Add((599, await Image.LoadAsync(
+            await m_ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_3", cancellationToken),
+            cancellationToken)));
+        m_RankIcons.Add((2099, await Image.LoadAsync(
+            await m_ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_4", cancellationToken),
+            cancellationToken)));
+        m_RankIcons.Add((int.MaxValue, await Image.LoadAsync(
+            await m_ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_5", cancellationToken),
+            cancellationToken)));
+
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzDefenseCardService));
     }
 
@@ -92,7 +116,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
 
         var data = context.Data;
 
-        if (data.FifthLayerDetail == null)
+        if (data.FifthLayerDetail == null || data.Brief == null)
         {
             m_Logger.LogInformation(LogMessage.NoClearRecords, "Defense", context.UserId, context.GameProfile.GameUid);
             throw new CommandException("No clear records found for Defense");
@@ -168,23 +192,29 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
                 },
                     $"{context.GameProfile.GameUid}", Color.White);
 
-                var briefModule = ImageUtility.CreateRoundedRectanglePath(2000, 150, 15).Translate(50, 130);
+                var briefModule = ImageUtility.CreateRoundedRectanglePath(950, 80, 15).Translate(50, 120);
                 ctx.Fill(OverlayColor, briefModule);
 
-                if (data.Brief != null)
+                var totalScoreText = $"Total Score: {data.Brief.Score}";
+                var totalScoreTextOptions = new RichTextOptions(m_NormalFont)
                 {
-                    var ratingX = 470;
+                    Origin = new Vector2(70, 150),
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                var totalScoreBounds =
+                    TextMeasurer.MeasureBounds(totalScoreText, totalScoreTextOptions);
 
-                    var totalScoreText = $"Total Score: {data.Brief.Score}";
-                    var totalScoreBounds =
-                        TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(m_TitleFont));
-
-                    ctx.DrawText(new RichTextOptions(m_TitleFont)
-                    {
-                        Origin = new Vector2(70, 160),
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    }, totalScoreText, Color.White);
-                }
+                ctx.DrawText(totalScoreTextOptions, totalScoreText, Color.White);
+                //ctx.DrawImage(m_RankIcons.First(x => data.Brief.RankPercent <= x.Boundary).Icon,
+                //    new Point(15 + (int)totalScoreBounds.Right, 135), 1f);
+                //ctx.DrawText(new RichTextOptions(m_SmallFont)
+                //{
+                //    Origin = new Vector2(25 + (int)totalScoreBounds.Right, 152),
+                //    VerticalAlignment = VerticalAlignment.Top,
+                //}, $"{(float)data.Brief.RankPercent / 100:N2}%", Color.Black);
+                using var rankIcon = GetRankIcon(data.Brief);
+                ctx.DrawImage(rankIcon, new Point(15 + (int)totalScoreBounds.Right, 135), 1f);
+                ctx.DrawImage(m_RatingImages[data.Brief.Rating], new Point(900, 140), 1f);
             });
 
             MemoryStream stream = new();
@@ -203,6 +233,18 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
         {
             disposables.ForEach(x => x.Dispose());
         }
+    }
+
+    private Image<Rgba32> GetRankIcon(HadalBrief brief)
+    {
+
+        var image = m_RankIcons.First(x => brief.RankPercent <= x.Boundary).Icon.CloneAs<Rgba32>();
+        image.Mutate(ctx =>
+        {
+            var rankText = $"{(float)brief.RankPercent / 100:N2}%";
+            ctx.DrawText(m_RankIconTextDrawingOptions, rankText, m_SmallFont, Color.White, new PointF(10, 17));
+        });
+        return image;
     }
 
     private Image<Rgba32> GetRosterImage(List<Image<Rgba32>> avatarImages, Image? buddyImage = null)
