@@ -16,6 +16,14 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Start LocalStack
+        uses: LocalStack/setup-localstack@v0.3.0
+        with:
+          image-tag: "latest"
+          install-awslocal: "true"
+        env:
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
