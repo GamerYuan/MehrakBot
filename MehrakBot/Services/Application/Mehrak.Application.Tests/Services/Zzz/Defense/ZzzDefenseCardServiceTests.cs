@@ -38,6 +38,8 @@ public class ZzzDefenseCardServiceTests
     [TestCase("Shiyu_TestData_1.json")]
     [TestCase("Shiyu_TestData_2.json")]
     [TestCase("Shiyu_TestData_3.json")]
+    [TestCase("Shiyu_TestData_4.json")]
+    [TestCase("Shiyu_TestData_5.json")]
     public async Task GetDefenseCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         var defenseData = JsonSerializer.Deserialize<ZzzDefenseDataV2>(
@@ -89,6 +91,10 @@ public class ZzzDefenseCardServiceTests
     [Explicit]
     [Test]
     [TestCase("Shiyu_TestData_1.json", "Shiyu_GoldenImage_1.jpg")]
+    [TestCase("Shiyu_TestData_2.json", "Shiyu_GoldenImage_2.jpg")]
+    [TestCase("Shiyu_TestData_3.json", "Shiyu_GoldenImage_3.jpg")]
+    [TestCase("Shiyu_TestData_4.json", "Shiyu_GoldenImage_4.jpg")]
+    [TestCase("Shiyu_TestData_5.json", "Shiyu_GoldenImage_5.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var defenseData =
