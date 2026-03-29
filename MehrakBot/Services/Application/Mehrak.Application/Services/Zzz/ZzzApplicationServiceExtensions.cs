@@ -29,8 +29,8 @@ internal static class ZzzApplicationServiceExtensions
         services.RegisterAsyncInitializableFor<ICardService<ZzzFullAvatarData>, ZzzCharacterCardService>();
 
         services.AddKeyedTransient<IApplicationService, ZzzDefenseApplicationService>(CommandName.Zzz.Defense);
-        services.AddSingleton<ICardService<ZzzDefenseData>, ZzzDefenseCardService>();
-        services.RegisterAsyncInitializableFor<ICardService<ZzzDefenseData>, ZzzDefenseCardService>();
+        services.AddSingleton<ICardService<ZzzDefenseDataV2>, ZzzDefenseCardService>();
+        services.RegisterAsyncInitializableFor<ICardService<ZzzDefenseDataV2>, ZzzDefenseCardService>();
 
         services.AddKeyedTransient<IApplicationService, ZzzRealTimeNotesApplicationService>(CommandName.Zzz.RealTimeNotes);
 
