@@ -14,7 +14,7 @@ namespace Mehrak.GameApi.Zzz;
 
 internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>
 {
-    private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/challenge";
+    private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/hadal_info_v2";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzDefenseApiService> m_Logger;
@@ -59,6 +59,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
                     "An error occurred while fetching Shiyu Defense data", requestUri);
             }
 
+            var str = await response.Content.ReadAsStringAsync();
             var json =
                 await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>();
 

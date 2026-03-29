@@ -59,7 +59,7 @@ public class ZzzDefenseDataWrapper
 {
     [JsonPropertyName("hadal_ver")] public required string HadalVer { get; init; }
     [JsonPropertyName("hadal_info_v2")] public required ZzzDefenseDataV2 HadalInfoV2 { get; init; }
-    [JsonPropertyName("nickname")] public required string Nickname { get; init; }
+    [JsonPropertyName("nick_name")] public required string Nickname { get; init; }
     [JsonPropertyName("icon")] public required string Icon { get; init; }
 }
 
