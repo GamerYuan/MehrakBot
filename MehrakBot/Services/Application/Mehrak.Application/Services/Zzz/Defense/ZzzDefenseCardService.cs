@@ -1,9 +1,9 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -24,7 +24,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Zzz.Defense;
 
-internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncInitializable
+internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncInitializable
 {
     private readonly IImageRepository m_ImageRepository;
     private readonly ILogger<ZzzDefenseCardService> m_Logger;
@@ -85,25 +85,32 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
         m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(ZzzDefenseCardService));
     }
 
-    public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzDefenseData> context)
+    public async Task<Stream> GetCardAsync(ICardGenerationContext<ZzzDefenseDataV2> context)
     {
         using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("zzz defense");
         m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Defense", context.UserId);
 
         var data = context.Data;
+
+        if (data.FifthLayerDetail == null)
+        {
+            m_Logger.LogInformation(LogMessage.NoClearRecords, "Defense", context.UserId, context.GameProfile.GameUid);
+            throw new CommandException("No clear records found for Defense");
+        }
+
         List<IDisposable> disposables = [];
         try
         {
-            var avatarImages = await data.AllFloorDetail
-                .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            var avatarImages = await data.FifthLayerDetail.LayerChallengeInfoList
+                .SelectMany(x => x.AvatarList)
                 .DistinctBy(x => x.Id)
                 .ToAsyncEnumerable()
                 .Select(async (x, token) => new ZzzAvatar(x.Id, x.Level, x.Rarity[0], x.Rank, await Image.LoadAsync(
                     await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token)))
                 .ToDictionaryAsync(x => x,
                     x => x.GetStyledAvatarImage(), ZzzAvatarIdComparer.Instance);
-            var buddyImages = await data.AllFloorDetail
-                .SelectMany(x => new ZzzBuddy?[] { x.Node1.Buddy, x.Node2.Buddy })
+            var buddyImages = await data.FifthLayerDetail.LayerChallengeInfoList
+                .Select(x => x.Buddy)
                 .Where(x => x is not null)
                 .DistinctBy(x => x!.Id)
                 .ToAsyncEnumerable()
@@ -115,28 +122,13 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
             disposables.AddRange(avatarImages.Values);
             disposables.AddRange(buddyImages.Values);
 
-            List<(int FloorNumber, FloorDetail? Data)> floorDetails =
-            [
-                .. Enumerable.Range(0, 7)
-                    .Select(floorIndex =>
-                    {
-                        var floorData = data.AllFloorDetail
-                            .FirstOrDefault(x => x.LayerIndex - 1 == floorIndex);
-                        return (FloorNumber: floorIndex, Data: floorData);
-                    })
-            ];
-
             var lookup = avatarImages.GetAlternateLookup<int>();
 
-            var height = 515 + floorDetails.Where(x => x.FloorNumber != 6).Chunk(2)
-                .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
-
-            // 1550 x height
             var background = m_BackgroundImage.Clone(ctx =>
                 ctx.Resize(new ResizeOptions
                 {
                     CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
-                    Size = new Size(1550, height),
+                    Size = new Size(1050, 1050),
                     Mode = ResizeMode.Crop,
                     Sampler = KnownResamplers.Bicubic
                 }));
@@ -153,7 +145,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
                 }, "Shiyu Defense", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(50, 120),
+                    Origin = new Vector2(50, 110),
                     VerticalAlignment = VerticalAlignment.Bottom
                 },
                     $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(data.BeginTime))
@@ -164,178 +156,34 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseData>, IAsyncIniti
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(1500, 80),
+                    Origin = new Vector2(1000, 80),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
-                    Origin = new Vector2(1500, 110),
+                    Origin = new Vector2(1000, 110),
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right
                 },
                     $"{context.GameProfile.GameUid}", Color.White);
 
-                var ratingModule = ImageUtility.CreateRoundedRectanglePath(500, 90, 15).Translate(450, 30);
-                ctx.Fill(OverlayColor, ratingModule);
+                var briefModule = ImageUtility.CreateRoundedRectanglePath(2000, 150, 15).Translate(50, 130);
+                ctx.Fill(OverlayColor, briefModule);
 
-                var ratingX = 470;
-                foreach (var entry in m_RatingImages)
+                if (data.Brief != null)
                 {
-                    ctx.DrawImage(entry.Value, new Point(ratingX, 35), 1f);
-                    ctx.DrawText("x", m_NormalFont, Color.Gray, new PointF(ratingX + 85, 65));
-                    ctx.DrawText(
-                        data.RatingList.FirstOrDefault(x => x.Rating[0].Equals(entry.Key))?.Times.ToString() ?? "0",
-                        m_TitleFont, Color.White, new PointF(ratingX + 110, 65));
-                    ratingX += 160;
-                }
+                    var ratingX = 470;
 
-                var yOffset = 150;
-                IPath overlay;
-                foreach ((var floorNumber, var floorData) in floorDetails)
-                {
-                    var xOffset = floorNumber % 2 * 750 + 50;
+                    var totalScoreText = $"Total Score: {data.Brief.Score}";
+                    var totalScoreBounds =
+                        TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(m_TitleFont));
 
-                    if (floorNumber == 6)
+                    ctx.DrawText(new RichTextOptions(m_TitleFont)
                     {
-                        overlay = ImageUtility.CreateRoundedRectanglePath(1450, 335, 15).Translate(xOffset, yOffset);
-                        ctx.Fill(OverlayColor, overlay);
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 20, yOffset + 30),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Top
-                        }, $"{FrontierNames[floorNumber]} Frontier", Color.White);
-                        if (floorData == null)
-                        {
-                            ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 750, yOffset + 180),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center
-                            }, "No Clear Records", Color.White);
-                        }
-                        else
-                        {
-                            ctx.DrawImage(m_SmallRatingImages[floorData.Rating[0]],
-                                new Point(xOffset + 1380, yOffset + 10), 1f);
-                            using var firstHalf = GetRosterImage(
-                                [.. floorData.Node1!.Avatars.Select(x => lookup[x.Id])],
-                                buddyImages.GetValueOrDefault(floorData.Node1.Buddy?.Id ?? -1));
-                            using var secondHalf = GetRosterImage(
-                                [.. floorData.Node2!.Avatars.Select(x => lookup[x.Id])],
-                                buddyImages.GetValueOrDefault(floorData.Node2.Buddy?.Id ?? -1));
-
-                            ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 70),
-                                new PointF(xOffset + 1430, yOffset + 70));
-
-                            ctx.DrawText("Node 1", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 95));
-                            ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 680, yOffset + 95),
-                                HorizontalAlignment = HorizontalAlignment.Right
-                            }, TimeSpan.FromSeconds(floorData.Node1.BattleTime).ToString("mm\\m\\ ss\\s"), Color.White);
-                            ctx.DrawImage(firstHalf, new Point(xOffset + 40, yOffset + 130), 1f);
-
-                            ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 725, yOffset + 80),
-                                new PointF(xOffset + 725, yOffset + 320));
-
-                            ctx.DrawText("Node 2", m_NormalFont, Color.White, new PointF(xOffset + 770, yOffset + 95));
-                            ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 1405, yOffset + 95),
-                                HorizontalAlignment = HorizontalAlignment.Right
-                            }, TimeSpan.FromSeconds(floorData.Node2.BattleTime).ToString("mm\\m\\ ss\\s"), Color.White);
-                            ctx.DrawImage(secondHalf, new Point(xOffset + 765, yOffset + 130), 1f);
-                        }
-
-                        break;
-                    }
-
-                    if (floorData == null)
-                    {
-                        var isFast =
-                            floorDetails.FirstOrDefault(x => x.FloorNumber > floorNumber && x.Data is not null)
-                                .Data is not null;
-                        var isBigBlob = false;
-                        if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
-                             !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
-                            (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
-                             !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
-                        {
-                            overlay = ImageUtility.CreateRoundedRectanglePath(700, 600, 15)
-                                .Translate(xOffset, yOffset);
-                            ctx.Fill(OverlayColor, overlay);
-                            ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 350, yOffset + 300),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center
-                            }, isFast ? "Quick Clear" : "No Clear Records", Color.White);
-                            isBigBlob = true;
-                        }
-                        else
-                        {
-                            overlay = ImageUtility.CreateRoundedRectanglePath(700, 180, 15)
-                                .Translate(xOffset, yOffset);
-                            ctx.Fill(OverlayColor, overlay);
-                            ctx.DrawText(new RichTextOptions(m_NormalFont)
-                            {
-                                Origin = new Vector2(xOffset + 350, yOffset + 110),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center
-                            }, isFast ? "Quick Clear" : "No Clear Records", Color.White);
-                        }
-
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(xOffset + 20, yOffset + 30),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Top
-                        },
-                            $"{FrontierNames[floorNumber]} Frontier", Color.White);
-
-                        if (floorNumber % 2 == 1) yOffset += isBigBlob ? 620 : 200;
-                        continue;
-                    }
-
-                    overlay = ImageUtility.CreateRoundedRectanglePath(700, 600, 15).Translate(xOffset, yOffset);
-                    ctx.Fill(OverlayColor, overlay);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 20, yOffset + 30),
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, $"{FrontierNames[floorNumber]} Frontier", Color.White);
-                    ctx.DrawImage(m_SmallRatingImages[floorData.Rating[0]], new Point(xOffset + 630, yOffset + 10), 1f);
-
-                    using var node1 = GetRosterImage([.. floorData.Node1!.Avatars.Select(x => lookup[x.Id])],
-                        buddyImages.GetValueOrDefault(floorData.Node1.Buddy?.Id ?? -1));
-                    using var node2 = GetRosterImage([.. floorData.Node2!.Avatars.Select(x => lookup[x.Id])],
-                        buddyImages.GetValueOrDefault(floorData.Node2.Buddy?.Id ?? -1));
-
-                    ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 70),
-                        new PointF(xOffset + 680, yOffset + 70));
-                    ctx.DrawText("Node 1", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 95));
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 655, yOffset + 95),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, TimeSpan.FromSeconds(floorData.Node1.BattleTime).ToString("mm\\m\\ ss\\s"), Color.White);
-
-                    ctx.DrawImage(node1, new Point(xOffset + 25, yOffset + 130), 1f);
-                    ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 40, yOffset + 335),
-                        new PointF(xOffset + 660, yOffset + 335));
-                    ctx.DrawText("Node 2", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 360));
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 655, yOffset + 360),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, TimeSpan.FromSeconds(floorData.Node2.BattleTime).ToString("mm\\m\\ ss\\s"), Color.White);
-
-                    ctx.DrawImage(node2, new Point(xOffset + 25, yOffset + 395), 1f);
-
-                    if (floorNumber % 2 == 1) yOffset += 620;
+                        Origin = new Vector2(70, 160),
+                        VerticalAlignment = VerticalAlignment.Bottom
+                    }, totalScoreText, Color.White);
                 }
             });
 

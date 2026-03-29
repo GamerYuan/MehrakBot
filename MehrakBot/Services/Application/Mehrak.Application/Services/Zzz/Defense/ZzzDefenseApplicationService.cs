@@ -80,9 +80,8 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                     isEphemeral: true);
             }
 
-            var nonNull = defenseData.FifthLayerDetail?.LayerChallengeInfoList
-                .Concat(defenseData.FourthLayerDetail?.LayerChallengeInfoList ?? []).ToArray();
-            if (nonNull == null || nonNull.Length == 0)
+            var nonNull = defenseData.FifthLayerDetail?.LayerChallengeInfoList;
+            if (nonNull == null || nonNull.Count == 0)
             {
                 Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
                 return CommandResult.Success(
@@ -113,7 +112,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                 .DistinctBy(x => x!.Id)
                 .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
                     new ImageProcessorBuilder().Resize(300, 0).Build()));
-            var bossTask = nonNull
+            var bossTask = defenseData.FifthLayerDetail!.LayerChallengeInfoList
                 .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToMonsterImageData(), ImageProcessors.None));
 
             var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask).Concat(bossTask));
