@@ -33,6 +33,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
     private readonly Font m_TitleFont;
     private readonly Font m_NormalFont;
     private readonly Font m_SmallFont;
+    private readonly Font m_EvenSmallerFont;
 
     private readonly List<(int Boundary, Image Icon)> m_RankIcons = [];
     private Dictionary<string, Image> m_RatingImages = [];
@@ -68,6 +69,7 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
         m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
         m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
         m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
+        m_EvenSmallerFont = fontFamily.CreateFont(18, FontStyle.Regular);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -250,7 +252,9 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
         image.Mutate(ctx =>
         {
             var rankText = $"{(float)brief.RankPercent / 100:N2}%";
-            ctx.DrawText(RankIconTextDrawingOptions, rankText, m_SmallFont, Color.White, new PointF(10, 17));
+            var size = TextMeasurer.MeasureSize(rankText, new TextOptions(m_SmallFont));
+            ctx.DrawText(RankIconTextDrawingOptions, rankText,
+                size.Width <= 80 ? m_SmallFont : m_EvenSmallerFont, Color.White, new PointF(8, 17));
         });
         return image;
     }
