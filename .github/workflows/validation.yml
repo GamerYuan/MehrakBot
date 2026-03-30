@@ -16,14 +16,6 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Start LocalStack
-        uses: LocalStack/setup-localstack@v0.3.0
-        with:
-          image-tag: "latest"
-          install-awslocal: "true"
-        env:
-          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -46,10 +38,14 @@ jobs:
       - name: Build solution
         working-directory: ./MehrakBot
         run: dotnet build --configuration Release --no-restore
+        env:
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
 
       - name: Run tests
         working-directory: ./MehrakBot
         run: dotnet test
+        env:
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
 
       - name: Upload test output artifacts
         uses: actions/upload-artifact@v4
