@@ -20,9 +20,9 @@
   "brief": {
     "cur_period_zone_layer_count": 5,
     "score": 127835,
-    "rank_percent": 299,
+    "rank_percent": 10000,
     "battle_time": 306,
-    "rating": "S",
+    "rating": "B",
     "challenge_time": {
       "year": 2026,
       "month": 3,
@@ -37,7 +37,7 @@
     "layer_challenge_info_list": [
       {
         "layer_id": 62043051,
-        "rating": "A",
+        "rating": "B",
         "buffer": {
           "title": "Thunder Crimson Blaze",
           "text": "· Agent <color=#F0D12B>Physical DMG</color> and <color=#2EB6FF>Electric DMG</color> increase by 15%, while their CRIT DMG increases by 20%.\\n· When an Agent with Attack specialty hits an enemy and crits, enemy DEF drops by 10% for 5s. Repeated triggers reset the duration."
@@ -87,7 +87,7 @@
       },
       {
         "layer_id": 62043052,
-        "rating": "A",
+        "rating": "B",
         "buffer": {
           "title": "Flameheart Lithic Core",
           "text": "· Agent Sheer DMG increases by 10%.\\n· While in <color=#FFFFFF>Ether Veil</color>, Agent Sheer DMG further increases by 15%, and attacks ignore 15% of enemy All-DMG RES on hit."
@@ -137,7 +137,7 @@
       },
       {
         "layer_id": 62043053,
-        "rating": "A",
+        "rating": "B",
         "buffer": {
           "title": "Mecha Wings",
           "text": "· Agent <color=#FE437E>Ether DMG</color> increases by 20%. \\n· While in <color=#FFFFFF>Ether Veil</color>, Agent ATK increases by 30%, and attacks ignore 10% of enemy <color=#FE437E>Ether RES</color>."

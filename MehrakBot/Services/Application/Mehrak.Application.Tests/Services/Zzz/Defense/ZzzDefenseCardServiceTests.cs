@@ -38,9 +38,11 @@ public class ZzzDefenseCardServiceTests
     [TestCase("Shiyu_TestData_1.json")]
     [TestCase("Shiyu_TestData_2.json")]
     [TestCase("Shiyu_TestData_3.json")]
+    [TestCase("Shiyu_TestData_4.json")]
+    [TestCase("Shiyu_TestData_5.json")]
     public async Task GetDefenseCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
-        var defenseData = JsonSerializer.Deserialize<ZzzDefenseData>(
+        var defenseData = JsonSerializer.Deserialize<ZzzDefenseDataV2>(
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(defenseData, Is.Not.Null);
 
@@ -50,7 +52,7 @@ public class ZzzDefenseCardServiceTests
 
         var userGameData = GetTestUserGameData();
 
-        var cardContext = new BaseCardGenerationContext<ZzzDefenseData>(TestUserId, defenseData, userGameData);
+        var cardContext = new BaseCardGenerationContext<ZzzDefenseDataV2>(TestUserId, defenseData, userGameData);
         cardContext.SetParameter("server", Server.Asia);
 
         var image = await m_Service.GetCardAsync(cardContext);
@@ -86,24 +88,33 @@ public class ZzzDefenseCardServiceTests
         };
     }
 
-    // [Test] [TestCase("Shiyu_TestData_1.json", "Shiyu_GoldenImage_1.jpg")]
-    // [TestCase("Shiyu_TestData_2.json", "Shiyu_GoldenImage_2.jpg")]
-    // [TestCase("Shiyu_TestData_3.json", "Shiyu_GoldenImage_3.jpg")] public
-    // async Task GenerateGoldenImage(string testDataFileName, string
-    // goldenImageFileName) { ZzzDefenseData? defenseData =
-    // JsonSerializer.Deserialize<ZzzDefenseData>( await
-    // File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
-    // Assert.That(defenseData, Is.Not.Null);
-    //
-    // GameProfileDto userGameData = GetTestUserGameData();
-    //
-    // Stream image = await m_Service.GetCardAsync( new
-    // TestCardGenerationContext<ZzzDefenseData>(TestUserId, defenseData,
-    // Server.Asia, userGameData));
-    //
-    // FileStream fileStream = File.OpenWrite(
-    // Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
-    // goldenImageFileName)); await image.CopyToAsync(fileStream); await fileStream.FlushAsync();
-    //
-    // Assert.That(image, Is.Not.Null); }
+    [Explicit]
+    [Test]
+    [TestCase("Shiyu_TestData_1.json", "Shiyu_GoldenImage_1.jpg")]
+    [TestCase("Shiyu_TestData_2.json", "Shiyu_GoldenImage_2.jpg")]
+    [TestCase("Shiyu_TestData_3.json", "Shiyu_GoldenImage_3.jpg")]
+    [TestCase("Shiyu_TestData_4.json", "Shiyu_GoldenImage_4.jpg")]
+    [TestCase("Shiyu_TestData_5.json", "Shiyu_GoldenImage_5.jpg")]
+    public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var defenseData =
+            JsonSerializer.Deserialize<ZzzDefenseDataV2>(await
+                File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
+        Assert.That(defenseData, Is.Not.Null);
+
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<ZzzDefenseDataV2>(TestUserId, defenseData, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await m_Service.GetCardAsync(cardContext);
+
+        using var fileStream = File.Create(
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
+                goldenImageFileName));
+        await image.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+
+        Assert.That(image, Is.Not.Null);
+    }
 }

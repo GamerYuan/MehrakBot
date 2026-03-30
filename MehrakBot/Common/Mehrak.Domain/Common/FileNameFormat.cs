@@ -120,6 +120,11 @@ public static class FileNameFormat
         public const string AssaultBossName = "zzz_assault_boss_{0}";
 
         /// <summary>
+        /// ZZZ defense boss name, where {0} is the boss name space removed
+        /// </summary>
+        public const string HadalBossName = "zzz_hadal_boss_{0}";
+
+        /// <summary>
         /// ZZZ assault buff name, where {0} is the buff name space removed
         /// </summary>
         public const string AssaultBuffName = "zzz_assault_buff_{0}";

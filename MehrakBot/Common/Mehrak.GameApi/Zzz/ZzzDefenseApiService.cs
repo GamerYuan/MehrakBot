@@ -12,9 +12,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Zzz;
 
-internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiContext>
+internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>
 {
-    private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/challenge";
+    private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/hadal_info_v2";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzDefenseApiService> m_Logger;
@@ -25,12 +25,12 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzDefenseData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<ZzzDefenseDataV2>> GetAsync(BaseHoYoApiContext context)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError(LogMessages.InvalidRegionOrUid);
-            return Result<ZzzDefenseData>.Failure(StatusCode.BadParameter,
+            return Result<ZzzDefenseDataV2>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
@@ -55,17 +55,18 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
+                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while fetching Shiyu Defense data", requestUri);
             }
 
+            var str = await response.Content.ReadAsStringAsync();
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseData>>();
+                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>();
 
             if (json?.Data == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
+                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while fetching Shiyu Defense data", requestUri);
             }
 
@@ -75,25 +76,25 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseData, BaseHoYoApiCon
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<ZzzDefenseData>.Failure(StatusCode.Unauthorized,
+                return Result<ZzzDefenseDataV2>.Failure(StatusCode.Unauthorized,
                     "Invalid cookies. Please re-authenticate.", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<ZzzDefenseData>.Failure(StatusCode.ExternalServerError,
+                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-            return Result<ZzzDefenseData>.Success(json.Data!, requestUri: requestUri);
+            return Result<ZzzDefenseDataV2>.Success(json.Data!.HadalInfoV2, requestUri: requestUri);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
-            return Result<ZzzDefenseData>.Failure(StatusCode.BotError,
+            return Result<ZzzDefenseDataV2>.Failure(StatusCode.BotError,
                 "An error occurred while fetching Shiyu Defense data");
         }
     }

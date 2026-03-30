@@ -106,7 +106,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
-    /*
+
     [SubSlashCommand("shiyu", "Get Shiyu Defense summary card")]
     public async Task ShiyuCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]
@@ -130,7 +130,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
-    */
+
 
     [SubSlashCommand("da", "Get Deadly Assault summary card")]
     public async Task AssaultCommand(
