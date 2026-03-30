@@ -59,7 +59,6 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
                     "An error occurred while fetching Shiyu Defense data", requestUri);
             }
 
-            var str = await response.Content.ReadAsStringAsync();
             var json =
                 await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>();
 

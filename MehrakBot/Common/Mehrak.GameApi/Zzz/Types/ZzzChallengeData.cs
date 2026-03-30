@@ -68,9 +68,10 @@ public class ZzzDefenseDataV2
     [JsonPropertyName("zone_id")] public int ZoneId { get; init; }
     [JsonPropertyName("hadal_begin_time")] public required ScheduleTime HadalBeginTime { get; init; }
     [JsonPropertyName("hadal_end_time")] public required ScheduleTime HadalEndTime { get; init; }
-    [JsonPropertyName("pass_fifth_floor")] public bool PassFifthFloor { get; init; }
-    [JsonPropertyName("brief"), MemberNotNullWhen(true, nameof(PassFifthFloor))] public HadalBrief? Brief { get; init; }
-    [JsonPropertyName("fitfh_layer_detail"), MemberNotNullWhen(true, nameof(PassFifthFloor))]
+    [JsonPropertyName("pass_fifth_floor"), MemberNotNullWhen(true, nameof(Brief), nameof(FifthLayerDetail))]
+    public bool PassFifthFloor { get; init; }
+    [JsonPropertyName("brief")] public HadalBrief? Brief { get; init; }
+    [JsonPropertyName("fitfh_layer_detail")]
     public HadalFifthFloorDetail? FifthLayerDetail { get; init; }
     [JsonPropertyName("begin_time")] public required string BeginTime { get; init; }
     [JsonPropertyName("end_time")] public required string EndTime { get; init; }
