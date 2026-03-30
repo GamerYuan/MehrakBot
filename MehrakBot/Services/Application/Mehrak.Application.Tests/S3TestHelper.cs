@@ -28,9 +28,8 @@ public sealed class S3TestHelper : IDisposable
     {
         Instance = this;
 
-        m_LocalStackContainer = new LocalStackBuilder()
-            .WithImage("localstack/localstack:latest")
-            .WithPortBinding(4566, true)
+        m_LocalStackContainer = new LocalStackBuilder("localstack/localstack:latest")
+            .WithEnvironment("LOCALSTACK_AUTH_TOKEN", Environment.GetEnvironmentVariable("LOCALSTACK_AUTH_TOKEN") ?? string.Empty)
             .Build();
 
         m_LocalStackContainer.StartAsync().GetAwaiter().GetResult();

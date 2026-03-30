@@ -38,8 +38,6 @@ jobs:
       - name: Build solution
         working-directory: ./MehrakBot
         run: dotnet build --configuration Release --no-restore
-        env:
-          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
 
       - name: Run tests
         working-directory: ./MehrakBot
