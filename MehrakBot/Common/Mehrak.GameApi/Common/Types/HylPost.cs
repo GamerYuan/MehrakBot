@@ -10,17 +10,18 @@ public class HylPostWrapper
 public class HylPost
 {
     [JsonPropertyName("post")] public required HylPostDetail Post { get; set; }
+    [JsonPropertyName("image_list")] public required List<HylImage> ImageList { get; set; }
+    [JsonPropertyName("cover_list")] public required List<HylImage> CoverList { get; set; }
 }
 
 public class HylPostDetail
 {
     [JsonPropertyName("post_id")] public required string PostId { get; set; }
     [JsonPropertyName("uid")] public required string Uid { get; set; }
-    [JsonPropertyName("title")] public required string Title { get; set; }
+    [JsonPropertyName("subject")] public required string Subject { get; set; }
     [JsonPropertyName("created_at")] public long CreatedAt { get; set; }
-    [JsonPropertyName("image_list")] public required List<HylImage> ImageList { get; set; }
-    [JsonPropertyName("cover_list")] public required List<HylImage> CoverList { get; set; }
     [JsonPropertyName("structured_content")] public required string StructuredContent { get; set; }
+    [JsonPropertyName("origin_lang")] public required string OriginLang { get; set; }
 }
 
 public class HylImage

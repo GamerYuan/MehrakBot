@@ -1,4 +1,5 @@
-﻿using Mehrak.Domain.Models.Abstractions;
+﻿using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models.Abstractions;
 
 namespace Mehrak.GameApi.Common.Types;
 
