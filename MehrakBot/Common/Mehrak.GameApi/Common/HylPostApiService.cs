@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
@@ -6,12 +7,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Common;
 
-internal class HylPostApiService : IApiService<HylPost, HylPostApiContext>
+public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<HylPostApiService> m_Logger;
 
-    private const string Endpoint = "/community/post/wapi/getPostFull";
+    private const string Endpoint = "community/post/wapi/getPostFull";
 
     public HylPostApiService(IHttpClientFactory httpClientFactory, ILogger<HylPostApiService> logger)
     {
@@ -33,6 +34,10 @@ internal class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                 RequestUri = new Uri(requestUri)
             };
             request.Headers.Add("X-Rpc-Language", context.Locale.ToLocaleString());
+            request.Headers.Add("X-Rpc-Show-Translated", "true");
+            request.Headers.Add("X-Rpc-Client_type", "4");
+            request.Headers.Add("X-Rpc-App_version", "4.9.0");
+            request.Headers.Add("X-Rpc-Lsrag", "");
 
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request);
