@@ -5,7 +5,7 @@ namespace Mehrak.Bot.Models;
 
 internal class HylPostStructuredInsert
 {
-    [JsonPropertyName("insert")] public required HylPostInsertContent Insert { get; set; }
+    [JsonPropertyName("insert")] public HylPostInsertContent? Insert { get; set; }
     [JsonPropertyName("attributes")] public HylPostInsertAttributes? Attributes { get; set; }
 }
 
@@ -91,6 +91,8 @@ internal class HylPostEmoticon
 internal class HylPostInsertAttributes
 {
     [JsonPropertyName("link")] public string? Link { get; set; }
+    [JsonPropertyName("bold")] public bool? Bold { get; set; }
+    [JsonPropertyName("list")] public string? List { get; set; }
     [JsonPropertyName("header")] public int? Header { get; set; }
     [JsonPropertyName("align")] public string? Align { get; set; }
     [JsonPropertyName("color")] public string? Color { get; set; }
@@ -142,7 +144,7 @@ internal class HylPostInsertContentConverter : JsonConverter<HylPostInsertConten
 
         if (reader.TokenType != JsonTokenType.StartObject)
         {
-            throw new JsonException("Insert must be either a string or an object.");
+            return null!;
         }
 
         using var document = JsonDocument.ParseValue(ref reader);
@@ -188,7 +190,7 @@ internal class HylPostInsertContentConverter : JsonConverter<HylPostInsertConten
             };
         }
 
-        throw new JsonException("Unknown insert payload shape.");
+        return null!;
     }
 
     public override void Write(Utf8JsonWriter writer, HylPostInsertContent value, JsonSerializerOptions options)
