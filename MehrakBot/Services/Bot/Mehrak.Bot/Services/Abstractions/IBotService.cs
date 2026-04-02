@@ -19,7 +19,7 @@ public class BotContext : IBotContext
 {
     public IInteractionContext DiscordContext { get; }
     private Dictionary<string, object> Parameters { get; } = [];
-    public BotContext(IInteractionContext discordContext, params IEnumerable<(string, string)> parameters)
+    public BotContext(IInteractionContext discordContext, params IEnumerable<(string, object)> parameters)
     {
         DiscordContext = discordContext;
         foreach (var (key, value) in parameters) Parameters[key] = value;
