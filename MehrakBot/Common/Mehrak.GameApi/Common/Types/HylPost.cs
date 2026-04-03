@@ -22,6 +22,7 @@ public class HylPostDetail
     [JsonPropertyName("created_at")] public long CreatedAt { get; set; }
     [JsonPropertyName("structured_content")] public required string StructuredContent { get; set; }
     [JsonPropertyName("origin_lang")] public required string OriginLang { get; set; }
+    [JsonPropertyName("lang")] public required string Lang { get; set; }
 }
 
 public class HylImage

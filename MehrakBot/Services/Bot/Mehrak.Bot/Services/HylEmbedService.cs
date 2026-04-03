@@ -75,7 +75,7 @@ internal class HylEmbedService : IBotService
 
         m_Logger.LogDebug("Parsed {InsertCount} structured inserts for post {PostId}", inserts.Count, post.Post.PostId);
 
-        var footer = post.Post.OriginLang != locale.ToLocaleString()
+        var footer = post.Post.OriginLang != post.Post.Lang
             ? $"-# HoYoLAB · {m_LocalizationService.Get(locale, "Footer")} · <t:{post.Post.CreatedAt}:F>"
             : $"-# HoYoLAB · <t:{post.Post.CreatedAt}:F>";
 
