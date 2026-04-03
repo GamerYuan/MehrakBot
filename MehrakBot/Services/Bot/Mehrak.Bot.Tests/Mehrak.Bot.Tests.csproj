@@ -37,4 +37,10 @@
         <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="TestData\*.*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>
