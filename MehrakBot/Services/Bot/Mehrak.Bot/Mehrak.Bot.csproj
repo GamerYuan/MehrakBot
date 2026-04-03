@@ -16,6 +16,7 @@
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.2" />
         <PackageReference Include="NetCord" Version="1.0.0-alpha.461" />
         <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.461" />
         <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.461" />
@@ -78,6 +79,11 @@
         <AutoGen>True</AutoGen>
         <DependentUpon>Resources.resx</DependentUpon>
       </Compile>
+      <Compile Update="Resources\Messages.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Messages.resx</DependentUpon>
+      </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -98,10 +104,7 @@
             <VersionFileLines Include="public static class AppInfo { public const string Version = &quot;$(Version)&quot;%3B }" />
         </ItemGroup>
 
-        <WriteLinesToFile File="$(GeneratedVersionFilePath)"
-                          Lines="@(VersionFileLines)"
-                          Overwrite="true"
-                          WriteOnlyWhenDifferent="true" />
+        <WriteLinesToFile File="$(GeneratedVersionFilePath)" Lines="@(VersionFileLines)" Overwrite="true" WriteOnlyWhenDifferent="true" />
 
         <ItemGroup>
             <Compile Include="$(GeneratedVersionFilePath)" />

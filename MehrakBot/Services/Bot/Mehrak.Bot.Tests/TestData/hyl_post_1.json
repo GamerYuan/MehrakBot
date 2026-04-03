@@ -1,0 +1,18 @@
+{
+  "post": {
+    "game_id": 2,
+    "post_id": "44470660",
+    "f_forum_id": 0,
+    "uid": "1015537",
+    "subject": "Sample Post",
+    "content": "en-us",
+    "structured_content": "[{\"insert\":\"This is a sample post\"}]",
+    "structured_content_rows": [],
+    "lang": "en-us",
+    "is_audit": false,
+    "is_multi_language": true,
+    "origin_lang": "en-us"
+  },
+  "image_list": [],
+  "cover_list": []
+}
