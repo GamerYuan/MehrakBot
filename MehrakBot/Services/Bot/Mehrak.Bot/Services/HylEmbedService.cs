@@ -191,7 +191,7 @@ internal class HylEmbedService : IBotService
             if (components.LastOrDefault() is TextDisplayProperties text)
             {
                 var lastBoundary = PostLengthLimit - (currentLength - text.Content.Length);
-                while (lastBoundary > 0 && text.Content[lastBoundary] != ' ')
+                while (lastBoundary > 0 && lastBoundary < text.Content.Length && text.Content[lastBoundary] != ' ')
                     lastBoundary--;
 
                 if (lastBoundary <= 0)
