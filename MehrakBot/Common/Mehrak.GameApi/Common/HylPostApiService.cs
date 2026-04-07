@@ -51,7 +51,8 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                     "An error occurred while accessing HoYoLAB API", requestUri);
             }
 
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(await response.Content.ReadAsStreamAsync());
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream);
 
             if (json == null)
             {
