@@ -152,7 +152,7 @@ internal partial class HylEmbedService : IBotService
                     var articleCard = articleCards[i];
                     var title = articleCard.Info.Title;
                     var nickname = articleCard.User.Nickname;
-                    var content = $"{title}\n-# {nickname}";
+                    var content = $"{EscapeMarkdown(title)}\n-# {nickname}";
                     var section = new ComponentSectionProperties(
                         new LinkButtonProperties(articleButton, $"https://www.hoyolab.com/article/{articleCard.Meta.MetaId}"),
                         [new TextDisplayProperties(content)]);
@@ -172,7 +172,7 @@ internal partial class HylEmbedService : IBotService
             {
                 var section = new ComponentSectionProperties(
                     new LinkButtonProperties(voteButton, articleUrl),
-                    [new TextDisplayProperties(vote.Title)]);
+                    [new TextDisplayProperties(EscapeMarkdown(vote.Title))]);
                 components.Add(section);
                 currentLength += vote.Title.Length;
             }
