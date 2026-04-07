@@ -1,6 +1,5 @@
-#region
+﻿#region
 
-using System.Net.Http.Json;
 using System.Text.Json;
 using Mehrak.Bot.Models;
 using Mehrak.Bot.Services;
@@ -11,8 +10,6 @@ using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Common.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NetCord;
-using NetCord.Rest;
 using NetCord.Services;
 
 #endregion
@@ -133,6 +130,20 @@ public class HylEmbedServiceTests
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Sample Post with image"));
         Assert.That(response, Does.Contain("This is a sample post with an image"));
+
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        Assert.That(components.GetArrayLength(), Is.EqualTo(1));
+
+        var innerComponents = components[0].GetProperty("components");
+        var mediaGallery = innerComponents.EnumerateArray().FirstOrDefault(c => c.TryGetProperty("type", out var t) && t.GetInt32() == 12);
+        Assert.That(mediaGallery.ValueKind, Is.EqualTo(JsonValueKind.Object));
+
+        var items = mediaGallery.GetProperty("items");
+        Assert.That(items.GetArrayLength(), Is.EqualTo(1));
+
+        var mediaUrl = items[0].GetProperty("media").GetProperty("url").GetString();
+        Assert.That(mediaUrl, Is.EqualTo("https://example.com/image.jpg"));
     }
 
     [Test]
@@ -161,6 +172,20 @@ public class HylEmbedServiceTests
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Sample Post with cover"));
         Assert.That(response, Does.Contain("This is a sample post with a cover"));
+
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        Assert.That(components.GetArrayLength(), Is.EqualTo(1));
+
+        var innerComponents = components[0].GetProperty("components");
+        var mediaGallery = innerComponents.EnumerateArray().FirstOrDefault(c => c.TryGetProperty("type", out var t) && t.GetInt32() == 12);
+        Assert.That(mediaGallery.ValueKind, Is.EqualTo(JsonValueKind.Object));
+
+        var items = mediaGallery.GetProperty("items");
+        Assert.That(items.GetArrayLength(), Is.EqualTo(1));
+
+        var mediaUrl = items[0].GetProperty("media").GetProperty("url").GetString();
+        Assert.That(mediaUrl, Is.EqualTo("https://example.com/cover.jpg"));
     }
 
     [Test]
@@ -188,6 +213,16 @@ public class HylEmbedServiceTests
         // Assert
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Sample Post with image and cover"));
+
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        var innerComponents = components[0].GetProperty("components");
+
+        var mediaGallery = innerComponents.EnumerateArray().FirstOrDefault(c => c.TryGetProperty("type", out var t) && t.GetInt32() == 12);
+        Assert.That(mediaGallery.ValueKind, Is.EqualTo(JsonValueKind.Object));
+
+        var mediaUrl = mediaGallery.GetProperty("items")[0].GetProperty("media").GetProperty("url").GetString();
+        Assert.That(mediaUrl, Is.EqualTo("https://example.com/cover.jpg"));
     }
 
     #endregion
@@ -352,7 +387,7 @@ public class HylEmbedServiceTests
         // Assert
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("HoYoLAB"));
-        Assert.That(response, Does.Not.Contain("Footer"));
+        Assert.That(response, Does.Not.Contain("Translated"));
     }
 
     #endregion
@@ -619,7 +654,20 @@ public class HylEmbedServiceTests
         // Assert
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("Read more..."));
-        Assert.That(response.Length, Is.LessThan(1500));
+
+        // Parse JSON and verify truncated content length in the component
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        var innerComponents = components[0].GetProperty("components");
+
+        var truncatedContent = innerComponents[1].GetProperty("content").GetString();
+        Assert.That(truncatedContent, Is.Not.Null);
+
+        var ellipsisIndex = truncatedContent!.IndexOf("...\n\n", StringComparison.Ordinal);
+        Assert.That(ellipsisIndex, Is.GreaterThan(0));
+        var truncatedText = truncatedContent[..ellipsisIndex];
+
+        Assert.That(truncatedText, Has.Length.LessThanOrEqualTo(1000));
     }
 
     [Test]
@@ -658,7 +706,21 @@ public class HylEmbedServiceTests
         // Assert
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Does.Contain("..."));
-        Assert.That(response, Does.Contain("..."));
+
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        var innerComponents = components[0].GetProperty("components");
+
+        var truncatedContent = innerComponents[1].GetProperty("content").GetString();
+        Assert.That(truncatedContent, Is.Not.Null);
+
+        var ellipsisIndex = truncatedContent!.IndexOf("...\n\n", StringComparison.Ordinal);
+        Assert.That(ellipsisIndex, Is.GreaterThan(0));
+        var truncatedText = truncatedContent[..ellipsisIndex];
+
+        Assert.That(truncatedText, Is.Not.Null);
+        Assert.That(truncatedText, Has.Length.GreaterThan(990));
+        Assert.That(truncatedText, Has.Length.LessThanOrEqualTo(1000));
     }
 
     #endregion
@@ -699,8 +761,13 @@ public class HylEmbedServiceTests
         // Assert
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
         Assert.That(response, Is.Not.Null);
-        // Should have truncated content but still be valid
-        Assert.That(response, Does.Contain("Sample Post"));
+
+        // Parse JSON and verify the component count does not exceed the limit of 10
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        var innerComponents = components[0].GetProperty("components");
+
+        Assert.That(innerComponents.GetArrayLength(), Is.LessThanOrEqualTo(10));
     }
 
     #endregion
