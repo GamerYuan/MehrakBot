@@ -39,7 +39,7 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
             {
                 m_Logger.LogWarning("Failed to parse post ID from URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2)
+                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                     .AddComponents(new TextDisplayProperties("The provided URL is invalid. Please ensure it is a valid HoYoLAB post URL."))));
                 return;
             }
@@ -48,7 +48,7 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
             {
                 m_Logger.LogWarning("Failed to parse post ID from URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2)
+                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
                     .AddComponents(new TextDisplayProperties("The provided URL is invalid. Please ensure it is a valid HoYoLAB post URL."))));
                 return;
             }
@@ -63,7 +63,7 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
         {
             m_Logger.LogError(e, "An error occurred while attempting to embed HoYoLAB post with URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
-                .WithFlags(NetCord.MessageFlags.IsComponentsV2)
+                .WithFlags(MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties("An unexpected error occurred while embedding the HoYoLAB post. Please try again later.")));
         }
     }
