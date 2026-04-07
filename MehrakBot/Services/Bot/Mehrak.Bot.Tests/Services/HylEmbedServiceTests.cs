@@ -258,7 +258,7 @@ public class HylEmbedServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_InvalidStructuredContent_ThrowsJsonException()
+    public async Task ExecuteAsync_InvalidStructuredContent_SendsErrorMessage()
     {
         // Arrange
         var postData = LoadTestPost("hyl_post_1.json");
@@ -278,8 +278,12 @@ public class HylEmbedServiceTests
 
         m_Service.Context = mockContext.Object;
 
-        // Act & Assert - Service currently throws on invalid JSON
-        Assert.ThrowsAsync<JsonException>(m_Service.ExecuteAsync);
+        // Act
+        await m_Service.ExecuteAsync();
+
+        // Assert
+        var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain("Failed to parse HoYoLAB post content"));
     }
 
     [Test]

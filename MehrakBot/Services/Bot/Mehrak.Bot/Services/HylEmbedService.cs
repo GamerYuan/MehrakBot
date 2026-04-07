@@ -59,7 +59,19 @@ internal partial class HylEmbedService : IBotService
             post.Post.PostId,
             post.Post.StructuredContent.Length);
 
-        var inserts = JsonSerializer.Deserialize<List<HylPostStructuredInsert>>(post.Post.StructuredContent);
+        List<HylPostStructuredInsert>? inserts;
+        try
+        {
+            inserts = JsonSerializer.Deserialize<List<HylPostStructuredInsert>>(post.Post.StructuredContent);
+        }
+        catch (JsonException e)
+        {
+            m_Logger.LogWarning(e, "Failed to parse structured content for post {PostId}", post.Post.PostId);
+            await Context.DiscordContext.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
+                .WithFlags(MessageFlags.IsComponentsV2)
+                .AddComponents(new TextDisplayProperties("Failed to parse HoYoLAB post content.")));
+            return;
+        }
 
         if (inserts == null)
         {
