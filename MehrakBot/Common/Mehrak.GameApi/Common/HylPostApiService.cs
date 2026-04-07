@@ -83,7 +83,7 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
                 requestUri, context.UserId);
-            return Result<HylPost>.Failure(StatusCode.BotError, "An error occurred while fetching wiki data.");
+            return Result<HylPost>.Failure(StatusCode.BotError, "An error occurred while fetching HoYoLAB Post data.");
         }
     }
 }
