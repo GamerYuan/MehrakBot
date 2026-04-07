@@ -1,38 +1,21 @@
-﻿using NetCord.Services.ApplicationCommands;
-
-namespace Mehrak.Domain.Enums;
+﻿namespace Mehrak.Domain.Enums;
 
 public enum WikiLocales
 {
-    [SlashCommandChoice(Name = "English")]
     EN,
-    [SlashCommandChoice(Name = "Chinese (Simplified)")]
     CN,
-    [SlashCommandChoice(Name = "Chinese (Traditional)")]
     TW,
-    [SlashCommandChoice(Name = "Japanese")]
     JP,
-    [SlashCommandChoice(Name = "Korean")]
     KR,
-    [SlashCommandChoice(Name = "German")]
     DE,
-    [SlashCommandChoice(Name = "Spanish")]
     ES,
-    [SlashCommandChoice(Name = "French")]
     FR,
-    [SlashCommandChoice(Name = "Indonesian")]
     ID,
-    [SlashCommandChoice(Name = "Italian")]
     IT,
-    [SlashCommandChoice(Name = "Portuguese")]
     PT,
-    [SlashCommandChoice(Name = "Russian")]
     RU,
-    [SlashCommandChoice(Name = "Thai")]
     TH,
-    [SlashCommandChoice(Name = "Turkish")]
     TR,
-    [SlashCommandChoice(Name = "Vietnamese")]
     VN
 }
 

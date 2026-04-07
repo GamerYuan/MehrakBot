@@ -1,6 +1,6 @@
-﻿using Mehrak.Bot.Services;
+﻿using Mehrak.Bot.Models;
+using Mehrak.Bot.Services;
 using Mehrak.Bot.Services.Abstractions;
-using Mehrak.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -28,9 +28,10 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
         [SlashCommandParameter(Name = "url", Description = "The URL of the HoYoLAB post to embed")]
         string url,
         [SlashCommandParameter(Name = "language", Description = "The display language of the embedded post (Defaults to English)")]
-        WikiLocales language = WikiLocales.EN)
+        WikiLocaleChoice language = WikiLocaleChoice.EN)
     {
         var sanitisedUrl = url.Trim().Trim('"').ReplaceLineEndings("");
+        var locale = language.ToDomainLocale();
         try
         {
             m_Logger.LogInformation("User {UserId} is embedding HoYoLAB post with URL {Url}", Context.User.Id, sanitisedUrl);
@@ -53,7 +54,7 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
                 return;
             }
 
-            var context = new BotContext(Context, ("locale", language), ("postId", postId));
+            var context = new BotContext(Context, ("locale", locale), ("postId", postId));
             m_PostService.Context = context;
 
             await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
