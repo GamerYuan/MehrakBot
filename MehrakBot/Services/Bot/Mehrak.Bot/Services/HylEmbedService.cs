@@ -11,13 +11,10 @@ using NetCord.Rest;
 
 namespace Mehrak.Bot.Services;
 
-internal class HylEmbedService : IBotService
+internal partial class HylEmbedService : IBotService
 {
     private const int ComponentLimit = 10;
     private const int PostLengthLimit = 1000;
-
-    private static readonly Regex UrlRegex = new(@"https?://\S+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    private static readonly Regex MarkdownEscapeRegex = new(@"([\\`*_{}\[\]()#+\-.!|>~])", RegexOptions.Compiled);
 
     private readonly IApiService<HylPost, HylPostApiContext> m_ApiService;
     private readonly IBotLocalizationService m_LocalizationService;
@@ -80,7 +77,7 @@ internal class HylEmbedService : IBotService
             : $"-# HoYoLAB · <t:{post.Post.CreatedAt}:F>";
 
         var container = new ComponentContainerProperties()
-            .AddComponents(new TextDisplayProperties($"## [{post.Post.Subject}](https://www.hoyolab.com/article/{post.Post.PostId})"));
+            .AddComponents(new TextDisplayProperties($"## [{EscapeMarkdown(post.Post.Subject)}](https://www.hoyolab.com/article/{post.Post.PostId})"));
 
         var components = BuildComponents(inserts, locale, post.Post.PostId);
         m_Logger.LogInformation("Built {ComponentCount} components for post {PostId}", components.Count, post.Post.PostId);
@@ -166,7 +163,7 @@ internal class HylEmbedService : IBotService
             else if (insert.Video is { } video)
             {
                 var section = new ComponentSectionProperties(
-                    new LinkButtonProperties(videoButton, UrlRegex.IsMatch(video.Video) ? video.Video : articleUrl),
+                    new LinkButtonProperties(videoButton, UrlRegex().IsMatch(video.Video) ? video.Video : articleUrl),
                     [new TextDisplayProperties($"[{videoLabel}]")]);
                 components.Add(section);
                 currentLength += videoLabel.Length + 2;
@@ -221,10 +218,10 @@ internal class HylEmbedService : IBotService
 
         if (trimmedLink == trimmedText)
             content = insertText;
-        else if (UrlRegex.IsMatch(trimmedText))
+        else if (UrlRegex().IsMatch(trimmedText))
             content = trimmedLink;
         else
-            content = $"[{insertText}]({trimmedLink})";
+            content = $"[{EscapeMarkdown(insertText)}]({trimmedLink})";
 
         AppendOrCreateTextDisplay(components, content);
         currentLength += content.Length;
@@ -261,7 +258,7 @@ internal class HylEmbedService : IBotService
 
     private static string FormatText(string input)
     {
-        var matches = UrlRegex.Matches(input);
+        var matches = UrlRegex().Matches(input);
         if (matches.Count == 0)
             return EscapeMarkdown(input);
 
@@ -280,6 +277,11 @@ internal class HylEmbedService : IBotService
 
     private static string EscapeMarkdown(string input)
     {
-        return MarkdownEscapeRegex.Replace(input, "\\$1");
+        return MarkdownEscapeRegex().Replace(input, "\\$1");
     }
+
+    [GeneratedRegex(@"([\\`*_{}\[\]()#+\-.!|>~])", RegexOptions.Compiled)]
+    private static partial Regex MarkdownEscapeRegex();
+    [GeneratedRegex(@"https?://\S+", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex UrlRegex();
 }
