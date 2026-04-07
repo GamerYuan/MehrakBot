@@ -35,11 +35,20 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
         {
             m_Logger.LogInformation("User {UserId} is embedding HoYoLAB post with URL {Url}", Context.User.Id, sanitisedUrl);
 
-            if (!long.TryParse(url.Split('/')[^1], out var postId))
+            if (!Uri.TryCreate(sanitisedUrl, UriKind.RelativeOrAbsolute, out var uri))
             {
                 m_Logger.LogWarning("Failed to parse post ID from URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
                 await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
-                    .WithFlags(NetCord.MessageFlags.IsComponentsV2)
+                    .WithFlags(MessageFlags.IsComponentsV2)
+                    .AddComponents(new TextDisplayProperties("The provided URL is invalid. Please ensure it is a valid HoYoLAB post URL."))));
+                return;
+            }
+
+            if (!long.TryParse(uri.Segments.LastOrDefault(), out var postId))
+            {
+                m_Logger.LogWarning("Failed to parse post ID from URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
+                    .WithFlags(MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("The provided URL is invalid. Please ensure it is a valid HoYoLAB post URL."))));
                 return;
             }
