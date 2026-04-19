@@ -40,7 +40,9 @@ public sealed class SeaweedFilerProxyController : ControllerBase
         "Upgrade",
         "Authorization",
         "Content-Length",
-        "Cookie"
+        "Cookie",
+        "X-Forwarded-Host",
+        "X-Forwarded-Proto",
     };
 
     private static readonly HashSet<string> SkippedResponseHeaders = new(StringComparer.OrdinalIgnoreCase)
