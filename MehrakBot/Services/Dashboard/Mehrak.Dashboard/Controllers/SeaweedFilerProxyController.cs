@@ -39,7 +39,8 @@ public sealed class SeaweedFilerProxyController : ControllerBase
         "Transfer-Encoding",
         "Upgrade",
         "Authorization",
-        "Content-Length"
+        "Content-Length",
+        "Cookie"
     };
 
     private static readonly HashSet<string> SkippedResponseHeaders = new(StringComparer.OrdinalIgnoreCase)
@@ -51,7 +52,8 @@ public sealed class SeaweedFilerProxyController : ControllerBase
         "TE",
         "Trailer",
         "Transfer-Encoding",
-        "Upgrade"
+        "Upgrade",
+        "Set-Cookie"
     };
 
     private const string ProxyBasePath = "/admin/seaweed-filer";
