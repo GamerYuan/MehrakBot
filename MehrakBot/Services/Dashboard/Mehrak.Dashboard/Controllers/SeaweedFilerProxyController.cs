@@ -113,7 +113,8 @@ public sealed class SeaweedFilerProxyController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
-            m_Logger.LogError(ex, "Seaweed filer proxy request failed for {Method} {Path}", Request.Method, Request.Path.Value ?? string.Empty);
+            var sanitised = Request.Path.Value?.ReplaceLineEndings(" ") ?? string.Empty;
+            m_Logger.LogError(ex, "Seaweed filer proxy request failed for {Method} {Path}", Request.Method, sanitised);
             return StatusCode(StatusCodes.Status502BadGateway, new { error = "Unable to reach Seaweed filer." });
         }
 
