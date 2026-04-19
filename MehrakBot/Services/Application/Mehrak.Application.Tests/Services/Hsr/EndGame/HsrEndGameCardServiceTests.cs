@@ -138,47 +138,57 @@ public class HsrEndGameCardServiceTests
         };
     }
 
-    // [Test]
-    // [TestCase("Pf_TestData_1.json", "Pf_GoldenImage_1.jpg")]
-    // [TestCase("Pf_TestData_2.json", "Pf_GoldenImage_2.jpg")]
-    // [TestCase("Pf_TestData_3.json", "Pf_GoldenImage_3.jpg")]
-    // public async Task GeneratePureFictionGoldenImage(string testDataFileName, string goldenImageFileName)
-    // {
-    //  HsrEndInformation? testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
-    //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)));
-    //     Assert.That(testData, Is.Not.Null);
-    //
-    //     GameProfileDto userGameData = GetTestUserGameData();
-    //
-    //   Stream image = await m_Service.GetCardAsync(
-    //         new HsrEndGameGenerationContext(TestUserId, testData!, Server.Asia, userGameData, HsrEndGameMode.PureFiction));
-    //
-    //     await using FileStream fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-    //         "TestAssets", goldenImageFileName));
-    //     await image.CopyToAsync(fileStream);
-    //
-    //     Assert.That(image, Is.Not.Null);
-    // }
+    [Explicit]
+    [Test]
+    [TestCase("Pf_TestData_1.json", "Pf_GoldenImage_1.jpg")]
+    [TestCase("Pf_TestData_2.json", "Pf_GoldenImage_2.jpg")]
+    [TestCase("Pf_TestData_3.json", "Pf_GoldenImage_3.jpg")]
+    public async Task GeneratePureFictionGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
+               File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)));
+        Assert.That(testData, Is.Not.Null);
 
-    // [Test]
-    // [TestCase("As_TestData_1.json", "As_GoldenImage_1.jpg")]
-    // [TestCase("As_TestData_2.json", "As_GoldenImage_2.jpg")]
-    // [TestCase("As_TestData_3.json", "As_GoldenImage_3.jpg")]
-    // public async Task GenerateBossChallengeGoldenImage(string testDataFileName, string goldenImageFileName)
-    // {
-    //     HsrEndInformation? testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
-    //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)), JsonOptions);
-    //     Assert.That(testData, Is.Not.Null);
-    //
-    //     GameProfileDto userGameData = GetTestUserGameData();
-    //
-    //     Stream image = await m_Service.GetCardAsync(
-    //         new HsrEndGameGenerationContext(TestUserId, testData!, Server.Asia, userGameData, HsrEndGameMode.ApocalypticShadow));
-    //
-    //     await using FileStream fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-    //         "TestAssets", goldenImageFileName));
-    // await image.CopyToAsync(fileStream);
-    //
-    //     Assert.That(image, Is.Not.Null);
-    // }
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("mode", HsrEndGameMode.PureFiction);
+
+        var image = await m_Service.GetCardAsync(cardContext);
+
+        await using var fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+            "TestAssets", goldenImageFileName));
+        await image.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+
+        Assert.That(image, Is.Not.Null);
+    }
+
+    [Explicit]
+    [Test]
+    [TestCase("As_TestData_1.json", "As_GoldenImage_1.jpg")]
+    [TestCase("As_TestData_2.json", "As_GoldenImage_2.jpg")]
+    [TestCase("As_TestData_3.json", "As_GoldenImage_3.jpg")]
+    public async Task GenerateBossChallengeGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
+            File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)), JsonOptions);
+        Assert.That(testData, Is.Not.Null);
+
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("mode", HsrEndGameMode.ApocalypticShadow);
+
+        var image = await m_Service.GetCardAsync(cardContext);
+
+        await using var fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+            "TestAssets", goldenImageFileName));
+        await image.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+
+        Assert.That(image, Is.Not.Null);
+    }
 }

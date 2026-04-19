@@ -193,7 +193,9 @@ public class HsrCharacterCardServiceTests
         await generatedImageStream.CopyToAsync(memoryStream);
 
         var outputPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName);
-        await File.WriteAllBytesAsync(outputPath, memoryStream.ToArray());
+        await using var fs = File.Create(outputPath);
+        await fs.WriteAsync(memoryStream.ToArray());
+        await fs.FlushAsync();
 
         Assert.That(generatedImageStream, Is.Not.Null);
     }

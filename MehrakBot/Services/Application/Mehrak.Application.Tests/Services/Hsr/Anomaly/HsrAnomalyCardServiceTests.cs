@@ -88,7 +88,7 @@ internal class HsrAnomalyCardServiceTests
 
         await using var image = await m_Service.GetCardAsync(cardContext);
 
-        using var fileStream = File.OpenWrite(Path.Combine(TestAssetsPath, goldenImage));
+        using var fileStream = File.Create(Path.Combine(TestAssetsPath, goldenImage));
         await image.CopyToAsync(fileStream);
         await fileStream.FlushAsync();
     }
