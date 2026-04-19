@@ -10,6 +10,7 @@ import GenshinView from "../views/GenshinView.vue";
 import HsrView from "../views/HsrView.vue";
 import ZzzView from "../views/ZzzView.vue";
 import Hi3View from "../views/Hi3View.vue";
+import SeaweedFilerView from "../views/SeaweedFilerView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,6 +63,11 @@ const router = createRouter({
           path: "hi3",
           name: "hi3",
           component: Hi3View,
+        },
+        {
+          path: "seaweed-filer",
+          name: "seaweed-filer",
+          component: SeaweedFilerView,
         },
         {
           path: "change-password",

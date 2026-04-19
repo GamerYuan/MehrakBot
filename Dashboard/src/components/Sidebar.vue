@@ -62,6 +62,15 @@ const handleLogout = async () => {
       </router-link>
 
       <router-link
+        v-if="userInfo.isSuperAdmin"
+        to="/dashboard/seaweed-filer"
+        class="nav-item"
+        :class="{ active: isActive('/dashboard/seaweed-filer') }"
+      >
+        Seaweed Filer
+      </router-link>
+
+      <router-link
         to="/dashboard/genshin"
         class="nav-item"
         :class="{ active: isActive('/dashboard/genshin') }"
@@ -140,7 +149,9 @@ const handleLogout = async () => {
   border-radius: 8px;
   color: #ccc;
   text-decoration: none;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .nav-item:hover {
