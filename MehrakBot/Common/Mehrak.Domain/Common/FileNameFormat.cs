@@ -67,6 +67,11 @@ public static class FileNameFormat
         public const string SideAvatarName = "hsr_side_avatar_{0}";
 
         /// <summary>
+        /// HSR relic file name format, where {0} is the relic ID
+        /// </summary>
+        public const string RelicName = "hsr_relic_{0}";
+
+        /// <summary>
         /// HSR stats file name format, where {0} is the stat ID
         /// </summary>
         public const string StatsName = "hsr_stats_{0}";

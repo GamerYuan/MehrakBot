@@ -207,12 +207,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                     end = 6;
                 }
 
-                var setId = x.GetSetId();
-
                 for (var i = start; i <= end; i++)
                 {
                     if (relicWiki.ContainsKey(x.Id.ToString()) &&
-                        !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName, $"{setId}{i}"), token))
+                        !await m_ImageRepository.FileExistsAsync(x.ToImageName(i), token))
                         return true;
                 }
 
@@ -271,7 +269,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null)
             .SelectMany(x => x.Value!.Select((e, i) =>
                 new ImageData(
-                    string.Format(FileNameFormat.Hsr.FileName, $"{x.Key.GetSetId()}{(x.Key.Pos < 5 ? i + 1 : i + 5)}"),
+                    x.Key.ToImageName(x.Key.Pos < 5 ? i + 1 : i + 5),
                     e?["icon_url"]?.GetValue<string>() ?? string.Empty))
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor))));
         tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments)

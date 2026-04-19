@@ -142,7 +142,12 @@ public class Relic
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Hsr.FileName, Id.ToString()[1..]);
+        return string.Format(FileNameFormat.Hsr.RelicName, Id.ToString()[1..]);
+    }
+
+    public string ToImageName(int slot)
+    {
+        return string.Format(FileNameFormat.Hsr.RelicName, $"{GetSetId()}{slot}");
     }
 
     public int GetSetId()
