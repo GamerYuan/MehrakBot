@@ -3,6 +3,7 @@
 using System.Numerics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -280,10 +281,8 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 {
                     var skill = skillIcons[i];
                     var offset = i * 150;
-                    EllipsePolygon skillEllipse = new(120, 900 - offset, 60);
-                    ctx.Fill(Color.DarkSlateGray, skillEllipse);
-                    ctx.DrawImage(skill.Image, new Point(70, 850 - offset), 1f);
-                    ctx.Draw(backgroundColor, 5f, skillEllipse.AsClosedPath());
+                    ctx.DrawCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 20, Color.DarkSlateGray,
+                        backgroundColor, 5f);
                     EllipsePolygon talentEllipse = new(120, 960 - offset, 25);
                     ctx.Fill(skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray, talentEllipse);
                     ctx.DrawText(new RichTextOptions(m_MediumFont)
@@ -307,10 +306,8 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                     if (!constellation.Active)
                         constellation.Image.Mutate(x => x.Brightness(0.5f));
                     var offset = i * 140;
-                    EllipsePolygon constEllipse = new(1050, 1000 - offset, 50);
-                    ctx.Fill(Color.DarkSlateGray, constEllipse);
-                    ctx.DrawImage(constellation.Image, new Point(1005, 955 - offset), 1f);
-                    ctx.Draw(backgroundColor, 5f, constEllipse.AsClosedPath());
+                    ctx.DrawCenteredIcon(constellation.Image, new PointF(1050, 1000 - offset), 50, 10,
+                        Color.DarkSlateGray, backgroundColor, 5f);
                 }
 
                 ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);

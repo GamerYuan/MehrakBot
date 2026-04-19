@@ -1,9 +1,10 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Models;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -108,15 +109,11 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                 .Where(x => x is { Node1: not null, Node2: not null })
                 .SelectMany(x => new HsrEndBuff[] { x.Node1!.Buff, x.Node2!.Buff })
                 .Where(x => x is not null)
-                .DistinctBy(x => x.Id).ToAsyncEnumerable().ToDictionaryAsync(
+                .DistinctBy(x => x.Id)
+                .ToAsyncEnumerable()
+                .ToDictionaryAsync(
                     async (x, token) => await Task.FromResult(x.Id),
-                    async (x, token) =>
-                    {
-                        var image =
-                            await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
-                        image.Mutate(ctx => ctx.Resize(110, 0));
-                        return image;
-                    });
+                    async (x, token) => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token));
 
             disposables.AddRange(avatarImages.Keys);
             disposables.AddRange(avatarImages.Values);
@@ -299,11 +296,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                             1f);
 
                     ctx.DrawImage(node1, new Point(xOffset + 55, yOffset + 130), 1f);
-                    IPath ellipse = new EllipsePolygon(new PointF(xOffset + 780, yOffset + 220), 55);
-                    ctx.Fill(Color.Black, ellipse);
-                    ctx.Draw(Color.White, 1f, ellipse);
-                    ctx.DrawImage(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 725, yOffset + 170),
-                        1f);
+                    ctx.DrawCenteredIcon(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 780, yOffset + 220), 55, 0, Color.Black, Color.White);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 40, yOffset + 335),
                         new PointF(xOffset + 860, yOffset + 335));
                     ctx.DrawText("Node 2", m_NormalFont, Color.White, new PointF(xOffset + 45, yOffset + 350));
@@ -317,12 +310,7 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                             1f);
 
                     ctx.DrawImage(node2, new Point(xOffset + 55, yOffset + 395), 1f);
-                    ellipse = ellipse.Translate(0, 265);
-                    ctx.Fill(Color.Black, ellipse);
-                    ctx.Draw(Color.White, 1f, ellipse);
-                    ctx.DrawImage(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 725, yOffset + 425),
-                        1f);
-
+                    ctx.DrawCenteredIcon(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 780, yOffset + 485), 55, 0, Color.Black, Color.White);
                     for (var i = 0; i < 3; i++)
                         ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
                             new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);

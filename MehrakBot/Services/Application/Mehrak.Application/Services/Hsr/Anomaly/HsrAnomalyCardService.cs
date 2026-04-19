@@ -1,17 +1,16 @@
-﻿using Mehrak.Application.Services.Abstractions;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Models;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
@@ -124,8 +123,6 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
                 : null;
             using var medalImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(anomalyData.ToMedalName()));
 
-            buffImage?.Mutate(ctx => ctx.Resize(110, 0));
-
             var lookup = avatarImages.GetAlternateLookup<int>();
 
             using var background = m_Background.CloneAs<Rgba32>();
@@ -237,10 +234,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
                 }, record.RoundNum.ToString(), Color.White);
                 ctx.DrawImage(m_CycleIcon, new Point(900, 20), 1f);
 
-                IPath ellipse = new EllipsePolygon(new PointF(1055, 170), 55);
-                ctx.Fill(Color.Black, ellipse);
-                ctx.Draw(Color.White, 1f, ellipse);
-                ctx.DrawImage(buffImage!, new Point(1000, 120), 1f);
+                ctx.DrawCenteredIcon(buffImage!, new PointF(1055, 170), 55, 0, Color.Black, Color.White);
             }
             else
             {

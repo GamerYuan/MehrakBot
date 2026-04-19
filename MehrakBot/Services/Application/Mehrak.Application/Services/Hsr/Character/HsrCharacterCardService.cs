@@ -2,6 +2,7 @@
 
 using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -327,11 +328,9 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 for (var i = 0; i < ranks.Length; i++)
                 {
                     var offset = i * 100;
-                    EllipsePolygon ellipse = new(new PointF(900, 1115 - offset), 45);
-                    ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
                     if (!ranks[i].Active) ranks[i].Image.Mutate(x => x.Brightness(0.5f));
-                    ctx.DrawImage(ranks[i].Image, new Point(860, 1075 - offset), 1f);
-                    ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
+                    ctx.DrawCenteredIcon(ranks[i].Image, new PointF(900, 1115 - offset), 45, 10, Color.DarkSlateGray,
+                        accentColor, 5f);
                 }
 
                 for (var i = 0; i < baseSkillImages.Length; i++)
@@ -342,10 +341,8 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         "Elation Skill" => Color.FromRgb(255, 176, 161),
                         _ => accentColor
                     };
-                    EllipsePolygon ellipse = new(new PointF(900, 80 + offset), 45);
-                    ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                    ctx.DrawImage(baseSkillImages[i].Image, new Point(860, 40 + offset), 1f);
-                    ctx.Draw(skillColor, 5, ellipse.AsClosedPath());
+                    ctx.DrawCenteredIcon(baseSkillImages[i].Image, new PointF(900, 80 + offset), 45, 10,
+                        Color.DarkSlateGray, skillColor, 5f);
 
                     EllipsePolygon levelEllipse = new(new PointF(865, 115 + offset), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
@@ -370,18 +367,14 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         if (skill.Data.PointType == 3)
                         {
                             var xOffset = j * 100;
-                            EllipsePolygon ellipse = new(new PointF(1020 + xOffset, 80 + yOffset), 45);
-                            ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                            ctx.DrawImage(skill.Image, new Point(980 + xOffset, 40 + yOffset), 1f);
-                            ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
+                            ctx.DrawCenteredIcon(skill.Image, new PointF(1020 + xOffset, 80 + yOffset), 45, 10,
+                                Color.DarkSlateGray, accentColor, 5f);
                         }
                         else
                         {
                             var xOffset = (j - 1) * 100;
-                            EllipsePolygon ellipse = new(new PointF(1120 + xOffset, 80 + yOffset), 30);
-                            ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                            ctx.DrawImage(skill.Image, new Point(1095 + xOffset, 55 + yOffset), 1f);
-                            ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
+                            ctx.DrawCenteredIcon(skill.Image, new PointF(1120 + xOffset, 80 + yOffset), 30, 10,
+                                Color.DarkSlateGray, accentColor, 5f);
                         }
                     }
                 }
@@ -391,10 +384,8 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                 for (var i = 0; i < servantImages.Length; i++)
                 {
                     var offset = (i + type4Skill) * 120;
-                    EllipsePolygon ellipse = new(new PointF(900 + offset, 480), 45);
-                    ctx.Fill(new SolidBrush(Color.DarkSlateGray), ellipse);
-                    ctx.DrawImage(servantImages[i].Image, new Point(860 + offset, 440), 1f);
-                    ctx.Draw(accentColor, 5, ellipse.AsClosedPath());
+                    ctx.DrawCenteredIcon(servantImages[i].Image, new PointF(900 + offset, 480), 45, 10,
+                        Color.DarkSlateGray, accentColor, 5f);
 
                     EllipsePolygon levelEllipse = new(new PointF(865 + offset, 515), 20);
                     ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
