@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -117,7 +118,8 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
                 .SelectMany(x => new List<HsrEndBuff> { x.Node1!.Buff, x.Node2!.Buff })
                 .DistinctBy(x => x.Id)
                 .Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
+                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                        new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
 
             var completed = await Task.WhenAll(tasks.Concat(buffTasks));
 
