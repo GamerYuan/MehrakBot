@@ -777,8 +777,11 @@ public class HsrCharacterApplicationServiceTests
         var context1 = CreateContext(3, 3ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         var firstResult = await service1.ExecuteAsync(context1);
-        Assert.That(firstResult.IsSuccess, Is.True, firstResult.ErrorMessage);
-        Assert.That(existingFiles.Count(f => f.StartsWith("hsr_118")), Is.EqualTo(2));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(firstResult.IsSuccess, Is.True, firstResult.ErrorMessage);
+            Assert.That(existingFiles.Count(f => f.StartsWith("hsr_relic_118")), Is.EqualTo(2));
+        }
 
         var (service2, characterApiMock2, _, _, wikiApiMock2, imageRepositoryMock2, imageUpdaterMock2, cardServiceMock2,
             gameRoleApiMock2, _, _, attachmentStorageMock2, _) = SetupMocks();
@@ -822,7 +825,7 @@ public class HsrCharacterApplicationServiceTests
         var secondResult = await service2.ExecuteAsync(context2);
         Assert.That(secondResult.IsSuccess, Is.True, secondResult.ErrorMessage);
 
-        Assert.That(existingFiles.Count(f => f.StartsWith("hsr_118")), Is.EqualTo(4));
+        Assert.That(existingFiles.Count(f => f.StartsWith("hsr_relic_118")), Is.EqualTo(4));
         attachmentStorageMock1.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         attachmentStorageMock2.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
