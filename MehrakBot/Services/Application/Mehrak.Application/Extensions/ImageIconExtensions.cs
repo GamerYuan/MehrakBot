@@ -17,12 +17,19 @@ public static class ImageIconExtensions
     public static IImageProcessingContext DrawCenteredIcon(this IImageProcessingContext ctx, Image icon, PointF center, float radius,
         float padding, Color background, Color outline, float outlineWidth)
     {
+        if (radius <= 0)
+            throw new ArgumentOutOfRangeException(nameof(radius), "Radius must be positive.");
+
+        var iconSize = radius * 2 - padding;
+
+        if (iconSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(padding), "Padding must be smaller than the icon diameter.");
+
         var ellipse = new EllipsePolygon(center, radius);
 
         ctx.Fill(background, ellipse);
         ctx.Draw(outline, outlineWidth, ellipse);
 
-        var iconSize = radius * 2 - padding;
         using var resizedIcon = icon.Clone(x => x.Resize(new ResizeOptions
         {
             Mode = ResizeMode.Max,
