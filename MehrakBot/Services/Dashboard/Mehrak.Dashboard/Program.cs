@@ -2,6 +2,7 @@
 using System.Net;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.Auth;
+using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Protobuf;
@@ -84,6 +85,7 @@ public class Program
 
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
+        builder.Services.Configure<SeaweedFilerOptions>(builder.Configuration.GetSection("SeaweedFiler"));
 
         builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
@@ -102,6 +104,12 @@ public class Program
             {
                 UseCookies = false
             }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
+
+        builder.Services.AddHttpClient("SeaweedFilerProxy").ConfigurePrimaryHttpMessageHandler(() =>
+            new HttpClientHandler
+            {
+                UseCookies = false
+            }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromMinutes(10));
 
         builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
         {
