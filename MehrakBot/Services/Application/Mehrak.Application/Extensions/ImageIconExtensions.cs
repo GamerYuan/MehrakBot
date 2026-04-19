@@ -10,18 +10,19 @@ public static class ImageIconExtensions
     public static IImageProcessingContext DrawCenteredIcon(this IImageProcessingContext ctx, Image icon, PointF center, float radius,
         float padding = 0, Color? background = null, Color? outline = null)
     {
+        return ctx.DrawCenteredIcon(icon, center, radius, padding,
+            background ?? Color.Transparent, outline ?? Color.Transparent, 2f);
+    }
+
+    public static IImageProcessingContext DrawCenteredIcon(this IImageProcessingContext ctx, Image icon, PointF center, float radius,
+        float padding, Color background, Color outline, float outlineWidth)
+    {
         var ellipse = new EllipsePolygon(center, radius);
 
-        if (background.HasValue)
-        {
-            ctx.Fill(background.Value, ellipse);
-        }
-        if (outline.HasValue)
-        {
-            ctx.Draw(outline.Value, 2, ellipse);
-        }
+        ctx.Fill(background, ellipse);
+        ctx.Draw(outline, outlineWidth, ellipse);
 
-        var iconSize = (radius * 2 - padding) / Math.Sqrt(2);
+        var iconSize = radius * 2 - padding;
         using var resizedIcon = icon.Clone(x => x.Resize(new ResizeOptions
         {
             Mode = ResizeMode.Max,
