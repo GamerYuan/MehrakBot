@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -124,7 +125,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
             if (bestRecord.BossRecord != null)
             {
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossRecord.Buff.ToImageData(),
-                    new ImageProcessorBuilder().Build()));
+                    new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
             }
 
             var completed = await Task.WhenAll(tasks);
