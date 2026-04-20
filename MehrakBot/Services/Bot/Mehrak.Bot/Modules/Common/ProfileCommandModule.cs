@@ -138,8 +138,11 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
     private static UserProfileModel? FindProfileForDelete(IEnumerable<UserProfileModel> profiles, ulong lookupValue)
     {
-        return profiles.FirstOrDefault(p => p.ProfileId == (int)lookupValue)
-               ?? profiles.FirstOrDefault(p => p.LtUid == (long)lookupValue);
+        var list = profiles as IList<UserProfileModel> ?? [.. profiles];
+        var byId = lookupValue <= int.MaxValue ? list.FirstOrDefault(p => p.ProfileId == (int)lookupValue) : null;
+        if (byId != null) return byId;
+
+        return list.FirstOrDefault(p => p.LtUid == (long)lookupValue);
     }
 
     [SubSlashCommand("list", "List your profiles")]
@@ -213,7 +216,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             })
             .ToList();
 
-        var profile = FindProfile(profiles, profileId);
+        var profile = FindProfile(profiles ?? [], profileId);
 
         if (profile == null)
         {
@@ -226,16 +229,13 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.UpdateAuthModal(profile)));
     }
 
-    private static UserProfileDto? FindProfile(IEnumerable<UserProfileDto>? profiles, ulong lookupValue)
+    private static UserProfileDto? FindProfile(IEnumerable<UserProfileDto> profiles, ulong lookupValue)
     {
-        var orderedProfiles = profiles?.OrderBy(p => p.ProfileId).ToList();
-        if (orderedProfiles == null || orderedProfiles.Count == 0)
-            return null;
+        var list = profiles as IList<UserProfileDto> ?? [.. profiles];
+        var byId = lookupValue <= int.MaxValue ? list.FirstOrDefault(p => p.ProfileId == (int)lookupValue) : null;
+        if (byId != null) return byId;
 
-        var lookupText = lookupValue.ToString();
-
-        return orderedProfiles.FirstOrDefault(p => p.ProfileId == (int)lookupValue)
-               ?? orderedProfiles.FirstOrDefault(p => p.LtUid == lookupValue);
+        return list.FirstOrDefault(p => p.LtUid == lookupValue);
     }
 
     public static string GetHelpString(string subcommand)
