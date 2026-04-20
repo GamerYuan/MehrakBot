@@ -5,6 +5,7 @@ using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -50,8 +51,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("delete", "Delete a profile")]
     public async Task DeleteProfileCommand(
         [SlashCommandParameter(Name = "profile",
-            Description = "The ID of the profile you want to delete. Leave blank if you wish to delete all profiles.")]
-        uint profileId = 0)
+            Description = "The Profile ID/HoYoLAB UID of the profile to delete. Leave blank to delete all profiles.")]
+        ulong profileId = 0)
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
@@ -86,22 +87,23 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        if (profiles.All(x => x.ProfileId != profileId))
+        var profile = FindProfileForDelete(profiles, profileId);
+        if (profile == null)
         {
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID {profileId} found!")));
+                    .AddComponents(new TextDisplayProperties($"No profile with ID or UID {profileId} found!")));
             return;
         }
 
         for (var i = profiles.Count - 1; i >= 0; i--)
         {
-            if (profiles[i].ProfileId == profileId)
+            if (profiles[i].ProfileId == profile.ProfileId)
             {
                 m_UserContext.UserProfiles.Remove(profiles[i]);
                 profiles.RemoveAt(i);
             }
-            else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
+            else if (profiles[i].ProfileId > profile.ProfileId) profiles[i].ProfileId--;
         }
 
         try
@@ -123,15 +125,21 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(
-                        new TextDisplayProperties($"Profile {profileId} deleted!")));
+                        new TextDisplayProperties($"Profile {profile.ProfileId} deleted!")));
         }
         catch (DbUpdateException e)
         {
-            m_Logger.LogError(e, "Failed to delete profile {ProfileId} for user {UserId}", profileId, Context.User.Id);
+            m_Logger.LogError(e, "Failed to delete profile {ProfileId} for user {UserId}", profile.ProfileId, Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
         }
+    }
+
+    private static UserProfileModel? FindProfileForDelete(IEnumerable<UserProfileModel> profiles, ulong lookupValue)
+    {
+        return profiles.FirstOrDefault(p => p.ProfileId == (int)lookupValue)
+               ?? profiles.FirstOrDefault(p => p.LtUid == (long)lookupValue);
     }
 
     [SubSlashCommand("list", "List your profiles")]
