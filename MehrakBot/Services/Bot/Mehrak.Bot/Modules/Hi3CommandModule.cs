@@ -1,4 +1,5 @@
-﻿using Mehrak.Bot.Builders;
+using Mehrak.Bot.Builders;
+using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
@@ -55,22 +56,6 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
 
     public static string GetHelpString(string subcommand = "")
     {
-        return subcommand switch
-        {
-            "battlesuit" => "## HI3 Battlesuit\n" +
-                            "Get battlesuit card from Honkai Impact 3rd\n" +
-                            "### Usage\n" +
-                            "```/hi3 battlesuit <battlesuit> [server] [profile]```\n" +
-                            "### Parameters:\n" +
-                            "- `battlesuit`: Battlesuit Name (Case-Insensitive)\n" +
-                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                            "### Examples\n" +
-                            "```/hi3 battlesuit White Comet\n/hi3 battlesuit White Comet SEA```",
-            _ => "## Honkai Impact 3rd Toolbox\n" +
-                 "Honkai Impact 3rd related commands and utilities.\n" +
-                 "### Subcommands\n" +
-                 "- battlesuit: Get battlesuit card from Honkai Impact 3rd"
-        };
+        return GeneratedHelpRegistry.GetHelpString("hi3", subcommand);
     }
 }

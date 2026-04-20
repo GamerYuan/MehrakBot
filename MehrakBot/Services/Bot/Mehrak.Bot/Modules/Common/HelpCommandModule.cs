@@ -5,6 +5,7 @@
 #region
 
 using Mehrak.Bot.Config;
+using Mehrak.Bot.Generated;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -20,7 +21,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
         [
             InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
         ])]
-    public InteractionMessageProperties HelpCommand(string commandName = "")
+    public static InteractionMessageProperties HelpCommand(string commandName = "")
     {
         var commands = commandName.ToLowerInvariant().Split(' ');
         var helpMessage = commands[0].TrimStart('/') switch
@@ -32,15 +33,7 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
             "zzz" => ZzzCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
             "health" => HealthCommandModule.GetHelpString(),
             "checkin" => DailyCheckInCommandModule.GetHelpString(),
-            _ => "Available commands: \n" +
-                 "- `/profile [add|delete|list]`\n" +
-                 "- `/checkin`\n" +
-                 "- `/genshin [abyss|character|charlist|codes|notes|stygian|theater]`\n" +
-                 "- `/hi3 [battlesuit]`\n" +
-                 "- `/hsr [aa|as|character|charlist|codes|moc|notes|pf]`\n" +
-                 "- `/zzz [character|charlist|codes|da|shiyu|notes|tower]`\n" +
-                 "Use `/help <command>` to get help about a specific command or subcommand.\n" +
-                 "For example: `/help genshin` or `/help genshin character`"
+            _ => GeneratedHelpRegistry.GetAvailableCommandsString()
         };
 
         return new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
