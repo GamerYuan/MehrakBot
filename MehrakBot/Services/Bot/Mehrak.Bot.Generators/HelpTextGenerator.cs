@@ -418,7 +418,7 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
         builder.AppendLine("            return GetAvailableCommandsString();");
         builder.AppendLine();
         builder.AppendLine("        commandName = commandName.Trim().TrimStart('/').ToLowerInvariant();");
-        builder.AppendLine("        subcommand = subcommand.Trim().ToLowerInvariant();");
+        builder.AppendLine("        subcommand = (subcommand ?? string.Empty).Trim().ToLowerInvariant();");
         builder.AppendLine();
         builder.AppendLine("        return commandName switch");
         builder.AppendLine("        {");
