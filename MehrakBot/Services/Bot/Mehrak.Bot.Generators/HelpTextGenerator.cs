@@ -66,6 +66,8 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
 
             var commandName = GetConstructorStringArgument(subSlashAttribute ?? slashAttribute, 0);
             var commandDescription = GetConstructorStringArgument(subSlashAttribute ?? slashAttribute, 1);
+            var helpNotes = GetConstructorStringArgument(
+                FindAttribute(method.GetAttributes(), "HelpNotesAttribute", "HelpNotes"), 0);
 
             if (string.IsNullOrWhiteSpace(commandName))
                 continue;
@@ -127,7 +129,8 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
                 commandDescription ?? string.Empty,
                 parameters,
                 subSlashAttribute is not null,
-                rootCommandDescription ?? string.Empty));
+                rootCommandDescription ?? string.Empty,
+                helpNotes));
         }
 
         if (commands.Count == 0)
@@ -255,6 +258,9 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
 
         lines.Add("### Examples");
         lines.Add("```" + string.Join("\n", BuildExamples(pathText, command.Parameters)) + "```");
+
+        if (!string.IsNullOrWhiteSpace(command.HelpNotes))
+            lines.Add($"-# {command.HelpNotes}");
 
         return string.Join("\n", lines);
     }
@@ -561,13 +567,15 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
             string description,
             List<ParameterInfo> parameters,
             bool isSubcommand,
-            string rootDescription)
+            string rootDescription,
+            string? helpNotes)
         {
             Path = path;
             Description = description;
             Parameters = parameters;
             IsSubcommand = isSubcommand;
             RootDescription = rootDescription;
+            HelpNotes = helpNotes;
         }
 
         public List<string> Path { get; }
@@ -579,6 +587,8 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
         public bool IsSubcommand { get; }
 
         public string RootDescription { get; }
+
+        public string? HelpNotes { get; }
     }
 
     private sealed class ParameterInfo

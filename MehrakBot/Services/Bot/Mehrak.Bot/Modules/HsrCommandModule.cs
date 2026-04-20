@@ -34,6 +34,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     }
 
     [SubSlashCommand("character", "Get character card")]
+    [HelpNotes("[List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/honkai-star-rail-commands/character/supported-alias)")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "characters", Description = "Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)",
             AutocompleteProviderType = typeof(HsrCharacterAutocompleteProvider))]

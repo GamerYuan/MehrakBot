@@ -37,6 +37,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     }
 
     [SubSlashCommand("character", "Get character card")]
+    [HelpNotes("[List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/genshin-impact-commands/character/supported-alias)")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "characters", Description = "Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)",
             AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
