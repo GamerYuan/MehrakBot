@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text;
+using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -52,6 +53,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     public async Task DeleteProfileCommand(
         [SlashCommandParameter(Name = "profile",
             Description = "The Profile ID/HoYoLAB UID of the profile to delete. Leave blank to delete all profiles.")]
+        [HelpExample("1", "123456")]
         ulong profileId = 0)
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
@@ -192,7 +194,11 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     }
 
     [SubSlashCommand("update", "Update the HoYoLAB Cookies and Passphrase for a selected profile")]
-    public async Task UpdateProfile([SlashCommandParameter(Name = "profile", Description = "The Profile ID/HoYoLAB UID of the profile to update")] ulong profileId)
+    public async Task UpdateProfile(
+        [SlashCommandParameter(Name = "profile", Description = "The Profile ID/HoYoLAB UID of the profile to update")]
+        [HelpExample("1", "123456")]
+        ulong profileId
+    )
     {
         var user = await m_UserContext.Users
             .AsNoTracking()

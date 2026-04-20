@@ -1,3 +1,4 @@
+using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
@@ -15,6 +16,8 @@ namespace Mehrak.Bot.Modules;
         InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
     ])]
 [RateLimit<ApplicationCommandContext>]
+[HelpExampleFallback("server", "SEA")]
+[HelpExampleFallback("profile", "2")]
 public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;
@@ -31,6 +34,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "battlesuit", Description = "Character Name (Case-insensitive)",
             AutocompleteProviderType = typeof(Hi3CharacterAutocompleteProvider))]
+        [HelpExample("White Comet")]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Hi3Server? server = null,

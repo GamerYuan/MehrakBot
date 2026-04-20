@@ -4,6 +4,7 @@
 
 #region
 
+using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Zzz;
@@ -19,6 +20,8 @@ namespace Mehrak.Bot.Modules;
 
 [SlashCommand("zzz", "Zenless Zone Zero Toolbox")]
 [RateLimit<ApplicationCommandContext>]
+[HelpExampleFallback("server", "Asia")]
+[HelpExampleFallback("profile", "2")]
 public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;
@@ -35,6 +38,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("codes", "Redeem Zenless Zone Zero codes")]
     public async Task CodesCommand(
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
+        [HelpExample("ZZZCODE123", "ZZZCODE123, ZZZCODE456")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
@@ -62,6 +66,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
             AutocompleteProviderType = typeof(ZzzCharacterAutocompleteProvider))]
+        [HelpExample("Miyabi")]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,

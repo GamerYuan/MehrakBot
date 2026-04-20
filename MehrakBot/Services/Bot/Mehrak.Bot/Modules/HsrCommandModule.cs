@@ -4,6 +4,7 @@
 
 #region
 
+using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
@@ -19,6 +20,8 @@ namespace Mehrak.Bot.Modules;
 
 [SlashCommand("hsr", "Honkai: Star Rail Toolbox")]
 [RateLimit<ApplicationCommandContext>]
+[HelpExampleFallback("server", "Asia")]
+[HelpExampleFallback("profile", "2")]
 public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;
@@ -34,6 +37,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "characters", Description = "Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)",
             AutocompleteProviderType = typeof(HsrCharacterAutocompleteProvider))]
+        [HelpExample("March 7th", "March 7th, Dan Heng")]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
@@ -84,6 +88,7 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
     [SubSlashCommand("codes", "Redeem Honkai: Star Rail codes")]
     public async Task CodesCommand(
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
+        [HelpExample("HSRCODE123", "HSRCODE123, HSRCODE456")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
