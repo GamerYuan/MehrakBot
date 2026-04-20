@@ -6,7 +6,6 @@
 
 using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Generated;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
 using Microsoft.Extensions.Logging;
@@ -47,10 +46,5 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString()
-    {
-        return GeneratedHelpRegistry.GetHelpString("checkin");
     }
 }

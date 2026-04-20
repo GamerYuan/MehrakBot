@@ -24,17 +24,9 @@ public class HelpCommandModule : ApplicationCommandModule<ApplicationCommandCont
     public static InteractionMessageProperties HelpCommand(string commandName = "")
     {
         var commands = commandName.ToLowerInvariant().Split(' ');
-        var helpMessage = commands[0].TrimStart('/') switch
-        {
-            "genshin" => GenshinCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
-            "profile" => ProfileCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
-            "hi3" => Hi3CommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
-            "hsr" => HsrCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
-            "zzz" => ZzzCommandModule.GetHelpString(commands.Length > 1 ? commands[1] : ""),
-            "health" => HealthCommandModule.GetHelpString(),
-            "checkin" => DailyCheckInCommandModule.GetHelpString(),
-            _ => GeneratedHelpRegistry.GetAvailableCommandsString()
-        };
+        var helpMessage = GeneratedHelpRegistry.GetHelpString(
+            commands.Length > 0 ? commands[0] : "",
+            commands.Length > 1 ? commands[1] : "");
 
         return new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
             .AddComponents(

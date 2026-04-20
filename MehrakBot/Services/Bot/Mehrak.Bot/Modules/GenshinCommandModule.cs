@@ -2,7 +2,6 @@
 
 using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
@@ -210,10 +209,5 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString(string subcommand = "")
-    {
-        return GeneratedHelpRegistry.GetHelpString("genshin", subcommand);
     }
 }

@@ -1,6 +1,5 @@
-using Mehrak.Bot.Attributes;
+﻿using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
@@ -56,10 +55,5 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString(string subcommand = "")
-    {
-        return GeneratedHelpRegistry.GetHelpString("hi3", subcommand);
     }
 }

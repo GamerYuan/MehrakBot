@@ -6,7 +6,6 @@
 
 using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Zzz;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
@@ -208,10 +207,5 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString(string subcommand = "")
-    {
-        return GeneratedHelpRegistry.GetHelpString("zzz", subcommand);
     }
 }

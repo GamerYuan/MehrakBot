@@ -6,7 +6,6 @@
 
 using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
-using Mehrak.Bot.Generated;
 using Mehrak.Bot.Provider.Autocomplete.Hsr;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
@@ -225,10 +224,5 @@ public class HsrCommandModule : ApplicationCommandModule<ApplicationCommandConte
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString(string subcommand = "")
-    {
-        return GeneratedHelpRegistry.GetHelpString("hsr", subcommand);
     }
 }
