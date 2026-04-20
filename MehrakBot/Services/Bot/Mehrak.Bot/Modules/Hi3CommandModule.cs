@@ -1,4 +1,5 @@
-﻿using Mehrak.Bot.Builders;
+﻿using Mehrak.Bot.Attributes;
+using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
@@ -14,6 +15,8 @@ namespace Mehrak.Bot.Modules;
         InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
     ])]
 [RateLimit<ApplicationCommandContext>]
+[HelpExampleFallback("server", "SEA")]
+[HelpExampleFallback("profile", "2")]
 public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;
@@ -30,6 +33,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "battlesuit", Description = "Character Name (Case-insensitive)",
             AutocompleteProviderType = typeof(Hi3CharacterAutocompleteProvider))]
+        [HelpExample("White Comet")]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Hi3Server? server = null,
@@ -51,26 +55,5 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString(string subcommand = "")
-    {
-        return subcommand switch
-        {
-            "battlesuit" => "## HI3 Battlesuit\n" +
-                            "Get battlesuit card from Honkai Impact 3rd\n" +
-                            "### Usage\n" +
-                            "```/hi3 battlesuit <battlesuit> [server] [profile]```\n" +
-                            "### Parameters:\n" +
-                            "- `battlesuit`: Battlesuit Name (Case-Insensitive)\n" +
-                            "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                            "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                            "### Examples\n" +
-                            "```/hi3 battlesuit White Comet\n/hi3 battlesuit White Comet SEA```",
-            _ => "## Honkai Impact 3rd Toolbox\n" +
-                 "Honkai Impact 3rd related commands and utilities.\n" +
-                 "### Subcommands\n" +
-                 "- battlesuit: Get battlesuit card from Honkai Impact 3rd"
-        };
     }
 }

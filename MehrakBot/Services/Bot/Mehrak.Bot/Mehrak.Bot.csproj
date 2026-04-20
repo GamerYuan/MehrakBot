@@ -50,6 +50,10 @@
     </ItemGroup>
     
     <ItemGroup>
+        <ProjectReference Include="../Mehrak.Bot.Generators/Mehrak.Bot.Generators.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all" />
         <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />

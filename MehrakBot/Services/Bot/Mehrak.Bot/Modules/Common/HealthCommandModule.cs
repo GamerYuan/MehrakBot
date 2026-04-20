@@ -6,6 +6,7 @@
 
 using System.Net.NetworkInformation;
 using Amazon.S3;
+using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Config;
 using Mehrak.Bot.Services;
 using Mehrak.Domain.Services.Abstractions;
@@ -20,6 +21,7 @@ using StackExchange.Redis;
 
 namespace Mehrak.Bot.Modules.Common;
 
+[HelpIgnore]
 public class HealthCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly IDbStatusService m_DbStatus;

@@ -4,6 +4,7 @@
 
 #region
 
+using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Domain.Common;
@@ -15,6 +16,7 @@ using NetCord.Services.ApplicationCommands;
 namespace Mehrak.Bot.Modules.Common;
 
 [RateLimit<ApplicationCommandContext>]
+[HelpExampleFallback("profile", "2")]
 public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;
@@ -44,18 +46,5 @@ public class DailyCheckInCommandModule : ApplicationCommandModule<ApplicationCom
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString()
-    {
-        return "## Daily Check-In\n" +
-               "Perform HoYoLAB Daily Check-In to collect daily rewards for multiple HoYoverse games\n" +
-               "Supports: Genshin Impact, Honkai: Star Rail, Zenless Zone Zero, and Honkai Impact 3rd\n" +
-               "### Usage\n" +
-               "```/checkin [profile]```\n" +
-               "### Parameters\n" +
-               "- `profile`: Profile ID (Defaults to 1) [Optional]\n" +
-               "### Examples\n" +
-               "```/checkin\n/checkin 2```\n";
     }
 }

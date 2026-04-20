@@ -1,4 +1,5 @@
-﻿using Mehrak.Bot.Models;
+﻿using Mehrak.Bot.Attributes;
+using Mehrak.Bot.Models;
 using Mehrak.Bot.Services;
 using Mehrak.Bot.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,8 +27,10 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
         Contexts = [InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel])]
     public async Task EmbedPostAsync(
         [SlashCommandParameter(Name = "url", Description = "The URL of the HoYoLAB post to embed")]
+        [HelpExample("https://www.hoyolab.com/post/123456")]
         string url,
         [SlashCommandParameter(Name = "language", Description = "The display language of the embedded post (Defaults to English)")]
+        [HelpExample("English", "Japanese")]
         WikiLocaleChoice language = WikiLocaleChoice.EN)
     {
         var sanitisedUrl = url.Trim().Trim('"').ReplaceLineEndings("");

@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Bot.Attributes;
 using NetCord;
 using NetCord.Services.ApplicationCommands;
 
@@ -7,6 +8,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace Mehrak.Bot.Modules.Common;
 
+[HelpIgnore]
 public class PingCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("ping", "Ping!",

@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
 using Mehrak.Bot.Services.RateLimit;
@@ -19,6 +20,8 @@ namespace Mehrak.Bot.Modules;
         InteractionContextType.Guild, InteractionContextType.BotDMChannel, InteractionContextType.DMChannel
     ])]
 [RateLimit<ApplicationCommandContext>]
+[HelpExampleFallback("server", "Asia")]
+[HelpExampleFallback("profile", "2")]
 public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly ICommandExecutorBuilder m_Builder;
@@ -33,9 +36,11 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     }
 
     [SubSlashCommand("character", "Get character card")]
+    [HelpNotes("[List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/genshin-impact-commands/character/supported-alias)")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "characters", Description = "Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)",
             AutocompleteProviderType = typeof(GenshinCharacterAutocompleteProvider))]
+        [HelpExample("Nahida", "Nahida, Fischl")]
         string character,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
@@ -86,6 +91,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("codes", "Redeem Genshin Impact codes")]
     public async Task CodesCommand(
         [SlashCommandParameter(Name = "code", Description = "Redemption Codes (Comma-separated, Case-insensitive)")]
+        [HelpExample("GENSHINGIFT", "GENSHINGIFT, GENSHINCODE")]
         string code = "",
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
@@ -112,6 +118,7 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("abyss", "Get Spiral Abyss summary card")]
     public async Task AbyssCommand(
         [SlashCommandParameter(Name = "floor", Description = "Floor Number (9-12)")]
+        [HelpExample("12")]
         uint floor,
         [SlashCommandParameter(Name = "server", Description = "Server")]
         Server? server = null,
@@ -202,89 +209,5 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
-    }
-
-    public static string GetHelpString(string subcommand = "")
-    {
-        return subcommand switch
-        {
-            "abyss" => "## Spiral Abyss\n" +
-                       "Get Spiral Abyss summary card\n" +
-                       "### Usage\n" +
-                       "```/genshin abyss <floor> [server] [profile]```\n" +
-                       "### Parameters\n" +
-                       "- `floor`: Floor Number (9-12)\n" +
-                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                       "### Examples\n" +
-                       "```/genshin abyss 9\n/genshin abyss 12 Asia 2```",
-            "character" => "## Genshin Character\n" +
-                           "Get character card from Genshin Impact\n" +
-                           "### Usage\n" +
-                           "```/genshin character <characters> [server] [profile]```\n" +
-                           "### Parameters\n" +
-                           "- `characters`: Character Names or Aliases (Case-insensitive, Comma-separated, Max 4)\n" +
-                           "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                           "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                           "### Examples\n" +
-                           "```/genshin character Fischl\n/genshin character Fischl, Nahida\n/genshin character Traveler America\n/genshin character Nahida Asia 3```\n" +
-                           "-# [List of Aliases](https://gameryuan.gitbook.io/mehrak/commands/genshin-impact-commands/character/supported-alias)",
-            "charlist" => "## Character List\n" +
-                          "Get character list from Genshin Impact\n" +
-                          "### Usage\n" +
-                          "```/genshin charlist [server] [profile]```\n" +
-                          "### Parameters\n" +
-                          "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                          "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                          "### Examples\n" +
-                          "```/genshin charlist\n/genshin charlist Asia 2```",
-            "codes" => "## Redemption Codes\n" +
-                       "Redeem Genshin Impact codes\n" +
-                       "### Usage\n" +
-                       "```/genshin codes [codes] [server] [profile]```\n" +
-                       "### Parameters\n" +
-                       "- `codes`: The code(s) that you want to redeem. Defaults to known codes (Comma-separated, Case-insensitive) [Optional]\n" +
-                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                       "### Examples\n" +
-                       "```/genshin codes\n/genshin codes GENSHINGIFT\n/genshin codes GENSHINGIFT, GENSHINCODE\n/genshin codes GENSHINGIFT Asia 2```",
-            "notes" => "## Real-time Notes\n" +
-                       "Get real-time notes for Genshin Impact\n" +
-                       "### Usage\n" +
-                       "```/genshin notes [server] [profile]```\n" +
-                       "### Parameters\n" +
-                       "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                       "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                       "### Examples\n" +
-                       "```/genshin notes\n/genshin notes Asia 2```",
-            "stygian" => "## Stygian Onslaught\n" +
-                         "Get Stygian Onslaught summary card\n" +
-                         "### Usage\n" +
-                         "```/genshin stygian [server] [profile]```\n" +
-                         "### Parameters\n" +
-                         "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                         "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                         "### Examples\n" +
-                         "```/genshin stygian\n/genshin stygian Asia 2```",
-            "theater" => "## Imaginarium Theater\n" +
-                         "Get Imaginarium Theater summary card\n" +
-                         "### Usage\n" +
-                         "```/genshin theater [server] [profile]```\n" +
-                         "### Parameters\n" +
-                         "- `server`: Server (Defaults to your most recently used server with this command) [Optional, Required for first use]\n" +
-                         "- `profile`: Profile Id (Defaults to 1) [Optional]\n" +
-                         "### Examples\n" +
-                         "```/genshin theater\n/genshin theater Asia\n/genshin theater America 2```",
-            _ => "## Genshin Toolbox\n" +
-                 "Genshin Impact related commands and utilities.\n" +
-                 "### Subcommands\n" +
-                 "- `abyss`: Get Spiral Abyss summary card\n" +
-                 "- `character`: Get character card from Genshin Impact\n" +
-                 "- `charlist`: Get character list from Genshin Impact\n" +
-                 "- `codes`: Redeem Genshin Impact codes\n" +
-                 "- `notes`: Get real-time notes for Genshin Impact\n" +
-                 "- `stygian`: Get Stygian Onslaught summary card\n" +
-                 "- `theater`: Get Imaginarium Theater summary card\n"
-        };
     }
 }
