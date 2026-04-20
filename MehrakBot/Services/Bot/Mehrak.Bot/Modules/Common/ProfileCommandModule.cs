@@ -5,6 +5,7 @@ using Mehrak.Bot.Services;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -50,8 +51,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("delete", "Delete a profile")]
     public async Task DeleteProfileCommand(
         [SlashCommandParameter(Name = "profile",
-            Description = "The ID of the profile you want to delete. Leave blank if you wish to delete all profiles.")]
-        uint profileId = 0)
+            Description = "The Profile ID/HoYoLAB UID of the profile to delete. Leave blank to delete all profiles.")]
+        ulong profileId = 0)
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
@@ -86,22 +87,23 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        if (profiles.All(x => x.ProfileId != profileId))
+        var profile = FindProfileForDelete(profiles, profileId);
+        if (profile == null)
         {
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID {profileId} found!")));
+                    .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!")));
             return;
         }
 
         for (var i = profiles.Count - 1; i >= 0; i--)
         {
-            if (profiles[i].ProfileId == profileId)
+            if (profiles[i].ProfileId == profile.ProfileId)
             {
                 m_UserContext.UserProfiles.Remove(profiles[i]);
                 profiles.RemoveAt(i);
             }
-            else if (profiles[i].ProfileId > profileId) profiles[i].ProfileId--;
+            else if (profiles[i].ProfileId > profile.ProfileId) profiles[i].ProfileId--;
         }
 
         try
@@ -123,15 +125,24 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(
-                        new TextDisplayProperties($"Profile {profileId} deleted!")));
+                        new TextDisplayProperties($"Profile {profile.ProfileId} (HoYoLAB UID: {profile.LtUid}) deleted!")));
         }
         catch (DbUpdateException e)
         {
-            m_Logger.LogError(e, "Failed to delete profile {ProfileId} for user {UserId}", profileId, Context.User.Id);
+            m_Logger.LogError(e, "Failed to delete profile {ProfileId} for user {UserId}", profile.ProfileId, Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
         }
+    }
+
+    private static UserProfileModel? FindProfileForDelete(IEnumerable<UserProfileModel> profiles, ulong lookupValue)
+    {
+        var list = profiles as IList<UserProfileModel> ?? [.. profiles];
+        var byId = lookupValue <= int.MaxValue ? list.FirstOrDefault(p => p.ProfileId == (int)lookupValue) : null;
+        if (byId != null) return byId;
+
+        return list.FirstOrDefault(p => p.LtUid == (long)lookupValue);
     }
 
     [SubSlashCommand("list", "List your profiles")]
@@ -181,34 +192,50 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     }
 
     [SubSlashCommand("update", "Update the HoYoLAB Cookies and Passphrase for a selected profile")]
-    public async Task UpdateProfile([SlashCommandParameter(Name = "profile", Description = "The ID of the profile you want to update.")] uint profileId)
+    public async Task UpdateProfile([SlashCommandParameter(Name = "profile", Description = "The Profile ID/HoYoLAB UID of the profile to update")] ulong profileId)
     {
         var user = await m_UserContext.Users
             .AsNoTracking()
             .Where(u => u.Id == (long)Context.User.Id)
-            .Select(u => new UserDto()
-            {
-                Id = (ulong)u.Id,
-                Profiles = u.Profiles.Where(p => p.ProfileId == profileId)
-                    .Select(p => new UserProfileDto
-                    {
-                        ProfileId = p.ProfileId,
-                        LtUid = (uint)p.LtUid
-                    })
-                    .ToList()
-            }).FirstOrDefaultAsync();
+            .Include(u => u.Profiles)
+                .ThenInclude(p => p.GameUids)
+            .FirstOrDefaultAsync();
 
-        var profile = user?.Profiles?.FirstOrDefault();
+        var profiles = user?.Profiles
+            .OrderBy(p => p.ProfileId)
+            .Select(p => new UserProfileDto
+            {
+                Id = p.Id,
+                ProfileId = p.ProfileId,
+                LtUid = (ulong)p.LtUid,
+                GameUids = p.GameUids
+                    .GroupBy(g => g.Game)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.ToDictionary(entry => entry.Region, entry => entry.GameUid))
+            })
+            .ToList();
+
+        var profile = FindProfile(profiles ?? [], profileId);
 
         if (profile == null)
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID {profileId} found!"))));
+                    .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!"))));
             return;
         }
 
         await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.UpdateAuthModal(profile)));
+    }
+
+    private static UserProfileDto? FindProfile(IEnumerable<UserProfileDto> profiles, ulong lookupValue)
+    {
+        var list = profiles as IList<UserProfileDto> ?? [.. profiles];
+        var byId = lookupValue <= int.MaxValue ? list.FirstOrDefault(p => p.ProfileId == (int)lookupValue) : null;
+        if (byId != null) return byId;
+
+        return list.FirstOrDefault(p => p.LtUid == lookupValue);
     }
 
     public static string GetHelpString(string subcommand)
