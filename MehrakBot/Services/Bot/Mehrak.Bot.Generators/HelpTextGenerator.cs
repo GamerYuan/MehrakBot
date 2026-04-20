@@ -18,14 +18,6 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor OptionalMultipleExamplesDescriptor = new(
-        "MBOTHELP002",
-        "Optional parameter has multiple help examples",
-        "Optional parameter '{0}' in command '/{1}' has multiple [HelpExample] values; only the first value will be used",
-        "HelpGeneration",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var modules = context.SyntaxProvider
@@ -113,17 +105,6 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
                     explicitExamples = [fallbackExample];
                 }
 
-                if (parameter.HasExplicitDefaultValue && explicitExamples.Count > 1)
-                {
-                    var fullPath = string.Join(" ", pathSegments);
-                    diagnostics.Add(new HelpDiagnostic(
-                        HelpDiagnosticKind.OptionalMultipleExamples,
-                        parameter.Locations.FirstOrDefault(),
-                        parameterName,
-                        fullPath));
-                    explicitExamples = [explicitExamples[0]];
-                }
-
                 if (string.IsNullOrWhiteSpace(explicitExample))
                 {
                     var fullPath = string.Join(" ", pathSegments);
@@ -185,13 +166,6 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
                 case HelpDiagnosticKind.MissingExample:
                     context.ReportDiagnostic(Diagnostic.Create(
                         MissingExampleDescriptor,
-                        diagnostic.Location,
-                        diagnostic.ParameterName,
-                        diagnostic.CommandPath));
-                    break;
-                case HelpDiagnosticKind.OptionalMultipleExamples:
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        OptionalMultipleExamplesDescriptor,
                         diagnostic.Location,
                         diagnostic.ParameterName,
                         diagnostic.CommandPath));
@@ -317,8 +291,20 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
 
         for (var i = 0; i < optional.Count; i++)
         {
-            rollingTokens.Add($"{optional[i].Name}:{GetPrimaryExampleValue(optional[i])}");
+            var parameter = optional[i];
+            var values = GetAllExampleValues(parameter);
+
+            rollingTokens.Add($"{parameter.Name}:{values[0]}");
             examples.Add(BuildCommandLine(pathText, rollingTokens));
+
+            for (var valueIndex = 1; valueIndex < values.Count; valueIndex++)
+            {
+                var variantTokens = new List<string>(rollingTokens)
+                {
+                    [rollingTokens.Count - 1] = $"{parameter.Name}:{values[valueIndex]}"
+                };
+                examples.Add(BuildCommandLine(pathText, variantTokens));
+            }
         }
 
         return examples;
@@ -368,6 +354,14 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
             return parameter.ExampleValues[0];
 
         return $"<{parameter.Name}>";
+    }
+
+    private static List<string> GetAllExampleValues(ParameterInfo parameter)
+    {
+        if (parameter.ExampleValues.Count > 0)
+            return parameter.ExampleValues;
+
+        return [$"<{parameter.Name}>"];
     }
 
     private static string BuildAvailableCommands(IReadOnlyCollection<IGrouping<string, CommandInfo>> groups)
@@ -627,7 +621,6 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
 
     private enum HelpDiagnosticKind
     {
-        MissingExample,
-        OptionalMultipleExamples
+        MissingExample
     }
 }
