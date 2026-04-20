@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -268,8 +268,8 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
         foreach (var parameter in parameters)
         {
             var token = parameter.IsOptional
-                ? $"[{parameter.Name}:<{parameter.Name}>]"
-                : $"{parameter.Name}:<{parameter.Name}>";
+                ? $"[{parameter.Name}]"
+                : $"<{parameter.Name}>";
             parts.Add(token);
         }
 
