@@ -46,12 +46,14 @@ services:
         condition: service_healthy
     networks:
       - mehrak-network
+      - seaweed-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Dashboard__AdminUsername=${DASHBOARD_ADMIN_USERNAME}
       - Dashboard__AdminPassword=${DASHBOARD_ADMIN_PASSWORD}
       - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
       - Dashboard__Origin=${DASHBOARD_ORIGIN}
+      - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
       - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
       - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}

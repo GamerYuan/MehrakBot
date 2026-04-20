@@ -31,6 +31,7 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,12 +48,6 @@
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.Development.json')">
     <None Include="appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(Configuration)' == 'Debug' &#xD;&#xA;        and $([System.OperatingSystem]::IsLinux())&#xD;&#xA;        and Exists('appsettings.DockerDev.json')">
-    <None Include="appsettings.DockerDev.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
