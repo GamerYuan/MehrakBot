@@ -181,24 +181,31 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     }
 
     [SubSlashCommand("update", "Update the HoYoLAB Cookies and Passphrase for a selected profile")]
-    public async Task UpdateProfile([SlashCommandParameter(Name = "profile", Description = "The ID of the profile you want to update.")] uint profileId)
+    public async Task UpdateProfile([SlashCommandParameter(Name = "profile", Description = "The Profile ID/HoYoLAB UID of the profile to update")] ulong profileId)
     {
         var user = await m_UserContext.Users
             .AsNoTracking()
             .Where(u => u.Id == (long)Context.User.Id)
-            .Select(u => new UserDto()
-            {
-                Id = (ulong)u.Id,
-                Profiles = u.Profiles.Where(p => p.ProfileId == profileId)
-                    .Select(p => new UserProfileDto
-                    {
-                        ProfileId = p.ProfileId,
-                        LtUid = (uint)p.LtUid
-                    })
-                    .ToList()
-            }).FirstOrDefaultAsync();
+            .Include(u => u.Profiles)
+                .ThenInclude(p => p.GameUids)
+            .FirstOrDefaultAsync();
 
-        var profile = user?.Profiles?.FirstOrDefault();
+        var profiles = user?.Profiles
+            .OrderBy(p => p.ProfileId)
+            .Select(p => new UserProfileDto
+            {
+                Id = p.Id,
+                ProfileId = p.ProfileId,
+                LtUid = (ulong)p.LtUid,
+                GameUids = p.GameUids
+                    .GroupBy(g => g.Game)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.ToDictionary(entry => entry.Region, entry => entry.GameUid))
+            })
+            .ToList();
+
+        var profile = FindProfile(profiles, profileId);
 
         if (profile == null)
         {
@@ -209,6 +216,18 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         }
 
         await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.UpdateAuthModal(profile)));
+    }
+
+    private static UserProfileDto? FindProfile(IEnumerable<UserProfileDto>? profiles, ulong lookupValue)
+    {
+        var orderedProfiles = profiles?.OrderBy(p => p.ProfileId).ToList();
+        if (orderedProfiles == null || orderedProfiles.Count == 0)
+            return null;
+
+        var lookupText = lookupValue.ToString();
+
+        return orderedProfiles.FirstOrDefault(p => p.ProfileId == (int)lookupValue)
+               ?? orderedProfiles.FirstOrDefault(p => p.LtUid == lookupValue);
     }
 
     public static string GetHelpString(string subcommand)
