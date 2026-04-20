@@ -89,24 +89,29 @@ public class HsrCharListCardServiceTests
         };
     }
 
-    // [Test] [TestCase("CharList_TestData_1.json",
-    // "CharList_GoldenImage_1.jpg")] public async Task
-    // GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
-    // { HsrBasicCharacterData? testData = await
-    // JsonSerializer.DeserializeAsync<HsrBasicCharacterData>(
-    // File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr",
-    // testDataFileName)), JsonOptions); Assert.That(testData, Is.Not.Null);
-    //
-    // GameProfileDto userGameData = GetTestUserGameData();
-    //
-    // Stream image = await m_Service.GetCardAsync( new
-    // TestCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId,
-    // testData!.AvatarList!, Server.Asia, userGameData));
-    //
-    // await using FileStream fileStream =
-    // File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-    // "TestAssets", goldenImageFileName)); await image.CopyToAsync(fileStream);
-    // await fileStream.FlushAsync();
-    //
-    // Assert.That(image, Is.Not.Null); }
+    [Explicit]
+    [Test]
+    [TestCase("CharList_TestData_1.json", "CharList_GoldenImage_1.jpg")]
+    public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var testData = await
+            JsonSerializer.DeserializeAsync<HsrBasicCharacterData>(File.OpenRead(
+                Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)), JsonOptions);
+        Assert.That(testData, Is.Not.Null);
+
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(TestUserId, testData!.AvatarList!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await m_Service.GetCardAsync(cardContext);
+
+        await using var fileStream =
+            File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName));
+
+        await image.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+
+        Assert.That(image, Is.Not.Null);
+    }
 }
