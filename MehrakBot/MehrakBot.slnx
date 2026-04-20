@@ -8,6 +8,7 @@
     <Project Path="Services/Application/Mehrak.Application/Mehrak.Application.csproj" />
     <Project Path="Services/Bot/Mehrak.Bot.Tests/Mehrak.Bot.Tests.csproj" />
     <Project Path="Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
+    <Project Path="Services/Bot/Mehrak.Bot.Generators/Mehrak.Bot.Generators.csproj" />
     <Project Path="Services/Dashboard/Mehrak.Dashboard.Tests/Mehrak.Dashboard.Tests.csproj" />
     <Project Path="Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
 </Solution>
