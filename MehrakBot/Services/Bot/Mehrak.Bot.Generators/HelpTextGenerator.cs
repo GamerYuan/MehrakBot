@@ -48,6 +48,9 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
         if (context.SemanticModel.GetDeclaredSymbol(classDeclaration) is not INamedTypeSymbol classSymbol)
             return null;
 
+        if (FindAttribute(classSymbol.GetAttributes(), "HelpIgnoreAttribute", "HelpIgnore") is not null)
+            return null;
+
         var rootCommandAttribute = FindAttribute(classSymbol.GetAttributes(), "SlashCommandAttribute", "SlashCommand");
         var rootCommandName = GetConstructorStringArgument(rootCommandAttribute, 0);
         var rootCommandDescription = GetConstructorStringArgument(rootCommandAttribute, 1);
@@ -58,6 +61,9 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
         foreach (var member in classSymbol.GetMembers())
         {
             if (member is not IMethodSymbol method || method.MethodKind != MethodKind.Ordinary)
+                continue;
+
+            if (FindAttribute(method.GetAttributes(), "HelpIgnoreAttribute", "HelpIgnore") is not null)
                 continue;
 
             var subSlashAttribute = FindAttribute(method.GetAttributes(), "SubSlashCommandAttribute", "SubSlashCommand");
@@ -377,7 +383,9 @@ public sealed class HelpTextGenerator : IIncrementalGenerator
 
             if (subcommands.Length > 0)
             {
-                lines.Add($"- `/{group.Key} [{string.Join("|", subcommands)}]`");
+                lines.Add($"- `/{group.Key}`");
+                foreach (var subcommand in subcommands)
+                    lines.Add($"  - `{subcommand}`");
             }
             else
             {
