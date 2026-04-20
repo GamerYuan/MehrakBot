@@ -164,8 +164,7 @@ public sealed class SeaweedFilerProxyController : ControllerBase
         if (!Uri.TryCreate(baseUri, relative, out var targetUri))
             return null;
 
-        if (!Uri.Compare(baseUri, targetUri, UriComponents.SchemeAndServer, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase)
-                .Equals(0))
+        if (!baseUri.IsBaseOf(targetUri))
             return null;
 
         return targetUri;
