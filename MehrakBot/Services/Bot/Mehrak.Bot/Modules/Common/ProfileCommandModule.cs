@@ -92,7 +92,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID or UID {profileId} found!")));
+                    .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!")));
             return;
         }
 
@@ -125,7 +125,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(
-                        new TextDisplayProperties($"Profile {profile.ProfileId} deleted!")));
+                        new TextDisplayProperties($"Profile {profile.ProfileId} (HoYoLAB UID: {profile.LtUid}) deleted!")));
         }
         catch (DbUpdateException e)
         {
@@ -222,7 +222,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID {profileId} found!"))));
+                    .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!"))));
             return;
         }
 
