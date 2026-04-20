@@ -1,15 +1,14 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
-using Microsoft.Extensions.Logging;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -155,7 +154,7 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 {
                     Origin = new Vector2(50, 80),
                     VerticalAlignment = VerticalAlignment.Bottom
-                }, $"{context.GameProfile.Nickname} · AR {context.GameProfile.Level}", Color.White);
+                }, $"{context.GameProfile.Nickname} · TB {context.GameProfile.Level}", Color.White);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
