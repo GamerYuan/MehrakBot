@@ -2,7 +2,6 @@
 using System.Net;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.Auth;
-using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Protobuf;
@@ -21,6 +20,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
+using Yarp.ReverseProxy.Configuration;
 
 namespace Mehrak.Dashboard;
 
@@ -85,7 +85,6 @@ public class Program
 
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
-        builder.Services.Configure<SeaweedFilerOptions>(builder.Configuration.GetSection("SeaweedFiler"));
 
         builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
@@ -105,11 +104,86 @@ public class Program
                 UseCookies = false
             }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
 
-        builder.Services.AddHttpClient("SeaweedFilerProxy").ConfigurePrimaryHttpMessageHandler(() =>
-            new HttpClientHandler
-            {
-                UseCookies = false
-            }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromMinutes(10));
+        var seaweedFilerBaseUrl = NormalizeAbsoluteUrl(
+            builder.Configuration["SeaweedFiler:BaseUrl"] ??
+                throw new ArgumentException("SeaweedFiler:BaseUrl cannot be empty."),
+            "SeaweedFiler:BaseUrl");
+
+        builder.Services.AddReverseProxy().LoadFromMemory(
+            [
+                new RouteConfig
+                {
+                    RouteId = "seaweed-filer-prefixed",
+                    ClusterId = "seaweed-filer",
+                    AuthorizationPolicy = "RequireSuperAdmin",
+                    Match = new RouteMatch
+                    {
+                        Path = "/admin/seaweed-filer/{**catch-all}"
+                    },
+                    Transforms =
+                    [
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["PathRemovePrefix"] = "/admin/seaweed-filer"
+                        },
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["RequestHeaderRemove"] = "Authorization"
+                        },
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["RequestHeaderRemove"] = "Cookie"
+                        },
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["ResponseHeaderRemove"] = "Set-Cookie"
+                        }
+                    ]
+                },
+                new RouteConfig
+                {
+                    RouteId = "seaweed-filer-fallback",
+                    ClusterId = "seaweed-filer",
+                    AuthorizationPolicy = "RequireSuperAdmin",
+                    Order = 10000,
+                    Match = new RouteMatch
+                    {
+                        Path = "/{**catch-all}"
+                    },
+                    Transforms =
+                    [
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["PathPattern"] = "/{**catch-all}"
+                        },
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["RequestHeaderRemove"] = "Authorization"
+                        },
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["RequestHeaderRemove"] = "Cookie"
+                        },
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["ResponseHeaderRemove"] = "Set-Cookie"
+                        }
+                    ]
+                }
+            ],
+            [
+                new ClusterConfig
+                {
+                    ClusterId = "seaweed-filer",
+                    Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["default"] = new DestinationConfig
+                        {
+                            Address = seaweedFilerBaseUrl
+                        }
+                    }
+                }
+            ]);
 
         builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
         {
@@ -225,6 +299,7 @@ public class Program
         app.UseAuthorization();
         app.UseRateLimiter();
         app.MapControllers();
+        app.MapReverseProxy();
 
         await app.RunAsync();
     }
@@ -280,4 +355,14 @@ public class Program
             "none" => LogEventLevel.Fatal + 1,
             _ => fallback
         };
+
+    private static string NormalizeAbsoluteUrl(string configuredValue, string key)
+    {
+        var trimmed = configuredValue.Trim();
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var parsed))
+            throw new ArgumentException($"{key} must be a valid absolute URL.");
+
+        var normalized = parsed.AbsoluteUri;
+        return normalized.EndsWith('/') ? normalized : normalized + "/";
+    }
 }
