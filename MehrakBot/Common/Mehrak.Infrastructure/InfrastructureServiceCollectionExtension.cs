@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using Amazon.S3;
 using Mehrak.Domain.Repositories;
@@ -30,6 +30,8 @@ public static class InfrastructureServiceCollectionExtension
         services.AddDbContext<CodeRedeemDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<RelicDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+        services.AddDbContext<DocumentationDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
 
         using var serviceProvider = services.BuildServiceProvider();
