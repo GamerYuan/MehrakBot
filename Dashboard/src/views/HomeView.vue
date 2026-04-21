@@ -46,7 +46,7 @@ const features = [
         <span>MehrakBot</span>
       </div>
       <div class="nav-links">
-        <a href="https://gameryuan.gitbook.io/mehrak/" target="_blank" rel="noopener noreferrer">Docs</a>
+        <a href="#" @click.prevent="router.push('/docs')">Docs</a>
         <Button label="Dashboard" size="small" @click="router.push('/dashboard')" />
       </div>
     </nav>
@@ -90,15 +90,12 @@ const features = [
             class="discord-btn"
           />
           <Button
-            as="a"
             label="Read Documentation"
             icon="pi pi-book"
-            href="https://gameryuan.gitbook.io/mehrak/"
-            target="_blank"
-            rel="noopener noreferrer"
             severity="secondary"
             outlined
             size="large"
+            @click="router.push('/docs')"
           />
         </div>
 
