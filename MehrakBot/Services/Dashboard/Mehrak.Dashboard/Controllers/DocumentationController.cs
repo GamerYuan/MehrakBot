@@ -91,15 +91,17 @@ public sealed class DocumentationController : ControllerBase
         if (!HasGameWriteAccess(request.Game))
             return Forbid();
 
+        var trimmedName = request.Name.Trim().ReplaceLineEndings("");
+
         var existing = await m_DbContext.Documentations
-            .AnyAsync(d => d.Name.ToLower() == request.Name.ToLower() && d.Game == gameEnum);
+            .AnyAsync(d => d.Name.ToLower() == trimmedName.ToLower() && d.Game == gameEnum);
 
         if (existing)
             return Conflict(new { error = "Documentation with this name already exists for the specified game." });
 
         var doc = new DocumentationModel
         {
-            Name = request.Name.Trim().ReplaceLineEndings(""),
+            Name = trimmedName,
             Description = request.Description.Trim().ReplaceLineEndings(""),
             Game = gameEnum,
             Parameters = [.. request.Parameters.Select(p => new DocumentationParameter
@@ -137,13 +139,15 @@ public sealed class DocumentationController : ControllerBase
         if (doc is null)
             return NotFound(new { error = "Documentation not found." });
 
+        var trimmedName = request.Name.Trim().ReplaceLineEndings("");
+
         var existing = await m_DbContext.Documentations
-            .AnyAsync(d => d.Id != id && d.Name.ToLower() == request.Name.ToLower() && d.Game == gameEnum);
+            .AnyAsync(d => d.Id != id && d.Name.ToLower() == trimmedName.ToLower() && d.Game == gameEnum);
 
         if (existing)
             return Conflict(new { error = "Documentation with this name already exists for the specified game." });
 
-        doc.Name = request.Name.Trim().ReplaceLineEndings("");
+        doc.Name = trimmedName;
         doc.Description = request.Description.Trim().ReplaceLineEndings("");
         doc.Game = gameEnum;
         doc.Parameters = [.. request.Parameters.Select(p => new DocumentationParameter
