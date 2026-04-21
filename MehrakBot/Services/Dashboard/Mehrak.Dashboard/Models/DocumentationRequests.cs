@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Mehrak.Dashboard.Models;
 
@@ -15,8 +15,10 @@ public sealed class DocumentationRequest
     [Required]
     public string Game { get; set; } = string.Empty;
 
+    [Required]
     public List<DocumentationParameterRequest> Parameters { get; set; } = [];
 
+    [Required]
     public List<string> Examples { get; set; } = [];
 }
 
