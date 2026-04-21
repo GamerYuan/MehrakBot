@@ -24,7 +24,7 @@ public class DocumentationModel
 
     public List<DocumentationParameter> Parameters { get; set; } = [];
 
-    public List<DocumentationExample> Examples { get; set; } = [];
+    public List<string> Examples { get; set; } = [];
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -44,14 +44,4 @@ public class DocumentationParameter
     public string Description { get; set; } = string.Empty;
 
     public bool Required { get; set; }
-}
-
-public class DocumentationExample
-{
-    [Required]
-    [MaxLength(200)]
-    public string Command { get; set; } = string.Empty;
-
-    [MaxLength(300)]
-    public string Description { get; set; } = string.Empty;
 }

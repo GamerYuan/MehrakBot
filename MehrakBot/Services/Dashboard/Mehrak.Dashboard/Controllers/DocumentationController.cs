@@ -80,7 +80,7 @@ public sealed class DocumentationController : ControllerBase
 
     [HttpPost("add")]
     [Authorize]
-    public async Task<IActionResult> AddDocumentation([FromBody] AddDocumentationRequest request)
+    public async Task<IActionResult> AddDocumentation([FromBody] DocumentationRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -102,18 +102,14 @@ public sealed class DocumentationController : ControllerBase
             Name = request.Name.Trim(),
             Description = request.Description.Trim(),
             Game = gameEnum,
-            Parameters = [.. request.Parameters.Select(p => new DocumentationParameter
+            Parameters = request.Parameters.Select(p => new DocumentationParameter
             {
                 Name = p.Name.Trim(),
                 Type = p.Type?.Trim() ?? "string",
                 Description = p.Description?.Trim() ?? string.Empty,
                 Required = p.Required
-            })],
-            Examples = [.. request.Examples.Select(e => new DocumentationExample
-            {
-                Command = e.Command.Trim(),
-                Description = e.Description?.Trim() ?? string.Empty
-            })]
+            }).ToList(),
+            Examples = request.Examples.Select(e => e.Trim()).Where(e => !string.IsNullOrEmpty(e)).ToList()
         };
 
         m_DbContext.Documentations.Add(doc);
@@ -126,7 +122,7 @@ public sealed class DocumentationController : ControllerBase
 
     [HttpPut("{id:guid}")]
     [Authorize]
-    public async Task<IActionResult> UpdateDocumentation(Guid id, [FromBody] UpdateDocumentationRequest request)
+    public async Task<IActionResult> UpdateDocumentation(Guid id, [FromBody] DocumentationRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -150,18 +146,14 @@ public sealed class DocumentationController : ControllerBase
         doc.Name = request.Name.Trim();
         doc.Description = request.Description.Trim();
         doc.Game = gameEnum;
-        doc.Parameters = [.. request.Parameters.Select(p => new DocumentationParameter
+        doc.Parameters = request.Parameters.Select(p => new DocumentationParameter
         {
             Name = p.Name.Trim(),
             Type = p.Type?.Trim() ?? "string",
             Description = p.Description?.Trim() ?? string.Empty,
             Required = p.Required
-        })];
-        doc.Examples = [.. request.Examples.Select(e => new DocumentationExample
-        {
-            Command = e.Command.Trim(),
-            Description = e.Description?.Trim() ?? string.Empty
-        })];
+        }).ToList();
+        doc.Examples = request.Examples.Select(e => e.Trim()).Where(e => !string.IsNullOrEmpty(e)).ToList();
         doc.UpdatedAt = DateTime.UtcNow;
 
         await m_DbContext.SaveChangesAsync();

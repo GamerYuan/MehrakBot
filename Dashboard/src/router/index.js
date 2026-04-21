@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import ResetPasswordView from "../views/ResetPasswordView.vue";
+import DocsView from "../views/DocsView.vue";
 import DashboardLayout from "../layouts/DashboardLayout.vue";
 import DashboardHomeView from "../views/DashboardHomeView.vue";
 import ChangePasswordView from "../views/ChangePasswordView.vue";
@@ -29,6 +30,11 @@ const router = createRouter({
       path: "/reset-password",
       name: "reset-password",
       component: ResetPasswordView,
+    },
+    {
+      path: "/docs",
+      name: "docs",
+      component: DocsView,
     },
     {
       path: "/dashboard",

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -19,9 +20,9 @@ namespace Mehrak.Infrastructure.Migrations.DocumentationDb
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     Game = table.Column<int>(type: "integer", nullable: false),
+                    Examples = table.Column<List<string>>(type: "text[]", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Examples = table.Column<string>(type: "jsonb", nullable: true),
                     Parameters = table.Column<string>(type: "jsonb", nullable: true)
                 },
                 constraints: table =>

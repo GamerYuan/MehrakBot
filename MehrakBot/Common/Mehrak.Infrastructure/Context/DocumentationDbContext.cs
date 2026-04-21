@@ -16,10 +16,7 @@ public class DocumentationDbContext(DbContextOptions<DocumentationDbContext> opt
                 p.ToJson();
             });
 
-            b.OwnsMany(d => d.Examples, e =>
-            {
-                e.ToJson();
-            });
+            b.PrimitiveCollection(d => d.Examples);
         });
     }
 }
