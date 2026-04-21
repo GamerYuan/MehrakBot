@@ -24,6 +24,8 @@ const {
   tabs,
   newCharacterName,
   manageSearchQuery,
+  showOnlyMissingAscension,
+  manageCharacterItems,
   aliasSearchQuery,
   manageLoading,
   manageError,
@@ -79,6 +81,10 @@ const setNewCharacterName = (value) => {
 
 const setManageSearchQuery = (value) => {
   manageSearchQuery.value = value;
+};
+
+const setShowOnlyMissingAscension = (value) => {
+  showOnlyMissingAscension.value = value;
 };
 
 const setAliasSearchQuery = (value) => {
@@ -137,6 +143,8 @@ const setAuthPassphrase = (value) => {
     :manageError="manageError"
     :newCharacterName="newCharacterName"
     :manageSearchQuery="manageSearchQuery"
+    :showOnlyMissingAscension="showOnlyMissingAscension"
+    :manageCharacterItems="manageCharacterItems"
     :filteredManageCharacters="filteredManageCharacters"
     :hasStatEdit="false"
     :aliasSearchQuery="aliasSearchQuery"
@@ -168,6 +176,7 @@ const setAuthPassphrase = (value) => {
     @execute="executeCommand"
     @update:newCharacterName="setNewCharacterName"
     @update:manageSearchQuery="setManageSearchQuery"
+    @update:showOnlyMissingAscension="setShowOnlyMissingAscension"
     @addCharacter="addCharacter"
     @deleteCharacter="deleteCharacter"
     @update:aliasSearchQuery="setAliasSearchQuery"

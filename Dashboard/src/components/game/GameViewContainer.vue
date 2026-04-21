@@ -34,6 +34,8 @@ const props = defineProps({
   manageError: String,
   newCharacterName: String,
   manageSearchQuery: String,
+  showOnlyMissingAscension: Boolean,
+  manageCharacterItems: Array,
   filteredManageCharacters: Array,
   hasStatEdit: Boolean,
 
@@ -78,6 +80,7 @@ const emit = defineEmits([
   'execute',
   'update:newCharacterName',
   'update:manageSearchQuery',
+  'update:showOnlyMissingAscension',
   'addCharacter',
   'deleteCharacter',
   'editStat',
@@ -128,11 +131,14 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
             :filteredCharacters="filteredManageCharacters"
             :newCharacterName="newCharacterName"
             :manageSearchQuery="manageSearchQuery"
+            :showOnlyMissingAscension="showOnlyMissingAscension"
+            :manageCharacterItems="manageCharacterItems"
             :manageLoading="manageLoading"
             :manageError="manageError"
             :hasStatEdit="hasStatEdit"
             @update:newCharacterName="(value) => emit('update:newCharacterName', value)"
             @update:manageSearchQuery="(value) => emit('update:manageSearchQuery', value)"
+            @update:showOnlyMissingAscension="(value) => emit('update:showOnlyMissingAscension', value)"
             @addCharacter="emit('addCharacter')"
             @deleteCharacter="(name) => emit('deleteCharacter', name)"
             @editStat="(name) => emit('editStat', name)"

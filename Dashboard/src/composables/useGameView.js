@@ -96,6 +96,9 @@ export function useGameView(config) {
 
   onMounted(() => {
     fetchCharacters();
+    if (config.hasStatEdit) {
+      fetchCharacterStats();
+    }
   });
 
   const authProfileId = ref('');
@@ -122,9 +125,54 @@ export function useGameView(config) {
 
   const newCharacterName = ref('');
   const manageSearchQuery = ref('');
+  const showOnlyMissingAscension = ref(false);
   const aliasSearchQuery = ref('');
   const manageLoading = ref(false);
   const manageError = ref('');
+  const characterStats = ref({});
+
+  const toStatNumber = (value) => {
+    if (typeof value === 'number') return value;
+    if (value === null || value === undefined || value === '') return 0;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const fetchCharacterStats = async () => {
+    if (!config.hasStatEdit) return;
+
+    try {
+      const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+      const response = await fetch(
+        `${backendUrl}/characters/stat?game=${config.id}`,
+        { credentials: 'include' }
+      );
+
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        const normalizedStats = Object.fromEntries(
+          Object.entries(data || {}).map(([name, stat]) => [
+            name,
+            {
+              baseVal: toStatNumber(stat?.baseVal ?? stat?.BaseVal),
+              maxAscVal: toStatNumber(stat?.maxAscVal ?? stat?.MaxAscVal),
+            },
+          ])
+        );
+        characterStats.value = normalizedStats;
+      } else {
+        const data = await response.json().catch(() => ({}));
+        showErrorToast(data.error || 'Failed to fetch character stats', response.status);
+      }
+    } catch (err) {
+      showErrorToast(err.message, err.status);
+    }
+  };
 
   const showAddAliasModal = ref(false);
   const newAliasCharacter = ref('');
@@ -156,12 +204,34 @@ export function useGameView(config) {
   };
 
   const filteredManageCharacters = computed(() => {
-    if (!manageSearchQuery.value) return allCharacters.value;
     const query = manageSearchQuery.value.toLowerCase();
-    return allCharacters.value.filter((char) =>
-      char.toLowerCase().includes(query)
-    );
+
+    return allCharacters.value.filter((char) => {
+      const matchesQuery = !query || char.toLowerCase().includes(query);
+
+      if (!matchesQuery) {
+        return false;
+      }
+
+      if (!showOnlyMissingAscension.value) {
+        return true;
+      }
+
+      const stat = characterStats.value[char];
+      return toStatNumber(stat?.maxAscVal) === 0;
+    });
   });
+
+  const manageCharacterItems = computed(() =>
+    filteredManageCharacters.value.map((name) => {
+      const stat = characterStats.value[name] || { baseVal: 0, maxAscVal: 0 };
+      return {
+        name,
+        baseVal: toStatNumber(stat.baseVal),
+        maxAscVal: toStatNumber(stat.maxAscVal),
+      };
+    })
+  );
 
   const filteredAliases = computed(() => {
     if (!aliasSearchQuery.value) return aliases.value;
@@ -202,8 +272,12 @@ export function useGameView(config) {
         const data = await response.json();
         throw buildError(data.error || 'Failed to add character', response.status);
       }
+      const addedCharacterName = newCharacterName.value;
       newCharacterName.value = '';
       await fetchCharacters();
+      if (config.hasStatEdit) {
+        characterStats.value[addedCharacterName] = { baseVal: 0, maxAscVal: 0 };
+      }
     } catch (err) {
       manageError.value = err.message;
       showErrorToast(err.message, err.status);
@@ -251,6 +325,9 @@ export function useGameView(config) {
         throw buildError(data.error || 'Failed to delete character', response.status);
       }
       await fetchCharacters();
+      if (config.hasStatEdit) {
+        delete characterStats.value[name];
+      }
     } catch (err) {
       manageError.value = err.message;
       showErrorToast(err.message, err.status);
@@ -634,6 +711,10 @@ export function useGameView(config) {
         const data = await response.json();
         editStatBase.value = data.baseVal;
         editStatMax.value = data.maxAscVal;
+        characterStats.value[char] = {
+          baseVal: toStatNumber(data.baseVal),
+          maxAscVal: toStatNumber(data.maxAscVal),
+        };
       } else {
         const data = await response.json().catch(() => ({}));
         showErrorToast(data.error || 'Failed to fetch character stats', response.status);
@@ -673,6 +754,10 @@ export function useGameView(config) {
       }
 
       showEditStatModal.value = false;
+      characterStats.value[editStatCharacter.value] = {
+        baseVal: toStatNumber(editStatBase.value),
+        maxAscVal: toStatNumber(editStatMax.value),
+      };
       toast.add({
         severity: 'success',
         summary: 'Success',
@@ -708,6 +793,7 @@ export function useGameView(config) {
     tabs,
     newCharacterName,
     manageSearchQuery,
+    showOnlyMissingAscension,
     aliasSearchQuery,
     manageLoading,
     manageError,
@@ -722,6 +808,7 @@ export function useGameView(config) {
     newCodesInput,
     codesSearchQuery,
     codesLoading,
+    characterStats,
     showEditStatModal,
     editStatCharacter,
     editStatBase,
@@ -734,6 +821,7 @@ export function useGameView(config) {
     openAddAliasModal,
     openEditAliasModal,
     filteredManageCharacters,
+    manageCharacterItems,
     filteredAliases,
     filteredCodes,
     addCharacter,
@@ -746,5 +834,6 @@ export function useGameView(config) {
     handleAuth,
     openEditStatModal,
     handleStatSubmit,
+    fetchCharacterStats,
   };
 }

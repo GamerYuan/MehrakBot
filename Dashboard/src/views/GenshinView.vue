@@ -24,6 +24,8 @@ const {
   tabs,
   newCharacterName,
   manageSearchQuery,
+  showOnlyMissingAscension,
+  manageCharacterItems,
   aliasSearchQuery,
   manageLoading,
   manageError,
@@ -87,6 +89,10 @@ const setNewCharacterName = (value) => {
 
 const setManageSearchQuery = (value) => {
   manageSearchQuery.value = value;
+};
+
+const setShowOnlyMissingAscension = (value) => {
+  showOnlyMissingAscension.value = value;
 };
 
 const setAliasSearchQuery = (value) => {
@@ -157,6 +163,8 @@ const setEditStatMax = (value) => {
     :manageError="manageError"
     :newCharacterName="newCharacterName"
     :manageSearchQuery="manageSearchQuery"
+    :showOnlyMissingAscension="showOnlyMissingAscension"
+    :manageCharacterItems="manageCharacterItems"
     :filteredManageCharacters="filteredManageCharacters"
     :hasStatEdit="config.hasStatEdit"
     :aliasSearchQuery="aliasSearchQuery"
@@ -194,6 +202,7 @@ const setEditStatMax = (value) => {
     @execute="executeCommand"
     @update:newCharacterName="setNewCharacterName"
     @update:manageSearchQuery="setManageSearchQuery"
+    @update:showOnlyMissingAscension="setShowOnlyMissingAscension"
     @addCharacter="addCharacter"
     @deleteCharacter="deleteCharacter"
     @editStat="openEditStatModal"
