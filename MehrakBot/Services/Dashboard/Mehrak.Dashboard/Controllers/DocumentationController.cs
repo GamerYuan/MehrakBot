@@ -1,4 +1,4 @@
-using Mehrak.Dashboard.Models;
+﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Enums;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
@@ -25,7 +25,7 @@ public sealed class DocumentationController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ListDocumentation([FromQuery] string? game)
     {
-        IQueryable<DocumentationModel> query = m_DbContext.Documentations.AsNoTracking();
+        var query = m_DbContext.Documentations.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(game))
         {
@@ -99,17 +99,17 @@ public sealed class DocumentationController : ControllerBase
 
         var doc = new DocumentationModel
         {
-            Name = request.Name.Trim(),
-            Description = request.Description.Trim(),
+            Name = request.Name.Trim().ReplaceLineEndings(""),
+            Description = request.Description.Trim().ReplaceLineEndings(""),
             Game = gameEnum,
-            Parameters = request.Parameters.Select(p => new DocumentationParameter
+            Parameters = [.. request.Parameters.Select(p => new DocumentationParameter
             {
-                Name = p.Name.Trim(),
-                Type = p.Type?.Trim() ?? "string",
-                Description = p.Description?.Trim() ?? string.Empty,
+                Name = p.Name.Trim().ReplaceLineEndings(""),
+                Type = p.Type?.Trim().ReplaceLineEndings("") ?? "string",
+                Description = p.Description?.Trim().ReplaceLineEndings("") ?? string.Empty,
                 Required = p.Required
-            }).ToList(),
-            Examples = request.Examples.Select(e => e.Trim()).Where(e => !string.IsNullOrEmpty(e)).ToList()
+            })],
+            Examples = [.. request.Examples.Select(e => e.Trim().ReplaceLineEndings("")).Where(e => !string.IsNullOrEmpty(e))]
         };
 
         m_DbContext.Documentations.Add(doc);
@@ -143,17 +143,17 @@ public sealed class DocumentationController : ControllerBase
         if (existing)
             return Conflict(new { error = "Documentation with this name already exists for the specified game." });
 
-        doc.Name = request.Name.Trim();
-        doc.Description = request.Description.Trim();
+        doc.Name = request.Name.Trim().ReplaceLineEndings("");
+        doc.Description = request.Description.Trim().ReplaceLineEndings("");
         doc.Game = gameEnum;
-        doc.Parameters = request.Parameters.Select(p => new DocumentationParameter
+        doc.Parameters = [.. request.Parameters.Select(p => new DocumentationParameter
         {
-            Name = p.Name.Trim(),
-            Type = p.Type?.Trim() ?? "string",
-            Description = p.Description?.Trim() ?? string.Empty,
+            Name = p.Name.Trim().ReplaceLineEndings(""),
+            Type = p.Type?.Trim().ReplaceLineEndings("") ?? "string",
+            Description = p.Description?.Trim().ReplaceLineEndings("") ?? string.Empty,
             Required = p.Required
-        }).ToList();
-        doc.Examples = request.Examples.Select(e => e.Trim()).Where(e => !string.IsNullOrEmpty(e)).ToList();
+        })];
+        doc.Examples = [.. request.Examples.Select(e => e.Trim().ReplaceLineEndings("")).Where(e => !string.IsNullOrEmpty(e))];
         doc.UpdatedAt = DateTime.UtcNow;
 
         await m_DbContext.SaveChangesAsync();
