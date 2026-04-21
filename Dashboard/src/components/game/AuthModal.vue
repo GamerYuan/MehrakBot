@@ -18,7 +18,12 @@ const emit = defineEmits([
   "handleAuth",
 ]);
 
-const handleVisibleUpdate = (value) => emit("update:visible", value);
+const handleVisibleUpdate = (value) => {
+  emit("update:visible", value);
+  if (!value) {
+    emit("update:authPassphrase", "");
+  }
+};
 const handlePassphraseUpdate = (value) => emit("update:authPassphrase", value);
 const handleSubmit = () => emit("handleAuth");
 </script>
