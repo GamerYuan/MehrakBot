@@ -1,6 +1,6 @@
 import { ref, computed, onMounted } from "vue";
 
-const gameColors = {
+export const gameColors = {
   Genshin: {
     bg: "rgba(255, 215, 0, 0.15)",
     border: "rgba(255, 215, 0, 0.4)",
@@ -21,6 +21,11 @@ const gameColors = {
     border: "rgba(255, 105, 180, 0.4)",
     text: "#FF69B4",
   },
+  TearsOfThemis: {
+    bg: "rgba(138, 43, 226, 0.15)",
+    border: "rgba(138, 43, 226, 0.4)",
+    text: "#8A2BE2",
+  },
   Unsupported: {
     bg: "rgba(136, 136, 136, 0.15)",
     border: "rgba(136, 136, 136, 0.4)",
@@ -28,26 +33,23 @@ const gameColors = {
   },
 };
 
-const gameLabels = {
+export const gameLabels = {
   Genshin: "Genshin Impact",
   HonkaiStarRail: "Honkai: Star Rail",
   ZenlessZoneZero: "Zenless Zone Zero",
   HonkaiImpact3: "Honkai Impact 3rd",
+  TearsOfThemis: "Tears of Themis",
   Unsupported: "Miscellaneous",
 };
+
+const SUPPORTED_GAMES = Object.keys(gameLabels);
 
 export function useDocs() {
   const documents = ref([]);
   const loading = ref(false);
   const error = ref("");
   const searchQuery = ref("");
-  const selectedGames = ref([
-    "Genshin",
-    "HonkaiStarRail",
-    "ZenlessZoneZero",
-    "HonkaiImpact3",
-    "Unsupported",
-  ]);
+  const selectedGames = ref([...SUPPORTED_GAMES]);
 
   const fetchDocuments = async () => {
     loading.value = true;
@@ -103,13 +105,7 @@ export function useDocs() {
 
   const groupedDocuments = computed(() => {
     const groups = {};
-    for (const game of [
-      "Genshin",
-      "HonkaiStarRail",
-      "ZenlessZoneZero",
-      "HonkaiImpact3",
-      "Unsupported",
-    ]) {
+    for (const game of SUPPORTED_GAMES) {
       const docs = filteredDocuments.value.filter((doc) => doc.game === game);
       if (docs.length > 0) {
         groups[game] = docs;
@@ -130,13 +126,7 @@ export function useDocs() {
   };
 
   const selectAllGames = () => {
-    selectedGames.value = [
-      "Genshin",
-      "HonkaiStarRail",
-      "ZenlessZoneZero",
-      "HonkaiImpact3",
-      "Unsupported",
-    ];
+    selectedGames.value = [...SUPPORTED_GAMES];
   };
 
   onMounted(() => {
