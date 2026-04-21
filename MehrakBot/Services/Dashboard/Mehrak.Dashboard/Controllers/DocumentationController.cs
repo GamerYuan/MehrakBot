@@ -139,6 +139,9 @@ public sealed class DocumentationController : ControllerBase
         if (doc is null)
             return NotFound(new { error = "Documentation not found." });
 
+        if (!HasGameWriteAccess(doc.Game.ToString()) || !HasGameWriteAccess(gameEnum.ToString()))
+            return Forbid();
+
         var trimmedName = request.Name.Trim().ReplaceLineEndings("");
 
         var existing = await m_DbContext.Documentations
