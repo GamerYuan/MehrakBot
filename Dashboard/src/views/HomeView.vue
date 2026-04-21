@@ -8,34 +8,34 @@ const features = [
   {
     title: "Common Utilities",
     icon: "pi-cog",
-    gradient: "from-violet-500 to-purple-600",
+    gradient: "gradient-violet",
     description: "Multi-profile support, HoYoLAB Daily Check In",
   },
   {
     title: "Genshin Impact",
-    icon: "pi-star",
-    gradient: "from-amber-500 to-orange-600",
+    iconImg: "/genshin.webp",
+    gradient: "gradient-amber",
     description:
       "Character build card, Abyss summary card, Code redemption, and more.",
   },
   {
     title: "Honkai: Star Rail",
-    icon: "pi-bolt",
-    gradient: "from-blue-500 to-cyan-500",
+    iconImg: "/hsr.webp",
+    gradient: "gradient-blue",
     description:
       "Character build card, Memory of Chaos summary card, Code redemption, and more.",
   },
   {
     title: "Zenless Zone Zero",
-    icon: "pi-moon",
-    gradient: "from-pink-500 to-rose-600",
+    iconImg: "/zzz.webp",
+    gradient: "gradient-pink",
     description:
       "Character build card, Shiyu Defense summary card, Code redemption, and more.",
   },
   {
     title: "Honkai Impact 3rd",
-    icon: "pi-heart",
-    gradient: "from-emerald-500 to-teal-600",
+    iconImg: "/hi3.webp",
+    gradient: "gradient-emerald",
     description: "Character build card, and more coming soon.",
   },
 ];
@@ -45,11 +45,15 @@ const features = [
   <div class="landing">
     <nav class="nav">
       <div class="nav-logo">
-        <span class="logo-icon">✦</span>
+        <img src="/logo.webp" alt="MehrakBot" class="logo-icon" />
         <span>MehrakBot</span>
       </div>
       <div class="nav-links">
         <a href="#" @click.prevent="router.push('/docs')">Docs</a>
+        <a href="https://github.com/GamerYuan/MehrakBot" target="_blank" rel="noopener noreferrer">
+          <i class="pi pi-github"></i>
+          GitHub
+        </a>
         <Button
           label="Dashboard"
           size="small"
@@ -132,8 +136,9 @@ const features = [
           :key="feature.title"
           class="feature-card"
         >
-          <div :class="['feature-icon', feature.gradient]">
-            <i :class="['pi', feature.icon]"></i>
+          <div :class="['feature-icon', { [feature.gradient]: !feature.iconImg }]">
+            <img v-if="feature.iconImg" :src="feature.iconImg" :alt="feature.title" />
+            <i v-else :class="['pi', feature.icon]"></i>
           </div>
           <h3>{{ feature.title }}</h3>
           <p>{{ feature.description }}</p>
@@ -160,7 +165,7 @@ const features = [
     <footer class="footer">
       <div class="footer-content">
         <div class="footer-brand">
-          <span class="logo-icon">✦</span>
+          <img src="/logo.webp" alt="MehrakBot" class="logo-icon" />
           <span>MehrakBot</span>
         </div>
         <p class="footer-disclaimer">
@@ -206,8 +211,10 @@ const features = [
 }
 
 .logo-icon {
-  color: #5865f2;
-  font-size: 1.4rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
 }
 
 .nav-links {
@@ -221,6 +228,9 @@ const features = [
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .nav-links a:hover {
@@ -498,23 +508,30 @@ const features = [
   color: white;
 }
 
-.from-violet-500\.to-purple-600 {
+.feature-icon img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.gradient-violet {
   background: linear-gradient(135deg, #8b5cf6, #9333ea);
 }
 
-.from-amber-500\.to-orange-600 {
+.gradient-amber {
   background: linear-gradient(135deg, #f59e0b, #ea580c);
 }
 
-.from-blue-500\.to-cyan-500 {
+.gradient-blue {
   background: linear-gradient(135deg, #3b82f6, #06b6d4);
 }
 
-.from-pink-500\.to-rose-600 {
+.gradient-pink {
   background: linear-gradient(135deg, #ec4899, #e11d48);
 }
 
-.from-emerald-500\.to-teal-600 {
+.gradient-emerald {
   background: linear-gradient(135deg, #10b981, #0d9488);
 }
 
