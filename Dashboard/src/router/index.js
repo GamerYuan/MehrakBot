@@ -7,6 +7,7 @@ import DashboardLayout from "../layouts/DashboardLayout.vue";
 import DashboardHomeView from "../views/DashboardHomeView.vue";
 import ChangePasswordView from "../views/ChangePasswordView.vue";
 import UserManagementView from "../views/UserManagementView.vue";
+import DocsManagementView from "../views/DocsManagementView.vue";
 import GenshinView from "../views/GenshinView.vue";
 import HsrView from "../views/HsrView.vue";
 import ZzzView from "../views/ZzzView.vue";
@@ -49,6 +50,11 @@ const router = createRouter({
           path: "users",
           name: "user-management",
           component: UserManagementView,
+        },
+        {
+          path: "docs",
+          name: "docs-management",
+          component: DocsManagementView,
         },
         {
           path: "genshin",
