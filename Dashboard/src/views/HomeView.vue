@@ -612,6 +612,26 @@ const features = [
 }
 
 @media (max-width: 640px) {
+  .nav {
+    padding: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .nav-logo {
+    font-size: 1rem;
+  }
+
+  .nav-links {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .nav-links a {
+    font-size: 0.85rem;
+  }
+
   .hero-stats {
     flex-direction: column;
     gap: 1rem;
@@ -632,10 +652,6 @@ const features = [
     width: 100%;
     max-width: 280px;
     justify-content: center;
-  }
-
-  .nav {
-    padding: 1rem;
   }
 }
 </style>
