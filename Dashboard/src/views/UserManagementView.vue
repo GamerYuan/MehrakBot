@@ -374,6 +374,10 @@ const handleResetPassword = async (user) => {
     );
 
     if (!response.ok) {
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
       const data = await response.json();
       throw buildError(
         data.error || "Failed to reset password",
