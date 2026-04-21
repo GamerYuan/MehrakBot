@@ -1,5 +1,5 @@
 <script setup>
-import GameTag from './GameTag.vue';
+import GameTag from "./GameTag.vue";
 
 const props = defineProps({
   doc: {
@@ -8,7 +8,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['click']);
+const emit = defineEmits(["click"]);
 </script>
 
 <template>

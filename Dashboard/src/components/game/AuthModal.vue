@@ -1,8 +1,8 @@
 <script setup>
-import Dialog from 'primevue/dialog';
-import Password from 'primevue/password';
-import Button from 'primevue/button';
-import Message from 'primevue/message';
+import Dialog from "primevue/dialog";
+import Password from "primevue/password";
+import Button from "primevue/button";
+import Message from "primevue/message";
 
 const props = defineProps({
   visible: Boolean,
@@ -12,11 +12,15 @@ const props = defineProps({
   authError: String,
 });
 
-const emit = defineEmits(['update:visible', 'update:authPassphrase', 'handleAuth']);
+const emit = defineEmits([
+  "update:visible",
+  "update:authPassphrase",
+  "handleAuth",
+]);
 
-const handleVisibleUpdate = (value) => emit('update:visible', value);
-const handlePassphraseUpdate = (value) => emit('update:authPassphrase', value);
-const handleSubmit = () => emit('handleAuth');
+const handleVisibleUpdate = (value) => emit("update:visible", value);
+const handlePassphraseUpdate = (value) => emit("update:authPassphrase", value);
+const handleSubmit = () => emit("handleAuth");
 </script>
 
 <template>

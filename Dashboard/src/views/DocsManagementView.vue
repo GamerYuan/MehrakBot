@@ -1,16 +1,16 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useConfirm } from 'primevue/useconfirm';
-import { useToast } from 'primevue/usetoast';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
-import Tag from 'primevue/tag';
-import DocFormModal from '../components/docs/DocFormModal.vue';
-import GameTag from '../components/docs/GameTag.vue';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Button from "primevue/button";
+import InputText from "primevue/inputtext";
+import Select from "primevue/select";
+import Tag from "primevue/tag";
+import DocFormModal from "../components/docs/DocFormModal.vue";
+import GameTag from "../components/docs/GameTag.vue";
 
 const router = useRouter();
 const confirm = useConfirm();
@@ -25,36 +25,36 @@ const props = defineProps({
 
 const documents = ref([]);
 const loading = ref(false);
-const error = ref('');
-const searchQuery = ref('');
-const filterGame = ref('All');
+const error = ref("");
+const searchQuery = ref("");
+const filterGame = ref("All");
 
 const showModal = ref(false);
 const selectedDoc = ref(null);
 const isEditing = ref(false);
 
 const gameOptions = [
-  { label: 'All Games', value: 'All' },
-  { label: 'Genshin Impact', value: 'Genshin' },
-  { label: 'Honkai: Star Rail', value: 'HonkaiStarRail' },
-  { label: 'Zenless Zone Zero', value: 'ZenlessZoneZero' },
-  { label: 'Honkai Impact 3rd', value: 'HonkaiImpact3' },
-  { label: 'Miscellaneous', value: 'Unsupported' },
+  { label: "All Games", value: "All" },
+  { label: "Genshin Impact", value: "Genshin" },
+  { label: "Honkai: Star Rail", value: "HonkaiStarRail" },
+  { label: "Zenless Zone Zero", value: "ZenlessZoneZero" },
+  { label: "Honkai Impact 3rd", value: "HonkaiImpact3" },
+  { label: "Miscellaneous", value: "Unsupported" },
 ];
 
 const gameLabels = {
-  Genshin: 'Genshin Impact',
-  HonkaiStarRail: 'Honkai: Star Rail',
-  ZenlessZoneZero: 'Zenless Zone Zero',
-  HonkaiImpact3: 'Honkai Impact 3rd',
-  Unsupported: 'Miscellaneous',
+  Genshin: "Genshin Impact",
+  HonkaiStarRail: "Honkai: Star Rail",
+  ZenlessZoneZero: "Zenless Zone Zero",
+  HonkaiImpact3: "Honkai Impact 3rd",
+  Unsupported: "Miscellaneous",
 };
 
 const showErrorToast = (message, status) => {
   toast.add({
-    severity: 'error',
-    summary: 'Error',
-    detail: `${message} (Code: ${status ?? 'N/A'})`,
+    severity: "error",
+    summary: "Error",
+    detail: `${message} (Code: ${status ?? "N/A"})`,
     life: 5000,
   });
 };
@@ -76,14 +76,14 @@ const fetchDocuments = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(`${backendUrl}/docs/list`, {
-      credentials: 'include',
+      credentials: "include",
     });
     if (response.status === 401) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
     if (!response.ok) {
-      throw buildError('Failed to fetch documentation', response.status);
+      throw buildError("Failed to fetch documentation", response.status);
     }
     documents.value = await response.json();
   } catch (err) {
@@ -100,7 +100,7 @@ const filteredDocuments = computed(() => {
       .toLowerCase()
       .includes(searchQuery.value.toLowerCase());
 
-    if (filterGame.value === 'All') return matchesSearch;
+    if (filterGame.value === "All") return matchesSearch;
     return matchesSearch && doc.game === filterGame.value;
   });
 });
@@ -114,9 +114,9 @@ const openAddModal = () => {
 const openEditModal = async (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
     toast.add({
-      severity: 'warn',
-      summary: 'Permission Denied',
-      detail: 'You do not have permission to edit this documentation.',
+      severity: "warn",
+      summary: "Permission Denied",
+      detail: "You do not have permission to edit this documentation.",
       life: 4000,
     });
     return;
@@ -125,10 +125,13 @@ const openEditModal = async (doc) => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(`${backendUrl}/docs/${doc.id}`, {
-      credentials: 'include',
+      credentials: "include",
     });
     if (!response.ok) {
-      throw buildError('Failed to fetch documentation details', response.status);
+      throw buildError(
+        "Failed to fetch documentation details",
+        response.status,
+      );
     }
     selectedDoc.value = await response.json();
     isEditing.value = true;
@@ -141,9 +144,9 @@ const openEditModal = async (doc) => {
 const confirmDelete = (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
     toast.add({
-      severity: 'warn',
-      summary: 'Permission Denied',
-      detail: 'You do not have permission to delete this documentation.',
+      severity: "warn",
+      summary: "Permission Denied",
+      detail: "You do not have permission to delete this documentation.",
       life: 4000,
     });
     return;
@@ -151,16 +154,16 @@ const confirmDelete = (doc) => {
 
   confirm.require({
     message: `Are you sure you want to delete "${doc.name}"?`,
-    header: 'Confirm Delete',
-    icon: 'pi pi-exclamation-triangle',
+    header: "Confirm Delete",
+    icon: "pi pi-exclamation-triangle",
     rejectProps: {
-      label: 'Cancel',
-      severity: 'secondary',
+      label: "Cancel",
+      severity: "secondary",
       outlined: true,
     },
     acceptProps: {
-      label: 'Delete',
-      severity: 'danger',
+      label: "Delete",
+      severity: "danger",
     },
     accept: () => handleDelete(doc),
   });
@@ -170,25 +173,28 @@ const handleDelete = async (doc) => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(`${backendUrl}/docs/${doc.id}`, {
-      method: 'DELETE',
-      credentials: 'include',
+      method: "DELETE",
+      credentials: "include",
     });
 
     if (response.status === 401) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     if (!response.ok) {
       const data = await response.json();
-      throw buildError(data.error || 'Failed to delete documentation', response.status);
+      throw buildError(
+        data.error || "Failed to delete documentation",
+        response.status,
+      );
     }
 
     fetchDocuments();
     toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'Documentation deleted successfully',
+      severity: "success",
+      summary: "Success",
+      detail: "Documentation deleted successfully",
       life: 3000,
     });
   } catch (err) {
@@ -202,31 +208,34 @@ const handleSave = async (formData) => {
     const url = isEditing.value
       ? `${backendUrl}/docs/${selectedDoc.value.id}`
       : `${backendUrl}/docs/add`;
-    const method = isEditing.value ? 'PUT' : 'POST';
+    const method = isEditing.value ? "PUT" : "POST";
 
     const response = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(formData),
     });
 
     if (response.status === 401) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     if (!response.ok) {
       const data = await response.json();
-      throw buildError(data.error || 'Failed to save documentation', response.status);
+      throw buildError(
+        data.error || "Failed to save documentation",
+        response.status,
+      );
     }
 
     showModal.value = false;
     fetchDocuments();
     toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: `Documentation ${isEditing.value ? 'updated' : 'created'} successfully`,
+      severity: "success",
+      summary: "Success",
+      detail: `Documentation ${isEditing.value ? "updated" : "created"} successfully`,
       life: 3000,
     });
   } catch (err) {
@@ -235,11 +244,11 @@ const handleSave = async (formData) => {
 };
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 };
 
@@ -252,7 +261,11 @@ onMounted(() => {
   <div class="docs-management">
     <div class="header">
       <h1>Documentation Management</h1>
-      <Button label="Add Documentation" icon="pi pi-plus" @click="openAddModal" />
+      <Button
+        label="Add Documentation"
+        icon="pi pi-plus"
+        @click="openAddModal"
+      />
     </div>
 
     <div class="controls flex gap-4 mb-4">
@@ -294,7 +307,9 @@ onMounted(() => {
       </Column>
       <Column field="updatedAt" header="Last Updated">
         <template #body="slotProps">
-          <span class="text-gray-400">{{ formatDate(slotProps.data.updatedAt) }}</span>
+          <span class="text-gray-400">{{
+            formatDate(slotProps.data.updatedAt)
+          }}</span>
         </template>
       </Column>
       <Column header="Actions">

@@ -1,24 +1,24 @@
-import { ref, watch, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useConfirm } from 'primevue/useconfirm';
-import { useToast } from 'primevue/usetoast';
+import { ref, watch, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 
 export function useGameView(config) {
   const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
 
-  const activeTab = ref(config.tabs[0]?.id || 'character');
+  const activeTab = ref(config.tabs[0]?.id || "character");
   const loading = ref(false);
-  const error = ref('');
+  const error = ref("");
   const resultImages = ref({});
   const showAuthModal = ref(false);
 
   const showErrorToast = (message, status) => {
     toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: `${message} (Code: ${status ?? 'N/A'})`,
+      severity: "error",
+      summary: "Error",
+      detail: `${message} (Code: ${status ?? "N/A"})`,
       life: 5000,
     });
   };
@@ -30,9 +30,9 @@ export function useGameView(config) {
   };
 
   const profileId = ref(1);
-  const server = ref(config.servers[0]?.value || 'America');
-  const characterName = ref('');
-  const floor = ref(config.tabs.find(t => t.hasFloorInput)?.floorMin || 12);
+  const server = ref(config.servers[0]?.value || "America");
+  const characterName = ref("");
+  const floor = ref(config.tabs.find((t) => t.hasFloorInput)?.floorMin || 12);
 
   const allCharacters = ref([]);
   const filteredCharacters = ref([]);
@@ -43,10 +43,10 @@ export function useGameView(config) {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(
         `${backendUrl}/characters/list?game=${config.id}`,
-        { credentials: 'include' }
+        { credentials: "include" },
       );
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
       if (response.ok) {
@@ -54,7 +54,10 @@ export function useGameView(config) {
         allCharacters.value = data.sort();
       } else {
         const data = await response.json().catch(() => ({}));
-        showErrorToast(data.error || 'Failed to fetch characters', response.status);
+        showErrorToast(
+          data.error || "Failed to fetch characters",
+          response.status,
+        );
       }
     } catch (err) {
       showErrorToast(err.message, err.status);
@@ -66,10 +69,10 @@ export function useGameView(config) {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(
         `${backendUrl}/alias/list?game=${config.id}`,
-        { credentials: 'include' }
+        { credentials: "include" },
       );
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
       if (response.ok) {
@@ -80,7 +83,10 @@ export function useGameView(config) {
         }));
       } else {
         const data = await response.json().catch(() => ({}));
-        showErrorToast(data.error || 'Failed to fetch aliases', response.status);
+        showErrorToast(
+          data.error || "Failed to fetch aliases",
+          response.status,
+        );
       }
     } catch (err) {
       showErrorToast(err.message, err.status);
@@ -90,7 +96,7 @@ export function useGameView(config) {
   const searchCharacter = (event) => {
     const query = event.query.toLowerCase();
     filteredCharacters.value = allCharacters.value.filter((char) =>
-      char.toLowerCase().includes(query)
+      char.toLowerCase().includes(query),
     );
   };
 
@@ -101,39 +107,40 @@ export function useGameView(config) {
     }
   });
 
-  const authProfileId = ref('');
-  const authPassphrase = ref('');
+  const authProfileId = ref("");
+  const authPassphrase = ref("");
   const authLoading = ref(false);
-  const authError = ref('');
+  const authError = ref("");
 
-  const user = JSON.parse(localStorage.getItem('mehrak_user') || '{}');
+  const user = JSON.parse(localStorage.getItem("mehrak_user") || "{}");
   const canManage =
     user.isSuperAdmin ||
-    (user.gameWritePermissions && user.gameWritePermissions.includes(config.permission));
+    (user.gameWritePermissions &&
+      user.gameWritePermissions.includes(config.permission));
 
   const tabs = computed(() => {
     const t = [...config.tabs];
     if (canManage) {
-      t.push({ id: 'manage', name: 'Manage Characters' });
-      t.push({ id: 'aliases', name: 'Manage Aliases' });
+      t.push({ id: "manage", name: "Manage Characters" });
+      t.push({ id: "aliases", name: "Manage Aliases" });
       if (config.hasCodesManagement) {
-        t.push({ id: 'codes', name: 'Manage Codes' });
+        t.push({ id: "codes", name: "Manage Codes" });
       }
     }
     return t;
   });
 
-  const newCharacterName = ref('');
-  const manageSearchQuery = ref('');
+  const newCharacterName = ref("");
+  const manageSearchQuery = ref("");
   const showOnlyMissingAscension = ref(false);
-  const aliasSearchQuery = ref('');
+  const aliasSearchQuery = ref("");
   const manageLoading = ref(false);
-  const manageError = ref('');
+  const manageError = ref("");
   const characterStats = ref({});
 
   const toStatNumber = (value) => {
-    if (typeof value === 'number') return value;
-    if (value === null || value === undefined || value === '') return 0;
+    if (typeof value === "number") return value;
+    if (value === null || value === undefined || value === "") return 0;
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
   };
@@ -145,11 +152,11 @@ export function useGameView(config) {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(
         `${backendUrl}/characters/stat?game=${config.id}`,
-        { credentials: 'include' }
+        { credentials: "include" },
       );
 
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
@@ -162,12 +169,15 @@ export function useGameView(config) {
               baseVal: toStatNumber(stat?.baseVal ?? stat?.BaseVal),
               maxAscVal: toStatNumber(stat?.maxAscVal ?? stat?.MaxAscVal),
             },
-          ])
+          ]),
         );
         characterStats.value = normalizedStats;
       } else {
         const data = await response.json().catch(() => ({}));
-        showErrorToast(data.error || 'Failed to fetch character stats', response.status);
+        showErrorToast(
+          data.error || "Failed to fetch character stats",
+          response.status,
+        );
       }
     } catch (err) {
       showErrorToast(err.message, err.status);
@@ -175,22 +185,22 @@ export function useGameView(config) {
   };
 
   const showAddAliasModal = ref(false);
-  const newAliasCharacter = ref('');
-  const newAliasList = ref('');
+  const newAliasCharacter = ref("");
+  const newAliasList = ref("");
   const addAliasLoading = ref(false);
   const isEditingAlias = ref(false);
   const originalAliases = ref([]);
 
   const codes = ref([]);
   const selectedCodes = ref([]);
-  const newCodesInput = ref('');
-  const codesSearchQuery = ref('');
+  const newCodesInput = ref("");
+  const codesSearchQuery = ref("");
   const codesLoading = ref(false);
 
   const openAddAliasModal = () => {
     isEditingAlias.value = false;
-    newAliasCharacter.value = '';
-    newAliasList.value = '';
+    newAliasCharacter.value = "";
+    newAliasList.value = "";
     originalAliases.value = [];
     showAddAliasModal.value = true;
   };
@@ -198,7 +208,7 @@ export function useGameView(config) {
   const openEditAliasModal = (data) => {
     isEditingAlias.value = true;
     newAliasCharacter.value = data.name;
-    newAliasList.value = data.aliases.join(', ');
+    newAliasList.value = data.aliases.join(", ");
     originalAliases.value = [...data.aliases];
     showAddAliasModal.value = true;
   };
@@ -230,7 +240,7 @@ export function useGameView(config) {
         baseVal: toStatNumber(stat.baseVal),
         maxAscVal: toStatNumber(stat.maxAscVal),
       };
-    })
+    }),
   );
 
   const filteredAliases = computed(() => {
@@ -239,7 +249,7 @@ export function useGameView(config) {
     return aliases.value.filter(
       (item) =>
         item.name.toLowerCase().includes(query) ||
-        item.aliases.some((alias) => alias.toLowerCase().includes(query))
+        item.aliases.some((alias) => alias.toLowerCase().includes(query)),
     );
   });
 
@@ -252,28 +262,31 @@ export function useGameView(config) {
   const addCharacter = async () => {
     if (!newCharacterName.value) return;
     manageLoading.value = true;
-    manageError.value = '';
+    manageError.value = "";
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(
         `${backendUrl}/characters/add?game=${config.id}`,
         {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ characters: [newCharacterName.value] }),
-        }
+        },
       );
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
       if (!response.ok) {
         const data = await response.json();
-        throw buildError(data.error || 'Failed to add character', response.status);
+        throw buildError(
+          data.error || "Failed to add character",
+          response.status,
+        );
       }
       const addedCharacterName = newCharacterName.value;
-      newCharacterName.value = '';
+      newCharacterName.value = "";
       await fetchCharacters();
       if (config.hasStatEdit) {
         characterStats.value[addedCharacterName] = { baseVal: 0, maxAscVal: 0 };
@@ -289,16 +302,16 @@ export function useGameView(config) {
   const deleteCharacter = (name) => {
     confirm.require({
       message: `Are you sure you want to delete ${name}?`,
-      header: 'Confirm Delete',
-      icon: 'pi pi-exclamation-triangle',
+      header: "Confirm Delete",
+      icon: "pi pi-exclamation-triangle",
       rejectProps: {
-        label: 'Cancel',
-        severity: 'secondary',
+        label: "Cancel",
+        severity: "secondary",
         outlined: true,
       },
       acceptProps: {
-        label: 'Delete',
-        severity: 'danger',
+        label: "Delete",
+        severity: "danger",
       },
       accept: () => executeDeleteCharacter(name),
     });
@@ -306,23 +319,26 @@ export function useGameView(config) {
 
   const executeDeleteCharacter = async (name) => {
     manageLoading.value = true;
-    manageError.value = '';
+    manageError.value = "";
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(
         `${backendUrl}/characters/delete?game=${config.id}&character=${encodeURIComponent(name)}`,
         {
-          method: 'DELETE',
-          credentials: 'include',
-        }
+          method: "DELETE",
+          credentials: "include",
+        },
       );
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
       if (!response.ok) {
         const data = await response.json();
-        throw buildError(data.error || 'Failed to delete character', response.status);
+        throw buildError(
+          data.error || "Failed to delete character",
+          response.status,
+        );
       }
       await fetchCharacters();
       if (config.hasStatEdit) {
@@ -343,16 +359,16 @@ export function useGameView(config) {
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const currentAliasesArray = newAliasList.value
-        .split(',')
+        .split(",")
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
 
       if (isEditingAlias.value) {
         const addedAliases = currentAliasesArray.filter(
-          (a) => !originalAliases.value.includes(a)
+          (a) => !originalAliases.value.includes(a),
         );
         const removedAliases = originalAliases.value.filter(
-          (a) => !currentAliasesArray.includes(a)
+          (a) => !currentAliasesArray.includes(a),
         );
 
         const promises = [];
@@ -360,23 +376,26 @@ export function useGameView(config) {
         if (addedAliases.length > 0) {
           promises.push(
             fetch(`${backendUrl}/alias/add?game=${config.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
               body: JSON.stringify({
                 character: newAliasCharacter.value,
                 aliases: addedAliases,
               }),
             }).then(async (res) => {
               if (res.status === 401) {
-                router.push('/login');
-                throw buildError('Unauthorized', res.status);
+                router.push("/login");
+                throw buildError("Unauthorized", res.status);
               }
               if (!res.ok) {
                 const data = await res.json();
-                throw buildError(data.error || 'Failed to add new aliases', res.status);
+                throw buildError(
+                  data.error || "Failed to add new aliases",
+                  res.status,
+                );
               }
-            })
+            }),
           );
         }
 
@@ -385,56 +404,65 @@ export function useGameView(config) {
             fetch(
               `${backendUrl}/alias/delete?game=${config.id}&alias=${encodeURIComponent(alias)}`,
               {
-                method: 'DELETE',
-                credentials: 'include',
-              }
+                method: "DELETE",
+                credentials: "include",
+              },
             ).then(async (res) => {
               if (res.status === 401) {
-                router.push('/login');
-                throw buildError('Unauthorized', res.status);
+                router.push("/login");
+                throw buildError("Unauthorized", res.status);
               }
               if (!res.ok) {
                 const data = await res.json();
-                throw buildError(data.error || `Failed to delete alias ${alias}`, res.status);
+                throw buildError(
+                  data.error || `Failed to delete alias ${alias}`,
+                  res.status,
+                );
               }
-            })
+            }),
           );
         }
 
         await Promise.all(promises);
       } else {
-        const response = await fetch(`${backendUrl}/alias/add?game=${config.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            character: newAliasCharacter.value,
-            aliases: currentAliasesArray,
-          }),
-        });
+        const response = await fetch(
+          `${backendUrl}/alias/add?game=${config.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              character: newAliasCharacter.value,
+              aliases: currentAliasesArray,
+            }),
+          },
+        );
 
         if (response.status === 401) {
-          router.push('/login');
+          router.push("/login");
           return;
         }
 
         if (!response.ok) {
           const data = await response.json();
-          throw buildError(data.error || 'Failed to add aliases', response.status);
+          throw buildError(
+            data.error || "Failed to add aliases",
+            response.status,
+          );
         }
       }
 
       showAddAliasModal.value = false;
-      newAliasCharacter.value = '';
-      newAliasList.value = '';
+      newAliasCharacter.value = "";
+      newAliasList.value = "";
       originalAliases.value = [];
       await fetchAliases();
       toast.add({
-        severity: 'success',
-        summary: 'Success',
+        severity: "success",
+        summary: "Success",
         detail: isEditingAlias.value
-          ? 'Aliases updated successfully'
-          : 'Aliases added successfully',
+          ? "Aliases updated successfully"
+          : "Aliases added successfully",
         life: 3000,
       });
     } catch (err) {
@@ -449,10 +477,10 @@ export function useGameView(config) {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(
         `${backendUrl}/codes/list?game=${config.id}`,
-        { credentials: 'include' }
+        { credentials: "include" },
       );
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
       if (response.ok) {
@@ -460,7 +488,7 @@ export function useGameView(config) {
         codes.value = data.codes.map((c) => ({ code: c }));
       } else {
         const data = await response.json().catch(() => ({}));
-        showErrorToast(data.error || 'Failed to fetch codes', response.status);
+        showErrorToast(data.error || "Failed to fetch codes", response.status);
       }
     } catch (err) {
       showErrorToast(err.message, err.status);
@@ -470,9 +498,9 @@ export function useGameView(config) {
   const confirmAddCodes = () => {
     if (!newCodesInput.value) return;
     confirm.require({
-      message: 'Are you sure you want to add these codes?',
-      header: 'Confirm Add',
-      icon: 'pi pi-exclamation-triangle',
+      message: "Are you sure you want to add these codes?",
+      header: "Confirm Add",
+      icon: "pi pi-exclamation-triangle",
       accept: executeAddCodes,
     });
   };
@@ -482,33 +510,36 @@ export function useGameView(config) {
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const codesToAdd = newCodesInput.value
-        .split(',')
+        .split(",")
         .map((c) => c.trim())
         .filter((c) => c);
 
-      const response = await fetch(`${backendUrl}/codes/add?game=${config.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ Codes: codesToAdd }),
-      });
+      const response = await fetch(
+        `${backendUrl}/codes/add?game=${config.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ Codes: codesToAdd }),
+        },
+      );
 
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       if (!response.ok) {
         const data = await response.json();
-        throw buildError(data.error || 'Failed to add codes', response.status);
+        throw buildError(data.error || "Failed to add codes", response.status);
       }
 
-      newCodesInput.value = '';
+      newCodesInput.value = "";
       await fetchCodes();
       toast.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Codes added successfully',
+        severity: "success",
+        summary: "Success",
+        detail: "Codes added successfully",
         life: 3000,
       });
     } catch (err) {
@@ -521,16 +552,16 @@ export function useGameView(config) {
   const confirmDeleteCodes = (codesList) => {
     confirm.require({
       message: `Are you sure you want to delete ${codesList.length} code(s)?`,
-      header: 'Confirm Delete',
-      icon: 'pi pi-exclamation-triangle',
+      header: "Confirm Delete",
+      icon: "pi pi-exclamation-triangle",
       rejectProps: {
-        label: 'Cancel',
-        severity: 'secondary',
+        label: "Cancel",
+        severity: "secondary",
         outlined: true,
       },
       acceptProps: {
-        label: 'Delete',
-        severity: 'danger',
+        label: "Delete",
+        severity: "danger",
       },
       accept: () => executeDeleteCodes(codesList),
     });
@@ -541,32 +572,35 @@ export function useGameView(config) {
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const params = new URLSearchParams();
-      params.append('game', config.id);
-      codesList.forEach((c) => params.append('codes', c));
+      params.append("game", config.id);
+      codesList.forEach((c) => params.append("codes", c));
       const response = await fetch(
         `${backendUrl}/codes/remove?${params.toString()}`,
         {
-          method: 'DELETE',
-          credentials: 'include',
-        }
+          method: "DELETE",
+          credentials: "include",
+        },
       );
 
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       if (!response.ok) {
         const data = await response.json();
-        throw buildError(data.error || 'Failed to delete codes', response.status);
+        throw buildError(
+          data.error || "Failed to delete codes",
+          response.status,
+        );
       }
 
       selectedCodes.value = [];
       await fetchCodes();
       toast.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Codes deleted successfully',
+        severity: "success",
+        summary: "Success",
+        detail: "Codes deleted successfully",
         life: 3000,
       });
     } catch (err) {
@@ -577,18 +611,18 @@ export function useGameView(config) {
   };
 
   watch(activeTab, (newTab) => {
-    error.value = '';
-    if (newTab === 'aliases' && canManage) {
+    error.value = "";
+    if (newTab === "aliases" && canManage) {
       fetchAliases();
-    } else if (newTab === 'codes' && canManage) {
+    } else if (newTab === "codes" && canManage) {
       fetchCodes();
     }
   });
 
   const executeCommand = async () => {
     loading.value = true;
-    error.value = '';
-    resultImages.value[activeTab.value] = '';
+    error.value = "";
+    resultImages.value[activeTab.value] = "";
 
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
@@ -598,9 +632,11 @@ export function useGameView(config) {
         server: server.value,
       };
 
-      const currentTabConfig = config.tabs.find((t) => t.id === activeTab.value);
+      const currentTabConfig = config.tabs.find(
+        (t) => t.id === activeTab.value,
+      );
       if (currentTabConfig?.hasCharacterInput) {
-        if (config.id === 'HonkaiImpact3') {
+        if (config.id === "HonkaiImpact3") {
           payload.battlesuit = characterName.value;
         } else {
           payload.character = characterName.value;
@@ -611,31 +647,32 @@ export function useGameView(config) {
       }
 
       const response = await fetch(`${backendUrl}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       const data = await response.json();
 
-      if (response.status === 403 && data.code === 'AUTH_REQUIRED') {
+      if (response.status === 403 && data.code === "AUTH_REQUIRED") {
         authProfileId.value = profileId.value;
         showAuthModal.value = true;
         return;
       }
 
       if (!response.ok) {
-        throw buildError(data.error || 'Command failed', response.status);
+        throw buildError(data.error || "Command failed", response.status);
       }
 
       if (data.storageFileName) {
-        resultImages.value[activeTab.value] = `${backendUrl}/attachments/${data.storageFileName}`;
+        resultImages.value[activeTab.value] =
+          `${backendUrl}/attachments/${data.storageFileName}`;
       }
     } catch (err) {
       error.value = err.message;
@@ -647,14 +684,14 @@ export function useGameView(config) {
 
   const handleAuth = async () => {
     authLoading.value = true;
-    authError.value = '';
+    authError.value = "";
 
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(`${backendUrl}/profile-auth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           profileId: Number(authProfileId.value),
           passphrase: authPassphrase.value,
@@ -662,18 +699,21 @@ export function useGameView(config) {
       });
 
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw buildError(data.error || 'Authentication failed', response.status);
+        throw buildError(
+          data.error || "Authentication failed",
+          response.status,
+        );
       }
 
       showAuthModal.value = false;
-      authPassphrase.value = '';
+      authPassphrase.value = "";
       executeCommand();
     } catch (err) {
       authError.value = err.message;
@@ -684,7 +724,7 @@ export function useGameView(config) {
   };
 
   const showEditStatModal = ref(false);
-  const editStatCharacter = ref('');
+  const editStatCharacter = ref("");
   const editStatBase = ref(null);
   const editStatMax = ref(null);
   const editStatFetching = ref(false);
@@ -701,10 +741,10 @@ export function useGameView(config) {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(
         `${backendUrl}/characters/stat?game=${config.id}&character=${encodeURIComponent(char)}`,
-        { credentials: 'include' }
+        { credentials: "include" },
       );
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
       if (response.ok) {
@@ -717,7 +757,10 @@ export function useGameView(config) {
         };
       } else {
         const data = await response.json().catch(() => ({}));
-        showErrorToast(data.error || 'Failed to fetch character stats', response.status);
+        showErrorToast(
+          data.error || "Failed to fetch character stats",
+          response.status,
+        );
       }
     } catch (err) {
       showErrorToast(err.message, err.status);
@@ -733,24 +776,27 @@ export function useGameView(config) {
       const response = await fetch(
         `${backendUrl}/characters/stat?game=${config.id}&character=${encodeURIComponent(editStatCharacter.value)}`,
         {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             baseVal: editStatBase.value,
             maxAscVal: editStatMax.value,
           }),
-        }
+        },
       );
 
       if (response.status === 401) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw buildError(data.error || 'Failed to update character stats', response.status);
+        throw buildError(
+          data.error || "Failed to update character stats",
+          response.status,
+        );
       }
 
       showEditStatModal.value = false;
@@ -759,9 +805,9 @@ export function useGameView(config) {
         maxAscVal: toStatNumber(editStatMax.value),
       };
       toast.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Character stats updated successfully',
+        severity: "success",
+        summary: "Success",
+        detail: "Character stats updated successfully",
         life: 3000,
       });
     } catch (err) {

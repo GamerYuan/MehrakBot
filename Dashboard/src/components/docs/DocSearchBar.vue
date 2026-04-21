@@ -1,29 +1,33 @@
 <script setup>
-import { ref, computed } from 'vue';
-import InputText from 'primevue/inputtext';
-import Checkbox from 'primevue/checkbox';
-import Button from 'primevue/button';
+import { ref, computed } from "vue";
+import InputText from "primevue/inputtext";
+import Checkbox from "primevue/checkbox";
+import Button from "primevue/button";
 
 const props = defineProps({
   searchQuery: String,
   selectedGames: Array,
 });
 
-const emit = defineEmits(['update:searchQuery', 'toggleGame', 'selectAllGames']);
+const emit = defineEmits([
+  "update:searchQuery",
+  "toggleGame",
+  "selectAllGames",
+]);
 
 const gameFilters = [
-  { key: 'Genshin', label: 'Genshin Impact', color: '#FFD700' },
-  { key: 'HonkaiStarRail', label: 'Honkai: Star Rail', color: '#00D4FF' },
-  { key: 'ZenlessZoneZero', label: 'Zenless Zone Zero', color: '#FF6B00' },
-  { key: 'HonkaiImpact3', label: 'Honkai Impact 3rd', color: '#FF69B4' },
-  { key: 'Unsupported', label: 'Miscellaneous', color: '#888888' },
+  { key: "Genshin", label: "Genshin Impact", color: "#FFD700" },
+  { key: "HonkaiStarRail", label: "Honkai: Star Rail", color: "#00D4FF" },
+  { key: "ZenlessZoneZero", label: "Zenless Zone Zero", color: "#FF6B00" },
+  { key: "HonkaiImpact3", label: "Honkai Impact 3rd", color: "#FF69B4" },
+  { key: "Unsupported", label: "Miscellaneous", color: "#888888" },
 ];
 
 const localSearch = ref(props.searchQuery);
 
 const handleSearchUpdate = (value) => {
   localSearch.value = value;
-  emit('update:searchQuery', value);
+  emit("update:searchQuery", value);
 };
 
 const isGameSelected = (game) => props.selectedGames.includes(game);
@@ -52,7 +56,10 @@ const allSelected = computed(() => props.selectedGames.length === 5);
           :class="['filter-chip', { active: isGameSelected(game.key) }]"
           @click="emit('toggleGame', game.key)"
         >
-          <span class="filter-dot" :style="{ backgroundColor: game.color }"></span>
+          <span
+            class="filter-dot"
+            :style="{ backgroundColor: game.color }"
+          ></span>
           {{ game.label }}
         </button>
       </div>

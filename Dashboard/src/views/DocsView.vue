@@ -1,11 +1,11 @@
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import Button from 'primevue/button';
-import DocCard from '../components/docs/DocCard.vue';
-import DocDetailModal from '../components/docs/DocDetailModal.vue';
-import DocSearchBar from '../components/docs/DocSearchBar.vue';
-import { useDocs } from '../composables/useDocs';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import Button from "primevue/button";
+import DocCard from "../components/docs/DocCard.vue";
+import DocDetailModal from "../components/docs/DocDetailModal.vue";
+import DocSearchBar from "../components/docs/DocSearchBar.vue";
+import { useDocs } from "../composables/useDocs";
 
 const router = useRouter();
 const {
@@ -28,12 +28,12 @@ const handleDocClick = async (doc) => {
   loadingDetail.value = true;
   showDetailModal.value = true;
   selectedDoc.value = { ...doc, parameters: [], examples: [] };
-  
+
   try {
     const fullDoc = await fetchDocumentDetail(doc.id);
     selectedDoc.value = fullDoc;
   } catch (err) {
-    console.error('Failed to fetch document details:', err);
+    console.error("Failed to fetch document details:", err);
   } finally {
     loadingDetail.value = false;
   }
@@ -52,7 +52,11 @@ const handleSearchUpdate = (value) => {
         <span>MehrakBot</span>
       </div>
       <div class="nav-links">
-        <Button label="Dashboard" size="small" @click="router.push('/dashboard')" />
+        <Button
+          label="Dashboard"
+          size="small"
+          @click="router.push('/dashboard')"
+        />
       </div>
     </nav>
 
@@ -97,7 +101,10 @@ const handleSearchUpdate = (value) => {
           </div>
         </section>
 
-        <div v-if="Object.keys(groupedDocuments).length === 0" class="empty-state">
+        <div
+          v-if="Object.keys(groupedDocuments).length === 0"
+          class="empty-state"
+        >
           <i class="pi pi-search"></i>
           <p>No commands found matching your search.</p>
         </div>

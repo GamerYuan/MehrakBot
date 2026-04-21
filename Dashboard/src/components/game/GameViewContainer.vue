@@ -1,18 +1,18 @@
 <script setup>
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-import TabPanels from 'primevue/tabpanels';
-import TabPanel from 'primevue/tabpanel';
-import Card from 'primevue/card';
-import Image from 'primevue/image';
+import Tabs from "primevue/tabs";
+import TabList from "primevue/tablist";
+import Tab from "primevue/tab";
+import TabPanels from "primevue/tabpanels";
+import TabPanel from "primevue/tabpanel";
+import Card from "primevue/card";
+import Image from "primevue/image";
 
-import CommandCard from './CommandCard.vue';
-import ManageCharactersCard from './ManageCharactersCard.vue';
-import ManageAliasesCard from './ManageAliasesCard.vue';
-import ManageCodesCard from './ManageCodesCard.vue';
-import AuthModal from './AuthModal.vue';
-import StatEditModal from './StatEditModal.vue';
+import CommandCard from "./CommandCard.vue";
+import ManageCharactersCard from "./ManageCharactersCard.vue";
+import ManageAliasesCard from "./ManageAliasesCard.vue";
+import ManageCodesCard from "./ManageCodesCard.vue";
+import AuthModal from "./AuthModal.vue";
+import StatEditModal from "./StatEditModal.vue";
 
 const props = defineProps({
   title: String,
@@ -71,38 +71,38 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'update:activeTab',
-  'update:profileId',
-  'update:server',
-  'update:characterName',
-  'update:floor',
-  'searchCharacter',
-  'execute',
-  'update:newCharacterName',
-  'update:manageSearchQuery',
-  'update:showOnlyMissingAscension',
-  'addCharacter',
-  'deleteCharacter',
-  'editStat',
-  'update:aliasSearchQuery',
-  'update:showAddAliasModal',
-  'update:newAliasCharacter',
-  'update:newAliasList',
-  'openAddAliasModal',
-  'openEditAliasModal',
-  'handleAliasSubmit',
-  'update:selectedCodes',
-  'update:newCodesInput',
-  'update:codesSearchQuery',
-  'confirmAddCodes',
-  'confirmDeleteCodes',
-  'update:showAuthModal',
-  'update:authPassphrase',
-  'handleAuth',
-  'update:showEditStatModal',
-  'update:editStatBase',
-  'update:editStatMax',
-  'handleStatSubmit',
+  "update:activeTab",
+  "update:profileId",
+  "update:server",
+  "update:characterName",
+  "update:floor",
+  "searchCharacter",
+  "execute",
+  "update:newCharacterName",
+  "update:manageSearchQuery",
+  "update:showOnlyMissingAscension",
+  "addCharacter",
+  "deleteCharacter",
+  "editStat",
+  "update:aliasSearchQuery",
+  "update:showAddAliasModal",
+  "update:newAliasCharacter",
+  "update:newAliasList",
+  "openAddAliasModal",
+  "openEditAliasModal",
+  "handleAliasSubmit",
+  "update:selectedCodes",
+  "update:newCodesInput",
+  "update:codesSearchQuery",
+  "confirmAddCodes",
+  "confirmDeleteCodes",
+  "update:showAuthModal",
+  "update:authPassphrase",
+  "handleAuth",
+  "update:showEditStatModal",
+  "update:editStatBase",
+  "update:editStatMax",
+  "handleStatSubmit",
 ]);
 
 const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
@@ -110,9 +110,13 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
 
 <template>
   <div class="game-view">
-    <h1>{{ title }}</h1>
+    <h1 class="text-4xl font-bold mb-3">{{ title }}</h1>
 
-    <Tabs :value="activeTab" @update:value="(value) => emit('update:activeTab', value)" scrollable>
+    <Tabs
+      :value="activeTab"
+      @update:value="(value) => emit('update:activeTab', value)"
+      scrollable
+    >
       <TabList>
         <Tab
           v-for="tab in tabs"
@@ -136,9 +140,15 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
             :manageLoading="manageLoading"
             :manageError="manageError"
             :hasStatEdit="hasStatEdit"
-            @update:newCharacterName="(value) => emit('update:newCharacterName', value)"
-            @update:manageSearchQuery="(value) => emit('update:manageSearchQuery', value)"
-            @update:showOnlyMissingAscension="(value) => emit('update:showOnlyMissingAscension', value)"
+            @update:newCharacterName="
+              (value) => emit('update:newCharacterName', value)
+            "
+            @update:manageSearchQuery="
+              (value) => emit('update:manageSearchQuery', value)
+            "
+            @update:showOnlyMissingAscension="
+              (value) => emit('update:showOnlyMissingAscension', value)
+            "
             @addCharacter="emit('addCharacter')"
             @deleteCharacter="(name) => emit('deleteCharacter', name)"
             @editStat="(name) => emit('editStat', name)"
@@ -155,9 +165,15 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
             :newAliasList="newAliasList"
             :addAliasLoading="addAliasLoading"
             :isEditingAlias="isEditingAlias"
-            @update:aliasSearchQuery="(value) => emit('update:aliasSearchQuery', value)"
-            @update:showAddAliasModal="(value) => emit('update:showAddAliasModal', value)"
-            @update:newAliasCharacter="(value) => emit('update:newAliasCharacter', value)"
+            @update:aliasSearchQuery="
+              (value) => emit('update:aliasSearchQuery', value)
+            "
+            @update:showAddAliasModal="
+              (value) => emit('update:showAddAliasModal', value)
+            "
+            @update:newAliasCharacter="
+              (value) => emit('update:newAliasCharacter', value)
+            "
             @update:newAliasList="(value) => emit('update:newAliasList', value)"
             @openAddAliasModal="emit('openAddAliasModal')"
             @openEditAliasModal="(data) => emit('openEditAliasModal', data)"
@@ -172,9 +188,15 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
             :newCodesInput="newCodesInput"
             :codesSearchQuery="codesSearchQuery"
             :codesLoading="codesLoading"
-            @update:selectedCodes="(value) => emit('update:selectedCodes', value)"
-            @update:newCodesInput="(value) => emit('update:newCodesInput', value)"
-            @update:codesSearchQuery="(value) => emit('update:codesSearchQuery', value)"
+            @update:selectedCodes="
+              (value) => emit('update:selectedCodes', value)
+            "
+            @update:newCodesInput="
+              (value) => emit('update:newCodesInput', value)
+            "
+            @update:codesSearchQuery="
+              (value) => emit('update:codesSearchQuery', value)
+            "
             @confirmAddCodes="emit('confirmAddCodes')"
             @confirmDeleteCodes="(list) => emit('confirmDeleteCodes', list)"
           />
@@ -193,7 +215,9 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
             :error="error"
             @update:profileId="(value) => emit('update:profileId', value)"
             @update:server="(value) => emit('update:server', value)"
-            @update:characterName="(value) => emit('update:characterName', value)"
+            @update:characterName="
+              (value) => emit('update:characterName', value)
+            "
             @update:floor="(value) => emit('update:floor', value)"
             @searchCharacter="(e) => emit('searchCharacter', e)"
             @execute="emit('execute')"
@@ -205,7 +229,12 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
     <div v-if="resultImages[activeTab]" class="result-container mt-4">
       <Card>
         <template #content>
-          <Image :src="resultImages[activeTab]" alt="Result" preview width="100%" />
+          <Image
+            :src="resultImages[activeTab]"
+            alt="Result"
+            preview
+            width="100%"
+          />
         </template>
       </Card>
     </div>

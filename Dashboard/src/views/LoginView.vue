@@ -45,7 +45,7 @@ const handleLogin = async () => {
 
     if (!backendUrl) {
       throw new Error(
-        "Backend URL not configured. Please set VITE_APP_BACKEND_URL in .env"
+        "Backend URL not configured. Please set VITE_APP_BACKEND_URL in .env",
       );
     }
 
@@ -90,8 +90,8 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="auth-container">
-    <Card class="auth-card">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <Card class="w-full max-w-md">
       <template #title>
         <h2 class="text-center">Dashboard Login</h2>
       </template>
@@ -131,10 +131,4 @@ const handleLogin = async () => {
   </div>
 </template>
 
-<style scoped>
-h2 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: var(--primary-color);
-}
-</style>
+<style scoped></style>

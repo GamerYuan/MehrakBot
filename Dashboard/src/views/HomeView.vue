@@ -15,19 +15,22 @@ const features = [
     title: "Genshin Impact",
     icon: "pi-star",
     gradient: "from-amber-500 to-orange-600",
-    description: "Character build card, Abyss summary card, Code redemption, and more.",
+    description:
+      "Character build card, Abyss summary card, Code redemption, and more.",
   },
   {
     title: "Honkai: Star Rail",
     icon: "pi-bolt",
     gradient: "from-blue-500 to-cyan-500",
-    description: "Character build card, Memory of Chaos summary card, Code redemption, and more.",
+    description:
+      "Character build card, Memory of Chaos summary card, Code redemption, and more.",
   },
   {
     title: "Zenless Zone Zero",
     icon: "pi-moon",
     gradient: "from-pink-500 to-rose-600",
-    description: "Character build card, Shiyu Defense summary card, Code redemption, and more.",
+    description:
+      "Character build card, Shiyu Defense summary card, Code redemption, and more.",
   },
   {
     title: "Honkai Impact 3rd",
@@ -47,7 +50,11 @@ const features = [
       </div>
       <div class="nav-links">
         <a href="#" @click.prevent="router.push('/docs')">Docs</a>
-        <Button label="Dashboard" size="small" @click="router.push('/dashboard')" />
+        <Button
+          label="Dashboard"
+          size="small"
+          @click="router.push('/dashboard')"
+        />
       </div>
     </nav>
 
@@ -58,24 +65,24 @@ const features = [
         <div class="gradient-orb orb-3"></div>
         <div class="grid-overlay"></div>
       </div>
-      
+
       <div class="hero-content">
         <div class="badge">
           <span class="badge-dot"></span>
           Discord Bot
         </div>
-        
+
         <h1 class="hero-title">
           <span class="title-line">Mehrak<span class="accent">Bot</span></span>
         </h1>
-        
+
         <p class="hero-subtitle">
           Your All-in-One <span class="highlight">HoYoverse</span> Games Toolbox
         </p>
-        
+
         <p class="hero-description">
-          Manage your game accounts, generate build cards, redeem codes, 
-          and track your progress across all HoYoverse titles.
+          Manage your game accounts, generate build cards, redeem codes, and
+          track your progress across all HoYoverse titles.
         </p>
 
         <div class="hero-actions">
@@ -120,8 +127,8 @@ const features = [
       </div>
 
       <div class="features-grid">
-        <div 
-          v-for="feature in features" 
+        <div
+          v-for="feature in features"
           :key="feature.title"
           class="feature-card"
         >
@@ -157,7 +164,8 @@ const features = [
           <span>MehrakBot</span>
         </div>
         <p class="footer-disclaimer">
-          Not affiliated with HoYoverse. All game titles and trademarks belong to their respective owners.
+          Not affiliated with HoYoverse. All game titles and trademarks belong
+          to their respective owners.
         </p>
         <p class="footer-copyright">&copy; 2026 MehrakBot</p>
       </div>
@@ -274,17 +282,24 @@ const features = [
 .grid-overlay {
   position: absolute;
   inset: 0;
-  background-image: 
-    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 60px 60px;
   mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
 }
 
 @keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -30px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
 }
 
 .hero-content {
@@ -316,8 +331,13 @@ const features = [
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .hero-title {
@@ -410,7 +430,12 @@ const features = [
 
 .features-section {
   padding: 6rem 2rem;
-  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.02), transparent);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.02),
+    transparent
+  );
 }
 
 .section-header {
@@ -516,7 +541,11 @@ const features = [
   max-width: 500px;
   margin: 0 auto;
   padding: 3rem;
-  background: linear-gradient(135deg, rgba(88, 101, 242, 0.1), rgba(168, 85, 247, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(88, 101, 242, 0.1),
+    rgba(168, 85, 247, 0.1)
+  );
   border: 1px solid rgba(88, 101, 242, 0.2);
   border-radius: 24px;
 }
@@ -571,23 +600,23 @@ const features = [
     gap: 1rem;
     padding: 1.5rem;
   }
-  
+
   .stat-divider {
     width: 60px;
     height: 1px;
   }
-  
+
   .hero-actions {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .hero-actions :deep(.p-button) {
     width: 100%;
     max-width: 280px;
     justify-content: center;
   }
-  
+
   .nav {
     padding: 1rem;
   }

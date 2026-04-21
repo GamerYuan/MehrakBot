@@ -1,11 +1,11 @@
 <script setup>
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Tag from 'primevue/tag';
-import InputText from 'primevue/inputtext';
-import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Dialog from 'primevue/dialog';
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Tag from "primevue/tag";
+import InputText from "primevue/inputtext";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Dialog from "primevue/dialog";
 
 const props = defineProps({
   aliases: Array,
@@ -20,22 +20,25 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'update:aliasSearchQuery',
-  'update:showAddAliasModal',
-  'update:newAliasCharacter',
-  'update:newAliasList',
-  'openAddAliasModal',
-  'openEditAliasModal',
-  'handleAliasSubmit',
+  "update:aliasSearchQuery",
+  "update:showAddAliasModal",
+  "update:newAliasCharacter",
+  "update:newAliasList",
+  "openAddAliasModal",
+  "openEditAliasModal",
+  "handleAliasSubmit",
 ]);
 
-const handleSearchQueryUpdate = (value) => emit('update:aliasSearchQuery', value);
-const handleModalVisibleUpdate = (value) => emit('update:showAddAliasModal', value);
-const handleCharacterUpdate = (value) => emit('update:newAliasCharacter', value);
-const handleAliasListUpdate = (value) => emit('update:newAliasList', value);
-const handleOpenAdd = () => emit('openAddAliasModal');
-const handleOpenEdit = (data) => emit('openEditAliasModal', data);
-const handleSubmit = () => emit('handleAliasSubmit');
+const handleSearchQueryUpdate = (value) =>
+  emit("update:aliasSearchQuery", value);
+const handleModalVisibleUpdate = (value) =>
+  emit("update:showAddAliasModal", value);
+const handleCharacterUpdate = (value) =>
+  emit("update:newAliasCharacter", value);
+const handleAliasListUpdate = (value) => emit("update:newAliasList", value);
+const handleOpenAdd = () => emit("openAddAliasModal");
+const handleOpenEdit = (data) => emit("openEditAliasModal", data);
+const handleSubmit = () => emit("handleAliasSubmit");
 </script>
 
 <template>
@@ -43,14 +46,21 @@ const handleSubmit = () => emit('handleAliasSubmit');
     <template #title>Manage Aliases</template>
     <template #content>
       <div class="flex flex-col gap-4">
-        <Button label="Add" @click="handleOpenAdd" :loading="manageLoading" />
-        <InputText
-          :modelValue="aliasSearchQuery"
-          @update:modelValue="handleSearchQueryUpdate"
-          placeholder="Search aliases..."
-          fluid
-        />
-        <DataTable :value="filteredAliases" paginator :rows="10" tableStyle="min-width: 50rem">
+        <div class="flex flex-row gap-4">
+          <InputText
+            :modelValue="aliasSearchQuery"
+            @update:modelValue="handleSearchQueryUpdate"
+            placeholder="Search aliases..."
+            fluid
+          />
+          <Button label="Add" @click="handleOpenAdd" :loading="manageLoading" />
+        </div>
+        <DataTable
+          :value="filteredAliases"
+          paginator
+          :rows="10"
+          tableStyle="min-width: 50rem"
+        >
           <Column field="name" header="Character Name" sortable></Column>
           <Column header="Aliases">
             <template #body="slotProps">

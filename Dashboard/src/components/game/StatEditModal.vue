@@ -1,8 +1,8 @@
 <script setup>
-import Dialog from 'primevue/dialog';
-import InputNumber from 'primevue/inputnumber';
-import InputText from 'primevue/inputtext';
-import Button from 'primevue/button';
+import Dialog from "primevue/dialog";
+import InputNumber from "primevue/inputnumber";
+import InputText from "primevue/inputtext";
+import Button from "primevue/button";
 
 const props = defineProps({
   visible: Boolean,
@@ -13,12 +13,17 @@ const props = defineProps({
   fetching: Boolean,
 });
 
-const emit = defineEmits(['update:visible', 'update:baseVal', 'update:maxAscVal', 'submit']);
+const emit = defineEmits([
+  "update:visible",
+  "update:baseVal",
+  "update:maxAscVal",
+  "submit",
+]);
 
-const handleVisibleUpdate = (value) => emit('update:visible', value);
-const handleBaseValUpdate = (value) => emit('update:baseVal', value);
-const handleMaxAscValUpdate = (value) => emit('update:maxAscVal', value);
-const handleSubmit = () => emit('submit');
+const handleVisibleUpdate = (value) => emit("update:visible", value);
+const handleBaseValUpdate = (value) => emit("update:baseVal", value);
+const handleMaxAscValUpdate = (value) => emit("update:maxAscVal", value);
+const handleSubmit = () => emit("submit");
 </script>
 
 <template>
@@ -40,7 +45,12 @@ const handleSubmit = () => emit('submit');
         <div class="flex flex-col gap-4">
           <div class="flex flex-col gap-2">
             <label for="stat-char">Character Name</label>
-            <InputText id="stat-char" :modelValue="characterName" disabled fluid />
+            <InputText
+              id="stat-char"
+              :modelValue="characterName"
+              disabled
+              fluid
+            />
           </div>
           <div class="flex flex-col gap-2">
             <label for="stat-base">Base Stat (HP)</label>

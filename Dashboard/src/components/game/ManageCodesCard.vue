@@ -1,9 +1,9 @@
 <script setup>
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import InputText from 'primevue/inputtext';
-import Button from 'primevue/button';
-import Card from 'primevue/card';
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import InputText from "primevue/inputtext";
+import Button from "primevue/button";
+import Card from "primevue/card";
 
 const props = defineProps({
   codes: Array,
@@ -15,18 +15,20 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'update:selectedCodes',
-  'update:newCodesInput',
-  'update:codesSearchQuery',
-  'confirmAddCodes',
-  'confirmDeleteCodes',
+  "update:selectedCodes",
+  "update:newCodesInput",
+  "update:codesSearchQuery",
+  "confirmAddCodes",
+  "confirmDeleteCodes",
 ]);
 
-const handleSelectionUpdate = (value) => emit('update:selectedCodes', value);
-const handleNewCodesInputUpdate = (value) => emit('update:newCodesInput', value);
-const handleSearchQueryUpdate = (value) => emit('update:codesSearchQuery', value);
-const handleAdd = () => emit('confirmAddCodes');
-const handleDelete = (codesList) => emit('confirmDeleteCodes', codesList);
+const handleSelectionUpdate = (value) => emit("update:selectedCodes", value);
+const handleNewCodesInputUpdate = (value) =>
+  emit("update:newCodesInput", value);
+const handleSearchQueryUpdate = (value) =>
+  emit("update:codesSearchQuery", value);
+const handleAdd = () => emit("confirmAddCodes");
+const handleDelete = (codesList) => emit("confirmDeleteCodes", codesList);
 </script>
 
 <template>

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import Button from "primevue/button";
 
 const props = defineProps({
   userInfo: {
@@ -40,9 +41,9 @@ const openFiler = () => {
         You are signed in as <strong>{{ userInfo.username }}</strong> with
         superadmin access.
       </p>
-      <button class="btn primary" @click="openFiler" :disabled="!filerUrl">
+      <Button @click="openFiler" :disabled="!filerUrl">
         Open Seaweed Filer UI
-      </button>
+      </Button>
       <p v-if="!filerUrl" class="seaweed-error">
         Backend URL is not configured. Set <code>VITE_APP_BACKEND_URL</code>.
       </p>

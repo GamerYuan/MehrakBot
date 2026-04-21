@@ -165,7 +165,7 @@ const openUpdateModal = (user) => {
   }
   selectedUser.value = user;
   const userPerms = (user.gameWritePermissions || []).map((p) =>
-    p.toLowerCase()
+    p.toLowerCase(),
   );
 
   const newPermissions = {};
@@ -298,7 +298,7 @@ const handleUpdateUser = async () => {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
-      }
+      },
     );
 
     if (response.status === 401) {
@@ -370,14 +370,14 @@ const handleResetPassword = async (user) => {
       {
         method: "POST",
         credentials: "include",
-      }
+      },
     );
 
     if (!response.ok) {
       const data = await response.json();
       throw buildError(
         data.error || "Failed to reset password",
-        response.status
+        response.status,
       );
     }
 

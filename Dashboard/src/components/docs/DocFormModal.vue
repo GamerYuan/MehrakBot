@@ -162,38 +162,42 @@ const canEditGame = computed(() => {
 
         <div class="flex flex-col gap-2">
           <label class="font-semibold">Parameters</label>
-          <div class="param-input-row">
-            <InputText
-              v-model="newParam.name"
-              placeholder="Parameter name"
-              class="flex-1"
-            />
-            <Select
-              v-model="newParam.type"
-              :options="paramTypeOptions"
-              optionLabel="label"
-              optionValue="value"
-              class="w-28"
-            />
-            <div class="flex items-center gap-2 px-2">
-              <Checkbox
-                v-model="newParam.required"
-                binary
-                inputId="param-required"
+          <div class="param-input-container">
+            <div class="param-input-col flex-1">
+              <div class="param-input-row w-full">
+                <InputText
+                  v-model="newParam.name"
+                  placeholder="Parameter name"
+                  class="flex-1"
+                />
+                <Select
+                  v-model="newParam.type"
+                  :options="paramTypeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                />
+                <div class="flex items-center gap-2 px-2">
+                  <Checkbox
+                    v-model="newParam.required"
+                    binary
+                    inputId="param-required"
+                  />
+                  <label for="param-required" class="text-sm">Required</label>
+                </div>
+              </div>
+              <InputText
+                v-model="newParam.description"
+                placeholder="Description"
+                class="w-full"
               />
-              <label for="param-required" class="text-sm">Required</label>
             </div>
-            <InputText
-              v-model="newParam.description"
-              placeholder="Description"
-              class="flex-1"
-            />
             <Button
               type="button"
               icon="pi pi-plus"
               size="small"
               @click="addParameter"
               :disabled="!newParam.name.trim()"
+              class="h-full"
             />
           </div>
           <div v-if="form.parameters.length" class="param-list">
@@ -282,6 +286,24 @@ const canEditGame = computed(() => {
 .doc-form {
   display: flex;
   flex-direction: column;
+}
+
+.param-input-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.param-input-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .param-input-row {

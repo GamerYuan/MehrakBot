@@ -1,39 +1,65 @@
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from "vue";
 
 const gameColors = {
-  Genshin: { bg: 'rgba(255, 215, 0, 0.15)', border: 'rgba(255, 215, 0, 0.4)', text: '#FFD700' },
-  HonkaiStarRail: { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)', text: '#00D4FF' },
-  ZenlessZoneZero: { bg: 'rgba(255, 107, 0, 0.15)', border: 'rgba(255, 107, 0, 0.4)', text: '#FF6B00' },
-  HonkaiImpact3: { bg: 'rgba(255, 105, 180, 0.15)', border: 'rgba(255, 105, 180, 0.4)', text: '#FF69B4' },
-  Unsupported: { bg: 'rgba(136, 136, 136, 0.15)', border: 'rgba(136, 136, 136, 0.4)', text: '#888888' },
+  Genshin: {
+    bg: "rgba(255, 215, 0, 0.15)",
+    border: "rgba(255, 215, 0, 0.4)",
+    text: "#FFD700",
+  },
+  HonkaiStarRail: {
+    bg: "rgba(0, 212, 255, 0.15)",
+    border: "rgba(0, 212, 255, 0.4)",
+    text: "#00D4FF",
+  },
+  ZenlessZoneZero: {
+    bg: "rgba(255, 107, 0, 0.15)",
+    border: "rgba(255, 107, 0, 0.4)",
+    text: "#FF6B00",
+  },
+  HonkaiImpact3: {
+    bg: "rgba(255, 105, 180, 0.15)",
+    border: "rgba(255, 105, 180, 0.4)",
+    text: "#FF69B4",
+  },
+  Unsupported: {
+    bg: "rgba(136, 136, 136, 0.15)",
+    border: "rgba(136, 136, 136, 0.4)",
+    text: "#888888",
+  },
 };
 
 const gameLabels = {
-  Genshin: 'Genshin Impact',
-  HonkaiStarRail: 'Honkai: Star Rail',
-  ZenlessZoneZero: 'Zenless Zone Zero',
-  HonkaiImpact3: 'Honkai Impact 3rd',
-  Unsupported: 'Miscellaneous',
+  Genshin: "Genshin Impact",
+  HonkaiStarRail: "Honkai: Star Rail",
+  ZenlessZoneZero: "Zenless Zone Zero",
+  HonkaiImpact3: "Honkai Impact 3rd",
+  Unsupported: "Miscellaneous",
 };
 
 export function useDocs() {
   const documents = ref([]);
   const loading = ref(false);
-  const error = ref('');
-  const searchQuery = ref('');
-  const selectedGames = ref(['Genshin', 'HonkaiStarRail', 'ZenlessZoneZero', 'HonkaiImpact3', 'Unsupported']);
+  const error = ref("");
+  const searchQuery = ref("");
+  const selectedGames = ref([
+    "Genshin",
+    "HonkaiStarRail",
+    "ZenlessZoneZero",
+    "HonkaiImpact3",
+    "Unsupported",
+  ]);
 
   const fetchDocuments = async () => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(`${backendUrl}/docs/list`, {
-        credentials: 'include',
+        credentials: "include",
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to fetch documentation');
+        throw new Error(data.error || "Failed to fetch documentation");
       }
       const data = await response.json();
       documents.value = data;
@@ -48,11 +74,11 @@ export function useDocs() {
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
       const response = await fetch(`${backendUrl}/docs/${id}`, {
-        credentials: 'include',
+        credentials: "include",
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to fetch documentation details');
+        throw new Error(data.error || "Failed to fetch documentation details");
       }
       return await response.json();
     } catch (err) {
@@ -77,7 +103,13 @@ export function useDocs() {
 
   const groupedDocuments = computed(() => {
     const groups = {};
-    for (const game of ['Genshin', 'HonkaiStarRail', 'ZenlessZoneZero', 'HonkaiImpact3', 'Unsupported']) {
+    for (const game of [
+      "Genshin",
+      "HonkaiStarRail",
+      "ZenlessZoneZero",
+      "HonkaiImpact3",
+      "Unsupported",
+    ]) {
       const docs = filteredDocuments.value.filter((doc) => doc.game === game);
       if (docs.length > 0) {
         groups[game] = docs;
@@ -98,7 +130,13 @@ export function useDocs() {
   };
 
   const selectAllGames = () => {
-    selectedGames.value = ['Genshin', 'HonkaiStarRail', 'ZenlessZoneZero', 'HonkaiImpact3', 'Unsupported'];
+    selectedGames.value = [
+      "Genshin",
+      "HonkaiStarRail",
+      "ZenlessZoneZero",
+      "HonkaiImpact3",
+      "Unsupported",
+    ];
   };
 
   onMounted(() => {

@@ -1,7 +1,7 @@
 <script setup>
-import { useGameView } from '../composables/useGameView';
-import { gameConfigs } from '../configs/gameConfigs';
-import GameViewContainer from '../components/game/GameViewContainer.vue';
+import { useGameView } from "../composables/useGameView";
+import { gameConfigs } from "../configs/gameConfigs";
+import GameViewContainer from "../components/game/GameViewContainer.vue";
 
 const {
   config,

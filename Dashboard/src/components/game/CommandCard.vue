@@ -1,10 +1,10 @@
 <script setup>
-import InputNumber from 'primevue/inputnumber';
-import Select from 'primevue/select';
-import AutoComplete from 'primevue/autocomplete';
-import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Message from 'primevue/message';
+import InputNumber from "primevue/inputnumber";
+import Select from "primevue/select";
+import AutoComplete from "primevue/autocomplete";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Message from "primevue/message";
 
 const props = defineProps({
   activeTab: String,
@@ -20,20 +20,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'update:profileId',
-  'update:server',
-  'update:characterName',
-  'update:floor',
-  'searchCharacter',
-  'execute',
+  "update:profileId",
+  "update:server",
+  "update:characterName",
+  "update:floor",
+  "searchCharacter",
+  "execute",
 ]);
 
-const handleProfileIdUpdate = (value) => emit('update:profileId', value);
-const handleServerUpdate = (value) => emit('update:server', value);
-const handleCharacterNameUpdate = (value) => emit('update:characterName', value);
-const handleFloorUpdate = (value) => emit('update:floor', value);
-const handleSearch = (event) => emit('searchCharacter', event);
-const handleSubmit = () => emit('execute');
+const handleProfileIdUpdate = (value) => emit("update:profileId", value);
+const handleServerUpdate = (value) => emit("update:server", value);
+const handleCharacterNameUpdate = (value) =>
+  emit("update:characterName", value);
+const handleFloorUpdate = (value) => emit("update:floor", value);
+const handleSearch = (event) => emit("searchCharacter", event);
+const handleSubmit = () => emit("execute");
 </script>
 
 <template>
@@ -68,7 +69,7 @@ const handleSubmit = () => emit('execute');
           </div>
 
           <div v-if="tabConfig?.hasCharacterInput" class="flex flex-col gap-2">
-            <label>{{ tabConfig?.characterLabel || 'Character Name' }}</label>
+            <label>{{ tabConfig?.characterLabel || "Character Name" }}</label>
             <AutoComplete
               :modelValue="characterName"
               @update:modelValue="handleCharacterNameUpdate"
@@ -81,7 +82,9 @@ const handleSubmit = () => emit('execute');
           </div>
 
           <div v-if="tabConfig?.hasFloorInput" class="flex flex-col gap-2">
-            <label>Floor ({{ tabConfig.floorMin }}-{{ tabConfig.floorMax }})</label>
+            <label
+              >Floor ({{ tabConfig.floorMin }}-{{ tabConfig.floorMax }})</label
+            >
             <InputNumber
               :modelValue="floor"
               @update:modelValue="handleFloorUpdate"
