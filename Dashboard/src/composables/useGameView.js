@@ -3,6 +3,14 @@ import { useRouter } from "vue-router";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("mehrak_user") || "{}") || {};
+  } catch {
+    return {};
+  }
+};
+
 export function useGameView(config) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -112,7 +120,7 @@ export function useGameView(config) {
   const authLoading = ref(false);
   const authError = ref("");
 
-  const user = JSON.parse(localStorage.getItem("mehrak_user") || "{}");
+  const user = getStoredUser();
   const canManage =
     user.isSuperAdmin ||
     (user.gameWritePermissions &&
