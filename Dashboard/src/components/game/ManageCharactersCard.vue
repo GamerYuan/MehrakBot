@@ -38,10 +38,7 @@ const handleDelete = (name) => emit("deleteCharacter", name);
 const handleEditStat = (name) => emit("editStat", name);
 
 const listItems = computed(() => {
-  if (
-    Array.isArray(props.manageCharacterItems) &&
-    props.manageCharacterItems.length > 0
-  ) {
+  if (props.hasStatEdit && Array.isArray(props.manageCharacterItems)) {
     return props.manageCharacterItems;
   }
 
