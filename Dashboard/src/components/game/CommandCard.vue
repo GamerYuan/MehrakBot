@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from "vue";
 import InputNumber from "primevue/inputnumber";
 import Select from "primevue/select";
 import AutoComplete from "primevue/autocomplete";
@@ -44,8 +45,9 @@ const handleSubmit = () => emit("execute");
         <div class="flex flex-col gap-4">
           <div class="flex flex-row md:flex-row gap-4">
             <div class="flex flex-col gap-2 flex-1">
-              <label>Profile ID (1-10)</label>
+              <label :for="`${idPrefix}-profile-id`">Profile ID (1-10)</label>
               <InputNumber
+                :inputId="`${idPrefix}-profile-id`"
                 :modelValue="profileId"
                 @update:modelValue="handleProfileIdUpdate"
                 showButtons
@@ -55,8 +57,9 @@ const handleSubmit = () => emit("execute");
               />
             </div>
             <div class="flex flex-col gap-2 flex-1">
-              <label>Server</label>
+              <label :for="`${idPrefix}-server`">Server</label>
               <Select
+                :inputId="`${idPrefix}-server`"
                 :modelValue="server"
                 @update:modelValue="handleServerUpdate"
                 :options="config.servers"
@@ -69,8 +72,11 @@ const handleSubmit = () => emit("execute");
           </div>
 
           <div v-if="tabConfig?.hasCharacterInput" class="flex flex-col gap-2">
-            <label>{{ tabConfig?.characterLabel || "Character Name" }}</label>
+            <label :for="`${idPrefix}-character-name`">
+              {{ tabConfig?.characterLabel || "Character Name" }}
+            </label>
             <AutoComplete
+              :inputId="`${idPrefix}-character-name`"
               :modelValue="characterName"
               @update:modelValue="handleCharacterNameUpdate"
               :suggestions="filteredCharacters"
@@ -82,10 +88,11 @@ const handleSubmit = () => emit("execute");
           </div>
 
           <div v-if="tabConfig?.hasFloorInput" class="flex flex-col gap-2">
-            <label
+            <label :for="`${idPrefix}-floor`"
               >Floor ({{ tabConfig.floorMin }}-{{ tabConfig.floorMax }})</label
             >
             <InputNumber
+              :inputId="`${idPrefix}-floor`"
               :modelValue="floor"
               @update:modelValue="handleFloorUpdate"
               showButtons
