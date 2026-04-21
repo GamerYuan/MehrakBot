@@ -34,6 +34,11 @@ const gameColors = {
     border: "rgba(255, 105, 180, 0.4)",
     text: "#FF69B4",
   },
+  TearsOfThemis: {
+    bg: "rgba(138, 43, 226, 0.15)",
+    border: "rgba(138, 43, 226, 0.4)",
+    text: "#8A2BE2",
+  },
   Unsupported: {
     bg: "rgba(136, 136, 136, 0.15)",
     border: "rgba(136, 136, 136, 0.4)",
@@ -46,6 +51,7 @@ const gameLabels = {
   HonkaiStarRail: "Honkai: Star Rail",
   ZenlessZoneZero: "Zenless Zone Zero",
   HonkaiImpact3: "Honkai Impact 3rd",
+  TearsOfThemis: "Tears of Themis",
   Unsupported: "Miscellaneous",
 };
 

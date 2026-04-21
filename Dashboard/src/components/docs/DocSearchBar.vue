@@ -20,6 +20,7 @@ const gameFilters = [
   { key: "HonkaiStarRail", label: "Honkai: Star Rail", color: "#00D4FF" },
   { key: "ZenlessZoneZero", label: "Zenless Zone Zero", color: "#FF6B00" },
   { key: "HonkaiImpact3", label: "Honkai Impact 3rd", color: "#FF69B4" },
+  { key: "TearsOfThemis", label: "Tears of Themis", color: "#8A2BE2" },
   { key: "Unsupported", label: "Miscellaneous", color: "#888888" },
 ];
 
@@ -32,7 +33,9 @@ const handleSearchUpdate = (value) => {
 
 const isGameSelected = (game) => props.selectedGames.includes(game);
 
-const allSelected = computed(() => props.selectedGames.length === 5);
+const allSelected = computed(
+  () => props.selectedGames.length === gameFilters.length,
+);
 </script>
 
 <template>
