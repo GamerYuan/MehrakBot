@@ -2,6 +2,7 @@
 import { useRouter } from "vue-router";
 import Button from "primevue/button";
 import AppNavbar from "../components/AppNavbar.vue";
+import AppFooter from "../components/AppFooter.vue";
 
 const router = useRouter();
 
@@ -146,19 +147,7 @@ const features = [
       </div>
     </section>
 
-    <footer class="footer">
-      <div class="footer-content">
-        <div class="footer-brand">
-          <img src="/logo.webp" alt="MehrakBot" class="logo-icon" />
-          <span>MehrakBot</span>
-        </div>
-        <p class="footer-disclaimer">
-          Not affiliated with HoYoverse. All game titles and trademarks belong
-          to their respective owners.
-        </p>
-        <p class="footer-copyright">&copy; 2026 MehrakBot</p>
-      </div>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 
@@ -169,13 +158,6 @@ const features = [
   flex-direction: column;
   background: linear-gradient(to bottom, #0a0a0f, #111118);
   overflow-x: hidden;
-}
-
-.logo-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  object-fit: contain;
 }
 
 .hero {
@@ -506,39 +488,6 @@ const features = [
 .cta-content p {
   color: #888;
   margin: 0 0 2rem;
-}
-
-.footer {
-  padding: 3rem 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.footer-content {
-  max-width: 600px;
-  margin: 0 auto;
-  text-align: center;
-}
-
-.footer-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-}
-
-.footer-disclaimer {
-  color: #555;
-  font-size: 0.85rem;
-  margin: 0 0 0.5rem;
-}
-
-.footer-copyright {
-  color: #444;
-  font-size: 0.8rem;
-  margin: 0;
 }
 
 @media (max-width: 640px) {

@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppNavbar from "../components/AppNavbar.vue";
+import AppFooter from "../components/AppFooter.vue";
 import DocCard from "../components/docs/DocCard.vue";
 import DocDetailModal from "../components/docs/DocDetailModal.vue";
 import DocSearchBar from "../components/docs/DocSearchBar.vue";
@@ -259,13 +260,7 @@ const handleTabChange = (tab) => {
       :loading="loadingDetail"
     />
 
-    <footer
-      class="py-6 px-8 text-center border-t border-white/5 bg-black/30 mt-auto"
-    >
-      <p class="m-0 text-zinc-500 text-sm">
-        &copy; 2026 MehrakBot. Not affiliated with HoYoverse.
-      </p>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 

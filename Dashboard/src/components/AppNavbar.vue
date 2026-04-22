@@ -20,7 +20,6 @@ const router = useRouter();
     </div>
     <div class="nav-links">
       <a href="#" @click.prevent="router.push('/docs')">Docs</a>
-      <a href="#" @click.prevent="router.push('/privacy')">Privacy</a>
       <a
         href="https://github.com/GamerYuan/MehrakBot"
         target="_blank"
