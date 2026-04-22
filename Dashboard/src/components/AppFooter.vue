@@ -13,6 +13,8 @@ const router = useRouter();
       </div>
       <div class="footer-links">
         <a href="#" @click.prevent="router.push('/privacy')">Privacy Policy</a>
+        <span class="divider">•</span>
+        <a href="#" @click.prevent="router.push('/terms')">Terms of Service</a>
       </div>
       <p class="footer-disclaimer">
         Not affiliated with HoYoverse. All game titles and trademarks belong
@@ -54,6 +56,14 @@ const router = useRouter();
 
 .footer-links {
   margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.divider {
+  color: #555;
 }
 
 .footer-links a {

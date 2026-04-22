@@ -14,6 +14,7 @@ import ZzzView from "../views/ZzzView.vue";
 import Hi3View from "../views/Hi3View.vue";
 import SeaweedFilerView from "../views/SeaweedFilerView.vue";
 import PrivacyPolicyView from "../views/PrivacyPolicyView.vue";
+import TermsOfServiceView from "../views/TermsOfServiceView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,6 +43,11 @@ const router = createRouter({
       path: "/privacy",
       name: "privacy",
       component: PrivacyPolicyView,
+    },
+    {
+      path: "/terms",
+      name: "terms",
+      component: TermsOfServiceView,
     },
     {
       path: "/dashboard",
