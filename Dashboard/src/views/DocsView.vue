@@ -81,7 +81,7 @@ const handleTabChange = (tab) => {
 
     <main class="docs-content">
       <div class="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 items-start">
-        <aside>
+        <aside class="lg:sticky lg:top-28 h-fit">
           <Card class="bg-white/5 border border-white/10 rounded-2xl">
             <template #content>
               <div class="mb-5">
@@ -248,7 +248,7 @@ const handleTabChange = (tab) => {
 
 :deep(.p-tabs) {
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow: clip;
 }
 
 @media (max-width: 640px) {
