@@ -3,12 +3,10 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("alias")]
 public class AliasController : ControllerBase
 {
@@ -37,6 +35,7 @@ public class AliasController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize]
     [HttpPatch("add")]
     public async Task<IActionResult> AddAliases([FromQuery] string? game, [FromBody] AddAliasRequest request)
     {
@@ -81,6 +80,7 @@ public class AliasController : ControllerBase
         return NoContent();
     }
 
+    [Authorize]
     [HttpDelete("delete")]
     public async Task<IActionResult> DeleteAlias([FromQuery] string? game, [FromQuery] string? alias)
     {
