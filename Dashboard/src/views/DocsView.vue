@@ -10,6 +10,7 @@ import FaqTab from "../components/docs/tabs/FaqTab.vue";
 import AboutMehrakTab from "../components/docs/tabs/AboutMehrakTab.vue";
 import AboutCookiesTab from "../components/docs/tabs/AboutCookiesTab.vue";
 import ReleaseNotesTab from "../components/docs/tabs/ReleaseNotesTab.vue";
+import AliasTab from "../components/docs/tabs/AliasTab.vue";
 import { useDocs } from "../composables/useDocs";
 import Card from "primevue/card";
 import Tabs from "primevue/tabs";
@@ -44,6 +45,7 @@ const appendixTab = ref("about");
 const docTabs = [
   { key: "getting-started", label: "Getting Started" },
   { key: "commands", label: "Commands" },
+  { key: "alias", label: "Aliases" },
   { key: "faq", label: "FAQ" },
   { key: "appendix", label: "Appendix" },
 ];
@@ -213,6 +215,10 @@ const handleTabChange = (tab) => {
                 </Message>
               </div>
             </div>
+          </div>
+
+          <div v-else-if="activeTab === 'alias'">
+            <AliasTab />
           </div>
 
           <div v-else-if="activeTab === 'faq'">
