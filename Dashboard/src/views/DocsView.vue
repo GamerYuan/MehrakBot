@@ -1,13 +1,11 @@
 <script setup>
 import { ref } from "vue";
-import { useRouter } from "vue-router";
-import Button from "primevue/button";
+import AppNavbar from "../components/AppNavbar.vue";
 import DocCard from "../components/docs/DocCard.vue";
 import DocDetailModal from "../components/docs/DocDetailModal.vue";
 import DocSearchBar from "../components/docs/DocSearchBar.vue";
 import { useDocs } from "../composables/useDocs";
 
-const router = useRouter();
 const {
   loading,
   error,
@@ -46,19 +44,7 @@ const handleSearchUpdate = (value) => {
 
 <template>
   <div class="docs-page">
-    <nav class="nav">
-      <div class="nav-logo" @click="router.push('/')">
-        <span class="logo-icon">✦</span>
-        <span>MehrakBot</span>
-      </div>
-      <div class="nav-links">
-        <Button
-          label="Dashboard"
-          size="small"
-          @click="router.push('/dashboard')"
-        />
-      </div>
-    </nav>
+    <AppNavbar />
 
     <main class="docs-content">
       <div class="docs-header">
@@ -131,36 +117,9 @@ const handleSearchUpdate = (value) => {
   background: linear-gradient(to bottom, #0a0a0f, #111118);
 }
 
-.nav {
-  position: sticky;
-  top: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: rgba(10, 10, 15, 0.9);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  z-index: 100;
-}
-
-.nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 700;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-.logo-icon {
-  color: #5865f2;
-  font-size: 1.4rem;
-}
-
 .docs-content {
   flex: 1;
-  padding: 2rem;
+  padding: 6rem 2rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -252,11 +211,7 @@ const handleSearchUpdate = (value) => {
 
 @media (max-width: 640px) {
   .docs-content {
-    padding: 1rem;
-  }
-
-  .nav {
-    padding: 1rem;
+    padding: 6.5rem 1rem 1rem;
   }
 
   .docs-grid {
