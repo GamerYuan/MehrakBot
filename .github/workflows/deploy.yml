@@ -101,7 +101,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.ASSETS_PAT }}
+          lfs: true
+
+      - name: Checkout LFS
+        run: git lfs pull
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
