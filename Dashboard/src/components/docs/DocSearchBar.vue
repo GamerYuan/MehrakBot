@@ -110,7 +110,7 @@ const allSelected = computed(
 
 .search-input:focus {
   outline: none;
-  border-color: #5865f2;
+  border-color: var(--accent);
   background: rgba(255, 255, 255, 0.05);
 }
 

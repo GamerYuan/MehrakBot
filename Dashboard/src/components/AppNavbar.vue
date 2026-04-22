@@ -7,7 +7,14 @@ const router = useRouter();
 
 <template>
   <nav class="nav">
-    <div class="nav-logo">
+    <div
+      class="nav-logo"
+      role="button"
+      tabindex="0"
+      @click="router.push('/')"
+      @keydown.enter.prevent="router.push('/')"
+      @keydown.space.prevent="router.push('/')"
+    >
       <img src="/logo.webp" alt="MehrakBot" class="logo-icon" />
       <span>MehrakBot</span>
     </div>
@@ -52,6 +59,7 @@ const router = useRouter();
   gap: 0.5rem;
   font-weight: 700;
   font-size: 1.2rem;
+  cursor: pointer;
 }
 
 .logo-icon {

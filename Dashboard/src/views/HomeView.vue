@@ -60,9 +60,9 @@ const features = [
           Discord Bot
         </div>
 
-        <h1 class="hero-title">
-          <span class="title-line">Mehrak<span class="accent">Bot</span></span>
-        </h1>
+          <h1 class="hero-title text-6xl md:text-8xl font-extrabold tracking-tight text-zinc-100">
+            <span class="title-line">Mehrak<span class="accent">Bot</span></span>
+          </h1>
 
         <p class="hero-subtitle">
           Your All-in-One <span class="highlight">HoYoverse</span> Games Toolbox
@@ -110,7 +110,7 @@ const features = [
 
     <section class="features-section">
       <div class="section-header">
-        <h2>Features</h2>
+        <h2 class="text-5xl font-bold tracking-tight text-zinc-100">Features</h2>
         <p>Everything you need for your HoYoverse gaming experience</p>
       </div>
 
@@ -132,7 +132,7 @@ const features = [
 
     <section class="cta-section">
       <div class="cta-content">
-        <h2>Ready to get started?</h2>
+        <h2 class="text-4xl font-bold tracking-tight text-zinc-100">Ready to get started?</h2>
         <p>Add MehrakBot to your server in seconds</p>
         <Button
           as="a"
@@ -204,7 +204,7 @@ const features = [
 .orb-1 {
   width: 600px;
   height: 600px;
-  background: linear-gradient(135deg, #5865f2, #7289da);
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   top: -200px;
   right: -100px;
   animation: float 20s ease-in-out infinite;
@@ -265,18 +265,18 @@ const features = [
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 1rem;
-  background: rgba(88, 101, 242, 0.15);
-  border: 1px solid rgba(88, 101, 242, 0.3);
+  background: rgba(var(--accent-rgb), 0.16);
+  border: 1px solid rgba(var(--accent-rgb), 0.38);
   border-radius: 100px;
   font-size: 0.85rem;
-  color: #a0a0ff;
+  color: #dcfce7;
   margin-bottom: 1.5rem;
 }
 
 .badge-dot {
   width: 6px;
   height: 6px;
-  background: #5865f2;
+  background: var(--accent);
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -293,9 +293,6 @@ const features = [
 
 .hero-title {
   margin: 0 0 1rem;
-  font-size: clamp(3rem, 10vw, 6rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
@@ -304,7 +301,7 @@ const features = [
 }
 
 .accent {
-  background: linear-gradient(135deg, #5865f2, #a855f7);
+  background: linear-gradient(135deg, #86efac, var(--accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -395,13 +392,7 @@ const features = [
 }
 
 .section-header h2 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 700;
   margin: 0 0 0.5rem;
-  background: linear-gradient(135deg, #fff, #a0a0a0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .section-header p {
@@ -501,16 +492,14 @@ const features = [
   padding: 3rem;
   background: linear-gradient(
     135deg,
-    rgba(88, 101, 242, 0.1),
-    rgba(168, 85, 247, 0.1)
+    rgba(var(--accent-rgb), 0.12),
+    rgba(var(--accent-rgb), 0.06)
   );
-  border: 1px solid rgba(88, 101, 242, 0.2);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
   border-radius: 24px;
 }
 
 .cta-content h2 {
-  font-size: 2rem;
-  font-weight: 700;
   margin: 0 0 0.5rem;
 }
 

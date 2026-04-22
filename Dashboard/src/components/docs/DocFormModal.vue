@@ -345,8 +345,8 @@ const canEditGame = computed(() => {
 .param-type-badge {
   font-size: 0.7rem;
   padding: 0.15rem 0.4rem;
-  background: rgba(88, 101, 242, 0.2);
-  color: #a0a0ff;
+  background: rgba(var(--accent-rgb), 0.2);
+  color: #dcfce7;
   border-radius: 4px;
   font-family: monospace;
 }
@@ -388,6 +388,6 @@ const canEditGame = computed(() => {
   flex: 1;
   font-family: monospace;
   font-size: 0.9rem;
-  color: #5865f2;
+  color: var(--accent-soft);
 }
 </style>

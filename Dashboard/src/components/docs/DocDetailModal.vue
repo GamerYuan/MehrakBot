@@ -110,7 +110,7 @@ const handleClose = () => {
   margin: 0;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #6ee7b7;
+  color: var(--accent-soft);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -151,8 +151,8 @@ const handleClose = () => {
 .param-type {
   font-size: 0.75rem;
   padding: 0.15rem 0.4rem;
-  background: rgba(88, 101, 242, 0.2);
-  color: #a0a0ff;
+  background: rgba(var(--accent-rgb), 0.2);
+  color: #dcfce7;
   border-radius: 4px;
   font-family: monospace;
 }
@@ -180,7 +180,7 @@ const handleClose = () => {
   border-radius: 8px;
   font-family: monospace;
   font-size: 0.9rem;
-  color: #5dc39b;
+  color: var(--accent-soft);
   word-break: break-all;
   line-height: 1.6;
 }
@@ -192,7 +192,7 @@ const handleClose = () => {
   border-radius: 8px;
   font-family: monospace;
   font-size: 0.9rem;
-  color: #5dc39b;
+  color: var(--accent-soft);
   word-break: break-all;
   line-height: 1.8;
 }
@@ -209,6 +209,6 @@ const handleClose = () => {
 
 .loading-container i {
   font-size: 1.5rem;
-  color: #5dc39b;
+  color: var(--accent-soft);
 }
 </style>
