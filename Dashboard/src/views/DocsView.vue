@@ -6,6 +6,14 @@ import DocDetailModal from "../components/docs/DocDetailModal.vue";
 import DocSearchBar from "../components/docs/DocSearchBar.vue";
 import GettingStartedTab from "../components/docs/tabs/GettingStartedTab.vue";
 import { useDocs } from "../composables/useDocs";
+import Card from "primevue/card";
+import Tabs from "primevue/tabs";
+import TabList from "primevue/tablist";
+import Tab from "primevue/tab";
+import TabPanels from "primevue/tabpanels";
+import TabPanel from "primevue/tabpanel";
+import Message from "primevue/message";
+import ProgressSpinner from "primevue/progressspinner";
 
 const {
   loading,
@@ -77,39 +85,49 @@ const getAppendixPlaceholder = (tab) => {
     <AppNavbar />
 
     <main class="docs-content">
-      <div class="docs-shell">
-        <aside class="docs-sidebar">
-          <div class="sidebar-card">
-            <div class="sidebar-heading">
-              <h1 class="text-3xl font-bold tracking-tight text-zinc-100">
-                Documentation
-              </h1>
-              <p>Explore all available commands and features</p>
-            </div>
+      <div class="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 items-start">
+        <aside>
+          <Card class="bg-white/5 border border-white/10 rounded-2xl">
+            <template #content>
+              <div class="mb-5">
+                <h1
+                  class="text-3xl font-bold tracking-tight text-zinc-100 mb-2"
+                >
+                  Documentation
+                </h1>
+                <p class="text-zinc-400 text-sm leading-relaxed m-0">
+                  Explore all available commands and features
+                </p>
+              </div>
 
-            <nav class="tab-nav" aria-label="Documentation sections">
-              <button
-                v-for="tab in docTabs"
-                :key="tab.key"
-                type="button"
-                :class="['tab-button', { active: activeTab === tab.key }]"
-                @click="handleTabChange(tab.key)"
+              <div
+                class="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0"
               >
-                {{ tab.label }}
-              </button>
-            </nav>
-          </div>
+                <button
+                  v-for="tab in docTabs"
+                  :key="tab.key"
+                  type="button"
+                  :class="[
+                    'w-full text-left rounded-lg px-3 py-2.5 text-sm transition-all whitespace-nowrap md:whitespace-normal',
+                    activeTab === tab.key
+                      ? 'text-white border border-emerald-500/50 bg-emerald-500/20'
+                      : 'text-zinc-400 border border-white/10 bg-white/5 hover:text-zinc-200 hover:border-white/20 hover:bg-white/10',
+                  ]"
+                  @click="handleTabChange(tab.key)"
+                >
+                  {{ tab.label }}
+                </button>
+              </div>
+            </template>
+          </Card>
         </aside>
 
-        <section class="docs-panel">
-          <div
-            v-if="activeTab === 'getting-started'"
-            class="getting-started-panel"
-          >
+        <section class="min-h-130">
+          <div v-if="activeTab === 'getting-started'">
             <GettingStartedTab />
           </div>
 
-          <div v-else-if="activeTab === 'commands'" class="commands-panel">
+          <div v-else-if="activeTab === 'commands'" class="flex flex-col gap-6">
             <DocSearchBar
               :searchQuery="searchQuery"
               :selectedGames="selectedGames"
@@ -118,24 +136,37 @@ const getAppendixPlaceholder = (tab) => {
               @selectAllGames="selectAllGames"
             />
 
-            <div v-if="loading" class="loading-state">
-              <i class="pi pi-spinner pi-spin"></i>
+            <div
+              v-if="loading"
+              class="flex flex-col items-center justify-center gap-4 py-16 text-zinc-400"
+            >
+              <ProgressSpinner
+                style="width: 50px; height: 50px"
+                strokeWidth="4"
+              />
               <span>Loading documentation...</span>
             </div>
 
-            <div v-else-if="error" class="error-state">
-              <i class="pi pi-exclamation-triangle"></i>
-              <span>{{ error }}</span>
+            <div v-else-if="error" class="py-8">
+              <Message severity="error" :closable="false">
+                {{ error }}
+              </Message>
             </div>
 
-            <div v-else class="docs-sections">
+            <div v-else class="flex flex-col gap-10">
               <section
                 v-for="(docs, game) in groupedDocuments"
                 :key="game"
-                class="docs-section"
+                class="flex flex-col gap-4"
               >
-                <h2 class="section-title">{{ gameLabels[game] }}</h2>
-                <div class="docs-grid">
+                <h2
+                  class="text-xl font-semibold text-zinc-300 m-0 pb-2 border-b border-white/10"
+                >
+                  {{ gameLabels[game] }}
+                </h2>
+                <div
+                  class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                >
                   <DocCard
                     v-for="doc in docs"
                     :key="doc.id"
@@ -147,37 +178,47 @@ const getAppendixPlaceholder = (tab) => {
 
               <div
                 v-if="Object.keys(groupedDocuments).length === 0"
-                class="empty-state"
+                class="py-16"
               >
-                <i class="pi pi-search"></i>
-                <p>No commands found matching your search.</p>
+                <Message severity="warn" :closable="false" icon="pi pi-search">
+                  No commands found matching your search.
+                </Message>
               </div>
             </div>
           </div>
 
-          <div v-else class="appendix-panel">
-            <div
-              class="appendix-subtabs"
-              role="tablist"
-              aria-label="Appendix sections"
-            >
-              <button
-                v-for="tab in appendixTabs"
-                :key="tab.key"
-                type="button"
-                :class="['appendix-tab', { active: appendixTab === tab.key }]"
-                @click="appendixTab = tab.key"
-              >
-                {{ tab.label }}
-              </button>
-            </div>
-
-            <div class="placeholder-card">
-              <h2 class="text-2xl font-semibold tracking-tight text-zinc-100">
-                Appendix
-              </h2>
-              <p>{{ getAppendixPlaceholder(appendixTab) }}</p>
-            </div>
+          <div v-else>
+            <Tabs v-model:value="appendixTab">
+              <TabList>
+                <Tab
+                  v-for="tab in appendixTabs"
+                  :key="tab.key"
+                  :value="tab.key"
+                >
+                  {{ tab.label }}
+                </Tab>
+              </TabList>
+              <TabPanels class="bg-transparent px-0 py-6">
+                <TabPanel
+                  v-for="tab in appendixTabs"
+                  :key="tab.key"
+                  :value="tab.key"
+                >
+                  <Card class="bg-white/5 border border-white/10 rounded-2xl">
+                    <template #content>
+                      <h2
+                        class="text-2xl font-semibold tracking-tight text-zinc-100 mb-3"
+                      >
+                        Appendix
+                      </h2>
+                      <p class="text-zinc-400 leading-relaxed m-0">
+                        {{ getAppendixPlaceholder(tab.key) }}
+                      </p>
+                    </template>
+                  </Card>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
           </div>
         </section>
       </div>
@@ -189,8 +230,12 @@ const getAppendixPlaceholder = (tab) => {
       :loading="loadingDetail"
     />
 
-    <footer class="footer">
-      <p>&copy; 2026 MehrakBot. Not affiliated with HoYoverse.</p>
+    <footer
+      class="py-6 px-8 text-center border-t border-white/5 bg-black/30 mt-auto"
+    >
+      <p class="m-0 text-zinc-500 text-sm">
+        &copy; 2026 MehrakBot. Not affiliated with HoYoverse.
+      </p>
     </footer>
   </div>
 </template>
@@ -211,221 +256,14 @@ const getAppendixPlaceholder = (tab) => {
   width: 100%;
 }
 
-.docs-shell {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 2rem;
-  align-items: start;
-}
-
-.docs-sidebar {
-  position: sticky;
-  top: 6.8rem;
-}
-
-.sidebar-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 1.2rem;
-}
-
-.sidebar-heading {
-  margin-bottom: 1.25rem;
-}
-
-.sidebar-heading h1 {
-  margin: 0 0 0.45rem;
-}
-
-.sidebar-heading p {
-  color: #7a7a7a;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.tab-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.tab-button {
-  width: 100%;
-  text-align: left;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-  color: #b7b7b7;
-  border-radius: 10px;
-  padding: 0.65rem 0.75rem;
-  font-size: 0.92rem;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.tab-button:hover {
-  color: #ececec;
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.tab-button.active {
-  color: #fff;
-  border-color: rgba(var(--accent-rgb), 0.5);
-  background: rgba(var(--accent-rgb), 0.22);
-}
-
-.docs-panel {
-  min-height: 520px;
-}
-
-.commands-panel,
-.appendix-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-}
-
-.placeholder-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 1.6rem;
-}
-
-.placeholder-card h2 {
-  margin: 0 0 0.75rem;
-}
-
-.placeholder-card p {
-  margin: 0;
-  color: #9b9b9b;
-  line-height: 1.7;
-}
-
-.appendix-subtabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-}
-
-.appendix-tab {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #acacac;
-  border-radius: 999px;
-  padding: 0.45rem 0.8rem;
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.appendix-tab:hover {
-  color: #ececec;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.appendix-tab.active {
-  color: #fff;
-  border-color: rgba(var(--accent-rgb), 0.45);
-  background: rgba(var(--accent-rgb), 0.22);
-}
-
-.loading-state,
-.error-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 4rem 2rem;
-  color: #666;
-  text-align: center;
-}
-
-.loading-state i,
-.error-state i,
-.empty-state i {
-  font-size: 2rem;
-}
-
-.error-state {
-  color: #ff6b6b;
-}
-
-.docs-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-}
-
-.docs-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ccc;
-}
-
-.docs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-.footer {
-  padding: 1.5rem 2rem;
-  text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.footer p {
-  margin: 0;
-  color: #444;
-  font-size: 0.85rem;
+:deep(.p-tabs) {
+  border-radius: 0.75rem;
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
   .docs-content {
     padding: 6.5rem 1rem 1rem;
-  }
-
-  .docs-shell {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .docs-sidebar {
-    position: static;
-  }
-
-  .tab-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 0.15rem;
-  }
-
-  .tab-button {
-    min-width: 140px;
-    white-space: nowrap;
-  }
-
-  .placeholder-card {
-    padding: 1.2rem;
-  }
-
-  .docs-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>
