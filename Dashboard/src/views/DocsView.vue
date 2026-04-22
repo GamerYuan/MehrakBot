@@ -11,6 +11,7 @@ import FaqTab from "../components/docs/tabs/FaqTab.vue";
 import AboutMehrakTab from "../components/docs/tabs/AboutMehrakTab.vue";
 import AboutCookiesTab from "../components/docs/tabs/AboutCookiesTab.vue";
 import ReleaseNotesTab from "../components/docs/tabs/ReleaseNotesTab.vue";
+import CommendationsTab from "../components/docs/tabs/CommendationsTab.vue";
 import AliasTab from "../components/docs/tabs/AliasTab.vue";
 import { useDocs } from "../composables/useDocs";
 import Card from "primevue/card";
@@ -55,6 +56,7 @@ const appendixTabs = [
   { key: "about", label: "About Mehrak" },
   { key: "cookies", label: "About HoYoLAB Cookies" },
   { key: "notes", label: "Release Notes" },
+  { key: "commendations", label: "Commendations" },
 ];
 
 const syncFromUrl = () => {
@@ -272,6 +274,9 @@ const handleTabChange = (tab) => {
                 </TabPanel>
                 <TabPanel value="notes">
                   <ReleaseNotesTab />
+                </TabPanel>
+                <TabPanel value="commendations">
+                  <CommendationsTab />
                 </TabPanel>
               </TabPanels>
             </Tabs>
