@@ -5,6 +5,10 @@ import DocCard from "../components/docs/DocCard.vue";
 import DocDetailModal from "../components/docs/DocDetailModal.vue";
 import DocSearchBar from "../components/docs/DocSearchBar.vue";
 import GettingStartedTab from "../components/docs/tabs/GettingStartedTab.vue";
+import FaqTab from "../components/docs/tabs/FaqTab.vue";
+import AboutMehrakTab from "../components/docs/tabs/AboutMehrakTab.vue";
+import AboutCookiesTab from "../components/docs/tabs/AboutCookiesTab.vue";
+import ReleaseNotesTab from "../components/docs/tabs/ReleaseNotesTab.vue";
 import { useDocs } from "../composables/useDocs";
 import Card from "primevue/card";
 import Tabs from "primevue/tabs";
@@ -31,17 +35,18 @@ const selectedDoc = ref(null);
 const showDetailModal = ref(false);
 const loadingDetail = ref(false);
 const activeTab = ref("getting-started");
-const appendixTab = ref("reference");
+const appendixTab = ref("about");
 
 const docTabs = [
   { key: "getting-started", label: "Getting Started" },
   { key: "commands", label: "Commands" },
+  { key: "faq", label: "FAQ" },
   { key: "appendix", label: "Appendix" },
 ];
 
 const appendixTabs = [
-  { key: "reference", label: "Reference" },
-  { key: "faq", label: "FAQ" },
+  { key: "about", label: "About Mehrak" },
+  { key: "cookies", label: "About HoYoLAB Cookies" },
   { key: "notes", label: "Release Notes" },
 ];
 
@@ -67,16 +72,6 @@ const handleSearchUpdate = (value) => {
 const handleTabChange = (tab) => {
   activeTab.value = tab;
   showDetailModal.value = false;
-};
-
-const getAppendixPlaceholder = (tab) => {
-  if (tab === "reference") {
-    return "Use this section for glossary terms, option references, or quick lookup tables.";
-  }
-  if (tab === "faq") {
-    return "Add common questions and answers for setup issues, account linking, and troubleshooting.";
-  }
-  return "Track important documentation updates and behavior changes between bot releases.";
 };
 </script>
 
@@ -187,6 +182,10 @@ const getAppendixPlaceholder = (tab) => {
             </div>
           </div>
 
+          <div v-else-if="activeTab === 'faq'">
+            <FaqTab />
+          </div>
+
           <div v-else>
             <Tabs v-model:value="appendixTab">
               <TabList>
@@ -199,23 +198,14 @@ const getAppendixPlaceholder = (tab) => {
                 </Tab>
               </TabList>
               <TabPanels class="bg-transparent px-0 py-6">
-                <TabPanel
-                  v-for="tab in appendixTabs"
-                  :key="tab.key"
-                  :value="tab.key"
-                >
-                  <Card class="bg-white/5 border border-white/10 rounded-2xl">
-                    <template #content>
-                      <h2
-                        class="text-2xl font-semibold tracking-tight text-zinc-100 mb-3"
-                      >
-                        Appendix
-                      </h2>
-                      <p class="text-zinc-400 leading-relaxed m-0">
-                        {{ getAppendixPlaceholder(tab.key) }}
-                      </p>
-                    </template>
-                  </Card>
+                <TabPanel value="about">
+                  <AboutMehrakTab />
+                </TabPanel>
+                <TabPanel value="cookies">
+                  <AboutCookiesTab />
+                </TabPanel>
+                <TabPanel value="notes">
+                  <ReleaseNotesTab />
                 </TabPanel>
               </TabPanels>
             </Tabs>
