@@ -73,7 +73,9 @@ const syncFromUrl = () => {
 
   if (hash) {
     setTimeout(() => {
-      const element = document.querySelector(hash);
+      const element = document.getElementById(
+        hash.startsWith("#") ? hash.slice(1) : hash,
+      );
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -164,7 +166,9 @@ const handleTabChange = (tab) => {
             <Card class="bg-white/5 border border-white/10 rounded-2xl">
               <template #content>
                 <div class="flex flex-col gap-4">
-                  <h2 class="text-3xl font-bold tracking-tight text-zinc-100 mb-2">
+                  <h2
+                    class="text-3xl font-bold tracking-tight text-zinc-100 mb-2"
+                  >
                     Commands
                   </h2>
                   <p class="text-zinc-300 leading-relaxed m-0">
@@ -241,21 +245,23 @@ const handleTabChange = (tab) => {
             <FaqTab />
           </div>
 
-            <div v-else>
-              <Card class="bg-white/5 border border-white/10 rounded-2xl mb-6">
-                <template #content>
-                  <div class="flex flex-col gap-4">
-                    <h2 class="text-3xl font-bold tracking-tight text-zinc-100 mb-2">
-                      Appendix
-                    </h2>
-                    <p class="text-zinc-300 leading-relaxed m-0">
-                      Additional information and resources
-                    </p>
-                  </div>
-                </template>
-              </Card>
+          <div v-else>
+            <Card class="bg-white/5 border border-white/10 rounded-2xl mb-6">
+              <template #content>
+                <div class="flex flex-col gap-4">
+                  <h2
+                    class="text-3xl font-bold tracking-tight text-zinc-100 mb-2"
+                  >
+                    Appendix
+                  </h2>
+                  <p class="text-zinc-300 leading-relaxed m-0">
+                    Additional information and resources
+                  </p>
+                </div>
+              </template>
+            </Card>
 
-              <Tabs v-model:value="appendixTab">
+            <Tabs v-model:value="appendixTab">
               <TabList>
                 <Tab
                   v-for="tab in appendixTabs"
