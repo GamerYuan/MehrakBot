@@ -6,7 +6,7 @@ Mehrak integrates with [Discord User Apps](https://support-apps.discord.com/hc/e
 
 Mehrak also features a simple CRUD maintainer dashboard, aimed to allow contributions from non-technical maintainers with minimal code changes
 
-### [User Guide](https://gameryuan.gitbook.io/mehrak)
+### [User Guide](https://mehrak.yuan-dev.com/)
 
 ### [Dev Guide](docs)
 
