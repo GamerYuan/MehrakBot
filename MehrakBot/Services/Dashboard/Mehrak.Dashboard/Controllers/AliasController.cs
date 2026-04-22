@@ -3,13 +3,12 @@ using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("alias")]
+[Authorize]
 public class AliasController : ControllerBase
 {
     private readonly IAliasService m_AliasService;
@@ -21,6 +20,7 @@ public class AliasController : ControllerBase
         m_Logger = logger;
     }
 
+    [AllowAnonymous]
     [HttpGet("list")]
     public async Task<IActionResult> ListAliases([FromQuery] string? game)
     {

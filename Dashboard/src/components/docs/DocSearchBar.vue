@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
 import InputText from "primevue/inputtext";
-import Checkbox from "primevue/checkbox";
 import Button from "primevue/button";
 
 const props = defineProps({
@@ -39,28 +38,36 @@ const allSelected = computed(
 </script>
 
 <template>
-  <div class="search-bar">
-    <div class="search-input-wrapper">
-      <i class="pi pi-search search-icon"></i>
+  <div class="flex flex-col gap-4">
+    <div class="relative w-full">
+      <i
+        class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 z-10 pointer-events-none"
+      ></i>
       <InputText
         :modelValue="searchQuery"
         @update:modelValue="handleSearchUpdate"
         placeholder="Search commands..."
-        class="search-input"
+        class="w-full py-3 bg-white/5 border-white/10 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-zinc-200 placeholder:text-zinc-500"
+        pt:root="pl-11"
       />
     </div>
 
-    <div class="filter-section">
-      <span class="filter-label">Filter by game:</span>
-      <div class="filter-options">
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="text-sm text-zinc-400">Filter by game:</span>
+      <div class="flex flex-wrap gap-2">
         <button
           v-for="game in gameFilters"
           :key="game.key"
-          :class="['filter-chip', { active: isGameSelected(game.key) }]"
+          :class="[
+            'inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs cursor-pointer transition-all',
+            isGameSelected(game.key)
+              ? 'border-white/25 bg-white/10 text-white'
+              : 'border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:bg-white/10',
+          ]"
           @click="emit('toggleGame', game.key)"
         >
           <span
-            class="filter-dot"
+            class="w-2 h-2 rounded-full"
             :style="{ backgroundColor: game.color }"
           ></span>
           {{ game.label }}
@@ -72,103 +79,14 @@ const allSelected = computed(
         size="small"
         variant="text"
         @click="emit('selectAllGames')"
-        class="select-all-btn"
+        class="text-xs! py-1! px-2! text-emerald-400!"
       />
     </div>
   </div>
 </template>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.search-input-wrapper {
-  position: relative;
-}
-
-.search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-  font-size: 1rem;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.875rem 1rem 0.875rem 2.75rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: #fff;
-  font-size: 1rem;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #5865f2;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.search-input::placeholder {
-  color: #666;
-}
-
-.filter-section {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.filter-label {
-  font-size: 0.875rem;
-  color: #888;
-}
-
-.filter-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 100px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  color: #888;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-chip:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.filter-chip.active {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-.filter-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.select-all-btn {
-  font-size: 0.8rem !important;
-  padding: 0.4rem 0.5rem !important;
+:deep(.p-inputtext) {
+  padding-left: 2.75rem;
 }
 </style>

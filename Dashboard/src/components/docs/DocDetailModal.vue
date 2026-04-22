@@ -1,5 +1,6 @@
 <script setup>
 import Dialog from "primevue/dialog";
+import ProgressSpinner from "primevue/progressspinner";
 import GameTag from "./GameTag.vue";
 
 const props = defineProps({
@@ -24,24 +25,37 @@ const handleClose = () => {
     :style="{ width: '90%', maxWidth: '600px' }"
     class="doc-detail-modal"
   >
-    <template v-if="doc">
-      <div v-if="loading" class="loading-container">
-        <i class="pi pi-spinner pi-spin"></i>
+    <template v-if="loading">
+      <div
+        class="flex flex-col items-center justify-center gap-4 py-12 text-zinc-400"
+      >
+        <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
         <span>Loading details...</span>
       </div>
-      <div v-else class="doc-detail-content">
-        <div class="detail-header">
+    </template>
+    <template v-else-if="doc">
+      <div class="flex flex-col gap-6">
+        <div class="flex items-center">
           <GameTag :game="doc.game" />
         </div>
 
-        <div class="detail-section">
-          <h4>Description</h4>
-          <p>{{ doc.description }}</p>
+        <div class="flex flex-col gap-2">
+          <h4
+            class="m-0 text-sm font-semibold text-emerald-400/80 uppercase tracking-widest"
+          >
+            Description
+          </h4>
+          <p class="m-0 text-zinc-300 leading-relaxed">{{ doc.description }}</p>
         </div>
 
-        <div v-if="doc.name" class="detail-section">
-          <h4>Usage</h4>
-          <code class="usage-block"
+        <div v-if="doc.name" class="flex flex-col gap-2">
+          <h4
+            class="m-0 text-sm font-semibold text-emerald-400/80 uppercase tracking-widest"
+          >
+            Usage
+          </h4>
+          <code
+            class="block p-4 bg-black/40 rounded-lg font-mono text-sm text-emerald-300/80 break-all leading-relaxed"
             >/{{ doc.name
             }}<template v-if="doc.parameters?.length"
               ><template v-for="param in doc.parameters" :key="param.name"
@@ -53,31 +67,47 @@ const handleClose = () => {
           >
         </div>
 
-        <div v-if="doc.parameters?.length" class="detail-section">
-          <h4>Parameters</h4>
-          <div class="parameters-list">
+        <div v-if="doc.parameters?.length" class="flex flex-col gap-2">
+          <h4
+            class="m-0 text-sm font-semibold text-emerald-400/80 uppercase tracking-widest"
+          >
+            Parameters
+          </h4>
+          <div class="flex flex-col gap-3">
             <div
               v-for="param in doc.parameters"
               :key="param.name"
-              class="parameter-item"
+              class="p-4 bg-white/5 rounded-lg border border-white/10"
             >
-              <div class="param-header">
-                <span class="param-name">{{ param.name }}</span>
-                <span class="param-type">{{ param.type }}</span>
-                <span v-if="param.required" class="param-required"
+              <div class="flex items-center gap-2 flex-wrap mb-2">
+                <span class="font-semibold text-white font-mono">{{
+                  param.name
+                }}</span>
+                <span
+                  class="text-xs px-2 py-0.5 bg-emerald-500/20 text-emerald-200 rounded font-mono"
+                  >{{ param.type }}</span
+                >
+                <span
+                  v-if="param.required"
+                  class="text-[0.65rem] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded uppercase font-semibold"
                   >Required</span
                 >
               </div>
-              <p v-if="param.description" class="param-description">
+              <p v-if="param.description" class="m-0 text-sm text-zinc-400">
                 {{ param.description }}
               </p>
             </div>
           </div>
         </div>
 
-        <div v-if="doc.examples?.length" class="detail-section">
-          <h4>Examples</h4>
-          <code class="examples-block"
+        <div v-if="doc.examples?.length" class="flex flex-col gap-2">
+          <h4
+            class="m-0 text-sm font-semibold text-emerald-400/80 uppercase tracking-widest"
+          >
+            Examples
+          </h4>
+          <code
+            class="block p-4 bg-black/40 rounded-lg font-mono text-sm text-emerald-300/80 break-all leading-[1.8]"
             ><template v-for="(example, index) in doc.examples" :key="index"
               >{{ example
               }}<br v-if="index < doc.examples.length - 1" /></template
@@ -89,126 +119,5 @@ const handleClose = () => {
 </template>
 
 <style scoped>
-.doc-detail-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.detail-header {
-  display: flex;
-  align-items: center;
-}
-
-.detail-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.detail-section h4 {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6ee7b7;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.detail-section p {
-  margin: 0;
-  color: #ccc;
-  line-height: 1.6;
-}
-
-.parameters-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.parameter-item {
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.param-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.25rem;
-}
-
-.param-name {
-  font-weight: 600;
-  color: #fff;
-  font-family: monospace;
-}
-
-.param-type {
-  font-size: 0.75rem;
-  padding: 0.15rem 0.4rem;
-  background: rgba(88, 101, 242, 0.2);
-  color: #a0a0ff;
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-.param-required {
-  font-size: 0.65rem;
-  padding: 0.1rem 0.35rem;
-  background: rgba(255, 107, 0, 0.2);
-  color: #ff9500;
-  border-radius: 4px;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.param-description {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #888;
-}
-
-.usage-block {
-  display: block;
-  padding: 0.75rem 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 0.9rem;
-  color: #5dc39b;
-  word-break: break-all;
-  line-height: 1.6;
-}
-
-.examples-block {
-  display: block;
-  padding: 0.75rem 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 0.9rem;
-  color: #5dc39b;
-  word-break: break-all;
-  line-height: 1.8;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 2rem;
-  color: #888;
-}
-
-.loading-container i {
-  font-size: 1.5rem;
-  color: #5dc39b;
-}
+/* Scoped styles removed in favor of Tailwind classes */
 </style>

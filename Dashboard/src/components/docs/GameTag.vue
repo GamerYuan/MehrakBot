@@ -20,7 +20,10 @@ const label = computed(() => gameLabels[props.game] || props.game);
 
 <template>
   <span
-    :class="['game-tag', size]"
+    :class="[
+      'inline-flex items-center rounded-full border font-semibold uppercase tracking-wide',
+      size === 'small' ? 'px-2 py-0.5 text-[0.65rem]' : 'px-3 py-1 text-xs'
+    ]"
     :style="{
       backgroundColor: colors.bg,
       borderColor: colors.border,
@@ -30,22 +33,3 @@ const label = computed(() => gameLabels[props.game] || props.game);
     {{ label }}
   </span>
 </template>
-
-<style scoped>
-.game-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 100px;
-  border: 1px solid;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.game-tag.small {
-  padding: 0.15rem 0.5rem;
-  font-size: 0.65rem;
-}
-</style>

@@ -1,5 +1,6 @@
 <script setup>
 import GameTag from "./GameTag.vue";
+import Card from "primevue/card";
 
 const props = defineProps({
   doc: {
@@ -12,55 +13,20 @@ const emit = defineEmits(["click"]);
 </script>
 
 <template>
-  <div class="doc-card" @click="emit('click', doc)">
-    <div class="doc-card-header">
-      <h3 class="doc-name">{{ doc.name }}</h3>
-      <GameTag :game="doc.game" size="small" />
-    </div>
-    <p class="doc-description">{{ doc.description }}</p>
-  </div>
+  <Card
+    class="bg-white/5 border border-white/10 rounded-xl cursor-pointer transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5"
+    @click="emit('click', doc)"
+  >
+    <template #content>
+      <div class="flex justify-between items-start gap-3 mb-3">
+        <h3 class="m-0 text-base font-semibold text-white break-words">
+          {{ doc.name }}
+        </h3>
+        <GameTag :game="doc.game" size="small" />
+      </div>
+      <p class="m-0 text-sm text-zinc-400 leading-relaxed line-clamp-2">
+        {{ doc.description }}
+      </p>
+    </template>
+  </Card>
 </template>
-
-<style scoped>
-.doc-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 1.25rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.doc-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-}
-
-.doc-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.doc-name {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  word-break: break-word;
-}
-
-.doc-description {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #888;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>
