@@ -8,6 +8,7 @@ namespace Mehrak.Dashboard.Controllers;
 
 [ApiController]
 [Route("alias")]
+[Authorize]
 public class AliasController : ControllerBase
 {
     private readonly IAliasService m_AliasService;
@@ -19,6 +20,7 @@ public class AliasController : ControllerBase
         m_Logger = logger;
     }
 
+    [AllowAnonymous]
     [HttpGet("list")]
     public async Task<IActionResult> ListAliases([FromQuery] string? game)
     {
@@ -35,7 +37,6 @@ public class AliasController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize]
     [HttpPatch("add")]
     public async Task<IActionResult> AddAliases([FromQuery] string? game, [FromBody] AddAliasRequest request)
     {
@@ -80,7 +81,6 @@ public class AliasController : ControllerBase
         return NoContent();
     }
 
-    [Authorize]
     [HttpDelete("delete")]
     public async Task<IActionResult> DeleteAlias([FromQuery] string? game, [FromQuery] string? alias)
     {
