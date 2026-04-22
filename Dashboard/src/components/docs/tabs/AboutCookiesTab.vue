@@ -1,4 +1,5 @@
 <script setup>
+import { useRouter } from "vue-router";
 import Card from "primevue/card";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -7,6 +8,8 @@ import AccordionPanel from "primevue/accordionpanel";
 import AccordionHeader from "primevue/accordionheader";
 import AccordionContent from "primevue/accordioncontent";
 import Message from "primevue/message";
+
+const router = useRouter();
 
 const cookieActions = [
   { action: "Login to your game account", canDo: false },
@@ -75,9 +78,8 @@ const faqItems = [
         <p class="text-zinc-300 leading-relaxed">
           By providing your HoYoLAB Cookies, you consent to our
           <a
-            href="https://gameryuan.gitbook.io/mehrak/resources/privacy-policy"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#"
+            @click.prevent="router.push('/privacy')"
             class="text-emerald-400 hover:text-emerald-300 transition-colors"
             >Privacy Policy</a
           >

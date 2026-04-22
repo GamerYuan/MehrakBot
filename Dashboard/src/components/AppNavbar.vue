@@ -20,6 +20,7 @@ const router = useRouter();
     </div>
     <div class="nav-links">
       <a href="#" @click.prevent="router.push('/docs')">Docs</a>
+      <a href="#" @click.prevent="router.push('/privacy')">Privacy</a>
       <a
         href="https://github.com/GamerYuan/MehrakBot"
         target="_blank"
@@ -28,11 +29,6 @@ const router = useRouter();
         <i class="pi pi-github"></i>
         GitHub
       </a>
-      <Button
-        label="Dashboard"
-        size="small"
-        @click="router.push('/dashboard')"
-      />
     </div>
   </nav>
 </template>

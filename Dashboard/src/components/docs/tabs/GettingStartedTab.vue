@@ -1,4 +1,5 @@
 <script setup>
+import { useRouter } from "vue-router";
 import Stepper from "primevue/stepper";
 import StepItem from "primevue/stepitem";
 import Step from "primevue/step";
@@ -7,6 +8,8 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 import Image from "primevue/image";
 import Card from "primevue/card";
+
+const router = useRouter();
 </script>
 
 <template>
@@ -188,7 +191,7 @@ import Card from "primevue/card";
       </template>
     </Card>
 
-    <Card class="bg-white/5 border border-white/10 rounded-2xl">
+    <Card id="adding-a-profile" class="bg-white/5 border border-white/10 rounded-2xl">
       <template #title>
         <h3 class="text-2xl font-semibold tracking-tight text-zinc-100 m-0">
           Adding a Profile
@@ -334,11 +337,10 @@ import Card from "primevue/card";
               information for other commands. You are strongly advised to read
               the
               <a
-                href="https://gameryuan.gitbook.io/mehrak/resources/security"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                @click.prevent="router.push('/docs?tab=appendix&section=cookies')"
                 class="text-emerald-400 hover:text-emerald-300 transition-colors"
-                >Security</a
+                >About HoYoLAB Cookies</a
               >
               page before providing this data.
             </p>

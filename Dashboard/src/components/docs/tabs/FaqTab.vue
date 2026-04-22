@@ -1,22 +1,25 @@
 <script setup>
+import { useRouter } from "vue-router";
 import Card from "primevue/card";
 import Accordion from "primevue/accordion";
 import AccordionPanel from "primevue/accordionpanel";
 import AccordionHeader from "primevue/accordionheader";
 import AccordionContent from "primevue/accordioncontent";
 
+const router = useRouter();
+
 const faqItems = [
   {
     question: "How do I use Mehrak?",
     answer: "You can use Mehrak with any of the specified commands in the ",
-    link: { text: "Commands", href: "https://gameryuan.gitbook.io/mehrak/commands" },
+    link: { text: "Commands", route: "/docs?tab=commands" },
     answerEnd: " section",
   },
   {
     question: "How do I add a profile on Mehrak?",
     answer: "You can refer to the ",
-    link: { text: "Profile Commands", href: "https://gameryuan.gitbook.io/mehrak/commands/common-commands/profile" },
-    answerEnd: " suite on how to manage your profiles with Mehrak",
+    link: { text: "Adding a Profile", route: "/docs?tab=getting-started#adding-a-profile" },
+    answerEnd: " section on how to manage your profiles with Mehrak",
   },
   {
     question: "How can I remove my user data on Mehrak?",
@@ -25,12 +28,12 @@ const faqItems = [
   {
     question: "How do I use Mehrak outside of my Discord server?",
     answer: "By installing Mehrak to your user profile as a User Application, you can use Mehrak in any servers with External Applications enabled, or in DMs. You may refer to ",
-    link: { text: "Getting Started", href: "https://gameryuan.gitbook.io/mehrak/getting-started" },
+    link: { text: "Getting Started", route: "/docs?tab=getting-started" },
   },
   {
     question: "Is Mehrak safe?",
     answer: "Mehrak is committed to provide maximum security for our users. You can read more about this under the ",
-    link: { text: "Security", href: "https://gameryuan.gitbook.io/mehrak/resources/security" },
+    link: { text: "About HoYoLAB Cookies", route: "/docs?tab=appendix&section=cookies" },
     answerEnd: " Page",
   },
   {
@@ -64,9 +67,8 @@ const faqItems = [
                 {{ item.answer
                 }}<a
                   v-if="item.link"
-                  :href="item.link.href"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#"
+                  @click.prevent="item.link.route ? router.push(item.link.route) : window.open(item.link.href, '_blank')"
                   class="text-emerald-400 hover:text-emerald-300 transition-colors"
                   >{{ item.link.text }}</a
                 >{{ item.answerEnd || "" }}

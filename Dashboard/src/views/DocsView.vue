@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import AppNavbar from "../components/AppNavbar.vue";
 import DocCard from "../components/docs/DocCard.vue";
 import DocDetailModal from "../components/docs/DocDetailModal.vue";
@@ -18,6 +19,9 @@ import TabPanels from "primevue/tabpanels";
 import TabPanel from "primevue/tabpanel";
 import Message from "primevue/message";
 import ProgressSpinner from "primevue/progressspinner";
+
+const route = useRoute();
+const router = useRouter();
 
 const {
   loading,
@@ -50,6 +54,34 @@ const appendixTabs = [
   { key: "notes", label: "Release Notes" },
 ];
 
+const syncFromUrl = () => {
+  const tab = route.query.tab;
+  const section = route.query.section;
+  const hash = route.hash;
+
+  if (tab) {
+    activeTab.value = tab;
+    if (tab === "appendix" && section) {
+      appendixTab.value = section;
+    }
+  }
+
+  if (hash) {
+    setTimeout(() => {
+      const element = document.querySelector(hash);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  }
+};
+
+watch(() => route.query, syncFromUrl, { immediate: true });
+
+onMounted(() => {
+  syncFromUrl();
+});
+
 const handleDocClick = async (doc) => {
   loadingDetail.value = true;
   showDetailModal.value = true;
@@ -72,6 +104,7 @@ const handleSearchUpdate = (value) => {
 const handleTabChange = (tab) => {
   activeTab.value = tab;
   showDetailModal.value = false;
+  router.push({ path: "/docs", query: { tab } });
 };
 </script>
 
