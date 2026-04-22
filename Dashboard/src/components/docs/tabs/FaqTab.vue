@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter } from "vue-router";
+import { RouterLink } from "vue-router";
 import Card from "primevue/card";
 import Accordion from "primevue/accordion";
 import AccordionPanel from "primevue/accordionpanel";
@@ -18,28 +19,41 @@ const faqItems = [
   {
     question: "How do I add a profile on Mehrak?",
     answer: "You can refer to the ",
-    link: { text: "Adding a Profile", route: "/docs?tab=getting-started#adding-a-profile" },
+    link: {
+      text: "Adding a Profile",
+      route: "/docs?tab=getting-started#adding-a-profile",
+    },
     answerEnd: " section on how to manage your profiles with Mehrak",
   },
   {
     question: "How can I remove my user data on Mehrak?",
-    answer: "When you remove your last available profile, Mehrak will automatically remove all stored user data you have with Mehrak, including your Discord ID, HoYoLAB UID and Cookies, except for the collected usage metrics. The usage metrics only contains the commands that you have executed when you use Mehrak",
+    answer:
+      "When you remove your last available profile, Mehrak will automatically remove all stored user data you have with Mehrak, including your Discord ID, HoYoLAB UID and Cookies, except for the collected usage metrics. The usage metrics only contains the commands that you have executed when you use Mehrak",
   },
   {
     question: "How do I use Mehrak outside of my Discord server?",
-    answer: "By installing Mehrak to your user profile as a User Application, you can use Mehrak in any servers with External Applications enabled, or in DMs. You may refer to ",
+    answer:
+      "By installing Mehrak to your user profile as a User Application, you can use Mehrak in any servers with External Applications enabled, or in DMs. You may refer to ",
     link: { text: "Getting Started", route: "/docs?tab=getting-started" },
   },
   {
     question: "Is Mehrak safe?",
-    answer: "Mehrak is committed to provide maximum security for our users. You can read more about this under the ",
-    link: { text: "About HoYoLAB Cookies", route: "/docs?tab=appendix&section=cookies" },
+    answer:
+      "Mehrak is committed to provide maximum security for our users. You can read more about this under the ",
+    link: {
+      text: "About HoYoLAB Cookies",
+      route: "/docs?tab=appendix&section=cookies",
+    },
     answerEnd: " Page",
   },
   {
     question: "Some commands are not working!",
-    answer: "Please try again. If it's still not working, contact a developer in our ",
-    link: { text: "Official Discord Server", href: "https://discord.gg/3GYvRD4u9a" },
+    answer:
+      "Please try again. If it's still not working, contact a developer in our ",
+    link: {
+      text: "Official Discord Server",
+      href: "https://discord.gg/3GYvRD4u9a",
+    },
   },
 ];
 </script>
@@ -61,16 +75,31 @@ const faqItems = [
 
     <Card class="bg-white/5 border border-white/10 rounded-2xl">
       <template #content>
-        <Accordion value="" multiple expandIcon="pi pi-chevron-down" collapseIcon="pi pi-chevron-up">
-          <AccordionPanel v-for="(item, index) in faqItems" :key="index" :value="index">
+        <Accordion
+          value=""
+          multiple
+          expandIcon="pi pi-chevron-down"
+          collapseIcon="pi pi-chevron-up"
+        >
+          <AccordionPanel
+            v-for="(item, index) in faqItems"
+            :key="index"
+            :value="index"
+          >
             <AccordionHeader>{{ item.question }}</AccordionHeader>
             <AccordionContent>
               <p class="text-zinc-300 leading-relaxed m-0">
                 {{ item.answer
-                }}<a
-                  v-if="item.link"
-                  href="#"
-                  @click.prevent="item.link.route ? router.push(item.link.route) : window.open(item.link.href, '_blank')"
+                }}<RouterLink
+                  v-if="item.link?.route"
+                  :to="item.link.route"
+                  class="text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >{{ item.link.text }}</RouterLink
+                ><a
+                  v-else-if="item.link?.href"
+                  :href="item.link.href"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   class="text-emerald-400 hover:text-emerald-300 transition-colors"
                   >{{ item.link.text }}</a
                 >{{ item.answerEnd || "" }}
