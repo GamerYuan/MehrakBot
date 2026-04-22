@@ -13,6 +13,7 @@ import Column from "primevue/column";
 import Tag from "primevue/tag";
 import ProgressSpinner from "primevue/progressspinner";
 import Message from "primevue/message";
+import Card from "primevue/card";
 
 const { aliases, loading, error, searchQuery, fetchAllAliases } = useAlias();
 
@@ -38,14 +39,18 @@ const filteredAliases = computed(() => {
 
 <template>
   <div class="flex flex-col gap-6">
-    <div class="flex flex-col gap-2 border-b border-white/10 pb-4">
-      <h2 class="text-2xl font-semibold text-zinc-100 m-0">
-        Character Aliases
-      </h2>
-      <p class="text-zinc-400 text-sm m-0">
-        View supported aliases for characters across different games.
-      </p>
-    </div>
+    <Card class="bg-white/5 border border-white/10 rounded-2xl">
+      <template #content>
+        <div class="flex flex-col gap-4">
+          <h2 class="text-3xl font-bold tracking-tight text-zinc-100 mb-2">
+            Character Aliases
+          </h2>
+          <p class="text-zinc-300 leading-relaxed m-0">
+            View supported aliases for characters across different games.
+          </p>
+        </div>
+      </template>
+    </Card>
 
     <div class="relative w-full">
       <i

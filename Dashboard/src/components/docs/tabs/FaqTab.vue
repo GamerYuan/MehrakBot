@@ -48,12 +48,14 @@ const faqItems = [
   <div class="flex flex-col gap-6">
     <Card class="bg-white/5 border border-white/10 rounded-2xl">
       <template #content>
-        <h2 class="text-3xl font-bold tracking-tight text-zinc-100 mb-2">
-          FAQ
-        </h2>
-        <p class="text-zinc-300 leading-relaxed">
-          Frequently asked questions about Mehrak
-        </p>
+        <div class="flex flex-col gap-4">
+          <h2 class="text-3xl font-bold tracking-tight text-zinc-100 mb-2">
+            FAQ
+          </h2>
+          <p class="text-zinc-300 leading-relaxed m-0">
+            Frequently asked questions about Mehrak
+          </p>
+        </div>
       </template>
     </Card>
 
