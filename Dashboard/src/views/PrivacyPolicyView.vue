@@ -12,7 +12,9 @@ import AppFooter from "../components/AppFooter.vue";
         <h1>Privacy Policy</h1>
 
         <h2>Privacy Policy for Mehrak Discord Bot</h2>
-        <p class="last-updated"><strong>Last Updated:</strong> June 10, 2025</p>
+        <p class="last-updated">
+          <strong>Last Updated:</strong> April 22, 2026
+        </p>
 
         <h3>1. Introduction</h3>
         <p>
@@ -48,11 +50,21 @@ import AppFooter from "../components/AppFooter.vue";
           </li>
           <li>
             <strong>HoYoverse Cookies:</strong> Authentication tokens to access
-            HoYoverse public APIs on your behalf
+            HoYoverse public APIs on your behalf. Your cookies are encrypted
+            with the passphrase you provide and are never stored in plaintext.
+            Your cookies are decrypted only when necessary to retrieve your
+            in-game information and are never share with any other third parties
+            or services. Your cookies might be stored transiently in memory
+            during active sessions for the purpose of querying HoYoverse APIs,
+            but they are never written to disk in an unencrypted form.
           </li>
           <li>
             <strong>Passphrase:</strong> A user-provided passphrase used for
-            encrypting your HoYoverse cookies
+            encrypting your HoYoverse cookies. This passphrase is never stored
+            and is used solely to generate encryption keys for securing your
+            cookies. This passphrase will be used to decrypt your cookies when
+            you interact with the bot, but it is not stored in our systems,
+            ensuring that only you have access to your authentication data.
           </li>
         </ul>
 
@@ -122,10 +134,9 @@ import AppFooter from "../components/AppFooter.vue";
 
         <h3>5. Data Sharing</h3>
         <p>
-          We do not share, sell, trade, or transfer your personal information to
-          third parties. Your data is used exclusively for providing bot
-          services and is not shared with any external organizations or
-          services.
+          We do not sell or trade your personal information. To provide bot
+          functionality, authentication cookies and related request data may be
+          transmitted to HoYoverse APIs on your behalf.
         </p>
 
         <h3>6. Third-Party Services</h3>
