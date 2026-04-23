@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
@@ -256,15 +256,16 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                     var xOffset = skillIndex % 3 * 120;
                     ctx.DrawImage(m_SkillImages[skill.SkillType],
                         new Point(1030 + xOffset, 70 + yOffset), 1f);
-                    EllipsePolygon skillEllipse = new(new PointF(1110 + xOffset, 150 + yOffset), 25);
-                    ctx.Fill(OverlayColor, skillEllipse.AsClosedPath());
-                    ctx.DrawText(new RichTextOptions(m_SmallFont)
-                    {
-                        Origin = new Vector2(1110 + xOffset, 157 + yOffset),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, skill.Level.ToString(), Color.White);
-                    ctx.Draw(accentColor, 4f, skillEllipse.AsClosedPath());
+                    ctx.DrawCenteredTextInEllipse(
+                        skill.Level.ToString(),
+                        new PointF(1110 + xOffset, 150 + yOffset),
+                        25,
+                        new EllipseTextStyle(
+                            m_SmallFont,
+                            Color.White,
+                            OverlayColor,
+                            accentColor,
+                            4f));
                 }
 
                 var weaponModule = ImageUtility.CreateRoundedRectanglePath(450, 330, 30).Translate(950, 690);

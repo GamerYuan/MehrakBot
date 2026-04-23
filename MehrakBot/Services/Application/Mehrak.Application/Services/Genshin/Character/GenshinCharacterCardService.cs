@@ -283,15 +283,14 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                     var offset = i * 150;
                     ctx.DrawCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 20, Color.DarkSlateGray,
                         backgroundColor, 5f);
-                    EllipsePolygon talentEllipse = new(120, 960 - offset, 25);
-                    ctx.Fill(skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray, talentEllipse);
-                    ctx.DrawText(new RichTextOptions(m_MediumFont)
-                    {
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        TextAlignment = TextAlignment.Center,
-                        Origin = new Vector2(120, 963 - offset)
-                    }, skill.Data.Level.ToString()!, textColor);
+                    ctx.DrawCenteredTextInEllipse(
+                        skill.Data.Level.ToString()!,
+                        new PointF(120, 960 - offset),
+                        25,
+                        new EllipseTextStyle(
+                            m_MediumFont,
+                            textColor,
+                            skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray));
                 }
 
                 ctx.DrawText(context.GameProfile.Nickname, m_NormalFont, Color.Black, new PointF(63, 1003));

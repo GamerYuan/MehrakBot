@@ -344,15 +344,14 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     ctx.DrawCenteredIcon(baseSkillImages[i].Image, new PointF(900, 80 + offset), 45, 10,
                         Color.DarkSlateGray, skillColor, 5f);
 
-                    EllipsePolygon levelEllipse = new(new PointF(865, 115 + offset), 20);
-                    ctx.Fill(new SolidBrush(Color.LightSlateGray), levelEllipse);
-                    ctx.DrawText(new RichTextOptions(m_SmallFont)
-                    {
-                        Origin = new PointF(864, 116 + offset),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, baseSkillImages[i].Data.Level!.ToString()!,
-                        baseSkillImages[i].Data.IsRankWork ? Color.Aqua : Color.White);
+                    ctx.DrawCenteredTextInEllipse(
+                        baseSkillImages[i].Data.Level!.ToString()!,
+                        new PointF(865, 115 + offset),
+                        20,
+                        new EllipseTextStyle(
+                            m_SmallFont,
+                            baseSkillImages[i].Data.IsRankWork ? Color.Aqua : Color.White,
+                            Color.LightSlateGray));
                 }
 
                 for (var i = 0; i < skillImages.Length; i++)
@@ -407,11 +406,16 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         WrappingLength = 300,
                         VerticalAlignment = VerticalAlignment.Bottom
                     }, characterInformation.Equip.Name!, Color.White);
-                    EllipsePolygon equipEllipse = new(new PointF(1020, 690), 20);
-                    ctx.Fill(new SolidBrush(Color.DarkSlateGray), equipEllipse);
-                    ctx.DrawText(((char)(0x215F + characterInformation.Equip.Rank)).ToString(), m_SmallFont,
-                        Color.Gold, new PointF(1007, 676));
-                    ctx.Draw(Color.Gold, 2f, equipEllipse.AsClosedPath());
+                    ctx.DrawCenteredTextInEllipse(
+                        ((char)(0x215F + characterInformation.Equip.Rank)).ToString(),
+                        new PointF(1020, 690),
+                        20,
+                        new EllipseTextStyle(
+                            m_SmallFont,
+                            Color.Gold,
+                            Color.DarkSlateGray,
+                            Color.Gold,
+                            2f));
                     ctx.DrawText($"Lv. {characterInformation.Equip.Level}", m_NormalFont, Color.White,
                         new PointF(1080, 670));
                     var stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity,
