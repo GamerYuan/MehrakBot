@@ -259,8 +259,11 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
             }
 
             ctx.DrawImage(bossImage, new Point(25, 15), 1f);
-            using var rosterImage =
-                GetRosterImage([.. floor.AvatarList.Select(x => avatarLookup[x.Id])], buddyImage);
+            var styledBuddy = GetStyledBuddyImage(buddyImage);
+            using var rosterImage = RosterImageBuilder.Build(
+                floor.AvatarList.Select(x => avatarLookup[x.Id]),
+                new RosterLayout(MaxSlots: 3),
+                styledBuddy);
             ctx.DrawImage(rosterImage, new Point(190, 60), 1f);
             ctx.DrawImage(buffImage, new Point(850, 110), 1f);
 
@@ -269,38 +272,17 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
         return image;
     }
 
-    private Image<Rgba32> GetRosterImage(List<Image<Rgba32>> avatarImages, Image? buddyImage = null)
+    private Image<Rgba32> GetStyledBuddyImage(Image? buddyImage)
     {
-        const int avatarWidth = 150;
-
-        var offset = (3 - avatarImages.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
+        Image<Rgba32> buddyBorder = new(150, 180);
+        buddyBorder.Mutate(x =>
         {
-            ctx.Clear(Color.Transparent);
-            var x = 0;
-
-            for (var i = 0; i < avatarImages.Count; i++)
-            {
-                x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(avatarImages[i], new Point(x, 0), 1f);
-            }
-
-            using Image<Rgba32> buddyBorder = new(150, 180);
-            buddyBorder.Mutate(x =>
-            {
-                var outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
-                x.Clear(Color.FromRgb(24, 24, 24));
-                x.Draw(Color.Black, 4f, outerPath);
-                x.DrawImage(buddyImage ?? m_BaseBuddyImage, new Point(-45, 0), 1f);
-                x.ApplyRoundedCorners(15);
-            });
-            x = offset + avatarImages.Count * (avatarWidth + 10);
-            ctx.DrawImage(buddyBorder, new Point(x, 0), 1f);
+            var outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
+            x.Clear(Color.FromRgb(24, 24, 24));
+            x.Draw(Color.Black, 4f, outerPath);
+            x.DrawImage(buddyImage ?? m_BaseBuddyImage, new Point(-45, 0), 1f);
+            x.ApplyRoundedCorners(15);
         });
-
-        return rosterImage;
+        return buddyBorder;
     }
 }

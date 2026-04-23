@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Renderers.Extensions;
@@ -222,8 +222,9 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
 
             if (record != null)
             {
-                using var rosterImage =
-                    GetRosterImage([.. record.Avatars.Select(x => x.Id)], avatarLookup);
+                using var rosterImage = RosterImageBuilder.Build(
+                    record.Avatars.Select(x => avatarLookup[x.Id]),
+                    new RosterLayout(MaxSlots: 4));
                 ctx.DrawImage(rosterImage, new Point(330, 90), 1f);
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -282,7 +283,9 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             }
             else
             {
-                using var rosterImage = GetRosterImage([.. record.Avatars.Select(x => x.Id)], avatarLookup);
+                using var rosterImage = RosterImageBuilder.Build(
+                    record.Avatars.Select(x => avatarLookup[x.Id]),
+                    new RosterLayout(MaxSlots: 4));
                 ctx.DrawImage(rosterImage, new Point(125, 90), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -298,26 +301,4 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
         return image;
     }
 
-    private static Image<Rgba32> GetRosterImage(List<int> avatarIds,
-        Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
-    {
-        const int avatarWidth = 150;
-
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarIds.Count; i++)
-            {
-                var x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
-    }
 }

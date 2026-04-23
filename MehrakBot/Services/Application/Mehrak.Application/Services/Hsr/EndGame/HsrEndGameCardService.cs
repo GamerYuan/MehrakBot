@@ -276,8 +276,12 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Color.White);
 
-                    using var node1 = GetRosterImage([.. floorData.Node1!.Avatars.Select(x => x.Id)], lookup);
-                    using var node2 = GetRosterImage([.. floorData.Node2!.Avatars.Select(x => x.Id)], lookup);
+                    using var node1 = RosterImageBuilder.Build(
+                        floorData.Node1!.Avatars.Select(x => lookup[x.Id]),
+                        new RosterLayout(MaxSlots: 4));
+                    using var node2 = RosterImageBuilder.Build(
+                        floorData.Node2!.Avatars.Select(x => lookup[x.Id]),
+                        new RosterLayout(MaxSlots: 4));
                     disposables.AddRange(node1, node2);
                     ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 65),
                         new PointF(xOffset + 880, yOffset + 65));
@@ -366,26 +370,4 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
         return data == null || data.IsFast;
     }
 
-    private static Image<Rgba32> GetRosterImage(List<int> avatarIds,
-        Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
-    {
-        const int avatarWidth = 150;
-
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarIds.Count; i++)
-            {
-                var x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
-    }
 }

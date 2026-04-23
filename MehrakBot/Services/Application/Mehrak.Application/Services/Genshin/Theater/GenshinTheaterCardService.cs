@@ -365,8 +365,11 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                         levelIndex = roundData.RoundId;
                     }
 
-                    ctx.DrawImage(GetRosterImage(roundData.Avatars.Select(x => x.AvatarId), alternateLookup),
-                        new Point(xOffset, yOffset), 1f);
+                    var roster = RosterImageBuilder.Build(
+                        roundData.Avatars.Select(x => alternateLookup[x.AvatarId]),
+                        new RosterLayout(MaxSlots: 4));
+                    disposableResources.Add(roster);
+                    ctx.DrawImage(roster, new Point(xOffset, yOffset), 1f);
                     ctx.DrawImage(roundData.IsGetMedal ? m_TheaterStarLit : m_TheaterStarUnlit,
                         new Point(xOffset + 600, yOffset - 55), 1f);
 
@@ -424,30 +427,6 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
         {
             disposableResources.ForEach(x => x.Dispose());
         }
-    }
-
-    private static Image<Rgba32> GetRosterImage(IEnumerable<int> ids,
-        Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
-    {
-        const int avatarWidth = 150;
-
-        List<int> avatarIds = [.. ids];
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarIds.Count; i++)
-            {
-                var x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
     }
 
     private static string GetDifficultyString(int difficulty)

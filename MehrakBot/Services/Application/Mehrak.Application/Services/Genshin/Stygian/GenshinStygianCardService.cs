@@ -155,7 +155,9 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
                 for (var i = 0; i < stygianData.Challenge!.Count; i++)
                 {
                     var challenge = stygianData.Challenge[i];
-                    var rosterImage = GetRosterImage(challenge.Teams.Select(x => x.AvatarId), lookup);
+                    var rosterImage = RosterImageBuilder.Build(
+                        challenge.Teams.Select(x => lookup[x.AvatarId]),
+                        new RosterLayout(MaxSlots: 4));
                     disposableResources.Add(rosterImage);
                     var monsterImageStream = monsterImages[challenge.Monster.MonsterId];
                     var challengeImage = GetChallengeImage(challenge, rosterImage, monsterImageStream);
@@ -229,30 +231,6 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
         });
 
         return challengeImage;
-    }
-
-    private static Image<Rgba32> GetRosterImage(IEnumerable<int> ids,
-        Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
-    {
-        const int avatarWidth = 150;
-
-        List<int> avatarIds = [.. ids];
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarIds.Count; i++)
-            {
-                var x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
     }
 
     private static int GetMedalIndex(int difficulty, int clearTime)

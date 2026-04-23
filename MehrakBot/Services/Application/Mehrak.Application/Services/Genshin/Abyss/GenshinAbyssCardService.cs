@@ -187,8 +187,9 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                     new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                 ctx.DrawText("Most Used Characters", m_NormalFont, Color.White, new PointF(80, 460));
 
-                var revealRank = GetRosterImage([.. abyssData.RevealRank!.Select(x => x.AvatarId)],
-                    revealRankImages.GetAlternateLookup<int>());
+                var revealRank = RosterImageBuilder.Build(
+                    abyssData.RevealRank!.Select(x => revealRankImages.GetAlternateLookup<int>()[x.AvatarId]),
+                    new RosterLayout(MaxSlots: 4));
                 disposableResources.AddRange(revealRankImages.Values);
                 disposableResources.Add(revealRank);
                 ctx.DrawImage(revealRank, new Point(75, 500), 1f);
@@ -316,8 +317,9 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                     for (var j = 0; j < level.Battles!.Count; j++)
                     {
                         var battle = level.Battles![j];
-                        var rosterImage =
-                            GetRosterImage([.. battle.Avatars!.Select(x => x.Id)], lookup);
+                        var rosterImage = RosterImageBuilder.Build(
+                            battle.Avatars!.Select(x => lookup[x.Id]),
+                            new RosterLayout(MaxSlots: 4));
                         disposableResources.Add(rosterImage);
                         var yOffset = offset + j * 200;
                         ctx.DrawImage(rosterImage, new Point(795, yOffset), 1f);
@@ -344,26 +346,4 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
         }
     }
 
-    private static Image<Rgba32> GetRosterImage(List<int> avatarIds,
-        Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
-    {
-        const int avatarWidth = 150;
-
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarIds.Count; i++)
-            {
-                var x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
-    }
 }
