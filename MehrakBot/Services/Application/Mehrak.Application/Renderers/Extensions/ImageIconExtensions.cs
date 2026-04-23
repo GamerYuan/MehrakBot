@@ -3,7 +3,7 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 
-namespace Mehrak.Application.Extensions;
+namespace Mehrak.Application.Renderers.Extensions;
 
 public static class ImageIconExtensions
 {
