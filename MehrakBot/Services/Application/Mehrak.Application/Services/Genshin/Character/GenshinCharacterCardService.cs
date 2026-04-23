@@ -1,9 +1,10 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Mehrak.Application.Extensions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -356,42 +357,23 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                 {
                     var stat = stats[i];
                     var y = 360 + spacing * i;
-                    ctx.DrawImage(m_StatImages[stat.PropertyType!.Value], new Point(1200, y - 4), 1f);
-                    ctx.DrawText(StatMappingUtility.GenshinMapping[stat.PropertyType!.Value], m_NormalFont, textColor,
-                        new PointF(1264, y));
-                    if (StatMappingUtility.IsBaseStat(stat.PropertyType!.Value))
-                    {
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            HorizontalAlignment = HorizontalAlignment.Right,
-                            Origin = new Vector2(2100, y - 15)
-                        }, stat.Final, textColor);
-                        var xPos = 2100;
-                        if (int.Parse(stat.Final.TrimEnd('%')) > int.Parse(stat.Base.TrimEnd('%')))
-                        {
-                            var bonusText = $"\u00A0+{stat.Add}";
-                            xPos -= (int)TextMeasurer.MeasureSize(bonusText, new TextOptions(m_SmallFont)).Width;
-                            ctx.DrawText(new RichTextOptions(m_SmallFont)
-                            {
-                                HorizontalAlignment = HorizontalAlignment.Right,
-                                Origin = new Vector2(2100, y + 25)
-                            }, bonusText, Color.LightGreen);
-                        }
+                    var isBase = StatMappingUtility.IsBaseStat(stat.PropertyType!.Value);
 
-                        ctx.DrawText(new RichTextOptions(m_SmallFont)
-                        {
-                            HorizontalAlignment = HorizontalAlignment.Right,
-                            Origin = new Vector2(xPos, y + 25)
-                        }, $"{stat.Base}", Color.LightGray);
-                    }
-                    else
-                    {
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            HorizontalAlignment = HorizontalAlignment.Right,
-                            Origin = new Vector2(2100, y)
-                        }, stat.Final, textColor);
-                    }
+                    ctx.DrawStatLine(
+                        new StatLineData(
+                            StatMappingUtility.GenshinMapping[stat.PropertyType.Value],
+                            stat.Final,
+                            isBase ? stat.Base : null,
+                            isBase && int.Parse(stat.Final.TrimEnd('%')) > int.Parse(stat.Base.TrimEnd('%')) ? $"+{stat.Add}" : null),
+                        new StatLineStyle(
+                            m_StatImages.GetValueOrDefault(stat.PropertyType.Value),
+                            m_NormalFont,
+                            textColor,
+                            m_SmallFont,
+                            Color.LightGray,
+                            Color.LightGreen),
+                        new PointF(1200, y),
+                        900);
                 }
 
                 for (var i = 0; i < relics.Length; i++)

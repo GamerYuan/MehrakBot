@@ -3,6 +3,7 @@
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Extensions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -319,42 +320,21 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 {
                     var stat = character.Properties[i];
 
-                    ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(stat.PropertyName)],
-                        new Point(1440, 75 + statsYOffset), 1f);
-
-                    if (stat.PropertyName.Length > 20)
-                        ctx.DrawText(new RichTextOptions(m_SmallFont)
-                        {
-                            Origin = new Vector2(1495, 103 + statsYOffset),
-                            VerticalAlignment = VerticalAlignment.Center,
-                            WrappingLength = 620
-                        }, stat.PropertyName, Color.White);
-                    else
-                        ctx.DrawText(stat.PropertyName, m_MediumFont, Color.White, new PointF(1495, 90 + statsYOffset));
-
-                    ctx.DrawText(new RichTextOptions(m_MediumFont)
-                    {
-                        Origin = new Vector2(2100, 90 + statsYOffset),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, stat.Final!, Color.White);
-
-                    if (!string.IsNullOrEmpty(stat.Base))
-                    {
-                        RichTextOptions option = new(m_VerySmallFont)
-                        {
-                            Origin = new Vector2(2100, 125 + statsYOffset),
-                            HorizontalAlignment = HorizontalAlignment.Right
-                        };
-                        var addText = $"+{stat.Add}";
-                        var addBound = TextMeasurer.MeasureBounds(addText, option);
-                        ctx.DrawText(option, addText, Color.LightGreen);
-
-                        ctx.DrawText(new RichTextOptions(m_VerySmallFont)
-                        {
-                            Origin = new Vector2(addBound.Left - 5, 125 + statsYOffset),
-                            HorizontalAlignment = HorizontalAlignment.Right
-                        }, stat.Base, Color.LightSlateGrey);
-                    }
+                    ctx.DrawStatLine(
+                        new StatLineData(
+                            stat.PropertyName,
+                            stat.Final!,
+                            stat.Base,
+                            $"+{stat.Add}"),
+                        new StatLineStyle(
+                            m_StatImages.GetValueOrDefault(StatUtils.GetStatAssetName(stat.PropertyName)),
+                            m_MediumFont,
+                            Color.White,
+                            m_VerySmallFont,
+                            Color.LightSlateGrey,
+                            Color.LightGreen),
+                        new PointF(1440, 75 + statsYOffset),
+                        660);
 
                     statsYOffset += offsetInterval;
                 }

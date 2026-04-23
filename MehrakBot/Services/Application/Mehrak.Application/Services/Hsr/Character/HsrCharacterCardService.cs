@@ -1,8 +1,9 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Extensions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
@@ -437,21 +438,23 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     var offset = i * statOffset;
                     var property = stats[i];
                     var statImage = m_StatImages.GetValueOrDefault(property.PropertyType!.Value);
+
                     if (statImage == null)
                     {
                         m_Logger.LogWarning("Stat image not found for property type {PropertyType}",
                             property.PropertyType);
-                        continue;
                     }
 
-                    ctx.DrawImage(statImage, new Point(1400, 75 + offset), 1f);
-                    ctx.DrawText(StatMappingUtility.HsrMapping[property.PropertyType!.Value], m_NormalFont, Color.White,
-                        new PointF(1460, 80 + offset));
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new PointF(2140, 80 + offset),
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, property.Final!, Color.White);
+                    ctx.DrawStatLine(
+                        new StatLineData(
+                            StatMappingUtility.HsrMapping[property.PropertyType!.Value],
+                            property.Final!),
+                        new StatLineStyle(
+                            statImage,
+                            m_NormalFont,
+                            Color.White),
+                        new PointF(1400, 75 + offset),
+                        740);
                 }
 
                 for (var i = 0; i < relicImages.Length; i++)
