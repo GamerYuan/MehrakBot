@@ -1,7 +1,8 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -148,9 +149,8 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, $"{context.GameProfile.GameUid}", Color.White);
 
-                var statOverlay = ImageUtility.CreateRoundedRectanglePath(DisplayEntryWidth, DisplayEntryHeight, 15)
-                    .Translate(50, 200);
-                ctx.Fill(OverlayColor, statOverlay);
+                ctx.DrawRoundedRectangleOverlay(DisplayEntryWidth, DisplayEntryHeight, new PointF(50, 200),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                 ctx.DrawImage(m_MedalIcon, new Point(60, 200 + (200 - m_MedalIcon.Height) / 2), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -178,7 +178,8 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, FormatNumberWithSuffix(context.Data.LayerInfo.TotalScore), Color.White);
 
-                ctx.Fill(OverlayColor, statOverlay.Translate(550, 0));
+                ctx.DrawRoundedRectangleOverlay(DisplayEntryWidth, DisplayEntryHeight, new PointF(600, 200),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                 ctx.DrawImage(m_MvpIcon, new Point(610, 200 + (200 - m_MvpIcon.Height) / 2), 1f);
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -246,9 +247,8 @@ public class ZzzTowerCardService : ICardService<ZzzTowerData>, IAsyncInitializab
 
             ctx.DrawText(m_DisplayScoreOptions, data.Score.ToString(), Color.White);
 
-            var rankOverlay = ImageUtility.CreateRoundedRectanglePath(140, 50, 25)
-                .Translate(210, 50);
-            ctx.Fill(RankOverlayColor, rankOverlay);
+            ctx.DrawRoundedRectangleOverlay(140, 50, new PointF(210, 50),
+                new RoundedRectangleOverlayStyle(RankOverlayColor, CornerRadius: 25));
             ctx.DrawText(m_DisplayRankOptions, $"{(float)data.RankPercent / 100:N2}%", Color.White);
             ctx.ApplyRoundedCorners(15);
         });

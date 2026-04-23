@@ -1,9 +1,10 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -200,8 +201,8 @@ internal class ZzzDefenseCardService : ICardService<ZzzDefenseDataV2>, IAsyncIni
                 },
                     $"{context.GameProfile.GameUid}", Color.White);
 
-                var briefModule = ImageUtility.CreateRoundedRectanglePath(900, 80, 15).Translate(50, 120);
-                ctx.Fill(OverlayColor, briefModule);
+                ctx.DrawRoundedRectangleOverlay(900, 80, new PointF(50, 120),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
                 var totalScoreText = $"Total Score: {data.Brief.Score}";
                 var totalScoreTextOptions = new RichTextOptions(m_NormalFont)

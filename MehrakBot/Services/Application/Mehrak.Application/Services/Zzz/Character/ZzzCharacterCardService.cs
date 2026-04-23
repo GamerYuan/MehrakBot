@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Numerics;
 using System.Text.Json;
@@ -268,9 +268,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                             4f));
                 }
 
-                var weaponModule = ImageUtility.CreateRoundedRectanglePath(450, 330, 30).Translate(950, 690);
-                ctx.Fill(OverlayColor, weaponModule);
-                ctx.Draw(accentColor, 4f, weaponModule);
+                ctx.DrawRoundedRectangleOverlay(450, 330, new PointF(950, 690),
+                    new RoundedRectangleOverlayStyle(OverlayColor, accentColor, 4f, 30));
 
                 // Weapon
                 if (character.Weapon != null)
@@ -310,9 +309,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 }
 
                 // Stats
-                var statsModule = ImageUtility.CreateRoundedRectanglePath(700, 970, 30).Translate(1420, 50);
-                ctx.Fill(OverlayColor, statsModule);
-                ctx.Draw(accentColor, 4f, statsModule);
+                ctx.DrawRoundedRectangleOverlay(700, 970, new PointF(1420, 50),
+                    new RoundedRectangleOverlayStyle(OverlayColor, accentColor, 4f, 30));
 
                 var offsetInterval = 880 / (character.Properties.Count - 1);
                 var statsYOffset = 0;
@@ -463,9 +461,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
 
             if (!activated) ctx.Brightness(2f);
 
-            var path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
-            ctx.Fill(OverlayColor, path);
-            ctx.Draw(accentColor, 4f, path);
+            ctx.DrawRoundedRectangleOverlay(90, 120, new PointF(15, 15),
+                new RoundedRectangleOverlayStyle(OverlayColor, accentColor, 4f, 10));
             ctx.DrawText(new RichTextOptions(m_TitleFont)
             {
                 Origin = new Vector2(60, 90),
@@ -486,9 +483,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
         image.Mutate(ctx =>
         {
             ctx.Clear(Color.Transparent);
-            var path = ImageUtility.CreateRoundedRectanglePath(90, 120, 10).Translate(15, 15);
-            ctx.Fill(OverlayColor, path);
-            ctx.Draw(accentColor, 4f, path);
+            ctx.DrawRoundedRectangleOverlay(90, 120, new PointF(15, 15),
+                new RoundedRectangleOverlayStyle(OverlayColor, accentColor, 4f, 10));
             ctx.DrawImage(icon, new Point(60 - icon.Width / 2, 75 - icon.Height / 2), 1f);
             ctx.Rotate(10, KnownResamplers.Bicubic);
         });

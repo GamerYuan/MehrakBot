@@ -1,6 +1,7 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Amazon.S3;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -155,9 +156,11 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                 ctx.DrawImage(m_CharacterRankIcons[characterInformation.Avatar.Star - 1],
                     new Point((int)bounds.Right + 10, (int)bounds.Top + (int)bounds.Height / 2 - 28), 1f);
 
-                ctx.Fill(OverlayColor, ImageUtility.CreateRoundedRectanglePath(600, 700, 15).Translate(720, 30));
+                ctx.DrawRoundedRectangleOverlay(600, 700, new PointF(720, 30),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
-                ctx.Fill(Color.White, ImageUtility.CreateRoundedRectanglePath(132, 148, 10).Translate(750, 50));
+                ctx.DrawRoundedRectangleOverlay(132, 148, new PointF(750, 50),
+                    new RoundedRectangleOverlayStyle(Color.White, CornerRadius: 10));
                 ctx.Fill(m_RarityColor[characterInformation.Weapon.Rarity], new RectangleF(750, 66, 132, 116));
                 ctx.DrawImage(weaponImage, new Point(750, 66), 1f);
 

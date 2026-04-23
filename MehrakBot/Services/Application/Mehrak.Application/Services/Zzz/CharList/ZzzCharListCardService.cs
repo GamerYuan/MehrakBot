@@ -1,8 +1,9 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -205,11 +206,11 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
                         TextMeasurer.MeasureSize(entry.Rarity, new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    var overlay =
-                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
-                            .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(entry.Rarity == "S-Rank" ? GoldBackgroundColor.WithAlpha(128) : PurpleBackgroundColor.WithAlpha(128), overlay);
+                    ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(
+                            entry.Rarity == "S-Rank" ? GoldBackgroundColor.WithAlpha(128) : PurpleBackgroundColor.WithAlpha(128),
+                            CornerRadius: 10));
                     ctx.Fill(entry.Rarity == "S-Rank" ? Color.Gold : PurpleForegroundColor, foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
@@ -236,11 +237,9 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
                     var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    var overlay =
-                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
-                            .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(ElementBackground[entry.Element], overlay);
+                    ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(ElementBackground[entry.Element], CornerRadius: 10));
                     ctx.Fill(ElementForeground[entry.Element], foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
@@ -267,11 +266,9 @@ public class ZzzCharListCardService : ICardService<(IEnumerable<ZzzBasicAvatarDa
                     var elemSize = TextMeasurer.MeasureSize(entry.Profession, new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    var overlay =
-                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
-                            .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(Color.FromRgb(24, 24, 24), overlay);
+                    ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(Color.FromRgb(24, 24, 24), CornerRadius: 10));
                     ctx.Fill(Color.White, foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {

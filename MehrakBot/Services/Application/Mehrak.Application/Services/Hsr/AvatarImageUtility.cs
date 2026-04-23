@@ -1,6 +1,7 @@
-﻿#region
+#region
 
 using Mehrak.Application.Models;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -54,26 +55,20 @@ internal static class AvatarImageUtility
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
             }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.White);
-            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
-            if (rank == 6)
+            if (rank > 0)
             {
-                ctx.Fill(Color.Gold, constIcon);
+                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 110),
+                    new RoundedRectangleOverlayStyle(
+                        rank == 6 ? Color.Gold : NormalConstColor,
+                        CornerRadius: 5));
                 ctx.DrawText(new RichTextOptions(NormalFont)
                 {
                     Origin = new PointF(130, 126),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
-                }, "6", GoldConstTextColor);
-            }
-            else if (rank > 0)
-            {
-                ctx.Fill(NormalConstColor, constIcon);
-                ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(130, 126),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{rank}", Color.White);
+                },
+                    rank.ToString(),
+                    rank == 6 ? GoldConstTextColor : Color.White);
             }
 
             ctx.ApplyRoundedCorners(15);

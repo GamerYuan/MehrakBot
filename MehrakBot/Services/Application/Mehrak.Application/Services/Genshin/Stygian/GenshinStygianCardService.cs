@@ -1,9 +1,10 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -164,9 +165,8 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
 
                     for (var j = 0; j < challenge.BestAvatar.Count; j++)
                     {
-                        var overlay = ImageUtility.CreateRoundedRectanglePath(580, 145, 15)
-                            .Translate(1070, yOffset + j * 155);
-                        ctx.Fill(OverlayColor, overlay);
+                        ctx.DrawRoundedRectangleOverlay(580, 145, new PointF(1070, yOffset + j * 155),
+                            new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                         var bestAvatar = challenge.BestAvatar[j];
                         var avatarImage = bestAvatarImages[bestAvatar.AvatarId];
                         avatarImage.Mutate(x => x.Resize(100, 0, KnownResamplers.Bicubic));

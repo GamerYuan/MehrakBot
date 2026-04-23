@@ -1,9 +1,10 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
@@ -156,8 +157,8 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, context.GameProfile.GameUid!, Color.White);
 
-                var statsBackground = ImageUtility.CreateRoundedRectanglePath(700, 250, 15).Translate(50, 170);
-                ctx.Fill(OverlayColor, statsBackground);
+                ctx.DrawRoundedRectangleOverlay(700, 250, new PointF(50, 170),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
                 ctx.DrawText("Deepest Descent: ", m_NormalFont, Color.White, new PointF(80, 200));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -182,8 +183,8 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, $"{abyssData.TotalStar}", Color.White);
 
-                var mostUsedBackground = ImageUtility.CreateRoundedRectanglePath(700, 260, 15).Translate(50, 440);
-                ctx.Fill(OverlayColor, mostUsedBackground);
+                ctx.DrawRoundedRectangleOverlay(700, 260, new PointF(50, 440),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                 ctx.DrawText("Most Used Characters", m_NormalFont, Color.White, new PointF(80, 460));
 
                 var revealRank = GetRosterImage([.. abyssData.RevealRank!.Select(x => x.AvatarId)],
@@ -192,12 +193,10 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                 disposableResources.Add(revealRank);
                 ctx.DrawImage(revealRank, new Point(75, 500), 1f);
 
-                var overlay = ImageUtility.CreateRoundedRectanglePath(700, 150, 15).Translate(50, 720);
-
                 for (var i = 0; i < 5; i++)
                 {
-                    ctx.Fill(OverlayColor, overlay);
-                    overlay = overlay.Translate(0, 170);
+                    ctx.DrawRoundedRectangleOverlay(700, 150, new PointF(50, 720 + i * 170),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                 }
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -283,9 +282,8 @@ internal class GenshinAbyssCardService : ICardService<GenshinAbyssInformation>, 
                 for (var i = 0; i < 3; i++)
                 {
                     var offset = i * 490 + 160;
-                    var rosterBackground = ImageUtility.CreateRoundedRectanglePath(670, 470, 15)
-                        .Translate(785, offset - 60);
-                    ctx.Fill(OverlayColor, rosterBackground);
+                    ctx.DrawRoundedRectangleOverlay(670, 470, new PointF(785, offset - 60),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                     ctx.DrawText($"Chamber {i + 1}", m_NormalFont, Color.White,
                         new PointF(810, offset - 40));
 

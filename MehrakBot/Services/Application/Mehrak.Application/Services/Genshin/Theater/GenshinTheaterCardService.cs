@@ -1,9 +1,10 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -173,8 +174,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, context.GameProfile.GameUid!, Color.White);
 
-                var statsBackground = ImageUtility.CreateRoundedRectanglePath(875, 330, 15).Translate(40, 210);
-                ctx.Fill(OverlayColor, statsBackground);
+                ctx.DrawRoundedRectangleOverlay(875, 330, new PointF(40, 210),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
                 ctx.DrawText("Fantasia Flowers Used", m_NormalFont, Color.White, new PointF(70, 240));
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
@@ -208,8 +209,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                 }, TimeSpan.FromSeconds(theaterData.Detail.FightStatistic.TotalUseTime).ToString(@"mm\:ss"),
                     Color.White);
 
-                var statBackground = ImageUtility.CreateRoundedRectanglePath(875, 360, 15).Translate(985, 50);
-                ctx.Fill(OverlayColor, statBackground);
+                ctx.DrawRoundedRectangleOverlay(875, 360, new PointF(985, 50),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
                 ctx.DrawText(new RichTextOptions(m_NormalFont)
                 {
@@ -255,8 +256,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                 ctx.DrawImage(sideAvatarImages[theaterData.Detail.FightStatistic.MaxDefeatAvatar.AvatarId],
                     new Point(1005, 280), 1f);
 
-                var starBackground = ImageUtility.CreateRoundedRectanglePath(875, 110, 15).Translate(985, 430);
-                ctx.Fill(OverlayColor, starBackground);
+                ctx.DrawRoundedRectangleOverlay(875, 110, new PointF(985, 430),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                 ctx.DrawText("Stellas", m_NormalFont, Color.White, new PointF(1005, 470));
 
                 var medalOffset = 0;
@@ -307,11 +308,11 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                         ? roundsData[i]
                         : null;
 
-                    var avatarBackground = ImageUtility.CreateRoundedRectanglePath(670, 270, 15);
-                    ctx.Fill(OverlayColor, avatarBackground.Translate(xOffset - 10, yOffset - 70));
+                    ctx.DrawRoundedRectangleOverlay(670, 270, new PointF(xOffset - 10, yOffset - 70),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
-                    var buffBackground = ImageUtility.CreateRoundedRectanglePath(195, 270, 15);
-                    ctx.Fill(OverlayColor, buffBackground.Translate(xOffset + 670, yOffset - 70));
+                    ctx.DrawRoundedRectangleOverlay(195, 270, new PointF(xOffset + 670, yOffset - 70),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
                     if (roundData == null)
                     {
@@ -396,9 +397,8 @@ internal class GenshinTheaterCardService : ICardService<GenshinTheaterInformatio
                             )))
                     {
                         hasFastest = true;
-                        var fastestBackground = ImageUtility.CreateRoundedRectanglePath(190, 50, 15);
-                        ctx.Fill(Color.FromRgba(128, 128, 128, 128),
-                            fastestBackground.Translate(xOffset + 400, yOffset - 60));
+                        ctx.DrawRoundedRectangleOverlay(190, 50, new PointF(xOffset + 400, yOffset - 60),
+                            new RoundedRectangleOverlayStyle(Color.FromRgba(128, 128, 128, 128), CornerRadius: 15));
                         ctx.DrawText(new RichTextOptions(m_NormalFont)
                         {
                             Origin = new Vector2(xOffset + 412, yOffset - 45)

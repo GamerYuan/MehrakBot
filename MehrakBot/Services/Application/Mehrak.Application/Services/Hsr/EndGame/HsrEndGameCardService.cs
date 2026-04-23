@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
@@ -213,8 +213,6 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                 {
                     var xOffset = floorNumber % 2 * 950 + 50;
 
-                    IPath overlay;
-
                     if (floorData == null || floorData.IsFast)
                     {
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
@@ -222,9 +220,8 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                             (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
                              !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
                         {
-                            overlay = ImageUtility.CreateRoundedRectanglePath(900, 600, 15)
-                                .Translate(xOffset, yOffset);
-                            ctx.Fill(OverlayColor, overlay);
+                            ctx.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
                                 Origin = new Vector2(xOffset + 450, yOffset + 280),
@@ -234,9 +231,8 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                         }
                         else
                         {
-                            overlay = ImageUtility.CreateRoundedRectanglePath(900, 180, 15)
-                                .Translate(xOffset, yOffset);
-                            ctx.Fill(OverlayColor, overlay);
+                            ctx.DrawRoundedRectangleOverlay(900, 180, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
                                 Origin = new Vector2(xOffset + 450, yOffset + 110),
@@ -271,8 +267,8 @@ internal class HsrEndGameCardService : ICardService<HsrEndInformation>, IAsyncIn
                         continue;
                     }
 
-                    overlay = ImageUtility.CreateRoundedRectanglePath(900, 600, 15).Translate(xOffset, yOffset);
-                    ctx.Fill(OverlayColor, overlay);
+                    ctx.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 20, yOffset + 20),

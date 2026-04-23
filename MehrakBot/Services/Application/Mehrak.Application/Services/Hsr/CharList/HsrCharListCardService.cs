@@ -1,8 +1,9 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -177,11 +178,9 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                     var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    var overlay =
-                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
-                            .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(ElementBackground[entry.Element], overlay);
+                    ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(ElementBackground[entry.Element], CornerRadius: 10));
                     ctx.Fill(ElementForeground[entry.Element], foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
@@ -206,11 +205,9 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                         TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
                     FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
                         countSize.Height + elemSize.Height);
-                    var overlay =
-                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
-                            .Translate(xOffset, yOffset);
                     EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(RarityColors[entry.Rarity - 2].WithAlpha(128), overlay);
+                    ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(RarityColors[entry.Rarity - 2].WithAlpha(128), CornerRadius: 10));
                     ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
@@ -264,10 +261,9 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
             var charLevelRect =
                 TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
-            var charLevel =
-                ImageUtility.CreateRoundedRectanglePath((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
-                    10);
-            ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 105));
+            ctx.DrawRoundedRectangleOverlay((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
+                new PointF(-25, 105),
+                new RoundedRectangleOverlayStyle(DarkOverlayColor, CornerRadius: 10));
             ctx.DrawText(new RichTextOptions(m_SmallFont)
             {
                 Origin = new Vector2(5, 115 + charLevelRect.Height / 2),
@@ -275,39 +271,29 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {charData.Level}", Color.White);
 
-            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
-            switch (charData.Rank)
+            if (charData.Rank > 0)
             {
-                case 6:
-                    ctx.Fill(Color.Gold, constIcon);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(130, 125),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, "6", GoldConstTextColor);
-                    break;
-
-                case > 0:
-                    ctx.Fill(NormalConstColor, constIcon);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(130, 125),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{charData.Rank}", Color.White);
-                    break;
+                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 110),
+                    new RoundedRectangleOverlayStyle(
+                        charData.Rank == 6 ? Color.Gold : NormalConstColor,
+                        CornerRadius: 5));
+                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                {
+                    Origin = new Vector2(130, 125),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                },
+                    charData.Rank.ToString(),
+                    charData.Rank == 6 ? GoldConstTextColor : Color.White);
             }
 
             if (charData.Equip is not null)
             {
                 var weapLevelRect =
                     TextMeasurer.MeasureSize($"Lv. {charData.Equip.Level}", new TextOptions(m_SmallFont));
-                var weapLevel =
-                    ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40,
-                        (int)weapLevelRect.Height + 20,
-                        10);
-                ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 105));
+                ctx.DrawRoundedRectangleOverlay((int)weapLevelRect.Width + 40, (int)weapLevelRect.Height + 20,
+                    new PointF(285 - weapLevelRect.Width, 105),
+                    new RoundedRectangleOverlayStyle(DarkOverlayColor, CornerRadius: 10));
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
                 {
                     Origin = new PointF(295 - weapLevelRect.Width / 2, 115 + weapLevelRect.Height / 2),
@@ -315,28 +301,20 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"Lv. {charData.Equip.Level}", Color.White);
 
-                var refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 110);
-                switch (charData.Equip.Rank)
+                if (charData.Equip.Rank > 0)
                 {
-                    case 5:
-                        ctx.Fill(Color.Gold, refineIcon);
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(170, 125),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, "5", GoldConstTextColor);
-                        break;
-
-                    case > 0:
-                        ctx.Fill(NormalConstColor, refineIcon);
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(170, 125),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, $"{charData.Equip.Rank}", Color.White);
-                        break;
+                    ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(155, 110),
+                        new RoundedRectangleOverlayStyle(
+                            charData.Equip.Rank == 5 ? Color.Gold : NormalConstColor,
+                            CornerRadius: 5));
+                    ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    {
+                        Origin = new Vector2(170, 125),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                        charData.Equip.Rank.ToString(),
+                        charData.Equip.Rank == 5 ? GoldConstTextColor : Color.White);
                 }
             }
 

@@ -1,9 +1,10 @@
-﻿#region
+#region
 
 using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -167,8 +168,6 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                 {
                     var xOffset = floorNumber % 2 * 750 + 50;
 
-                    IPath overlay;
-
                     if (floorData == null || floorData.IsFast)
                     {
                         if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
@@ -176,9 +175,8 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                             (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
                              !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
                         {
-                            overlay = ImageUtility.CreateRoundedRectanglePath(700, 500, 15)
-                                .Translate(xOffset, yOffset);
-                            ctx.Fill(OverlayColor, overlay);
+                            ctx.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
                                 Origin = new Vector2(xOffset + 350, yOffset + 280),
@@ -188,9 +186,8 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                         }
                         else
                         {
-                            overlay = ImageUtility.CreateRoundedRectanglePath(700, 180, 15)
-                                .Translate(xOffset, yOffset);
-                            ctx.Fill(OverlayColor, overlay);
+                            ctx.DrawRoundedRectangleOverlay(700, 180, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                             ctx.DrawText(new RichTextOptions(m_NormalFont)
                             {
                                 Origin = new Vector2(xOffset + 350, yOffset + 110),
@@ -216,8 +213,8 @@ internal class HsrMemoryCardService : ICardService<HsrMemoryInformation>, IAsync
                         continue;
                     }
 
-                    overlay = ImageUtility.CreateRoundedRectanglePath(700, 500, 15).Translate(xOffset, yOffset);
-                    ctx.Fill(OverlayColor, overlay);
+                    ctx.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                     ctx.DrawText(new RichTextOptions(m_NormalFont)
                     {
                         Origin = new Vector2(xOffset + 20, yOffset + 20),

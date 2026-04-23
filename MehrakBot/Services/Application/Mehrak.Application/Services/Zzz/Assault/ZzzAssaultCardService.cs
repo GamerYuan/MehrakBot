@@ -1,9 +1,10 @@
-﻿#region
+#region
 
 using Mehrak.Application.Services.Abstractions;
 using System.Numerics;
 using System.Text.Json;
 using Mehrak.Application.Models;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
@@ -181,9 +182,8 @@ internal class ZzzAssaultCardService : ICardService<ZzzAssaultData>, IAsyncIniti
                     Origin = new Vector2(50, 160),
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, totalScoreText, Color.White);
-                var rankOverlay = ImageUtility.CreateRoundedRectanglePath(90, 40, 15)
-                    .Translate(60 + totalScoreBounds.Width, 110);
-                ctx.Fill(OverlayColor, rankOverlay);
+                ctx.DrawRoundedRectangleOverlay(90, 40, new PointF(60 + totalScoreBounds.Width, 110),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                 ctx.DrawText(new RichTextOptions(m_SmallFont)
                 {
                     Origin = new Vector2(105 + (int)totalScoreBounds.Width, 145),
