@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
@@ -29,8 +29,8 @@ public class ZzzCharListCardServiceTests
     {
         m_Service = new ZzzCharListCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<Application.Services.Abstractions.IApplicationMetrics>(),
-            Mock.Of<ILogger<ZzzCharListCardService>>());
+            Mock.Of<ILogger<ZzzCharListCardService>>(),
+            Mock.Of<Application.Services.Abstractions.IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

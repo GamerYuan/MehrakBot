@@ -1,35 +1,22 @@
-using System.Text.Json;
 using Amazon.S3;
-using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
+using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Hi3.Character;
 
-internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyncInitializable
+internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 {
-    private readonly IImageRepository m_ImageRepository;
-    private readonly ILogger<Hi3CharacterCardService> m_Logger;
-    private readonly IApplicationMetrics m_Metrics;
-
-    private readonly Font m_TitleFont;
-    private readonly Font m_NormalFont;
-    private readonly Font m_MediumFont;
-
-    private readonly JpegEncoder m_JpegEncoder;
-
     private readonly Dictionary<int, Color> m_RarityColor = new()
     {
         { 1, Color.ParseHex("1d9669") },
@@ -46,160 +33,125 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
     private Image m_StarUnlit = null!;
     private List<Image> m_CharacterRankIcons = [];
 
-    private static readonly Color OverlayColor = Color.FromRgba(47, 87, 126, 196);
+    private new static readonly Color OverlayColor = Color.FromRgba(47, 87, 126, 196);
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
+        : base("Hi3 Character", imageRepository, logger, metrics, LoadFonts("Assets/Fonts/hsr.ttf", 36, 28, smallSize: 18))
     {
-        m_ImageRepository = imageRepository;
-        m_Logger = logger;
-        m_Metrics = metrics;
-
-        var fontFamily = new FontCollection().Add("Assets/Fonts/hsr.ttf");
-
-        m_TitleFont = fontFamily.CreateFont(36);
-        m_NormalFont = fontFamily.CreateFont(28);
-        m_MediumFont = fontFamily.CreateFont(18);
-
-        m_JpegEncoder = new JpegEncoder
-        {
-            Quality = 90,
-            Interleaved = false
-        };
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hi3_bg"), cancellationToken);
-        m_StigmataSlot = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hi3_stigmata_slot"), cancellationToken);
-        m_StarIcon = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hi3_star_icon"), cancellationToken);
+        m_Background = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_bg"), cancellationToken);
+        m_StigmataSlot = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_stigmata_slot"), cancellationToken);
+        m_StarIcon = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_star_icon"), cancellationToken);
         m_StarUnlit = m_StarIcon.Clone(x => x.Grayscale());
 
         m_CharacterRankIcons = await new int[] { 1, 2, 3, 4, 5 }
             .ToAsyncEnumerable()
             .Select(async (rank, token) =>
-                await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"hi3_rank_{rank}"), token))
+                await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync($"hi3_rank_{rank}"), token))
             .ToListAsync(cancellationToken: cancellationToken);
     }
 
-    public async Task<Stream> GetCardAsync(ICardGenerationContext<Hi3CharacterDetail> context)
+    public override async Task RenderCardAsync(
+        Image<Rgba32> background,
+        ICardGenerationContext<Hi3CharacterDetail> context,
+        DisposableBag disposables,
+        CancellationToken cancellationToken = default)
     {
-        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("hi3 character");
-        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Character", context.UserId);
-
         var characterInformation = context.Data;
 
-        List<IDisposable> disposableResources = [];
+        var characterImage = await LoadFirstAvailableCostumeImageAsync(characterInformation);
+        disposables.Add(characterImage);
 
-        try
+        var weaponImage = await Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync(characterInformation.Weapon.ToImageName()));
+        disposables.Add(weaponImage);
+
+        var stigmataImages = await characterInformation.Stigmatas
+            .ToAsyncEnumerable()
+            .ToDictionaryAsync(
+                async (stigmata, token) => await Task.FromResult(stigmata),
+                async (stigmata, token) =>
+                {
+                    if (stigmata.Id == 0) return m_StigmataSlot.Clone(ctx => { });
+
+                    var img = await Image.LoadAsync(
+                        await ImageRepository.DownloadFileToStreamAsync(stigmata.ToImageName()), token);
+                    var stigmataIcon = GetStigmataIcon(img, stigmata);
+                    return stigmataIcon;
+                });
+        disposables.AddRange(stigmataImages.Values);
+
+        var image = m_Background.CloneAs<Rgba32>();
+        disposables.Add(image);
+
+        image.Mutate(ctx =>
         {
-            var characterImage = await LoadFirstAvailableCostumeImageAsync(characterInformation);
-            disposableResources.Add(characterImage);
+            ctx.DrawImage(characterImage,
+                new Point(350 - characterImage.Width / 2, 425 - characterImage.Height / 2), 1f);
 
-            var weaponImage = await Image.LoadAsync(
-                await m_ImageRepository.DownloadFileToStreamAsync(characterInformation.Weapon.ToImageName()));
-            disposableResources.Add(weaponImage);
-
-            var stigmataImages = await characterInformation.Stigmatas
-                .ToAsyncEnumerable()
-                .ToDictionaryAsync(
-                    async (stigmata, token) => await Task.FromResult(stigmata),
-                    async (stigmata, token) =>
-                    {
-                        if (stigmata.Id == 0) return m_StigmataSlot.Clone(ctx => { });
-
-                        var img = await Image.LoadAsync(
-                            await m_ImageRepository.DownloadFileToStreamAsync(stigmata.ToImageName()), token);
-                        var stigmataIcon = GetStigmataIcon(img, stigmata);
-                        return stigmataIcon;
-                    });
-            disposableResources.AddRange(stigmataImages.Values);
-
-            var image = m_Background.CloneAs<Rgba32>();
-            disposableResources.Add(image);
-
-            image.Mutate(ctx =>
+            ctx.DrawTextWithShadow(characterInformation.Avatar.Name!, new RichTextOptions(Fonts.Title)
             {
-                ctx.DrawImage(characterImage,
-                    new Point(350 - characterImage.Width / 2, 425 - characterImage.Height / 2), 1f);
+                Origin = new PointF(70, 50),
+                WrappingLength = 600,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
+            }, Color.White);
 
-                ctx.DrawTextWithShadow(characterInformation.Avatar.Name!, new RichTextOptions(m_TitleFont)
+            var bounds = TextMeasurer.MeasureBounds(characterInformation.Avatar.Name!,
+                new RichTextOptions(Fonts.Title)
                 {
                     Origin = new PointF(70, 50),
-                    WrappingLength = 600,
+                    WrappingLength = 700,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
-                }, Color.White);
+                });
 
-                var bounds = TextMeasurer.MeasureBounds(characterInformation.Avatar.Name!,
-                    new RichTextOptions(m_TitleFont)
-                    {
-                        Origin = new PointF(70, 50),
-                        WrappingLength = 700,
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Top
-                    });
+            ctx.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", Fonts.Small,
+                new PointF(70, bounds.Bottom + 20), Color.White);
+            ctx.DrawText(context.GameProfile.GameUid, Fonts.Normal, Color.White, new PointF(70, 700));
 
-                ctx.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", m_NormalFont,
-                    new PointF(70, bounds.Bottom + 20), Color.White);
-                ctx.DrawText(context.GameProfile.GameUid, m_MediumFont, Color.White, new PointF(70, 700));
+            ctx.DrawImage(m_CharacterRankIcons[characterInformation.Avatar.Star - 1],
+                new Point((int)bounds.Right + 10, (int)bounds.Top + (int)bounds.Height / 2 - 28), 1f);
 
-                ctx.DrawImage(m_CharacterRankIcons[characterInformation.Avatar.Star - 1],
-                    new Point((int)bounds.Right + 10, (int)bounds.Top + (int)bounds.Height / 2 - 28), 1f);
+            ctx.DrawRoundedRectangleOverlay(600, 700, new PointF(720, 30),
+                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
-                ctx.DrawRoundedRectangleOverlay(600, 700, new PointF(720, 30),
-                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+            ctx.DrawRoundedRectangleOverlay(132, 148, new PointF(750, 50),
+                new RoundedRectangleOverlayStyle(Color.White, CornerRadius: 10));
+            ctx.Fill(m_RarityColor[characterInformation.Weapon.Rarity], new RectangleF(750, 66, 132, 116));
+            ctx.DrawImage(weaponImage, new Point(750, 66), 1f);
 
-                ctx.DrawRoundedRectangleOverlay(132, 148, new PointF(750, 50),
-                    new RoundedRectangleOverlayStyle(Color.White, CornerRadius: 10));
-                ctx.Fill(m_RarityColor[characterInformation.Weapon.Rarity], new RectangleF(750, 66, 132, 116));
-                ctx.DrawImage(weaponImage, new Point(750, 66), 1f);
+            var starSize = 15;
+            var totalWidth = characterInformation.Weapon.MaxRarity * (starSize + 2) - 2;
+            var startX = (128 - totalWidth) / 2 + 745;
+            for (var i = characterInformation.Weapon.MaxRarity - 1; i >= 0; i--)
+            {
+                var starToDraw = i < characterInformation.Weapon.Rarity ? m_StarIcon : m_StarUnlit;
+                ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 168), 1f);
+            }
 
-                var starSize = 15;
-                var totalWidth = characterInformation.Weapon.MaxRarity * (starSize + 2) - 2;
-                var startX = (128 - totalWidth) / 2 + 745;
-                for (var i = characterInformation.Weapon.MaxRarity - 1; i >= 0; i--)
-                {
-                    var starToDraw = i < characterInformation.Weapon.Rarity ? m_StarIcon : m_StarUnlit;
-                    ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 168), 1f);
-                }
+            ctx.DrawText(new RichTextOptions(Fonts.Small)
+            {
+                Origin = new PointF(900, 120),
+                VerticalAlignment = VerticalAlignment.Center,
+                WrappingLength = 400
+            }, $"{characterInformation.Weapon.Name}\nLv. {characterInformation.Weapon.Level}", Color.White);
 
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new PointF(900, 120),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    WrappingLength = 400
-                }, $"{characterInformation.Weapon.Name}\nLv. {characterInformation.Weapon.Level}", Color.White);
+            var yOffset = 0;
+            foreach (var entry in stigmataImages)
+            {
+                ctx.DrawImage(entry.Value, new Point(750, 240 + yOffset), 1f);
+                ctx.DrawText(entry.Key.Id == 0 ? "Unequipped" : entry.Key.Name,
+                    Fonts.Small, Color.White, new PointF(900, 305 + yOffset));
+                yOffset += 160;
+            }
+        });
 
-                var yOffset = 0;
-                foreach (var entry in stigmataImages)
-                {
-                    ctx.DrawImage(entry.Value, new Point(750, 240 + yOffset), 1f);
-                    ctx.DrawText(entry.Key.Id == 0 ? "Unequipped" : entry.Key.Name,
-                        m_NormalFont, Color.White, new PointF(900, 305 + yOffset));
-                    yOffset += 160;
-                }
-            });
 
-            Stream stream = new MemoryStream();
-            await image.SaveAsJpegAsync(stream, m_JpegEncoder);
-            stream.Position = 0;
-
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Character", context.UserId);
-
-            return stream;
-
-        }
-        catch (Exception e) when (e is not CommandException)
-        {
-            m_Logger.LogError(e, LogMessage.CardGenError, "Character", context.UserId,
-                JsonSerializer.Serialize(context.Data));
-            throw new CommandException("Failed to generate Character card", e);
-        }
-        finally
-        {
-            disposableResources.ForEach(x => x.Dispose());
-        }
     }
 
     private async Task<Image> LoadFirstAvailableCostumeImageAsync(Hi3CharacterDetail characterInformation)
@@ -209,7 +161,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
             try
             {
                 var imageName = costume.ToImageName();
-                var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
+                var stream = await ImageRepository.DownloadFileToStreamAsync(imageName);
                 if (stream != Stream.Null)
                 {
                     return await Image.LoadAsync(stream);
@@ -218,7 +170,7 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
             }
             catch (AmazonS3Exception e)
             {
-                m_Logger.LogWarning(e, "Failed to load costume image for costume {CostumeId} of character {CharacterId}",
+                Logger.LogWarning(e, "Failed to load costume image for costume {CostumeId} of character {CharacterId}",
                     costume.Id, characterInformation.Avatar.Id);
             }
         }

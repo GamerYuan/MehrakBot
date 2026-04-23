@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -435,6 +435,10 @@ public class HsrEndGameApplicationServiceTests
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrEndInformation>>();
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(ICardService<HsrEndInformation>)))
+            .Returns(cardServiceMock.Object);
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
@@ -449,7 +453,7 @@ public class HsrEndGameApplicationServiceTests
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
-            cardServiceMock.Object,
+            serviceProviderMock.Object,
             imageUpdaterMock.Object,
             endGameApiMock.Object,
             gameRoleApiMock.Object,
@@ -469,9 +473,13 @@ public class HsrEndGameApplicationServiceTests
         UserDbContext UserContext
         ) SetupIntegrationTest()
     {
-        var cardService = new HsrEndGameCardService(
+        var pfCardService = new HsrPureFictionCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrEndGameCardService>>(),
+            Mock.Of<ILogger<HsrPureFictionCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        var asCardService = new HsrApocalypticShadowCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<HsrApocalypticShadowCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
@@ -493,12 +501,18 @@ public class HsrEndGameApplicationServiceTests
         attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        cardService.InitializeAsync().Wait();
+        pfCardService.InitializeAsync().Wait();
+        asCardService.InitializeAsync().Wait();
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(ICardService<HsrEndInformation>)))
+            .Returns<object>(key => key is HsrEndGameMode.PureFiction ? pfCardService : asCardService);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
-            cardService,
+            serviceProviderMock.Object,
             imageUpdaterService,
             endGameApiMock.Object,
             gameRoleApiMock.Object,
@@ -517,9 +531,13 @@ public class HsrEndGameApplicationServiceTests
         UserDbContext UserContext
         ) SetupRealApiIntegrationTest()
     {
-        var cardService = new HsrEndGameCardService(
+        var pfCardService = new HsrPureFictionCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrEndGameCardService>>(),
+            Mock.Of<ILogger<HsrPureFictionCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        var asCardService = new HsrApocalypticShadowCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<HsrApocalypticShadowCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
@@ -538,7 +556,13 @@ public class HsrEndGameApplicationServiceTests
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
-        cardService.InitializeAsync().Wait();
+        pfCardService.InitializeAsync().Wait();
+        asCardService.InitializeAsync().Wait();
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(ICardService<HsrEndInformation>)))
+            .Returns<object>(key => key is HsrEndGameMode.PureFiction ? pfCardService : asCardService);
 
         var storedAttachments = new Dictionary<string, MemoryStream>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -558,7 +582,7 @@ public class HsrEndGameApplicationServiceTests
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
-            cardService,
+            serviceProviderMock.Object,
             imageUpdaterService,
             endGameApiService,
             gameRoleApiService,

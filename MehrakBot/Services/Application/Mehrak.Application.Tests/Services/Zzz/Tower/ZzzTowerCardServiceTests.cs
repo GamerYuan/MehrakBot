@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Zzz.Tower;
@@ -26,8 +26,8 @@ public class ZzzTowerCardServiceTests
     {
         m_Service = new ZzzTowerCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<IApplicationMetrics>(),
-            Mock.Of<ILogger<ZzzTowerCardService>>());
+            Mock.Of<ILogger<ZzzTowerCardService>>(),
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 
