@@ -294,20 +294,13 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
 
             backgroundImage.Mutate(ctx =>
             {
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new PointF(73, 53),
-                    WrappingLength = 700,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, characterInformation.Name!, Color.Black);
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
+                ctx.DrawTextWithShadow(characterInformation.Name!, new RichTextOptions(m_TitleFont)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 700,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
-                }, characterInformation.Name!, Color.White);
+                }, Color.White);
 
                 var bounds = TextMeasurer.MeasureBounds(characterInformation.Name!,
                     new RichTextOptions(m_TitleFont)
@@ -318,10 +311,8 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                         VerticalAlignment = VerticalAlignment.Top
                     });
 
-                ctx.DrawText($"Lv. {characterInformation.Level}", m_NormalFont, Color.Black,
-                    new PointF(73, bounds.Bottom + 23));
-                ctx.DrawText($"Lv. {characterInformation.Level}", m_NormalFont, Color.White,
-                    new PointF(70, bounds.Bottom + 20));
+                ctx.DrawTextWithShadow($"Lv. {characterInformation.Level}", m_NormalFont,
+                    new PointF(70, bounds.Bottom + 20), Color.White);
                 ctx.DrawImage(overlay, new Point(800, 0), 1f);
                 ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.White, new PointF(70, 1150));
 

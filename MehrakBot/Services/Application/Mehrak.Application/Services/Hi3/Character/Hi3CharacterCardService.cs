@@ -123,20 +123,13 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                 ctx.DrawImage(characterImage,
                     new Point(350 - characterImage.Width / 2, 425 - characterImage.Height / 2), 1f);
 
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new PointF(73, 53),
-                    WrappingLength = 600,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, characterInformation.Avatar.Name!, Color.Black);
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
+                ctx.DrawTextWithShadow(characterInformation.Avatar.Name!, new RichTextOptions(m_TitleFont)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 600,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
-                }, characterInformation.Avatar.Name!, Color.White);
+                }, Color.White);
 
                 var bounds = TextMeasurer.MeasureBounds(characterInformation.Avatar.Name!,
                     new RichTextOptions(m_TitleFont)
@@ -147,10 +140,8 @@ internal class Hi3CharacterCardService : ICardService<Hi3CharacterDetail>, IAsyn
                         VerticalAlignment = VerticalAlignment.Top
                     });
 
-                ctx.DrawText($"Lv. {characterInformation.Avatar.Level}", m_NormalFont, Color.Black,
-                    new PointF(73, bounds.Bottom + 23));
-                ctx.DrawText($"Lv. {characterInformation.Avatar.Level}", m_NormalFont, Color.White,
-                    new PointF(70, bounds.Bottom + 20));
+                ctx.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", m_NormalFont,
+                    new PointF(70, bounds.Bottom + 20), Color.White);
                 ctx.DrawText(context.GameProfile.GameUid, m_MediumFont, Color.White, new PointF(70, 700));
 
                 ctx.DrawImage(m_CharacterRankIcons[characterInformation.Avatar.Star - 1],

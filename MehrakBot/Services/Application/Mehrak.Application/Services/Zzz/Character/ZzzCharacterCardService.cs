@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Numerics;
 using System.Text.Json;
@@ -198,20 +198,13 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                 ctx.DrawImage(portraitImage,
                     new Point(350 - portraitImage.Width / 2, 650 - portraitImage.Height / 4), 1f);
 
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new PointF(73, 53),
-                    WrappingLength = 700,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, character.Name!, Color.Black);
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
+                ctx.DrawTextWithShadow(character.Name!, new RichTextOptions(m_TitleFont)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 700,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
-                }, character.Name!, Color.White);
+                }, Color.White);
 
                 var bounds = TextMeasurer.MeasureBounds(character.Name!, new RichTextOptions(m_TitleFont)
                 {
@@ -221,10 +214,8 @@ internal class ZzzCharacterCardService : ICardService<ZzzFullAvatarData>, IAsync
                     VerticalAlignment = VerticalAlignment.Top
                 });
 
-                ctx.DrawText($"Lv. {character.Level}", m_NormalFont, Color.Black,
-                    new PointF(73, bounds.Bottom + 23));
-                ctx.DrawText($"Lv. {character.Level}", m_NormalFont, Color.White,
-                    new PointF(70, bounds.Bottom + 20));
+                ctx.DrawTextWithShadow($"Lv. {character.Level}", m_NormalFont,
+                    new PointF(70, bounds.Bottom + 20), Color.White);
                 ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.White, new PointF(70, 1150));
 
                 ctx.FillPolygon(BackgroundColor, new PointF(900, 0), new PointF(688, 1200), new PointF(3000, 1200),

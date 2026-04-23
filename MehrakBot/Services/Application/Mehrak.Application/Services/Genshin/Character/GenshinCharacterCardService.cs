@@ -261,20 +261,19 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                     new Point((1280 - characterPortrait.Width) / 2, 100 + (1080 - characterPortrait.Height) / 2),
                     1f);
 
-                ctx.DrawText(charInfo.Base.Name, m_TitleFont, Color.Black, new PointF(73, 58));
-                ctx.DrawText(charInfo.Base.Name, m_TitleFont, textColor, new PointF(70, 55));
+                ctx.DrawTextWithShadow(charInfo.Base.Name, m_TitleFont, new PointF(70, 55), textColor);
 
                 var ascLevel = context.GetParameter<int?>("ascension");
 
                 if (ascLevel != null)
                 {
-                    ctx.DrawText($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", m_NormalFont, Color.Black, new PointF(73, 138));
-                    ctx.DrawText($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", m_NormalFont, textColor, new PointF(70, 135));
+                    ctx.DrawTextWithShadow($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", m_NormalFont,
+                        new PointF(70, 135), textColor);
                 }
                 else
                 {
-                    ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, Color.Black, new PointF(73, 138));
-                    ctx.DrawText($"Lv. {charInfo.Base.Level}", m_NormalFont, textColor, new PointF(70, 135));
+                    ctx.DrawTextWithShadow($"Lv. {charInfo.Base.Level}", m_NormalFont,
+                        new PointF(70, 135), textColor);
                 }
 
                 for (var i = 0; i < skillIcons.Length; i++)
@@ -293,11 +292,11 @@ internal class GenshinCharacterCardService : ICardService<GenshinCharacterInform
                             skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray));
                 }
 
-                ctx.DrawText(context.GameProfile.Nickname, m_NormalFont, Color.Black, new PointF(63, 1003));
-                ctx.DrawText(context.GameProfile.Nickname, m_NormalFont, textColor, new PointF(60, 1000));
+                ctx.DrawTextWithShadow(context.GameProfile.Nickname, m_NormalFont,
+                    new PointF(60, 1000), textColor);
 
-                ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, Color.Black, new PointF(62, 1042));
-                ctx.DrawText(context.GameProfile.GameUid, m_SmallFont, textColor, new PointF(60, 1040));
+                ctx.DrawTextWithShadow(context.GameProfile.GameUid, m_SmallFont,
+                    new PointF(60, 1040), textColor);
 
                 for (var i = 0; i < constellationIcons.Length; i++)
                 {
