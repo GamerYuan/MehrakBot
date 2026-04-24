@@ -18,7 +18,7 @@ const releases = [
           },
           {
             type: "feature",
-            text: "[hyl] Added command. This command allows you to embed a HoYoLAB post in Discord by providing the post URL. It supports all languages that HoYoLAB current supports",
+            text: "[hyl] Added command. This command allows you to embed a HoYoLAB post in Discord by providing the post URL. It supports all languages that HoYoLAB ly supports",
           },
         ],
       },
