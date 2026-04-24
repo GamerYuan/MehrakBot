@@ -11,26 +11,26 @@
         <PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
         <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
         <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
-        <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+        <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.7" />
         <PackageReference Include="NetCord" Version="1.0.0-alpha.461" />
         <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.461" />
         <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-alpha.461" />
         <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.461" />
         <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.461" />
-        <PackageReference Include="OpenTelemetry" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
+        <PackageReference Include="OpenTelemetry" Version="1.15.3" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
         <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
-        <PackageReference Include="Serilog" Version="4.3.0" />
-        <PackageReference Include="Serilog.Enrichers.HttpContext" Version="8.0.9" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+        <PackageReference Include="Serilog" Version="4.3.1" />
+        <PackageReference Include="Serilog.Enrichers.HttpContext" Version="8.3.0" />
         <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
         <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
         <PackageReference Include="Serilog.Extensions.Logging.File" Version="3.0.0" />
@@ -50,10 +50,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <ProjectReference Include="../Mehrak.Bot.Generators/Mehrak.Bot.Generators.csproj"
-                          OutputItemType="Analyzer"
-                          ReferenceOutputAssembly="false"
-                          PrivateAssets="all" />
+        <ProjectReference Include="../Mehrak.Bot.Generators/Mehrak.Bot.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
         <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
