@@ -79,19 +79,16 @@ public static class StatLineExtensions
 
         if (nameSize.Width > maxNameWidth)
         {
-            nameOptions.WrappingLength = maxNameWidth;
-            nameSize = TextMeasurer.MeasureSize(data.StatName, nameOptions);
+            var maxHeight = IconSize * 1.25f;
 
-            // If wrapping makes it too tall, fall back to shrinking font on a single line
-            if (nameSize.Height > IconSize * 1.25f)
+            var fittingFont = GetFittingFontWithWrapping(data.StatName, style.Font, maxNameWidth, maxHeight);
+
+            nameOptions = new RichTextOptions(fittingFont)
             {
-                var shrunkFont = GetFittingFont(data.StatName, style.Font, maxNameWidth);
-                nameOptions = new RichTextOptions(shrunkFont)
-                {
-                    Origin = new PointF(nameX, 0),
-                    VerticalAlignment = VerticalAlignment.Top
-                };
-            }
+                Origin = new PointF(nameX, 0),
+                VerticalAlignment = VerticalAlignment.Top,
+                WrappingLength = maxNameWidth
+            };
         }
 
         nameOptions.Origin = new PointF(nameX, GetVisualCenterY(data.StatName, nameOptions, mainCenterY));
@@ -166,15 +163,27 @@ public static class StatLineExtensions
         return targetCenterY - size.Height / 2f;
     }
 
-    private static Font GetFittingFont(string text, Font font, float maxWidth)
+    private static Font GetFittingFontWithWrapping(string text, Font font, float maxWidth, float maxHeight)
     {
+        const int maxLines = 2;
         var currentFont = font;
-        var size = TextMeasurer.MeasureSize(text, new RichTextOptions(currentFont));
 
-        while (size.Width > maxWidth && currentFont.Size > 10)
+        while (currentFont.Size > 10) // minimum font size
         {
+            var options = new RichTextOptions(currentFont)
+            {
+                WrappingLength = maxWidth
+            };
+
+            var size = TextMeasurer.MeasureSize(text, options);
+            var lines = TextMeasurer.CountLines(text, options);
+
+            if (size.Height <= maxHeight && lines <= maxLines)
+            {
+                return currentFont;
+            }
+
             currentFont = currentFont.Family.CreateFont(currentFont.Size - 1);
-            size = TextMeasurer.MeasureSize(text, new RichTextOptions(currentFont));
         }
 
         return currentFont;
