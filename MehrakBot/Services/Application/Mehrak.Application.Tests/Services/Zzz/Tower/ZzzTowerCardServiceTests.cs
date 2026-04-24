@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Zzz.Tower;
@@ -111,7 +111,7 @@ public class ZzzTowerCardServiceTests
 
         var image = await m_Service.GetCardAsync(context);
 
-        var fileStream = File.OpenWrite(
+        var fileStream = File.Create(
             Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets", goldenImageFileName));
         await image.CopyToAsync(fileStream);
         await fileStream.FlushAsync();
