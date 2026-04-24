@@ -5,6 +5,65 @@ import Button from "primevue/button";
 
 const releases = [
   {
+    version: "v1.1.0",
+    date: "",
+    sections: [
+      {
+        name: "Common",
+        notes: [
+          { type: "feature", text: "Updated website for public access" },
+          {
+            type: "improvement",
+            text: "[profile] Improved handling of profile update and profile delete. You can now select a profile with both the Profile ID and HoYoLAB UID",
+          },
+          {
+            type: "feature",
+            text: "[hyl] Added command. This command allows you to embed a HoYoLAB post in Discord by providing the post URL. It supports all languages that HoYoLAB current supports",
+          },
+        ],
+      },
+      {
+        name: "HSR Toolbox",
+        notes: [
+          {
+            type: "fix",
+            text: "[character] Fixed an issue whereby some character splash arts might be replaced by relic icons due to overlapping ID space",
+          },
+          {
+            type: "fix",
+            text: '[charlist] Fixed an issue whereby the level display incorrectly states "AR" instead of "TB"',
+          },
+          {
+            type: "improvement",
+            text: "[pf] [as] Updated the layout for buff icons such that they are better centered",
+          },
+        ],
+      },
+      {
+        name: "ZZZ Toolbox",
+        notes: [
+          {
+            type: "feature",
+            text: "[shiyu] Re-enabled command with support for Shiyu Defense V2.",
+          },
+        ],
+      },
+      {
+        name: "Behind the scenes",
+        notes: [
+          {
+            type: "improvement",
+            text: "Added a source generator for generating help string snippets for commands",
+          },
+          {
+            type: "feature",
+            text: "Added support for SeaweedFS Filer reverse proxy for Dashboard super admin users",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.0.0",
     date: "",
     sections: [
