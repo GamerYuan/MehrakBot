@@ -67,7 +67,7 @@ public class HsrCharacterCardServiceTests
 
     [Test]
     [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg", "Stelle")]
-    public async Task GenerateCharacterCardAsync_WithUnknownSet_ShouldMatchGoldenImage(string testDataFileName,
+    public async Task GenerateGoldenImage_WithUnknownSet(string testDataFileName,
         string goldenImageFileName, string testName)
     {
         var (_, characterCardService) = await SetupTest();
@@ -198,5 +198,29 @@ public class HsrCharacterCardServiceTests
         await fs.FlushAsync();
 
         Assert.That(generatedImageStream, Is.Not.Null);
+    }
+
+    [Test]
+    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg", "Stelle")]
+    public async Task GenerateCharacterCardAsync_WithUnknownSet_ShouldMatchGoldenImage(string testDataFileName,
+    string goldenImageFileName, string testName)
+    {
+        var (_, characterCardService) = await SetupTest();
+
+        var testDataPath = Path.Combine(TestDataPath, testDataFileName);
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+            await File.ReadAllTextAsync(testDataPath));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await characterCardService.GetCardAsync(cardContext);
+        var output = Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName);
+        await using var fs = File.Create(output);
+        await image.CopyToAsync(fs);
+        await fs.FlushAsync();
     }
 }
