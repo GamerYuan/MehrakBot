@@ -1,4 +1,4 @@
-using Amazon.S3;
+﻿using Amazon.S3;
 using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
@@ -27,7 +27,6 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         { 6, Color.ParseHex("f0b74f") }
     };
 
-    private Image m_Background = null!;
     private Image m_StigmataSlot = null!;
     private Image m_StarIcon = null!;
     private Image m_StarUnlit = null!;
@@ -43,7 +42,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_Background = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_bg"), cancellationToken);
+        StaticBackground = await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync("hi3_bg"), cancellationToken);
         m_StigmataSlot = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_stigmata_slot"), cancellationToken);
         m_StarIcon = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_star_icon"), cancellationToken);
         m_StarUnlit = m_StarIcon.Clone(x => x.Grayscale());
@@ -85,10 +84,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
                 });
         disposables.AddRange(stigmataImages.Values);
 
-        var image = m_Background.CloneAs<Rgba32>();
-        disposables.Add(image);
-
-        image.Mutate(ctx =>
+        background.Mutate(ctx =>
         {
             ctx.DrawImage(characterImage,
                 new Point(350 - characterImage.Width / 2, 425 - characterImage.Height / 2), 1f);
@@ -110,9 +106,9 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
                     VerticalAlignment = VerticalAlignment.Top
                 });
 
-            ctx.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", Fonts.Small,
+            ctx.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", Fonts.Normal,
                 new PointF(70, bounds.Bottom + 20), Color.White);
-            ctx.DrawText(context.GameProfile.GameUid, Fonts.Normal, Color.White, new PointF(70, 700));
+            ctx.DrawText(context.GameProfile.GameUid, Fonts.Small, Color.White, new PointF(70, 700));
 
             ctx.DrawImage(m_CharacterRankIcons[characterInformation.Avatar.Star - 1],
                 new Point((int)bounds.Right + 10, (int)bounds.Top + (int)bounds.Height / 2 - 28), 1f);
@@ -134,7 +130,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
                 ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 168), 1f);
             }
 
-            ctx.DrawText(new RichTextOptions(Fonts.Small)
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
                 Origin = new PointF(900, 120),
                 VerticalAlignment = VerticalAlignment.Center,
@@ -146,12 +142,10 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
             {
                 ctx.DrawImage(entry.Value, new Point(750, 240 + yOffset), 1f);
                 ctx.DrawText(entry.Key.Id == 0 ? "Unequipped" : entry.Key.Name,
-                    Fonts.Small, Color.White, new PointF(900, 305 + yOffset));
+                    Fonts.Normal, Color.White, new PointF(900, 305 + yOffset));
                 yOffset += 160;
             }
         });
-
-
     }
 
     private async Task<Image> LoadFirstAvailableCostumeImageAsync(Hi3CharacterDetail characterInformation)
