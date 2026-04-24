@@ -113,6 +113,9 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
         {
             Logger.LogError(ex, LogMessage.CardGenError, m_CardTypeName, context.UserId,
                 JsonSerializer.Serialize(context.Data));
+
+            if (ex is CommandException) throw;
+
             throw new CommandException($"Failed to generate {m_CardTypeName} card", ex);
         }
         finally
