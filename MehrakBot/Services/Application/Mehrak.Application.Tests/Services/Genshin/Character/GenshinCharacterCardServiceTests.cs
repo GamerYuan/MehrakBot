@@ -147,9 +147,10 @@ public class GenshinCharacterCardServiceTests
         cardContext.SetParameter("ascension", 80);
 
         var image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
-        using var file = new MemoryStream();
+        var outputPath = $"Assets/Genshin/TestAssets/{goldenImageFileName}";
+        await using var file = File.Create(outputPath);
         await image.CopyToAsync(file);
-        await File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/{goldenImageFileName}", file.ToArray());
+        await file.FlushAsync();
 
         Assert.That(image, Is.Not.Null);
     }
@@ -172,9 +173,10 @@ public class GenshinCharacterCardServiceTests
         cardContext.SetParameter("server", Server.Asia);
 
         var image = await m_GenshinCharacterCardService.GetCardAsync(cardContext);
-        using var file = new MemoryStream();
+        var outputPath = $"Assets/Genshin/TestAssets/{goldenImageFileName}";
+        await using var file = File.Create(outputPath);
         await image.CopyToAsync(file);
-        await File.WriteAllBytesAsync($"Assets/Genshin/TestAssets/{goldenImageFileName}", file.ToArray());
+        await file.FlushAsync();
 
         Assert.That(image, Is.Not.Null);
     }
