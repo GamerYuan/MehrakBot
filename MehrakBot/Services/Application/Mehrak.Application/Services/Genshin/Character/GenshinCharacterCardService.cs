@@ -66,9 +66,9 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             ctx.ApplyRoundedCorners(15);
         });
 
-        StaticBackground = (await Image.LoadAsync(
+        StaticBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync("genshin_bg", cancellationToken),
-            cancellationToken)).CloneAs<Rgba32>();
+            cancellationToken);
 
         Logger.LogInformation(
             "Resources initialized successfully with {Count} icons.",

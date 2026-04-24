@@ -37,12 +37,12 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, ct) =>
-                (await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}"), ct)).CloneAs<Rgba32>())
+                await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}"), ct))
             .ToArrayAsync(cancellationToken);
 
-        StaticBackground = (await Image.LoadAsync(
+        StaticBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg", cancellationToken),
-            cancellationToken)).CloneAs<Rgba32>();
+            cancellationToken);
     }
 
     public override async Task RenderCardAsync(

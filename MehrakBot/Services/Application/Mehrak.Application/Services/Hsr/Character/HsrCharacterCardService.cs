@@ -55,9 +55,9 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
             return new KeyValuePair<int, Image>(x, image);
         }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
 
-        StaticBackground = (await Image.LoadAsync(
+        StaticBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync("hsr_bg", cancellationToken),
-            cancellationToken)).CloneAs<Rgba32>();
+            cancellationToken);
 
         m_RelicSlotTemplate = new Image<Rgba32>(750, 150);
         m_RelicSlotTemplate.Mutate(x =>

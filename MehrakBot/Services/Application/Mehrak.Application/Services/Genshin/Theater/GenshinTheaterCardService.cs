@@ -37,19 +37,19 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_TheaterStarLit = (await Image.LoadAsync(
+        m_TheaterStarLit = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync("genshin_theater_star", cancellationToken),
-            cancellationToken)).CloneAs<Rgba32>();
+            cancellationToken);
         m_TheaterStarUnlit = m_TheaterStarLit.CloneAs<Rgba32>();
         m_TheaterStarUnlit.Mutate(ctx => ctx.Brightness(0.5f));
 
-        m_TheaterBuff = (await Image.LoadAsync(
+        m_TheaterBuff = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync("genshin_theater_buff", cancellationToken),
-            cancellationToken)).CloneAs<Rgba32>();
+            cancellationToken);
 
-        StaticBackground = (await Image.LoadAsync(
+        StaticBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync("genshin_theater_bg", cancellationToken),
-            cancellationToken)).CloneAs<Rgba32>();
+            cancellationToken);
         StaticBackground.Mutate(x => x.Brightness(0.35f));
     }
 
