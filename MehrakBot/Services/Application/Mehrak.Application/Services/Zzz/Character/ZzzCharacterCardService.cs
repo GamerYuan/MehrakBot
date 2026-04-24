@@ -190,8 +190,10 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
             });
 
             ctx.DrawTextWithShadow($"Lv. {character.Level}", Fonts.Normal,
-                new PointF(70, bounds.Bottom + 20), Color.White);
-            ctx.DrawText(context.GameProfile.GameUid, Fonts.Small, Color.White, new PointF(70, 1150));
+                new PointF(70, bounds.Bottom + 10), Color.White);
+
+            ctx.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(70, 1100), Color.White);
+            ctx.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(70, 1140), Color.White);
 
             ctx.FillPolygon(LocalBackgroundColor, new PointF(900, 0), new PointF(688, 1200), new PointF(3000, 1200),
                 new PointF(3000, 0));
@@ -242,29 +244,29 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 ctx.DrawImage(m_RarityImages[character.Weapon.Rarity[0]], new Point(970, 720), 1f);
                 ctx.DrawImage(m_WeaponStarImages[character.Weapon.Star], new Point(970, 820), 1f);
 
-                ctx.DrawText($"Lv.{character.Weapon.Level}", Fonts.Medium!, Color.White, new PointF(980, 890));
+                ctx.DrawText($"Lv.{character.Weapon.Level}", Fonts.Medium!, Color.White, new PointF(980, 880));
 
                 ctx.DrawText(new RichTextOptions(character.Weapon.Name.Length > 40 ? Fonts.Small : Fonts.Medium)
                 {
-                    Origin = new Vector2(1120, 740),
+                    Origin = new Vector2(1120, 730),
                     WrappingLength = 280,
                     VerticalAlignment = VerticalAlignment.Top
                 }, character.Weapon.Name, Color.White);
                 ctx.DrawImage(
                     m_StatImages[StatUtils.GetStatAssetName(character.Weapon.MainProperties[0].PropertyName)],
-                    new Point(980, 940), 1f);
+                    new Point(980, 930), 1f);
                 ctx.DrawText(character.Weapon.MainProperties[0].Base, Fonts.Medium!, Color.White,
-                    new PointF(1030, 955));
+                    new PointF(1030, 945));
 
                 ctx.DrawImage(m_StatImages[StatUtils.GetStatAssetName(character.Weapon.Properties[0].PropertyName)],
-                    new Point(1175, 940), 1f);
+                    new Point(1175, 930), 1f);
                 ctx.DrawText(character.Weapon.Properties[0].Base, Fonts.Medium!, Color.White, new PointF(1225, 955));
             }
             else
             {
                 ctx.DrawText(new RichTextOptions(Fonts.Medium!)
                 {
-                    Origin = new Vector2(1175, 858),
+                    Origin = new Vector2(1175, 848),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
@@ -309,7 +311,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 var set = activeSets[i];
                 ctx.DrawText(new RichTextOptions(Fonts.Small)
                 {
-                    Origin = new Vector2(2100, 1060 + yOffset),
+                    Origin = new Vector2(2100, 1050 + yOffset),
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, $"{set.Name}\tx{set.Own}", Color.White);
             }
@@ -317,7 +319,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
             if (activeSets.Length == 0)
                 ctx.DrawText(new RichTextOptions(Fonts.Small)
                 {
-                    Origin = new Vector2(2100, 1060),
+                    Origin = new Vector2(2100, 1050),
                     HorizontalAlignment = HorizontalAlignment.Right
                 }, "No Active Set", Color.White);
 
@@ -336,7 +338,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         {
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(425, 88),
+                Origin = new Vector2(425, 78),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             }, "Not Equipped", Color.White);
@@ -357,12 +359,12 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 new Point(215, 20), 1f);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new PointF(265, 80),
+                Origin = new PointF(265, 70),
                 HorizontalAlignment = HorizontalAlignment.Right
             }, disk.MainProperties[0]!.Base!, Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Small)
             {
-                Origin = new PointF(265, 130),
+                Origin = new PointF(265, 120),
                 HorizontalAlignment = HorizontalAlignment.Right
             }, $"Lv.{disk.Level}", Color.White);
 
@@ -385,9 +387,9 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                     ctx.DrawImage(subStatImage, new Point(280 + xOffset, 20 + yOffset), 1f);
                 }
 
-                ctx.DrawText(subStat.Base!, Fonts.Normal, color, new PointF(335 + xOffset, 33 + yOffset));
+                ctx.DrawText(subStat.Base!, Fonts.Normal, color, new PointF(335 + xOffset, 23 + yOffset));
                 var rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
-                ctx.DrawText(rolls, Fonts.Normal, color, new PointF(460 + xOffset, 18 + yOffset));
+                ctx.DrawText(rolls, Fonts.Normal, color, new PointF(460 + xOffset, 8 + yOffset));
             }
 
             diskImage.Dispose();
@@ -406,7 +408,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 10));
             ctx.DrawText(new RichTextOptions(Fonts.Title)
             {
-                Origin = new Vector2(60, 90),
+                Origin = new Vector2(60, 75),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, rank.ToString("D2"), Color.White);

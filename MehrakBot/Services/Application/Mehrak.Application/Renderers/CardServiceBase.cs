@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Application.Services.Abstractions;

@@ -155,12 +155,12 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
         {
             ctx.DrawText(new RichTextOptions(Fonts.Title)
             {
-                Origin = new Vector2(50, 80),
+                Origin = new Vector2(50, 70),
                 VerticalAlignment = VerticalAlignment.Bottom
             }, "Shiyu Defense", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(50, 110),
+                Origin = new Vector2(50, 100),
                 VerticalAlignment = VerticalAlignment.Bottom
             },
                 $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(data.BeginTime))
@@ -171,13 +171,13 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
 
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(950, 80),
+                Origin = new Vector2(950, 70),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
+            }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(950, 110),
+                Origin = new Vector2(950, 100),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Right
             },
@@ -189,7 +189,7 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             var totalScoreText = $"Total Score: {data.Brief.Score}";
             var totalScoreTextOptions = new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(70, 150),
+                Origin = new Vector2(70, 145),
                 VerticalAlignment = VerticalAlignment.Top
             };
             var totalScoreBounds =
@@ -221,7 +221,7 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             var rankText = $"{(float)brief.RankPercent / 100:N2}%";
             var size = TextMeasurer.MeasureSize(rankText, new TextOptions(Fonts.Small));
             ctx.DrawText(RankIconTextDrawingOptions, rankText,
-                size.Width <= 80 ? Fonts.Small : Fonts.Tiny, Color.White, new PointF(8, 17));
+                size.Width <= 80 ? Fonts.Small : Fonts.Tiny, Color.White, new PointF(8, 12));
         });
         return image;
     }
@@ -239,12 +239,12 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Origin = new Vector2(800, 25)
+                Origin = new Vector2(800, 15)
             }, floor.Score.ToString(), Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Origin = new Vector2(680, 25)
+                Origin = new Vector2(680, 15)
             }, $"{floor.BattleTime}s", Color.White);
             ctx.DrawImage(m_SmallRatingImages[floor.Rating], new Point(800, 10), 1f);
 
@@ -253,7 +253,7 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             disposables.Add(styledBuddy);
             using var rosterImage = RosterImageBuilder.Build(
                 floor.AvatarList.Select(x => avatarLookup[x.Id]),
-                new RosterLayout(MaxSlots: 3),
+                new RosterLayout(MaxSlots: 4),
                 styledBuddy);
             ctx.DrawImage(rosterImage, new Point(220, 60), 1f);
 
@@ -270,7 +270,7 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             var outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
             x.Clear(Color.FromRgb(24, 24, 24));
             x.Draw(Color.Black, 4f, outerPath);
-            x.DrawImage(buddyImage != null ? buddyImage : m_BaseBuddyImage, new Point(-45, 0), 1f);
+            x.DrawImage(buddyImage ?? m_BaseBuddyImage, new Point(-45, 0), 1f);
             x.ApplyRoundedCorners(15);
         });
         return buddyBorder;

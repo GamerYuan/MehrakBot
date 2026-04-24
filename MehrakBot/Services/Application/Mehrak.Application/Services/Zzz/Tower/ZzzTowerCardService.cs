@@ -41,13 +41,13 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
     {
         m_DisplayScoreOptions = new RichTextOptions(Fonts.Title)
         {
-            Origin = new Vector2(210, 180),
+            Origin = new Vector2(210, 170),
             VerticalAlignment = VerticalAlignment.Bottom
         };
 
         m_DisplayRankOptions = new RichTextOptions(Fonts.Normal)
         {
-            Origin = new Vector2(280, 95),
+            Origin = new Vector2(280, 85),
             VerticalAlignment = VerticalAlignment.Bottom,
             HorizontalAlignment = HorizontalAlignment.Center
         };
@@ -111,18 +111,18 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
 
             ctx.DrawText(new RichTextOptions(Fonts.Title)
             {
-                Origin = new Vector2(50, 110),
+                Origin = new Vector2(50, 100),
                 VerticalAlignment = VerticalAlignment.Bottom
             }, "Endless Tower: Glory", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(width - 50, 80),
+                Origin = new Vector2(width - 50, 70),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
+            }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(width - 50, 110),
+                Origin = new Vector2(width - 50, 100),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Right
             }, $"{context.GameProfile.GameUid}", Color.White);
@@ -132,26 +132,26 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
             ctx.DrawImage(m_MedalIcon, new Point(60, 200 + (200 - m_MedalIcon.Height) / 2), 1f);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(240, 260),
+                Origin = new Vector2(240, 250),
                 VerticalAlignment = VerticalAlignment.Center,
                 WrappingLength = 120
             }, "Highest Clear", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(530, 260),
+                Origin = new Vector2(530, 250),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right
             }, context.Data.LayerInfo.ClimbingTowerLayer.ToString(), Color.White);
 
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(240, 345),
+                Origin = new Vector2(240, 335),
                 VerticalAlignment = VerticalAlignment.Center,
                 WrappingLength = 120
             }, "Total Points", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(530, 345),
+                Origin = new Vector2(530, 335),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right
             }, FormatNumberWithSuffix(context.Data.LayerInfo.TotalScore), Color.White);
@@ -161,26 +161,26 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
             ctx.DrawImage(m_MvpIcon, new Point(610, 200 + (200 - m_MvpIcon.Height) / 2), 1f);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(790, 260),
+                Origin = new Vector2(790, 250),
                 VerticalAlignment = VerticalAlignment.Center,
                 WrappingLength = 120
             }, "Medals Obtained", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(1080, 260),
+                Origin = new Vector2(1080, 250),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right
             }, context.Data.MvpInfo.FloorMvpNum.ToString(), Color.White);
 
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(790, 345),
+                Origin = new Vector2(790, 335),
                 VerticalAlignment = VerticalAlignment.Center,
                 WrappingLength = 120
             }, "Ranking", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(1080, 345),
+                Origin = new Vector2(1080, 335),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right
             }, $"{(float)context.Data.MvpInfo.RankPercent / 100:N2}%", Color.White);

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Application.Models;
 using Mehrak.Application.Renderers.Extensions;
@@ -6,7 +6,6 @@ using Mehrak.Application.Utility;
 using Mehrak.GameApi.Zzz.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -37,7 +36,7 @@ internal static class AvatarImageUtility
             ctx.Fill(Color.Black, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
             {
-                Origin = new PointF(75, 170),
+                Origin = new PointF(75, 160),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, string.IsNullOrEmpty(text) ? $"Lv. {avatar.Level}" : text, Color.White);
@@ -49,7 +48,7 @@ internal static class AvatarImageUtility
                         CornerRadius: 5));
                 ctx.DrawText(new RichTextOptions(NormalFont)
                 {
-                    Origin = new PointF(130, 130),
+                    Origin = new PointF(130, 125),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 },
@@ -81,7 +80,7 @@ internal static class AvatarImageUtility
             ctx.Fill(Color.Black, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
             {
-                Origin = new PointF(75, 170),
+                Origin = new PointF(75, 160),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {buddy.Level}", Color.White);

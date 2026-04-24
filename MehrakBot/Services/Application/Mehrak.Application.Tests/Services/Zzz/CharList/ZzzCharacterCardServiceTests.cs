@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
@@ -36,6 +36,8 @@ public class ZzzCharListCardServiceTests
 
     [Test]
     [TestCase("CharList_TestData_1.json", "BangbooList_TestData_1.json", "CharList_GoldenImage_1.jpg", "CharList_1")]
+    [TestCase("CharList_TestData_2.json", "BangbooList_TestData_2.json", "CharList_GoldenImage_2.jpg", "CharList_2")]
+    [TestCase("CharList_TestData_3.json", "BangbooList_TestData_3.json", "CharList_GoldenImage_3.jpg", "CharList_3")]
     public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string charTestDataFile, string bangbooTestDataFile,
         string goldenImageFileName, string testName)
     {
@@ -72,11 +74,11 @@ public class ZzzCharListCardServiceTests
         // Save generated image to output folder for comparison
         var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
         Directory.CreateDirectory(outputDirectory);
-        var outputImagePath = Path.Combine(outputDirectory, $"{testName}_Generated.jpg");
+        var outputImagePath = Path.Combine(outputDirectory, $"ZZZ_{testName}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
 
         // Save golden image to output folder for comparison
-        var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
+        var outputGoldenImagePath = Path.Combine(outputDirectory, $"ZZZ_{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(generatedImageBytes, Is.EqualTo(goldenImage), "Generated image should match the golden image");

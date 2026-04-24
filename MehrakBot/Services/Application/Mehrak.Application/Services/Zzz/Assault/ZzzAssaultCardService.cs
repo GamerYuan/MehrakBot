@@ -126,12 +126,12 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
 
             ctx.DrawText(new RichTextOptions(Fonts.Title)
             {
-                Origin = new Vector2(50, 80),
+                Origin = new Vector2(50, 70),
                 VerticalAlignment = VerticalAlignment.Bottom
             }, "Deadly Assault", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(50, 110),
+                Origin = new Vector2(50, 100),
                 VerticalAlignment = VerticalAlignment.Bottom
             },
                 $"{data.StartTime.Day}/{data.StartTime.Month}/{data.StartTime.Year} - " +
@@ -140,13 +140,13 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
 
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(1000, 80),
+                Origin = new Vector2(1000, 70),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
+            }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Color.White);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(1000, 110),
+                Origin = new Vector2(1000, 100),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Right
             },
@@ -158,14 +158,14 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
 
             ctx.DrawText(new RichTextOptions(Fonts.Title)
             {
-                Origin = new Vector2(50, 160),
+                Origin = new Vector2(50, 150),
                 VerticalAlignment = VerticalAlignment.Bottom
             }, totalScoreText, Color.White);
             ctx.DrawRoundedRectangleOverlay(90, 40, new PointF(60 + totalScoreBounds.Width, 110),
                 new RoundedRectangleOverlayStyle(LocalOverlayColor, CornerRadius: 15));
             ctx.DrawText(new RichTextOptions(Fonts.Small!)
             {
-                Origin = new Vector2(105 + (int)totalScoreBounds.Width, 145),
+                Origin = new Vector2(105 + (int)totalScoreBounds.Width, 140),
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Center
             }, $"{(float)data.RankPercent / 100:N2}%", Color.White);
@@ -173,7 +173,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             ctx.DrawImage(m_StarLitImage, new Point(160 + (int)totalScoreBounds.Width, 100), 1f);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(210 + (int)totalScoreBounds.Width, 150),
+                Origin = new Vector2(210 + (int)totalScoreBounds.Width, 140),
                 VerticalAlignment = VerticalAlignment.Bottom
             }, $"x{data.TotalStar}", Color.White);
 
@@ -204,7 +204,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             ctx.Clear(LocalOverlayColor);
             ctx.DrawText(new RichTextOptions(floor.Boss[0].Name.Length > 25 ? Fonts.Small! : Fonts.Normal)
             {
-                Origin = new Vector2(200, 34),
+                Origin = new Vector2(200, 30),
                 VerticalAlignment = VerticalAlignment.Center,
                 WrappingLength = 500
             }, floor.Boss[0].Name, Color.White);
@@ -212,7 +212,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             var scoreBounds = TextMeasurer.MeasureBounds(scoreText, new TextOptions(Fonts.Normal));
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(925, 20),
+                Origin = new Vector2(925, 15),
                 VerticalAlignment = VerticalAlignment.Top,
                 HorizontalAlignment = HorizontalAlignment.Right
             }, floor.Score.ToString(), Color.White);
@@ -227,7 +227,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             disposables.Add(styledBuddy);
             using var rosterImage = RosterImageBuilder.Build(
                 floor.AvatarList.Select(x => avatarLookup[x.Id]),
-                new RosterLayout(MaxSlots: 3),
+                new RosterLayout(MaxSlots: 4),
                 styledBuddy);
             ctx.DrawImage(rosterImage, new Point(190, 60), 1f);
             ctx.DrawImage(buffImage, new Point(850, 110), 1f);
@@ -244,8 +244,8 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
         {
             var outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
             x.Clear(Color.FromRgb(24, 24, 24));
-            x.Draw(Color.Black, 4f, outerPath);
             x.DrawImage(buddyImage ?? m_BaseBuddyImage, new Point(-45, 0), 1f);
+            x.Draw(Color.Black, 4f, outerPath);
             x.ApplyRoundedCorners(15);
         });
         return buddyBorder;

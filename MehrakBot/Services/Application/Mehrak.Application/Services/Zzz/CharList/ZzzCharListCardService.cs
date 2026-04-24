@@ -151,13 +151,13 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
             ctx.DrawText(new RichTextOptions(Fonts.Title)
             {
-                Origin = new Vector2(50, 80),
+                Origin = new Vector2(50, 70),
                 VerticalAlignment = VerticalAlignment.Bottom
-            }, $"{context.GameProfile.Nickname}·IK {context.GameProfile.Level}", Color.White);
+            }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Color.White);
 
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(50, 110),
+                Origin = new Vector2(50, 100),
                 VerticalAlignment = VerticalAlignment.Bottom
             }, context.GameProfile.GameUid!, Color.White);
 
@@ -196,13 +196,13 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                 ctx.Fill(entry.Rarity == "S-Rank" ? Color.Gold : PurpleForegroundColor, foreground);
                 ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(xOffset + 40, yOffset + 32),
+                    Origin = new Vector2(xOffset + 40, yOffset + 25),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center
                 }, entry.Rarity, Color.White);
                 ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 32),
+                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 25),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, entry.Count.ToString(), Color.White);
@@ -225,13 +225,13 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                 ctx.Fill(ElementForeground[entry.Element], foreground);
                 ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(xOffset + 40, yOffset + 32),
+                    Origin = new Vector2(xOffset + 40, yOffset + 25),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center
                 }, entry.Element, Color.White);
                 ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 32),
+                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 25),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, entry.Count.ToString(), Color.White);
@@ -254,13 +254,13 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                 ctx.Fill(Color.White, foreground);
                 ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(xOffset + 40, yOffset + 32),
+                    Origin = new Vector2(xOffset + 40, yOffset + 25),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center
                 }, entry.Profession, Color.White);
                 ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 32),
+                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 25),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center
                 }, entry.Count.ToString(), Color.White);
