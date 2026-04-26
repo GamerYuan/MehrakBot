@@ -9,6 +9,7 @@ using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Application.Services.Hsr.RealTimeNotes;
 using Mehrak.Domain;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Enums;
 using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 
@@ -29,9 +30,12 @@ internal static class HsrApplicationServiceExtensions
 
         services.AddKeyedTransient<IApplicationService, HsrEndGameApplicationService>(CommandName.Hsr.PureFiction);
         services.AddKeyedTransient<IApplicationService, HsrEndGameApplicationService>(CommandName.Hsr.ApocalypticShadow);
-        services.AddSingleton<ICardService<HsrEndInformation>, HsrEndGameCardService>();
-        services.RegisterAsyncInitializableFor<ICardService<HsrEndInformation>,
-            HsrEndGameCardService>();
+
+        services.AddKeyedSingleton<ICardService<HsrEndInformation>, HsrPureFictionCardService>(HsrEndGameMode.PureFiction);
+        services.RegisterAsyncInitializableForKeyed<ICardService<HsrEndInformation>, HsrPureFictionCardService>(HsrEndGameMode.PureFiction);
+
+        services.AddKeyedSingleton<ICardService<HsrEndInformation>, HsrApocalypticShadowCardService>(HsrEndGameMode.ApocalypticShadow);
+        services.RegisterAsyncInitializableForKeyed<ICardService<HsrEndInformation>, HsrApocalypticShadowCardService>(HsrEndGameMode.ApocalypticShadow);
 
         services.AddKeyedTransient<IApplicationService, HsrMemoryApplicationService>(CommandName.Hsr.Memory);
         services.AddSingleton<ICardService<HsrMemoryInformation>, HsrMemoryCardService>();

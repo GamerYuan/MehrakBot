@@ -3,7 +3,7 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;
 
-namespace Mehrak.Application.Extensions;
+namespace Mehrak.Application.Renderers.Extensions;
 
 public static class ImageIconExtensions
 {
@@ -20,7 +20,7 @@ public static class ImageIconExtensions
         if (radius <= 0)
             throw new ArgumentOutOfRangeException(nameof(radius), "Radius must be positive.");
 
-        var iconSize = radius * 2 - padding;
+        var iconSize = (radius - padding) * 2;
 
         if (iconSize <= 0)
             throw new ArgumentOutOfRangeException(nameof(padding), "Padding must be smaller than the icon diameter.");

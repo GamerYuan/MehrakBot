@@ -1,19 +1,17 @@
 ﻿#region
 
 using System.Numerics;
-using System.Text.Json;
+using Mehrak.Application.Renderers;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
-using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -21,23 +19,8 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Hsr.CharList;
 
-internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInformation>>
+internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacterInformation>>
 {
-    private readonly IImageRepository m_ImageRepository;
-    private readonly ILogger<HsrCharListCardService> m_Logger;
-    private readonly IApplicationMetrics m_Metrics;
-
-    private static readonly JpegEncoder JpegEncoder = new()
-    {
-        Interleaved = false,
-        Quality = 90,
-        ColorType = JpegEncodingColor.Rgb
-    };
-
-    private readonly Font m_TitleFont;
-    private readonly Font m_NormalFont;
-    private readonly Font m_SmallFont;
-
     private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
     private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
     private static readonly Color BlueBackgroundColor = Color.FromRgb(90, 131, 187);
@@ -55,9 +38,6 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
 
     private static readonly Color NormalConstColor = Color.FromRgba(69, 69, 69, 200);
     private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
-
-    private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
-    private static readonly Color DarkOverlayColor = Color.FromRgba(0, 0, 0, 200);
 
     private static readonly string[] Elements =
         ["physical", "fire", "ice", "lightning", "wind", "quantum", "imaginary"];
@@ -84,169 +64,146 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
         { "Physical", Color.FromRgba(191, 195, 190, 128) }
     };
 
-    public HsrCharListCardService(IImageRepository imageRepository, ILogger<HsrCharListCardService> logger, IApplicationMetrics metrics)
+    public HsrCharListCardService(IImageRepository imageRepository,
+        ILogger<HsrCharListCardService> logger,
+        IApplicationMetrics metrics)
+        : base(
+            "Hsr CharList",
+            imageRepository,
+            logger,
+            metrics,
+            LoadFonts("Assets/Fonts/hsr.ttf", titleSize: 40, normalSize: 28, smallSize: 20))
     {
-        m_ImageRepository = imageRepository;
-        m_Logger = logger;
-        m_Metrics = metrics;
-
-        FontCollection collection = new();
-        var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
-
-        m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
-        m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
-        m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
     }
 
-    public async Task<Stream> GetCardAsync(ICardGenerationContext<IEnumerable<HsrCharacterInformation>> context)
+    public override Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public override async Task RenderCardAsync(
+        Image<Rgba32> background,
+        ICardGenerationContext<IEnumerable<HsrCharacterInformation>> context,
+        DisposableBag disposables,
+        CancellationToken cancellationToken = default)
     {
-        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("hsr charlist");
-        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "CharList", context.UserId);
-
         var charData = context.Data.ToList();
-        List<IDisposable> disposables = [];
-        try
-        {
-            m_Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
-                context.GameProfile.GameUid, charData.Count);
-            var weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)
-                .DistinctBy(x => x!.Id)
-                .ToAsyncEnumerable()
-                .Select(async (x, token) =>
-                {
-                    var image = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x!.ToIconImageName()), token);
-                    return (x!.Id, Image: image);
-                }).ToDictionaryAsync(x => x.Id, x => x.Image);
-            disposables.AddRange(weaponImages.Values);
 
-            var avatarImageTasks = charData.OrderByDescending(x => x.Level)
-                .ThenByDescending(x => x.Rarity)
-                .ThenBy(x => x.Name)
-                .ToAsyncEnumerable()
-                .Select(async (x, token) =>
-                {
-                    using var avatarImage = await Image.LoadAsync(
-                        await m_ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName()), token);
-                    return GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id]);
-                })
-                .ToListAsync();
+        Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
+            context.GameProfile.GameUid, charData.Count);
 
-            var charCountByElem = charData.GroupBy(x => x.Element!)
-                .OrderBy(x => Array.IndexOf(Elements, x.Key))
-                .Select(x => new { Element = x.Key, Count = x.Count() }).ToList();
-            var charCountByRarity = charData.GroupBy(x => x.Rarity!.Value)
-                .OrderBy(x => x.Key)
-                .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
-
-            var avatarImages = await avatarImageTasks;
-
-            disposables.AddRange(avatarImages);
-
-            var layout =
-                ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
-
-            using Image<Rgba32> background = new(layout.OutputWidth, layout.OutputHeight + 50);
-
-            background.Mutate(ctx =>
+        var weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)
+            .DistinctBy(x => x!.Id)
+            .ToAsyncEnumerable()
+            .Select(async (x, token) =>
             {
-                ctx.Clear(Color.FromRgb(69, 69, 69));
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new Vector2(50, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, $"{context.GameProfile.Nickname} · TB {context.GameProfile.Level}", Color.White);
+                var image = await LoadImageFromRepositoryAsync(x!.ToIconImageName(), disposables, token);
+                return (x!.Id, Image: image);
+            }).ToDictionaryAsync(x => x.Id, x => x.Image);
 
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(50, 110),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, context.GameProfile.GameUid!, Color.White);
+        var avatarImageTasks = charData.OrderByDescending(x => x.Level)
+            .ThenByDescending(x => x.Rarity)
+            .ThenBy(x => x.Name)
+            .ToAsyncEnumerable()
+            .Select(async (x, token) =>
+            {
+                var avatarImage = await LoadImageFromRepositoryAsync(x.ToAvatarImageName(), disposables, token);
+                var styledImage = GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id]); ;
+                disposables.Add(styledImage);
+                return styledImage;
+            })
+            .ToListAsync();
 
-                foreach (var position in layout.ImagePositions)
-                {
-                    var image = avatarImages[position.ImageIndex];
-                    ctx.DrawImage(image, new Point(position.X, position.Y), 1f);
-                }
+        var charCountByElem = charData.GroupBy(x => x.Element!)
+            .OrderBy(x => Array.IndexOf(Elements, x.Key))
+            .Select(x => new { Element = x.Key, Count = x.Count() }).ToList();
+        var charCountByRarity = charData.GroupBy(x => x.Rarity!.Value)
+            .OrderBy(x => x.Key)
+            .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
-                var yOffset = layout.OutputHeight - 30;
-                var xOffset = 50;
-                foreach (var entry in charCountByElem)
-                {
-                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
-                        new TextOptions(m_NormalFont));
-                    var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(m_NormalFont));
-                    FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
-                        countSize.Height + elemSize.Height);
-                    var overlay =
-                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
-                            .Translate(xOffset, yOffset);
-                    EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(ElementBackground[entry.Element], overlay);
-                    ctx.Fill(ElementForeground[entry.Element], foreground);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 40, yOffset + 26),
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, entry.Element, Color.White);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, entry.Count.ToString(), Color.White);
-                    xOffset += (int)size.Width + 70;
-                }
+        var avatarImages = await avatarImageTasks;
 
-                foreach (var entry in charCountByRarity)
-                {
-                    var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
-                        new TextOptions(m_NormalFont));
-                    var elemSize =
-                        TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(m_NormalFont));
-                    FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
-                        countSize.Height + elemSize.Height);
-                    var overlay =
-                        ImageUtility.CreateRoundedRectanglePath((int)size.Width + 50, 50, 10)
-                            .Translate(xOffset, yOffset);
-                    EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                    ctx.Fill(RarityColors[entry.Rarity - 2].WithAlpha(128), overlay);
-                    ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 40, yOffset + 26),
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{entry.Rarity} Star", Color.White);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, entry.Count.ToString(), Color.White);
-                    xOffset += (int)size.Width + 70;
-                }
-            });
+        var layout =
+            ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
-            m_Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
-                context.GameProfile.GameUid, charData.Count);
-            MemoryStream stream = new();
-            await background.SaveAsJpegAsync(stream, JpegEncoder);
-            stream.Position = 0;
-
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "CharList", context.UserId);
-            return stream;
-        }
-        catch (Exception e)
+        background.Mutate(ctx =>
         {
-            m_Logger.LogError(e, LogMessage.CardGenError, "CharList", context.UserId,
-                JsonSerializer.Serialize(context.Data));
-            throw new CommandException("Failed to generate CharList card", e);
-        }
-        finally
-        {
-            disposables.ForEach(x => x.Dispose());
-        }
+            ctx.Resize(layout.OutputWidth, layout.OutputHeight + 50);
+            ctx.Clear(Color.FromRgb(69, 69, 69));
+            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            {
+                Origin = new Vector2(50, 80),
+                VerticalAlignment = VerticalAlignment.Bottom
+            }, $"{context.GameProfile.Nickname} · TB {context.GameProfile.Level}", Color.White);
+
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(50, 110),
+                VerticalAlignment = VerticalAlignment.Bottom
+            }, context.GameProfile.GameUid!, Color.White);
+
+            foreach (var position in layout.ImagePositions)
+            {
+                var image = avatarImages[position.ImageIndex];
+                ctx.DrawImage(image, new Point(position.X, position.Y), 1f);
+            }
+
+            var yOffset = layout.OutputHeight - 30;
+            var xOffset = 50;
+            foreach (var entry in charCountByElem)
+            {
+                var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                    new TextOptions(Fonts.Normal));
+                var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(Fonts.Normal));
+                FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
+                    countSize.Height + elemSize.Height);
+                EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
+                ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
+                    new RoundedRectangleOverlayStyle(ElementBackground[entry.Element], CornerRadius: 10));
+                ctx.Fill(ElementForeground[entry.Element], foreground);
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(xOffset + 40, yOffset + 26),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, entry.Element, Color.White);
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(xOffset + 35 + size.Width, yOffset + 26),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, entry.Count.ToString(), Color.White);
+                xOffset += (int)size.Width + 70;
+            }
+
+            foreach (var entry in charCountByRarity)
+            {
+                var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
+                    new TextOptions(Fonts.Normal));
+                var elemSize =
+                    TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(Fonts.Normal));
+                FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
+                    countSize.Height + elemSize.Height);
+                EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
+                ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
+                    new RoundedRectangleOverlayStyle(RarityColors[entry.Rarity - 2].WithAlpha(128), CornerRadius: 10));
+                ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(xOffset + 40, yOffset + 26),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{entry.Rarity} Star", Color.White);
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(xOffset + 35 + size.Width, yOffset + 26),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, entry.Count.ToString(), Color.White);
+                xOffset += (int)size.Width + 70;
+            }
+        });
+
+        Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
+            context.GameProfile.GameUid, charData.Count);
     }
 
     private Image<Rgba32> GetStyledCharacterImage(HsrCharacterInformation charData, Image avatarImage,
@@ -263,80 +220,61 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
                 ctx.DrawImage(weaponImage, new Point(150, 0), 1f);
 
             var charLevelRect =
-                TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(m_SmallFont));
-            var charLevel =
-                ImageUtility.CreateRoundedRectanglePath((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
-                    10);
-            ctx.Fill(DarkOverlayColor, charLevel.Translate(-25, 105));
-            ctx.DrawText(new RichTextOptions(m_SmallFont)
+                TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(Fonts.Small!));
+            ctx.DrawRoundedRectangleOverlay((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
+                new PointF(-25, 105),
+                new RoundedRectangleOverlayStyle(DarkOverlayColor, CornerRadius: 10));
+            ctx.DrawText(new RichTextOptions(Fonts.Small!)
             {
-                Origin = new Vector2(5, 115 + charLevelRect.Height / 2),
+                Origin = new PointF(5, 115 + charLevelRect.Height / 2),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {charData.Level}", Color.White);
 
-            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
-            switch (charData.Rank)
+            if (charData.Rank > 0)
             {
-                case 6:
-                    ctx.Fill(Color.Gold, constIcon);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(130, 125),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, "6", GoldConstTextColor);
-                    break;
-
-                case > 0:
-                    ctx.Fill(NormalConstColor, constIcon);
-                    ctx.DrawText(new RichTextOptions(m_NormalFont)
-                    {
-                        Origin = new Vector2(130, 125),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, $"{charData.Rank}", Color.White);
-                    break;
+                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 110),
+                    new RoundedRectangleOverlayStyle(
+                        charData.Rank == 6 ? Color.Gold : NormalConstColor,
+                        CornerRadius: 5));
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(130, 125),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                },
+                    charData.Rank.ToString(),
+                    charData.Rank == 6 ? GoldConstTextColor : Color.White);
             }
 
             if (charData.Equip is not null)
             {
                 var weapLevelRect =
-                    TextMeasurer.MeasureSize($"Lv. {charData.Equip.Level}", new TextOptions(m_SmallFont));
-                var weapLevel =
-                    ImageUtility.CreateRoundedRectanglePath((int)weapLevelRect.Width + 40,
-                        (int)weapLevelRect.Height + 20,
-                        10);
-                ctx.Fill(DarkOverlayColor, weapLevel.Translate(285 - weapLevelRect.Width, 105));
-                ctx.DrawText(new RichTextOptions(m_SmallFont)
+                    TextMeasurer.MeasureSize($"Lv. {charData.Equip.Level}", new TextOptions(Fonts.Small!));
+                ctx.DrawRoundedRectangleOverlay((int)weapLevelRect.Width + 40, (int)weapLevelRect.Height + 20,
+                    new PointF(285 - weapLevelRect.Width, 105),
+                    new RoundedRectangleOverlayStyle(DarkOverlayColor, CornerRadius: 10));
+                ctx.DrawText(new RichTextOptions(Fonts.Small!)
                 {
                     Origin = new PointF(295 - weapLevelRect.Width / 2, 115 + weapLevelRect.Height / 2),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 }, $"Lv. {charData.Equip.Level}", Color.White);
 
-                var refineIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(155, 110);
-                switch (charData.Equip.Rank)
+                if (charData.Equip.Rank > 0)
                 {
-                    case 5:
-                        ctx.Fill(Color.Gold, refineIcon);
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(170, 125),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, "5", GoldConstTextColor);
-                        break;
-
-                    case > 0:
-                        ctx.Fill(NormalConstColor, refineIcon);
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(170, 125),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, $"{charData.Equip.Rank}", Color.White);
-                        break;
+                    ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(155, 110),
+                        new RoundedRectangleOverlayStyle(
+                            charData.Equip.Rank == 5 ? Color.Gold : NormalConstColor,
+                            CornerRadius: 5));
+                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(170, 125),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                        charData.Equip.Rank.ToString(),
+                        charData.Equip.Rank == 5 ? GoldConstTextColor : Color.White);
                 }
             }
 
@@ -344,9 +282,9 @@ internal class HsrCharListCardService : ICardService<IEnumerable<HsrCharacterInf
             ctx.BoxBlur(2, new Rectangle(147, 0, 5, 180));
 
             ctx.Fill(Color.Black, new RectangleF(0, 146, 300, 30));
-            ctx.DrawText(new RichTextOptions(m_NormalFont)
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new Vector2(150, 161),
+                Origin = new PointF(150, 161),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"{charData.Name}", Color.White);

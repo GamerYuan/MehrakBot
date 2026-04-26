@@ -24,4 +24,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAsyncInitializable>(sp => (TImplementation)sp.GetRequiredService<TService>());
         return services;
     }
+
+    public static IServiceCollection RegisterAsyncInitializableForKeyed<TService, TImplementation>(
+        this IServiceCollection services, object? key)
+        where TImplementation : class, TService, IAsyncInitializable where TService : notnull
+    {
+        services.AddScoped<IAsyncInitializable>(sp => (TImplementation)sp.GetRequiredKeyedService<TService>(key));
+        return services;
+    }
 }

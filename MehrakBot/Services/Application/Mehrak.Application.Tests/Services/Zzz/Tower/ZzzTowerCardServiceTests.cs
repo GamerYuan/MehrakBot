@@ -26,8 +26,8 @@ public class ZzzTowerCardServiceTests
     {
         m_Service = new ZzzTowerCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<IApplicationMetrics>(),
-            Mock.Of<ILogger<ZzzTowerCardService>>());
+            Mock.Of<ILogger<ZzzTowerCardService>>(),
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 
@@ -111,7 +111,7 @@ public class ZzzTowerCardServiceTests
 
         var image = await m_Service.GetCardAsync(context);
 
-        var fileStream = File.OpenWrite(
+        var fileStream = File.Create(
             Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets", goldenImageFileName));
         await image.CopyToAsync(fileStream);
         await fileStream.FlushAsync();

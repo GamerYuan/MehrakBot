@@ -1,11 +1,11 @@
 ﻿#region
 
 using Mehrak.Application.Models;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using Mehrak.GameApi.Zzz.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -36,30 +36,24 @@ internal static class AvatarImageUtility
             ctx.Fill(Color.Black, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
             {
-                Origin = new PointF(75, 170),
+                Origin = new PointF(75, 160),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, string.IsNullOrEmpty(text) ? $"Lv. {avatar.Level}" : text, Color.White);
-            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 110);
-            if (avatar.Rank == 6)
+            if (avatar.Rank > 0)
             {
-                ctx.Fill(Color.Gold, constIcon);
+                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 110),
+                    new RoundedRectangleOverlayStyle(
+                        avatar.Rank == 6 ? Color.Gold : NormalConstColor,
+                        CornerRadius: 5));
                 ctx.DrawText(new RichTextOptions(NormalFont)
                 {
-                    Origin = new PointF(130, 130),
+                    Origin = new PointF(130, 125),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
-                }, "6", GoldConstTextColor);
-            }
-            else if (avatar.Rank > 0)
-            {
-                ctx.Fill(NormalConstColor, constIcon);
-                ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(130, 130),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{avatar.Rank}", Color.White);
+                },
+                    avatar.Rank.ToString(),
+                    avatar.Rank == 6 ? GoldConstTextColor : Color.White);
             }
 
             var border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
@@ -86,7 +80,7 @@ internal static class AvatarImageUtility
             ctx.Fill(Color.Black, rectangle);
             ctx.DrawText(new RichTextOptions(NormalFont)
             {
-                Origin = new PointF(75, 170),
+                Origin = new PointF(75, 160),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, $"Lv. {buddy.Level}", Color.White);

@@ -1,67 +1,48 @@
-﻿using System.Numerics;
-using System.Text.Json;
-using Mehrak.Application.Extensions;
+﻿#region
+
+using System.Numerics;
 using Mehrak.Application.Models;
+using Mehrak.Application.Renderers;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
-using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
+#endregion
+
 namespace Mehrak.Application.Services.Hsr.Anomaly;
 
-internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsyncInitializable
+internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
 {
-    private readonly IImageRepository m_ImageRepository;
-    private readonly ILogger<HsrAnomalyCardService> m_Logger;
-    private readonly IApplicationMetrics m_Metrics;
-
-    private static readonly JpegEncoder JpegEncoder = new()
-    {
-        Interleaved = false,
-        Quality = 90,
-        ColorType = JpegEncodingColor.Rgb
-    };
-
-    private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
-
-    private readonly Font m_TitleFont;
-    private readonly Font m_NormalFont;
-    private readonly Font m_SmallFont;
-
     private Image m_StarLit = null!;
     private Image m_StarUnlit = null!;
     private Image m_BossStarLit = null!;
     private Image m_BossStarUnlit = null!;
     private Image m_CycleIcon = null!;
-    private Image m_Background = null!;
 
-    public HsrAnomalyCardService(IImageRepository imageRepository, ILogger<HsrAnomalyCardService> logger, IApplicationMetrics metrics)
+    public HsrAnomalyCardService(IImageRepository imageRepository,
+        ILogger<HsrAnomalyCardService> logger,
+        IApplicationMetrics metrics)
+        : base(
+            "Hsr AA",
+            imageRepository,
+            logger,
+            metrics,
+            LoadFonts("Assets/Fonts/hsr.ttf", titleSize: 40, normalSize: 28, smallSize: 20))
     {
-        m_ImageRepository = imageRepository;
-        m_Logger = logger;
-        m_Metrics = metrics;
-
-        FontCollection collection = new();
-        var fontFamily = collection.Add("Assets/Fonts/hsr.ttf");
-
-        m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
-        m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
-        m_SmallFont = fontFamily.CreateFont(20, FontStyle.Regular);
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_StarLit = await Image.LoadAsync(
-            await m_ImageRepository.DownloadFileToStreamAsync("hsr_moc_star", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync("hsr_moc_star", cancellationToken),
             cancellationToken);
         m_StarUnlit = m_StarLit.Clone(ctx =>
         {
@@ -70,7 +51,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
         });
 
         m_BossStarLit = await Image.LoadAsync(
-            await m_ImageRepository.DownloadFileToStreamAsync("hsr_anomaly_star", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync("hsr_anomaly_star", cancellationToken),
             cancellationToken);
         m_BossStarUnlit = m_BossStarLit.Clone(ctx =>
         {
@@ -78,127 +59,122 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             ctx.Brightness(0.7f);
         });
 
-        m_CycleIcon = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_hourglass"),
+        m_CycleIcon = await Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync("hsr_hourglass", cancellationToken),
             cancellationToken);
 
-        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("hsr_aa_bg"),
+        StaticBackground = await Image.LoadAsync<Rgba32>(
+            await ImageRepository.DownloadFileToStreamAsync("hsr_aa_bg", cancellationToken),
             cancellationToken);
-
     }
 
-    public async Task<Stream> GetCardAsync(ICardGenerationContext<HsrAnomalyInformation> context)
+    protected override Image<Rgba32> CreateBackground()
     {
-        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("hsr anomaly");
-        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Anomaly Arbitration", context.UserId);
+        return StaticBackground!.CloneAs<Rgba32>();
+    }
 
+    public override async Task RenderCardAsync(
+        Image<Rgba32> background,
+        ICardGenerationContext<HsrAnomalyInformation> context,
+        DisposableBag disposables,
+        CancellationToken cancellationToken = default)
+    {
         var anomalyData = context.Data;
-        List<IDisposable> disposableResources = [];
 
-        try
-        {
-            var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
-                ? anomalyData.ChallengeRecords.First(
-                    x => x.HasChallengeRecord && x.BossStars == anomalyData.BestRecord.BossStars
-                        && x.MobStars == anomalyData.BestRecord.MobStars)
-                : anomalyData.ChallengeRecords.First(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
+        var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
+            ? anomalyData.ChallengeRecords.First(
+                x => x.HasChallengeRecord && x.BossStars == anomalyData.BestRecord.BossStars
+                    && x.MobStars == anomalyData.BestRecord.MobStars)
+            : anomalyData.ChallengeRecords.First(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
 
-            var avatarImages = await bestRecord.MobRecords.SelectMany(x => x.Avatars)
-                .Concat(bestRecord.BossRecord?.Avatars ?? [])
-                .DistinctBy(x => x.Id)
-                .ToAsyncEnumerable()
-                .Select(async (x, token) => new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                    await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token)))
-                .ToDictionaryAsync(x => x,
-                    x => x.GetStyledAvatarImage(),
-                    HsrAvatarIdComparer.Instance);
-
-            disposableResources.AddRange(avatarImages.Keys);
-            disposableResources.AddRange(avatarImages.Values);
-
-            using var bossImage = await Image.LoadAsync(
-                await m_ImageRepository.DownloadFileToStreamAsync(bestRecord.BossInfo.ToImageName()));
-            using var buffImage = bestRecord.BossRecord != null
-                ? await Image.LoadAsync(
-                    await m_ImageRepository.DownloadFileToStreamAsync(bestRecord.BossRecord.Buff.ToImageName()))
-                : null;
-            using var medalImage = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(anomalyData.ToMedalName()));
-
-            var lookup = avatarImages.GetAlternateLookup<int>();
-
-            using var background = m_Background.CloneAs<Rgba32>();
-
-            background.Mutate(ctx =>
+        var avatarImages = await bestRecord.MobRecords.SelectMany(x => x.Avatars)
+            .Concat(bestRecord.BossRecord?.Avatars ?? [])
+            .DistinctBy(x => x.Id)
+            .ToAsyncEnumerable()
+            .Select(async (x, token) =>
             {
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
+                var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, image);
+                disposables.Add(avatar);
+                return avatar;
+            })
+            .ToDictionaryAsync(x => x,
+                x =>
                 {
-                    Origin = new Vector2(50, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, "Anomaly Arbitration", Color.White);
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(50, 110),
-                    VerticalAlignment = VerticalAlignment.Bottom
+                    var styledImage = x.GetStyledAvatarImage();
+                    disposables.Add(styledImage);
+                    return styledImage;
                 },
-                    $"Version {bestRecord.Group.GameVersion}",
-                    Color.White);
+                HsrAvatarIdComparer.Instance);
 
-                ctx.DrawImage(medalImage, new Point(465, 20), 1f);
-                RichTextOptions bossStarTextOptions = new(m_TitleFont)
-                {
-                    Origin = new Vector2(600, 100),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                };
-                var bossStarBounds = TextMeasurer.MeasureBounds(bestRecord.BossStars.ToString(), bossStarTextOptions);
-                ctx.DrawText(bossStarTextOptions, bestRecord.BossStars.ToString(), Color.White);
-                ctx.DrawImage(m_BossStarLit, new Point((int)bossStarBounds.Right + 5, 50), 1f);
+        var bossImage = await LoadImageFromRepositoryAsync(
+            bestRecord.BossInfo.ToImageName(), disposables, cancellationToken);
+        var buffImage = bestRecord.BossRecord != null
+            ? await LoadImageFromRepositoryAsync(
+                bestRecord.BossRecord.Buff.ToImageName(), disposables, cancellationToken)
+            : null;
+        var medalImage = await LoadImageFromRepositoryAsync<Rgba32>(
+            anomalyData.ToMedalName(), disposables, cancellationToken);
 
-                RichTextOptions mobStarTextOptions = new(m_TitleFont)
-                {
-                    Origin = new Vector2(bossStarBounds.Right + m_BossStarLit.Width + 25, 100),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                };
-                ctx.DrawText(mobStarTextOptions, bestRecord.MobStars.ToString(), Color.White);
-                ctx.DrawImage(m_StarLit,
-                    new Point((int)TextMeasurer.MeasureBounds(bestRecord.MobStars.ToString(), mobStarTextOptions).Right + 5, 50), 1f);
+        var lookup = avatarImages.GetAlternateLookup<int>();
 
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(1300, 80),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Bottom
-                },
-                    $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
-
-                var yOffset = 150;
-                using var bossClear = GetBossImage(bestRecord.BossRecord, bestRecord.BossInfo, bossImage, buffImage, lookup);
-                ctx.DrawImage(bossClear, new Point(100, yOffset), 1f);
-
-                foreach (var mobRecord in bestRecord.MobRecords.OrderBy(x => x.MazeId))
-                {
-                    yOffset += 350;
-                    var mobInfo = bestRecord.MobInfo.First(x => x.MazeId == mobRecord.MazeId);
-                    using var mobClear = GetMobImage(mobRecord, mobInfo, lookup);
-                    ctx.DrawImage(mobClear, new Point(225, yOffset), 1f);
-                }
-            });
-
-            MemoryStream stream = new();
-            await background.SaveAsJpegAsync(stream, JpegEncoder);
-            stream.Position = 0;
-
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Anomaly Arbitration", context.UserId);
-            return stream;
-        }
-        catch (Exception e)
+        background.Mutate(ctx =>
         {
-            m_Logger.LogError(e, LogMessage.CardGenError, "Anomaly Arbitration", context.UserId,
-                JsonSerializer.Serialize(anomalyData));
-            throw new CommandException("Failed to generate Anomaly Arbitration card", e);
-        }
-        finally
-        {
-            disposableResources.ForEach(x => x.Dispose());
-        }
+            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            {
+                Origin = new Vector2(50, 80),
+                VerticalAlignment = VerticalAlignment.Bottom
+            }, "Anomaly Arbitration", Color.White);
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(50, 110),
+                VerticalAlignment = VerticalAlignment.Bottom
+            },
+                $"Version {bestRecord.Group.GameVersion}",
+                Color.White);
+
+            ctx.DrawImage(medalImage, new Point(465, 20), 1f);
+            RichTextOptions bossStarTextOptions = new(Fonts.Title)
+            {
+                Origin = new Vector2(600, 100),
+                VerticalAlignment = VerticalAlignment.Bottom
+            };
+            var bossStarBounds = TextMeasurer.MeasureBounds(bestRecord.BossStars.ToString(), bossStarTextOptions);
+            ctx.DrawText(bossStarTextOptions, bestRecord.BossStars.ToString(), Color.White);
+            ctx.DrawImage(m_BossStarLit, new Point((int)bossStarBounds.Right + 5, 50), 1f);
+
+            RichTextOptions mobStarTextOptions = new(Fonts.Title)
+            {
+                Origin = new Vector2(bossStarBounds.Right + m_BossStarLit.Width + 25, 100),
+                VerticalAlignment = VerticalAlignment.Bottom
+            };
+            ctx.DrawText(mobStarTextOptions, bestRecord.MobStars.ToString(), Color.White);
+            ctx.DrawImage(m_StarLit,
+                new Point((int)TextMeasurer.MeasureBounds(bestRecord.MobStars.ToString(), mobStarTextOptions).Right + 5, 50), 1f);
+
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(1300, 80),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Bottom
+            },
+                $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
+
+            var yOffset = 150;
+            var bossClear = GetBossImage(bestRecord.BossRecord, bestRecord.BossInfo, bossImage, buffImage, lookup);
+            disposables.Add(bossClear);
+            ctx.DrawImage(bossClear, new Point(100, yOffset), 1f);
+
+            foreach (var mobRecord in bestRecord.MobRecords.OrderBy(x => x.MazeId))
+            {
+                yOffset += 350;
+                var mobInfo = bestRecord.MobInfo.First(x => x.MazeId == mobRecord.MazeId);
+                var mobClear = GetMobImage(mobRecord, mobInfo, lookup);
+                disposables.Add(mobClear);
+                ctx.DrawImage(mobClear, new Point(225, yOffset), 1f);
+            }
+        });
     }
 
     private Image<Rgba32> GetBossImage(BossRecord? record, BossInfo bossInfo,
@@ -211,7 +187,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             ctx.Clear(OverlayColor);
 
             ctx.DrawImage(bossImage, new Point(0, 0), 1f);
-            ctx.DrawText(new RichTextOptions(m_NormalFont)
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
                 Origin = new Vector2(300, 43),
                 VerticalAlignment = VerticalAlignment.Center,
@@ -222,11 +198,12 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
 
             if (record != null)
             {
-                using var rosterImage =
-                    GetRosterImage([.. record.Avatars.Select(x => x.Id)], avatarLookup);
+                using var rosterImage = RosterImageBuilder.Build(
+                    record.Avatars.Select(x => avatarLookup[x.Id]),
+                    new RosterLayout(MaxSlots: 4));
                 ctx.DrawImage(rosterImage, new Point(330, 90), 1f);
 
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
                     Origin = new Vector2(900, 30),
                     HorizontalAlignment = HorizontalAlignment.Right,
@@ -238,7 +215,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             }
             else
             {
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
                     Origin = new Vector2(550, 170),
                     VerticalAlignment = VerticalAlignment.Center,
@@ -260,7 +237,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             ctx.Clear(OverlayColor);
 
             var text = $"{floorInfo.Name} : {floorInfo.MonsterName}";
-            ctx.DrawText(new RichTextOptions(text.Length > 50 ? m_SmallFont : m_NormalFont)
+            ctx.DrawText(new RichTextOptions(text.Length > 50 ? Fonts.Small! : Fonts.Normal)
             {
                 Origin = new Vector2(30, 43),
                 VerticalAlignment = VerticalAlignment.Center,
@@ -273,7 +250,7 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
 
             if (record.Avatars.Count == 0)
             {
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
                     Origin = new Vector2(450, 170),
                     VerticalAlignment = VerticalAlignment.Center,
@@ -282,9 +259,11 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             }
             else
             {
-                using var rosterImage = GetRosterImage([.. record.Avatars.Select(x => x.Id)], avatarLookup);
+                using var rosterImage = RosterImageBuilder.Build(
+                    record.Avatars.Select(x => avatarLookup[x.Id]),
+                    new RosterLayout(MaxSlots: 4));
                 ctx.DrawImage(rosterImage, new Point(125, 90), 1f);
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                ctx.DrawText(new RichTextOptions(Fonts.Normal)
                 {
                     Origin = new Vector2(650, 30),
                     HorizontalAlignment = HorizontalAlignment.Right,
@@ -296,28 +275,5 @@ internal class HsrAnomalyCardService : ICardService<HsrAnomalyInformation>, IAsy
             ctx.ApplyRoundedCorners(15);
         });
         return image;
-    }
-
-    private static Image<Rgba32> GetRosterImage(List<int> avatarIds,
-        Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
-    {
-        const int avatarWidth = 150;
-
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarIds.Count; i++)
-            {
-                var x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
     }
 }

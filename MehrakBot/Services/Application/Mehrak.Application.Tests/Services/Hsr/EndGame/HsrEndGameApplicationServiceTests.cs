@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -16,6 +16,7 @@ using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -435,6 +436,9 @@ public class HsrEndGameApplicationServiceTests
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrEndInformation>>();
+        var testServiceProvider = new TestServiceProvider();
+        testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.PureFiction, cardServiceMock.Object);
+        testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.ApocalypticShadow, cardServiceMock.Object);
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
@@ -449,7 +453,7 @@ public class HsrEndGameApplicationServiceTests
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
-            cardServiceMock.Object,
+            testServiceProvider,
             imageUpdaterMock.Object,
             endGameApiMock.Object,
             gameRoleApiMock.Object,
@@ -469,9 +473,13 @@ public class HsrEndGameApplicationServiceTests
         UserDbContext UserContext
         ) SetupIntegrationTest()
     {
-        var cardService = new HsrEndGameCardService(
+        var pfCardService = new HsrPureFictionCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrEndGameCardService>>(),
+            Mock.Of<ILogger<HsrPureFictionCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        var asCardService = new HsrApocalypticShadowCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<HsrApocalypticShadowCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
         var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
@@ -493,12 +501,17 @@ public class HsrEndGameApplicationServiceTests
         attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        cardService.InitializeAsync().Wait();
+        pfCardService.InitializeAsync().Wait();
+        asCardService.InitializeAsync().Wait();
+
+        var testServiceProvider = new TestServiceProvider();
+        testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.PureFiction, pfCardService);
+        testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.ApocalypticShadow, asCardService);
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
-            cardService,
+            testServiceProvider,
             imageUpdaterService,
             endGameApiMock.Object,
             gameRoleApiMock.Object,
@@ -517,9 +530,13 @@ public class HsrEndGameApplicationServiceTests
         UserDbContext UserContext
         ) SetupRealApiIntegrationTest()
     {
-        var cardService = new HsrEndGameCardService(
+        var pfCardService = new HsrPureFictionCardService(
             S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<HsrEndGameCardService>>(),
+            Mock.Of<ILogger<HsrPureFictionCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        var asCardService = new HsrApocalypticShadowCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<HsrApocalypticShadowCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
@@ -538,7 +555,12 @@ public class HsrEndGameApplicationServiceTests
             httpClientFactory.Object,
             Mock.Of<ILogger<ImageUpdaterService>>());
 
-        cardService.InitializeAsync().Wait();
+        pfCardService.InitializeAsync().Wait();
+        asCardService.InitializeAsync().Wait();
+
+        var testServiceProvider = new TestServiceProvider();
+        testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.PureFiction, pfCardService);
+        testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.ApocalypticShadow, asCardService);
 
         var storedAttachments = new Dictionary<string, MemoryStream>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -558,7 +580,7 @@ public class HsrEndGameApplicationServiceTests
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
         var service = new HsrEndGameApplicationService(
-            cardService,
+            testServiceProvider,
             imageUpdaterService,
             endGameApiService,
             gameRoleApiService,
@@ -629,6 +651,44 @@ public class HsrEndGameApplicationServiceTests
         userContext.Users.Add(user);
         userContext.SaveChanges();
         return profile;
+    }
+
+    #endregion
+
+    #region Test Service Provider
+
+    private sealed class TestServiceProvider : IKeyedServiceProvider
+    {
+        private readonly Dictionary<(Type ServiceType, object Key), object> _keyedServices = new();
+
+        public void RegisterKeyedService(Type serviceType, object key, object service)
+        {
+            _keyedServices[(serviceType, key)] = service;
+        }
+
+        public object? GetService(Type serviceType)
+        {
+            foreach (var kvp in _keyedServices)
+            {
+                if (kvp.Key.ServiceType == serviceType)
+                    return kvp.Value;
+            }
+            return null;
+        }
+
+        public object? GetKeyedService(Type serviceType, object? serviceKey)
+        {
+            return serviceKey != null && _keyedServices.TryGetValue((serviceType, serviceKey), out var service) ? service : null;
+        }
+
+        public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
+        {
+            if (serviceKey != null && _keyedServices.TryGetValue((serviceType, serviceKey), out var service))
+            {
+                return service;
+            }
+            throw new KeyNotFoundException($"Keyed service not found for {serviceType.Name} with key {serviceKey}");
+        }
     }
 
     #endregion

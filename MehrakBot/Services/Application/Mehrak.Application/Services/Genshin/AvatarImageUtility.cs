@@ -1,6 +1,7 @@
-﻿#region
+#region
 
 using Mehrak.Application.Models;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -54,33 +55,27 @@ internal static class AvatarImageUtility
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom
             }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.Black);
-            var constIcon = ImageUtility.CreateRoundedRectanglePath(30, 30, 5).Translate(115, 115);
-            if (constellation == 6)
+            if (constellation > 0)
             {
-                ctx.Fill(Color.Gold, constIcon);
+                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 115),
+                    new RoundedRectangleOverlayStyle(
+                        constellation == 6 ? Color.Gold : NormalConstColor,
+                        CornerRadius: 5));
                 ctx.DrawText(new RichTextOptions(NormalFont)
                 {
                     Origin = new PointF(130, 130),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
-                }, "6", GoldConstTextColor);
-            }
-            else if (constellation > 0)
-            {
-                ctx.Fill(NormalConstColor, constIcon);
-                ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(130, 130),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{constellation}", Color.White);
+                },
+                    constellation.ToString(),
+                    constellation == 6 ? GoldConstTextColor : Color.White);
             }
 
             switch (avatarType)
             {
                 case 2:
-                    var trialOverlay = ImageUtility.CreateRoundedRectanglePath(80, 35, 15);
-                    ctx.Fill(Color.FromRgb(225, 118, 128), trialOverlay.Translate(90, -10));
+                    ctx.DrawRoundedRectangleOverlay(80, 35, new PointF(90, -10),
+                        new RoundedRectangleOverlayStyle(Color.FromRgb(225, 118, 128), CornerRadius: 15));
                     ctx.DrawText(new RichTextOptions(SmallFont)
                     {
                         Origin = new PointF(98, 3),
@@ -89,8 +84,8 @@ internal static class AvatarImageUtility
                     break;
 
                 case 3:
-                    var supportOverlay = ImageUtility.CreateRoundedRectanglePath(130, 35, 15);
-                    ctx.Fill(Color.FromRgb(73, 128, 185), supportOverlay.Translate(50, -10));
+                    ctx.DrawRoundedRectangleOverlay(130, 35, new PointF(50, -10),
+                        new RoundedRectangleOverlayStyle(Color.FromRgb(73, 128, 185), CornerRadius: 15));
                     ctx.DrawText(new RichTextOptions(SmallFont)
                     {
                         Origin = new PointF(63, 3),

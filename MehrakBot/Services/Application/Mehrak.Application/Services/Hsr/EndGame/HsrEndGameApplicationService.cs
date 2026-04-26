@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -21,12 +22,12 @@ namespace Mehrak.Application.Services.Hsr.EndGame;
 
 public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 {
-    private readonly ICardService<HsrEndInformation> m_CardService;
+    private readonly IServiceProvider m_ServiceProvider;
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<HsrEndInformation, HsrEndGameApiContext> m_ApiService;
 
     public HsrEndGameApplicationService(
-        ICardService<HsrEndInformation> cardService,
+        IServiceProvider serviceProvider,
         IImageUpdaterService imageUpdaterService,
         IApiService<HsrEndInformation, HsrEndGameApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -34,7 +35,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         IAttachmentStorageService attachmentStorageService,
         ILogger<HsrEndGameApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
-        m_CardService = cardService;
+        m_ServiceProvider = serviceProvider;
         m_ImageUpdaterService = imageUpdaterService;
         m_ApiService = apiService;
     }
@@ -44,6 +45,8 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var mode = Enum.Parse<HsrEndGameMode>(context.GetParameter("mode")!);
         var region = server.ToRegion();
+
+        var cardService = m_ServiceProvider.GetRequiredKeyedService<ICardService<HsrEndInformation>>(mode);
 
         try
         {
@@ -118,7 +121,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
                 .DistinctBy(x => x.Id)
                 .Select(x =>
                     m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                        new ImageProcessorBuilder().Build()));
+                        new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
 
             var completed = await Task.WhenAll(tasks.Concat(buffTasks));
 
@@ -134,7 +137,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
             cardContext.SetParameter("server", server);
             cardContext.SetParameter("mode", mode);
 
-            await using var card = await m_CardService.GetCardAsync(cardContext);
+            await using var card = await cardService.GetCardAsync(cardContext);
 
             if (!await StoreAttachmentAsync(context.UserId, fileName, card))
             {

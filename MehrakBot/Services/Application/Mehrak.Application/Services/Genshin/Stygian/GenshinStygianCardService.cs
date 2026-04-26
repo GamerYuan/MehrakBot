@@ -1,22 +1,19 @@
 ﻿#region
 
 using System.Numerics;
-using System.Text.Json;
 using Mehrak.Application.Models;
+using Mehrak.Application.Renderers;
+using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
-using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Genshin.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -24,186 +21,157 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.Stygian;
 
-public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitializable
+public class GenshinStygianCardService : CardServiceBase<StygianData>
 {
-    private static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
-
-    private static readonly JpegEncoder JpegEncoder = new()
-    {
-        Interleaved = false,
-        Quality = 90,
-        ColorType = JpegEncodingColor.Rgb
-    };
-
-    private readonly IImageRepository m_ImageRepository;
-    private readonly ILogger<GenshinStygianCardService> m_Logger;
-    private readonly IApplicationMetrics m_Metrics;
-
-    private readonly Font m_TitleFont;
-    private readonly Font m_NormalFont;
-
-    private Image[] m_DifficultyLogo = [];
-    private Image m_Background = null!;
+    private Image<Rgba32>[] m_DifficultyLogo = [];
 
     public GenshinStygianCardService(IImageRepository imageRepository, ILogger<GenshinStygianCardService> logger, IApplicationMetrics metrics)
-    {
-        m_ImageRepository = imageRepository;
-        m_Logger = logger;
-        m_Metrics = metrics;
+        : base(
+            "Genshin Stygian",
+            imageRepository,
+            logger,
+            metrics,
+            LoadFonts("Assets/Fonts/genshin.ttf", titleSize: 40, normalSize: 28, smallSize: null))
+    { }
 
-        FontCollection collection = new();
-        var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
-        m_TitleFont = fontFamily.CreateFont(40, FontStyle.Bold);
-        m_NormalFont = fontFamily.CreateFont(28, FontStyle.Regular);
-    }
-
-    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, cancellationToken) =>
-                await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}"), cancellationToken))
+        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, ct) =>
+                await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}"), ct))
             .ToArrayAsync(cancellationToken);
-        m_Background = await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg"),
-            cancellationToken);
 
-        m_Logger.LogInformation(LogMessage.ServiceInitialized, nameof(GenshinStygianCardService));
+        StaticBackground = await Image.LoadAsync<Rgba32>(
+            await ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg", cancellationToken),
+            cancellationToken);
     }
 
-    public async Task<Stream> GetCardAsync(ICardGenerationContext<StygianData> context)
+    public override async Task RenderCardAsync(
+        Image<Rgba32> background,
+        ICardGenerationContext<StygianData> context,
+        DisposableBag disposables,
+        CancellationToken cancellationToken = default)
     {
-        using var cardGenTimer = m_Metrics.ObserveCardGenerationDuration("genshin stygian");
-        m_Logger.LogInformation(LogMessage.CardGenStartInfo, "Stygian", context.UserId);
-
         var stygianInfo = context.Data;
 
-        List<IDisposable> disposableResources = [];
-        try
-        {
-            var stygianData = stygianInfo.Single;
-            var avatarImages = await stygianData.Challenge!
-                .SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId)
-                .ToAsyncEnumerable()
-                .Select(async (x, token) =>
-                    new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank,
-                        await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token)))
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
-                    async (x, token) => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
-            var bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
-                .DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.AvatarId),
-                    async (x, token) => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
-            var monsterImages = await stygianData.Challenge!.Select(x => x.Monster)
-                .ToAsyncEnumerable()
-                .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.MonsterId),
-                    async (x, token) => await Image.LoadAsync(await m_ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
-            disposableResources.AddRange(avatarImages.Keys);
-            disposableResources.AddRange(avatarImages.Values);
-            disposableResources.AddRange(bestAvatarImages.Values);
-            disposableResources.AddRange(monsterImages.Values);
-
-            var lookup =
-                avatarImages.GetAlternateLookup<int>();
-
-            var background = m_Background.CloneAs<Rgba32>();
-
-            var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
-
-            background.Mutate(ctx =>
+        var stygianData = stygianInfo.Single;
+        var avatarImages = await stygianData.Challenge!
+            .SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId)
+            .ToAsyncEnumerable()
+            .Select(async (x, token) =>
             {
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
+                var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank, image);
+                disposables.Add(avatar);
+                return avatar;
+            })
+            .ToDictionaryAsync(x => x,
+                x =>
                 {
-                    Origin = new Vector2(50, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                }, "Stygian Onslaught", Color.White);
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
+                    var styledImage = x.GetStyledAvatarImage();
+                    disposables.Add(styledImage);
+                    return styledImage;
+                }, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+        var bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
+            .DistinctBy(x => x.AvatarId)
+            .ToAsyncEnumerable()
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.AvatarId),
+                async (x, token) =>
                 {
-                    Origin = new Vector2(50, 130),
-                    VerticalAlignment = VerticalAlignment.Bottom
-                },
-                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
-                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
-                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.EndTime))
-                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
-                    Color.White);
+                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
+                    image.Mutate(i => i.Resize(100, 0, KnownResamplers.Bicubic));
+                    return image;
+                }, cancellationToken: cancellationToken);
+        var monsterImages = await stygianData.Challenge!.Select(x => x.Monster)
+            .ToAsyncEnumerable()
+            .ToDictionaryAsync(
+                (x, token) => ValueTask.FromResult(x.MonsterId),
+                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
+                cancellationToken: cancellationToken);
 
-                ctx.DrawText(new RichTextOptions(m_TitleFont)
-                {
-                    Origin = new Vector2(940, 130),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{stygianData.StygianBestRecord!.Second}s", Color.White);
+        var lookup = avatarImages.GetAlternateLookup<int>();
 
-                ctx.DrawImage(
-                    m_DifficultyLogo[
-                        GetMedalIndex(stygianData.StygianBestRecord.Difficulty, stygianData.StygianBestRecord.Second)],
-                    new Point(960, 60), 1f);
+        var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
 
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(1650, 80),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
-                ctx.DrawText(new RichTextOptions(m_NormalFont)
-                {
-                    Origin = new Vector2(1650, 130),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                },
-                    $"{context.GameProfile.GameUid}", Color.White);
+        background.Mutate(ctx =>
+        {
+            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            {
+                Origin = new Vector2(50, 80),
+                VerticalAlignment = VerticalAlignment.Bottom
+            }, "Stygian Onslaught", Color.White);
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(50, 130),
+                VerticalAlignment = VerticalAlignment.Bottom
+            },
+                $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
+                    .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
+                $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.EndTime))
+                    .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
+                Color.White);
 
-                for (var i = 0; i < stygianData.Challenge!.Count; i++)
-                {
-                    var challenge = stygianData.Challenge[i];
-                    var rosterImage = GetRosterImage(challenge.Teams.Select(x => x.AvatarId), lookup);
-                    disposableResources.Add(rosterImage);
-                    var monsterImageStream = monsterImages[challenge.Monster.MonsterId];
-                    var challengeImage = GetChallengeImage(challenge, rosterImage, monsterImageStream);
-                    disposableResources.Add(challengeImage);
-                    var yOffset = 170 + i * 320;
-                    ctx.DrawImage(challengeImage, new Point(50, yOffset), 1f);
+            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            {
+                Origin = new Vector2(940, 130),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Right
+            }, $"{stygianData.StygianBestRecord!.Second}s", Color.White);
 
-                    for (var j = 0; j < challenge.BestAvatar.Count; j++)
+            ctx.DrawImage(
+                m_DifficultyLogo[
+                    GetMedalIndex(stygianData.StygianBestRecord.Difficulty, stygianData.StygianBestRecord.Second)],
+                new Point(960, 60), 1f);
+
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(1650, 80),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Right
+            }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(1650, 130),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Right
+            },
+                $"{context.GameProfile.GameUid}", Color.White);
+
+            for (var i = 0; i < stygianData.Challenge!.Count; i++)
+            {
+                var challenge = stygianData.Challenge[i];
+                var rosterImage = RosterImageBuilder.Build(
+                    challenge.Teams.Select(x => lookup[x.AvatarId]),
+                    new RosterLayout(MaxSlots: 4));
+                disposables.Add(rosterImage);
+                var monsterImageStream = monsterImages[challenge.Monster.MonsterId];
+                var challengeImage = GetChallengeImage(challenge, rosterImage, monsterImageStream);
+                disposables.Add(challengeImage);
+                var yOffset = 170 + i * 320;
+                ctx.DrawImage(challengeImage, new Point(50, yOffset), 1f);
+
+                for (var j = 0; j < challenge.BestAvatar.Count; j++)
+                {
+                    ctx.DrawRoundedRectangleOverlay(580, 145, new PointF(1070, yOffset + j * 155),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                    var bestAvatar = challenge.BestAvatar[j];
+                    var avatarImage = bestAvatarImages[bestAvatar.AvatarId];
+                    ctx.DrawImage(avatarImage, new Point(1070, yOffset + 5 + j * 155), 1f);
+                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
                     {
-                        var overlay = ImageUtility.CreateRoundedRectanglePath(580, 145, 15)
-                            .Translate(1070, yOffset + j * 155);
-                        ctx.Fill(OverlayColor, overlay);
-                        var bestAvatar = challenge.BestAvatar[j];
-                        var avatarImage = bestAvatarImages[bestAvatar.AvatarId];
-                        avatarImage.Mutate(x => x.Resize(100, 0, KnownResamplers.Bicubic));
-                        ctx.DrawImage(avatarImage, new Point(1070, yOffset + 5 + j * 155), 1f);
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(1180, yOffset + 70 + j * 155),
-                            VerticalAlignment = VerticalAlignment.Center,
-                            WrappingLength = 275
-                        }, GetBestAvatarString(bestAvatar.Type), Color.White);
-                        ctx.DrawText(new RichTextOptions(m_NormalFont)
-                        {
-                            Origin = new Vector2(1600, yOffset + 70 + j * 155),
-                            VerticalAlignment = VerticalAlignment.Center,
-                            HorizontalAlignment = HorizontalAlignment.Right
-                        }, bestAvatar.Dps, Color.White);
-                    }
+                        Origin = new Vector2(1180, yOffset + 70 + j * 155),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        WrappingLength = 275
+                    }, GetBestAvatarString(bestAvatar.Type), Color.White);
+                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new Vector2(1600, yOffset + 70 + j * 155),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, bestAvatar.Dps, Color.White);
                 }
-            });
-
-            MemoryStream stream = new();
-            await background.SaveAsJpegAsync(stream, JpegEncoder);
-            stream.Position = 0;
-
-            m_Logger.LogInformation(LogMessage.CardGenSuccess, "Stygian", context.UserId);
-            return stream;
-        }
-        catch (Exception ex)
-        {
-            m_Logger.LogError(ex, LogMessage.CardGenError, "Stygian", context.UserId,
-                JsonSerializer.Serialize(stygianInfo));
-            throw new CommandException("Failed to generate Stygian card", ex);
-        }
-        finally
-        {
-            disposableResources.ForEach(x => x.Dispose());
-        }
+            }
+        });
     }
 
     private Image<Rgba32> GetChallengeImage(Challenge data, Image rosterImage, Image monsterImage)
@@ -219,7 +187,7 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
             });
             ctx.DrawImage(monsterImage, new Point(-100, -125), 1f);
             ctx.DrawImage(rosterImage, new Point(340, 100), 1f);
-            ctx.DrawText(new RichTextOptions(m_NormalFont)
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
                 Origin = new Vector2(970, 65),
                 VerticalAlignment = VerticalAlignment.Bottom,
@@ -229,30 +197,6 @@ public class GenshinStygianCardService : ICardService<StygianData>, IAsyncInitia
         });
 
         return challengeImage;
-    }
-
-    private static Image<Rgba32> GetRosterImage(IEnumerable<int> ids,
-        Dictionary<GenshinAvatar, Image<Rgba32>>.AlternateLookup<int> imageDict)
-    {
-        const int avatarWidth = 150;
-
-        List<int> avatarIds = [.. ids];
-        var offset = (4 - avatarIds.Count) * avatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(650, 200);
-
-        rosterImage.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarIds.Count; i++)
-            {
-                var x = offset + i * (avatarWidth + 10);
-                ctx.DrawImage(imageDict[avatarIds[i]], new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
     }
 
     private static int GetMedalIndex(int difficulty, int clearTime)
