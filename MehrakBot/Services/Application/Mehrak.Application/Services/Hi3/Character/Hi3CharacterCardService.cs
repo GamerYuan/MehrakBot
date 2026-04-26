@@ -32,7 +32,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
     private Image m_StarUnlit = null!;
     private List<Image> m_CharacterRankIcons = [];
 
-    private new static readonly Color OverlayColor = Color.FromRgba(47, 87, 126, 196);
+    private static readonly Color LocalOverlayColor = Color.FromRgba(47, 87, 126, 196);
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
@@ -114,7 +114,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
                 new Point((int)bounds.Right + 10, (int)bounds.Top + (int)bounds.Height / 2 - 28), 1f);
 
             ctx.DrawRoundedRectangleOverlay(600, 700, new PointF(720, 30),
-                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                new RoundedRectangleOverlayStyle(LocalOverlayColor, CornerRadius: 15));
 
             ctx.DrawRoundedRectangleOverlay(132, 148, new PointF(750, 50),
                 new RoundedRectangleOverlayStyle(Color.White, CornerRadius: 10));
