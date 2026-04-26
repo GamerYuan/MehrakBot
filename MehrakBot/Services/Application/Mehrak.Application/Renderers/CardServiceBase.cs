@@ -39,7 +39,11 @@ public sealed class DisposableBag : IDisposable
     {
         var current = m_Items.ToArray();
         m_Items.Clear();
-        foreach (var item in current) item.Dispose();
+        foreach (var item in current)
+        {
+            try { item?.Dispose(); }
+            catch { /* Ignore exceptions during dispose */ }
+        }
     }
 }
 
