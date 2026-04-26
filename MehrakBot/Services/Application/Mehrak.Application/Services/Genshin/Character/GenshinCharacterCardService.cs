@@ -268,8 +268,8 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             }
 
             ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
-            ctx.DrawImage(ImageUtility.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1)),
-                new Point(1220, 240), 1f);
+            using var weaponStars = ImageUtility.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1));
+            ctx.DrawImage(weaponStars, new Point(1220, 240), 1f);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
                 Origin = new Vector2(1450, 120),
@@ -398,7 +398,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Origin = new Vector2(320, 130)
             }, $"+{relic.Level!.Value}", Color.White);
-            var stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
+            using var stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
             stars.Mutate(x => x.Resize(0, 25));
             ctx.DrawImage(stars, new Point(120, 130), 1f);
 

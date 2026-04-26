@@ -368,7 +368,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                         2f));
                 ctx.DrawText($"Lv. {characterInformation.Equip.Level}", Fonts.Normal, Color.White,
                     new PointF(1080, 670));
-                var stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity,
+                using var stars = ImageUtility.GenerateFourSidedStarRating(characterInformation.Equip.Rarity,
                     false);
                 ctx.DrawImage(stars, new Point(990, 730), 1f);
             }
@@ -457,12 +457,13 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
     private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic, CancellationToken cancellationToken = default)
     {
         await using var stream = await ImageRepository.DownloadFileToStreamAsync(relic.ToImageName(), cancellationToken);
-        var relicImage = await Image.LoadAsync<Rgba32>(stream, cancellationToken);
+        using var relicImage = await Image.LoadAsync<Rgba32>(stream, cancellationToken);
         var relicSlotImage = m_RelicSlotTemplate.Clone();
         relicSlotImage.Mutate(ctx =>
         {
             ctx.DrawImage(relicImage, new Point(10, 0), 1f);
-            ctx.DrawImage(ImageUtility.GenerateFourSidedStarRating(relic.Rarity), new Point(20, 115), 1f);
+            using var stars = ImageUtility.GenerateFourSidedStarRating(relic.Rarity);
+            ctx.DrawImage(stars, new Point(20, 115), 1f);
             ctx.DrawImage(m_StatImages[relic.MainProperty!.PropertyType!.Value], new Point(125, 10), 1f);
             ctx.DrawText(new RichTextOptions(Fonts.Normal)
             {
@@ -493,8 +494,6 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                 var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
                 ctx.DrawText(rolls, Fonts.Normal, color, new PointF(435 + xOffset, 10 + yOffset));
             }
-
-            relicImage.Dispose();
         });
         return relicSlotImage;
     }
