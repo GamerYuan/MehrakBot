@@ -89,22 +89,18 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
             ctx.DrawImage(characterImage,
                 new Point(350 - characterImage.Width / 2, 425 - characterImage.Height / 2), 1f);
 
-            ctx.DrawTextWithShadow(characterInformation.Avatar.Name!, new RichTextOptions(Fonts.Title)
+            var avatarNameOptions = new RichTextOptions(Fonts.Title)
             {
                 Origin = new PointF(70, 50),
                 WrappingLength = 600,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
-            }, Color.White);
+            };
+
+            ctx.DrawTextWithShadow(characterInformation.Avatar.Name!, avatarNameOptions, Color.White);
 
             var bounds = TextMeasurer.MeasureBounds(characterInformation.Avatar.Name!,
-                new RichTextOptions(Fonts.Title)
-                {
-                    Origin = new PointF(70, 50),
-                    WrappingLength = 700,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                });
+                avatarNameOptions);
 
             ctx.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", Fonts.Normal,
                 new PointF(70, bounds.Bottom + 20), Color.White);
