@@ -200,7 +200,8 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 DrawNode1Extras(ctx, xOffset, yOffset, floorData);
 
                 ctx.DrawImage(node1, new Point(xOffset + 55, yOffset + 130), 1f);
-                ctx.DrawCenteredIcon(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 780, yOffset + 220), 55, 0, Color.Black, Color.White);
+                ctx.DrawCenteredIcon(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 780, yOffset + 220), 55,
+                    20f, Color.Black, Color.White);
                 ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 40, yOffset + 335),
                     new PointF(xOffset + 860, yOffset + 335));
                 ctx.DrawText("Node 2", Fonts.Normal, Color.White, new PointF(xOffset + 45, yOffset + 350));
@@ -213,7 +214,8 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 DrawNode2Extras(ctx, xOffset, yOffset, floorData);
 
                 ctx.DrawImage(node2, new Point(xOffset + 55, yOffset + 395), 1f);
-                ctx.DrawCenteredIcon(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 780, yOffset + 485), 55, 0, Color.Black, Color.White);
+                ctx.DrawCenteredIcon(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 780, yOffset + 485), 55,
+                    20f, Color.Black, Color.White);
                 for (var i = 0; i < 3; i++)
                     ctx.DrawImage(i < floorData.StarNum ? StarLit : StarUnlit,
                         new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
