@@ -135,7 +135,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         var portraitTask = LoadImageFromRepositoryAsync(
             character.ToImageName(), disposables, cancellationToken);
         var weaponTask = character.Weapon == null
-            ? Task.FromResult(m_WeaponTemplate.Clone(ctx => { }))
+            ? Task.FromResult(CreateTemplateWeaponImage(disposables))
             : LoadImageFromRepositoryAsync(
                 character.Weapon.ToImageName(), disposables, cancellationToken);
         var diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable()
@@ -327,6 +327,13 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 ctx.DrawImage(diskImage[i], new Point(2150, 50 + offset), 1f);
             }
         });
+    }
+
+    private Image CreateTemplateWeaponImage(DisposableBag disposables)
+    {
+        var template = m_WeaponTemplate.Clone(ctx => { });
+        disposables.Add(template);
+        return template;
     }
 
     private Image<Rgba32> CreateDiskTemplateImage()
