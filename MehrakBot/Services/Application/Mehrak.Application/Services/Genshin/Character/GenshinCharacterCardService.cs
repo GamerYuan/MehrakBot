@@ -320,7 +320,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                         StatMappingUtility.GenshinMapping[stat.PropertyType.Value],
                         stat.Final,
                         isBase ? stat.Base : null,
-                        isBase && int.Parse(stat.Final.TrimEnd('%')) > int.Parse(stat.Base.TrimEnd('%')) ? $"+{stat.Add}" : null),
+                        isBase && float.Parse(stat.Final.TrimEnd('%')) > float.Parse(stat.Base.TrimEnd('%')) ? $"+{stat.Add}" : null),
                     new StatLineStyle(
                         m_StatImages.GetValueOrDefault(stat.PropertyType.Value),
                         Fonts.Normal,
