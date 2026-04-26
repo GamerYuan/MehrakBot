@@ -191,10 +191,10 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     VerticalAlignment = VerticalAlignment.Top
                 }, floorData.Name, Color.White);
 
-                using var node1 = RosterImageBuilder.Build(
+                var node1 = RosterImageBuilder.Build(
                     floorData.Node1!.Avatars.Select(x => lookup[x.Id]),
                     new RosterLayout(MaxSlots: 4));
-                using var node2 = RosterImageBuilder.Build(
+                var node2 = RosterImageBuilder.Build(
                     floorData.Node2!.Avatars.Select(x => lookup[x.Id]),
                     new RosterLayout(MaxSlots: 4));
                 disposables.Add(node1);
