@@ -269,8 +269,8 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
         {
             var outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
             x.Clear(Color.FromRgb(24, 24, 24));
-            x.Draw(Color.Black, 4f, outerPath);
             x.DrawImage(buddyImage ?? m_BaseBuddyImage, new Point(-45, 0), 1f);
+            x.Draw(Color.Black, 4f, outerPath);
             x.ApplyRoundedCorners(15);
         });
         return buddyBorder;
