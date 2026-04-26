@@ -91,30 +91,31 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
             .Concat(bestRecord.BossRecord?.Avatars ?? [])
             .DistinctBy(x => x.Id)
             .ToAsyncEnumerable()
-            .Select(async (x, token) => new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token)))
+            .Select(async (x, token) =>
+            {
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
+                var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, image);
+                disposables.Add(avatar);
+                return avatar;
+            })
             .ToDictionaryAsync(x => x,
-                x => x.GetStyledAvatarImage(),
+                x =>
+                {
+                    var styledImage = x.GetStyledAvatarImage();
+                    disposables.Add(styledImage);
+                    return styledImage;
+                },
                 HsrAvatarIdComparer.Instance);
 
-        disposables.AddRange(avatarImages.Keys);
-        disposables.AddRange(avatarImages.Values);
-
-        var bossImage = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(bestRecord.BossInfo.ToImageName(), cancellationToken),
-            cancellationToken);
+        var bossImage = await LoadImageFromRepositoryAsync(
+            bestRecord.BossInfo.ToImageName(), disposables, cancellationToken);
         var buffImage = bestRecord.BossRecord != null
-            ? await Image.LoadAsync(
-                await ImageRepository.DownloadFileToStreamAsync(bestRecord.BossRecord.Buff.ToImageName(), cancellationToken),
-                cancellationToken)
+            ? await LoadImageFromRepositoryAsync(
+                bestRecord.BossRecord.Buff.ToImageName(), disposables, cancellationToken)
             : null;
-        var medalImage = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(anomalyData.ToMedalName(), cancellationToken),
-            cancellationToken);
-
-        disposables.Add(bossImage);
-        if (buffImage != null) disposables.Add(buffImage);
-        disposables.Add(medalImage);
+        var medalImage = await LoadImageFromRepositoryAsync<Rgba32>(
+            anomalyData.ToMedalName(), disposables, cancellationToken);
 
         var lookup = avatarImages.GetAlternateLookup<int>();
 

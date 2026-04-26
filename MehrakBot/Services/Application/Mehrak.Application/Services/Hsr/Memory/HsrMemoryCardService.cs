@@ -78,14 +78,19 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
             .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
             .DistinctBy(x => x.Id)
             .ToAsyncEnumerable()
-            .Select(async (x, token) => new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token)))
-            .ToDictionaryAsync(x => x,
-                x => x.GetStyledAvatarImage(),
-                HsrAvatarIdComparer.Instance);
-
-        disposables.AddRange(avatarImages.Keys);
-        disposables.AddRange(avatarImages.Values);
+            .Select(async (x, token) =>
+            {
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, await Image.LoadAsync<Rgba32>(stream, token));
+                disposables.Add(avatar);
+                return avatar;
+            })
+            .ToDictionaryAsync(x => x, x =>
+            {
+                var styledImage = x.GetStyledAvatarImage();
+                disposables.Add(styledImage);
+                return styledImage;
+            }, HsrAvatarIdComparer.Instance, cancellationToken: cancellationToken);
 
         var lookup = avatarImages.GetAlternateLookup<int>();
         List<(int FloorNumber, FloorDetail? Data)> floorDetails =
@@ -99,7 +104,7 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                 })
         ];
         var height = 180 + floorDetails.Chunk(2)
-            .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520).Sum();
+            .Sum(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520);
 
         background.Mutate(ctx =>
         {

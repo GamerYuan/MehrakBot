@@ -69,39 +69,53 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
         var portraitImages = await floorData.Levels!
             .SelectMany(y => y.Battles!)
             .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
-            .Select(async (x, token) =>
-                new GenshinAvatar(x.Id, x.Level,
-                    x.Rarity, constMap[x.Id], await Image.LoadAsync(
-                        await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token),
-                    0))
+            .Select(
+                async (x, token) =>
+                {
+                    await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                    var image = await Image.LoadAsync(stream, token);
+                    var avatar = new GenshinAvatar(x.Id, x.Level, x.Rarity, constMap[x.Id], image);
+                    disposables.Add(avatar);
+                    return avatar;
+                })
             .ToDictionaryAsync(x => x,
-                x => x.GetStyledAvatarImage(), GenshinAvatarIdComparer.Instance);
+                x =>
+                {
+                    var styledImage = x.GetStyledAvatarImage();
+                    disposables.Add(styledImage);
+                    return styledImage;
+                }, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
 
         var lookup = portraitImages.GetAlternateLookup<int>();
 
         var sideAvatarImages = await abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
             .Concat(abyssData.EnergySkillRank!)
             .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
-            .ToAsyncEnumerable().ToDictionaryAsync(
-                async (x, token) => await Task.FromResult(x.AvatarId),
-                async (x, token) => await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
+            .ToAsyncEnumerable()
+            .ToDictionaryAsync(
+                async (x, token) => await ValueTask.FromResult(x.AvatarId),
+                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
+                cancellationToken: cancellationToken);
 
         var revealRankImages = await abyssData.RevealRank!
             .ToAsyncEnumerable()
-            .Select(async (x, token) => (x, new GenshinAvatar(x.AvatarId, 0, x.Rarity,
-                constMap[x.AvatarId],
-                await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName()), token))))
-            .ToDictionaryAsync(x => x.Item2,
-                x => x.Item2.GetStyledAvatarImage(x.Item1.Value.ToString()!),
-                GenshinAvatarIdComparer.Instance);
-
-        disposables.AddRange(portraitImages.Keys);
-        disposables.AddRange(portraitImages.Values);
-        disposables.AddRange(revealRankImages.Keys);
-        disposables.AddRange(revealRankImages.Values);
-        disposables.AddRange(sideAvatarImages.Values);
+            .Select(async (x, token) =>
+            {
+                var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
+                var avatar = new GenshinAvatar(x.AvatarId, 0, x.Rarity, constMap[x.AvatarId], image);
+                disposables.Add(avatar);
+                return (RevealRankAvatar: x, GenshinAvatar: avatar);
+            })
+            .ToDictionaryAsync(
+                x => x.GenshinAvatar,
+                x =>
+                {
+                    var styledImage = x.GenshinAvatar.GetStyledAvatarImage(x.RevealRankAvatar.Value.ToString()!);
+                    disposables.Add(styledImage);
+                    return styledImage;
+                },
+                GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
 
         var tzi = server.GetTimeZoneInfo();
 

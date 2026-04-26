@@ -65,24 +65,28 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         var characterImage = await LoadFirstAvailableCostumeImageAsync(characterInformation);
         disposables.Add(characterImage);
 
-        var weaponImage = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(characterInformation.Weapon.ToImageName()));
-        disposables.Add(weaponImage);
+        var weaponImage = await LoadImageFromRepositoryAsync(
+            characterInformation.Weapon.ToImageName(), disposables, cancellationToken);
 
         var stigmataImages = await characterInformation.Stigmatas
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (stigmata, token) => await Task.FromResult(stigmata),
+                async (stigmata, token) => await ValueTask.FromResult(stigmata),
                 async (stigmata, token) =>
                 {
-                    if (stigmata.Id == 0) return m_StigmataSlot.Clone(ctx => { });
+                    if (stigmata.Id == 0)
+                    {
+                        var empty = m_StigmataSlot.Clone(ctx => { });
+                        disposables.Add(empty);
+                        return empty;
+                    }
 
-                    var img = await Image.LoadAsync(
-                        await ImageRepository.DownloadFileToStreamAsync(stigmata.ToImageName()), token);
+                    await using var stream = await ImageRepository.DownloadFileToStreamAsync(stigmata.ToImageName(), token);
+                    using var img = await Image.LoadAsync(stream, token);
                     var stigmataIcon = GetStigmataIcon(img, stigmata);
+                    disposables.Add(stigmataIcon);
                     return stigmataIcon;
-                });
-        disposables.AddRange(stigmataImages.Values);
+                }, cancellationToken: cancellationToken);
 
         background.Mutate(ctx =>
         {

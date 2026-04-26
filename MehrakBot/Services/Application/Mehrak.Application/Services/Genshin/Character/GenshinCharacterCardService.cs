@@ -87,31 +87,29 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             throw new CommandException("An error occurred when generating Genshin Character card");
 
         var characterPortraitTask =
-            Image.LoadAsync<Rgba32>(
-                await ImageRepository.DownloadFileToStreamAsync(charInfo.Base.ToImageName(), cancellationToken));
+            LoadImageFromRepositoryAsync<Rgba32>(charInfo.Base.ToImageName(), disposables, cancellationToken);
 
         Task<Image<Rgba32>> weaponImageTask;
 
         if (charInfo.Weapon.PromoteLevel >= 2 && await ImageRepository.FileExistsAsync(charInfo.Weapon.ToAscendedImageName()))
         {
-            weaponImageTask = Image.LoadAsync<Rgba32>(
-                await ImageRepository.DownloadFileToStreamAsync(charInfo.Weapon.ToAscendedImageName(), cancellationToken));
+            weaponImageTask = LoadImageFromRepositoryAsync<Rgba32>(
+                charInfo.Weapon.ToAscendedImageName(), disposables, cancellationToken);
         }
         else
         {
             if (charInfo.Weapon.PromoteLevel >= 2)
                 Logger.LogInformation("Ascended icon not found for Weapon {Weapon}, falling back to default icon",
                     charInfo.Weapon.Name);
-            weaponImageTask = Image.LoadAsync<Rgba32>(
-                await ImageRepository.DownloadFileToStreamAsync(charInfo.Weapon.ToBaseImageName(), cancellationToken));
+            weaponImageTask = LoadImageFromRepositoryAsync<Rgba32>(
+                charInfo.Weapon.ToBaseImageName(), disposables, cancellationToken);
         }
 
         Task<(bool Active, Image Image)>[] constellationTasks =
         [
             .. charInfo.Constellations.Select(async x =>
             {
-                var image = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken), cancellationToken);
+                var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
                 return (Active: x.IsActived.GetValueOrDefault(false), Image: image);
             }).Reverse()
         ];
@@ -122,8 +120,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 .Where(x => x.SkillType!.Value == 1 && !x.Desc.Contains("Alternate Sprint"))
                 .Select(async x =>
                 {
-                    var image = await Image.LoadAsync(
-                        await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(charInfo.Base.Id), cancellationToken), cancellationToken);
+                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(charInfo.Base.Id), disposables, cancellationToken);
                     return (Data: x, Image: image);
                 }).Reverse()
         ];
@@ -153,16 +150,12 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             AssignConstEffects(charInfo.Constellations[4], charInfo.Skills);
 
         var characterPortrait = await characterPortraitTask;
-        disposables.Add(characterPortrait);
 
         var weaponImage = await weaponImageTask;
-        disposables.Add(weaponImage);
 
         (bool Active, Image Image)[] constellationIcons = [.. await Task.WhenAll(constellationTasks)];
-        disposables.AddRange(constellationIcons.Select(c => c.Image));
 
         (Skill Data, Image Image)[] skillIcons = [.. await Task.WhenAll(skillTasks)];
-        disposables.AddRange(skillIcons.Select(s => s.Image));
 
         Image<Rgba32>[] relics = [.. await Task.WhenAll(relicImageTasks)];
         disposables.AddRange(relics);

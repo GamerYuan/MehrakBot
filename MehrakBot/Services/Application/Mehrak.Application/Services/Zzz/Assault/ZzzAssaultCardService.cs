@@ -79,14 +79,16 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
-                        x.ToImageName(), token), token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
                 ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
-                return (Avatar: avatar, Image: avatar.GetStyledAvatarImage());
+                disposables.Add(avatar);
+
+                var styledImage = avatar.GetStyledAvatarImage();
+                disposables.Add(styledImage);
+                return (Avatar: avatar, Image: styledImage);
             })
-            .ToDictionaryAsync(x => x.Avatar, x => x.Image, ZzzAvatarIdComparer.Instance);
-        disposables.AddRange(avatarImages.Keys);
-        disposables.AddRange(avatarImages.Values);
+            .ToDictionaryAsync(x => x.Avatar, x => x.Image, ZzzAvatarIdComparer.Instance, cancellationToken: cancellationToken);
 
         var buddyImages = await data.List.Select(x => x.Buddy)
             .Where(x => x is not null)
@@ -94,27 +96,26 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
-                        x!.ToImageName(), token), token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
+                disposables.Add(image);
                 return (BuddyId: x!.Id, Image: image);
             })
-            .ToDictionaryAsync(x => x.BuddyId, x => x.Image);
-        disposables.AddRange(buddyImages.Values);
+            .ToDictionaryAsync(x => x.BuddyId, x => x.Image, cancellationToken: cancellationToken);
 
         var bossImages = await data.List.SelectMany(x => x.Boss)
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
-                async (x, token) => await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token));
-        disposables.AddRange(bossImages.Values);
+            .ToDictionaryAsync(
+                async (x, token) => await ValueTask.FromResult(x.Name),
+                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
+                cancellationToken: cancellationToken);
 
         var buffImages = await data.List.SelectMany(x => x.Buff)
             .DistinctBy(x => x.Name)
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
-                async (x, token) => await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token));
-        disposables.AddRange(buffImages.Values);
+            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x.Name),
+                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
+                cancellationToken: cancellationToken);
 
         var lookup = avatarImages.GetAlternateLookup<int>();
 

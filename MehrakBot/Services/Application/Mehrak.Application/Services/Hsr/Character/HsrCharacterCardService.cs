@@ -67,7 +67,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         });
 
         m_TemplateRelicSlots = await Enumerable.Range(1, 6).ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
+            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x),
                 async (x, token) => await CreateTemplateRelicSlotImageAsync(x, token), cancellationToken: cancellationToken);
 
         Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);
@@ -84,19 +84,17 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         using var scope = m_ScopeFactory.CreateScope();
         var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
-        var characterPortraitTask = Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(
-                characterInformation.ToImageName(), cancellationToken));
+        var characterPortraitTask = LoadImageFromRepositoryAsync<Rgba32>(
+            characterInformation.ToImageName(), disposables, cancellationToken);
         var equipImageTask = characterInformation.Equip == null
-            ? Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template", cancellationToken))
-            : Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(
-                characterInformation.Equip.ToImageName(), cancellationToken));
+            ? LoadImageFromRepositoryAsync<Rgba32>("hsr_lightcone_template", disposables, cancellationToken)
+            : LoadImageFromRepositoryAsync<Rgba32>(
+                characterInformation.Equip.ToImageName(), disposables, cancellationToken);
         Task<(bool Active, Image Image)>[] rankTasks =
         [
             .. characterInformation.Ranks!.Select(async x =>
             {
-                var image = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken), cancellationToken);
+                var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
                 return (Active: x.IsUnlocked, Image: image);
             })
         ];
@@ -110,8 +108,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         [
             .. baseSkill.Select(async x =>
             {
-                var image = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken), cancellationToken);
+                var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
                 return (Data: x, Image: image);
             })
         ];
@@ -121,8 +118,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
             {
                 var chainImages = await Task.WhenAll(chain.Select(async x =>
                 {
-                    var image = await Image.LoadAsync(
-                        await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken), cancellationToken);
+                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
                     return (Data: x, Image: image);
                 }));
                 return chainImages;
@@ -137,6 +133,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                 if (relic != null)
                 {
                     var relicImage = await CreateRelicSlotImageAsync(relic, cancellationToken);
+                    disposables.Add(relicImage);
                     return relicImage;
                 }
                 else
@@ -155,6 +152,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                 if (ornament != null)
                 {
                     var ornamentImage = await CreateRelicSlotImageAsync(ornament, cancellationToken);
+                    disposables.Add(ornamentImage);
                     return ornamentImage;
                 }
                 else
@@ -205,8 +203,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         [
             .. characterInformation.ServantDetail!.ServantSkills!.Select(async x =>
             {
-                var image = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken), cancellationToken);
+                var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
                 return (Data: x, Image: image);
             })
         ];
@@ -230,15 +227,6 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         Image[] relicImages = [.. await Task.WhenAll(relicImageTasks)];
         Image[] ornamentImages = [.. await Task.WhenAll(ornamentImageTasks)];
         (Skill Data, Image Image)[] servantImages = [.. await Task.WhenAll(servantTask)];
-
-        disposables.Add(characterPortrait);
-        disposables.Add(equipImage);
-        disposables.AddRange(ranks.Select(x => x.Image));
-        disposables.AddRange(baseSkillImages.Select(x => x.Image));
-        disposables.AddRange(skillImages.SelectMany(x => x.Select(y => y.Image)));
-        disposables.AddRange(relicImages);
-        disposables.AddRange(ornamentImages);
-        disposables.AddRange(servantImages.Select(x => x.Image));
 
         background.Mutate(ctx =>
         {
@@ -468,8 +456,8 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
 
     private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic, CancellationToken cancellationToken = default)
     {
-        var relicImage = await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(
-            relic.ToImageName(), cancellationToken), cancellationToken);
+        await using var stream = await ImageRepository.DownloadFileToStreamAsync(relic.ToImageName(), cancellationToken);
+        var relicImage = await Image.LoadAsync<Rgba32>(stream, cancellationToken);
         var relicSlotImage = m_RelicSlotTemplate.Clone();
         relicSlotImage.Mutate(ctx =>
         {
@@ -517,8 +505,8 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         var path = $"hsr_relic_template_{slot}";
         Logger.LogDebug("Loading template relic image from {Path}", path);
 
-        var relicImage = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);
+        await using var stream = await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken);
+        var relicImage = await Image.LoadAsync<Rgba32>(stream, cancellationToken);
         var template = m_RelicSlotTemplate.Clone();
         template.Mutate(ctx =>
         {

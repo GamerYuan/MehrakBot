@@ -138,6 +138,23 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
         return new Image<Rgba32>(1920, 1080);
     }
 
+    protected async Task<Image> LoadImageFromRepositoryAsync(string imageName, DisposableBag disposable, CancellationToken cancellationToken = default)
+    {
+        await using var stream = await ImageRepository.DownloadFileToStreamAsync(imageName, cancellationToken);
+        var image = await Image.LoadAsync(stream, cancellationToken);
+        disposable.Add(image);
+        return image;
+    }
+
+    protected async Task<Image<T>> LoadImageFromRepositoryAsync<T>(string imageName, DisposableBag disposable, CancellationToken cancellationToken = default)
+        where T : unmanaged, IPixel<T>
+    {
+        await using var stream = await ImageRepository.DownloadFileToStreamAsync(imageName, cancellationToken);
+        var image = await Image.LoadAsync<T>(stream, cancellationToken);
+        disposable.Add(image);
+        return image;
+    }
+
     protected static FontDefinitions LoadFonts(string fontPath, float titleSize, float normalSize, float? mediumSize = null, float? smallSize = null, float? tinySize = null)
     {
         FontCollection collection = new();

@@ -97,13 +97,14 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             .Select(x => (Key: GetWeaponKey(x.Weapon), x.Weapon))
             .DistinctBy(x => x.Key)
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Key),
+            .ToDictionaryAsync(
+                async (x, token) => await ValueTask.FromResult(x.Key),
                 async (x, token) =>
                 {
                     Image image;
-                    if (x.Weapon.Ascended.Value && await ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
+                    if (x.Weapon.Ascended.Value && await ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName(), token))
                     {
-                        image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.Weapon.ToAscendedImageName()), token);
+                        image = await LoadImageFromRepositoryAsync(x.Weapon.ToAscendedImageName(), disposables, token);
                     }
                     else
                     {
@@ -112,22 +113,22 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
                             Logger.LogInformation("Ascended icon not found for Weapon {Weapon}, falling back to default icon",
                                 x.Weapon.Name);
                         }
-                        image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.Weapon.ToBaseImageName()), token);
+                        image = await LoadImageFromRepositoryAsync(x.Weapon.ToBaseImageName(), disposables, token);
                     }
 
                     image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
                     return image;
                 });
-        disposables.AddRange(weaponImages.Values);
-
         var avatarImageTask = charData.OrderByDescending(x => x.Level)
             .ThenByDescending(x => x.Rarity)
             .ThenBy(x => x.Name)
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                using var avatarImage = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
-                return GetStyledCharacterImage(x, avatarImage, weaponImages[GetWeaponKey(x.Weapon)]);
+                var avatarImage = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
+                var styledImage = GetStyledCharacterImage(x, avatarImage, weaponImages[GetWeaponKey(x.Weapon)]);
+                disposables.Add(styledImage);
+                return styledImage;
             })
             .ToListAsync();
 
@@ -139,8 +140,6 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
         var avatarImages = await avatarImageTask;
-
-        disposables.AddRange(avatarImages);
 
         var layout =
             ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);

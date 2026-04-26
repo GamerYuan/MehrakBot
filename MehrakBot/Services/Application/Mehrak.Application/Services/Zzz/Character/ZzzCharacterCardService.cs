@@ -132,12 +132,12 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         var characterInformation = context.Data;
         var character = characterInformation.AvatarList[0];
 
-        var portraitTask = Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
-            string.Format(character.ToImageName()), cancellationToken), cancellationToken);
+        var portraitTask = LoadImageFromRepositoryAsync(
+            character.ToImageName(), disposables, cancellationToken);
         var weaponTask = character.Weapon == null
             ? Task.FromResult(m_WeaponTemplate.Clone(ctx => { }))
-            : Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
-                string.Format(character.Weapon.ToImageName()), cancellationToken), cancellationToken);
+            : LoadImageFromRepositoryAsync(
+                character.Weapon.ToImageName(), disposables, cancellationToken);
         var diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable()
             .Select(async (i, token) =>
             {
@@ -146,14 +146,12 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                     return m_DiskTemplate.CloneAs<Rgba32>();
                 else
                     return await CreateDiskImageAsync(disk, token);
-            }).ToListAsync();
+            }).ToListAsync(cancellationToken: cancellationToken);
 
         var accentColor = Color.ParseHex(character.VerticalPaintingColor);
 
         var portraitImage = await portraitTask;
         var weaponImage = await weaponTask;
-        disposables.Add(portraitImage);
-        disposables.Add(weaponImage);
         disposables.AddRange(diskImage);
 
         background.Mutate(ctx =>

@@ -103,11 +103,13 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
                 using ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
-                return avatar.GetStyledAvatarImage();
+                var styledImage = avatar.GetStyledAvatarImage();
+                disposables.Add(styledImage);
+                return styledImage;
             }).ToListAsync();
-        disposables.AddRange(avatarImages);
 
         var buddyImages = await buddyData
             .OrderByDescending(x => x.Level)
@@ -116,11 +118,13 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                using var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), token), token);
-                return x.GetStyledBuddyImage(image, m_StarImages[x.Star]);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), token);
+                using var image = await Image.LoadAsync(stream, token);
+                var styledImage = x.GetStyledBuddyImage(image, m_StarImages[x.Star]);
+                disposables.Add(styledImage);
+                return styledImage;
             })
             .ToListAsync();
-        disposables.AddRange(buddyImages);
 
         var layout = ImageUtility.CalculateSplitGridLayout(avatarImages.Count, buddyImages.Count,
             150, 180, [120, 50, 50, 50], 20, 80);

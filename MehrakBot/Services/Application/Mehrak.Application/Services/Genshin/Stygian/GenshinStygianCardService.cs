@@ -58,22 +58,36 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
             .SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId)
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
-                new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank,
-                    await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token)))
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x),
-                async (x, token) => await Task.FromResult(x.GetStyledAvatarImage()), GenshinAvatarIdComparer.Instance);
+            {
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
+                var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank, image);
+                disposables.Add(avatar);
+                return avatar;
+            })
+            .ToDictionaryAsync(x => x,
+                x =>
+                {
+                    var styledImage = x.GetStyledAvatarImage();
+                    disposables.Add(styledImage);
+                    return styledImage;
+                }, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
         var bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
-            .DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.AvatarId),
-                async (x, token) => await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
+            .DistinctBy(x => x.AvatarId)
+            .ToAsyncEnumerable()
+            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x.AvatarId),
+                async (x, token) =>
+                {
+                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
+                    image.Mutate(i => i.Resize(100, 0, KnownResamplers.Bicubic));
+                    return image;
+                }, cancellationToken: cancellationToken);
         var monsterImages = await stygianData.Challenge!.Select(x => x.Monster)
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.MonsterId),
-                async (x, token) => await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token));
-        disposables.AddRange(avatarImages.Keys);
-        disposables.AddRange(avatarImages.Values);
-        disposables.AddRange(bestAvatarImages.Values);
-        disposables.AddRange(monsterImages.Values);
+            .ToDictionaryAsync(
+                async (x, token) => await ValueTask.FromResult(x.MonsterId),
+                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
+                cancellationToken: cancellationToken);
 
         var lookup = avatarImages.GetAlternateLookup<int>();
 
@@ -142,7 +156,6 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
                         new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
                     var bestAvatar = challenge.BestAvatar[j];
                     var avatarImage = bestAvatarImages[bestAvatar.AvatarId];
-                    avatarImage.Mutate(x => x.Resize(100, 0, KnownResamplers.Bicubic));
                     ctx.DrawImage(avatarImage, new Point(1070, yOffset + 5 + j * 155), 1f);
                     ctx.DrawText(new RichTextOptions(Fonts.Normal)
                     {

@@ -83,11 +83,21 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
         var avatarImages = await gameModeData.AllFloorDetail
             .Where(x => x is { Node1: not null, Node2: not null })
             .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
-            .DistinctBy(x => x.Id).ToAsyncEnumerable().Select(async (x, token) =>
-                await Task.FromResult(new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank,
-                    await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token))))
-            .ToDictionaryAsync(x => x,
-                x => x.GetStyledAvatarImage(), HsrAvatarIdComparer.Instance);
+            .DistinctBy(x => x.Id).ToAsyncEnumerable()
+            .Select(async (x, token) =>
+            {
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, await Image.LoadAsync<Rgba32>(stream, token));
+                disposables.Add(avatar);
+                return avatar;
+            })
+            .ToDictionaryAsync(x => x, x =>
+            {
+                var styledImage = x.GetStyledAvatarImage();
+                disposables.Add(styledImage);
+                return styledImage;
+            }, HsrAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+
         var buffImages = await gameModeData.AllFloorDetail
             .Where(x => x is { Node1: not null, Node2: not null })
             .SelectMany(x => new HsrEndBuff[] { x.Node1!.Buff, x.Node2!.Buff })
@@ -95,17 +105,14 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
             .DistinctBy(x => x.Id)
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (x, token) => await Task.FromResult(x.Id),
-                async (x, token) => await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token), token));
-
-        disposables.AddRange(avatarImages.Keys);
-        disposables.AddRange(avatarImages.Values);
-        disposables.AddRange(buffImages.Values);
+                async (x, token) => await ValueTask.FromResult(x.Id),
+                async (x, token) => await LoadImageFromRepositoryAsync<Rgba32>(x.ToImageName(), disposables, token),
+                cancellationToken: cancellationToken);
 
         var lookup = avatarImages.GetAlternateLookup<int>();
         var floorDetails = GetFloorDetails(gameModeData);
         var height = 180 + floorDetails.Chunk(2)
-            .Select(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620).Sum();
+            .Sum(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620);
 
         background.Mutate(ctx =>
         {

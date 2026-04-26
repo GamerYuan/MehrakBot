@@ -95,11 +95,9 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                var image = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x!.ToIconImageName(), token), token);
+                var image = await LoadImageFromRepositoryAsync(x!.ToIconImageName(), disposables, token);
                 return (x!.Id, Image: image);
             }).ToDictionaryAsync(x => x.Id, x => x.Image);
-        disposables.AddRange(weaponImages.Values);
 
         var avatarImageTasks = charData.OrderByDescending(x => x.Level)
             .ThenByDescending(x => x.Rarity)
@@ -107,9 +105,10 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                using var avatarImage = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName(), token), token);
-                return GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id]);
+                var avatarImage = await LoadImageFromRepositoryAsync(x.ToAvatarImageName(), disposables, token);
+                var styledImage = GetStyledCharacterImage(x, avatarImage, x.Equip is null ? null : weaponImages[x.Equip.Id]); ;
+                disposables.Add(styledImage);
+                return styledImage;
             })
             .ToListAsync();
 

@@ -90,15 +90,16 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
         var avatarImages = await context.Data.DisplayAvatarRankList
             .OrderByDescending(x => x.Score)
             .ToAsyncEnumerable()
-            .Select(async (ZzzTowerAvatar x, CancellationToken token) =>
+            .Select(async (x, token) =>
             {
-                using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
                 using var avatar = new ZzzAvatar(x.AvatarId, charMap[x.AvatarId].Level, x.Rarity[0], charMap[x.AvatarId].Rank,
                     await Image.LoadAsync(stream, token));
-                return GetStyledDisplayEntry(x, avatar);
+                var styledImage = GetStyledDisplayEntry(x, avatar);
+                disposables.Add(styledImage);
+                return styledImage;
             })
             .ToListAsync();
-        disposables.AddRange(avatarImages);
 
         const int width = 2 * DisplayEntryWidth + 150;
         var height = 500 + (int)Math.Ceiling(context.Data.DisplayAvatarRankList.Count / 2f) * DisplayEntryHeight;

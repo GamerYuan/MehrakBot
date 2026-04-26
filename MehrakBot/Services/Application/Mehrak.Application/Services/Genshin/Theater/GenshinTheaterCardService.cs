@@ -68,22 +68,32 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
             .SelectMany(x => x.Avatars)
             .DistinctBy(x => x.AvatarId)
             .ToAsyncEnumerable()
-            .Select(async (y, token) =>
-                new GenshinAvatar(y.AvatarId, y.Level, y.Rarity,
-                    y.AvatarType == 1 ? constMap[y.AvatarId] : 0,
-                    await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(y.ToImageName()), token),
-                    y.AvatarType))
+            .Select(async (x, token) =>
+            {
+                var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                var image = await Image.LoadAsync(stream, token);
+                var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity,
+                    x.AvatarType == 1 ? constMap[x.AvatarId] : 0, image, x.AvatarType);
+                disposables.Add(avatar);
+                return avatar;
+            })
             .ToDictionaryAsync(x => x,
-                x => x.GetStyledAvatarImage(), GenshinAvatarIdComparer.Instance);
+                x =>
+                {
+                    var styledImage = x.GetStyledAvatarImage();
+                    disposables.Add(styledImage);
+                    return styledImage;
+                }, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
         var buffImages = await theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.Name),
+            .ToDictionaryAsync(
+                async (x, token) => await ValueTask.FromResult(x.Name),
                 async (x, token) =>
                 {
-                    var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
+                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
                     image.Mutate(ctx => ctx.Resize(50, 0));
                     return image;
-                });
+                }, cancellationToken: cancellationToken);
         ItRankAvatar[] fightStats =
         [
             theaterData.Detail.FightStatistic.MaxDamageAvatar,
@@ -91,18 +101,13 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
         ];
 
         var sideAvatarImages = await fightStats.DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await Task.FromResult(x.AvatarId),
+            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x.AvatarId),
                 async (x, token) =>
                 {
-                    var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(x.ToImageName()), token);
+                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
                     image.Mutate(ctx => ctx.Resize(100, 0));
                     return image;
-                });
-
-        disposables.AddRange(avatarImages.Keys);
-        disposables.AddRange(avatarImages.Values);
-        disposables.AddRange(buffImages.Values);
-        disposables.AddRange(sideAvatarImages.Values);
+                }, cancellationToken: cancellationToken);
 
         var maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
 
