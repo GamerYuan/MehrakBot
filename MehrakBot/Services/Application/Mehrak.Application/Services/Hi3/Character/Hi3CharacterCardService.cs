@@ -155,7 +155,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
             try
             {
                 var imageName = costume.ToImageName();
-                var stream = await ImageRepository.DownloadFileToStreamAsync(imageName);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(imageName);
                 if (stream != Stream.Null)
                 {
                     return await Image.LoadAsync(stream);
