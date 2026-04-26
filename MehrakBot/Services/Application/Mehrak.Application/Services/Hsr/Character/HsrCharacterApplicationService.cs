@@ -216,7 +216,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
                 return false;
             })
-            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x),
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x),
                 async (x, token) =>
                 {
                     var url = relicWiki[x.Id.ToString()];

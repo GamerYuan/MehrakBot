@@ -106,14 +106,14 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
         var bossImages = await data.List.SelectMany(x => x.Boss)
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (x, token) => await ValueTask.FromResult(x.Name),
+                (x, token) => ValueTask.FromResult(x.Name),
                 async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 
         var buffImages = await data.List.SelectMany(x => x.Buff)
             .DistinctBy(x => x.Name)
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x.Name),
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.Name),
                 async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 

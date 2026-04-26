@@ -105,7 +105,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
             .DistinctBy(x => x.Id)
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (x, token) => await ValueTask.FromResult(x.Id),
+                (x, token) => ValueTask.FromResult(x.Id),
                 async (x, token) => await LoadImageFromRepositoryAsync<Rgba32>(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 

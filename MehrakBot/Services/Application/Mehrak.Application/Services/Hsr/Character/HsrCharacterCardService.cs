@@ -67,7 +67,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         });
 
         m_TemplateRelicSlots = await Enumerable.Range(1, 6).ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x),
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x),
                 async (x, token) => await CreateTemplateRelicSlotImageAsync(x, token), cancellationToken: cancellationToken);
 
         Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);

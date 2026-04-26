@@ -93,7 +93,7 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
             .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (x, token) => await ValueTask.FromResult(x.AvatarId),
+                (x, token) => ValueTask.FromResult(x.AvatarId),
                 async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 

@@ -75,7 +75,7 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
         var bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
             .DistinctBy(x => x.AvatarId)
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x.AvatarId),
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.AvatarId),
                 async (x, token) =>
                 {
                     var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
@@ -85,7 +85,7 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
         var monsterImages = await stygianData.Challenge!.Select(x => x.Monster)
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (x, token) => await ValueTask.FromResult(x.MonsterId),
+                (x, token) => ValueTask.FromResult(x.MonsterId),
                 async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 

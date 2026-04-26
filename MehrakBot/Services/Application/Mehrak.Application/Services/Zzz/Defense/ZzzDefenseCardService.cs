@@ -132,12 +132,12 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x!.Id),
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x!.Id),
                 async (x, token) =>
                     await LoadImageFromRepositoryAsync(x!.ToImageName(), disposables, token), cancellationToken: cancellationToken);
         var bossImages = await data.FifthLayerDetail.LayerChallengeInfoList
             .ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x.LayerId),
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.LayerId),
                 async (x, token) => await LoadImageFromRepositoryAsync(
                     x.ToMonsterImageName(), disposables, token), cancellationToken: cancellationToken);
 

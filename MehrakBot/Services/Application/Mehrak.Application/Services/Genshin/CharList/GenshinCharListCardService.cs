@@ -98,7 +98,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             .DistinctBy(x => x.Key)
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (x, token) => await ValueTask.FromResult(x.Key),
+                (x, token) => ValueTask.FromResult(x.Key),
                 async (x, token) =>
                 {
                     Image image;

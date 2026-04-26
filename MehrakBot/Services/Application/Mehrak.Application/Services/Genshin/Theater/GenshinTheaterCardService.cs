@@ -87,7 +87,7 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
         var buffImages = await theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (x, token) => await ValueTask.FromResult(x.Name),
+                (x, token) => ValueTask.FromResult(x.Name),
                 async (x, token) =>
                 {
                     var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
@@ -101,7 +101,7 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
         ];
 
         var sideAvatarImages = await fightStats.DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
-            .ToDictionaryAsync(async (x, token) => await ValueTask.FromResult(x.AvatarId),
+            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.AvatarId),
                 async (x, token) =>
                 {
                     var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);

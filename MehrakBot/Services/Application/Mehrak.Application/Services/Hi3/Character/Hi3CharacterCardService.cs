@@ -71,7 +71,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         var stigmataImages = await characterInformation.Stigmatas
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
-                async (stigmata, token) => await ValueTask.FromResult(stigmata),
+                (stigmata, token) => ValueTask.FromResult(stigmata),
                 async (stigmata, token) =>
                 {
                     if (stigmata.Id == 0)
