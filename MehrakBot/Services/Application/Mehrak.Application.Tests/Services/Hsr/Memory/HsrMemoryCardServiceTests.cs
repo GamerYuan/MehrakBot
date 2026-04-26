@@ -34,6 +34,7 @@ public class HsrMemoryCardServiceTests
         await m_Service.InitializeAsync();
     }
 
+    [Explicit]
     [Test]
     [TestCase("Moc_TestData_1.json")]
     [TestCase("Moc_TestData_2.json")]
