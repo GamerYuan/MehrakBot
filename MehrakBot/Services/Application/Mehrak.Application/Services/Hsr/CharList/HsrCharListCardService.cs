@@ -121,8 +121,6 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
 
         var avatarImages = await avatarImageTasks;
 
-        disposables.AddRange(avatarImages);
-
         var layout =
             ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
 
