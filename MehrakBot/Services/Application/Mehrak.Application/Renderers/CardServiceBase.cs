@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
@@ -25,16 +26,20 @@ public record FontDefinitions(
 
 public sealed class DisposableBag : IDisposable
 {
-    private readonly List<IDisposable> m_Items = [];
+    private readonly ConcurrentBag<IDisposable> m_Items = [];
 
     public void Add(IDisposable item) => m_Items.Add(item);
     public void Add<T>(T item) where T : IDisposable => m_Items.Add(item);
-    public void AddRange(IEnumerable<IDisposable> items) => m_Items.AddRange(items);
+    public void AddRange(IEnumerable<IDisposable> items)
+    {
+        foreach (var item in items) m_Items.Add(item);
+    }
 
     public void Dispose()
     {
-        foreach (var item in m_Items) item.Dispose();
+        var current = m_Items.ToArray();
         m_Items.Clear();
+        foreach (var item in current) item.Dispose();
     }
 }
 
