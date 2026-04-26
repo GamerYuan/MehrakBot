@@ -70,7 +70,7 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
-                var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
                 var image = await Image.LoadAsync(stream, token);
                 var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity,
                     x.AvatarType == 1 ? constMap[x.AvatarId] : 0, image, x.AvatarType);
