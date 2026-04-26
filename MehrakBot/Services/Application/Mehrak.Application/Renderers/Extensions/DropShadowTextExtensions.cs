@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -102,8 +102,10 @@ public static class DropShadowTextExtensions
             x.BoxBlur(blurR);
         });
 
+
         ctx.DrawImage(shadowImg,
-            new Point((int)(shadowOrigin.X - pad), (int)(shadowOrigin.Y - pad)), 1f);
+            new Point((int)Math.Floor(shadowOrigin.X + bounds.Left - pad),
+            (int)Math.Floor(shadowOrigin.Y + bounds.Top - pad)), 1f);
     }
 
     private static void DrawBlurredShadow(
