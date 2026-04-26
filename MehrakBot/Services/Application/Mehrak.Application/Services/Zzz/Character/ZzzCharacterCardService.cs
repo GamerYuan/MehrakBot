@@ -353,7 +353,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
     private async ValueTask<Image> CreateDiskImageAsync(DiskDrive disk, CancellationToken token = default)
     {
-        var diskImage = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
+        using var diskImage = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
             disk.ToImageName(), token), token);
         var diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
         diskTemplate.Mutate(ctx =>
@@ -396,8 +396,6 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 var rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
                 ctx.DrawText(rolls, Fonts.Normal, color, new PointF(460 + xOffset, 8 + yOffset));
             }
-
-            diskImage.Dispose();
         });
         return diskTemplate;
     }
