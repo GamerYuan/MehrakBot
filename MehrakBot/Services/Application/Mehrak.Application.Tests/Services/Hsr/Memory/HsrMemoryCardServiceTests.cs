@@ -40,6 +40,7 @@ public class HsrMemoryCardServiceTests
     [TestCase("Moc_TestData_3.json")]
     [TestCase("Moc_TestData_4.json")]
     [TestCase("Moc_TestData_5.json")]
+    [TestCase("Moc_TestData_6.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
@@ -89,26 +90,32 @@ public class HsrMemoryCardServiceTests
         };
     }
 
-    // [Test] [TestCase("Moc_TestData_1.json", "Moc_GoldenImage_1.jpg")]
-    // [TestCase("Moc_TestData_2.json", "Moc_GoldenImage_2.jpg")]
-    // [TestCase("Moc_TestData_3.json", "Moc_GoldenImage_3.jpg")]
-    // [TestCase("Moc_TestData_4.json", "Moc_GoldenImage_4.jpg")]
-    // [TestCase("Moc_TestData_5.json", "Moc_GoldenImage_5.jpg")] public async
-    // Task GenerateGoldenImage(string testDataFileName, string
-    // goldenImageFileName) { var testData = await
-    // JsonSerializer.DeserializeAsync<HsrMemoryInformation>(
-    // File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr",
-    // testDataFileName))); Assert.That(testData, Is.Not.Null);
-    //
-    // var userGameData = GetTestUserGameData();
-    //
-    // var image = await m_Service.GetCardAsync( new
-    // TestCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!,
-    // Server.Asia, userGameData));
-    //
-    // await using var fileStream =
-    // File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
-    // "TestAssets", goldenImageFileName)); await image.CopyToAsync(fileStream);
-    //
-    // Assert.That(image, Is.Not.Null); }
+    [Test]
+    [TestCase("Moc_TestData_1.json", "Moc_GoldenImage_1.jpg")]
+    [TestCase("Moc_TestData_2.json", "Moc_GoldenImage_2.jpg")]
+    [TestCase("Moc_TestData_3.json", "Moc_GoldenImage_3.jpg")]
+    [TestCase("Moc_TestData_4.json", "Moc_GoldenImage_4.jpg")]
+    [TestCase("Moc_TestData_5.json", "Moc_GoldenImage_5.jpg")]
+    [TestCase("Moc_TestData_6.json", "Moc_GoldenImage_6.jpg")]
+    public async
+    Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var testData = await JsonSerializer.DeserializeAsync<HsrMemoryInformation>(
+            File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)));
+        Assert.That(testData, Is.Not.Null);
+
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await m_Service.GetCardAsync(cardContext);
+
+        await using var fileStream = File.Create(
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName));
+        await image.CopyToAsync(fileStream);
+        await image.FlushAsync();
+
+        Assert.That(image, Is.Not.Null);
+    }
 }

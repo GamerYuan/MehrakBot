@@ -194,7 +194,12 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                         ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
                             new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
 
-                    if (floorNumber % 2 == 1) yOffset += 200;
+                    if (floorNumber % 2 == 1)
+                    {
+                        var leftIsFull = floorNumber - 1 >= 0 && !IsSmallBlob(floorDetails[floorNumber - 1].Data);
+                        yOffset += leftIsFull ? 520 : 200;
+                    }
+
                     continue;
                 }
 

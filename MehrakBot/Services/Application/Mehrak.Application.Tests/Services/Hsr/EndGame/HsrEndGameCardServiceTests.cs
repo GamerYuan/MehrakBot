@@ -38,6 +38,7 @@ public class HsrPureFictionCardServiceTests
     [TestCase("Pf_TestData_1.json")]
     [TestCase("Pf_TestData_2.json")]
     [TestCase("Pf_TestData_3.json")]
+    [TestCase("Pf_TestData_4.json")]
     public async Task GetCardAsync_PureFictionTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
@@ -80,6 +81,7 @@ public class HsrPureFictionCardServiceTests
     [TestCase("Pf_TestData_1.json", "Pf_GoldenImage_1.jpg")]
     [TestCase("Pf_TestData_2.json", "Pf_GoldenImage_2.jpg")]
     [TestCase("Pf_TestData_3.json", "Pf_GoldenImage_3.jpg")]
+    [TestCase("Pf_TestData_4.json", "Pf_GoldenImage_4.jpg")]
     public async Task GeneratePureFictionGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
@@ -142,6 +144,7 @@ public class HsrApocalypticShadowCardServiceTests
     [TestCase("As_TestData_1.json")]
     [TestCase("As_TestData_2.json")]
     [TestCase("As_TestData_3.json")]
+    [TestCase("As_TestData_4.json")]
     public async Task GetCardAsync_ApocalypticShadowTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
@@ -184,6 +187,7 @@ public class HsrApocalypticShadowCardServiceTests
     [TestCase("As_TestData_1.json", "As_GoldenImage_1.jpg")]
     [TestCase("As_TestData_2.json", "As_GoldenImage_2.jpg")]
     [TestCase("As_TestData_3.json", "As_GoldenImage_3.jpg")]
+    [TestCase("As_TestData_4.json", "As_GoldenImage_4.jpg")]
     public async Task GenerateApocalypticShadowGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(

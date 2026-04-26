@@ -174,7 +174,11 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                         ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? StarLit : StarUnlit,
                             new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
 
-                    if (floorNumber % 2 == 1) yOffset += 200;
+                    if (floorNumber % 2 == 1)
+                    {
+                        var leftIsFull = floorNumber - 1 >= 0 && !IsSmallBlob(floorDetails[floorNumber - 1].Data);
+                        yOffset += leftIsFull ? 620 : 200;
+                    }
                     continue;
                 }
 
