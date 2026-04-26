@@ -246,7 +246,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             {
                 var skill = skillIcons[i];
                 var offset = i * 150;
-                ctx.DrawCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 20, Color.DarkSlateGray,
+                ctx.DrawCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 10, Color.DarkSlateGray,
                     backgroundColor, 5f);
                 ctx.DrawCenteredTextInEllipse(
                     skill.Data.Level.ToString()!,
@@ -270,7 +270,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 if (!constellation.Active)
                     constellation.Image.Mutate(x => x.Brightness(0.5f));
                 var offset = i * 140;
-                ctx.DrawCenteredIcon(constellation.Image, new PointF(1050, 1000 - offset), 50, 10,
+                ctx.DrawCenteredIcon(constellation.Image, new PointF(1050, 1000 - offset), 50, 5,
                     Color.DarkSlateGray, backgroundColor, 5f);
             }
 
