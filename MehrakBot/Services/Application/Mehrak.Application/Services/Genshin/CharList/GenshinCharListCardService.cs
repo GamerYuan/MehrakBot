@@ -41,9 +41,6 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
     private static readonly Color NormalConstColor = Color.FromRgba(69, 69, 69, 200);
     private static readonly Color GoldConstTextColor = Color.FromRgb(138, 101, 0);
 
-    private new static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
-    private new static readonly Color DarkOverlayColor = Color.FromRgba(0, 0, 0, 200);
-
     private static readonly string[] Elements =
     [
         "Pyro", "Hydro", "Cryo", "Electro", "Anemo", "Geo", "Dendro"
