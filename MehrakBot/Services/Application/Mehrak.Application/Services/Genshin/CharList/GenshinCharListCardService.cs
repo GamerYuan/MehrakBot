@@ -54,17 +54,6 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
         { "Dendro", Color.FromRgb(172, 230, 40) }
     };
 
-    private static readonly Dictionary<string, Color> ElementBackground = new()
-    {
-        { "Pyro", Color.FromRgba(198, 90, 21, 128) },
-        { "Hydro", Color.FromRgba(25, 156, 198, 128) },
-        { "Cryo", Color.FromRgba(108, 192, 192, 128) },
-        { "Electro", Color.FromRgba(177, 117, 217, 128) },
-        { "Anemo", Color.FromRgba(56, 185, 145, 128) },
-        { "Geo", Color.FromRgba(179, 132, 36, 128) },
-        { "Dendro", Color.FromRgba(128, 175, 18, 128) }
-    };
-
     private readonly Dictionary<string, Image> m_ElementIcons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Image> m_SmallElementIcons = new(StringComparer.OrdinalIgnoreCase);
 
@@ -82,14 +71,10 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
         foreach (var element in Elements)
         {
             var iconName = $"genshin_element_{element.ToLower()}";
-            if (ImageRepository.FileExistsAsync(iconName, cancellationToken).Result)
-            {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
-                var image = await Image.LoadAsync(stream, cancellationToken);
-                m_ElementIcons[element] = image;
-                var smallIcon = image.Clone(ctx => ctx.Resize(30, 0, KnownResamplers.Bicubic));
-                m_SmallElementIcons[element] = smallIcon;
-            }
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
+            using var image = await Image.LoadAsync(stream, cancellationToken);
+            m_ElementIcons[element] = image.Clone(ctx => ctx.Resize(40, 0, KnownResamplers.Bicubic));
+            m_SmallElementIcons[element] = image.Clone(ctx => ctx.Resize(30, 0, KnownResamplers.Bicubic));
         }
     }
 
@@ -174,7 +159,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
 
         var layout =
             ImageUtility.CalculateGridLayout(avatarDataList.Count,
-                CharacterModuleRenderer.CanvasSize.Width, CharacterModuleRenderer.CanvasSize.Height, [170, 50, 50, 50]);
+                CharacterModuleRenderer.CanvasSize.Width, CharacterModuleRenderer.CanvasSize.Height, [170, 50, 120, 50]);
 
         var outputWidth = layout.OutputWidth;
         var outputHeight = layout.OutputHeight + 50;
@@ -213,59 +198,59 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
                 renderer.Render(ctx, avatarDataList[position.ImageIndex], new Point(position.X, position.Y));
             }
 
-            var yOffset = layout.OutputHeight - 30;
-            var xOffset = 50;
-            foreach (var entry in charCountByElem)
-            {
-                var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
-                    new TextOptions(Fonts.Normal));
-                var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(Fonts.Normal));
-                FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
-                    countSize.Height + elemSize.Height);
-                EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
-                    new RoundedRectangleOverlayStyle(ElementBackground[entry.Element], CornerRadius: 10));
-                ctx.Fill(ElementForeground[entry.Element], foreground);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(xOffset + 40, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, entry.Element, Color.White);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, entry.Count.ToString(), Color.White);
-                xOffset += (int)size.Width + 70;
-            }
+            // Footer
+            const int footerHeight = 100;
+            const int footerX = 50;
+            var footerWidth = outputWidth - 100;
+            var footerY = layout.OutputHeight - layout.PaddingBottom + 20;
 
+            var footerModules = new List<Image<Rgba32>>();
             foreach (var entry in charCountByRarity)
             {
-                var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
-                    new TextOptions(Fonts.Normal));
-                var elemSize =
-                    TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(Fonts.Normal));
-                FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
-                    countSize.Height + elemSize.Height);
-                EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
-                    new RoundedRectangleOverlayStyle(RarityColors[entry.Rarity - 1].WithAlpha(128), CornerRadius: 10));
-                ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                var borderColor = entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor;
+                var module = RenderRarityModule(entry.Rarity, entry.Count, borderColor);
+                disposables.Add(module);
+                footerModules.Add(module);
+            }
+
+            foreach (var entry in charCountByElem)
+            {
+                var module = RenderElementModule(entry.Element, entry.Count, ElementForeground[entry.Element]);
+                disposables.Add(module);
+                footerModules.Add(module);
+            }
+
+            const int moduleW = 240;
+            const int moduleH = 70;
+            const int spacing = 10;
+            var totalModuleWidth = footerModules.Count * moduleW + (footerModules.Count - 1) * spacing;
+            var scale = 1f;
+            if (totalModuleWidth > footerWidth)
+            {
+                scale = (float)footerWidth / totalModuleWidth;
+                for (var i = 0; i < footerModules.Count; i++)
                 {
-                    Origin = new Vector2(xOffset + 40, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{entry.Rarity} Star", Color.White);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, entry.Count.ToString(), Color.White);
-                xOffset += (int)size.Width + 70;
+                    var oldModule = footerModules[i];
+                    var newModule = oldModule.Clone(ctx => ctx.Resize((int)(moduleW * scale), (int)(moduleH * scale)));
+                    disposables.Add(newModule);
+                    footerModules[i] = newModule;
+                }
+            }
+
+            var scaledModuleW = moduleW * scale;
+            var scaledModuleH = moduleH * scale;
+            var scaledSpacing = spacing * scale;
+            var totalScaledWidth = footerModules.Count * scaledModuleW + (footerModules.Count - 1) * scaledSpacing;
+            var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f;
+            var moduleStartY = footerY + (footerHeight - scaledModuleH) / 2f;
+
+            ctx.DrawRoundedRectangleOverlay(footerWidth, footerHeight, new PointF(footerX, footerY),
+                new RoundedRectangleOverlayStyle(Color.Transparent, Color.FromRgb(65, 65, 65), BorderWidth: 2, CornerRadius: 15));
+
+            for (var i = 0; i < footerModules.Count; i++)
+            {
+                var x = moduleStartX + i * (scaledModuleW + scaledSpacing);
+                ctx.DrawImage(footerModules[i], new Point((int)x, (int)moduleStartY), 1f);
             }
         });
 
@@ -276,5 +261,64 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
     private static string GetWeaponKey(Weapon weapon)
     {
         return $"{weapon.Id}_{(weapon.Ascended.Value ? "Ascended" : "Normal")}";
+    }
+
+    private Image<Rgba32> RenderElementModule(string element, int count, Color borderColor)
+    {
+        Image<Rgba32> module = new(240, 70);
+        module.Mutate(ctx =>
+        {
+            ctx.Clear(Color.Transparent);
+
+            var path = ImageUtility.CreateRoundedRectanglePath(module.Width - 2, module.Height - 2, 10).Translate(1, 1);
+            ctx.Draw(borderColor, 2f, path);
+
+            if (m_ElementIcons.TryGetValue(element, out var icon))
+            {
+                ctx.DrawImage(icon, new Point(10, 15), 1f);
+            }
+
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(60, 35),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center
+            }, element, Color.White);
+
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(225, 35),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center
+            }, count.ToString(), Color.White);
+        });
+        return module;
+    }
+
+    private Image<Rgba32> RenderRarityModule(int rarity, int count, Color borderColor)
+    {
+        Image<Rgba32> module = new(240, 70);
+        module.Mutate(ctx =>
+        {
+            ctx.Clear(Color.Transparent);
+
+            var path = ImageUtility.CreateRoundedRectanglePath(module.Width - 2, module.Height - 2, 10).Translate(1, 1);
+            ctx.Draw(borderColor, 2f, path);
+
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(15, 35),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center
+            }, $"{rarity} Star", Color.White);
+
+            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new Vector2(225, 35),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center
+            }, count.ToString(), Color.White);
+        });
+        return module;
     }
 }
