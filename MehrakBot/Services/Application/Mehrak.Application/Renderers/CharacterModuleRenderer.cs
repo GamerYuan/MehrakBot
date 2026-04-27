@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Numerics;
 using Mehrak.Application.Renderers.Extensions;
@@ -215,8 +215,8 @@ public class CharacterModuleRenderer
 
         var drawOptions = new RichTextOptions(chosenFont)
         {
-            Origin = new Vector2(textX + textWidth / 2, basePosition.Y + AvatarOffset.Y * 3),
-            HorizontalAlignment = HorizontalAlignment.Center,
+            Origin = new Vector2(textX + 10, basePosition.Y + AvatarOffset.Y * 3),
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
             WrappingLength = textWidth
         };
