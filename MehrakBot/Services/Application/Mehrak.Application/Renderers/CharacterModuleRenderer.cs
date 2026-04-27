@@ -26,6 +26,7 @@ public record CharacterModuleData(
     int Rarity,
     Image AvatarImage,
     int? ConstellationNum = 0,
+    Image? Icon = null,
     WeaponModuleData? Weapon = null);
 
 public record CharacterModuleStyle(
@@ -123,6 +124,11 @@ public class CharacterModuleRenderer
                 },
                     data.ConstellationNum.ToString()!,
                     data.ConstellationNum == 6 ? m_Style.GoldConstTextColor : Color.White);
+            }
+
+            if (data.Icon != null)
+            {
+                tctx.DrawImage(data.Icon, new Point(5, 5), 1f);
             }
 
             tctx.ApplyRoundedCorners(10);
