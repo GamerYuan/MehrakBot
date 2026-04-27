@@ -1,0 +1,83 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Application",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/MehrakBot/Services/Application/Mehrak.Application/Mehrak.Application.csproj",
+      "preLaunchTask": "build-application",
+      "presentation": {
+        "hidden": true,
+        "group": "",
+        "order": 1
+      }
+    },
+    {
+      "name": "Launch Bot",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/MehrakBot/Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj",
+      "preLaunchTask": "build-bot",
+      "presentation": {
+        "hidden": true,
+        "group": "",
+        "order": 2
+      }
+    },
+    {
+      "name": "Launch Dashboard",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/MehrakBot/Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj",
+      "preLaunchTask": "build-dashboard",
+      "presentation": {
+        "hidden": true,
+        "group": "",
+        "order": 3
+      }
+    },
+    {
+      "name": "Launch Dashboard Frontend",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}/Dashboard",
+      "presentation": {
+        "hidden": true,
+        "group": "",
+        "order": 4
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Mehrak.Bot",
+      "configurations": ["Launch Application", "Launch Bot"],
+      "preLaunchTask": "build-all"
+    },
+    {
+      "name": "Mehrak.Dashboard",
+      "configurations": [
+        "Launch Application",
+        "Launch Dashboard",
+        "Launch Dashboard Frontend"
+      ],
+      "preLaunchTask": "build-all"
+    },
+    {
+      "name": "Mehrak.Application",
+      "configurations": ["Launch Application"]
+    },
+    {
+      "name": "Everything",
+      "configurations": [
+        "Launch Application",
+        "Launch Bot",
+        "Launch Dashboard",
+        "Launch Dashboard Frontend"
+      ],
+      "preLaunchTask": "build-all"
+    }
+  ]
+}
