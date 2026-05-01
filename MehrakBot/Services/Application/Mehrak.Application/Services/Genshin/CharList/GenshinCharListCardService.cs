@@ -27,6 +27,8 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
     private static readonly Color GreenBackgroundColor = Color.FromRgb(79, 135, 111);
     private static readonly Color WhiteBackgroundColor = Color.FromRgb(128, 128, 130);
 
+    private static readonly Color BorderColor = Color.FromRgb(120, 120, 120);
+
     private static readonly Color[] RarityColors =
     [
         WhiteBackgroundColor,
@@ -124,7 +126,8 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             LevelOverlayColor: Color.PeachPuff,
             NormalConstColor: Color.FromRgba(69, 69, 69, 200),
             GoldConstColor: Color.Gold,
-            GoldConstTextColor: Color.FromRgb(138, 101, 0));
+            GoldConstTextColor: Color.FromRgb(138, 101, 0),
+            FooterTextColor: Color.White);
 
         var avatarDataTask = charData.OrderByDescending(x => x.Level)
             .ThenByDescending(x => x.Rarity)
@@ -177,7 +180,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             var headerWidth = outputWidth - 100;
 
             ctx.DrawRoundedRectangleOverlay(headerWidth, headerHeight, new PointF(headerX, 25),
-                new RoundedRectangleOverlayStyle(Color.Transparent, Color.FromRgb(65, 65, 65), BorderWidth: 2, CornerRadius: 15));
+                new RoundedRectangleOverlayStyle(Color.Transparent, BorderColor, BorderWidth: 2, CornerRadius: 15));
 
             ctx.DrawText(new RichTextOptions(Fonts.Title)
             {
@@ -208,22 +211,23 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             foreach (var entry in charCountByRarity)
             {
                 var borderColor = entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor;
-                var module = RenderRarityModule(entry.Rarity, entry.Count, borderColor);
+                var module = renderer.RenderFooterModule($"{entry.Rarity} Star", entry.Count, borderColor);
                 disposables.Add(module);
                 footerModules.Add(module);
             }
 
             foreach (var entry in charCountByElem)
             {
-                var module = RenderElementModule(entry.Element, entry.Count, ElementForeground[entry.Element]);
+                m_ElementIcons.TryGetValue(entry.Element, out var icon);
+                var module = renderer.RenderFooterModule(entry.Element, entry.Count, ElementForeground[entry.Element], icon);
                 disposables.Add(module);
                 footerModules.Add(module);
             }
 
-            const int moduleW = 240;
             const int moduleH = 70;
             const int spacing = 10;
-            var totalModuleWidth = footerModules.Count * moduleW + (footerModules.Count - 1) * spacing;
+            const int footerPadding = 20;
+            var totalModuleWidth = footerModules.Sum(m => m.Width) + (footerModules.Count - 1) * spacing + footerPadding * 2;
             var scale = 1f;
             if (totalModuleWidth > footerWidth)
             {
@@ -231,26 +235,26 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
                 for (var i = 0; i < footerModules.Count; i++)
                 {
                     var oldModule = footerModules[i];
-                    var newModule = oldModule.Clone(ctx => ctx.Resize((int)(moduleW * scale), (int)(moduleH * scale)));
+                    var newModule = oldModule.Clone(ctx => ctx.Resize((int)(oldModule.Width * scale), (int)(moduleH * scale)));
                     disposables.Add(newModule);
                     footerModules[i] = newModule;
                 }
             }
 
-            var scaledModuleW = moduleW * scale;
-            var scaledModuleH = moduleH * scale;
             var scaledSpacing = spacing * scale;
-            var totalScaledWidth = footerModules.Count * scaledModuleW + (footerModules.Count - 1) * scaledSpacing;
-            var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f;
-            var moduleStartY = footerY + (footerHeight - scaledModuleH) / 2f;
+            var scaledFooterPadding = footerPadding * scale;
+            var totalScaledWidth = footerModules.Sum(m => m.Width) + (footerModules.Count - 1) * scaledSpacing + scaledFooterPadding * 2;
+            var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f + scaledFooterPadding;
+            var moduleStartY = footerY + (footerHeight - moduleH * scale) / 2f;
 
             ctx.DrawRoundedRectangleOverlay(footerWidth, footerHeight, new PointF(footerX, footerY),
-                new RoundedRectangleOverlayStyle(Color.Transparent, Color.FromRgb(65, 65, 65), BorderWidth: 2, CornerRadius: 15));
+                new RoundedRectangleOverlayStyle(Color.Transparent, BorderColor, BorderWidth: 2, CornerRadius: 15));
 
+            var currentX = moduleStartX;
             for (var i = 0; i < footerModules.Count; i++)
             {
-                var x = moduleStartX + i * (scaledModuleW + scaledSpacing);
-                ctx.DrawImage(footerModules[i], new Point((int)x, (int)moduleStartY), 1f);
+                ctx.DrawImage(footerModules[i], new Point((int)currentX, (int)moduleStartY), 1f);
+                currentX += footerModules[i].Width + scaledSpacing;
             }
         });
 
@@ -263,62 +267,4 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
         return $"{weapon.Id}_{(weapon.Ascended.Value ? "Ascended" : "Normal")}";
     }
 
-    private Image<Rgba32> RenderElementModule(string element, int count, Color borderColor)
-    {
-        Image<Rgba32> module = new(240, 70);
-        module.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            var path = ImageUtility.CreateRoundedRectanglePath(module.Width - 2, module.Height - 2, 10).Translate(1, 1);
-            ctx.Draw(borderColor, 2f, path);
-
-            if (m_ElementIcons.TryGetValue(element, out var icon))
-            {
-                ctx.DrawImage(icon, new Point(10, 15), 1f);
-            }
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(60, 35),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            }, element, Color.White);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(225, 35),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            }, count.ToString(), Color.White);
-        });
-        return module;
-    }
-
-    private Image<Rgba32> RenderRarityModule(int rarity, int count, Color borderColor)
-    {
-        Image<Rgba32> module = new(240, 70);
-        module.Mutate(ctx =>
-        {
-            ctx.Clear(Color.Transparent);
-
-            var path = ImageUtility.CreateRoundedRectanglePath(module.Width - 2, module.Height - 2, 10).Translate(1, 1);
-            ctx.Draw(borderColor, 2f, path);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(15, 35),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{rarity} Star", Color.White);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(225, 35),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            }, count.ToString(), Color.White);
-        });
-        return module;
-    }
 }

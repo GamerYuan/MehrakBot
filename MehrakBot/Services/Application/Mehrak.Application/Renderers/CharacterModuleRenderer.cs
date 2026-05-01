@@ -37,23 +37,25 @@ public record CharacterModuleStyle(
     Color LevelOverlayColor,
     Color NormalConstColor,
     Color GoldConstColor,
-    Color GoldConstTextColor);
+    Color GoldConstTextColor,
+    Color FooterTextColor);
 
 public class CharacterModuleRenderer
 {
     private readonly CharacterModuleStyle m_Style;
 
     // Constants
-    public static readonly Size CanvasSize = new(500, 200);
+    public static readonly Size CanvasSize = new(330, 250);
     private static readonly Size AvatarSize = new(150, 180);
     private static readonly Size WeaponSize = new(150, 180);
-    private static readonly Point AvatarOffset = new(10, 10);
-    private static readonly Point WeaponOffset = new(340, 10);
-    private static readonly Color BorderColor = Color.FromRgb(65, 65, 65);
+    private static readonly Point AvatarOffset = new(10, 60);
+    private static readonly Point WeaponOffset = new(170, 60);
+    private static readonly Point NameCenter = new(165, 30);
+    private static readonly Color BorderColor = Color.FromRgb(120, 120, 120);
     private static readonly float BorderThickness = 2f;
     private static readonly int CornerRadius = 15;
-    private static readonly int NameAreaX = 160;
-    private static readonly int NameAreaWidth = 130;
+    private static readonly int NameAreaHeight = 40;
+    private static readonly int NameAreaWidth = 300;
 
     private static readonly Size LevelOverlaySize = new(150, 30);
 
@@ -83,6 +85,55 @@ public class CharacterModuleRenderer
                 CornerRadius)
             .Translate(position.X + 1, position.Y + 1);
         ctx.Draw(BorderColor, BorderThickness, borderPath);
+    }
+
+    public Image<Rgba32> RenderFooterModule(string text, int count, Color borderColor, Image? icon = null)
+    {
+        const int padding = 10;
+        const int gapBetweenLeftAndCount = 30;
+        const int iconSize = 40;
+        const int height = 70;
+
+        var textSize = TextMeasurer.MeasureSize(text, new TextOptions(m_Style.Fonts.Normal));
+        var countSize = TextMeasurer.MeasureSize(count.ToString(), new TextOptions(m_Style.Fonts.Normal));
+
+        var leftWidth = icon != null
+            ? padding + iconSize + padding + (int)textSize.Width
+            : padding + (int)textSize.Width;
+        var totalWidth = leftWidth + gapBetweenLeftAndCount + (int)countSize.Width + padding;
+
+        Image<Rgba32> module = new(totalWidth, height);
+        module.Mutate(ctx =>
+        {
+            ctx.Clear(Color.Transparent);
+
+            var path = ImageUtility.CreateRoundedRectanglePath(totalWidth - 2, height - 2, 10).Translate(1, 1);
+            ctx.Draw(borderColor, 2f, path);
+
+            if (icon != null)
+            {
+                ctx.DrawImage(icon, new Point(padding, (height - iconSize) / 2), 1f);
+            }
+
+            var textX = icon != null
+                ? padding + iconSize + padding + textSize.Width / 2
+                : padding + textSize.Width / 2;
+
+            ctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
+            {
+                Origin = new Vector2(textX, height / 2),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }, text, m_Style.FooterTextColor);
+
+            ctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
+            {
+                Origin = new Vector2(totalWidth - padding, height / 2),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center
+            }, count.ToString(), m_Style.FooterTextColor);
+        });
+        return module;
     }
 
     private void DrawAvatar(IImageProcessingContext ctx, CharacterModuleData data, Point position)
@@ -186,9 +237,6 @@ public class CharacterModuleRenderer
 
     private void DrawCharacterName(IImageProcessingContext ctx, string name, Point basePosition)
     {
-        var textX = basePosition.X + NameAreaX;
-        var textWidth = NameAreaWidth;
-
         var fonts = new[] { m_Style.Fonts.Normal, m_Style.Fonts.Medium, m_Style.Fonts.Small, m_Style.Fonts.Tiny };
         Font? chosenFont = null;
         FontRectangle textSize = default;
@@ -197,14 +245,14 @@ public class CharacterModuleRenderer
         {
             var measureOptions = new RichTextOptions(font)
             {
-                Origin = new Vector2(textX, basePosition.Y),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top,
-                WrappingLength = textWidth
+                Origin = Vector2.Zero,
+                WrappingLength = NameAreaWidth
             };
 
             textSize = TextMeasurer.MeasureSize(name, measureOptions);
-            if (textSize.Width <= textWidth)
+            var lineCount = TextMeasurer.CountLines(name, measureOptions);
+            if ((lineCount == 1 && textSize.Width <= NameAreaWidth) ||
+                (lineCount > 1 && textSize.Width <= NameAreaWidth && textSize.Height <= NameAreaHeight))
             {
                 chosenFont = font;
                 break;
@@ -215,10 +263,11 @@ public class CharacterModuleRenderer
 
         var drawOptions = new RichTextOptions(chosenFont)
         {
-            Origin = new Vector2(textX + 10, basePosition.Y + AvatarOffset.Y * 3),
-            HorizontalAlignment = HorizontalAlignment.Left,
+            Origin = new Vector2(basePosition.X + NameCenter.X,
+                basePosition.Y + NameCenter.Y - textSize.Height / 2),
+            HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
-            WrappingLength = textWidth
+            WrappingLength = NameAreaWidth
         };
 
         ctx.DrawText(drawOptions, name, m_Style.NameColor);
