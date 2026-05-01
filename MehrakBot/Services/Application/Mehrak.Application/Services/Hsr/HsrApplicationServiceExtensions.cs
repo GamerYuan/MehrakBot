@@ -27,6 +27,7 @@ internal static class HsrApplicationServiceExtensions
 
         services.AddKeyedTransient<IApplicationService, HsrCharListApplicationService>(CommandName.Hsr.CharList);
         services.AddSingleton<ICardService<IEnumerable<HsrCharacterInformation>>, HsrCharListCardService>();
+        services.RegisterAsyncInitializableFor<ICardService<IEnumerable<HsrCharacterInformation>>, HsrCharListCardService>();
 
         services.AddKeyedTransient<IApplicationService, HsrEndGameApplicationService>(CommandName.Hsr.PureFiction);
         services.AddKeyedTransient<IApplicationService, HsrEndGameApplicationService>(CommandName.Hsr.ApocalypticShadow);
