@@ -38,7 +38,8 @@ public record CharacterModuleStyle(
     Color NormalConstColor,
     Color GoldConstColor,
     Color GoldConstTextColor,
-    Color FooterTextColor);
+    Color FooterTextColor,
+    Image? PlaceholderWeaponIcon = null);
 
 public class CharacterModuleRenderer
 {
@@ -74,6 +75,18 @@ public class CharacterModuleRenderer
         if (data.Weapon != null)
         {
             DrawWeapon(ctx, data.Weapon, weaponPos);
+        }
+        else
+        {
+            var path = ImageUtility.CreateRoundedRectanglePath(WeaponSize.Width, WeaponSize.Height, 10)
+                .Translate(weaponPos.X, weaponPos.Y);
+            ctx.Fill(Color.FromRgb(69, 69, 69), path);
+            if (m_Style.PlaceholderWeaponIcon != null)
+            {
+                var placeholderPos = new Point(weaponPos.X + (WeaponSize.Width - m_Style.PlaceholderWeaponIcon.Width) / 2,
+                    weaponPos.Y + (WeaponSize.Height - m_Style.PlaceholderWeaponIcon.Height) / 2);
+                ctx.DrawImage(m_Style.PlaceholderWeaponIcon, placeholderPos, 1f);
+            }
         }
 
         DrawCharacterName(ctx, data.Name, position);
@@ -268,6 +281,7 @@ public class CharacterModuleRenderer
                 basePosition.Y + NameCenter.Y - textSize.Height / 2),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
+            TextAlignment = TextAlignment.Center,
             WrappingLength = NameAreaWidth
         };
 
