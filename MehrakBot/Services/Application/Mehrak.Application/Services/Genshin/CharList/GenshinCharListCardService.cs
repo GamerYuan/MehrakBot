@@ -213,7 +213,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             var footerY = layout.OutputHeight - layout.PaddingBottom + 20;
 
             var footerModules = new List<Image<Rgba32>>();
-            foreach (var entry in charCountByRarity)
+            foreach (var entry in charCountByRarity.OrderByDescending(x => x.Rarity))
             {
                 var borderColor = entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor;
                 var module = renderer.RenderFooterModule($"{entry.Rarity} Star", entry.Count, borderColor);

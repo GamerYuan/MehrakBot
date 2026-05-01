@@ -201,7 +201,7 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             var footerY = layout.OutputHeight - layout.PaddingBottom + 20;
 
             var footerModules = new List<Image<Rgba32>>();
-            foreach (var entry in charCountByRarity)
+            foreach (var entry in charCountByRarity.OrderByDescending(x => x.Rarity))
             {
                 var borderColor = entry.Rarity == 5 ? Color.Gold : PurpleBackgroundColor;
                 var module = renderer.RenderFooterModule($"{entry.Rarity} Star", entry.Count, borderColor);
