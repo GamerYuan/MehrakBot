@@ -64,7 +64,7 @@ public class CharacterModuleRenderer
         m_Style = style;
     }
 
-    public void Render(IImageProcessingContext ctx, CharacterModuleData data, Point position)
+    public void Render(IImageProcessingContext ctx, CharacterModuleData data, Point position, Color? borderColor = null)
     {
         var avatarPos = new Point(position.X + AvatarOffset.X, position.Y + AvatarOffset.Y);
         var weaponPos = new Point(position.X + WeaponOffset.X, position.Y + WeaponOffset.Y);
@@ -79,12 +79,13 @@ public class CharacterModuleRenderer
         DrawCharacterName(ctx, data.Name, position);
 
         // Rounded border
+        var actualBorderColor = borderColor ?? BorderColor;
         var borderPath = ImageUtility.CreateRoundedRectanglePath(
                 CanvasSize.Width - 2,
                 CanvasSize.Height - 2,
                 CornerRadius)
             .Translate(position.X + 1, position.Y + 1);
-        ctx.Draw(BorderColor, BorderThickness, borderPath);
+        ctx.Draw(actualBorderColor, BorderThickness, borderPath);
     }
 
     public Image<Rgba32> RenderFooterModule(string text, int count, Color borderColor, Image? icon = null)

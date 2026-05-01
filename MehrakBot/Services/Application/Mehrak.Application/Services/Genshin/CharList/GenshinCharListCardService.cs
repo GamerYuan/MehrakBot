@@ -129,14 +129,16 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             GoldConstTextColor: Color.FromRgb(138, 101, 0),
             FooterTextColor: Color.White);
 
-        var avatarDataTask = charData.OrderByDescending(x => x.Level)
+        var avatarDataTask = charData
+            .OrderByDescending(x => x.Level)
+            .ThenBy(x => Elements.IndexOf(x.Element, StringComparer.OrdinalIgnoreCase))
             .ThenByDescending(x => x.Rarity)
             .ThenBy(x => x.Name)
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
                 var avatarImage = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
-                return new CharacterModuleData(
+                var moduleData = new CharacterModuleData(
                     x.Name,
                     x.Level!.Value,
                     x.Rarity!.Value,
@@ -148,6 +150,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
                         x.Weapon.Rarity!.Value,
                         x.Weapon.AffixLevel,
                         weaponImages[GetWeaponKey(x.Weapon)]));
+                return (Character: x, ModuleData: moduleData);
             })
             .ToListAsync(cancellationToken: cancellationToken);
 
@@ -198,7 +201,9 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
 
             foreach (var position in layout.ImagePositions)
             {
-                renderer.Render(ctx, avatarDataList[position.ImageIndex], new Point(position.X, position.Y));
+                var (character, moduleData) = avatarDataList[position.ImageIndex];
+                renderer.Render(ctx, moduleData, new Point(position.X, position.Y),
+                    ElementForeground.TryGetValue(character.Element ?? "", out var elementColor) ? elementColor : null);
             }
 
             // Footer
