@@ -1,8 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Mehrak.Domain.Extensions;
 
 public static class StringExtensions
 {
-    public static string ToTitleCase(this string str)
+    [return: NotNullIfNotNull(nameof(str))]
+    public static string? ToTitleCase(this string? str)
     {
         if (string.IsNullOrEmpty(str))
             return str;
