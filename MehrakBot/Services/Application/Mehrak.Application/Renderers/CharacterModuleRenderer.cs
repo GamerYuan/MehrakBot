@@ -275,6 +275,16 @@ public class CharacterModuleRenderer
 
         chosenFont ??= fonts[^1];
 
+        if (chosenFont == fonts[^1])
+        {
+            var measureOptions = new RichTextOptions(chosenFont)
+            {
+                Origin = Vector2.Zero,
+                WrappingLength = NameAreaWidth
+            };
+            textSize = TextMeasurer.MeasureSize(name, measureOptions);
+        }
+
         var drawOptions = new RichTextOptions(chosenFont)
         {
             Origin = new Vector2(basePosition.X + NameCenter.X,
