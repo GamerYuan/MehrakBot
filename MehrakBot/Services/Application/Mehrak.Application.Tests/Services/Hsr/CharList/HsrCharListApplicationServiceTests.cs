@@ -514,6 +514,7 @@ public class HsrCharListApplicationServiceTests
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>(),
             Mock.Of<IApplicationMetrics>());
+        cardService.InitializeAsync().GetAwaiter().GetResult();
 
         // Real HTTP client factory
         var httpClientFactory = new Mock<IHttpClientFactory>();
