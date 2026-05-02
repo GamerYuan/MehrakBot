@@ -70,7 +70,7 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        var weaponStream = await ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template", cancellationToken);
+        await using var weaponStream = await ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template", cancellationToken);
         m_WeaponPlaceholder = await Image.LoadAsync<Rgba32>(weaponStream, cancellationToken);
         m_WeaponPlaceholder.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
 
