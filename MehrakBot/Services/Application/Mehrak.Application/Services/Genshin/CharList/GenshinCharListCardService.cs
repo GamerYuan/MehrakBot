@@ -72,7 +72,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
     {
         foreach (var element in Elements)
         {
-            var iconName = $"genshin_element_{element.ToLower()}";
+            var iconName = $"genshin_element_{element.ToLowerInvariant()}";
             await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
             using var image = await Image.LoadAsync(stream, cancellationToken);
             m_ElementIcons[element] = image.Clone(ctx => ctx.Resize(40, 0, KnownResamplers.Bicubic));
