@@ -38,9 +38,6 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
 
     private static readonly Color PurpleForegroundColor = Color.FromRgb(204, 173, 255);
 
-    private static readonly Color NormalConstColor = Color.FromRgba(69, 69, 69, 200);
-    private static readonly Color GoldConstTextColor = Color.FromRgb(138, 101, 0);
-
     private static readonly string[] Elements =
     [
         "Pyro", "Hydro", "Cryo", "Electro", "Anemo", "Geo", "Dendro"
@@ -57,16 +54,8 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
         { "Dendro", Color.FromRgb(172, 230, 40) }
     };
 
-    private static readonly Dictionary<string, Color> ElementBackground = new()
-    {
-        { "Pyro", Color.FromRgba(198, 90, 21, 128) },
-        { "Hydro", Color.FromRgba(25, 156, 198, 128) },
-        { "Cryo", Color.FromRgba(108, 192, 192, 128) },
-        { "Electro", Color.FromRgba(177, 117, 217, 128) },
-        { "Anemo", Color.FromRgba(56, 185, 145, 128) },
-        { "Geo", Color.FromRgba(179, 132, 36, 128) },
-        { "Dendro", Color.FromRgba(128, 175, 18, 128) }
-    };
+    private readonly Dictionary<string, Image> m_ElementIcons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Image> m_SmallElementIcons = new(StringComparer.OrdinalIgnoreCase);
 
     public GenshinCharListCardService(IImageRepository imageRepository, ILogger<GenshinCharListCardService> logger, IApplicationMetrics metrics)
         : base(
@@ -77,7 +66,17 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             LoadFonts("Assets/Fonts/genshin.ttf", titleSize: 40, normalSize: 28, smallSize: 20))
     { }
 
-    public override Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var element in Elements)
+        {
+            var iconName = $"genshin_element_{element.ToLowerInvariant()}";
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
+            using var image = await Image.LoadAsync(stream, cancellationToken);
+            m_ElementIcons[element] = image.Clone(ctx => ctx.Resize(40, 0, KnownResamplers.Bicubic));
+            m_SmallElementIcons[element] = image.Clone(ctx => ctx.Resize(30, 0, KnownResamplers.Bicubic));
+        }
+    }
 
     public override async Task RenderCardAsync(
         Image<Rgba32> background,
@@ -115,19 +114,43 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
 
                     image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
                     return image;
-                });
-        var avatarImageTask = charData.OrderByDescending(x => x.Level)
+                }, cancellationToken: cancellationToken);
+
+        var moduleStyle = new CharacterModuleStyle(
+            Fonts,
+            RarityColors,
+            NameColor: Color.White,
+            LevelTextColor: Color.Black,
+            LevelOverlayColor: Color.PeachPuff,
+            NormalConstColor: Color.FromRgba(69, 69, 69, 200),
+            GoldConstColor: Color.Gold,
+            GoldConstTextColor: Color.FromRgb(138, 101, 0),
+            FooterTextColor: Color.White);
+
+        var avatarDataTask = charData
+            .OrderByDescending(x => x.Level)
+            .ThenBy(x => Elements.IndexOf(x.Element, StringComparer.OrdinalIgnoreCase))
             .ThenByDescending(x => x.Rarity)
             .ThenBy(x => x.Name)
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
                 var avatarImage = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
-                var styledImage = GetStyledCharacterImage(x, avatarImage, weaponImages[GetWeaponKey(x.Weapon)]);
-                disposables.Add(styledImage);
-                return styledImage;
+                var moduleData = new CharacterModuleData(
+                    x.Name,
+                    x.Level!.Value,
+                    x.Rarity!.Value,
+                    avatarImage,
+                    x.ActivedConstellationNum,
+                    Icon: m_SmallElementIcons.TryGetValue(x.Element!, out var value) ? value : null,
+                    Weapon: new WeaponModuleData(
+                        x.Weapon.Level!.Value,
+                        x.Weapon.Rarity!.Value,
+                        x.Weapon.AffixLevel,
+                        weaponImages[GetWeaponKey(x.Weapon)]));
+                return (Character: x, ModuleData: moduleData);
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken: cancellationToken);
 
         var charCountByElem = charData.GroupBy(x => x.Element!)
             .OrderBy(x => Array.IndexOf(Elements, x.Key))
@@ -136,183 +159,59 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             .OrderBy(x => x.Key)
             .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
-        var avatarImages = await avatarImageTask;
+        var avatarDataList = await avatarDataTask;
 
         var layout =
-            ImageUtility.CalculateGridLayout(avatarImages.Count, 300, 180, [120, 50, 50, 50]);
+            ImageUtility.CalculateGridLayout(avatarDataList.Count,
+                CharacterModuleRenderer.CanvasSize.Width, CharacterModuleRenderer.CanvasSize.Height, [170, 50, 120, 50]);
 
         var outputWidth = layout.OutputWidth;
         var outputHeight = layout.OutputHeight + 50;
         if (background.Width != outputWidth || background.Height != outputHeight)
             background.Mutate(ctx => ctx.Resize(outputWidth, outputHeight));
+
+        var renderer = new CharacterModuleRenderer(moduleStyle);
         background.Mutate(ctx =>
         {
-            ctx.Clear(Color.FromRgb(69, 69, 69));
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
-            {
-                Origin = new Vector2(50, 80),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
+            ctx.Clear(Color.FromRgb(27, 27, 27));
 
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(50, 110),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, context.GameProfile.GameUid!, Color.White);
+            renderer.RenderHeader(ctx, outputWidth,
+                $"{context.GameProfile.Nickname!}·AR {context.GameProfile.Level}", context.GameProfile.GameUid!);
 
             foreach (var position in layout.ImagePositions)
             {
-                var image = avatarImages[position.ImageIndex];
-                ctx.DrawImage(image, new Point(position.X, position.Y), 1f);
+                var (character, moduleData) = avatarDataList[position.ImageIndex];
+                renderer.Render(ctx, moduleData, new Point(position.X, position.Y),
+                    ElementForeground.TryGetValue(character.Element ?? "", out var elementColor) ? elementColor : null);
             }
 
-            var yOffset = layout.OutputHeight - 30;
-            var xOffset = 50;
+            var footerModules = new List<Image<Rgba32>>();
+            foreach (var entry in charCountByRarity.OrderByDescending(x => x.Rarity))
+            {
+                var bc = entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor;
+                var module = renderer.RenderFooterModule($"{entry.Rarity} Star", entry.Count, bc);
+                disposables.Add(module);
+                footerModules.Add(module);
+            }
+
             foreach (var entry in charCountByElem)
             {
-                var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
-                    new TextOptions(Fonts.Normal));
-                var elemSize = TextMeasurer.MeasureSize(entry.Element, new TextOptions(Fonts.Normal));
-                FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
-                    countSize.Height + elemSize.Height);
-                EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
-                    new RoundedRectangleOverlayStyle(ElementBackground[entry.Element], CornerRadius: 10));
-                ctx.Fill(ElementForeground[entry.Element], foreground);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(xOffset + 40, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, entry.Element, Color.White);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, entry.Count.ToString(), Color.White);
-                xOffset += (int)size.Width + 70;
+                m_ElementIcons.TryGetValue(entry.Element, out var icon);
+                var module = renderer.RenderFooterModule(entry.Element, entry.Count, ElementForeground[entry.Element], icon);
+                disposables.Add(module);
+                footerModules.Add(module);
             }
 
-            foreach (var entry in charCountByRarity)
-            {
-                var countSize = TextMeasurer.MeasureSize(entry.Count.ToString(),
-                    new TextOptions(Fonts.Normal));
-                var elemSize =
-                    TextMeasurer.MeasureSize($"{entry.Rarity} Star", new TextOptions(Fonts.Normal));
-                FontRectangle size = new(0, 0, countSize.Width + elemSize.Width + 20,
-                    countSize.Height + elemSize.Height);
-                EllipsePolygon foreground = new(new PointF(xOffset + 20, yOffset + 25), 10);
-                ctx.DrawRoundedRectangleOverlay((int)size.Width + 50, 50, new PointF(xOffset, yOffset),
-                    new RoundedRectangleOverlayStyle(RarityColors[entry.Rarity - 1].WithAlpha(128), CornerRadius: 10));
-                ctx.Fill(entry.Rarity == 5 ? Color.Gold : PurpleForegroundColor, foreground);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(xOffset + 40, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, $"{entry.Rarity} Star", Color.White);
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(xOffset + 35 + size.Width, yOffset + 26),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, entry.Count.ToString(), Color.White);
-                xOffset += (int)size.Width + 70;
-            }
+            CharacterModuleRenderer.RenderFooter(ctx, outputWidth, layout.OutputHeight, footerModules, disposables);
         });
 
         Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
             context.GameProfile.GameUid, charData.Count);
     }
 
-    private Image<Rgba32> GetStyledCharacterImage(GenshinBasicCharacterData charData, Image avatarImage,
-        Image weaponImage)
-    {
-        Image<Rgba32> background = new(300, 180);
-        background.Mutate(ctx =>
-        {
-            ctx.Fill(RarityColors[charData.Rarity!.Value - 1], new RectangleF(0, 0, 150, 180));
-            ctx.Fill(RarityColors[charData.Weapon.Rarity!.Value - 1], new RectangleF(150, 0, 150, 180));
-
-            ctx.DrawImage(avatarImage, new Point(0, 0), 1f);
-            ctx.DrawImage(weaponImage, new Point(150, 0), 1f);
-
-            var charLevelRect =
-                TextMeasurer.MeasureSize($"Lv. {charData.Level}", new TextOptions(Fonts.Small!));
-            ctx.DrawRoundedRectangleOverlay((int)charLevelRect.Width + 40, (int)charLevelRect.Height + 20,
-                new PointF(-25, 110),
-                new RoundedRectangleOverlayStyle(DarkOverlayColor, CornerRadius: 10));
-            ctx.DrawText(new RichTextOptions(Fonts.Small!)
-            {
-                Origin = new Vector2(5, 120 + charLevelRect.Height / 2),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"Lv. {charData.Level}", Color.White);
-
-            if (charData.ActivedConstellationNum > 0)
-            {
-                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 115),
-                    new RoundedRectangleOverlayStyle(
-                        charData.ActivedConstellationNum == 6 ? Color.Gold : NormalConstColor,
-                        CornerRadius: 5));
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(130, 130),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                    charData.ActivedConstellationNum.ToString()!,
-                    charData.ActivedConstellationNum == 6 ? GoldConstTextColor : Color.White);
-            }
-
-            var weapLevelRect =
-                TextMeasurer.MeasureSize($"Lv. {charData.Weapon.Level}", new TextOptions(Fonts.Small!));
-            ctx.DrawRoundedRectangleOverlay((int)weapLevelRect.Width + 40, (int)weapLevelRect.Height + 20,
-                new PointF(285 - weapLevelRect.Width, 110),
-                new RoundedRectangleOverlayStyle(DarkOverlayColor, CornerRadius: 10));
-            ctx.DrawText(new RichTextOptions(Fonts.Small)
-            {
-                Origin = new PointF(295 - weapLevelRect.Width / 2, 120 + weapLevelRect.Height / 2),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"Lv. {charData.Weapon.Level}", Color.White);
-
-            if (charData.Weapon.AffixLevel > 0)
-            {
-                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(155, 115),
-                    new RoundedRectangleOverlayStyle(
-                        charData.Weapon.AffixLevel == 5 ? Color.Gold : NormalConstColor,
-                        CornerRadius: 5));
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(170, 130),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                    charData.Weapon.AffixLevel.ToString()!,
-                    charData.Weapon.AffixLevel == 5 ? GoldConstTextColor : Color.White);
-            }
-
-            ctx.DrawLine(OverlayColor, 2f, new PointF(150, -5), new PointF(150, 185));
-            ctx.BoxBlur(2, new Rectangle(147, 0, 5, 180));
-
-            ctx.Fill(Color.PeachPuff, new RectangleF(0, 150, 300, 30));
-            ctx.DrawText(new RichTextOptions(charData.Name.Length >= 15 ? Fonts.Small : Fonts.Normal)
-            {
-                Origin = new Vector2(150, 165),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{charData.Name}", Color.Black);
-
-            ctx.ApplyRoundedCorners(15);
-        });
-
-        return background;
-    }
-
     private static string GetWeaponKey(Weapon weapon)
     {
         return $"{weapon.Id}_{(weapon.Ascended.Value ? "Ascended" : "Normal")}";
     }
+
 }

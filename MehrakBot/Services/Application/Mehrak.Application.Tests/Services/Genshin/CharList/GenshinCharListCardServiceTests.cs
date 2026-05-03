@@ -25,19 +25,21 @@ public class GenshinCharListCardServiceTests
     private static readonly string TestDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
         m_Service = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<Application.Services.Abstractions.IApplicationMetrics>());
+
+        await m_Service.InitializeAsync();
     }
 
     [Test]
     [TestCase("CharList_TestData_1.json")]
     [TestCase("CharList_TestData_2.json")]
     [TestCase("CharList_TestData_3.json")]
-    public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
+    public async Task GetCharListCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
             await JsonSerializer.DeserializeAsync<CharacterListData>(
@@ -86,7 +88,7 @@ public class GenshinCharListCardServiceTests
         };
     }
 
-    /*
+    [Explicit]
     [Test]
     [TestCase("CharList_TestData_1.json", "CharList_GoldenImage_1.jpg")]
     [TestCase("CharList_TestData_2.json", "CharList_GoldenImage_2.jpg")]
@@ -110,5 +112,5 @@ public class GenshinCharListCardServiceTests
         await fileStream.FlushAsync();
         fileStream.Close();
     }
-    */
+
 }

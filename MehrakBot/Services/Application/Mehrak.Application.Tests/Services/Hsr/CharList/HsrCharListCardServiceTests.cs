@@ -29,12 +29,13 @@ public class HsrCharListCardServiceTests
     };
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
         m_Service = new HsrCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>(),
             Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+        await m_Service.LoadStaticResourcesAsync();
     }
 
     [Test]

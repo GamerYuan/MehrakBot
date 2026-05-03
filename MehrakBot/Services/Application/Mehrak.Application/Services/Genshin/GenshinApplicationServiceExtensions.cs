@@ -34,6 +34,7 @@ internal static class GenshinApplicationServiceExtensions
         services.AddKeyedTransient<IApplicationService, GenshinCharacterApplicationService>(CommandName.Genshin.Character);
 
         services.AddSingleton<ICardService<IEnumerable<GenshinBasicCharacterData>>, GenshinCharListCardService>();
+        services.RegisterAsyncInitializableFor<ICardService<IEnumerable<GenshinBasicCharacterData>>, GenshinCharListCardService>();
         services.AddKeyedTransient<IApplicationService, GenshinCharListApplicationService>(CommandName.Genshin.CharList);
 
         services.AddSingleton<ICardService<StygianData>, GenshinStygianCardService>();
