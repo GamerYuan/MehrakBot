@@ -164,7 +164,7 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             ctx.Clear(Color.FromRgb(27, 27, 27));
 
             renderer.RenderHeader(ctx, outputWidth,
-                context.GameProfile.Nickname!, $"TB {context.GameProfile.Level}", context.GameProfile.GameUid!);
+                $"{context.GameProfile.Nickname!} · TB {context.GameProfile.Level}", context.GameProfile.GameUid!);
 
             foreach (var position in layout.ImagePositions)
             {

@@ -104,8 +104,7 @@ public class CharacterModuleRenderer
     public void RenderHeader(
         IImageProcessingContext ctx,
         int outputWidth,
-        string nickname,
-        string levelString,
+        string topString,
         string uid,
         Color? borderColor = null)
     {
@@ -121,7 +120,7 @@ public class CharacterModuleRenderer
             Origin = new Vector2(headerX + 20, 50),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
-        }, $"{nickname}·{levelString}", Color.White);
+        }, topString, Color.White);
 
         ctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
         {
