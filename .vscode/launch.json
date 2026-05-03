@@ -54,7 +54,7 @@
     {
       "name": "Mehrak.Bot",
       "configurations": ["Launch Application", "Launch Bot"],
-      "preLaunchTask": "build-all"
+      "preLaunchTask": "build-bot"
     },
     {
       "name": "Mehrak.Dashboard",
@@ -63,11 +63,7 @@
         "Launch Dashboard",
         "Launch Dashboard Frontend"
       ],
-      "preLaunchTask": "build-all"
-    },
-    {
-      "name": "Mehrak.Application",
-      "configurations": ["Launch Application"]
+      "preLaunchTask": "build-dashboard"
     },
     {
       "name": "Everything",
