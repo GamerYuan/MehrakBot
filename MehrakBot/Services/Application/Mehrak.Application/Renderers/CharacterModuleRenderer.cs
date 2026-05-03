@@ -101,6 +101,36 @@ public class CharacterModuleRenderer
         ctx.Draw(actualBorderColor, BorderThickness, borderPath);
     }
 
+    public void RenderHeader(
+        IImageProcessingContext ctx,
+        int outputWidth,
+        string nickname,
+        string levelString,
+        string uid,
+        Color? borderColor = null)
+    {
+        const int headerHeight = 120;
+        const int headerX = 50;
+        var headerWidth = outputWidth - 100;
+
+        ctx.DrawRoundedRectangleOverlay(headerWidth, headerHeight, new PointF(headerX, 25),
+            new RoundedRectangleOverlayStyle(Color.Transparent, borderColor ?? BorderColor, BorderWidth: 2, CornerRadius: 15));
+
+        ctx.DrawText(new RichTextOptions(m_Style.Fonts.Title)
+        {
+            Origin = new Vector2(headerX + 20, 50),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        }, $"{nickname}·{levelString}", Color.White);
+
+        ctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
+        {
+            Origin = new Vector2(headerX + 20, 105),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        }, $"UID: {uid}", Color.White);
+    }
+
     public Image<Rgba32> RenderFooterModule(string text, int count, Color borderColor, Image? icon = null)
     {
         const int padding = 10;
@@ -148,6 +178,52 @@ public class CharacterModuleRenderer
             }, count.ToString(), m_Style.FooterTextColor);
         });
         return module;
+    }
+
+    public static void RenderFooter(
+        IImageProcessingContext ctx,
+        int outputWidth,
+        int gridOutputHeight,
+        List<Image<Rgba32>> footerModules,
+        DisposableBag disposables)
+    {
+        const int footerHeight = 100;
+        const int footerX = 50;
+        var footerWidth = outputWidth - 100;
+        var footerY = gridOutputHeight - 100; // PaddingBottom(120) + offset(20)
+
+        const int moduleH = 70;
+        const int spacing = 10;
+        const int footerPadding = 20;
+        var totalModuleWidth = footerModules.Sum(m => m.Width) + (footerModules.Count - 1) * spacing + footerPadding * 2;
+        var scale = 1f;
+        if (totalModuleWidth > footerWidth)
+        {
+            scale = (float)footerWidth / totalModuleWidth;
+            for (var i = 0; i < footerModules.Count; i++)
+            {
+                var oldModule = footerModules[i];
+                var newModule = oldModule.Clone(ctx => ctx.Resize((int)(oldModule.Width * scale), (int)(moduleH * scale)));
+                disposables.Add(newModule);
+                footerModules[i] = newModule;
+            }
+        }
+
+        var scaledSpacing = spacing * scale;
+        var scaledFooterPadding = footerPadding * scale;
+        var totalScaledWidth = footerModules.Sum(m => m.Width) + (footerModules.Count - 1) * scaledSpacing + scaledFooterPadding * 2;
+        var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f + scaledFooterPadding;
+        var moduleStartY = footerY + (footerHeight - moduleH * scale) / 2f;
+
+        ctx.DrawRoundedRectangleOverlay(footerWidth, footerHeight, new PointF(footerX, footerY),
+            new RoundedRectangleOverlayStyle(Color.Transparent, BorderColor, BorderWidth: 2, CornerRadius: 15));
+
+        var currentX = moduleStartX;
+        for (var i = 0; i < footerModules.Count; i++)
+        {
+            ctx.DrawImage(footerModules[i], new Point((int)currentX, (int)moduleStartY), 1f);
+            currentX += footerModules[i].Width + scaledSpacing;
+        }
     }
 
     private void DrawAvatar(IImageProcessingContext ctx, CharacterModuleData data, Point position)

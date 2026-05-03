@@ -35,8 +35,6 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
         GoldBackgroundColor
     ];
 
-    private static readonly Color BorderColor = Color.FromRgb(120, 120, 120);
-
     private static readonly string[] Elements =
         ["physical", "fire", "ice", "lightning", "wind", "quantum", "imaginary"];
 
@@ -165,27 +163,8 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
         {
             ctx.Clear(Color.FromRgb(27, 27, 27));
 
-            // Header with rounded border
-            const int headerHeight = 120;
-            const int headerX = 50;
-            var headerWidth = outputWidth - 100;
-
-            ctx.DrawRoundedRectangleOverlay(headerWidth, headerHeight, new PointF(headerX, 25),
-                new RoundedRectangleOverlayStyle(Color.Transparent, BorderColor, BorderWidth: 2, CornerRadius: 15));
-
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
-            {
-                Origin = new Vector2(headerX + 20, 50),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, $"{context.GameProfile.Nickname} · TB {context.GameProfile.Level}", Color.White);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(headerX + 20, 105),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            }, $"UID: {context.GameProfile.GameUid}", Color.White);
+            renderer.RenderHeader(ctx, outputWidth,
+                context.GameProfile.Nickname!, $"TB {context.GameProfile.Level}", context.GameProfile.GameUid!);
 
             foreach (var position in layout.ImagePositions)
             {
@@ -194,17 +173,11 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
                     ElementBackground.GetValueOrDefault(character.Element ?? "", Color.FromRgb(120, 120, 120)));
             }
 
-            // Footer
-            const int footerHeight = 100;
-            const int footerX = 50;
-            var footerWidth = outputWidth - 100;
-            var footerY = layout.OutputHeight - layout.PaddingBottom + 20;
-
             var footerModules = new List<Image<Rgba32>>();
             foreach (var entry in charCountByRarity.OrderByDescending(x => x.Rarity))
             {
-                var borderColor = entry.Rarity == 5 ? Color.Gold : PurpleBackgroundColor;
-                var module = renderer.RenderFooterModule($"{entry.Rarity} Star", entry.Count, borderColor);
+                var bc = entry.Rarity == 5 ? Color.Gold : PurpleBackgroundColor;
+                var module = renderer.RenderFooterModule($"{entry.Rarity} Star", entry.Count, bc);
                 disposables.Add(module);
                 footerModules.Add(module);
             }
@@ -217,38 +190,7 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
                 footerModules.Add(module);
             }
 
-            const int moduleH = 70;
-            const int spacing = 10;
-            const int footerPadding = 20;
-            var totalModuleWidth = footerModules.Sum(m => m.Width) + (footerModules.Count - 1) * spacing + footerPadding * 2;
-            var scale = 1f;
-            if (totalModuleWidth > footerWidth)
-            {
-                scale = (float)footerWidth / totalModuleWidth;
-                for (var i = 0; i < footerModules.Count; i++)
-                {
-                    var oldModule = footerModules[i];
-                    var newModule = oldModule.Clone(ctx => ctx.Resize((int)(oldModule.Width * scale), (int)(moduleH * scale)));
-                    disposables.Add(newModule);
-                    footerModules[i] = newModule;
-                }
-            }
-
-            var scaledSpacing = spacing * scale;
-            var scaledFooterPadding = footerPadding * scale;
-            var totalScaledWidth = footerModules.Sum(m => m.Width) + (footerModules.Count - 1) * scaledSpacing + scaledFooterPadding * 2;
-            var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f + scaledFooterPadding;
-            var moduleStartY = footerY + (footerHeight - moduleH * scale) / 2f;
-
-            ctx.DrawRoundedRectangleOverlay(footerWidth, footerHeight, new PointF(footerX, footerY),
-                new RoundedRectangleOverlayStyle(Color.Transparent, BorderColor, BorderWidth: 2, CornerRadius: 15));
-
-            var currentX = moduleStartX;
-            for (var i = 0; i < footerModules.Count; i++)
-            {
-                ctx.DrawImage(footerModules[i], new Point((int)currentX, (int)moduleStartY), 1f);
-                currentX += footerModules[i].Width + scaledSpacing;
-            }
+            CharacterModuleRenderer.RenderFooter(ctx, outputWidth, layout.OutputHeight, footerModules, disposables);
         });
 
         Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
