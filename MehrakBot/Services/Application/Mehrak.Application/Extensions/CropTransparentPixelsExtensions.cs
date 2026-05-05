@@ -1,6 +1,5 @@
 ﻿namespace Mehrak.Application.Extensions;
 
-using OpenCvSharp;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -53,7 +52,7 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
 
     public void Execute()
     {
-        var bounds = CropTransparentPixelsProcessor<TPixel>.GetContentBounds(m_Source);
+        var bounds = GetContentBounds(m_Source);
 
         // If the image is entirely transparent, we might choose to return a 1x1 empty image 
         // or the original. Here we'll just return to avoid errors, or crop to 1x1.
@@ -76,34 +75,27 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
 
     private static Rectangle GetContentBounds(Image<TPixel> image)
     {
-        using var stream = new MemoryStream();
-        image.SaveAsPng(stream);
-        stream.Position = 0;
-        using var src = Cv2.ImDecode(stream.ToArray(), ImreadModes.Unchanged);
-
         int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
+        const float alphaThreshold = 0.2f;
 
-        if (src.Channels() != 4)
-            return Rectangle.Empty;
-
-        // 3. Apply Threshold to the Alpha channel
-        const double threshValue = 255 * 0.2f;
-
-        for (var i = 1; i < src.Rows - 1; i++)
+        image.ProcessPixelRows(accessor =>
         {
-            for (var j = 1; j < src.Cols - 1; j++)
+            for (var y = 0; y < accessor.Height; y++)
             {
-                var alpha = src.Get<Vec4b>(i, j)[3];
-                if (alpha > threshValue)
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x++)
                 {
-                    minX = Math.Min(minX, j);
-                    minY = Math.Min(minY, i);
-                    maxX = Math.Max(maxX, j);
-                    maxY = Math.Max(maxY, i);
+                    var rgba = row[x].ToScaledVector4();
+                    if (rgba.W > alphaThreshold)
+                    {
+                        minX = Math.Min(minX, x);
+                        minY = Math.Min(minY, y);
+                        maxX = Math.Max(maxX, x);
+                        maxY = Math.Max(maxY, y);
+                    }
                 }
-
             }
-        }
+        });
 
         if (minX > maxX || minY > maxY)
             return Rectangle.Empty;
@@ -111,4 +103,5 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
         return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
     }
 }
+
 
