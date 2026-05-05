@@ -7,6 +7,7 @@ using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
@@ -211,6 +212,24 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         var accentColor = GetAccentColor(characterInformation.Element!);
 
         var characterPortrait = await characterPortraitTask;
+
+        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        characterPortrait.Mutate(ctx =>
+        {
+            if (portraitConfig?.TargetScale.HasValue == true)
+            {
+                var scale = portraitConfig.TargetScale.Value;
+                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+            }
+            else
+            {
+                ctx.Resize(1000, 0, KnownResamplers.Lanczos3);
+            }
+
+            if (portraitConfig?.EnableGradientFade == true)
+                ctx.ApplyGradientFade(portraitConfig.GradientFadeStart ?? 0.75f);
+        });
+
         var equipImage = await equipImageTask;
         (bool Active, Image Image)[] ranks = [.. (await Task.WhenAll(rankTasks)).Reverse()];
         (Skill Data, Image Image)[] baseSkillImages = [.. await Task.WhenAll(baseSkillTasks)];
@@ -230,8 +249,10 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
 
         background.Mutate(ctx =>
         {
+            var offsetX = portraitConfig?.OffsetX ?? 0;
+            var offsetY = portraitConfig?.OffsetY ?? 0;
             ctx.DrawImage(characterPortrait,
-                new Point(400 - characterPortrait.Width / 2, 700 - characterPortrait.Height / 2), 1f);
+                new Point(400 - characterPortrait.Width / 2 + offsetX, 700 - characterPortrait.Height / 2 + offsetY), 1f);
         });
 
         var clone = background.CloneAs<Rgba32>();

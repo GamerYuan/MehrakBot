@@ -7,6 +7,7 @@ using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Utility;
@@ -151,6 +152,24 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         var accentColor = Color.ParseHex(character.VerticalPaintingColor);
 
         var portraitImage = await portraitTask;
+
+        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        portraitImage.Mutate(ctx =>
+        {
+            if (portraitConfig?.TargetScale.HasValue == true)
+            {
+                var scale = portraitConfig.TargetScale.Value;
+                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+            }
+            else
+            {
+                ctx.Resize(2000, 0, KnownResamplers.Lanczos3);
+            }
+
+            if (portraitConfig?.EnableGradientFade == true)
+                ctx.ApplyGradientFade(portraitConfig.GradientFadeStart ?? 0.75f);
+        });
+
         var weaponImage = await weaponTask;
         disposables.AddRange(diskImage);
 
@@ -168,8 +187,10 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
             }, string.Join($"{character.FullName.ToUpperInvariant()} ", Enumerable.Range(0, 5).Select(_ => "")),
                 Color.White.WithAlpha(0.25f));
 
+            var offsetX = portraitConfig?.OffsetX ?? 0;
+            var offsetY = portraitConfig?.OffsetY ?? 0;
             ctx.DrawImage(portraitImage,
-                new Point(350 - portraitImage.Width / 2, 650 - portraitImage.Height / 4), 1f);
+                new Point(350 - portraitImage.Width / 2 + offsetX, 650 - portraitImage.Height / 4 + offsetY), 1f);
 
             ctx.DrawTextWithShadow(character.Name!, new RichTextOptions(Fonts.Title)
             {
