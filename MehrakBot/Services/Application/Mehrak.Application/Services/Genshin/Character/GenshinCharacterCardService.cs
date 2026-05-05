@@ -2,12 +2,14 @@
 
 using System.Numerics;
 using System.Text.RegularExpressions;
+using Mehrak.Application.Extensions;
 using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Genshin.Types;
@@ -151,6 +153,38 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
 
         var characterPortrait = await characterPortraitTask;
 
+        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        characterPortrait.Mutate(ctx =>
+        {
+            ctx.CropTransparentPixels();
+
+            if (portraitConfig?.TargetScale.HasValue == true)
+            {
+                var scale = portraitConfig.TargetScale.Value;
+                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+            }
+            else
+            {
+                var size = ctx.GetCurrentSize();
+                if (size.Width >= size.Height)
+                    ctx.Resize(0, (int)Math.Round(1280 * Math.Min(1.2 * size.Height / size.Width, 1f)), KnownResamplers.Lanczos3);
+                else
+                    ctx.Resize(1400, 0, KnownResamplers.Lanczos3);
+
+                size = ctx.GetCurrentSize();
+                if (size.Height > 1280)
+                    ctx.Resize(0, 1280, KnownResamplers.Lanczos3);
+
+                size = ctx.GetCurrentSize();
+                if (size.Width > 1280)
+                    ctx.Crop(new Rectangle((size.Width - 1280) / 2, 0, 1280, size.Height));
+            }
+
+            var enableFade = portraitConfig?.EnableGradientFade ?? true;
+            if (enableFade)
+                ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
+        });
+
         var weaponImage = await weaponImageTask;
 
         (bool Active, Image Image)[] constellationIcons = [.. await Task.WhenAll(constellationTasks)];
@@ -216,8 +250,10 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
 
             var textColor = Color.White;
 
+            var offsetX = portraitConfig?.OffsetX ?? 0;
+            var offsetY = portraitConfig?.OffsetY ?? 0;
             ctx.DrawImage(characterPortrait,
-                new Point((1280 - characterPortrait.Width) / 2, 100 + (1080 - characterPortrait.Height) / 2),
+                new Point((1280 - characterPortrait.Width) / 2 + offsetX, 100 + (1080 - characterPortrait.Height) / 2 + offsetY),
                 1f);
 
             ctx.DrawTextWithShadow(charInfo.Base.Name, Fonts.Title, new PointF(70, 55), textColor);

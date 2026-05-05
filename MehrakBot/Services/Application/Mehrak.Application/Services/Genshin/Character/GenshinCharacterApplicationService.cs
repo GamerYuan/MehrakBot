@@ -41,6 +41,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterStatService m_CharacterStatService;
+    private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
@@ -55,6 +56,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         UserDbContext userContext,
         ICharacterStatService characterStatService,
         IAttachmentStorageService attachmentStorage,
+        ICharacterPortraitConfigService portraitConfigService,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorage, logger)
     {
@@ -67,6 +69,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_ImageUpdaterService = imageUpdaterService;
         m_MetricsService = metricsService;
         m_CharacterStatService = characterStatService;
+        m_PortraitConfigService = portraitConfigService;
     }
 
     public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
@@ -250,7 +253,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
             var url = charImage.Data;
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Base.ToImageName(), url),
-                new ImageProcessorBuilder().AddOperation(GetCharacterImageProcessor()).Build()));
+                ImageProcessors.None));
         }
 
         if (weapImageTask != null)
@@ -294,6 +297,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         {
             cardContext.SetParameter("ascension", ascLevel.Value);
         }
+
+        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Name);
+        if (portraitConfig != null)
+            cardContext.SetParameter("portraitConfig", portraitConfig);
 
         using var card = await m_CardService.GetCardAsync(cardContext);
         if (!await StoreAttachmentAsync(context.UserId, filename, card))
@@ -376,34 +383,6 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         }
 
         return Result<string>.Failure(StatusCode.ExternalServerError);
-    }
-
-    private static Action<IImageProcessingContext> GetCharacterImageProcessor()
-    {
-        return ctx =>
-        {
-            ctx.CropTransparentPixels();
-
-            var size = ctx.GetCurrentSize();
-            if (size.Width >= size.Height)
-                ctx.Resize(0,
-                    (int)Math.Round(1280 * Math.Min(1.2 * size.Height / size.Width, 1f)),
-                    KnownResamplers.Lanczos3);
-            else
-                ctx.Resize(1400, 0, KnownResamplers.Lanczos3);
-
-            size = ctx.GetCurrentSize();
-
-            if (size.Height > 1280)
-                ctx.Resize(0, 1280, KnownResamplers.Lanczos3);
-
-            size = ctx.GetCurrentSize();
-
-            if (size.Width > 1280)
-                ctx.Crop(new Rectangle((size.Width - 1280) / 2, 0, 1280, size.Height));
-
-            ctx.ApplyGradientFade();
-        };
     }
 
     private static Action<IImageProcessingContext> GetCatalystIconProcessor()

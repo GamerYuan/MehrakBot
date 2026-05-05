@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -52,7 +52,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_InvalidLogin_ReturnsAuthError()
     {
-        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Unauthorized, "Invalid credentials"));
 
@@ -73,7 +73,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_CharacterListApiError_ReturnsApiError()
     {
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -99,7 +99,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_UpdatesCharacterCache_WhenCharacterListFetched()
     {
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -123,7 +123,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_CharacterNotFound_ReturnsNotFoundMessage()
     {
-        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, characterCacheMock, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -154,7 +154,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_CharacterFoundByAlias_ReturnsSuccess()
     {
         var (service, characterApiMock, characterCacheMock, aliasServiceMock, _, imageRepositoryMock,
-            imageUpdaterMock, cardMock, gameRoleApiMock, _, _, attachmentStorageMock, _) = SetupMocks();
+            imageUpdaterMock, cardMock, gameRoleApiMock, _, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -196,7 +196,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_WikiApiError_ForRelics_ReturnsApiError()
     {
-        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, relicContext, _, _) =
+        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, relicContext, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -233,7 +233,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_WikiApiError_ForLightCone_ReturnsApiError()
     {
-        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, relicContext, _, _) =
+        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, _, _, gameRoleApiMock, _, relicContext, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -270,7 +270,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_ImageUpdateFails_ReturnsApiError()
     {
-        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _, _) =
+        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, _, gameRoleApiMock, _, _, _, _, _) =
             SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -312,7 +312,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_WhenAttachmentAlreadyExists_TracksCharacterSelectionMetrics()
     {
         var (service, characterApiMock, _, _, _, _, _, cardServiceMock,
-            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock
             .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
@@ -345,7 +345,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_RelicImagesMissing_FetchesFromWikiAndAddsSetName()
     {
         var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, relicContext, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, relicContext, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -440,7 +440,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
     {
         var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -490,7 +490,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_VerifyImageUpdatesCalledForAllAssets()
     {
         var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, _, _) = SetupMocks();
+            gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -541,7 +541,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, attachmentStorageMock, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, attachmentStorageMock, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -569,7 +569,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenAlreadyStored()
     {
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, attachmentStorageMock, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, attachmentStorageMock, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -603,7 +603,7 @@ public class HsrCharacterApplicationServiceTests
     [Test]
     public async Task ExecuteAsync_DoesNotStoreGameUid_WhenUserOrProfileMissing()
     {
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, attachmentStorageMock, userContext) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, attachmentStorageMock, userContext, _) = SetupMocks();
 
         var profile = CreateTestProfile();
         gameRoleApiMock
@@ -631,7 +631,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_RelicWiki_FallbackLocale_UsesAlternateLocaleWhenENMissingModule()
     {
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, relicContext, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, relicContext, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -684,7 +684,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_RelicWiki_ENSetName_StopsLocaleIteration()
     {
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, relicContext, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, relicContext, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -738,7 +738,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_RelicWiki_PartialThenCompleteJson_CompletesMissingPieces()
     {
         var (service1, characterApiMock1, _, _, wikiApiMock1, imageRepositoryMock1, imageUpdaterMock1, cardServiceMock1,
-            gameRoleApiMock1, _, _, attachmentStorageMock1, _) = SetupMocks();
+            gameRoleApiMock1, _, _, attachmentStorageMock1, _, _) = SetupMocks();
 
         gameRoleApiMock1.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -784,7 +784,7 @@ public class HsrCharacterApplicationServiceTests
         }
 
         var (service2, characterApiMock2, _, _, wikiApiMock2, imageRepositoryMock2, imageUpdaterMock2, cardServiceMock2,
-            gameRoleApiMock2, _, _, attachmentStorageMock2, _) = SetupMocks();
+            gameRoleApiMock2, _, _, attachmentStorageMock2, _, _) = SetupMocks();
 
         gameRoleApiMock2.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -834,7 +834,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsEphemeralError()
     {
         // Arrange
-        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
@@ -858,7 +858,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_MultipleCharactersAllNotFound_ReturnsAllNotFoundMessages()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -889,7 +889,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -935,7 +935,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -982,7 +982,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, _, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, _, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -1026,7 +1026,7 @@ public class HsrCharacterApplicationServiceTests
     public async Task ExecuteAsync_ExactlyMaxRequestCount_Succeeds()
     {
         // Arrange
-        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _) = SetupMocks();
+        var (service, characterApiMock, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -1054,7 +1054,7 @@ public class HsrCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
-            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _) = SetupMocks();
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -1103,7 +1103,7 @@ public class HsrCharacterApplicationServiceTests
     [TestCase("CharList_TestData_1.json", "Trailblazer")]
     public async Task IntegrationTest_WithRealCardService_GeneratesCard(string testDataFile, string characterName)
     {
-        var (service, characterApiMock, _, _, _, _, gameRoleApiMock, _, attachmentStorageMock, _) = SetupIntegrationTest();
+        var (service, characterApiMock, _, _, _, _, gameRoleApiMock, _, attachmentStorageMock, _, _) = SetupIntegrationTest();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -1195,7 +1195,8 @@ public class HsrCharacterApplicationServiceTests
          Mock<IApplicationMetrics> MetricsMock,
          RelicDbContext RelicContext,
          Mock<IAttachmentStorageService> AttachmentStorageMock,
-         UserDbContext UserContext
+         UserDbContext UserContext,
+         Mock<ICharacterPortraitConfigService> PortraitConfigMock
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrCharacterInformation>>();
@@ -1210,6 +1211,7 @@ public class HsrCharacterApplicationServiceTests
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<HsrCharacterApplicationService>>();
+        var portraitConfigMock = new Mock<ICharacterPortraitConfigService>();
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -1234,10 +1236,11 @@ public class HsrCharacterApplicationServiceTests
             userContext,
             relicContext,
             attachmentStorageMock.Object,
+            portraitConfigMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
-            cardServiceMock, gameRoleApiMock, metricsMock, relicContext, attachmentStorageMock, userContext);
+            cardServiceMock, gameRoleApiMock, metricsMock, relicContext, attachmentStorageMock, userContext, portraitConfigMock);
     }
 
     private (
@@ -1250,7 +1253,8 @@ public class HsrCharacterApplicationServiceTests
          Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
          Mock<IApplicationMetrics> MetricsMock,
          Mock<IAttachmentStorageService> AttachmentStorageMock,
-         UserDbContext UserContext
+         UserDbContext UserContext,
+         Mock<ICharacterPortraitConfigService> PortraitConfigMock
         ) SetupIntegrationTest()
     {
         var userContext = m_DbFactory1.CreateDbContext<UserDbContext>();
@@ -1297,6 +1301,7 @@ public class HsrCharacterApplicationServiceTests
 
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var loggerMock = new Mock<ILogger<HsrCharacterApplicationService>>();
+        var portraitConfigMock = new Mock<ICharacterPortraitConfigService>();
 
         cardService.InitializeAsync().Wait();
 
@@ -1313,10 +1318,11 @@ public class HsrCharacterApplicationServiceTests
             userContext,
             relicContext,
             attachmentStorageMock.Object,
+            portraitConfigMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, gameRoleApiMock,
-            metricsMock, attachmentStorageMock, userContext);
+            metricsMock, attachmentStorageMock, userContext, portraitConfigMock);
     }
 
     private (
@@ -1399,6 +1405,7 @@ public class HsrCharacterApplicationServiceTests
             userContext,
             relicContext,
             attachmentStorageMock.Object,
+            Mock.Of<ICharacterPortraitConfigService>(),
             Mock.Of<ILogger<HsrCharacterApplicationService>>());
 
         return (service, attachmentStorageMock.Object, storedAttachments, userContext);
