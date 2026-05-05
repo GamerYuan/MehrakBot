@@ -1,5 +1,6 @@
 ﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Enums;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,13 +14,17 @@ public class CharactersController : ControllerBase
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly ICharacterStatService m_CharacterStatService;
+    private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly ILogger<CharactersController> m_Logger;
 
     public CharactersController(ICharacterCacheService characterCacheService,
-        ICharacterStatService characterStatService, ILogger<CharactersController> logger)
+        ICharacterStatService characterStatService,
+        ICharacterPortraitConfigService portraitConfigService,
+        ILogger<CharactersController> logger)
     {
         m_CharacterCacheService = characterCacheService;
         m_CharacterStatService = characterStatService;
+        m_PortraitConfigService = portraitConfigService;
         m_Logger = logger;
     }
 
@@ -119,6 +124,44 @@ public class CharactersController : ControllerBase
 
         if (!success)
             return NotFound(new { error = "Character not found." });
+
+        return NoContent();
+    }
+
+    [HttpGet("portrait-config")]
+    public async Task<IActionResult> GetPortraitConfig([FromQuery] string? game, [FromQuery] string? character)
+    {
+        if (!TryParseGame(game, out var gameEnum, out var error))
+            return BadRequest(new { error });
+
+        if (!string.IsNullOrWhiteSpace(character))
+        {
+            var normalized = character.ReplaceLineEndings("").Trim();
+            var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, normalized);
+            return config == null ? NotFound(new { error = "No config found for this character." }) : Ok(config);
+        }
+
+        var allConfigs = await m_PortraitConfigService.GetAllConfigsAsync(gameEnum);
+        return Ok(allConfigs);
+    }
+
+    [HttpPatch("portrait-config")]
+    public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] string? character,
+        [FromBody] CharacterPortraitConfigUpdate update)
+    {
+        if (!TryParseGame(game, out var gameEnum, out var error))
+            return BadRequest(new { error });
+
+        if (string.IsNullOrWhiteSpace(character))
+            return BadRequest(new { error = "Character parameter is required." });
+
+        if (!HasGameWriteAccess(game!))
+            return Forbid();
+
+        var normalized = character.ReplaceLineEndings("").Trim();
+        m_Logger.LogInformation("Updating portrait config for character {Character} in game {Game}", normalized, gameEnum);
+
+        await m_PortraitConfigService.UpsertConfigAsync(gameEnum, normalized, update);
 
         return NoContent();
     }
