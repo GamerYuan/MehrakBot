@@ -61,7 +61,7 @@ public class ZzzAvatarData
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.PortraitName, FullName.ToLowerInvariant().Replace(" ", "_"));
+        return string.Format(FileNameFormat.Zzz.PortraitName, Id);
     }
 }
 

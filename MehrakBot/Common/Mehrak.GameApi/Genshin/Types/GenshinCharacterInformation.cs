@@ -46,7 +46,7 @@ public class BaseCharacterDetail
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Genshin.PortraitName, Name.ToLowerInvariant().Replace(" ", "_"));
+        return string.Format(FileNameFormat.Genshin.PortraitName, Id);
     }
 
     public IImageData ToImageData()

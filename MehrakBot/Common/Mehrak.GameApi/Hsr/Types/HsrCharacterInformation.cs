@@ -33,7 +33,7 @@ public class HsrCharacterInformation
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Hsr.PortraitName, Name.ToLowerInvariant().Replace(" ", "_"));
+        return string.Format(FileNameFormat.Hsr.PortraitName, Id);
     }
 
     public IImageData ToImageData()
