@@ -10,7 +10,7 @@ public static class FileNameFormat
         public const string PortraitName = "genshin/portrait_{0}.png";
         public const string AvatarName = "genshin/avatar_{0}.png";
         public const string SideAvatarName = "genshin/side_avatar_{0}.png";
-        public const string SkillName = "genshin/{0}_{1}.png";
+        public const string SkillName = "genshin/skill_{0}_{1}.png";
         public const string StatsName = "genshin/stats_{0}.png";
         public const string BuffIconName = "genshin/buff_icon_{0}.png";
         public const string WeaponBaseName = "genshin/weapon_base_{0}.png";
