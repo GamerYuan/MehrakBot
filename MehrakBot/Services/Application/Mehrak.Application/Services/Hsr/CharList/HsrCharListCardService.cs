@@ -5,6 +5,7 @@ using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Extensions;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
@@ -68,13 +69,13 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        await using var weaponStream = await ImageRepository.DownloadFileToStreamAsync("hsr_lightcone_template", cancellationToken);
+        await using var weaponStream = await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.LightconeTemplateName, cancellationToken);
         m_WeaponPlaceholder = await Image.LoadAsync<Rgba32>(weaponStream, cancellationToken);
         m_WeaponPlaceholder.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
 
         foreach (var element in Elements)
         {
-            var iconName = $"hsr_element_{element.ToLowerInvariant()}";
+            var iconName = string.Format(FileNameFormat.Hsr.ElementName, element.ToLowerInvariant());
             await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
             using var image = await Image.LoadAsync(stream, cancellationToken);
             m_ElementIcons[element] = image.Clone(ctx => ctx.Resize(40, 0, KnownResamplers.Bicubic));

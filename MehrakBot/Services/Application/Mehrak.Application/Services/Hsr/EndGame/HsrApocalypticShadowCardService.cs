@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.ImageSharp;
@@ -25,7 +26,7 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
     protected override async Task LoadModeResourcesAsync(CancellationToken cancellationToken)
     {
         m_AsBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_as_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ASBackgroundName, cancellationToken),
             cancellationToken);
     }
 

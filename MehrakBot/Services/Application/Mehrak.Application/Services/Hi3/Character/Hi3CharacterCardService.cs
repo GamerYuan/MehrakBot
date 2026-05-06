@@ -42,15 +42,15 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        StaticBackground = await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync("hi3_bg"), cancellationToken);
-        m_StigmataSlot = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_stigmata_slot"), cancellationToken);
-        m_StarIcon = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync("hi3_star_icon"), cancellationToken);
+        StaticBackground = await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.BackgroundName), cancellationToken);
+        m_StigmataSlot = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StigmataSlotName), cancellationToken);
+        m_StarIcon = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StarIconName), cancellationToken);
         m_StarUnlit = m_StarIcon.Clone(x => x.Grayscale());
 
         m_CharacterRankIcons = await new int[] { 1, 2, 3, 4, 5 }
             .ToAsyncEnumerable()
             .Select(async (rank, token) =>
-                await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync($"hi3_rank_{rank}"), token))
+                await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hi3.RankName, rank)), token))
             .ToListAsync(cancellationToken: cancellationToken);
     }
 

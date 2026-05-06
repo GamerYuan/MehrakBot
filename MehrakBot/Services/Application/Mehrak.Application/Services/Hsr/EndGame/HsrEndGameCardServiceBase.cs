@@ -5,6 +5,7 @@ using Mehrak.Application.Models;
 using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
@@ -38,7 +39,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         StarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_moc_star", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
             cancellationToken);
         StarUnlit = StarLit.CloneAs<Rgba32>();
         StarUnlit.Mutate(ctx =>
@@ -50,11 +51,11 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
         await LoadModeResourcesAsync(cancellationToken);
 
         CycleIcon = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_hourglass", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
             cancellationToken);
 
         BossCheckmark = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_boss_check", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.BossCheckName, cancellationToken),
             cancellationToken);
     }
 

@@ -5,6 +5,7 @@ using Mehrak.Application.Models;
 using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
@@ -39,7 +40,7 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_StarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_moc_star", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
             cancellationToken);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
         m_StarUnlit.Mutate(ctx =>
@@ -48,11 +49,11 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
             ctx.Brightness(0.7f);
         });
         m_CycleIcon = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_hourglass", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
             cancellationToken);
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_moc_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCBackgroundName, cancellationToken),
             cancellationToken);
         StaticBackground.Mutate(ctx =>
         {

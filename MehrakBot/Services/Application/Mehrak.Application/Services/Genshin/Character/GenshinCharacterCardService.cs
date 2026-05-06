@@ -67,7 +67,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         });
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("genshin_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.BackgroundName, cancellationToken),
             cancellationToken);
 
         Logger.LogInformation(
@@ -434,7 +434,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
 
     private async Task<Image<Rgba32>> CreateTemplateRelicSlotImageAsync(int position, CancellationToken cancellationToken)
     {
-        var path = $"genshin_relic_template_{position}";
+        var path = string.Format(FileNameFormat.Genshin.RelicTemplateName, position);
 
         var relicImage = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);

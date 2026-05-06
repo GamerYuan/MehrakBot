@@ -6,6 +6,7 @@ using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
@@ -42,7 +43,7 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_StarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_moc_star", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
             cancellationToken);
         m_StarUnlit = m_StarLit.Clone(ctx =>
         {
@@ -51,7 +52,7 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
         });
 
         m_BossStarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_anomaly_star", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.AnomalyStarName, cancellationToken),
             cancellationToken);
         m_BossStarUnlit = m_BossStarLit.Clone(ctx =>
         {
@@ -60,11 +61,11 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
         });
 
         m_CycleIcon = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_hourglass", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
             cancellationToken);
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_aa_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.AABackgroundName, cancellationToken),
             cancellationToken);
     }
 

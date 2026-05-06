@@ -5,6 +5,7 @@ using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Zzz.Types;
@@ -65,7 +66,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
         [
             .. Enumerable.Range(1, 5)
                 .Select(async i => {
-                    await using var stream = await ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}", cancellationToken);
+                    await using var stream = await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.WeaponStarName, i), cancellationToken);
                     return (i, await Image.LoadAsync(stream, cancellationToken));
                 })
         ];

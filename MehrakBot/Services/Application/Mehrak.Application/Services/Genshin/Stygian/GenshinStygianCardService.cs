@@ -6,6 +6,7 @@ using Mehrak.Application.Renderers;
 using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
@@ -37,11 +38,11 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, ct) =>
-                await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync($"genshin_stygian_medal_{x}"), ct))
+                await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.StygianMedalName, x)), ct))
             .ToArrayAsync(cancellationToken);
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("genshin_stygian_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.StygianBackgroundName, cancellationToken),
             cancellationToken);
     }
 

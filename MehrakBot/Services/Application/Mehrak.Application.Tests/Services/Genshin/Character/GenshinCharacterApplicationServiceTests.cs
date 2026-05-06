@@ -597,7 +597,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(false); // Force wiki download
 
         imageRepositoryMock
-            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin/weapon_"))))
             .ReturnsAsync(true);
 
         var wikiResponse = JsonNode.Parse("""
@@ -888,7 +888,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(false);
 
         imageRepositoryMock
-            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin/weapon_"))))
             .ReturnsAsync(true);
 
         wikiApiMock
@@ -949,7 +949,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(false);
 
         imageRepositoryMock
-            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin_weapon_"))))
+            .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin/weapon_"))))
             .ReturnsAsync(true);
 
         var cnEmpty = JsonNode.Parse("""

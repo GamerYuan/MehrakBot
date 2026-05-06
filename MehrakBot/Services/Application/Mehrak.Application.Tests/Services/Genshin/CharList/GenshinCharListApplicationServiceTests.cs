@@ -399,7 +399,7 @@ public class GenshinCharListApplicationServiceTests
 
         // Assert
         imageUpdaterMock.Verify(x => x.UpdateMultiImageAsync(
-            It.Is<IMultiImageData>(d => d.Name.Equals("genshin_weapon_ascended_11101") && d.AdditionalUrls.Contains("ascended_url")),
+            It.Is<IMultiImageData>(d => d.Name.Equals("genshin/weapon_ascended_11101.png") && d.AdditionalUrls.Contains("ascended_url")),
             It.IsAny<IMultiImageProcessor>()), Times.Once);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }

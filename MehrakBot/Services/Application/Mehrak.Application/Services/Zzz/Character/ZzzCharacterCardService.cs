@@ -65,11 +65,11 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        var files = await ImageRepository.ListFilesAsync("zzz_stats");
+        var files = await ImageRepository.ListFilesAsync("zzz/stats_");
         List<Task<(string x, Image)>> tasks =
         [
             .. files.Select(async file =>
-                (file.Replace("zzz_stats_", "").TrimStart(),
+                (file.Replace("zzz/stats_", "").Replace(".png", "").TrimStart(),
                     await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(file, cancellationToken), cancellationToken)))
         ];
 
@@ -83,8 +83,8 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
         List<Task<(string x, Image)>> attributeTasks =
         [
-            .. (await ImageRepository.ListFilesAsync("zzz_attribute")).Select(async file =>
-                (file.Replace("zzz_attribute_", "").TrimStart(),
+            .. (await ImageRepository.ListFilesAsync("zzz/attribute_")).Select(async file =>
+                (file.Replace("zzz/attribute_", "").Replace(".png", "").TrimStart(),
                     await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(file, cancellationToken), cancellationToken)))
         ];
 
@@ -100,14 +100,14 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         [
             .. itemRarity.Select(async i =>
                 (i, await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
-                    string.Format("zzz_rarity_{0}", i), cancellationToken), cancellationToken)))
+                    string.Format(FileNameFormat.Zzz.RarityName, i), cancellationToken), cancellationToken)))
         ];
 
         List<Task<(int x, Image)>> weaponStarTasks =
         [
             .. Enumerable.Range(1, 5)
                 .Select(async i => (i, await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync($"zzz_weapon_star_{i}", cancellationToken), cancellationToken)))
+                    await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.WeaponStarName, i), cancellationToken), cancellationToken)))
         ];
 
         m_StatImages = (await Task.WhenAll(tasks)).ToDictionary(StringComparer.OrdinalIgnoreCase);

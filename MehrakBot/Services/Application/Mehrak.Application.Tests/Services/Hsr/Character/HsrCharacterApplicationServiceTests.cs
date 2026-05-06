@@ -780,7 +780,7 @@ public class HsrCharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(firstResult.IsSuccess, Is.True, firstResult.ErrorMessage);
-            Assert.That(existingFiles.Count(f => f.StartsWith("hsr_relic_118")), Is.EqualTo(2));
+            Assert.That(existingFiles.Count(f => f.StartsWith("hsr/relic_118")), Is.EqualTo(2));
         }
 
         var (service2, characterApiMock2, _, _, wikiApiMock2, imageRepositoryMock2, imageUpdaterMock2, cardServiceMock2,
@@ -825,7 +825,7 @@ public class HsrCharacterApplicationServiceTests
         var secondResult = await service2.ExecuteAsync(context2);
         Assert.That(secondResult.IsSuccess, Is.True, secondResult.ErrorMessage);
 
-        Assert.That(existingFiles.Count(f => f.StartsWith("hsr_relic_118")), Is.EqualTo(4));
+        Assert.That(existingFiles.Count(f => f.StartsWith("hsr/relic_118")), Is.EqualTo(4));
         attachmentStorageMock1.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         attachmentStorageMock2.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
