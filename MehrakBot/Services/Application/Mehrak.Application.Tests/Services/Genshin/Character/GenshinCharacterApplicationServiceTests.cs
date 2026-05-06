@@ -1231,6 +1231,110 @@ public class GenshinCharacterApplicationServiceTests
         }
     }
 
+    [Test]
+    public async Task ExecuteAsync_FetchesPortraitConfigForCharacter()
+    {
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _, characterStatMock, portraitConfigMock) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        portraitConfigMock
+            .Setup(x => x.GetConfigAsync(Game.Genshin, It.IsAny<string>()))
+            .ReturnsAsync((CharacterPortraitConfig?)null);
+
+        characterStatMock
+            .Setup(x => x.GetCharAscStatAsync(Game.Genshin, It.IsAny<string>()))
+            .ReturnsAsync((null, null));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
+
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.Genshin, "Traveler"), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PassesPortraitConfigToCardContext()
+    {
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _, characterStatMock, portraitConfigMock) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var portraitConfig = new CharacterPortraitConfig { OffsetX = 10, OffsetY = 20 };
+        portraitConfigMock
+            .Setup(x => x.GetConfigAsync(Game.Genshin, It.IsAny<string>()))
+            .ReturnsAsync(portraitConfig);
+
+        characterStatMock
+            .Setup(x => x.GetCharAscStatAsync(Game.Genshin, It.IsAny<string>()))
+            .ReturnsAsync((null, null));
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
+
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+
+        cardServiceMock.Verify(x => x.GetCardAsync(
+            It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
+                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig") != null &&
+                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig")!.OffsetX == 10 &&
+                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig")!.OffsetY == 20)),
+            Times.Once);
+    }
+
     #endregion
 
     #region Integration Tests

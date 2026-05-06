@@ -1095,6 +1095,97 @@ public class HsrCharacterApplicationServiceTests
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiStarRail), "trailblazer"), Times.Once);
     }
 
+    [Test]
+    public async Task ExecuteAsync_FetchesPortraitConfigForCharacter()
+    {
+        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _, portraitConfigMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var wikiResponse =
+            JsonNode.Parse("{\"data\":{\"page\":{\"icon_url\":\"https://example.com/icon.png\",\"modules\":[]}}}");
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(cardStream);
+
+        portraitConfigMock.Setup(x => x.GetConfigAsync(It.IsAny<Game>(), It.IsAny<string>()))
+            .ReturnsAsync((CharacterPortraitConfig?)null);
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
+
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiStarRail, "Trailblazer"), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PassesPortraitConfigToCardContext()
+    {
+        var (service, characterApiMock, characterCacheMock, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, metricsMock, _, attachmentStorageMock, _, portraitConfigMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = await LoadTestDataAsync();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var wikiResponse =
+            JsonNode.Parse("{\"data\":{\"page\":{\"icon_url\":\"https://example.com/icon.png\",\"modules\":[]}}}");
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiResponse!));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        ICardGenerationContext<HsrCharacterInformation>? capturedContext = null;
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .Callback<ICardGenerationContext<HsrCharacterInformation>>(ctx => capturedContext = ctx)
+            .ReturnsAsync(cardStream);
+
+        var portraitConfig = new CharacterPortraitConfig { OffsetX = 15, OffsetY = 25 };
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiStarRail, "Trailblazer"))
+            .ReturnsAsync(portraitConfig);
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
+
+        var portraitConfigParam = capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(portraitConfigParam, Is.Not.Null);
+            Assert.That(portraitConfigParam!.OffsetX, Is.EqualTo(15));
+            Assert.That(portraitConfigParam.OffsetY, Is.EqualTo(25));
+        }
+    }
+
     #endregion
 
     #region Integration Tests

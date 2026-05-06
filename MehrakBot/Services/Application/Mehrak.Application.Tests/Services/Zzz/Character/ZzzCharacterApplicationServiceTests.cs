@@ -541,6 +541,93 @@ public class ZzzCharacterApplicationServiceTests
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(x => x.Url == expectedUrl), It.IsAny<IImageProcessor>()));
     }
 
+    [Test]
+    public async Task ExecuteAsync_FetchesPortraitConfigForCharacter()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _,
+            cardServiceMock, _, attachmentStorageMock, _, portraitConfigMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(cardStream);
+
+        portraitConfigMock.Setup(x => x.GetConfigAsync(It.IsAny<Game>(), It.IsAny<string>()))
+            .ReturnsAsync((CharacterPortraitConfig?)null);
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, "Jane"), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PassesPortraitConfigToCardContext()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _,
+            cardServiceMock, _, attachmentStorageMock, _, portraitConfigMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var portraitConfig = new CharacterPortraitConfig { OffsetX = 5, OffsetY = 10 };
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, "Jane"))
+            .ReturnsAsync(portraitConfig);
+
+        ICardGenerationContext<ZzzFullAvatarData>? capturedContext = null;
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .Callback<ICardGenerationContext<ZzzFullAvatarData>>(ctx => capturedContext = ctx)
+            .ReturnsAsync(cardStream);
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(capturedContext, Is.Not.Null);
+        var configParam = capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        Assert.That(configParam, Is.Not.Null);
+        Assert.That(configParam!.OffsetX, Is.EqualTo(5));
+        Assert.That(configParam.OffsetY, Is.EqualTo(10));
+    }
+
     #endregion
 
     #region Integration Tests

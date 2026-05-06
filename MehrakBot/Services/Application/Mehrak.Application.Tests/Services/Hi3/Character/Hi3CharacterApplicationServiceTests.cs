@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -463,6 +464,69 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
         Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_FetchesPortraitConfigForCharacter()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, attachmentStorageMock, portraitConfigMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Name), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PassesPortraitConfigToCardContext()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, gameRoleApiMock, imageUpdaterMock, cardServiceMock, _, attachmentStorageMock, portraitConfigMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var character = await LoadTestCharacterAsync("Character_TestData_1.json");
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var portraitConfig = new CharacterPortraitConfig { OffsetX = 8, OffsetY = 16 };
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Name))
+            .ReturnsAsync(portraitConfig);
+
+        BaseCardGenerationContext<Hi3CharacterDetail>? capturedContext = null;
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
+            .Callback<ICardGenerationContext<Hi3CharacterDetail>>(ctx => capturedContext = (BaseCardGenerationContext<Hi3CharacterDetail>)ctx)
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(capturedContext, Is.Not.Null);
+        Assert.That(capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig"), Is.EqualTo(portraitConfig));
     }
 
     #endregion
