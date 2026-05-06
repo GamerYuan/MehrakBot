@@ -93,7 +93,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         return result;
     }
 
-    public async Task<bool> UpsertConfigAsync(Game game, string characterName, CharacterPortraitConfigUpdate update)
+    public async Task UpsertConfigAsync(Game game, string characterName, CharacterPortraitConfigUpdate update)
     {
         using var scope = m_ScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
@@ -138,8 +138,6 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
         var allCacheKey = $"portrait_cfg_all_{game}";
         await m_Cache.RemoveAsync(allCacheKey);
-
-        return true;
     }
 
     private static CharacterPortraitConfig ToConfig(CharacterPortraitConfigModel entity)
