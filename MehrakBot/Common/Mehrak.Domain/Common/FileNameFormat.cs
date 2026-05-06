@@ -7,7 +7,7 @@ public static class FileNameFormat
 
     public static class Genshin
     {
-        public const string FileName = "genshin/{0}.png";
+        public const string PortraitName = "genshin/portrait_{0}.png";
         public const string AvatarName = "genshin/avatar_{0}.png";
         public const string SideAvatarName = "genshin/side_avatar_{0}.png";
         public const string SkillName = "genshin/{0}_{1}.png";
@@ -15,6 +15,8 @@ public static class FileNameFormat
         public const string BuffIconName = "genshin/buff_icon_{0}.png";
         public const string WeaponBaseName = "genshin/weapon_base_{0}.png";
         public const string WeaponAscendedName = "genshin/weapon_ascended_{0}.png";
+        public const string ConstellationName = "genshin/constellation_{0}.png";
+        public const string RelicName = "genshin/relic_{0}.png";
 
         public const string ElementName = "genshin/element_{0}.png";
         public const string AbyssStarsName = "genshin/abyss_stars.png";
@@ -31,7 +33,7 @@ public static class FileNameFormat
 
     public static class Hsr
     {
-        public const string FileName = "hsr/{0}.png";
+        public const string PortraitName = "hsr/portrait_{0}.png";
         public const string AvatarName = "hsr/avatar_{0}.png";
         public const string SideAvatarName = "hsr/side_avatar_{0}.png";
         public const string RelicName = "hsr/relic_{0}.png";
@@ -39,6 +41,10 @@ public static class FileNameFormat
         public const string WeaponIconName = "hsr/weapon_icon_{0}.png";
         public const string EndGameBuffName = "hsr/endgame_buff_{0}.png";
         public const string AnomalyName = "hsr/anomaly_{0}.png";
+        public const string EquipName = "hsr/equip_{0}.png";
+        public const string RankName = "hsr/rank_{0}.png";
+        public const string SkillName = "hsr/skill_{0}.png";
+        public const string BossName = "hsr/boss_{0}.png";
 
         public const string ElementName = "hsr/element_{0}.png";
         public const string MoCStarName = "hsr/moc_star.png";
@@ -56,7 +62,7 @@ public static class FileNameFormat
 
     public static class Zzz
     {
-        public const string FileName = "zzz/{0}.png";
+        public const string PortraitName = "zzz/portrait_{0}.png";
         public const string SkillName = "zzz/skill_{0}.png";
         public const string ProfessionName = "zzz/profession_{0}.png";
         public const string AvatarName = "zzz/avatar_{0}.png";
@@ -65,6 +71,8 @@ public static class FileNameFormat
         public const string HadalBossName = "zzz/hadal_boss_{0}.png";
         public const string AssaultBuffName = "zzz/assault_buff_{0}.png";
         public const string TowerMedal = "zzz/tower_medal_{0}.png";
+        public const string DiskDriveName = "zzz/diskdrive_{0}.png";
+        public const string WeaponName = "zzz/weapon_{0}.png";
 
         public const string RatingName = "zzz/rating_{0}.png";
         public const string ShiyuBackgroundName = "zzz/shiyu_bg.png";
@@ -78,8 +86,10 @@ public static class FileNameFormat
 
     public static class Hi3
     {
-        public const string FileName = "hi3/{0}.png";
+        public const string PortraitName = "hi3/portrait_{0}.png";
         public const string CostumeName = "hi3/costume_{0}.png";
+        public const string WeaponName = "hi3/weapon_{0}.png";
+        public const string StigmataName = "hi3/stigmata_{0}.png";
 
         public const string BackgroundName = "hi3/bg.png";
         public const string StigmataSlotName = "hi3/stigmata_slot.png";

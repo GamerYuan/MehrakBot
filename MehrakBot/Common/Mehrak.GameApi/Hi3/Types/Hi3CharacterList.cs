@@ -40,7 +40,7 @@ public class Hi3Weapon
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("level")] public int Level { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Hi3.FileName, Id);
+    public string ToImageName() => string.Format(FileNameFormat.Hi3.WeaponName, Id);
     public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 }
 
@@ -53,7 +53,7 @@ public class Hi3Stigmata
     [JsonPropertyName("icon")] public required string Icon { get; init; }
     [JsonPropertyName("level")] public int Level { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Hi3.FileName, Id);
+    public string ToImageName() => string.Format(FileNameFormat.Hi3.StigmataName, Id);
     public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
 
     public StigmataPosition GetStigmataPosition()

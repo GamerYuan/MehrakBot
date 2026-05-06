@@ -62,7 +62,7 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
         }
 
         using (var mvpStream = await ImageRepository.DownloadFileToStreamAsync(
-            string.Format(FileNameFormat.Zzz.FileName, "tower_mvp"), cancellationToken))
+            string.Format("zzz/tower_mvp.png"), cancellationToken))
         {
             m_MvpIcon = await Image.LoadAsync(mvpStream, cancellationToken);
         }

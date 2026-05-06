@@ -279,7 +279,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         if (characterInfo.Equip != null &&
             equipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
-            !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.FileName,
+            !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.EquipName,
                 characterInfo.Equip.Id)))
         {
             var entryPage = wikiEntry.Split('/')[^1];
@@ -313,7 +313,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             }
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
-                new ImageData(string.Format(FileNameFormat.Hsr.FileName, characterInfo.Equip.Id), iconUrl),
+                new ImageData(string.Format(FileNameFormat.Hsr.EquipName, characterInfo.Equip.Id), iconUrl),
                 new ImageProcessorBuilder().Resize(300, 0).Build()));
         }
 

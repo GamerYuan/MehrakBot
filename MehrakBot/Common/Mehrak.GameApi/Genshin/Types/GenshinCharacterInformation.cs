@@ -46,7 +46,7 @@ public class BaseCharacterDetail
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Genshin.FileName, Id);
+        return string.Format(FileNameFormat.Genshin.PortraitName, Name.ToLowerInvariant().Replace(" ", "_"));
     }
 
     public IImageData ToImageData()
@@ -68,7 +68,7 @@ public class Constellation
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Genshin.FileName, Id);
+        return string.Format(FileNameFormat.Genshin.ConstellationName, Id);
     }
 
     public IImageData ToImageData()
@@ -165,7 +165,7 @@ public class Relic
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Genshin.FileName, Id);
+        return string.Format(FileNameFormat.Genshin.RelicName, Id);
     }
 
     public IImageData ToImageData()

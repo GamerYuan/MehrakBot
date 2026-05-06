@@ -56,7 +56,7 @@ public class BossInfo
     [JsonPropertyName("name_mi18n")] public required string Name { get; init; }
     [JsonPropertyName("icon")] public required string Icon { get; init; }
 
-    public string ToImageName() => string.Format(FileNameFormat.Hsr.FileName,
+    public string ToImageName() => string.Format(FileNameFormat.Hsr.BossName,
         string.Join('_', Name.Split(Path.GetInvalidFileNameChars())).Replace(" ", ""));
 
     public IImageData ToImageData() => new ImageData(ToImageName(), Icon);
