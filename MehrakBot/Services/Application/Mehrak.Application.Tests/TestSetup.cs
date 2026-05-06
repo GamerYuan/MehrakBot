@@ -30,7 +30,9 @@ public class TestSetup
 
     private static string GetAssetKey(string assetsRoot, string fullPath)
     {
-        var relative = Path.GetRelativePath(assetsRoot, fullPath);
+        var relative = Path.GetRelativePath(assetsRoot, fullPath)
+            .Replace("TestAssets\\", "")
+            .Replace("TestAssets/", "");
         var dir = Path.GetDirectoryName(relative)?.Replace('\\', '/');
         var fileName = Path.GetFileName(relative);
         return string.IsNullOrEmpty(dir) ? fileName : $"{dir.ToLowerInvariant()}/{fileName}";
