@@ -28,9 +28,16 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
         if (!string.IsNullOrEmpty(cachedData))
         {
-            var cachedConfig = JsonSerializer.Deserialize<PortraitConfigCacheModel>(cachedData);
-            if (cachedConfig != null)
-                return ToConfig(cachedConfig);
+            try
+            {
+                var cachedConfig = JsonSerializer.Deserialize<PortraitConfigCacheModel>(cachedData);
+                if (cachedConfig != null)
+                    return ToConfig(cachedConfig);
+            }
+            catch (JsonException)
+            {
+                await m_Cache.RemoveAsync(cacheKey);
+            }
         }
 
         using var scope = m_ScopeFactory.CreateScope();
