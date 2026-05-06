@@ -106,7 +106,7 @@ public class ZzzCharacterCardServiceTests
 
         var image = await m_Service.GetCardAsync(cardContext);
 
-        var fileStream = File.OpenWrite(
+        var fileStream = File.Create(
             Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestAssets",
             goldenImageFileName));
         await image.CopyToAsync(fileStream);
