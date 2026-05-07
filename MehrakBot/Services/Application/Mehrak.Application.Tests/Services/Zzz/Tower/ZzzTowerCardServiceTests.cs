@@ -89,7 +89,7 @@ public class ZzzTowerCardServiceTests
         using MemoryStream imageMs = new();
         await image.CopyToAsync(imageMs);
 
-        Assert.That(imageMs.ToArray(), IsImage.IdenticalTo(goldenMs.ToArray()), "Generated image should match the golden image");
+        Assert.That(imageMs, IsImage.IdenticalTo(goldenMs), "Generated image should match the golden image");
     }
 
     [Explicit]

@@ -75,7 +75,8 @@ public class GenshinStygianCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
-        Assert.That(bytes, IsImage.IdenticalTo(goldenImage));
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream));
     }
 
     private static GameProfileDto GetTestUserGameData()

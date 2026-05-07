@@ -163,7 +163,9 @@ internal class Hi3CharacterCardServiceTests
         var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImageBytes);
 
-        Assert.That(generatedImageBytes, IsImage.IdenticalTo(goldenImageBytes),
+        memoryStream.Position = 0;
+        using var goldenStream = new MemoryStream(goldenImageBytes);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream),
             $"Generated image should match golden image for {testName}");
     }
 

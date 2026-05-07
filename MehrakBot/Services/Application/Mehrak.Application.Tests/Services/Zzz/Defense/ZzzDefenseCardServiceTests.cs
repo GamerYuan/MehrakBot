@@ -76,7 +76,9 @@ public class ZzzDefenseCardServiceTests
             $"ZzzDefense_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
-        Assert.That(generatedImageBytes, IsImage.IdenticalTo(goldenImage), "Generated image should match the golden image");
+        Assert.That(generatedImageBytes, Is.Not.Empty);
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream), "Generated image should match the golden image");
     }
 
     private static GameProfileDto GetTestUserGameData()

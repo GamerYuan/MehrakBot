@@ -78,7 +78,8 @@ public class HsrCharListCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
-        Assert.That(bytes, IsImage.IdenticalTo(goldenImage), "Generated image should match the golden image");
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream), "Generated image should match the golden image");
     }
 
     private static GameProfileDto GetTestUserGameData()

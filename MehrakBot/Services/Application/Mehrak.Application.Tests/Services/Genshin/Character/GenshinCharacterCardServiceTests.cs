@@ -74,7 +74,9 @@ public class GenshinCharacterCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert
-        Assert.That(file.ToArray(), IsImage.IdenticalTo(goldenImage));
+        file.Position = 0;
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(file, IsImage.IdenticalTo(goldenStream));
     }
 
     [Test]
@@ -112,7 +114,9 @@ public class GenshinCharacterCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert
-        Assert.That(file.ToArray(), IsImage.IdenticalTo(goldenImage));
+        file.Position = 0;
+        using var goldenStream2 = new MemoryStream(goldenImage);
+        Assert.That(file, IsImage.IdenticalTo(goldenStream2));
     }
 
     private static GameProfileDto GetTestUserGameData()
