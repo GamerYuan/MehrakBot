@@ -52,7 +52,7 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
 
     public void Execute()
     {
-        var bounds = GetContentBounds(m_Source);
+        var bounds = GetContentBounds(m_Source, m_SourceRectangle);
 
         // If the image is entirely transparent, we might choose to return a 1x1 empty image 
         // or the original. Here we'll just return to avoid errors, or crop to 1x1.
@@ -73,17 +73,17 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
         // No resources to dispose
     }
 
-    private static Rectangle GetContentBounds(Image<TPixel> image)
+    private static Rectangle GetContentBounds(Image<TPixel> image, Rectangle sourceRectangle)
     {
         int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
         const float alphaThreshold = 0.2f;
 
         image.ProcessPixelRows(accessor =>
         {
-            for (var y = 0; y < accessor.Height; y++)
+            for (var y = sourceRectangle.Y; y < sourceRectangle.Y + sourceRectangle.Height; y++)
             {
                 var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
+                for (var x = sourceRectangle.X; x < sourceRectangle.X + sourceRectangle.Width; x++)
                 {
                     var rgba = row[x].ToScaledVector4();
                     if (rgba.W > alphaThreshold)
