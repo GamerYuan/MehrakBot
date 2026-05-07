@@ -78,6 +78,10 @@ public sealed class CropTransparentPixelsProcessor<TPixel> : IImageProcessor<TPi
         int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
         const float alphaThreshold = 0.2f;
 
+        sourceRectangle = Rectangle.Intersect(sourceRectangle, new Rectangle(0, 0, image.Width, image.Height));
+        if (sourceRectangle.IsEmpty)
+            return Rectangle.Empty;
+
         image.ProcessPixelRows(accessor =>
         {
             for (var y = sourceRectangle.Y; y < sourceRectangle.Y + sourceRectangle.Height; y++)
