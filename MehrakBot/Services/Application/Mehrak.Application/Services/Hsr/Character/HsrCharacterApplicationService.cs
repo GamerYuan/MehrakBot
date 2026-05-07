@@ -37,6 +37,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
     private readonly IApplicationMetrics m_MetricsService;
     private readonly RelicDbContext m_RelicContext;
+    private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
@@ -51,6 +52,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         UserDbContext userContext,
         RelicDbContext relicContext,
         IAttachmentStorageService attachmentStorageService,
+        ICharacterPortraitConfigService portraitConfigService,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
@@ -62,6 +64,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_CharacterApi = characterApi;
         m_MetricsService = metricsService;
         m_RelicContext = relicContext;
+        m_PortraitConfigService = portraitConfigService;
     }
 
     public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
@@ -265,7 +268,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
-            new ImageProcessorBuilder().Resize(1000, 0).Build()));
+            ImageProcessors.None));
         tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null)
             .SelectMany(x => x.Value!.Select((e, i) =>
                 new ImageData(
@@ -341,6 +344,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
+
+        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Name);
+        if (portraitConfig != null)
+            cardContext.SetParameter("portraitConfig", portraitConfig);
 
         await using var card = await m_CardService.GetCardAsync(cardContext);
 
