@@ -113,7 +113,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         {
             using var scope = m_ScopeFactory.CreateScope();
             await using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-            await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await using var transaction = await context.Database.BeginTransactionAsync();
 
             try
             {
