@@ -161,7 +161,8 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             if (portraitConfig?.TargetScale.HasValue == true)
             {
                 var scale = portraitConfig.TargetScale.Value;
-                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+                if (scale > 0f)
+                    ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
             }
             else
             {
@@ -181,7 +182,8 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             }
 
             var enableFade = portraitConfig?.EnableGradientFade ?? true;
-            if (enableFade)
+            if (enableFade &&
+                (portraitConfig?.GradientFadeStart.GetValueOrDefault(0.75f) > 0f))
                 ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
         });
 

@@ -72,14 +72,16 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
             if (portraitConfig?.TargetScale.HasValue == true)
             {
                 var scale = portraitConfig.TargetScale.Value;
-                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+                if (scale > 0f)
+                    ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
             }
             else
             {
                 ctx.Resize(960, 0, KnownResamplers.Lanczos3);
             }
 
-            if (portraitConfig?.EnableGradientFade == true)
+            if (portraitConfig?.EnableGradientFade == true &&
+                (portraitConfig?.GradientFadeStart.GetValueOrDefault(0.75f) > 0f))
                 ctx.ApplyGradientFade(portraitConfig.GradientFadeStart ?? 0.75f);
         });
 
