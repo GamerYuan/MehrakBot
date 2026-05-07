@@ -12,6 +12,7 @@ public static class IsImage
     public static ImageIdenticalConstraint IdenticalTo(Stream expected, double similarityThreshold = 98.0)
     {
         using var ms = new MemoryStream();
+        expected.Position = 0;
         expected.CopyTo(ms);
         return new(ms.ToArray(), similarityThreshold);
     }
@@ -21,17 +22,15 @@ public class ImageIdenticalConstraint : Constraint
 {
     private readonly byte[] m_Expected;
     private readonly double m_SimilarityThreshold;
-    private double m_ActualSimilarity;
     public ImageIdenticalConstraint(byte[] expected, double similarityThreshold)
     {
         m_Expected = expected;
         m_SimilarityThreshold = similarityThreshold;
-        m_ActualSimilarity = -1;
     }
 
     public override ConstraintResult ApplyTo<TActual>(TActual actual)
     {
-        byte[] actualBytes = actual switch
+        var actualBytes = actual switch
         {
             byte[] bytes => bytes,
             Stream stream => ReadStream(stream),
@@ -45,16 +44,17 @@ public class ImageIdenticalConstraint : Constraint
         var actualHash = hashAlgorithm.Hash(actualMs);
         var expectedHash = hashAlgorithm.Hash(expectedMs);
 
-        m_ActualSimilarity = CompareHash.Similarity(actualHash, expectedHash);
+        var actualSimilarity = CompareHash.Similarity(actualHash, expectedHash);
 
-        var isSuccess = m_ActualSimilarity >= m_SimilarityThreshold;
+        var isSuccess = actualSimilarity >= m_SimilarityThreshold;
 
-        return new ImageConstraintResult(this, actual, isSuccess, m_ActualSimilarity, m_SimilarityThreshold);
+        return new ImageConstraintResult(this, actual, isSuccess, actualSimilarity, m_SimilarityThreshold);
     }
 
     private static byte[] ReadStream(Stream stream)
     {
         using var ms = new MemoryStream();
+        stream.Position = 0;
         stream.CopyTo(ms);
         return ms.ToArray();
     }
