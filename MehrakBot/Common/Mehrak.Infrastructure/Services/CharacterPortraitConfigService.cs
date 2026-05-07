@@ -1,5 +1,6 @@
 using System.Data;
 using System.Text.Json;
+using Amazon.Runtime.Internal.Util;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
@@ -8,6 +9,7 @@ using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Services;
 
@@ -15,11 +17,13 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly IDistributedCache m_Cache;
+    private readonly ILogger<CharacterPortraitConfigService> m_Logger;
 
-    public CharacterPortraitConfigService(IServiceScopeFactory scopeFactory, IDistributedCache cache)
+    public CharacterPortraitConfigService(IServiceScopeFactory scopeFactory, IDistributedCache cache, ILogger<CharacterPortraitConfigService> logger)
     {
         m_ScopeFactory = scopeFactory;
         m_Cache = cache;
+        m_Logger = logger;
     }
 
     public async Task<CharacterPortraitConfig?> GetConfigAsync(Game game, string characterName)
@@ -135,18 +139,28 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                var cacheKey = $"portrait_cfg_{game}_{characterName}";
-                var cacheModel = ToCacheModel(entity);
-
-                var cacheOptions = new DistributedCacheEntryOptions
+                _ = Task.Run(async () =>
                 {
-                    SlidingExpiration = TimeSpan.FromHours(1)
-                };
+                    try
+                    {
+                        var cacheKey = $"portrait_cfg_{game}_{characterName}";
+                        var cacheModel = ToCacheModel(entity);
 
-                await m_Cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(cacheModel), cacheOptions);
+                        var cacheOptions = new DistributedCacheEntryOptions
+                        {
+                            SlidingExpiration = TimeSpan.FromHours(1)
+                        };
 
-                var allCacheKey = $"portrait_cfg_all_{game}";
-                await m_Cache.RemoveAsync(allCacheKey);
+                        await m_Cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(cacheModel), cacheOptions);
+
+                        var allCacheKey = $"portrait_cfg_all_{game}";
+                        await m_Cache.RemoveAsync(allCacheKey);
+                    }
+                    catch (Exception e)
+                    {
+                        m_Logger.LogError(e, "Failed to update cache for character portrait config after upsert.");
+                    }
+                });
 
                 return;
             }
