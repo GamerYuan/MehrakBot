@@ -28,41 +28,49 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
     public async Task<CharacterPortraitConfig?> GetConfigAsync(Game game, string characterName)
     {
-        var cacheKey = $"portrait_cfg_{game}_{characterName}";
-        var cachedData = await m_Cache.GetStringAsync(cacheKey);
-
-        if (!string.IsNullOrEmpty(cachedData))
+        try
         {
-            try
+            var cacheKey = $"portrait_cfg_{game}_{characterName}";
+            var cachedData = await m_Cache.GetStringAsync(cacheKey);
+
+            if (!string.IsNullOrEmpty(cachedData))
             {
-                var cachedConfig = JsonSerializer.Deserialize<PortraitConfigCacheModel>(cachedData);
-                if (cachedConfig != null)
-                    return ToConfig(cachedConfig);
+                try
+                {
+                    var cachedConfig = JsonSerializer.Deserialize<PortraitConfigCacheModel>(cachedData);
+                    if (cachedConfig != null)
+                        return ToConfig(cachedConfig);
+                }
+                catch (JsonException)
+                {
+                    await m_Cache.RemoveAsync(cacheKey);
+                }
             }
-            catch (JsonException)
+
+            using var scope = m_ScopeFactory.CreateScope();
+            using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+            var entity = await context.CharacterPortraitConfigs.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Game == game && c.Name == characterName);
+
+            if (entity == null)
+                return null;
+
+            var cacheModel = ToCacheModel(entity);
+
+            var cacheOptions = new DistributedCacheEntryOptions
             {
-                await m_Cache.RemoveAsync(cacheKey);
-            }
+                SlidingExpiration = TimeSpan.FromHours(1)
+            };
+
+            await m_Cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(cacheModel), cacheOptions);
+
+            return ToConfig(entity);
         }
-
-        using var scope = m_ScopeFactory.CreateScope();
-        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        var entity = await context.CharacterPortraitConfigs.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Game == game && c.Name == characterName);
-
-        if (entity == null)
-            return null;
-
-        var cacheModel = ToCacheModel(entity);
-
-        var cacheOptions = new DistributedCacheEntryOptions
+        catch (Exception e)
         {
-            SlidingExpiration = TimeSpan.FromHours(1)
-        };
-
-        await m_Cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(cacheModel), cacheOptions);
-
-        return ToConfig(entity);
+            m_Logger.LogError(e, "Failed to get character portrait config for {Game} - {CharacterName}", game, characterName);
+            return null;
+        }
     }
 
     public async Task<Dictionary<string, CharacterPortraitConfig>> GetAllConfigsAsync(Game game)
