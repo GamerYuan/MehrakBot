@@ -183,7 +183,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
 
             var enableFade = portraitConfig?.EnableGradientFade ?? true;
             if (enableFade &&
-                (portraitConfig?.GradientFadeStart.GetValueOrDefault(0.75f) > 0f))
+                (portraitConfig?.GradientFadeStart ?? 0.75f) > 0f)
                 ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
         });
 

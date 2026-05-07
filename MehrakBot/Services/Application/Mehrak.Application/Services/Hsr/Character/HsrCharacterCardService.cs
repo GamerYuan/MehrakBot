@@ -228,8 +228,8 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
             }
 
             if (portraitConfig?.EnableGradientFade == true &&
-                (portraitConfig?.GradientFadeStart.GetValueOrDefault(0.75f) > 0f))
-                ctx.ApplyGradientFade(portraitConfig.GradientFadeStart ?? 0.75f);
+                (portraitConfig?.GradientFadeStart ?? 0.75f) > 0f)
+                ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
         });
 
         var equipImage = await equipImageTask;
