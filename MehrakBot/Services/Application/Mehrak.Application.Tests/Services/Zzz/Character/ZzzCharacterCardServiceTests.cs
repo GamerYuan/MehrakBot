@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Zzz.Character;
+using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Zzz.Types;
@@ -73,7 +74,9 @@ public class ZzzCharacterCardServiceTests
         var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
-        Assert.That(generatedImageBytes, Is.EqualTo(goldenImage), "Generated image should match the golden image");
+        Assert.That(generatedImageBytes, Is.Not.Empty);
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream), "Generated image should match the golden image");
     }
 
     private static GameProfileDto GetTestUserGameData()

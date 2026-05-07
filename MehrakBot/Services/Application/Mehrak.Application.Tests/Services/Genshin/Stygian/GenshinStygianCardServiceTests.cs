@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Stygian;
+using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Genshin.Types;
@@ -74,7 +75,8 @@ public class GenshinStygianCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
-        Assert.That(bytes, Is.EqualTo(goldenImage));
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream));
     }
 
     private static GameProfileDto GetTestUserGameData()
