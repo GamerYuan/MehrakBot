@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text.Json;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -95,49 +96,68 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
     public async Task UpsertConfigAsync(Game game, string characterName, CharacterPortraitConfigUpdate update)
     {
-        using var scope = m_ScopeFactory.CreateScope();
-        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        const int maxRetries = 3;
 
-        var entity = await context.CharacterPortraitConfigs
-            .FirstOrDefaultAsync(c => c.Game == game && c.Name == characterName);
-
-        if (entity == null)
+        for (var attempt = 0; attempt < maxRetries; attempt++)
         {
-            entity = new CharacterPortraitConfigModel
+            using var scope = m_ScopeFactory.CreateScope();
+            await using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+            await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            try
             {
-                Game = game,
-                Name = characterName,
-                OffsetX = update.OffsetX,
-                OffsetY = update.OffsetY,
-                TargetScale = update.TargetScale,
-                EnableGradientFade = update.EnableGradientFade,
-                GradientFadeStart = update.GradientFadeStart
-            };
-            context.CharacterPortraitConfigs.Add(entity);
+                var entity = await context.CharacterPortraitConfigs
+                    .FirstOrDefaultAsync(c => c.Game == game && c.Name == characterName);
+
+                if (entity == null)
+                {
+                    entity = new CharacterPortraitConfigModel
+                    {
+                        Game = game,
+                        Name = characterName,
+                        OffsetX = update.OffsetX,
+                        OffsetY = update.OffsetY,
+                        TargetScale = update.TargetScale,
+                        EnableGradientFade = update.EnableGradientFade,
+                        GradientFadeStart = update.GradientFadeStart
+                    };
+                    context.CharacterPortraitConfigs.Add(entity);
+                }
+                else
+                {
+                    if (update.OffsetX.HasValue) entity.OffsetX = update.OffsetX;
+                    if (update.OffsetY.HasValue) entity.OffsetY = update.OffsetY;
+                    if (update.TargetScale.HasValue) entity.TargetScale = update.TargetScale;
+                    if (update.EnableGradientFade.HasValue) entity.EnableGradientFade = update.EnableGradientFade;
+                    if (update.GradientFadeStart.HasValue) entity.GradientFadeStart = update.GradientFadeStart;
+                }
+
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var cacheKey = $"portrait_cfg_{game}_{characterName}";
+                var cacheModel = ToCacheModel(entity);
+
+                var cacheOptions = new DistributedCacheEntryOptions
+                {
+                    SlidingExpiration = TimeSpan.FromHours(1)
+                };
+
+                await m_Cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(cacheModel), cacheOptions);
+
+                var allCacheKey = $"portrait_cfg_all_{game}";
+                await m_Cache.RemoveAsync(allCacheKey);
+
+                return;
+            }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync();
+
+                if (attempt == maxRetries - 1)
+                    throw;
+            }
         }
-        else
-        {
-            if (update.OffsetX.HasValue) entity.OffsetX = update.OffsetX;
-            if (update.OffsetY.HasValue) entity.OffsetY = update.OffsetY;
-            if (update.TargetScale.HasValue) entity.TargetScale = update.TargetScale;
-            if (update.EnableGradientFade.HasValue) entity.EnableGradientFade = update.EnableGradientFade;
-            if (update.GradientFadeStart.HasValue) entity.GradientFadeStart = update.GradientFadeStart;
-        }
-
-        await context.SaveChangesAsync();
-
-        var cacheKey = $"portrait_cfg_{game}_{characterName}";
-        var cacheModel = ToCacheModel(entity);
-
-        var cacheOptions = new DistributedCacheEntryOptions
-        {
-            SlidingExpiration = TimeSpan.FromHours(1)
-        };
-
-        await m_Cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(cacheModel), cacheOptions);
-
-        var allCacheKey = $"portrait_cfg_all_{game}";
-        await m_Cache.RemoveAsync(allCacheKey);
     }
 
     private static CharacterPortraitConfig ToConfig(CharacterPortraitConfigModel entity)
