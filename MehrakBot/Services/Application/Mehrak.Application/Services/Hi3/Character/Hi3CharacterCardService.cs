@@ -69,11 +69,10 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
         characterImage.Mutate(ctx =>
         {
-            if (portraitConfig?.TargetScale.HasValue == true)
+            if (portraitConfig?.TargetScale > 0f)
             {
                 var scale = portraitConfig.TargetScale.Value;
-                if (scale > 0f)
-                    ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
             }
             else
             {

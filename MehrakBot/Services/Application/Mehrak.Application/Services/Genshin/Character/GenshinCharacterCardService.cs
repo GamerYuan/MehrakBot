@@ -158,11 +158,10 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         {
             ctx.CropTransparentPixels();
 
-            if (portraitConfig?.TargetScale.HasValue == true)
+            if (portraitConfig?.TargetScale > 0f)
             {
                 var scale = portraitConfig.TargetScale.Value;
-                if (scale > 0f)
-                    ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
             }
             else
             {
