@@ -47,7 +47,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Alias")
                         .IsUnique();
 
-                    b.ToTable("Aliases");
+                    b.ToTable("Aliases", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.CharacterModel", b =>
@@ -77,7 +77,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Name")
                         .IsUnique();
 
-                    b.ToTable("Characters");
+                    b.ToTable("Characters", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.CharacterPortraitConfigModel", b =>
@@ -116,7 +116,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Name")
                         .IsUnique();
 
-                    b.ToTable("CharacterPortraitConfigs");
+                    b.ToTable("CharacterPortraitConfigs", (string)null);
                 });
 #pragma warning restore 612, 618
         }
