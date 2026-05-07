@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.Character;
+using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Hsr.Types;
@@ -130,7 +131,9 @@ public class HsrCharacterCardServiceTests
         var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImageBytes);
 
-        Assert.That(generatedImageBytes, Is.EqualTo(goldenImageBytes),
+        memoryStream.Position = 0;
+        using var goldenStream = new MemoryStream(goldenImageBytes);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream),
             $"Generated image should match golden image for {testName}");
     }
 

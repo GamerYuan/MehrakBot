@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Character;
+using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Genshin.Types;
@@ -73,7 +74,9 @@ public class GenshinCharacterCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert
-        Assert.That(file.ToArray(), Is.EqualTo(goldenImage));
+        file.Position = 0;
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(file, IsImage.IdenticalTo(goldenStream));
     }
 
     [Test]
@@ -111,7 +114,9 @@ public class GenshinCharacterCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         // Assert
-        Assert.That(file.ToArray(), Is.EqualTo(goldenImage));
+        file.Position = 0;
+        using var goldenStream2 = new MemoryStream(goldenImage);
+        Assert.That(file, IsImage.IdenticalTo(goldenStream2));
     }
 
     private static GameProfileDto GetTestUserGameData()
