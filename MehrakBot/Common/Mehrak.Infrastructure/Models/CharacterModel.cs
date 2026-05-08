@@ -18,4 +18,6 @@ public class CharacterModel
 
     public float? BaseVal { get; set; }
     public float? MaxAscVal { get; set; }
+
+    public List<CharacterServerIdModel> ServerIds { get; set; } = [];
 }
