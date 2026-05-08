@@ -4,6 +4,7 @@ using Mehrak.Application.Renderers.Extensions;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Common;
+using Mehrak.Domain.Models;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hi3.Types;
@@ -65,6 +66,24 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         var characterImage = await LoadFirstAvailableCostumeImageAsync(characterInformation);
         disposables.Add(characterImage);
 
+        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        characterImage.Mutate(ctx =>
+        {
+            if (portraitConfig?.TargetScale > 0f)
+            {
+                var scale = portraitConfig.TargetScale.Value;
+                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+            }
+            else
+            {
+                ctx.Resize(960, 0, KnownResamplers.Lanczos3);
+            }
+
+            if (portraitConfig?.EnableGradientFade == true &&
+                (portraitConfig?.GradientFadeStart ?? 0.75f) > 0f)
+                ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
+        });
+
         var weaponImage = await LoadImageFromRepositoryAsync(
             characterInformation.Weapon.ToImageName(), disposables, cancellationToken);
 
@@ -90,8 +109,10 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 
         background.Mutate(ctx =>
         {
+            var offsetX = portraitConfig?.OffsetX ?? 0;
+            var offsetY = portraitConfig?.OffsetY ?? 0;
             ctx.DrawImage(characterImage,
-                new Point(350 - characterImage.Width / 2, 425 - characterImage.Height / 2), 1f);
+                new Point(350 - characterImage.Width / 2 + offsetX, 425 - characterImage.Height / 2 + offsetY), 1f);
 
             var avatarNameOptions = new RichTextOptions(Fonts.Title)
             {

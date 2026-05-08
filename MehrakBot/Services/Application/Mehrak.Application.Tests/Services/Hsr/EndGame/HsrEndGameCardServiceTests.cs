@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.EndGame;
+using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
@@ -73,7 +74,8 @@ public class HsrPureFictionCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
-        Assert.That(bytes, Is.EqualTo(goldenImage));
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream));
     }
 
     [Explicit]
@@ -179,7 +181,8 @@ public class HsrApocalypticShadowCardServiceTests
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
 
         Assert.That(bytes, Is.Not.Empty);
-        Assert.That(bytes, Is.EqualTo(goldenImage));
+        using var goldenStreamAs = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStreamAs));
     }
 
     [Explicit]

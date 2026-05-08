@@ -22,6 +22,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly IAliasService m_AliasService;
     private readonly IApplicationMetrics m_MetricsService;
+    private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
     public Hi3CharacterApplicationService(
         ICardService<Hi3CharacterDetail> cardService,
@@ -33,6 +34,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
+        ICharacterPortraitConfigService portraitConfigService,
         ILogger<Hi3CharacterApplicationService> logger
     ) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
@@ -42,6 +44,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_CharacterCacheService = characterCacheService;
         m_AliasService = aliasService;
         m_MetricsService = metricsService;
+        m_PortraitConfigService = portraitConfigService;
     }
 
     public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
@@ -109,7 +112,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
             List<Task<bool>> tasks = [];
             var costumeTasks = characterInfo.Costumes
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(960, 0).Build()))
+                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None))
                 .ToList();
 
             tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
@@ -130,6 +133,10 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
             var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
             cardContext.SetParameter("server", server);
+
+            var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, characterInfo.Avatar.Name);
+            if (portraitConfig != null)
+                cardContext.SetParameter("portraitConfig", portraitConfig);
 
             await using var card = await m_CardService.GetCardAsync(cardContext);
 

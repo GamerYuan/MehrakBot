@@ -2,6 +2,7 @@
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Zzz.Tower;
+using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.GameApi.Zzz.Types;
@@ -82,7 +83,13 @@ public class ZzzTowerCardServiceTests
 
         goldenImage.Position = 0;
         image.Position = 0;
-        Assert.That(image, Is.EqualTo(goldenImage), "Generated image should match the golden image");
+
+        using MemoryStream goldenMs = new();
+        await goldenImage.CopyToAsync(goldenMs);
+        using MemoryStream imageMs = new();
+        await image.CopyToAsync(imageMs);
+
+        Assert.That(imageMs, IsImage.IdenticalTo(goldenMs), "Generated image should match the golden image");
     }
 
     [Explicit]

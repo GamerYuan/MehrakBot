@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hi3.Character;
+using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
@@ -162,7 +163,9 @@ internal class Hi3CharacterCardServiceTests
         var outputGoldenImagePath = Path.Combine(outputDirectory, $"{testName}_Golden.jpg");
         await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImageBytes);
 
-        Assert.That(generatedImageBytes, Is.EqualTo(goldenImageBytes),
+        memoryStream.Position = 0;
+        using var goldenStream = new MemoryStream(goldenImageBytes);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream),
             $"Generated image should match golden image for {testName}");
     }
 

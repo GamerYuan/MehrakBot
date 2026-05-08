@@ -2,6 +2,7 @@
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehrak.Infrastructure.Migrations.CharacterDb
 {
     [DbContext(typeof(CharacterDbContext))]
-    partial class CharacterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504135112_CharacterPortraitConfig")]
+    partial class CharacterPortraitConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,7 +50,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Alias")
                         .IsUnique();
 
-                    b.ToTable("Aliases", (string)null);
+                    b.ToTable("Aliases");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.CharacterModel", b =>
@@ -77,7 +80,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Name")
                         .IsUnique();
 
-                    b.ToTable("Characters", (string)null);
+                    b.ToTable("Characters");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Models.CharacterPortraitConfigModel", b =>
@@ -116,7 +119,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Name")
                         .IsUnique();
 
-                    b.ToTable("CharacterPortraitConfigs", (string)null);
+                    b.ToTable("CharacterPortraitConfigs");
                 });
 #pragma warning restore 612, 618
         }

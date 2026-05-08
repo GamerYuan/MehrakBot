@@ -30,6 +30,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IAliasService m_AliasService;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
     private readonly IApplicationMetrics m_MetricsService;
+    private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
@@ -43,6 +44,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
+        ICharacterPortraitConfigService portraitConfigService,
         ILogger<ZzzCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
@@ -54,6 +56,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_AliasService = aliasService;
         m_WikiApi = wikiApi;
         m_MetricsService = metricsService;
+        m_PortraitConfigService = portraitConfigService;
     }
 
     public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
@@ -166,7 +169,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
                 var url = charImage.Data;
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
-                    url), new ImageProcessorBuilder().Resize(2000, 0).Build()));
+                    url), ImageProcessors.None));
             }
 
             var completed = await Task.WhenAll(tasks);
@@ -180,6 +183,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
             var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
             cardContext.SetParameter("server", server);
+
+            var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Name);
+            if (portraitConfig != null)
+                cardContext.SetParameter("portraitConfig", portraitConfig);
 
             await using var card = await m_CardService.GetCardAsync(cardContext);
 

@@ -7,4 +7,5 @@ public class CharacterDbContext(DbContextOptions<CharacterDbContext> options) : 
 {
     public DbSet<CharacterModel> Characters { get; set; }
     public DbSet<AliasModel> Aliases { get; set; }
+    public DbSet<CharacterPortraitConfigModel> CharacterPortraitConfigs { get; set; }
 }
