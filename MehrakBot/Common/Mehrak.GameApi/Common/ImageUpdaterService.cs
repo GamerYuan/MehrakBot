@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Models.Abstractions;
 using Mehrak.Domain.Repositories;
 using Mehrak.Domain.Services.Abstractions;
@@ -64,12 +65,12 @@ public class ImageUpdaterService : IImageUpdaterService
             }
 
             processedStream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
+            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType);
         }
         else
         {
             stream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, stream);
+            await m_ImageRepository.UploadFileAsync(data.Name, stream, FileNameFormat.PngContentType);
         }
 
         return true;
@@ -123,7 +124,7 @@ public class ImageUpdaterService : IImageUpdaterService
             }
 
             processedStream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, processedStream);
+            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType);
 
             return true;
         }

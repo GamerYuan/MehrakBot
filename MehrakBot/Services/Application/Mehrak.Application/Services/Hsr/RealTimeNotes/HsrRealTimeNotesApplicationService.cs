@@ -93,7 +93,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
                         ? "Already Full!"
                         : $"Recovers <t:{data.StaminaFullTs}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_tbp.png", AttachmentSourceType.ImageStorage, "hsr_tbp")
+                new CommandAttachment("hsr_tbp.png", AttachmentSourceType.ImageStorage, "hsr/tbp.png")
             ),
             new CommandSection([
                     new CommandText("Echoes of War", CommandText.TextType.Header3),
@@ -102,21 +102,21 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
                         : "Fully Claimed!"),
                     new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_weekly.png", AttachmentSourceType.ImageStorage, "hsr_weekly")
+                new CommandAttachment("hsr_weekly.png", AttachmentSourceType.ImageStorage, "hsr/weekly.png")
             ),
             new CommandSection([
                     new CommandText("Simulated Universe", CommandText.TextType.Header3),
                     new CommandText($"{data.CurrentRogueScore}/{data.MaxRogueScore}"),
                     new CommandText(isCwReset ? $"Resets <t:{nextWeeklyReset}:R>" : $"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_rogue.png", AttachmentSourceType.ImageStorage, "hsr_rogue")
+                new CommandAttachment("hsr_rogue.png", AttachmentSourceType.ImageStorage, "hsr/rogue.png")
             ),
             new CommandSection([
                     new CommandText("Currency Wars", CommandText.TextType.Header3),
                     new CommandText($"{data.GridFightWeeklyCur}/{data.GridFightWeeklyMax}"),
                     new CommandText(isCwReset ? $"Resets <t:{weeklyReset}:R>" : $"Resets <t:{nextWeeklyReset}:R>", CommandText.TextType.Footer)
                 ],
-                new CommandAttachment("hsr_gridfight.png", AttachmentSourceType.ImageStorage, "hsr_gridfight")
+                new CommandAttachment("hsr_gridfight.png", AttachmentSourceType.ImageStorage, "hsr/gridfight.png")
             )
         ];
 

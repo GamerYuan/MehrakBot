@@ -1,155 +1,99 @@
 ﻿namespace Mehrak.Domain.Common;
 
-/// <summary>
-/// File name format string constants
-/// </summary>
 public static class FileNameFormat
 {
+    public const string PngExtension = ".png";
+    public const string PngContentType = "image/png";
+
     public static class Genshin
     {
-        /// <summary>
-        /// Genshin file name format, where {0} is the character ID or other identifier
-        /// </summary>
-        public const string FileName = "genshin_{0}";
+        public const string PortraitName = "genshin/portrait_{0}.png";
+        public const string AvatarName = "genshin/avatar_{0}.png";
+        public const string SideAvatarName = "genshin/side_avatar_{0}.png";
+        public const string SkillName = "genshin/skill_{0}_{1}.png";
+        public const string StatsName = "genshin/stats_{0}.png";
+        public const string BuffIconName = "genshin/buff_icon_{0}.png";
+        public const string WeaponBaseName = "genshin/weapon_base_{0}.png";
+        public const string WeaponAscendedName = "genshin/weapon_ascended_{0}.png";
+        public const string ConstellationName = "genshin/constellation_{0}.png";
+        public const string RelicName = "genshin/relic_{0}.png";
 
-        /// <summary>
-        /// Genshin avatar file name format, where {0} is the avatar ID
-        /// </summary>
-        public const string AvatarName = "genshin_avatar_{0}";
-
-        /// <summary>
-        /// Genshin side avatar file name format, where {0} is the avatar ID
-        /// </summary>
-        public const string SideAvatarName = "genshin_side_avatar_{0}";
-
-        /// <summary>
-        /// Genshin skill file name format, where {0} is the character ID and
-        /// {1} is the skill ID
-        /// </summary>
-        public const string SkillName = "genshin_{0}_{1}";
-
-        /// <summary>
-        /// Genshin stats file name format, where {0} is the stat ID
-        /// </summary>
-        public const string StatsName = "genshin_stats_{0}";
-
-        /// <summary>
-        /// Genshin buff file name format, where {0} is the buff name (no space)
-        /// </summary>
-        public const string BuffIconName = "genshin_buff_icon_{0}";
-
-        /// <summary>
-        /// Genshin weapon file name format, where {0} is the weapon ID
-        /// </summary>
-        public const string WeaponBaseName = "genshin_weapon_base_{0}";
-
-        /// <summary>
-        /// Genshin ascended weapon file name format, where {0} is the weapon ID
-        /// </summary>
-        public const string WeaponAscendedName = "genshin_weapon_ascended_{0}";
+        public const string ElementName = "genshin/element_{0}.png";
+        public const string AbyssStarsName = "genshin/abyss_stars.png";
+        public const string AbyssBackgroundName = "genshin/abyss_bg.png";
+        public const string TheaterStarName = "genshin/theater_star.png";
+        public const string TheaterBuffName = "genshin/theater_buff.png";
+        public const string TheaterBackgroundName = "genshin/theater_bg.png";
+        public const string StygianMedalName = "genshin/stygian_medal_{0}.png";
+        public const string StygianBackgroundName = "genshin/stygian_bg.png";
+        public const string StygianBossName = "genshin/stygian_boss_{0}.png";
+        public const string BackgroundName = "genshin/bg.png";
+        public const string RelicTemplateName = "genshin/relic_template_{0}.png";
     }
 
     public static class Hsr
     {
-        /// <summary>
-        /// HSR file name format, where {0} is the character ID or other identifier
-        /// </summary>
-        public const string FileName = "hsr_{0}";
+        public const string PortraitName = "hsr/portrait_{0}.png";
+        public const string AvatarName = "hsr/avatar_{0}.png";
+        public const string SideAvatarName = "hsr/side_avatar_{0}.png";
+        public const string RelicName = "hsr/relic_{0}.png";
+        public const string StatsName = "hsr/stats_{0}.png";
+        public const string WeaponIconName = "hsr/weapon_icon_{0}.png";
+        public const string EndGameBuffName = "hsr/endgame_buff_{0}.png";
+        public const string AnomalyName = "hsr/anomaly_{0}.png";
+        public const string EquipName = "hsr/equip_{0}.png";
+        public const string RankName = "hsr/rank_{0}.png";
+        public const string SkillName = "hsr/skill_{0}.png";
+        public const string BossName = "hsr/boss_{0}.png";
 
-        /// <summary>
-        /// HSR avatar file name format, where {0} is the avatar ID
-        /// </summary>
-        public const string AvatarName = "hsr_avatar_{0}";
-
-        /// <summary>
-        /// HSR side avatar file name format, where {0} is the avatar ID
-        /// </summary>
-        public const string SideAvatarName = "hsr_side_avatar_{0}";
-
-        /// <summary>
-        /// HSR relic file name format, where {0} is the relic ID
-        /// </summary>
-        public const string RelicName = "hsr_relic_{0}";
-
-        /// <summary>
-        /// HSR stats file name format, where {0} is the stat ID
-        /// </summary>
-        public const string StatsName = "hsr_stats_{0}";
-
-        /// <summary>
-        /// HSR weapon icon file name format, where {0} is the weapon ID
-        /// </summary>
-        public const string WeaponIconName = "hsr_weapon_icon_{0}";
-
-        /// <summary>
-        /// HSR end game buff file name format, where {0} is the buff ID
-        /// </summary>
-        public const string EndGameBuffName = "hsr_endgame_buff_{0}";
-
-        /// <summary>
-        /// HSR anomaly file name format
-        /// </summary>
-        public const string AnomalyName = "hsr_anomaly_{0}";
+        public const string ElementName = "hsr/element_{0}.png";
+        public const string MoCStarName = "hsr/moc_star.png";
+        public const string AnomalyStarName = "hsr/anomaly_star.png";
+        public const string HourglassName = "hsr/hourglass.png";
+        public const string BossCheckName = "hsr/boss_check.png";
+        public const string MoCBackgroundName = "hsr/moc_bg.png";
+        public const string AABackgroundName = "hsr/aa_bg.png";
+        public const string PFBackgroundName = "hsr/pf_bg.png";
+        public const string ASBackgroundName = "hsr/as_bg.png";
+        public const string LightconeTemplateName = "hsr/lightcone_template.png";
+        public const string RelicTemplateName = "hsr/relic_template_{0}.png";
+        public const string BackgroundName = "hsr/bg.png";
     }
 
     public static class Zzz
     {
-        /// <summary>
-        /// ZZZ file name format, where {0} is the character ID or other identifier
-        /// </summary>
-        public const string FileName = "zzz_{0}";
+        public const string PortraitName = "zzz/portrait_{0}.png";
+        public const string SkillName = "zzz/skill_{0}.png";
+        public const string ProfessionName = "zzz/profession_{0}.png";
+        public const string AvatarName = "zzz/avatar_{0}.png";
+        public const string BuddyName = "zzz/buddy_{0}.png";
+        public const string AssaultBossName = "zzz/assault_boss_{0}.png";
+        public const string HadalBossName = "zzz/hadal_boss_{0}.png";
+        public const string AssaultBuffName = "zzz/assault_buff_{0}.png";
+        public const string TowerMedal = "zzz/tower_medal_{0}.png";
+        public const string DiskDriveName = "zzz/diskdrive_{0}.png";
+        public const string WeaponName = "zzz/weapon_{0}.png";
 
-        /// <summary>
-        /// ZZZ skill file name format, where {0} is the skill type
-        /// </summary>
-        public const string SkillName = "zzz_skill_{0}";
-
-        /// <summary>
-        /// ZZZ profession file name format, where {0} is the profession ID
-        /// </summary>
-        public const string ProfessionName = "zzz_profession_{0}";
-
-        /// <summary>
-        /// ZZZ avatar file name format, where {0} is the avatar ID
-        /// </summary>
-        public const string AvatarName = "zzz_avatar_{0}";
-
-        /// <summary>
-        /// ZZZ buddy file name format, where {0} is the buddy ID
-        /// </summary>
-        public const string BuddyName = "zzz_buddy_{0}";
-
-        /// <summary>
-        /// ZZZ assault boss name, where {0} is the boss name space removed
-        /// </summary>
-        public const string AssaultBossName = "zzz_assault_boss_{0}";
-
-        /// <summary>
-        /// ZZZ defense boss name, where {0} is the boss name space removed
-        /// </summary>
-        public const string HadalBossName = "zzz_hadal_boss_{0}";
-
-        /// <summary>
-        /// ZZZ assault buff name, where {0} is the buff name space removed
-        /// </summary>
-        public const string AssaultBuffName = "zzz_assault_buff_{0}";
-
-        /// <summary>
-        /// ZZZ tower medal name, where {0} is the medal icon name
-        /// </summary>
-        public const string TowerMedal = "zzz_tower_medal_{0}";
+        public const string RatingName = "zzz/rating_{0}.png";
+        public const string ShiyuBackgroundName = "zzz/shiyu_bg.png";
+        public const string RankBackgroundName = "zzz/rank_bg_{0}.png";
+        public const string WeaponStarName = "zzz/weapon_star_{0}.png";
+        public const string AssaultStarName = "zzz/assault_star.png";
+        public const string RarityName = "zzz/rarity_{0}.png";
+        public const string StatName = "zzz/stats_{0}.png";
+        public const string AttributeName = "zzz/attribute_{0}.png";
     }
 
     public static class Hi3
     {
-        /// <summary>
-        /// HI3 file name format, where {0} is the character ID or other identifier
-        /// </summary>
-        public const string FileName = "hi3_{0}";
+        public const string PortraitName = "hi3/portrait_{0}.png";
+        public const string CostumeName = "hi3/costume_{0}.png";
+        public const string WeaponName = "hi3/weapon_{0}.png";
+        public const string StigmataName = "hi3/stigmata_{0}.png";
 
-        /// <summary>
-        /// HI3 costume name, where {0} is the costume ID
-        /// </summary>
-        public const string CostumeName = "hi3_costume_{0}";
+        public const string BackgroundName = "hi3/bg.png";
+        public const string StigmataSlotName = "hi3/stigmata_slot.png";
+        public const string StarIconName = "hi3/star_icon.png";
+        public const string RankName = "hi3/rank_{0}.png";
     }
 }

@@ -33,7 +33,7 @@ public class HsrCharacterInformation
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Hsr.FileName, Id);
+        return string.Format(FileNameFormat.Hsr.PortraitName, Id);
     }
 
     public IImageData ToImageData()
@@ -71,7 +71,7 @@ public class Equip
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Hsr.FileName, Id);
+        return string.Format(FileNameFormat.Hsr.EquipName, Id);
     }
 
     public string ToIconImageName()
@@ -119,7 +119,7 @@ public class Rank
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Hsr.FileName, Id);
+        return string.Format(FileNameFormat.Hsr.RankName, Id);
     }
 
     public IImageData ToImageData()
@@ -187,7 +187,7 @@ public class Skill
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Hsr.FileName,
+        return string.Format(FileNameFormat.Hsr.SkillName,
             PointType == 1 ? RegexExpressions.HsrStatBonusRegex().Replace(SkillStages![0].Name!, "") : PointId);
     }
 

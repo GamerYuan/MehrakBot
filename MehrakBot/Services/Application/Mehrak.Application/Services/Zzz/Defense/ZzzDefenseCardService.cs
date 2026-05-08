@@ -58,7 +58,7 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             .Select(async (x, token) =>
             {
                 var image = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync($"zzz_rating_{x}", token), token);
+                    await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RatingName, x), token), token);
                 image.Mutate(ctx => ctx.Resize(80, 0));
                 return (Rating: x, Image: image);
             })
@@ -70,23 +70,23 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             cancellationToken);
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("zzz_shiyu_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Zzz.ShiyuBackgroundName, cancellationToken),
             cancellationToken);
 
         m_RankIcons.Add((199, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_1", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 1), cancellationToken),
             cancellationToken)));
         m_RankIcons.Add((299, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_2", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 2), cancellationToken),
             cancellationToken)));
         m_RankIcons.Add((599, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_3", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 3), cancellationToken),
             cancellationToken)));
         m_RankIcons.Add((2099, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_4", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 4), cancellationToken),
             cancellationToken)));
         m_RankIcons.Add((int.MaxValue, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("zzz_rank_bg_5", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 5), cancellationToken),
             cancellationToken)));
     }
 

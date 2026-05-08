@@ -61,7 +61,7 @@ public class ZzzAvatarData
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.FileName, Id);
+        return string.Format(FileNameFormat.Zzz.PortraitName, Id);
     }
 }
 
@@ -105,7 +105,7 @@ public class DiskDrive
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.FileName, EquipSuit.SuitId);
+        return string.Format(FileNameFormat.Zzz.DiskDriveName, EquipSuit.SuitId);
     }
 
     public IImageData ToImageData()
@@ -236,7 +236,7 @@ public class Weapon
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.FileName, Id);
+        return string.Format(FileNameFormat.Zzz.WeaponName, Id);
     }
 
     public IImageData ToImageData()

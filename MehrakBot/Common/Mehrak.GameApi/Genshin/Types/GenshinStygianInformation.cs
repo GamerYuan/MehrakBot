@@ -74,7 +74,7 @@ public class Monster
 
     public string ToImageName()
     {
-        return $"genshin_stygian_boss_{MonsterId}";
+        return string.Format(FileNameFormat.Genshin.StygianBossName, MonsterId);
     }
 
     public IImageData ToImageData()

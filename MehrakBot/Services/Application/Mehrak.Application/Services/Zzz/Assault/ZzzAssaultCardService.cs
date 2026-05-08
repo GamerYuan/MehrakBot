@@ -45,7 +45,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_StarLitImage = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync("zzz_assault_star", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Zzz.AssaultStarName, cancellationToken),
             cancellationToken);
         m_StarLitSmall = m_StarLitImage.Clone(ctx => ctx.Resize(0, 35));
         m_StarUnlitSmall = m_StarLitImage.Clone(ctx =>

@@ -86,16 +86,16 @@ internal class Hi3CharacterCardServiceTests
 
         imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Stream.Null);
-        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_bg", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync("hi3_bg"));
-        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_stigmata_slot", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync("hi3_stigmata_slot"));
-        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync("hi3_star_icon", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync("hi3_star_icon"));
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(FileNameFormat.Hi3.BackgroundName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.BackgroundName));
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(FileNameFormat.Hi3.StigmataSlotName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StigmataSlotName));
+        imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(FileNameFormat.Hi3.StarIconName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StarIconName));
 
         foreach (var rank in new[] { 1, 2, 3, 4, 5 })
         {
-            var rankFileName = $"hi3_rank_{rank}";
+            var rankFileName = string.Format(FileNameFormat.Hi3.RankName, rank);
             imageRepositoryMock.Setup(x => x.DownloadFileToStreamAsync(rankFileName, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(await S3TestHelper.Instance.ImageRepository.DownloadFileToStreamAsync(rankFileName));
         }

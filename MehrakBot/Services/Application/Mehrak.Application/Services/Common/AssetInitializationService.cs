@@ -1,4 +1,5 @@
-﻿using Mehrak.Domain.Repositories;
+﻿using Mehrak.Domain.Common;
+using Mehrak.Domain.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -17,16 +18,26 @@ public class AssetInitializationService : IHostedService
     {
         var imageRepo = m_ServiceProvider.GetRequiredService<IImageRepository>();
 
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"), "*.png",
+        var assetsRoot = Path.Combine(AppContext.BaseDirectory, "Assets");
+
+        foreach (var image in Directory.EnumerateFiles(assetsRoot, "*.png",
                      SearchOption.AllDirectories))
         {
             if (Path.GetDirectoryName(image)?.Contains("Test") ?? false) continue;
-            var fileName = Path.GetFileNameWithoutExtension(image);
-            if (await imageRepo.FileExistsAsync(fileName, cancellationToken)) continue;
+            var key = GetAssetKey(assetsRoot, image);
+            if (await imageRepo.FileExistsAsync(key, cancellationToken)) continue;
 
             await using var stream = File.OpenRead(image);
-            await imageRepo.UploadFileAsync(fileName, stream, cancellationToken: cancellationToken);
+            await imageRepo.UploadFileAsync(key, stream, FileNameFormat.PngContentType, cancellationToken);
         }
+    }
+
+    private static string GetAssetKey(string assetsRoot, string fullPath)
+    {
+        var relative = Path.GetRelativePath(assetsRoot, fullPath);
+        var dir = Path.GetDirectoryName(relative)?.Replace('\\', '/');
+        var fileName = Path.GetFileName(relative);
+        return string.IsNullOrEmpty(dir) ? fileName : $"{dir.ToLowerInvariant()}/{fileName}";
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

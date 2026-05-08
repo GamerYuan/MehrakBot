@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Repositories;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.Fonts;
@@ -27,7 +28,7 @@ internal class HsrPureFictionCardService : HsrEndGameCardServiceBase
     protected override async Task LoadModeResourcesAsync(CancellationToken cancellationToken)
     {
         m_PfBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("hsr_pf_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.PFBackgroundName, cancellationToken),
             cancellationToken);
     }
 

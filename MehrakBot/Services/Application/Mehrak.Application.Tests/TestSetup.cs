@@ -1,5 +1,7 @@
 ﻿namespace Mehrak.Application.Tests;
 
+using Mehrak.Domain.Common;
+
 [SetUpFixture]
 public class TestSetup
 {
@@ -10,12 +12,13 @@ public class TestSetup
     {
         m_DbTestHelper = new S3TestHelper();
 
-        foreach (var image in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "Assets"),
-                     "*.png", SearchOption.AllDirectories))
+        var assetsRoot = Path.Combine(AppContext.BaseDirectory, "Assets");
+
+        foreach (var image in Directory.EnumerateFiles(assetsRoot, "*.png", SearchOption.AllDirectories))
         {
-            var fileName = Path.GetFileNameWithoutExtension(image);
+            var key = GetAssetKey(assetsRoot, image);
             await using var stream = File.OpenRead(image);
-            await S3TestHelper.Instance.ImageRepository.UploadFileAsync(fileName, stream);
+            await S3TestHelper.Instance.ImageRepository.UploadFileAsync(key, stream, FileNameFormat.PngContentType);
         }
     }
 
@@ -23,5 +26,15 @@ public class TestSetup
     public void TearDown()
     {
         m_DbTestHelper.Dispose();
+    }
+
+    private static string GetAssetKey(string assetsRoot, string fullPath)
+    {
+        var relative = Path.GetRelativePath(assetsRoot, fullPath)
+            .Replace("TestAssets\\", "")
+            .Replace("TestAssets/", "");
+        var dir = Path.GetDirectoryName(relative)?.Replace('\\', '/');
+        var fileName = Path.GetFileName(relative);
+        return string.IsNullOrEmpty(dir) ? fileName : $"{dir.ToLowerInvariant()}/{fileName}";
     }
 }

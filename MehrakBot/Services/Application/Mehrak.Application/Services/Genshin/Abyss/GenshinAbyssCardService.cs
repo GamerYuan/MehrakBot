@@ -41,13 +41,13 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_StarLit = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("genshin_abyss_stars", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.AbyssStarsName, cancellationToken),
             cancellationToken);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
         m_StarUnlit.Mutate(ctx => ctx.Brightness(0.35f));
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync("genshin_abyss_bg", cancellationToken),
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.AbyssBackgroundName, cancellationToken),
             cancellationToken);
     }
 
