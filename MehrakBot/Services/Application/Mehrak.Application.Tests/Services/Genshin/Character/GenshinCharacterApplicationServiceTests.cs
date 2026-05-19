@@ -119,7 +119,7 @@ public class GenshinCharacterApplicationServiceTests
         // Assert
         characterCacheMock.Verify(x => x.UpsertCharacters(
                 Game.Genshin,
-                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Count() == charList.Count && entries.Any(e => e.Name == "Traveler"))),
+                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Count() == charList.Count && entries.Any(e => e.Name == "Traveler" && e.ServerId == 10000005))),
             Times.Once);
     }
 

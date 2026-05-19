@@ -116,7 +116,7 @@ public class HsrCharacterApplicationServiceTests
         // Assert
         characterCacheMock.Verify(x => x.UpsertCharacters(
                 Game.HonkaiStarRail,
-                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Any(e => e.Name == "Trailblazer"))),
+                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Any(e => e.Name == "Trailblazer" && e.ServerId == 8006))),
             Times.Once);
     }
 
