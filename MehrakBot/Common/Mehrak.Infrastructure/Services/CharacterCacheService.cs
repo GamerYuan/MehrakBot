@@ -74,9 +74,9 @@ public class CharacterCacheService : ICharacterCacheService
             var byName = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
             foreach (var (name, serverId) in normalised)
             {
-                if (serverId.HasValue || !byName.ContainsKey(name))
+                if (serverId.HasValue || !byName.TryGetValue(name, out var value))
                     byName[name] = serverId;
-                else if (!byName[name].HasValue && serverId.HasValue)
+                else if (!value.HasValue && serverId.HasValue)
                     byName[name] = serverId;
             }
 
@@ -122,7 +122,7 @@ public class CharacterCacheService : ICharacterCacheService
             await characterContext.SaveChangesAsync();
 
             var allNames = existing.Keys.Concat(newNames).Distinct().OrderBy(x => x).Select(x => (RedisValue)x);
-            await Db.SetAddAsync(key, allNames.ToArray());
+            await Db.SetAddAsync(key, [.. allNames]);
 
             if (newNames.Count > 0)
                 m_Logger.LogInformation("Added {Count} names for {Game}", newNames.Count, gameName);
