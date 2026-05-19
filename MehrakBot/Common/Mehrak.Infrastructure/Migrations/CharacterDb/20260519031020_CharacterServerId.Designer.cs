@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehrak.Infrastructure.Migrations.CharacterDb
 {
     [DbContext(typeof(CharacterDbContext))]
-    [Migration("20260508113709_CharacterServerId")]
+    [Migration("20260519031020_CharacterServerId")]
     partial class CharacterServerId
     {
         /// <inheritdoc />
@@ -138,7 +138,8 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CharacterId");
+                    b.HasIndex("CharacterId", "ServerId")
+                        .IsUnique();
 
                     b.ToTable("CharacterServerIds");
                 });

@@ -32,9 +32,10 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_CharacterServerIds_CharacterId",
+                name: "IX_CharacterServerIds_CharacterId_ServerId",
                 table: "CharacterServerIds",
-                column: "CharacterId");
+                columns: new[] { "CharacterId", "ServerId" },
+                unique: true);
         }
 
         /// <inheritdoc />

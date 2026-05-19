@@ -135,7 +135,8 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CharacterId");
+                    b.HasIndex("CharacterId", "ServerId")
+                        .IsUnique();
 
                     b.ToTable("CharacterServerIds");
                 });
