@@ -113,7 +113,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
             var characters = charListResponse.Data;
             _ = m_CharacterCacheService.UpsertCharacters(Game.Genshin,
-                characters.Select(x => x.Name));
+                characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
             var names = characters.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
             HashSet<int> validCharacters = [];

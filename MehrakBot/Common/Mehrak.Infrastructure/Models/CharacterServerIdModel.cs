@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Models;
 
+[Index(nameof(CharacterId), nameof(ServerId), IsUnique = true)]
 public class CharacterServerIdModel
 {
     [Key]

@@ -2,11 +2,15 @@
 
 namespace Mehrak.Domain.Services.Abstractions;
 
+public record struct CharacterUpsertEntry(string Name, int? ServerId = null);
+
 public interface ICharacterCacheService
 {
     List<string> GetCharacters(Game gameName);
 
     Task UpsertCharacters(Game gameName, IEnumerable<string> characters);
+
+    Task UpsertCharacters(Game gameName, IEnumerable<CharacterUpsertEntry> entries);
 
     Task DeleteCharacter(Game gameName, string characterName);
 

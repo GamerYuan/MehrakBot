@@ -76,7 +76,8 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
             }
 
             var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
-            _ = m_CharacterCache.UpsertCharacters(Game.HonkaiStarRail, characterList.Select(x => x.Name));
+            _ = m_CharacterCache.UpsertCharacters(Game.HonkaiStarRail,
+                characterList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
             var fileName = GetFileName(JsonSerializer.Serialize(characterList), "jpg", gameUid);
             if (await AttachmentExistsAsync(fileName))
