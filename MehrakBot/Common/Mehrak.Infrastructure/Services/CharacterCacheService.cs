@@ -91,10 +91,13 @@ public class CharacterCacheService : ICharacterCacheService
             using var scope = m_ServiceScopeFactory.CreateScope();
             var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
-            var existing = await characterContext.Characters
-                .Where(x => x.Game == gameName && byName.Keys.Contains(x.Name))
+            var existingDb = await characterContext.Characters
+                .Where(x => x.Game == gameName)
                 .Include(x => x.ServerIds)
-                .ToDictionaryAsync(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
+                .ToListAsync();
+
+            var existing = existingDb.Where(x => byName.ContainsKey(x.Name))
+                .ToDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
 
             var newNames = new List<string>();
 
@@ -124,7 +127,8 @@ public class CharacterCacheService : ICharacterCacheService
 
             await characterContext.SaveChangesAsync();
 
-            var allNames = existing.Keys.Concat(newNames).Distinct().OrderBy(x => x).Select(x => (RedisValue)x);
+
+            var allNames = existingDb.Select(x => x.Name).Concat(newNames).Distinct().OrderBy(x => x).Select(x => (RedisValue)x);
             await Db.SetAddAsync(key, [.. allNames]);
 
             if (newNames.Count > 0)
