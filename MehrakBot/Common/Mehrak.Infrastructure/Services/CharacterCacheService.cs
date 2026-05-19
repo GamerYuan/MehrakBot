@@ -57,45 +57,82 @@ public class CharacterCacheService : ICharacterCacheService
 
     public async Task UpsertCharacters(Game gameName, IEnumerable<string> characters)
     {
+        await UpsertCharacters(gameName,
+            characters.Select(name => new CharacterUpsertEntry(name)));
+    }
+
+    public async Task UpsertCharacters(Game gameName, IEnumerable<CharacterUpsertEntry> entries)
+    {
         try
         {
-            var normalised = characters.Select(c => c.ReplaceLineEndings("").Trim()).Where(c => !string.IsNullOrEmpty(c));
-            var incoming = new HashSet<string>(normalised, StringComparer.OrdinalIgnoreCase);
-            if (incoming.Count == 0) return;
+            var normalised = entries
+                .Select(e => new CharacterUpsertEntry(
+                    e.Name.ReplaceLineEndings("").Trim(),
+                    e.ServerId))
+                .Where(e => !string.IsNullOrEmpty(e.Name));
+
+            var byName = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (name, serverId) in normalised)
+            {
+                if (!byName.TryGetValue(name, out var serverIds))
+                {
+                    serverIds = [];
+                    byName[name] = serverIds;
+                }
+
+                if (serverId.HasValue)
+                    serverIds.Add(serverId.Value);
+            }
+
+            if (byName.Count == 0) return;
 
             var key = GetCharacterKey(gameName);
 
             using var scope = m_ServiceScopeFactory.CreateScope();
             var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
-            var existingInDb = await characterContext.Characters.AsNoTracking()
+            var existingDb = await characterContext.Characters
                 .Where(x => x.Game == gameName)
-                .Select(x => x.Name)
+                .Include(x => x.ServerIds)
                 .ToListAsync();
 
-            var toAddToDb = incoming
-                .Except(existingInDb, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var existing = existingDb.Where(x => byName.ContainsKey(x.Name))
+                .ToDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
 
-            if (toAddToDb.Count == 0)
-            {
-                await Db.SetAddAsync(key, incoming.Select(x => (RedisValue)x).ToArray());
-                return;
-            }
+            var newNames = new List<string>();
 
-            foreach (var newChar in toAddToDb)
+            foreach (var (name, serverIds) in byName.OrderBy(x => x.Key))
             {
-                await characterContext.Characters.AddAsync(new CharacterModel()
+                if (existing.TryGetValue(name, out var character))
                 {
-                    Game = gameName,
-                    Name = newChar
-                });
+                    var existingIds = character.ServerIds.Select(s => s.ServerId).ToHashSet();
+                    foreach (var sid in serverIds.Where(sid => !existingIds.Contains(sid)))
+                        character.ServerIds.Add(new CharacterServerIdModel { ServerId = sid });
+                }
+                else
+                {
+                    var newChar = new CharacterModel
+                    {
+                        Game = gameName,
+                        Name = name
+                    };
+
+                    foreach (var serverId in serverIds)
+                        newChar.ServerIds.Add(new CharacterServerIdModel { ServerId = serverId });
+
+                    await characterContext.Characters.AddAsync(newChar);
+                    newNames.Add(name);
+                }
             }
 
             await characterContext.SaveChangesAsync();
-            await Db.SetAddAsync(key, [.. existingInDb.Concat(toAddToDb).Distinct().OrderBy(x => x).Select(x => (RedisValue)x)]);
 
-            m_Logger.LogInformation("Added {Count} names for {Game}", toAddToDb.Count, gameName);
+
+            var allNames = existingDb.Select(x => x.Name).Concat(newNames).Distinct().OrderBy(x => x).Select(x => (RedisValue)x);
+            await Db.SetAddAsync(key, [.. allNames]);
+
+            if (newNames.Count > 0)
+                m_Logger.LogInformation("Added {Count} names for {Game}", newNames.Count, gameName);
         }
         catch (Exception e)
         {
@@ -120,7 +157,6 @@ public class CharacterCacheService : ICharacterCacheService
                 characterContext.Characters.Remove(entity);
                 await characterContext.SaveChangesAsync();
 
-                // Remove from Redis
                 var key = GetCharacterKey(gameName);
                 await Db.SetRemoveAsync(key, normalized);
 

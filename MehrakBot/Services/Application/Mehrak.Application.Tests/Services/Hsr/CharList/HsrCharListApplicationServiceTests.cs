@@ -156,7 +156,7 @@ public class HsrCharListApplicationServiceTests
             Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }

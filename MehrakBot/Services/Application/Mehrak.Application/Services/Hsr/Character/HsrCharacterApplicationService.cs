@@ -107,7 +107,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
             var characterList = charResponse.Data.First();
             _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiStarRail,
-                characterList.AvatarList.Select(x => x.Name));
+                characterList.AvatarList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
             var names = characterList.AvatarList.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
             Dictionary<int, HsrCharacterInformation> validCharacters = [];

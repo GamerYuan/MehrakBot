@@ -116,7 +116,7 @@ public class ZzzCharacterApplicationServiceTests
         // Assert
         characterCacheMock.Verify(x => x.UpsertCharacters(
                 Game.ZenlessZoneZero,
-                It.Is<IEnumerable<string>>(names => names.Contains("Jane"))),
+                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Any(e => e.Name == "Jane" && e.ServerId == 1))),
             Times.Once);
     }
 
@@ -147,7 +147,7 @@ public class ZzzCharacterApplicationServiceTests
                 Does.Contain("NonExistentCharacter"));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
@@ -196,7 +196,7 @@ public class ZzzCharacterApplicationServiceTests
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
@@ -237,7 +237,7 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(result.ErrorMessage, Does.Contain("Character Image"));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
@@ -279,7 +279,7 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(result.ErrorMessage, Does.Contain("image"));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
@@ -370,7 +370,7 @@ public class ZzzCharacterApplicationServiceTests
             x => x.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), characterName.ToLowerInvariant()),
             Times.Once);
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
@@ -672,7 +672,7 @@ public class ZzzCharacterApplicationServiceTests
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 

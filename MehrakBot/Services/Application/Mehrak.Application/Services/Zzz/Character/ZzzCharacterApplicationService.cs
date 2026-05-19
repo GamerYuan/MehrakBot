@@ -92,7 +92,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             }
 
             var characters = charResponse.Data;
-            _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero, characters.Select(x => x.Name));
+            _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero,
+                characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
             var character = characters.FirstOrDefault(x =>
                 x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase) ||

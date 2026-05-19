@@ -72,7 +72,8 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
             }
 
             var characters = charResponse.Data;
-            _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero, characters.Select(x => x.Name));
+            _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero,
+                characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
             var buddyResponse = await m_BuddyApi.GetAsync(
                 new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));

@@ -116,7 +116,7 @@ public class HsrCharacterApplicationServiceTests
         // Assert
         characterCacheMock.Verify(x => x.UpsertCharacters(
                 Game.HonkaiStarRail,
-                It.Is<IEnumerable<string>>(names => names.Contains("Trailblazer"))),
+                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Any(e => e.Name == "Trailblazer" && e.ServerId == 8006))),
             Times.Once);
     }
 
@@ -146,7 +146,7 @@ public class HsrCharacterApplicationServiceTests
                 Does.Contain("NonExistentCharacter"));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
@@ -188,7 +188,7 @@ public class HsrCharacterApplicationServiceTests
             Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -225,7 +225,7 @@ public class HsrCharacterApplicationServiceTests
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
         Assert.That(await relicContext.HsrRelics.CountAsync(), Is.EqualTo(0));
     }
@@ -262,7 +262,7 @@ public class HsrCharacterApplicationServiceTests
             Assert.That(result.ErrorMessage, Does.Contain("Light Cone Data"));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
         Assert.That(await relicContext.HsrRelics.CountAsync(), Is.EqualTo(0));
     }
@@ -304,7 +304,7 @@ public class HsrCharacterApplicationServiceTests
             Assert.That(result.ErrorMessage, Does.Contain("image"));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
@@ -431,7 +431,7 @@ public class HsrCharacterApplicationServiceTests
             It.Is<IImageData>(img => img.Url == "https://example.com/relic_icon_4.png"),
             It.IsAny<IImageProcessor>()), Times.Once);
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -481,7 +481,7 @@ public class HsrCharacterApplicationServiceTests
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiStarRail), "trailblazer"),
             Times.Once);
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -534,7 +534,7 @@ public class HsrCharacterApplicationServiceTests
             x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
             Times.AtLeast(expectedImageCount));
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<string>>()),
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
     }
 
