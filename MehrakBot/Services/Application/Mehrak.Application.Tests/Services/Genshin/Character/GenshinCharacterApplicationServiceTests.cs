@@ -119,7 +119,7 @@ public class GenshinCharacterApplicationServiceTests
         // Assert
         characterCacheMock.Verify(x => x.UpsertCharacters(
                 Game.Genshin,
-                It.Is<IEnumerable<string>>(names => names.Count() == charList.Count && names.Contains("Traveler"))),
+                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Count() == charList.Count && entries.Any(e => e.Name == "Traveler"))),
             Times.Once);
     }
 
@@ -152,7 +152,7 @@ public class GenshinCharacterApplicationServiceTests
                 Does.Contain("NonExistentCharacter"));
         }
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<string>>()), Times.Once);
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
     }
 
     [Test]
@@ -203,7 +203,7 @@ public class GenshinCharacterApplicationServiceTests
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<string>>()), Times.Once);
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
     }
 
     [Test]
@@ -238,7 +238,7 @@ public class GenshinCharacterApplicationServiceTests
             Assert.That(result.ErrorMessage, Does.Contain("Character data"));
         });
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<string>>()), Times.Once);
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
     }
 
     [Test]
@@ -464,7 +464,7 @@ public class GenshinCharacterApplicationServiceTests
 
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), "traveler"), Times.Once);
 
-        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<string>>()), Times.Once);
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
     }
 
     [Test]

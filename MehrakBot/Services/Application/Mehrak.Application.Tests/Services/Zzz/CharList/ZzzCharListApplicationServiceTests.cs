@@ -106,7 +106,7 @@ public class ZzzCharListApplicationServiceTests
         // Assert
         characterCacheMock.Verify(x => x.UpsertCharacters(
                 Game.ZenlessZoneZero,
-                It.Is<IEnumerable<string>>(names => names.Contains("Jane"))),
+                It.Is<IEnumerable<CharacterUpsertEntry>>(entries => entries.Any(e => e.Name == "Jane"))),
             Times.Once);
     }
 
