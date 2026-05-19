@@ -71,13 +71,17 @@ public class CharacterCacheService : ICharacterCacheService
                     e.ServerId))
                 .Where(e => !string.IsNullOrEmpty(e.Name));
 
-            var byName = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
+            var byName = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
             foreach (var (name, serverId) in normalised)
             {
-                if (serverId.HasValue || !byName.TryGetValue(name, out var value))
-                    byName[name] = serverId;
-                else if (!value.HasValue && serverId.HasValue)
-                    byName[name] = serverId;
+                if (!byName.TryGetValue(name, out var serverIds))
+                {
+                    serverIds = [];
+                    byName[name] = serverIds;
+                }
+
+                if (serverId.HasValue)
+                    serverIds.Add(serverId.Value);
             }
 
             if (byName.Count == 0) return;
@@ -94,14 +98,13 @@ public class CharacterCacheService : ICharacterCacheService
 
             var newNames = new List<string>();
 
-            foreach (var (name, serverId) in byName.OrderBy(x => x.Key))
+            foreach (var (name, serverIds) in byName.OrderBy(x => x.Key))
             {
                 if (existing.TryGetValue(name, out var character))
                 {
-                    if (serverId.HasValue && character.ServerIds.All(s => s.ServerId != serverId.Value))
-                    {
-                        character.ServerIds.Add(new CharacterServerIdModel { ServerId = serverId.Value });
-                    }
+                    var existingIds = character.ServerIds.Select(s => s.ServerId).ToHashSet();
+                    foreach (var sid in serverIds.Where(sid => !existingIds.Contains(sid)))
+                        character.ServerIds.Add(new CharacterServerIdModel { ServerId = sid });
                 }
                 else
                 {
@@ -111,8 +114,8 @@ public class CharacterCacheService : ICharacterCacheService
                         Name = name
                     };
 
-                    if (serverId.HasValue)
-                        newChar.ServerIds.Add(new CharacterServerIdModel { ServerId = serverId.Value });
+                    foreach (var serverId in serverIds)
+                        newChar.ServerIds.Add(new CharacterServerIdModel { ServerId = serverId });
 
                     await characterContext.Characters.AddAsync(newChar);
                     newNames.Add(name);
