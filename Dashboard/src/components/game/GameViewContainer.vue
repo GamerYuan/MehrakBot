@@ -13,6 +13,7 @@ import ManageAliasesCard from "./ManageAliasesCard.vue";
 import ManageCodesCard from "./ManageCodesCard.vue";
 import AuthModal from "./AuthModal.vue";
 import StatEditModal from "./StatEditModal.vue";
+import PortraitConfigModal from "./PortraitConfigModal.vue";
 
 const props = defineProps({
   title: String,
@@ -68,6 +69,16 @@ const props = defineProps({
   editStatMax: [Number, null],
   editStatFetching: Boolean,
   editStatLoading: Boolean,
+
+  showPortraitConfigModal: Boolean,
+  portraitConfigCharacter: String,
+  portraitConfigOffsetX: [Number, null],
+  portraitConfigOffsetY: [Number, null],
+  portraitConfigTargetScale: [Number, null],
+  portraitConfigEnableFade: [Boolean, null],
+  portraitConfigFadeStart: [Number, null],
+  portraitConfigFetching: Boolean,
+  portraitConfigSaving: Boolean,
 });
 
 const emit = defineEmits([
@@ -103,6 +114,14 @@ const emit = defineEmits([
   "update:editStatBase",
   "update:editStatMax",
   "handleStatSubmit",
+  "editPortrait",
+  "update:showPortraitConfigModal",
+  "update:portraitConfigOffsetX",
+  "update:portraitConfigOffsetY",
+  "update:portraitConfigTargetScale",
+  "update:portraitConfigEnableFade",
+  "update:portraitConfigFadeStart",
+  "handlePortraitConfigSubmit",
 ]);
 
 const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
@@ -152,6 +171,7 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
             @addCharacter="emit('addCharacter')"
             @deleteCharacter="(name) => emit('deleteCharacter', name)"
             @editStat="(name) => emit('editStat', name)"
+            @editPortrait="(name) => emit('editPortrait', name)"
           />
 
           <ManageAliasesCard
@@ -262,6 +282,26 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
       @update:baseVal="(value) => emit('update:editStatBase', value)"
       @update:maxAscVal="(value) => emit('update:editStatMax', value)"
       @submit="emit('handleStatSubmit')"
+    />
+
+    <PortraitConfigModal
+      :visible="showPortraitConfigModal"
+      :characterName="portraitConfigCharacter"
+      :gameId="config.id"
+      :loading="portraitConfigSaving"
+      :fetching="portraitConfigFetching"
+      :offsetX="portraitConfigOffsetX"
+      :offsetY="portraitConfigOffsetY"
+      :targetScale="portraitConfigTargetScale"
+      :enableGradientFade="portraitConfigEnableFade"
+      :gradientFadeStart="portraitConfigFadeStart"
+      @update:visible="(value) => emit('update:showPortraitConfigModal', value)"
+      @update:offsetX="(value) => emit('update:portraitConfigOffsetX', value)"
+      @update:offsetY="(value) => emit('update:portraitConfigOffsetY', value)"
+      @update:targetScale="(value) => emit('update:portraitConfigTargetScale', value)"
+      @update:enableGradientFade="(value) => emit('update:portraitConfigEnableFade', value)"
+      @update:gradientFadeStart="(value) => emit('update:portraitConfigFadeStart', value)"
+      @submit="emit('handlePortraitConfigSubmit')"
     />
   </div>
 </template>

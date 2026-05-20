@@ -61,6 +61,17 @@ const {
   editStatLoading,
   openEditStatModal,
   handleStatSubmit,
+  showPortraitConfigModal,
+  portraitConfigCharacter,
+  portraitConfigOffsetX,
+  portraitConfigOffsetY,
+  portraitConfigTargetScale,
+  portraitConfigEnableFade,
+  portraitConfigFadeStart,
+  portraitConfigFetching,
+  portraitConfigSaving,
+  openPortraitConfigModal,
+  handlePortraitConfigSubmit,
 } = useGameView(gameConfigs.genshin);
 
 const setActiveTab = (value) => {
@@ -142,6 +153,30 @@ const setEditStatBase = (value) => {
 const setEditStatMax = (value) => {
   editStatMax.value = value;
 };
+
+const setShowPortraitConfigModal = (value) => {
+  showPortraitConfigModal.value = value;
+};
+
+const setPortraitConfigOffsetX = (value) => {
+  portraitConfigOffsetX.value = value;
+};
+
+const setPortraitConfigOffsetY = (value) => {
+  portraitConfigOffsetY.value = value;
+};
+
+const setPortraitConfigTargetScale = (value) => {
+  portraitConfigTargetScale.value = value;
+};
+
+const setPortraitConfigEnableFade = (value) => {
+  portraitConfigEnableFade.value = value;
+};
+
+const setPortraitConfigFadeStart = (value) => {
+  portraitConfigFadeStart.value = value;
+};
 </script>
 
 <template>
@@ -193,6 +228,15 @@ const setEditStatMax = (value) => {
     :editStatMax="editStatMax"
     :editStatFetching="editStatFetching"
     :editStatLoading="editStatLoading"
+    :showPortraitConfigModal="showPortraitConfigModal"
+    :portraitConfigCharacter="portraitConfigCharacter"
+    :portraitConfigOffsetX="portraitConfigOffsetX"
+    :portraitConfigOffsetY="portraitConfigOffsetY"
+    :portraitConfigTargetScale="portraitConfigTargetScale"
+    :portraitConfigEnableFade="portraitConfigEnableFade"
+    :portraitConfigFadeStart="portraitConfigFadeStart"
+    :portraitConfigFetching="portraitConfigFetching"
+    :portraitConfigSaving="portraitConfigSaving"
     @update:activeTab="setActiveTab"
     @update:profileId="setProfileId"
     @update:server="setServer"
@@ -225,5 +269,13 @@ const setEditStatMax = (value) => {
     @update:editStatBase="setEditStatBase"
     @update:editStatMax="setEditStatMax"
     @handleStatSubmit="handleStatSubmit"
+    @editPortrait="openPortraitConfigModal"
+    @update:showPortraitConfigModal="setShowPortraitConfigModal"
+    @update:portraitConfigOffsetX="setPortraitConfigOffsetX"
+    @update:portraitConfigOffsetY="setPortraitConfigOffsetY"
+    @update:portraitConfigTargetScale="setPortraitConfigTargetScale"
+    @update:portraitConfigEnableFade="setPortraitConfigEnableFade"
+    @update:portraitConfigFadeStart="setPortraitConfigFadeStart"
+    @handlePortraitConfigSubmit="handlePortraitConfigSubmit"
   />
 </template>

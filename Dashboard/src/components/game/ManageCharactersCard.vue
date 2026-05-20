@@ -25,6 +25,7 @@ const emit = defineEmits([
   "addCharacter",
   "deleteCharacter",
   "editStat",
+  "editPortrait",
 ]);
 
 const handleNewCharacterNameUpdate = (value) =>
@@ -36,6 +37,7 @@ const handleShowOnlyMissingAscensionUpdate = (value) =>
 const handleAdd = () => emit("addCharacter");
 const handleDelete = (name) => emit("deleteCharacter", name);
 const handleEditStat = (name) => emit("editStat", name);
+const handleEditPortrait = (name) => emit("editPortrait", name);
 
 const listItems = computed(() => {
   if (props.hasStatEdit && Array.isArray(props.manageCharacterItems)) {
@@ -113,6 +115,13 @@ const formatStat = (value) => {
                 severity="info"
                 text
                 @click="handleEditStat(item.name)"
+                :loading="manageLoading"
+              />
+              <Button
+                icon="pi pi-image"
+                severity="info"
+                text
+                @click="handleEditPortrait(item.name)"
                 :loading="manageLoading"
               />
               <Button

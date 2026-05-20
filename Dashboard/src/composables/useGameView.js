@@ -825,6 +825,104 @@ export function useGameView(config) {
     }
   };
 
+  const showPortraitConfigModal = ref(false);
+  const portraitConfigCharacter = ref("");
+  const portraitConfigOffsetX = ref(null);
+  const portraitConfigOffsetY = ref(null);
+  const portraitConfigTargetScale = ref(null);
+  const portraitConfigEnableFade = ref(null);
+  const portraitConfigFadeStart = ref(null);
+  const portraitConfigFetching = ref(false);
+  const portraitConfigSaving = ref(false);
+
+  const openPortraitConfigModal = async (char) => {
+    portraitConfigCharacter.value = char;
+    portraitConfigOffsetX.value = null;
+    portraitConfigOffsetY.value = null;
+    portraitConfigTargetScale.value = null;
+    portraitConfigEnableFade.value = null;
+    portraitConfigFadeStart.value = null;
+    showPortraitConfigModal.value = true;
+    portraitConfigFetching.value = true;
+
+    try {
+      const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+      const response = await fetch(
+        `${backendUrl}/portraits/config?game=${config.id}&character=${encodeURIComponent(char)}`,
+        { credentials: "include" },
+      );
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+      if (response.ok) {
+        const data = await response.json();
+        portraitConfigOffsetX.value = data.offsetX ?? null;
+        portraitConfigOffsetY.value = data.offsetY ?? null;
+        portraitConfigTargetScale.value = data.targetScale ?? null;
+        portraitConfigEnableFade.value = data.enableGradientFade ?? null;
+        portraitConfigFadeStart.value = data.gradientFadeStart ?? null;
+      } else if (response.status !== 404) {
+        const data = await response.json().catch(() => ({}));
+        showErrorToast(
+          data.error || "Failed to fetch portrait config",
+          response.status,
+        );
+      }
+    } catch (err) {
+      showErrorToast(err.message, err.status);
+    } finally {
+      portraitConfigFetching.value = false;
+    }
+  };
+
+  const handlePortraitConfigSubmit = async () => {
+    portraitConfigSaving.value = true;
+    try {
+      const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+      const response = await fetch(
+        `${backendUrl}/portraits/config?game=${config.id}&character=${encodeURIComponent(portraitConfigCharacter.value)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            offsetX: portraitConfigOffsetX.value,
+            offsetY: portraitConfigOffsetY.value,
+            targetScale: portraitConfigTargetScale.value,
+            enableGradientFade: portraitConfigEnableFade.value,
+            gradientFadeStart: portraitConfigFadeStart.value,
+          }),
+        },
+      );
+
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw buildError(
+          data.error || "Failed to update portrait config",
+          response.status,
+        );
+      }
+
+      showPortraitConfigModal.value = false;
+      toast.add({
+        severity: "success",
+        summary: "Success",
+        detail: "Portrait config updated successfully",
+        life: 3000,
+      });
+    } catch (err) {
+      showErrorToast(err.message, err.status);
+    } finally {
+      portraitConfigSaving.value = false;
+    }
+  };
+
   return {
     config,
     activeTab,
@@ -889,5 +987,16 @@ export function useGameView(config) {
     openEditStatModal,
     handleStatSubmit,
     fetchCharacterStats,
+    showPortraitConfigModal,
+    portraitConfigCharacter,
+    portraitConfigOffsetX,
+    portraitConfigOffsetY,
+    portraitConfigTargetScale,
+    portraitConfigEnableFade,
+    portraitConfigFadeStart,
+    portraitConfigFetching,
+    portraitConfigSaving,
+    openPortraitConfigModal,
+    handlePortraitConfigSubmit,
   };
 }
