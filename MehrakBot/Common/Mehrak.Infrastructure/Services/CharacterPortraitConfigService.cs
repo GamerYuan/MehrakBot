@@ -124,7 +124,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         return result;
     }
 
-    public async Task UpsertConfigAsync(Game game, int serverId, string characterName, CharacterPortraitConfigUpdate update)
+    public async Task<bool> UpsertConfigAsync(Game game, int serverId, CharacterPortraitConfigUpdate update)
     {
         const int maxRetries = 3;
 
@@ -136,6 +136,16 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
             try
             {
+                var serverIdEntity = await context.CharacterServerIds
+                    .AsNoTracking()
+                    .Include(x => x.Character)
+                    .FirstOrDefaultAsync(x => x.Character.Game == game && x.ServerId == serverId);
+
+                if (serverIdEntity == null)
+                    return false;
+
+                var characterName = serverIdEntity.Character.Name;
+
                 var entity = await context.CharacterPortraitConfigs
                     .FirstOrDefaultAsync(c => c.Game == game && c.ServerId == serverId);
 
@@ -190,7 +200,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                     }
                 });
 
-                return;
+                return true;
             }
             catch (DbUpdateException)
             {
@@ -200,6 +210,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                     throw;
             }
         }
+
+        return false;
     }
 
     private static CharacterPortraitConfig ToConfig(CharacterPortraitConfigModel entity)

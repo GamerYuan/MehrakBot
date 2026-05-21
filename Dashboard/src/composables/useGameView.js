@@ -887,14 +887,8 @@ export function useGameView(config) {
     portraitConfigSaving.value = true;
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-      const params = new URLSearchParams({
-        game: config.id,
-        character: portraitConfigCharacter.value,
-      });
-      if (portraitConfigServerId.value != null)
-        params.append("serverId", portraitConfigServerId.value);
       const response = await fetch(
-        `${backendUrl}/portraits/config?${params.toString()}`,
+        `${backendUrl}/portraits/config?game=${config.id}&serverId=${portraitConfigServerId.value}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

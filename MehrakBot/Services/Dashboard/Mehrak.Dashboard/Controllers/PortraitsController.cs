@@ -76,7 +76,7 @@ public class PortraitsController : ControllerBase
     }
 
     [HttpPatch("config")]
-    public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] string? character, [FromQuery] int? serverId,
+    public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] int? serverId,
         [FromBody] CharacterPortraitConfigUpdate update)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -85,38 +85,27 @@ public class PortraitsController : ControllerBase
         if (!serverId.HasValue)
             return BadRequest(new { error = "Server ID parameter is required." });
 
-        if (string.IsNullOrWhiteSpace(character))
-            return BadRequest(new { error = "Character parameter is required." });
-
         if (!HasGameWriteAccess(game!))
             return Forbid();
 
-        var normalized = character.ReplaceLineEndings("").Trim();
-        m_Logger.LogInformation("Updating portrait config for character {Character} (ServerId {ServerId}) in game {Game}", normalized, serverId, gameEnum);
+        m_Logger.LogInformation("Updating portrait config for ServerId {ServerId} in game {Game}", serverId, gameEnum);
 
-        await m_PortraitConfigService.UpsertConfigAsync(gameEnum, serverId.Value, normalized, update);
+        var success = await m_PortraitConfigService.UpsertConfigAsync(gameEnum, serverId.Value, update);
+
+        if (!success)
+            return NotFound(new { error = "Server ID not found in character database." });
 
         return NoContent();
     }
 
     [HttpGet("image")]
-    public async Task<IActionResult> GetPortraitImage([FromQuery] string? game, [FromQuery] string? character)
+    public async Task<IActionResult> GetPortraitImage([FromQuery] string? game, [FromQuery] int? serverId)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
 
-        if (string.IsNullOrWhiteSpace(character))
-            return BadRequest(new { error = "Character parameter is required." });
-
-        var normalized = character.ReplaceLineEndings("").Trim();
-
-        var charModel = await m_CharacterContext.Characters
-            .AsNoTracking()
-            .Include(x => x.ServerIds)
-            .FirstOrDefaultAsync(x => x.Game == gameEnum && x.Name == normalized);
-
-        if (charModel == null)
-            return NotFound(new { error = "Character not found." });
+        if (!serverId.HasValue)
+            return BadRequest(new { error = "Server ID parameter is required." });
 
         var format = gameEnum switch
         {
@@ -127,17 +116,14 @@ public class PortraitsController : ControllerBase
             _ => throw new ArgumentOutOfRangeException(nameof(gameEnum))
         };
 
-        foreach (var sid in charModel.ServerIds)
+        var imageName = string.Format(format, serverId.Value);
+        if (await m_ImageRepository.FileExistsAsync(imageName))
         {
-            var imageName = string.Format(format, sid.ServerId);
-            if (await m_ImageRepository.FileExistsAsync(imageName))
-            {
-                var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
-                return File(stream, FileNameFormat.PngContentType);
-            }
+            var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
+            return File(stream, FileNameFormat.PngContentType);
         }
 
-        return NotFound(new { error = $"Portrait image for {normalized} not found, please generate an image with this character in the Characters tab and try again" });
+        return NotFound(new { error = $"Portrait image for {serverId.Value} ({gameEnum.ToFriendlyString()}) not found, please generate an image with this character in the Characters tab and try again" });
     }
 
     private static bool TryParseGame(string? input, out Game game, out string error)

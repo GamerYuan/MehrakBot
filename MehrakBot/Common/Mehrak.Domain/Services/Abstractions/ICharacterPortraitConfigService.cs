@@ -7,5 +7,5 @@ public interface ICharacterPortraitConfigService
 {
     Task<CharacterPortraitConfig?> GetConfigAsync(Game game, int serverId);
     Task<Dictionary<string, CharacterPortraitConfig>> GetAllConfigsAsync(Game game);
-    Task UpsertConfigAsync(Game game, int serverId, string characterName, CharacterPortraitConfigUpdate update);
+    Task<bool> UpsertConfigAsync(Game game, int serverId, CharacterPortraitConfigUpdate update);
 }
