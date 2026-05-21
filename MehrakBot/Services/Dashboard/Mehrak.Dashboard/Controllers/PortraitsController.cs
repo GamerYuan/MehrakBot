@@ -93,7 +93,7 @@ public class PortraitsController : ControllerBase
             Game.Genshin => FileNameFormat.Genshin.PortraitName,
             Game.HonkaiStarRail => FileNameFormat.Hsr.PortraitName,
             Game.ZenlessZoneZero => FileNameFormat.Zzz.PortraitName,
-            Game.HonkaiImpact3 => FileNameFormat.Hi3.PortraitName,
+            Game.HonkaiImpact3 => FileNameFormat.Hi3.CostumeName,
             _ => throw new ArgumentOutOfRangeException(nameof(gameEnum))
         };
 
