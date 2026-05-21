@@ -298,7 +298,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             cardContext.SetParameter("ascension", ascLevel.Value);
         }
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Name);
+        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id);
         if (portraitConfig != null)
             cardContext.SetParameter("portraitConfig", portraitConfig);
 

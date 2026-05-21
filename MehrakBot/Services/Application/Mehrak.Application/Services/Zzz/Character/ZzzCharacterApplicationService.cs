@@ -185,7 +185,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
             cardContext.SetParameter("server", server);
 
-            var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Name);
+            var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id);
             if (portraitConfig != null)
                 cardContext.SetParameter("portraitConfig", portraitConfig);
 

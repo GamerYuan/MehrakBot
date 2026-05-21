@@ -32,16 +32,43 @@ public class PortraitsController : ControllerBase
     }
 
     [HttpGet("config")]
-    public async Task<IActionResult> GetPortraitConfig([FromQuery] string? game, [FromQuery] string? character)
+    public async Task<IActionResult> GetPortraitConfig([FromQuery] string? game, [FromQuery] string? character, [FromQuery] int? serverId)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
 
+        if (serverId.HasValue)
+        {
+            var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, serverId.Value);
+            return config == null ? NotFound(new { error = "No config found for this server ID." }) : Ok(config);
+        }
+
         if (!string.IsNullOrWhiteSpace(character))
         {
             var normalized = character.ReplaceLineEndings("").Trim();
-            var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, normalized);
-            return config == null ? NotFound(new { error = "No config found for this character." }) : Ok(config);
+
+            var charModel = await m_CharacterContext.Characters
+                .AsNoTracking()
+                .Include(x => x.ServerIds)
+                .FirstOrDefaultAsync(x => x.Game == gameEnum && x.Name == normalized);
+
+            if (charModel == null)
+                return NotFound(new { error = "Character not found." });
+
+            var configs = new Dictionary<string, CharacterPortraitConfig>();
+            foreach (var sid in charModel.ServerIds)
+            {
+                var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, sid.ServerId);
+                if (config != null)
+                {
+                    var key = charModel.ServerIds.Count > 1
+                        ? $"{normalized}_{sid.ServerId}"
+                        : normalized;
+                    configs[key] = config;
+                }
+            }
+
+            return Ok(configs);
         }
 
         var allConfigs = await m_PortraitConfigService.GetAllConfigsAsync(gameEnum);
@@ -49,11 +76,14 @@ public class PortraitsController : ControllerBase
     }
 
     [HttpPatch("config")]
-    public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] string? character,
+    public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] string? character, [FromQuery] int? serverId,
         [FromBody] CharacterPortraitConfigUpdate update)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
+
+        if (!serverId.HasValue)
+            return BadRequest(new { error = "Server ID parameter is required." });
 
         if (string.IsNullOrWhiteSpace(character))
             return BadRequest(new { error = "Character parameter is required." });
@@ -62,9 +92,9 @@ public class PortraitsController : ControllerBase
             return Forbid();
 
         var normalized = character.ReplaceLineEndings("").Trim();
-        m_Logger.LogInformation("Updating portrait config for character {Character} in game {Game}", normalized, gameEnum);
+        m_Logger.LogInformation("Updating portrait config for character {Character} (ServerId {ServerId}) in game {Game}", normalized, serverId, gameEnum);
 
-        await m_PortraitConfigService.UpsertConfigAsync(gameEnum, normalized, update);
+        await m_PortraitConfigService.UpsertConfigAsync(gameEnum, serverId.Value, normalized, update);
 
         return NoContent();
     }

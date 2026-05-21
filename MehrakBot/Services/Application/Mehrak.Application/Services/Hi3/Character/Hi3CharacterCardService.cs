@@ -63,10 +63,11 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
     {
         var characterInformation = context.Data;
 
-        var characterImage = await LoadFirstAvailableCostumeImageAsync(characterInformation);
+        var (characterImage, costumeId) = await LoadFirstAvailableCostumeImageAsync(characterInformation);
         disposables.Add(characterImage);
 
-        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        var portraitConfigs = context.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs");
+        var portraitConfig = portraitConfigs?.GetValueOrDefault(costumeId);
         characterImage.Mutate(ctx =>
         {
             if (portraitConfig?.TargetScale > 0f)
@@ -169,7 +170,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         });
     }
 
-    private async Task<Image> LoadFirstAvailableCostumeImageAsync(Hi3CharacterDetail characterInformation)
+    private async Task<(Image Image, int CostumeId)> LoadFirstAvailableCostumeImageAsync(Hi3CharacterDetail characterInformation)
     {
         foreach (var costume in characterInformation.Costumes)
         {
@@ -179,7 +180,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
                 await using var stream = await ImageRepository.DownloadFileToStreamAsync(imageName);
                 if (stream != Stream.Null)
                 {
-                    return await Image.LoadAsync(stream);
+                    return (await Image.LoadAsync(stream), costume.Id);
                 }
 
             }

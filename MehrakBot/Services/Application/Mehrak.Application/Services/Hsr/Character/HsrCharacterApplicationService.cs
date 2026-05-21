@@ -345,7 +345,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Name);
+        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id);
         if (portraitConfig != null)
             cardContext.SetParameter("portraitConfig", portraitConfig);
 
