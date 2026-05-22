@@ -121,6 +121,8 @@ const formatStat = (value) => {
                 icon="pi pi-image"
                 severity="info"
                 text
+                aria-label="Edit portrait configuration"
+                title="Edit portrait configuration"
                 @click="handleEditPortrait(item.name)"
                 :loading="manageLoading"
               />
