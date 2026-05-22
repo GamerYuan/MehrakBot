@@ -94,6 +94,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             .ToListAsync();
 
         var result = new Dictionary<string, CharacterPortraitConfig>(StringComparer.OrdinalIgnoreCase);
+        var cacheModel = new Dictionary<string, PortraitConfigCacheModel>(StringComparer.OrdinalIgnoreCase);
         var nameCounts = entities.GroupBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
 
@@ -104,15 +105,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                 : entity.Name;
 
             result[key] = ToConfig(entity);
+            cacheModel[key] = ToCacheModel(entity);
         }
-
-        var cacheModel = result.ToDictionary(k => k.Key, kvp => ToCacheModel(entities.First(e =>
-        {
-            var expectedKey = nameCounts.GetValueOrDefault(e.Name) > 1
-                ? $"{e.Name}_{e.ServerId}"
-                : e.Name;
-            return expectedKey == kvp.Key;
-        })));
 
         var cacheOptions = new DistributedCacheEntryOptions
         {
