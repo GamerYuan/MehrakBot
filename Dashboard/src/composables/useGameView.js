@@ -827,6 +827,7 @@ export function useGameView(config) {
 
   const showPortraitConfigModal = ref(false);
   const portraitConfigCharacter = ref("");
+  const portraitConfigServerIds = ref([]);
   const portraitConfigServerId = ref(null);
   const portraitConfigOffsetX = ref(null);
   const portraitConfigOffsetY = ref(null);
@@ -838,6 +839,7 @@ export function useGameView(config) {
 
   const openPortraitConfigModal = async (char) => {
     portraitConfigCharacter.value = char;
+    portraitConfigServerIds.value = [];
     portraitConfigServerId.value = null;
     portraitConfigOffsetX.value = null;
     portraitConfigOffsetY.value = null;
@@ -849,32 +851,47 @@ export function useGameView(config) {
 
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-      const response = await fetch(
-        `${backendUrl}/portraits/config?game=${config.id}&character=${encodeURIComponent(char)}`,
+
+      const listResponse = await fetch(
+        `${backendUrl}/portraits/list?game=${config.id}&character=${encodeURIComponent(char)}`,
         { credentials: "include" },
       );
-      if (response.status === 401) {
-        router.push("/login");
-        return;
+      if (listResponse.ok) {
+        portraitConfigServerIds.value = await listResponse.json();
       }
+
+      if (portraitConfigServerIds.value.length > 0) {
+        await fetchPortraitConfigForServerId(portraitConfigServerIds.value[0]);
+      }
+    } catch (err) {
+      showErrorToast(err.message, err.status);
+    } finally {
+      portraitConfigFetching.value = false;
+    }
+  };
+
+  const fetchPortraitConfigForServerId = async (serverId) => {
+    portraitConfigServerId.value = serverId;
+    portraitConfigOffsetX.value = null;
+    portraitConfigOffsetY.value = null;
+    portraitConfigTargetScale.value = null;
+    portraitConfigEnableFade.value = null;
+    portraitConfigFadeStart.value = null;
+    portraitConfigFetching.value = true;
+
+    try {
+      const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+      const response = await fetch(
+        `${backendUrl}/portraits/config?game=${config.id}&serverId=${serverId}`,
+        { credentials: "include" },
+      );
       if (response.ok) {
         const data = await response.json();
-        const entries = Object.entries(data);
-        if (entries.length > 0) {
-          const [key, config] = entries[0];
-          portraitConfigServerId.value = config.serverId;
-          portraitConfigOffsetX.value = config.offsetX ?? null;
-          portraitConfigOffsetY.value = config.offsetY ?? null;
-          portraitConfigTargetScale.value = config.targetScale ?? null;
-          portraitConfigEnableFade.value = config.enableGradientFade ?? null;
-          portraitConfigFadeStart.value = config.gradientFadeStart ?? null;
-        }
-      } else if (response.status !== 404) {
-        const data = await response.json().catch(() => ({}));
-        showErrorToast(
-          data.error || "Failed to fetch portrait config",
-          response.status,
-        );
+        portraitConfigOffsetX.value = data.offsetX ?? null;
+        portraitConfigOffsetY.value = data.offsetY ?? null;
+        portraitConfigTargetScale.value = data.targetScale ?? null;
+        portraitConfigEnableFade.value = data.enableGradientFade ?? null;
+        portraitConfigFadeStart.value = data.gradientFadeStart ?? null;
       }
     } catch (err) {
       showErrorToast(err.message, err.status);
@@ -996,6 +1013,7 @@ export function useGameView(config) {
     fetchCharacterStats,
     showPortraitConfigModal,
     portraitConfigCharacter,
+    portraitConfigServerIds,
     portraitConfigServerId,
     portraitConfigOffsetX,
     portraitConfigOffsetY,
@@ -1005,6 +1023,7 @@ export function useGameView(config) {
     portraitConfigFetching,
     portraitConfigSaving,
     openPortraitConfigModal,
+    fetchPortraitConfigForServerId,
     handlePortraitConfigSubmit,
   };
 }

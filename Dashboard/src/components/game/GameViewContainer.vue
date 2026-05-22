@@ -72,6 +72,8 @@ const props = defineProps({
 
   showPortraitConfigModal: Boolean,
   portraitConfigCharacter: String,
+  portraitConfigServerIds: Array,
+  portraitConfigServerId: [Number, null],
   portraitConfigOffsetX: [Number, null],
   portraitConfigOffsetY: [Number, null],
   portraitConfigTargetScale: [Number, null],
@@ -116,6 +118,7 @@ const emit = defineEmits([
   "handleStatSubmit",
   "editPortrait",
   "update:showPortraitConfigModal",
+  "update:portraitConfigServerId",
   "update:portraitConfigOffsetX",
   "update:portraitConfigOffsetY",
   "update:portraitConfigTargetScale",
@@ -288,6 +291,8 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
       :visible="showPortraitConfigModal"
       :characterName="portraitConfigCharacter"
       :gameId="config.id"
+      :serverIds="portraitConfigServerIds"
+      :selectedServerId="portraitConfigServerId"
       :loading="portraitConfigSaving"
       :fetching="portraitConfigFetching"
       :offsetX="portraitConfigOffsetX"
@@ -295,7 +300,12 @@ const getTabConfig = (tabId) => props.config.tabs.find((t) => t.id === tabId);
       :targetScale="portraitConfigTargetScale"
       :enableGradientFade="portraitConfigEnableFade"
       :gradientFadeStart="portraitConfigFadeStart"
+      :anchorX="config.portraitAnchorX"
+      :anchorY="config.portraitAnchorY"
+      :portraitAlignX="config.portraitAlignX"
+      :portraitAlignY="config.portraitAlignY"
       @update:visible="(value) => emit('update:showPortraitConfigModal', value)"
+      @update:selectedServerId="(value) => emit('update:portraitConfigServerId', value)"
       @update:offsetX="(value) => emit('update:portraitConfigOffsetX', value)"
       @update:offsetY="(value) => emit('update:portraitConfigOffsetY', value)"
       @update:targetScale="(value) => emit('update:portraitConfigTargetScale', value)"

@@ -55,6 +55,8 @@ const {
   handleAuth,
   showPortraitConfigModal,
   portraitConfigCharacter,
+  portraitConfigServerIds,
+  portraitConfigServerId,
   portraitConfigOffsetX,
   portraitConfigOffsetY,
   portraitConfigTargetScale,
@@ -63,6 +65,7 @@ const {
   portraitConfigFetching,
   portraitConfigSaving,
   openPortraitConfigModal,
+  fetchPortraitConfigForServerId,
   handlePortraitConfigSubmit,
 } = useGameView(gameConfigs.zzz);
 
@@ -157,6 +160,11 @@ const setPortraitConfigEnableFade = (value) => {
 const setPortraitConfigFadeStart = (value) => {
   portraitConfigFadeStart.value = value;
 };
+
+const setPortraitConfigServerId = (value) => {
+  portraitConfigServerId.value = value;
+  fetchPortraitConfigForServerId(value);
+};
 </script>
 
 <template>
@@ -204,6 +212,8 @@ const setPortraitConfigFadeStart = (value) => {
     :authError="authError"
     :showPortraitConfigModal="showPortraitConfigModal"
     :portraitConfigCharacter="portraitConfigCharacter"
+    :portraitConfigServerIds="portraitConfigServerIds"
+    :portraitConfigServerId="portraitConfigServerId"
     :portraitConfigOffsetX="portraitConfigOffsetX"
     :portraitConfigOffsetY="portraitConfigOffsetY"
     :portraitConfigTargetScale="portraitConfigTargetScale"
@@ -240,6 +250,7 @@ const setPortraitConfigFadeStart = (value) => {
     @handleAuth="handleAuth"
     @editPortrait="openPortraitConfigModal"
     @update:showPortraitConfigModal="setShowPortraitConfigModal"
+    @update:portraitConfigServerId="setPortraitConfigServerId"
     @update:portraitConfigOffsetX="setPortraitConfigOffsetX"
     @update:portraitConfigOffsetY="setPortraitConfigOffsetY"
     @update:portraitConfigTargetScale="setPortraitConfigTargetScale"
