@@ -1277,7 +1277,9 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
 
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.Genshin, charList.First(x => x.Name == "Traveler").Id!.Value), Times.Once);
+        var expectedId = charList.First(x => x.Name == "Traveler").Id!.Value;
+
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.Genshin, expectedId), Times.Once);
     }
 
     [Test]

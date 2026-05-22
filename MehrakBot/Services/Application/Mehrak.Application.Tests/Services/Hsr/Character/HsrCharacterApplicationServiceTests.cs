@@ -1133,7 +1133,9 @@ public class HsrCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
 
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiStarRail, charList.AvatarList.First(x => x.Name == "Trailblazer").Id), Times.Once);
+        var expectedId = charList.AvatarList.First(x => x.Name == "Trailblazer").Id;
+
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiStarRail, expectedId), Times.Once);
     }
 
     [Test]
@@ -1166,8 +1168,10 @@ public class HsrCharacterApplicationServiceTests
             .Callback<ICardGenerationContext<HsrCharacterInformation>>(ctx => capturedContext = ctx)
             .ReturnsAsync(cardStream);
 
+        var expectedId = charList.AvatarList.First(x => x.Name == "Trailblazer").Id;
+
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 15, OffsetY = 25 };
-        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiStarRail, charList.AvatarList.First(x => x.Name == "Trailblazer").Id))
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiStarRail, expectedId))
             .ReturnsAsync(portraitConfig);
 
         var context = CreateContext(1, 1ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));

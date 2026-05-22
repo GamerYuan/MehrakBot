@@ -578,7 +578,8 @@ public class ZzzCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, charList.First(x => x.Name == "Jane").Id), Times.Once);
+        var expectedId = charList.First(x => x.Name == "Jane").Id;
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, expectedId), Times.Once);
     }
 
     [Test]
@@ -606,7 +607,8 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 5, OffsetY = 10 };
-        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, charList.First(x => x.Name == "Jane").Id))
+        var expectedId = charList.First(x => x.Name == "Jane").Id;
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, expectedId))
             .ReturnsAsync(portraitConfig);
 
         ICardGenerationContext<ZzzFullAvatarData>? capturedContext = null;
@@ -624,8 +626,12 @@ public class ZzzCharacterApplicationServiceTests
         Assert.That(capturedContext, Is.Not.Null);
         var configParam = capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig");
         Assert.That(configParam, Is.Not.Null);
-        Assert.That(configParam!.OffsetX, Is.EqualTo(5));
-        Assert.That(configParam.OffsetY, Is.EqualTo(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(configParam!.OffsetX, Is.EqualTo(5));
+            Assert.That(configParam.OffsetY, Is.EqualTo(10));
+        }
     }
 
     #endregion

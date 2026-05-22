@@ -526,7 +526,8 @@ public class Hi3CharacterApplicationServiceTests
 
         // Assert
         Assert.That(capturedContext, Is.Not.Null);
-        Assert.That(capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig"), Is.EqualTo(portraitConfig));
+        Assert.That(capturedContext!.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs"),
+            Is.EqualTo(new Dictionary<int, CharacterPortraitConfig> { { character.Costumes.First().Id, portraitConfig } }));
     }
 
     #endregion
