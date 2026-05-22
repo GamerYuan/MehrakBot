@@ -57,9 +57,17 @@ const handleFadeStartUpdate = (value) =>
   emit("update:gradientFadeStart", value);
 const handleSubmit = () => emit("submit");
 
-const bgUrl = computed(() =>
-  props.gameId ? `/${props.gameId.toLowerCase()}_portrait_bg.webp` : "",
-);
+const bgFileByGameId = {
+  Genshin: "genshin_portrait_bg.webp",
+  HonkaiImpact3: "hi3_portrait_bg.webp",
+  HonkaiStarRail: "hsr_portrait_bg.webp",
+  ZenlessZoneZero: "zzz_portrait_bg.webp",
+};
+
+const bgUrl = computed(() => {
+  const file = bgFileByGameId[props.gameId];
+  return file ? `/${file}` : "";
+});
 
 const serverIdOptions = computed(() =>
   (props.serverIds || []).map((id) => ({ label: `ID: ${id}`, value: id })),
