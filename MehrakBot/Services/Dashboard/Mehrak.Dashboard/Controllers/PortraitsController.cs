@@ -31,6 +31,28 @@ public class PortraitsController : ControllerBase
         m_Logger = logger;
     }
 
+    [HttpGet("list")]
+    public async Task<IActionResult> GetPortraitList([FromQuery] string? game, [FromQuery] string? character)
+    {
+        if (!TryParseGame(game, out var gameEnum, out var error))
+            return BadRequest(new { error });
+
+        if (string.IsNullOrWhiteSpace(character))
+            return BadRequest(new { error = "Character parameter is required." });
+
+        var normalized = character.ReplaceLineEndings("").Trim();
+
+        var charModel = await m_CharacterContext.Characters
+            .AsNoTracking()
+            .Include(x => x.ServerIds)
+            .FirstOrDefaultAsync(x => x.Game == gameEnum && x.Name == normalized);
+
+        if (charModel == null)
+            return NotFound(new { error = "Character not found." });
+
+        return Ok(charModel.ServerIds.Select(x => x.ServerId));
+    }
+
     [HttpGet("config")]
     public async Task<IActionResult> GetPortraitConfig([FromQuery] string? game, [FromQuery] string? character, [FromQuery] int? serverId)
     {
