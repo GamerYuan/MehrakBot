@@ -170,7 +170,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     else
                     {
                         var templateRelicImage = m_TemplateRelicSlots[i + 1];
-                        return templateRelicImage;
+                        return templateRelicImage.Clone(_ => {});
                     }
                 })
             ];
@@ -188,7 +188,7 @@ public class HsrCharacterCardService : ICardService<HsrCharacterInformation>, IA
                     else
                     {
                         var templateOrnamentImage = m_TemplateRelicSlots[i + 5];
-                        return templateOrnamentImage;
+                        return templateOrnamentImage.Clone(_ => {});
                     }
                 })
             ];
