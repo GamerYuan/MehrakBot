@@ -25,7 +25,7 @@ const openFiler = () => {
 <template>
   <div class="seaweed-page">
     <header class="seaweed-header">
-      <h1>Seaweed Filer</h1>
+      <h1 class="text-4xl font-bold mb-3">Seaweed Filer</h1>
       <p class="seaweed-subtitle">
         Open the filer UI in a new tab through the authenticated dashboard
         proxy.

@@ -51,7 +51,7 @@ onMounted(async () => {
     >
     <div v-else-if="userInfo">
       <header class="dashboard-header">
-        <h1>Dashboard</h1>
+        <h1 class="text-4xl font-bold mb-3">Dashboard</h1>
       </header>
 
       <Card class="mb-4">

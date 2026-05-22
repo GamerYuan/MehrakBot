@@ -71,7 +71,10 @@ const openAddModal = () => {
 
 const openEditModal = async (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
-    showErrorToast("You do not have permission to edit this documentation.", "Permission Denied");
+    showErrorToast(
+      "You do not have permission to edit this documentation.",
+      "Permission Denied",
+    );
     return;
   }
 
@@ -91,7 +94,10 @@ const openEditModal = async (doc) => {
 
 const confirmDelete = (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
-    showErrorToast("You do not have permission to delete this documentation.", "Permission Denied");
+    showErrorToast(
+      "You do not have permission to delete this documentation.",
+      "Permission Denied",
+    );
     return;
   }
 
@@ -133,9 +139,7 @@ const handleDelete = async (doc) => {
 
 const handleSave = async (formData) => {
   try {
-    const url = isEditing.value
-      ? `/docs/${selectedDoc.value.id}`
-      : "/docs/add";
+    const url = isEditing.value ? `/docs/${selectedDoc.value.id}` : "/docs/add";
     const method = isEditing.value ? "PUT" : "POST";
 
     const response = await apiFetch(url, {
@@ -174,7 +178,7 @@ onMounted(() => {
 <template>
   <div class="docs-management">
     <div class="header">
-      <h1>Documentation Management</h1>
+      <h1 class="text-4xl font-bold mb-3">Documentation Management</h1>
       <Button
         label="Add Documentation"
         icon="pi pi-plus"

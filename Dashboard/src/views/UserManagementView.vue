@@ -98,7 +98,9 @@ const resetForm = () => {
     discordUserId: "",
     isSuperAdmin: false,
     isActive: true,
-    permissions: Object.fromEntries(availablePermissions.map((p) => [p, false])),
+    permissions: Object.fromEntries(
+      availablePermissions.map((p) => [p, false]),
+    ),
   };
 };
 
@@ -244,14 +246,11 @@ const handleUpdateUser = async () => {
       gameWritePermissions: getSelectedPermissions(),
     };
 
-    const response = await apiFetch(
-      `/users/${selectedUser.value.userId}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
+    const response = await apiFetch(`/users/${selectedUser.value.userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
       const data = await response.json();
@@ -332,7 +331,7 @@ const permissionOptions = computed(() => {
 <template>
   <div class="user-management">
     <div class="header">
-      <h1>User Management</h1>
+      <h1 class="text-4xl font-bold mb-3">User Management</h1>
       <Button label="Add User" icon="pi pi-plus" @click="openAddModal" />
     </div>
 
