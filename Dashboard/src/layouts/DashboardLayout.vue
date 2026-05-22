@@ -13,7 +13,13 @@ onMounted(() => {
     router.push("/login");
     return;
   }
-  userInfo.value = JSON.parse(storedUser);
+  try {
+    userInfo.value = JSON.parse(storedUser);
+  } catch {
+    localStorage.removeItem("mehrak_user");
+    router.push("/login");
+    return;
+  }
   loading.value = false;
 });
 </script>

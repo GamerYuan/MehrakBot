@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { gameColors, gameLabels } from "../../composables/useDocs.js";
+import { gameMeta } from "../../configs/gameMeta";
 
 const props = defineProps({
   game: {
@@ -14,8 +14,11 @@ const props = defineProps({
   },
 });
 
-const colors = computed(() => gameColors[props.game] || gameColors.Unsupported);
-const label = computed(() => gameLabels[props.game] || props.game);
+const colors = computed(() => {
+  const meta = gameMeta[props.game] || gameMeta.Unsupported;
+  return { bg: meta.bgColor, border: meta.borderColor, text: meta.color };
+});
+const label = computed(() => gameMeta[props.game]?.label || props.game);
 </script>
 
 <template>

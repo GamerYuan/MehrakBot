@@ -1,40 +1,20 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import { useApi } from "../composables/useApi";
+import { usePasswordValidation } from "../composables/usePasswordValidation";
 import Password from "primevue/password";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Message from "primevue/message";
 
 const router = useRouter();
-const password = ref("");
-const confirmPassword = ref("");
+const { apiFetch } = useApi();
+
+const { newPassword, confirmPassword, passwordsMatch, isPasswordValid, passwordRequirements, isValid } = usePasswordValidation();
+
 const error = ref("");
 const loading = ref(false);
-
-const passwordsMatch = computed(() => {
-  return password.value === confirmPassword.value;
-});
-
-const passwordRequirements = computed(() => {
-  const pwd = password.value;
-  return {
-    length: pwd.length >= 8,
-    uppercase: /[A-Z]/.test(pwd),
-    lowercase: /[a-z]/.test(pwd),
-    number: /\d/.test(pwd),
-    symbol: /[\W_]/.test(pwd),
-  };
-});
-
-const isPasswordValid = computed(() => {
-  const r = passwordRequirements.value;
-  return r.length && r.uppercase && r.lowercase && r.number && r.symbol;
-});
-
-const isValid = computed(() => {
-  return isPasswordValid.value && passwordsMatch.value;
-});
 
 const handleReset = async () => {
   if (!isValid.value) return;
@@ -43,35 +23,20 @@ const handleReset = async () => {
   error.value = "";
 
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    if (!backendUrl) throw new Error("Backend URL not configured");
-
-    const response = await fetch(`${backendUrl}/auth/password/reset`, {
+    const response = await apiFetch("/auth/password/reset", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // Important to send the session cookie
-      body: JSON.stringify({
-        newPassword: password.value,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newPassword: newPassword.value }),
     });
 
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
-
-    const data = await response.json();
-
     if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
       throw new Error(data.error || "Password reset failed");
     }
 
-    // Redirect to login with success flag
     router.push("/login?resetSuccess=true");
   } catch (err) {
-    console.error(err);
+    if (err._redirected) return;
     error.value = err.message || "An error occurred";
   } finally {
     loading.value = false;
@@ -91,13 +56,13 @@ const handleReset = async () => {
               <label for="password">New Password</label>
               <Password
                 id="password"
-                v-model="password"
+                v-model="newPassword"
                 required
                 toggleMask
                 fluid
               >
                 <template #footer>
-                  <div class="password-requirements" v-if="password">
+                  <div class="password-requirements" v-if="newPassword">
                     <p :class="{ met: passwordRequirements.length }">
                       At least 8 characters
                     </p>
@@ -152,4 +117,28 @@ const handleReset = async () => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.password-requirements p {
+  margin: 0;
+  padding: 0.25rem 0;
+  color: #ef4444;
+  font-size: 0.875rem;
+}
+
+.password-requirements p.met {
+  color: #22c55e;
+}
+</style>

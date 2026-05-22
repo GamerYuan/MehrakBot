@@ -67,9 +67,6 @@ const handleLogin = async () => {
       throw new Error(data.error || "Login failed");
     }
 
-    // Login successful
-    console.log("Login successful", data);
-
     if (data.requiresPasswordReset) {
       router.push("/reset-password");
       return;
@@ -130,5 +127,3 @@ const handleLogin = async () => {
     </Card>
   </div>
 </template>
-
-<style scoped></style>

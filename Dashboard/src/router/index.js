@@ -91,4 +91,13 @@ const router = createRouter({
   ],
 });
 
+router.beforeEach((to) => {
+  if (to.path.startsWith("/dashboard")) {
+    const storedUser = localStorage.getItem("mehrak_user");
+    if (!storedUser) {
+      return { name: "login" };
+    }
+  }
+});
+
 export default router;

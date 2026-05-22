@@ -1,12 +1,14 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useApi } from "../composables/useApi";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Tag from "primevue/tag";
 import Message from "primevue/message";
 
 const router = useRouter();
+const { apiFetchJson } = useApi();
 
 const userInfo = ref(null);
 const loading = ref(true);
@@ -22,22 +24,14 @@ const toTitleCase = (str) => {
 
 onMounted(async () => {
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/users/me`, {
-      credentials: "include",
-    });
-
-    if (response.status === 401) {
-      router.push("/login");
-      return;
+    const { ok, data } = await apiFetchJson("/users/me");
+    if (ok) {
+      userInfo.value = data;
+    } else {
+      error.value = "Failed to fetch user data";
     }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch user data: ${response.statusText}`);
-    }
-
-    userInfo.value = await response.json();
   } catch (err) {
+    if (err._redirected) return;
     error.value = err.message || "An error occurred";
   } finally {
     loading.value = false;

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppNavbar from "../components/AppNavbar.vue";
 import AppFooter from "../components/AppFooter.vue";
@@ -84,10 +84,6 @@ const syncFromUrl = () => {
 };
 
 watch(() => route.query, syncFromUrl, { immediate: true });
-
-onMounted(() => {
-  syncFromUrl();
-});
 
 const handleDocClick = async (doc) => {
   loadingDetail.value = true;

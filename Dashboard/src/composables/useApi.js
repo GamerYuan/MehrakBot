@@ -38,13 +38,15 @@ export function useApi() {
   };
 
   const apiFetch = async (path, options = {}) => {
+    const { skipAuthRedirect, ...fetchOptions } = options;
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(`${backendUrl}${path}`, {
       credentials: "include",
-      ...options,
+      ...fetchOptions,
     });
 
-    if (response.status === 401) {
+    if (response.status === 401 && !skipAuthRedirect) {
+      localStorage.removeItem("mehrak_user");
       router.push("/login");
       const err = buildError("Unauthorized", 401);
       err._redirected = true;
@@ -55,7 +57,8 @@ export function useApi() {
   };
 
   const apiFetchJson = async (path, options = {}) => {
-    const response = await apiFetch(path, options);
+    const { skipAuthRedirect, ...fetchOptions } = options;
+    const response = await apiFetch(path, { skipAuthRedirect, ...fetchOptions });
 
     if (response.ok) {
       return { ok: true, data: await response.json(), status: response.status };

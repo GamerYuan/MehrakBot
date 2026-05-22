@@ -1,50 +1,23 @@
 import { ref, computed, onMounted } from "vue";
+import { useApi } from "./useApi";
+import { gameMeta } from "../configs/gameMeta";
 
-export const gameColors = {
-  Genshin: {
-    bg: "rgba(255, 215, 0, 0.15)",
-    border: "rgba(255, 215, 0, 0.4)",
-    text: "#FFD700",
-  },
-  HonkaiStarRail: {
-    bg: "rgba(0, 212, 255, 0.15)",
-    border: "rgba(0, 212, 255, 0.4)",
-    text: "#00D4FF",
-  },
-  ZenlessZoneZero: {
-    bg: "rgba(255, 107, 0, 0.15)",
-    border: "rgba(255, 107, 0, 0.4)",
-    text: "#FF6B00",
-  },
-  HonkaiImpact3: {
-    bg: "rgba(255, 105, 180, 0.15)",
-    border: "rgba(255, 105, 180, 0.4)",
-    text: "#FF69B4",
-  },
-  TearsOfThemis: {
-    bg: "rgba(138, 43, 226, 0.15)",
-    border: "rgba(138, 43, 226, 0.4)",
-    text: "#8A2BE2",
-  },
-  Unsupported: {
-    bg: "rgba(136, 136, 136, 0.15)",
-    border: "rgba(136, 136, 136, 0.4)",
-    text: "#888888",
-  },
-};
+export const gameColors = Object.fromEntries(
+  Object.entries(gameMeta).map(([key, meta]) => [
+    key,
+    { bg: meta.bgColor, border: meta.borderColor, text: meta.color },
+  ]),
+);
 
-export const gameLabels = {
-  Genshin: "Genshin Impact",
-  HonkaiStarRail: "Honkai: Star Rail",
-  ZenlessZoneZero: "Zenless Zone Zero",
-  HonkaiImpact3: "Honkai Impact 3rd",
-  TearsOfThemis: "Tears of Themis",
-  Unsupported: "Miscellaneous",
-};
+export const gameLabels = Object.fromEntries(
+  Object.entries(gameMeta).map(([key, meta]) => [key, meta.label]),
+);
 
 const SUPPORTED_GAMES = Object.keys(gameLabels);
 
 export function useDocs() {
+  const { apiFetchJson } = useApi();
+
   const documents = ref([]);
   const loading = ref(false);
   const error = ref("");
@@ -55,17 +28,16 @@ export function useDocs() {
     loading.value = true;
     error.value = "";
     try {
-      const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/docs/list`, {
-        credentials: "include",
+      const { ok, data } = await apiFetchJson("/docs/list", {
+        skipAuthRedirect: true,
       });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to fetch documentation");
+      if (ok) {
+        documents.value = data;
+      } else {
+        error.value = data.error || "Failed to fetch documentation";
       }
-      const data = await response.json();
-      documents.value = data;
     } catch (err) {
+      if (err._redirected) return;
       error.value = err.message;
     } finally {
       loading.value = false;
@@ -74,9 +46,8 @@ export function useDocs() {
 
   const fetchDocumentDetail = async (id) => {
     try {
-      const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/docs/${id}`, {
-        credentials: "include",
+      const response = await apiFetch(`/docs/${id}`, {
+        skipAuthRedirect: true,
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));

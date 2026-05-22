@@ -7,6 +7,7 @@ import Textarea from "primevue/textarea";
 import Select from "primevue/select";
 import Checkbox from "primevue/checkbox";
 import Divider from "primevue/divider";
+import { gameOptions } from "../../configs/gameMeta";
 
 const props = defineProps({
   visible: Boolean,
@@ -16,14 +17,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:visible", "save"]);
-
-const gameOptions = [
-  { label: "Genshin Impact", value: "Genshin" },
-  { label: "Honkai: Star Rail", value: "HonkaiStarRail" },
-  { label: "Zenless Zone Zero", value: "ZenlessZoneZero" },
-  { label: "Honkai Impact 3rd", value: "HonkaiImpact3" },
-  { label: "Miscellaneous", value: "Unsupported" },
-];
 
 const form = ref({
   name: "",

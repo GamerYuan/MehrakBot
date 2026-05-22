@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
+import { gameMeta } from "../../configs/gameMeta";
 
 const props = defineProps({
   searchQuery: String,
@@ -14,14 +15,11 @@ const emit = defineEmits([
   "selectAllGames",
 ]);
 
-const gameFilters = [
-  { key: "Genshin", label: "Genshin Impact", color: "#FFD700" },
-  { key: "HonkaiStarRail", label: "Honkai: Star Rail", color: "#00D4FF" },
-  { key: "ZenlessZoneZero", label: "Zenless Zone Zero", color: "#FF6B00" },
-  { key: "HonkaiImpact3", label: "Honkai Impact 3rd", color: "#FF69B4" },
-  { key: "TearsOfThemis", label: "Tears of Themis", color: "#8A2BE2" },
-  { key: "Unsupported", label: "Miscellaneous", color: "#888888" },
-];
+const gameFilters = Object.entries(gameMeta).map(([key, meta]) => ({
+  key,
+  label: meta.label,
+  color: meta.color,
+}));
 
 const localSearch = ref(props.searchQuery);
 
