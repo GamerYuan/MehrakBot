@@ -847,6 +847,7 @@ export function useGameView(config) {
     portraitConfigEnableFade.value = null;
     portraitConfigFadeStart.value = null;
     showPortraitConfigModal.value = true;
+    portraitConfigFetching.value = true;
 
     try {
       const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
@@ -864,6 +865,8 @@ export function useGameView(config) {
       }
     } catch (err) {
       showErrorToast(err.message, err.status);
+    } finally {
+      portraitConfigFetching.value = false;
     }
   };
 

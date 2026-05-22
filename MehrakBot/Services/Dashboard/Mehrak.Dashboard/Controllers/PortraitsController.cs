@@ -135,8 +135,11 @@ public class PortraitsController : ControllerBase
             Game.HonkaiStarRail => FileNameFormat.Hsr.PortraitName,
             Game.ZenlessZoneZero => FileNameFormat.Zzz.PortraitName,
             Game.HonkaiImpact3 => FileNameFormat.Hi3.CostumeName,
-            _ => throw new ArgumentOutOfRangeException(nameof(gameEnum))
+            _ => null
         };
+
+        if (format == null)
+            return BadRequest(new { error = $"Unsupported game: {gameEnum}" });
 
         var imageName = string.Format(format, serverId.Value);
         if (await m_ImageRepository.FileExistsAsync(imageName))
