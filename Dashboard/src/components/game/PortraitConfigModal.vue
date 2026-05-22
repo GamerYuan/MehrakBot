@@ -51,13 +51,19 @@ const handleServerIdUpdate = (value) => emit("update:selectedServerId", value);
 const handleOffsetXUpdate = (value) => emit("update:offsetX", value);
 const handleOffsetYUpdate = (value) => emit("update:offsetY", value);
 const handleTargetScaleUpdate = (value) => emit("update:targetScale", value);
-const handleEnableFadeUpdate = (value) => emit("update:enableGradientFade", value);
-const handleFadeStartUpdate = (value) => emit("update:gradientFadeStart", value);
+const handleEnableFadeUpdate = (value) =>
+  emit("update:enableGradientFade", value);
+const handleFadeStartUpdate = (value) =>
+  emit("update:gradientFadeStart", value);
 const handleSubmit = () => emit("submit");
 
-const bgUrl = computed(() => props.gameId ? `/${props.gameId.toLowerCase()}_portrait_bg.webp` : "");
+const bgUrl = computed(() =>
+  props.gameId ? `/${props.gameId.toLowerCase()}_portrait_bg.webp` : "",
+);
 
-const serverIdOptions = computed(() => (props.serverIds || []).map(id => ({ label: `ID: ${id}`, value: id })));
+const serverIdOptions = computed(() =>
+  (props.serverIds || []).map((id) => ({ label: `ID: ${id}`, value: id })),
+);
 
 const backgroundImage = ref(null);
 
@@ -81,7 +87,7 @@ const loadPortrait = async () => {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
       `${backendUrl}/portraits/image?game=${encodeURIComponent(props.gameId)}&serverId=${props.selectedServerId}`,
-      { credentials: "include" }
+      { credentials: "include" },
     );
 
     if (response.status === 404) {
@@ -131,8 +137,8 @@ const renderPreview = () => {
   ctx.drawImage(bg, 0, 0);
 
   const scale = props.targetScale ?? 1;
-  const portraitW = portrait.naturalWidth * scale;
-  const portraitH = portrait.naturalHeight * scale;
+  const portraitW = Math.round(portrait.naturalWidth * scale);
+  const portraitH = Math.round(portrait.naturalHeight * scale);
 
   const alignX = props.portraitAlignX ?? 0;
   const alignY = props.portraitAlignY ?? 0;
@@ -153,7 +159,9 @@ const renderPreview = () => {
 
     const imageData = fadeCtx.getImageData(0, 0, portraitW, portraitH);
     const data = imageData.data;
-    const fadeStartX = Math.floor(portraitW * (props.gradientFadeStart ?? 0.75));
+    const fadeStartX = Math.floor(
+      portraitW * (props.gradientFadeStart ?? 0.75),
+    );
 
     for (let px = fadeStartX; px < portraitW; px++) {
       const alpha = 1 - (px - fadeStartX) / (portraitW - fadeStartX);
@@ -178,32 +186,44 @@ const scheduleRender = () => {
 };
 
 watch(
-  () => [props.offsetX, props.offsetY, props.targetScale, props.enableGradientFade, props.gradientFadeStart],
-  scheduleRender
+  () => [
+    props.offsetX,
+    props.offsetY,
+    props.targetScale,
+    props.enableGradientFade,
+    props.gradientFadeStart,
+  ],
+  scheduleRender,
 );
 
-watch(() => props.selectedServerId, () => {
-  if (props.selectedServerId != null) {
-    portraitImage.value = null;
-    portraitError.value = false;
-    portraitLoaded.value = false;
-    loadPortrait();
-  }
-});
-
-watch(() => props.visible, (visible) => {
-  if (visible) {
-    portraitImage.value = null;
-    portraitError.value = false;
-    portraitLoaded.value = false;
-    bgLoaded.value = false;
-    backgroundImage.value = null;
-    loadBackground();
+watch(
+  () => props.selectedServerId,
+  () => {
     if (props.selectedServerId != null) {
+      portraitImage.value = null;
+      portraitError.value = false;
+      portraitLoaded.value = false;
       loadPortrait();
     }
-  }
-});
+  },
+);
+
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      portraitImage.value = null;
+      portraitError.value = false;
+      portraitLoaded.value = false;
+      bgLoaded.value = false;
+      backgroundImage.value = null;
+      loadBackground();
+      if (props.selectedServerId != null) {
+        loadPortrait();
+      }
+    }
+  },
+);
 </script>
 
 <template>
@@ -233,7 +253,10 @@ watch(() => props.visible, (visible) => {
                 class="w-full rounded border bg-gray-100 dark:bg-gray-700 px-3 py-2 text-sm"
               />
             </div>
-            <div v-if="serverIds && serverIds.length > 1" class="flex flex-col gap-2">
+            <div
+              v-if="serverIds && serverIds.length > 1"
+              class="flex flex-col gap-2"
+            >
               <label for="portrait-server-id">Portrait (Server ID)</label>
               <Select
                 id="portrait-server-id"
@@ -307,12 +330,19 @@ watch(() => props.visible, (visible) => {
                 severity="secondary"
                 @click="handleVisibleUpdate(false)"
               />
-              <Button type="submit" label="Save" :loading="loading" :disabled="portraitError" />
+              <Button
+                type="submit"
+                label="Save"
+                :loading="loading"
+                :disabled="portraitError"
+              />
             </div>
           </div>
           <div class="flex-1 min-w-0 flex flex-col gap-2">
             <label class="text-sm text-gray-500">Preview</label>
-            <div class="border rounded overflow-hidden bg-gray-100 dark:bg-gray-800">
+            <div
+              class="border rounded overflow-hidden bg-gray-100 dark:bg-gray-800"
+            >
               <canvas ref="canvasRef" class="w-full h-auto" />
             </div>
             <div
