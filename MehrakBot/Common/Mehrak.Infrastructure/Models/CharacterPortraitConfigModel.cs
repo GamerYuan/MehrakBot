@@ -4,13 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Models;
 
-[Index(nameof(Game), nameof(Name), IsUnique = true)]
+[Index(nameof(Game), nameof(ServerId), IsUnique = true)]
 public class CharacterPortraitConfigModel
 {
     [Key]
     public int Id { get; set; }
 
     public Game Game { get; set; }
+
+    public int ServerId { get; set; }
 
     [Required]
     [MaxLength(100)]

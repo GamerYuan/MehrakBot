@@ -491,7 +491,7 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Name), Times.Once);
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Costumes.First().Id), Times.Once);
     }
 
     [Test]
@@ -511,7 +511,7 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 8, OffsetY = 16 };
-        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Name))
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Costumes.First().Id))
             .ReturnsAsync(portraitConfig);
 
         BaseCardGenerationContext<Hi3CharacterDetail>? capturedContext = null;
@@ -526,7 +526,8 @@ public class Hi3CharacterApplicationServiceTests
 
         // Assert
         Assert.That(capturedContext, Is.Not.Null);
-        Assert.That(capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig"), Is.EqualTo(portraitConfig));
+        Assert.That(capturedContext!.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs"),
+            Is.EqualTo(new Dictionary<int, CharacterPortraitConfig> { { character.Costumes.First().Id, portraitConfig } }));
     }
 
     #endregion

@@ -81,7 +81,8 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
             var characterList = charResponse.Data.ToList();
             _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiImpact3,
-                characterList.Select(x => new CharacterUpsertEntry(x.Avatar.Name, x.Avatar.Id)));
+                characterList.SelectMany(x => x.Costumes.Select(c =>
+                    new CharacterUpsertEntry(x.Avatar.Name, c.Id))));
 
             var characterInfo = characterList.FirstOrDefault(x =>
                 x.Avatar.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
@@ -135,9 +136,16 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
             cardContext.SetParameter("server", server);
 
-            var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, characterInfo.Avatar.Name);
-            if (portraitConfig != null)
-                cardContext.SetParameter("portraitConfig", portraitConfig);
+            var portraitConfigs = new Dictionary<int, CharacterPortraitConfig>();
+            foreach (var costume in characterInfo.Costumes)
+            {
+                var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
+                if (config != null)
+                    portraitConfigs[costume.Id] = config;
+            }
+
+            if (portraitConfigs.Count > 0)
+                cardContext.SetParameter("portraitConfigs", portraitConfigs);
 
             await using var card = await m_CardService.GetCardAsync(cardContext);
 

@@ -53,6 +53,20 @@ const {
   confirmDeleteCodes,
   executeCommand,
   handleAuth,
+  showPortraitConfigModal,
+  portraitConfigCharacter,
+  portraitConfigServerIds,
+  portraitConfigServerId,
+  portraitConfigOffsetX,
+  portraitConfigOffsetY,
+  portraitConfigTargetScale,
+  portraitConfigEnableFade,
+  portraitConfigFadeStart,
+  portraitConfigFetching,
+  portraitConfigSaving,
+  openPortraitConfigModal,
+  fetchPortraitConfigForServerId,
+  handlePortraitConfigSubmit,
 } = useGameView(gameConfigs.zzz);
 
 const setActiveTab = (value) => {
@@ -122,6 +136,35 @@ const setShowAuthModal = (value) => {
 const setAuthPassphrase = (value) => {
   authPassphrase.value = value;
 };
+
+const setShowPortraitConfigModal = (value) => {
+  showPortraitConfigModal.value = value;
+};
+
+const setPortraitConfigOffsetX = (value) => {
+  portraitConfigOffsetX.value = value;
+};
+
+const setPortraitConfigOffsetY = (value) => {
+  portraitConfigOffsetY.value = value;
+};
+
+const setPortraitConfigTargetScale = (value) => {
+  portraitConfigTargetScale.value = value;
+};
+
+const setPortraitConfigEnableFade = (value) => {
+  portraitConfigEnableFade.value = value;
+};
+
+const setPortraitConfigFadeStart = (value) => {
+  portraitConfigFadeStart.value = value;
+};
+
+const setPortraitConfigServerId = (value) => {
+  portraitConfigServerId.value = value;
+  fetchPortraitConfigForServerId(value);
+};
 </script>
 
 <template>
@@ -167,6 +210,17 @@ const setAuthPassphrase = (value) => {
     :authPassphrase="authPassphrase"
     :authLoading="authLoading"
     :authError="authError"
+    :showPortraitConfigModal="showPortraitConfigModal"
+    :portraitConfigCharacter="portraitConfigCharacter"
+    :portraitConfigServerIds="portraitConfigServerIds"
+    :portraitConfigServerId="portraitConfigServerId"
+    :portraitConfigOffsetX="portraitConfigOffsetX"
+    :portraitConfigOffsetY="portraitConfigOffsetY"
+    :portraitConfigTargetScale="portraitConfigTargetScale"
+    :portraitConfigEnableFade="portraitConfigEnableFade"
+    :portraitConfigFadeStart="portraitConfigFadeStart"
+    :portraitConfigFetching="portraitConfigFetching"
+    :portraitConfigSaving="portraitConfigSaving"
     @update:activeTab="setActiveTab"
     @update:profileId="setProfileId"
     @update:server="setServer"
@@ -194,5 +248,14 @@ const setAuthPassphrase = (value) => {
     @update:showAuthModal="setShowAuthModal"
     @update:authPassphrase="setAuthPassphrase"
     @handleAuth="handleAuth"
+    @editPortrait="openPortraitConfigModal"
+    @update:showPortraitConfigModal="setShowPortraitConfigModal"
+    @update:portraitConfigServerId="setPortraitConfigServerId"
+    @update:portraitConfigOffsetX="setPortraitConfigOffsetX"
+    @update:portraitConfigOffsetY="setPortraitConfigOffsetY"
+    @update:portraitConfigTargetScale="setPortraitConfigTargetScale"
+    @update:portraitConfigEnableFade="setPortraitConfigEnableFade"
+    @update:portraitConfigFadeStart="setPortraitConfigFadeStart"
+    @handlePortraitConfigSubmit="handlePortraitConfigSubmit"
   />
 </template>

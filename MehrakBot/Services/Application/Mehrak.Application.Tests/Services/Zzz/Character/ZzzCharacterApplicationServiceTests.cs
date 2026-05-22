@@ -569,7 +569,7 @@ public class ZzzCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
             .ReturnsAsync(cardStream);
 
-        portraitConfigMock.Setup(x => x.GetConfigAsync(It.IsAny<Game>(), It.IsAny<string>()))
+        portraitConfigMock.Setup(x => x.GetConfigAsync(It.IsAny<Game>(), It.IsAny<int>()))
             .ReturnsAsync((CharacterPortraitConfig?)null);
 
         var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
@@ -578,7 +578,8 @@ public class ZzzCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, "Jane"), Times.Once);
+        var expectedId = fullCharData.AvatarList.First(x => x.Name == "Jane").Id;
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, expectedId), Times.Once);
     }
 
     [Test]
@@ -606,7 +607,8 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 5, OffsetY = 10 };
-        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, "Jane"))
+        var expectedId = fullCharData.AvatarList.First(x => x.Name == "Jane").Id;
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, expectedId))
             .ReturnsAsync(portraitConfig);
 
         ICardGenerationContext<ZzzFullAvatarData>? capturedContext = null;
@@ -624,8 +626,12 @@ public class ZzzCharacterApplicationServiceTests
         Assert.That(capturedContext, Is.Not.Null);
         var configParam = capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig");
         Assert.That(configParam, Is.Not.Null);
-        Assert.That(configParam!.OffsetX, Is.EqualTo(5));
-        Assert.That(configParam.OffsetY, Is.EqualTo(10));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(configParam!.OffsetX, Is.EqualTo(5));
+            Assert.That(configParam.OffsetY, Is.EqualTo(10));
+        }
     }
 
     #endregion

@@ -26,6 +26,10 @@ export const gameConfigs = {
     hasCodesManagement: true,
     hasStatEdit: true,
     characterPlaceholder: "e.g. Nahida",
+    portraitAlignX: 640,
+    portraitAlignY: 640,
+    portraitAnchorX: 0.5,
+    portraitAnchorY: 0.5,
   },
 
   hsr: {
@@ -49,6 +53,10 @@ export const gameConfigs = {
     ],
     hasCodesManagement: true,
     characterPlaceholder: "e.g. Firefly",
+    portraitAlignX: 400,
+    portraitAlignY: 700,
+    portraitAnchorX: 0.5,
+    portraitAnchorY: 0.5,
   },
 
   zzz: {
@@ -69,6 +77,10 @@ export const gameConfigs = {
     ],
     hasCodesManagement: true,
     characterPlaceholder: "e.g. Ellen",
+    portraitAlignX: 350,
+    portraitAlignY: 650,
+    portraitAnchorX: 0.5,
+    portraitAnchorY: 0.25,
   },
 
   hi3: {
@@ -94,5 +106,9 @@ export const gameConfigs = {
     ],
     hasCodesManagement: false,
     characterPlaceholder: "e.g. White Comet",
+    portraitAlignX: 350,
+    portraitAlignY: 425,
+    portraitAnchorX: 0.5,
+    portraitAnchorY: 0.5,
   },
 };
