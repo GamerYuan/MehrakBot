@@ -578,7 +578,7 @@ public class ZzzCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        var expectedId = charList.First(x => x.Name == "Jane").Id;
+        var expectedId = fullCharData.AvatarList.First(x => x.Name == "Jane").Id;
         portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, expectedId), Times.Once);
     }
 
@@ -607,7 +607,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 5, OffsetY = 10 };
-        var expectedId = charList.First(x => x.Name == "Jane").Id;
+        var expectedId = fullCharData.AvatarList.First(x => x.Name == "Jane").Id;
         portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, expectedId))
             .ReturnsAsync(portraitConfig);
 
