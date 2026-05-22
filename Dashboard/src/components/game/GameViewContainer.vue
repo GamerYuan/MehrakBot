@@ -25,14 +25,10 @@ const getTabConfig = (tabId) => gv.config.tabs.find((t) => t.id === tabId);
   <div class="game-view">
     <h1 class="text-4xl font-bold mb-3">{{ gv.config.title }}</h1>
 
-    <Tabs
-      :value="gv.activeTab.value"
-      @update:value="(value) => (gv.activeTab.value = value)"
-      scrollable
-    >
+    <Tabs v-model:value="gv.activeTab" scrollable>
       <TabList>
         <Tab
-          v-for="tab in gv.tabs.value"
+          v-for="tab in gv.tabs"
           :key="tab.id"
           :value="tab.id"
           class="whitespace-nowrap shrink-0"
@@ -41,7 +37,7 @@ const getTabConfig = (tabId) => gv.config.tabs.find((t) => t.id === tabId);
         </Tab>
       </TabList>
       <TabPanels>
-        <TabPanel v-for="tab in gv.tabs.value" :key="tab.id" :value="tab.id">
+        <TabPanel v-for="tab in gv.tabs" :key="tab.id" :value="tab.id">
           <ManageCharactersCard
             v-if="tab.id === 'manage'"
           />
@@ -62,11 +58,11 @@ const getTabConfig = (tabId) => gv.config.tabs.find((t) => t.id === tabId);
       </TabPanels>
     </Tabs>
 
-    <div v-if="gv.resultImages.value[gv.activeTab.value]" class="result-container mt-4">
+    <div v-if="gv.resultImages[gv.activeTab]" class="result-container mt-4">
       <Card>
         <template #content>
           <Image
-            :src="gv.resultImages.value[gv.activeTab.value]"
+            :src="gv.resultImages[gv.activeTab]"
             alt="Result"
             preview
             width="100%"

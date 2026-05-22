@@ -24,7 +24,7 @@ const gv = useGameViewInject();
               <label :for="`${tabConfig?.id}-profile-id`">Profile ID (1-10)</label>
               <InputNumber
                 :inputId="`${tabConfig?.id}-profile-id`"
-                v-model="gv.profileId.value"
+                v-model="gv.profileId"
                 showButtons
                 :min="1"
                 :max="10"
@@ -35,7 +35,7 @@ const gv = useGameViewInject();
               <label :for="`${tabConfig?.id}-server`">Server</label>
               <Select
                 :inputId="`${tabConfig?.id}-server`"
-                v-model="gv.server.value"
+                v-model="gv.server"
                 :options="gv.config.servers"
                 optionLabel="label"
                 optionValue="value"
@@ -51,8 +51,8 @@ const gv = useGameViewInject();
             </label>
             <AutoComplete
               :inputId="`${tabConfig?.id}-character-name`"
-              v-model="gv.characterName.value"
-              :suggestions="gv.filteredCharacters.value"
+              v-model="gv.characterName"
+              :suggestions="gv.filteredCharacters"
               @complete="gv.searchCharacter"
               dropdown
               fluid
@@ -66,7 +66,7 @@ const gv = useGameViewInject();
             >
             <InputNumber
               :inputId="`${tabConfig?.id}-floor`"
-              v-model="gv.floor.value"
+              v-model="gv.floor"
               showButtons
               :min="tabConfig.floorMin"
               :max="tabConfig.floorMax"
@@ -76,14 +76,14 @@ const gv = useGameViewInject();
 
           <Button
             type="submit"
-            :label="gv.loading.value ? 'Executing...' : 'Execute'"
-            :loading="gv.loading.value"
+            :label="gv.loading ? 'Executing...' : 'Execute'"
+            :loading="gv.loading"
             fluid
           />
         </div>
       </form>
-      <Message v-if="gv.error.value" severity="error" class="mt-2">
-        {{ gv.error.value }}
+      <Message v-if="gv.error" severity="error" class="mt-2">
+        {{ gv.error }}
       </Message>
     </template>
   </Card>

@@ -22,7 +22,7 @@ onMounted(() => {
   <div class="dashboard-layout" v-if="!loading && userInfo">
     <Sidebar :userInfo="userInfo" />
     <main class="dashboard-content">
-      <router-view :userInfo="userInfo" />
+      <router-view :userInfo="userInfo" :key="$route.fullPath" />
     </main>
   </div>
 </template>

@@ -47,7 +47,7 @@ const bgUrl = computed(() => {
 });
 
 const serverIdOptions = computed(() =>
-  (gv.portraitConfigServerIds.value || []).map((id) => ({ label: `ID: ${id}`, value: id })),
+  (gv.portraitConfigServerIds || []).map((id) => ({ label: `ID: ${id}`, value: id })),
 );
 
 const backgroundImage = ref(null);
@@ -63,7 +63,7 @@ const loadBackground = () => {
 };
 
 const loadPortrait = async () => {
-  if (!gv.config.id || !gv.portraitConfigServerId.value) return;
+  if (!gv.config.id || !gv.portraitConfigServerId) return;
   portraitLoading.value = true;
   portraitError.value = false;
   portraitLoaded.value = false;
@@ -71,7 +71,7 @@ const loadPortrait = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
-      `${backendUrl}/portraits/image?game=${encodeURIComponent(gv.config.id)}&serverId=${gv.portraitConfigServerId.value}`,
+      `${backendUrl}/portraits/image?game=${encodeURIComponent(gv.config.id)}&serverId=${gv.portraitConfigServerId}`,
       { credentials: "include" },
     );
 
@@ -80,7 +80,7 @@ const loadPortrait = async () => {
       toast.add({
         severity: "error",
         summary: "Image Not Found",
-        detail: `Portrait image for ${gv.portraitConfigCharacter.value} (ID: ${gv.portraitConfigServerId.value}) not found, please generate an image with this character in the Characters tab and try again`,
+        detail: `Portrait image for ${gv.portraitConfigCharacter} (ID: ${gv.portraitConfigServerId}) not found, please generate an image with this character in the Characters tab and try again`,
         life: 5000,
       });
       return;
@@ -122,7 +122,7 @@ const renderPreview = () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bg, 0, 0);
 
-  const scale = gv.portraitConfigTargetScale.value ?? 1;
+  const scale = gv.portraitConfigTargetScale ?? 1;
   const portraitW = Math.round(portrait.naturalWidth * scale);
   const portraitH = Math.round(portrait.naturalHeight * scale);
 
@@ -130,13 +130,13 @@ const renderPreview = () => {
   const alignY = gv.config.portraitAlignY ?? 0;
   const anchorX = gv.config.portraitAnchorX ?? 0.5;
   const anchorY = gv.config.portraitAnchorY ?? 0.5;
-  const offsetX = gv.portraitConfigOffsetX.value ?? 0;
-  const offsetY = gv.portraitConfigOffsetY.value ?? 0;
+  const offsetX = gv.portraitConfigOffsetX ?? 0;
+  const offsetY = gv.portraitConfigOffsetY ?? 0;
 
   const x = alignX - portraitW * anchorX + offsetX;
   const y = alignY - portraitH * anchorY + offsetY;
 
-  if (gv.portraitConfigEnableFade.value) {
+  if (gv.portraitConfigEnableFade) {
     const fadeCanvas = document.createElement("canvas");
     fadeCanvas.width = portraitW;
     fadeCanvas.height = portraitH;
@@ -145,7 +145,7 @@ const renderPreview = () => {
 
     const imageData = fadeCtx.getImageData(0, 0, portraitW, portraitH);
     const data = imageData.data;
-    const fadeStartX = Math.floor(portraitW * (gv.portraitConfigFadeStart.value ?? 0.75));
+    const fadeStartX = Math.floor(portraitW * (gv.portraitConfigFadeStart ?? 0.75));
 
     for (let px = fadeStartX; px < portraitW; px++) {
       const alpha = 1 - (px - fadeStartX) / (portraitW - fadeStartX);
@@ -169,14 +169,14 @@ const scheduleRender = () => {
 };
 
 watch(
-  () => [gv.portraitConfigOffsetX.value, gv.portraitConfigOffsetY.value, gv.portraitConfigTargetScale.value, gv.portraitConfigEnableFade.value, gv.portraitConfigFadeStart.value],
+  () => [gv.portraitConfigOffsetX, gv.portraitConfigOffsetY, gv.portraitConfigTargetScale, gv.portraitConfigEnableFade, gv.portraitConfigFadeStart],
   scheduleRender,
 );
 
 watch(
-  () => gv.portraitConfigServerId.value,
+  () => gv.portraitConfigServerId,
   () => {
-    if (gv.portraitConfigServerId.value != null) {
+    if (gv.portraitConfigServerId != null) {
       cleanupPortrait();
       loadPortrait();
     }
@@ -184,14 +184,14 @@ watch(
 );
 
 watch(
-  () => gv.showPortraitConfigModal.value,
+  () => gv.showPortraitConfigModal,
   (visible) => {
     if (visible) {
       cleanupPortrait();
       bgLoaded.value = false;
       backgroundImage.value = null;
       loadBackground();
-      if (gv.portraitConfigServerId.value != null) {
+      if (gv.portraitConfigServerId != null) {
         loadPortrait();
       }
     }
@@ -206,15 +206,14 @@ onUnmounted(() => {
 
 <template>
   <Dialog
-    :visible="gv.showPortraitConfigModal.value"
-    @update:visible="(value) => (gv.showPortraitConfigModal.value = value)"
+    v-model:visible="gv.showPortraitConfigModal"
     modal
     header="Edit Portrait Config"
     :style="{ width: '70rem' }"
   >
     <div class="relative">
       <div
-        v-if="gv.portraitConfigFetching.value || portraitLoading"
+        v-if="gv.portraitConfigFetching || portraitLoading"
         class="absolute inset-0 z-10 flex items-center justify-center rounded bg-black/20"
       >
         <i class="pi pi-spin pi-spinner text-xl"></i>
@@ -226,19 +225,19 @@ onUnmounted(() => {
               <label for="portrait-char">Character</label>
               <input
                 id="portrait-char"
-                :value="gv.portraitConfigCharacter.value"
+                :value="gv.portraitConfigCharacter"
                 disabled
                 class="w-full rounded border bg-gray-100 dark:bg-gray-700 px-3 py-2 text-sm"
               />
             </div>
             <div
-              v-if="gv.portraitConfigServerIds.value && gv.portraitConfigServerIds.value.length > 1"
+              v-if="gv.portraitConfigServerIds && gv.portraitConfigServerIds.length > 1"
               class="flex flex-col gap-2"
             >
               <label for="portrait-server-id">Portrait (Server ID)</label>
               <Select
                 id="portrait-server-id"
-                v-model="gv.portraitConfigServerId.value"
+                v-model="gv.portraitConfigServerId"
                 :options="serverIdOptions"
                 optionLabel="label"
                 optionValue="value"
@@ -250,7 +249,7 @@ onUnmounted(() => {
               <label for="portrait-offset-x">Offset X (px)</label>
               <InputNumber
                 id="portrait-offset-x"
-                v-model="gv.portraitConfigOffsetX.value"
+                v-model="gv.portraitConfigOffsetX"
                 :minFractionDigits="0"
                 fluid
               />
@@ -259,7 +258,7 @@ onUnmounted(() => {
               <label for="portrait-offset-y">Offset Y (px)</label>
               <InputNumber
                 id="portrait-offset-y"
-                v-model="gv.portraitConfigOffsetY.value"
+                v-model="gv.portraitConfigOffsetY"
                 :minFractionDigits="0"
                 fluid
               />
@@ -268,7 +267,7 @@ onUnmounted(() => {
               <label for="portrait-scale">Target Scale</label>
               <InputNumber
                 id="portrait-scale"
-                v-model="gv.portraitConfigTargetScale.value"
+                v-model="gv.portraitConfigTargetScale"
                 :minFractionDigits="2"
                 :maxFractionDigits="4"
                 placeholder="e.g. 1.0"
@@ -277,7 +276,7 @@ onUnmounted(() => {
             </div>
             <div class="flex items-center gap-2">
               <Checkbox
-                v-model="gv.portraitConfigEnableFade.value"
+                v-model="gv.portraitConfigEnableFade"
                 binary
                 inputId="portrait-fade"
               />
@@ -287,7 +286,7 @@ onUnmounted(() => {
               <label for="portrait-fade-start">Gradient Fade Start</label>
               <InputNumber
                 id="portrait-fade-start"
-                v-model="gv.portraitConfigFadeStart.value"
+                v-model="gv.portraitConfigFadeStart"
                 :minFractionDigits="2"
                 :maxFractionDigits="2"
                 :min="0"
@@ -300,12 +299,12 @@ onUnmounted(() => {
                 type="button"
                 label="Cancel"
                 severity="secondary"
-                @click="gv.showPortraitConfigModal.value = false"
+                @click="gv.showPortraitConfigModal = false"
               />
               <Button
                 type="submit"
                 label="Save"
-                :loading="gv.portraitConfigSaving.value"
+                :loading="gv.portraitConfigSaving"
                 :disabled="portraitError"
               />
             </div>

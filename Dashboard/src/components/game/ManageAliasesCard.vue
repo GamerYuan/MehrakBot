@@ -18,14 +18,14 @@ const gv = useGameViewInject();
       <div class="flex flex-col gap-4">
         <div class="flex flex-row gap-4">
           <InputText
-            v-model="gv.aliasSearchQuery.value"
+            v-model="gv.aliasSearchQuery"
             placeholder="Search aliases..."
             fluid
           />
-          <Button label="Add" @click="gv.openAddAliasModal" :loading="gv.manageLoading.value" />
+          <Button label="Add" @click="gv.openAddAliasModal" :loading="gv.manageLoading" />
         </div>
         <DataTable
-          :value="gv.filteredAliases.value"
+          :value="gv.filteredAliases"
           paginator
           :rows="10"
           tableStyle="min-width: 50rem"
@@ -60,30 +60,29 @@ const gv = useGameViewInject();
   </Card>
 
   <Dialog
-    :visible="gv.showAddAliasModal.value"
-    @update:visible="(value) => (gv.showAddAliasModal.value = value)"
+    v-model:visible="gv.showAddAliasModal"
     modal
-    :header="gv.isEditingAlias.value ? 'Edit Alias' : 'Add Alias'"
+    :header="gv.isEditingAlias ? 'Edit Alias' : 'Add Alias'"
     :style="{ width: '30rem' }"
   >
-    <form @submit.prevent="gv.handleAliasSubmit">
+    <form @submit.prevent="gv.handleAliasSubmit()">
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
           <label for="alias-char">Character Name</label>
           <InputText
             id="alias-char"
-            v-model="gv.newAliasCharacter.value"
+            v-model="gv.newAliasCharacter"
             required
             placeholder="e.g. Nahida"
             fluid
-            :disabled="gv.isEditingAlias.value"
+            :disabled="gv.isEditingAlias"
           />
         </div>
         <div class="flex flex-col gap-2">
           <label for="alias-list">Aliases (comma-separated)</label>
           <InputText
             id="alias-list"
-            v-model="gv.newAliasList.value"
+            v-model="gv.newAliasList"
             required
             placeholder="e.g. Radish, Dendro Archon"
             fluid
@@ -94,13 +93,13 @@ const gv = useGameViewInject();
             type="button"
             label="Cancel"
             severity="secondary"
-            @click="gv.showAddAliasModal.value = false"
+            @click="gv.showAddAliasModal = false"
           />
           <Button
             type="submit"
-            :label="gv.isEditingAlias.value ? 'Update' : 'Add'"
-            :loading="gv.addAliasLoading.value"
-            :disabled="!gv.newAliasCharacter.value || !gv.newAliasList.value"
+            :label="gv.isEditingAlias ? 'Update' : 'Add'"
+            :loading="gv.addAliasLoading"
+            :disabled="!gv.newAliasCharacter || !gv.newAliasList"
           />
         </div>
       </div>

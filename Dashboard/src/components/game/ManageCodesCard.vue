@@ -16,7 +16,7 @@ const gv = useGameViewInject();
       <div class="flex flex-col gap-4">
         <div class="flex gap-2">
           <InputText
-            v-model="gv.newCodesInput.value"
+            v-model="gv.newCodesInput"
             placeholder="New Codes (comma-separated)"
             fluid
             class="flex-1"
@@ -24,14 +24,14 @@ const gv = useGameViewInject();
           <Button
             label="Add"
             @click="gv.confirmAddCodes"
-            :loading="gv.codesLoading.value"
-            :disabled="!gv.newCodesInput.value"
+            :loading="gv.codesLoading"
+            :disabled="!gv.newCodesInput"
           />
         </div>
 
         <div class="flex justify-between gap-2">
           <InputText
-            v-model="gv.codesSearchQuery.value"
+            v-model="gv.codesSearchQuery"
             placeholder="Search codes..."
             fluid
             class="flex-1"
@@ -39,15 +39,15 @@ const gv = useGameViewInject();
           <Button
             label="Delete Selected"
             severity="danger"
-            @click="gv.confirmDeleteCodes(gv.selectedCodes.value.map((c) => c.code))"
-            :disabled="!gv.selectedCodes.value.length"
-            :loading="gv.codesLoading.value"
+            @click="gv.confirmDeleteCodes(gv.selectedCodes.map((c) => c.code))"
+            :disabled="!gv.selectedCodes.length"
+            :loading="gv.codesLoading"
           />
         </div>
 
         <DataTable
-          :value="gv.filteredCodes.value"
-          v-model:selection="gv.selectedCodes.value"
+          v-model:selection="gv.selectedCodes"
+          :value="gv.filteredCodes"
           dataKey="code"
           paginator
           :rows="10"
@@ -63,7 +63,7 @@ const gv = useGameViewInject();
                 text
                 rounded
                 @click="gv.confirmDeleteCodes([slotProps.data.code])"
-                :loading="gv.codesLoading.value"
+                :loading="gv.codesLoading"
               />
             </template>
           </Column>

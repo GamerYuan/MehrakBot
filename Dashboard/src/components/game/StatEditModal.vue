@@ -10,26 +10,25 @@ const gv = useGameViewInject();
 
 <template>
   <Dialog
-    :visible="gv.showEditStatModal.value"
-    @update:visible="(value) => (gv.showEditStatModal.value = value)"
+    v-model:visible="gv.showEditStatModal"
     modal
     header="Edit Character Stats"
     :style="{ width: '30rem' }"
   >
     <div class="relative">
       <div
-        v-if="gv.editStatFetching.value"
+        v-if="gv.editStatFetching"
         class="absolute inset-0 z-10 flex items-center justify-center rounded bg-black/20"
       >
         <i class="pi pi-spin pi-spinner text-xl"></i>
       </div>
-      <form @submit.prevent="gv.handleStatSubmit">
+      <form @submit.prevent="gv.handleStatSubmit()">
         <div class="flex flex-col gap-4">
           <div class="flex flex-col gap-2">
             <label for="stat-char">Character Name</label>
             <InputText
               id="stat-char"
-              :modelValue="gv.editStatCharacter.value"
+              :modelValue="gv.editStatCharacter"
               disabled
               fluid
             />
@@ -39,7 +38,7 @@ const gv = useGameViewInject();
             <div class="flex gap-2">
               <InputNumber
                 id="stat-base"
-                v-model="gv.editStatBase.value"
+                v-model="gv.editStatBase"
                 :minFractionDigits="0"
                 :maxFractionDigits="5"
                 fluid
@@ -50,7 +49,7 @@ const gv = useGameViewInject();
                 icon="pi pi-trash"
                 severity="danger"
                 text
-                @click="gv.editStatBase.value = null"
+                @click="gv.editStatBase = null"
               />
             </div>
           </div>
@@ -59,7 +58,7 @@ const gv = useGameViewInject();
             <div class="flex gap-2">
               <InputNumber
                 id="stat-max"
-                v-model="gv.editStatMax.value"
+                v-model="gv.editStatMax"
                 :minFractionDigits="0"
                 :maxFractionDigits="5"
                 fluid
@@ -70,7 +69,7 @@ const gv = useGameViewInject();
                 icon="pi pi-trash"
                 severity="danger"
                 text
-                @click="gv.editStatMax.value = null"
+                @click="gv.editStatMax = null"
               />
             </div>
           </div>
@@ -79,9 +78,9 @@ const gv = useGameViewInject();
               type="button"
               label="Cancel"
               severity="secondary"
-              @click="gv.showEditStatModal.value = false"
+              @click="gv.showEditStatModal = false"
             />
-            <Button type="submit" label="Update" :loading="gv.editStatLoading.value" />
+            <Button type="submit" label="Update" :loading="gv.editStatLoading" />
           </div>
         </div>
       </form>

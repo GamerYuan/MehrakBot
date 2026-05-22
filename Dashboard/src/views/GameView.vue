@@ -1,5 +1,5 @@
 <script setup>
-import { provide } from "vue";
+import { provide, reactive } from "vue";
 import { useRoute } from "vue-router";
 import { useGameView } from "../composables/useGameView";
 import { gameConfigs } from "../configs/gameConfigs";
@@ -16,7 +16,7 @@ const configMap = {
 };
 
 const config = configMap[route.params.game];
-const gameView = useGameView(config);
+const gameView = reactive(useGameView(config));
 
 provide(GAME_VIEW_KEY, gameView);
 </script>
