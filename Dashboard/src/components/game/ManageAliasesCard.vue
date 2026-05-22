@@ -1,4 +1,5 @@
 <script setup>
+import { useGameViewInject } from "../../composables/game/injectKey";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Tag from "primevue/tag";
@@ -7,38 +8,7 @@ import Button from "primevue/button";
 import Card from "primevue/card";
 import Dialog from "primevue/dialog";
 
-const props = defineProps({
-  aliases: Array,
-  filteredAliases: Array,
-  aliasSearchQuery: String,
-  manageLoading: Boolean,
-  showAddAliasModal: Boolean,
-  newAliasCharacter: String,
-  newAliasList: String,
-  addAliasLoading: Boolean,
-  isEditingAlias: Boolean,
-});
-
-const emit = defineEmits([
-  "update:aliasSearchQuery",
-  "update:showAddAliasModal",
-  "update:newAliasCharacter",
-  "update:newAliasList",
-  "openAddAliasModal",
-  "openEditAliasModal",
-  "handleAliasSubmit",
-]);
-
-const handleSearchQueryUpdate = (value) =>
-  emit("update:aliasSearchQuery", value);
-const handleModalVisibleUpdate = (value) =>
-  emit("update:showAddAliasModal", value);
-const handleCharacterUpdate = (value) =>
-  emit("update:newAliasCharacter", value);
-const handleAliasListUpdate = (value) => emit("update:newAliasList", value);
-const handleOpenAdd = () => emit("openAddAliasModal");
-const handleOpenEdit = (data) => emit("openEditAliasModal", data);
-const handleSubmit = () => emit("handleAliasSubmit");
+const gv = useGameViewInject();
 </script>
 
 <template>
@@ -48,15 +18,14 @@ const handleSubmit = () => emit("handleAliasSubmit");
       <div class="flex flex-col gap-4">
         <div class="flex flex-row gap-4">
           <InputText
-            :modelValue="aliasSearchQuery"
-            @update:modelValue="handleSearchQueryUpdate"
+            v-model="gv.aliasSearchQuery.value"
             placeholder="Search aliases..."
             fluid
           />
-          <Button label="Add" @click="handleOpenAdd" :loading="manageLoading" />
+          <Button label="Add" @click="gv.openAddAliasModal" :loading="gv.manageLoading.value" />
         </div>
         <DataTable
-          :value="filteredAliases"
+          :value="gv.filteredAliases.value"
           paginator
           :rows="10"
           tableStyle="min-width: 50rem"
@@ -81,7 +50,7 @@ const handleSubmit = () => emit("handleAliasSubmit");
                 text
                 rounded
                 severity="secondary"
-                @click="handleOpenEdit(slotProps.data)"
+                @click="gv.openEditAliasModal(slotProps.data)"
               />
             </template>
           </Column>
@@ -91,32 +60,30 @@ const handleSubmit = () => emit("handleAliasSubmit");
   </Card>
 
   <Dialog
-    :visible="showAddAliasModal"
-    @update:visible="handleModalVisibleUpdate"
+    :visible="gv.showAddAliasModal.value"
+    @update:visible="(value) => (gv.showAddAliasModal.value = value)"
     modal
-    :header="isEditingAlias ? 'Edit Alias' : 'Add Alias'"
+    :header="gv.isEditingAlias.value ? 'Edit Alias' : 'Add Alias'"
     :style="{ width: '30rem' }"
   >
-    <form @submit.prevent="handleSubmit">
+    <form @submit.prevent="gv.handleAliasSubmit">
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
           <label for="alias-char">Character Name</label>
           <InputText
             id="alias-char"
-            :modelValue="newAliasCharacter"
-            @update:modelValue="handleCharacterUpdate"
+            v-model="gv.newAliasCharacter.value"
             required
             placeholder="e.g. Nahida"
             fluid
-            :disabled="isEditingAlias"
+            :disabled="gv.isEditingAlias.value"
           />
         </div>
         <div class="flex flex-col gap-2">
           <label for="alias-list">Aliases (comma-separated)</label>
           <InputText
             id="alias-list"
-            :modelValue="newAliasList"
-            @update:modelValue="handleAliasListUpdate"
+            v-model="gv.newAliasList.value"
             required
             placeholder="e.g. Radish, Dendro Archon"
             fluid
@@ -127,13 +94,13 @@ const handleSubmit = () => emit("handleAliasSubmit");
             type="button"
             label="Cancel"
             severity="secondary"
-            @click="handleModalVisibleUpdate(false)"
+            @click="gv.showAddAliasModal.value = false"
           />
           <Button
             type="submit"
-            :label="isEditingAlias ? 'Update' : 'Add'"
-            :loading="addAliasLoading"
-            :disabled="!newAliasCharacter || !newAliasList"
+            :label="gv.isEditingAlias.value ? 'Update' : 'Add'"
+            :loading="gv.addAliasLoading.value"
+            :disabled="!gv.newAliasCharacter.value || !gv.newAliasList.value"
           />
         </div>
       </div>

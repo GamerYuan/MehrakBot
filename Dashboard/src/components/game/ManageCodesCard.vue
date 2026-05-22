@@ -1,34 +1,12 @@
 <script setup>
+import { useGameViewInject } from "../../composables/game/injectKey";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 import Card from "primevue/card";
 
-const props = defineProps({
-  codes: Array,
-  filteredCodes: Array,
-  selectedCodes: Array,
-  newCodesInput: String,
-  codesSearchQuery: String,
-  codesLoading: Boolean,
-});
-
-const emit = defineEmits([
-  "update:selectedCodes",
-  "update:newCodesInput",
-  "update:codesSearchQuery",
-  "confirmAddCodes",
-  "confirmDeleteCodes",
-]);
-
-const handleSelectionUpdate = (value) => emit("update:selectedCodes", value);
-const handleNewCodesInputUpdate = (value) =>
-  emit("update:newCodesInput", value);
-const handleSearchQueryUpdate = (value) =>
-  emit("update:codesSearchQuery", value);
-const handleAdd = () => emit("confirmAddCodes");
-const handleDelete = (codesList) => emit("confirmDeleteCodes", codesList);
+const gv = useGameViewInject();
 </script>
 
 <template>
@@ -38,24 +16,22 @@ const handleDelete = (codesList) => emit("confirmDeleteCodes", codesList);
       <div class="flex flex-col gap-4">
         <div class="flex gap-2">
           <InputText
-            :modelValue="newCodesInput"
-            @update:modelValue="handleNewCodesInputUpdate"
+            v-model="gv.newCodesInput.value"
             placeholder="New Codes (comma-separated)"
             fluid
             class="flex-1"
           />
           <Button
             label="Add"
-            @click="handleAdd"
-            :loading="codesLoading"
-            :disabled="!newCodesInput"
+            @click="gv.confirmAddCodes"
+            :loading="gv.codesLoading.value"
+            :disabled="!gv.newCodesInput.value"
           />
         </div>
 
         <div class="flex justify-between gap-2">
           <InputText
-            :modelValue="codesSearchQuery"
-            @update:modelValue="handleSearchQueryUpdate"
+            v-model="gv.codesSearchQuery.value"
             placeholder="Search codes..."
             fluid
             class="flex-1"
@@ -63,16 +39,15 @@ const handleDelete = (codesList) => emit("confirmDeleteCodes", codesList);
           <Button
             label="Delete Selected"
             severity="danger"
-            @click="handleDelete(selectedCodes.map((c) => c.code))"
-            :disabled="!selectedCodes.length"
-            :loading="codesLoading"
+            @click="gv.confirmDeleteCodes(gv.selectedCodes.value.map((c) => c.code))"
+            :disabled="!gv.selectedCodes.value.length"
+            :loading="gv.codesLoading.value"
           />
         </div>
 
         <DataTable
-          :value="filteredCodes"
-          :selection="selectedCodes"
-          @update:selection="handleSelectionUpdate"
+          :value="gv.filteredCodes.value"
+          v-model:selection="gv.selectedCodes.value"
           dataKey="code"
           paginator
           :rows="10"
@@ -87,8 +62,8 @@ const handleDelete = (codesList) => emit("confirmDeleteCodes", codesList);
                 severity="danger"
                 text
                 rounded
-                @click="handleDelete([slotProps.data.code])"
-                :loading="codesLoading"
+                @click="gv.confirmDeleteCodes([slotProps.data.code])"
+                :loading="gv.codesLoading.value"
               />
             </template>
           </Column>

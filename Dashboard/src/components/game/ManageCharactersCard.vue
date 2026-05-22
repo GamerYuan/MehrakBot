@@ -1,50 +1,20 @@
 <script setup>
 import { computed } from "vue";
+import { useGameViewInject } from "../../composables/game/injectKey";
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Message from "primevue/message";
 import Checkbox from "primevue/checkbox";
 
-const props = defineProps({
-  characters: Array,
-  filteredCharacters: Array,
-  manageCharacterItems: Array,
-  newCharacterName: String,
-  manageSearchQuery: String,
-  showOnlyMissingAscension: Boolean,
-  manageLoading: Boolean,
-  manageError: String,
-  hasStatEdit: Boolean,
-});
-
-const emit = defineEmits([
-  "update:newCharacterName",
-  "update:manageSearchQuery",
-  "update:showOnlyMissingAscension",
-  "addCharacter",
-  "deleteCharacter",
-  "editStat",
-  "editPortrait",
-]);
-
-const handleNewCharacterNameUpdate = (value) =>
-  emit("update:newCharacterName", value);
-const handleSearchQueryUpdate = (value) =>
-  emit("update:manageSearchQuery", value);
-const handleShowOnlyMissingAscensionUpdate = (value) =>
-  emit("update:showOnlyMissingAscension", value);
-const handleAdd = () => emit("addCharacter");
-const handleDelete = (name) => emit("deleteCharacter", name);
-const handleEditStat = (name) => emit("editStat", name);
-const handleEditPortrait = (name) => emit("editPortrait", name);
+const gv = useGameViewInject();
 
 const listItems = computed(() => {
-  if (props.hasStatEdit && Array.isArray(props.manageCharacterItems)) {
-    return props.manageCharacterItems;
+  if (gv.config.hasStatEdit && Array.isArray(gv.manageCharacterItems.value)) {
+    return gv.manageCharacterItems.value;
   }
 
-  return (props.filteredCharacters || []).map((name) => ({
+  return (gv.filteredManageCharacters.value || []).map((name) => ({
     name,
     baseVal: 0,
     maxAscVal: 0,
@@ -64,27 +34,24 @@ const formatStat = (value) => {
       <div class="flex flex-col gap-4">
         <div class="flex gap-2">
           <InputText
-            :modelValue="newCharacterName"
-            @update:modelValue="handleNewCharacterNameUpdate"
+            v-model="gv.newCharacterName.value"
             placeholder="New Character Name"
             fluid
             class="flex-1"
           />
-          <Button label="Add" @click="handleAdd" :loading="manageLoading" />
+          <Button label="Add" @click="gv.addCharacter" :loading="gv.manageLoading.value" />
         </div>
-        <Message v-if="manageError" severity="error">{{ manageError }}</Message>
+        <Message v-if="gv.manageError.value" severity="error">{{ gv.manageError.value }}</Message>
         <div class="flex flex-col gap-2">
           <InputText
-            :modelValue="manageSearchQuery"
-            @update:modelValue="handleSearchQueryUpdate"
+            v-model="gv.manageSearchQuery.value"
             placeholder="Search characters..."
             fluid
           />
         </div>
-        <div v-if="hasStatEdit" class="flex items-center align-middle gap-2">
+        <div v-if="gv.config.hasStatEdit" class="flex items-center align-middle gap-2">
           <Checkbox
-            :modelValue="showOnlyMissingAscension"
-            @update:modelValue="handleShowOnlyMissingAscensionUpdate"
+            v-model="gv.showOnlyMissingAscension.value"
             binary
             inputId="missing-ascension-filter"
           />
@@ -103,19 +70,19 @@ const formatStat = (value) => {
           >
             <div class="flex flex-col gap-1 text-left">
               <span>{{ item.name }}</span>
-              <div v-if="hasStatEdit" class="flex gap-2 text-xs text-gray-500">
+              <div v-if="gv.config.hasStatEdit" class="flex gap-2 text-xs text-gray-500">
                 <span>Base: {{ formatStat(item.baseVal) }}</span>
                 <span>Max Asc: {{ formatStat(item.maxAscVal) }}</span>
               </div>
             </div>
             <div class="flex gap-2">
               <Button
-                v-if="hasStatEdit"
+                v-if="gv.config.hasStatEdit"
                 icon="pi pi-pencil"
                 severity="info"
                 text
-                @click="handleEditStat(item.name)"
-                :loading="manageLoading"
+                @click="gv.openEditStatModal(item.name)"
+                :loading="gv.manageLoading.value"
               />
               <Button
                 icon="pi pi-image"
@@ -123,15 +90,15 @@ const formatStat = (value) => {
                 text
                 aria-label="Edit portrait configuration"
                 title="Edit portrait configuration"
-                @click="handleEditPortrait(item.name)"
-                :loading="manageLoading"
+                @click="gv.openPortraitConfigModal(item.name)"
+                :loading="gv.manageLoading.value"
               />
               <Button
                 icon="pi pi-trash"
                 severity="danger"
                 text
-                @click="handleDelete(item.name)"
-                :loading="manageLoading"
+                @click="gv.deleteCharacter(item.name)"
+                :loading="gv.manageLoading.value"
               />
             </div>
           </div>

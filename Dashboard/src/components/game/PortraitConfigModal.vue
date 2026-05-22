@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed, onUnmounted } from "vue";
+import { useGameViewInject } from "../../composables/game/injectKey";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import Checkbox from "primevue/checkbox";
@@ -7,36 +8,7 @@ import Select from "primevue/select";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 
-const props = defineProps({
-  visible: Boolean,
-  characterName: String,
-  gameId: String,
-  serverIds: Array,
-  selectedServerId: [Number, null],
-  loading: Boolean,
-  fetching: Boolean,
-  offsetX: [Number, null],
-  offsetY: [Number, null],
-  targetScale: [Number, null],
-  enableGradientFade: [Boolean, null],
-  gradientFadeStart: [Number, null],
-  anchorX: { type: Number, default: 0.5 },
-  anchorY: { type: Number, default: 0.5 },
-  portraitAlignX: { type: Number, default: 0 },
-  portraitAlignY: { type: Number, default: 0 },
-});
-
-const emit = defineEmits([
-  "update:visible",
-  "update:selectedServerId",
-  "update:offsetX",
-  "update:offsetY",
-  "update:targetScale",
-  "update:enableGradientFade",
-  "update:gradientFadeStart",
-  "submit",
-]);
-
+const gv = useGameViewInject();
 const toast = useToast();
 
 const canvasRef = ref(null);
@@ -62,15 +34,6 @@ const cleanupPortrait = () => {
   portraitLoaded.value = false;
 };
 
-const handleVisibleUpdate = (value) => emit("update:visible", value);
-const handleServerIdUpdate = (value) => emit("update:selectedServerId", value);
-const handleOffsetXUpdate = (value) => emit("update:offsetX", value);
-const handleOffsetYUpdate = (value) => emit("update:offsetY", value);
-const handleTargetScaleUpdate = (value) => emit("update:targetScale", value);
-const handleEnableFadeUpdate = (value) => emit("update:enableGradientFade", value);
-const handleFadeStartUpdate = (value) => emit("update:gradientFadeStart", value);
-const handleSubmit = () => emit("submit");
-
 const bgFileByGameId = {
   Genshin: "genshin_portrait_bg.webp",
   HonkaiImpact3: "hi3_portrait_bg.webp",
@@ -79,12 +42,12 @@ const bgFileByGameId = {
 };
 
 const bgUrl = computed(() => {
-  const file = bgFileByGameId[props.gameId];
+  const file = bgFileByGameId[gv.config.id];
   return file ? `/${file}` : "";
 });
 
 const serverIdOptions = computed(() =>
-  (props.serverIds || []).map((id) => ({ label: `ID: ${id}`, value: id })),
+  (gv.portraitConfigServerIds.value || []).map((id) => ({ label: `ID: ${id}`, value: id })),
 );
 
 const backgroundImage = ref(null);
@@ -100,7 +63,7 @@ const loadBackground = () => {
 };
 
 const loadPortrait = async () => {
-  if (!props.gameId || !props.selectedServerId) return;
+  if (!gv.config.id || !gv.portraitConfigServerId.value) return;
   portraitLoading.value = true;
   portraitError.value = false;
   portraitLoaded.value = false;
@@ -108,7 +71,7 @@ const loadPortrait = async () => {
   try {
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
     const response = await fetch(
-      `${backendUrl}/portraits/image?game=${encodeURIComponent(props.gameId)}&serverId=${props.selectedServerId}`,
+      `${backendUrl}/portraits/image?game=${encodeURIComponent(gv.config.id)}&serverId=${gv.portraitConfigServerId.value}`,
       { credentials: "include" },
     );
 
@@ -117,7 +80,7 @@ const loadPortrait = async () => {
       toast.add({
         severity: "error",
         summary: "Image Not Found",
-        detail: `Portrait image for ${props.characterName} (ID: ${props.selectedServerId}) not found, please generate an image with this character in the Characters tab and try again`,
+        detail: `Portrait image for ${gv.portraitConfigCharacter.value} (ID: ${gv.portraitConfigServerId.value}) not found, please generate an image with this character in the Characters tab and try again`,
         life: 5000,
       });
       return;
@@ -159,21 +122,21 @@ const renderPreview = () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bg, 0, 0);
 
-  const scale = props.targetScale ?? 1;
+  const scale = gv.portraitConfigTargetScale.value ?? 1;
   const portraitW = Math.round(portrait.naturalWidth * scale);
   const portraitH = Math.round(portrait.naturalHeight * scale);
 
-  const alignX = props.portraitAlignX ?? 0;
-  const alignY = props.portraitAlignY ?? 0;
-  const anchorX = props.anchorX ?? 0.5;
-  const anchorY = props.anchorY ?? 0.5;
-  const offsetX = props.offsetX ?? 0;
-  const offsetY = props.offsetY ?? 0;
+  const alignX = gv.config.portraitAlignX ?? 0;
+  const alignY = gv.config.portraitAlignY ?? 0;
+  const anchorX = gv.config.portraitAnchorX ?? 0.5;
+  const anchorY = gv.config.portraitAnchorY ?? 0.5;
+  const offsetX = gv.portraitConfigOffsetX.value ?? 0;
+  const offsetY = gv.portraitConfigOffsetY.value ?? 0;
 
   const x = alignX - portraitW * anchorX + offsetX;
   const y = alignY - portraitH * anchorY + offsetY;
 
-  if (props.enableGradientFade) {
+  if (gv.portraitConfigEnableFade.value) {
     const fadeCanvas = document.createElement("canvas");
     fadeCanvas.width = portraitW;
     fadeCanvas.height = portraitH;
@@ -182,7 +145,7 @@ const renderPreview = () => {
 
     const imageData = fadeCtx.getImageData(0, 0, portraitW, portraitH);
     const data = imageData.data;
-    const fadeStartX = Math.floor(portraitW * (props.gradientFadeStart ?? 0.75));
+    const fadeStartX = Math.floor(portraitW * (gv.portraitConfigFadeStart.value ?? 0.75));
 
     for (let px = fadeStartX; px < portraitW; px++) {
       const alpha = 1 - (px - fadeStartX) / (portraitW - fadeStartX);
@@ -206,14 +169,14 @@ const scheduleRender = () => {
 };
 
 watch(
-  () => [props.offsetX, props.offsetY, props.targetScale, props.enableGradientFade, props.gradientFadeStart],
+  () => [gv.portraitConfigOffsetX.value, gv.portraitConfigOffsetY.value, gv.portraitConfigTargetScale.value, gv.portraitConfigEnableFade.value, gv.portraitConfigFadeStart.value],
   scheduleRender,
 );
 
 watch(
-  () => props.selectedServerId,
+  () => gv.portraitConfigServerId.value,
   () => {
-    if (props.selectedServerId != null) {
+    if (gv.portraitConfigServerId.value != null) {
       cleanupPortrait();
       loadPortrait();
     }
@@ -221,14 +184,14 @@ watch(
 );
 
 watch(
-  () => props.visible,
+  () => gv.showPortraitConfigModal.value,
   (visible) => {
     if (visible) {
       cleanupPortrait();
       bgLoaded.value = false;
       backgroundImage.value = null;
       loadBackground();
-      if (props.selectedServerId != null) {
+      if (gv.portraitConfigServerId.value != null) {
         loadPortrait();
       }
     }
@@ -243,40 +206,39 @@ onUnmounted(() => {
 
 <template>
   <Dialog
-    :visible="visible"
-    @update:visible="handleVisibleUpdate"
+    :visible="gv.showPortraitConfigModal.value"
+    @update:visible="(value) => (gv.showPortraitConfigModal.value = value)"
     modal
     header="Edit Portrait Config"
     :style="{ width: '70rem' }"
   >
     <div class="relative">
       <div
-        v-if="fetching || portraitLoading"
+        v-if="gv.portraitConfigFetching.value || portraitLoading"
         class="absolute inset-0 z-10 flex items-center justify-center rounded bg-black/20"
       >
         <i class="pi pi-spin pi-spinner text-xl"></i>
       </div>
-      <form @submit.prevent="handleSubmit">
+      <form @submit.prevent="gv.handlePortraitConfigSubmit()">
         <div class="flex gap-6">
           <div class="flex flex-col gap-3 w-64 shrink-0">
             <div class="flex flex-col gap-2">
               <label for="portrait-char">Character</label>
               <input
                 id="portrait-char"
-                :value="characterName"
+                :value="gv.portraitConfigCharacter.value"
                 disabled
                 class="w-full rounded border bg-gray-100 dark:bg-gray-700 px-3 py-2 text-sm"
               />
             </div>
             <div
-              v-if="serverIds && serverIds.length > 1"
+              v-if="gv.portraitConfigServerIds.value && gv.portraitConfigServerIds.value.length > 1"
               class="flex flex-col gap-2"
             >
               <label for="portrait-server-id">Portrait (Server ID)</label>
               <Select
                 id="portrait-server-id"
-                :modelValue="selectedServerId"
-                @update:modelValue="handleServerIdUpdate"
+                v-model="gv.portraitConfigServerId.value"
                 :options="serverIdOptions"
                 optionLabel="label"
                 optionValue="value"
@@ -288,8 +250,7 @@ onUnmounted(() => {
               <label for="portrait-offset-x">Offset X (px)</label>
               <InputNumber
                 id="portrait-offset-x"
-                :modelValue="offsetX ?? 0"
-                @update:modelValue="handleOffsetXUpdate"
+                v-model="gv.portraitConfigOffsetX.value"
                 :minFractionDigits="0"
                 fluid
               />
@@ -298,8 +259,7 @@ onUnmounted(() => {
               <label for="portrait-offset-y">Offset Y (px)</label>
               <InputNumber
                 id="portrait-offset-y"
-                :modelValue="offsetY ?? 0"
-                @update:modelValue="handleOffsetYUpdate"
+                v-model="gv.portraitConfigOffsetY.value"
                 :minFractionDigits="0"
                 fluid
               />
@@ -308,8 +268,7 @@ onUnmounted(() => {
               <label for="portrait-scale">Target Scale</label>
               <InputNumber
                 id="portrait-scale"
-                :modelValue="targetScale"
-                @update:modelValue="handleTargetScaleUpdate"
+                v-model="gv.portraitConfigTargetScale.value"
                 :minFractionDigits="2"
                 :maxFractionDigits="4"
                 placeholder="e.g. 1.0"
@@ -318,8 +277,7 @@ onUnmounted(() => {
             </div>
             <div class="flex items-center gap-2">
               <Checkbox
-                :modelValue="enableGradientFade ?? false"
-                @update:modelValue="handleEnableFadeUpdate"
+                v-model="gv.portraitConfigEnableFade.value"
                 binary
                 inputId="portrait-fade"
               />
@@ -329,8 +287,7 @@ onUnmounted(() => {
               <label for="portrait-fade-start">Gradient Fade Start</label>
               <InputNumber
                 id="portrait-fade-start"
-                :modelValue="gradientFadeStart ?? 0.75"
-                @update:modelValue="handleFadeStartUpdate"
+                v-model="gv.portraitConfigFadeStart.value"
                 :minFractionDigits="2"
                 :maxFractionDigits="2"
                 :min="0"
@@ -343,12 +300,12 @@ onUnmounted(() => {
                 type="button"
                 label="Cancel"
                 severity="secondary"
-                @click="handleVisibleUpdate(false)"
+                @click="gv.showPortraitConfigModal.value = false"
               />
               <Button
                 type="submit"
                 label="Save"
-                :loading="loading"
+                :loading="gv.portraitConfigSaving.value"
                 :disabled="portraitError"
               />
             </div>
