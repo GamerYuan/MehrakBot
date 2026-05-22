@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed, onUnmounted } from "vue";
 import { useGameViewInject } from "../../composables/game/injectKey";
+import { useApi } from "../../composables/useApi";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import Checkbox from "primevue/checkbox";
@@ -9,6 +10,7 @@ import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 
 const gv = useGameViewInject();
+const { apiFetch } = useApi();
 const toast = useToast();
 
 const canvasRef = ref(null);
@@ -69,10 +71,8 @@ const loadPortrait = async () => {
   portraitLoaded.value = false;
 
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(
-      `${backendUrl}/portraits/image?game=${encodeURIComponent(gv.config.id)}&serverId=${gv.portraitConfigServerId}`,
-      { credentials: "include" },
+    const response = await apiFetch(
+      `/portraits/image?game=${encodeURIComponent(gv.config.id)}&serverId=${gv.portraitConfigServerId}`,
     );
 
     if (response.status === 404) {
@@ -100,7 +100,8 @@ const loadPortrait = async () => {
       renderPreview();
     };
     portraitImage.value.src = portraitBlobUrl.value;
-  } catch {
+  } catch (err) {
+    if (err._redirected) return;
     portraitError.value = true;
   } finally {
     portraitLoading.value = false;

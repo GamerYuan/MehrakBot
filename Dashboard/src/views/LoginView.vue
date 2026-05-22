@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useApi } from "../composables/useApi";
 import { useToast } from "primevue/usetoast";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
@@ -10,6 +11,7 @@ import Message from "primevue/message";
 
 const router = useRouter();
 const route = useRoute();
+const { apiFetch } = useApi();
 const toast = useToast();
 
 const username = ref("");
@@ -41,20 +43,10 @@ const handleLogin = async () => {
   error.value = "";
 
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-
-    if (!backendUrl) {
-      throw new Error(
-        "Backend URL not configured. Please set VITE_APP_BACKEND_URL in .env",
-      );
-    }
-
-    const response = await fetch(`${backendUrl}/auth/login`, {
+    const response = await apiFetch("/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      skipAuthRedirect: true,
       body: JSON.stringify({
         username: username.value,
         password: password.value,
@@ -72,13 +64,10 @@ const handleLogin = async () => {
       return;
     }
 
-    // Save user info
     localStorage.setItem("mehrak_user", JSON.stringify(data));
-
-    // Redirect to dashboard
     router.push("/dashboard");
   } catch (err) {
-    console.error(err);
+    if (err._redirected) return;
     error.value = err.message || "An error occurred";
   } finally {
     loading.value = false;
