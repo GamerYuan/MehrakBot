@@ -1264,7 +1264,7 @@ public class GenshinCharacterApplicationServiceTests
             .ReturnsAsync(new MemoryStream());
 
         portraitConfigMock
-            .Setup(x => x.GetConfigAsync(Game.Genshin, It.IsAny<string>()))
+            .Setup(x => x.GetConfigAsync(Game.Genshin, It.IsAny<int>()))
             .ReturnsAsync((CharacterPortraitConfig?)null);
 
         characterStatMock
@@ -1277,7 +1277,7 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
 
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.Genshin, "Traveler"), Times.Once);
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.Genshin, charList.First(x => x.Name == "Traveler").Id!.Value), Times.Once);
     }
 
     [Test]
@@ -1310,7 +1310,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 10, OffsetY = 20 };
         portraitConfigMock
-            .Setup(x => x.GetConfigAsync(Game.Genshin, It.IsAny<string>()))
+            .Setup(x => x.GetConfigAsync(Game.Genshin, It.IsAny<int>()))
             .ReturnsAsync(portraitConfig);
 
         characterStatMock

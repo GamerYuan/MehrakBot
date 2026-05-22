@@ -569,7 +569,7 @@ public class ZzzCharacterApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
             .ReturnsAsync(cardStream);
 
-        portraitConfigMock.Setup(x => x.GetConfigAsync(It.IsAny<Game>(), It.IsAny<string>()))
+        portraitConfigMock.Setup(x => x.GetConfigAsync(It.IsAny<Game>(), It.IsAny<int>()))
             .ReturnsAsync((CharacterPortraitConfig?)null);
 
         var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
@@ -578,7 +578,7 @@ public class ZzzCharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, "Jane"), Times.Once);
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, charList.First(x => x.Name == "Jane").Id), Times.Once);
     }
 
     [Test]
@@ -606,7 +606,7 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 5, OffsetY = 10 };
-        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, "Jane"))
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, charList.First(x => x.Name == "Jane").Id))
             .ReturnsAsync(portraitConfig);
 
         ICardGenerationContext<ZzzFullAvatarData>? capturedContext = null;
