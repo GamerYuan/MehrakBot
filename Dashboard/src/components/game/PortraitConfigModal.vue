@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onUnmounted } from "vue";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import Checkbox from "primevue/checkbox";
@@ -41,20 +41,34 @@ const toast = useToast();
 
 const canvasRef = ref(null);
 const portraitImage = ref(null);
+const portraitBlobUrl = ref(null);
 const portraitError = ref(false);
 const portraitLoading = ref(false);
 const bgLoaded = ref(false);
 const portraitLoaded = ref(false);
+let renderTimeout;
+
+const revokePortraitBlob = () => {
+  if (portraitBlobUrl.value) {
+    URL.revokeObjectURL(portraitBlobUrl.value);
+    portraitBlobUrl.value = null;
+  }
+};
+
+const cleanupPortrait = () => {
+  revokePortraitBlob();
+  portraitImage.value = null;
+  portraitError.value = false;
+  portraitLoaded.value = false;
+};
 
 const handleVisibleUpdate = (value) => emit("update:visible", value);
 const handleServerIdUpdate = (value) => emit("update:selectedServerId", value);
 const handleOffsetXUpdate = (value) => emit("update:offsetX", value);
 const handleOffsetYUpdate = (value) => emit("update:offsetY", value);
 const handleTargetScaleUpdate = (value) => emit("update:targetScale", value);
-const handleEnableFadeUpdate = (value) =>
-  emit("update:enableGradientFade", value);
-const handleFadeStartUpdate = (value) =>
-  emit("update:gradientFadeStart", value);
+const handleEnableFadeUpdate = (value) => emit("update:enableGradientFade", value);
+const handleFadeStartUpdate = (value) => emit("update:gradientFadeStart", value);
 const handleSubmit = () => emit("submit");
 
 const bgFileByGameId = {
@@ -114,13 +128,15 @@ const loadPortrait = async () => {
       return;
     }
 
+    revokePortraitBlob();
     const blob = await response.blob();
+    portraitBlobUrl.value = URL.createObjectURL(blob);
     portraitImage.value = new Image();
     portraitImage.value.onload = () => {
       portraitLoaded.value = true;
       renderPreview();
     };
-    portraitImage.value.src = URL.createObjectURL(blob);
+    portraitImage.value.src = portraitBlobUrl.value;
   } catch {
     portraitError.value = true;
   } finally {
@@ -141,7 +157,6 @@ const renderPreview = () => {
   const ctx = canvas.getContext("2d");
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   ctx.drawImage(bg, 0, 0);
 
   const scale = props.targetScale ?? 1;
@@ -167,9 +182,7 @@ const renderPreview = () => {
 
     const imageData = fadeCtx.getImageData(0, 0, portraitW, portraitH);
     const data = imageData.data;
-    const fadeStartX = Math.floor(
-      portraitW * (props.gradientFadeStart ?? 0.75),
-    );
+    const fadeStartX = Math.floor(portraitW * (props.gradientFadeStart ?? 0.75));
 
     for (let px = fadeStartX; px < portraitW; px++) {
       const alpha = 1 - (px - fadeStartX) / (portraitW - fadeStartX);
@@ -187,20 +200,13 @@ const renderPreview = () => {
   }
 };
 
-let renderTimeout;
 const scheduleRender = () => {
   clearTimeout(renderTimeout);
   renderTimeout = setTimeout(renderPreview, 50);
 };
 
 watch(
-  () => [
-    props.offsetX,
-    props.offsetY,
-    props.targetScale,
-    props.enableGradientFade,
-    props.gradientFadeStart,
-  ],
+  () => [props.offsetX, props.offsetY, props.targetScale, props.enableGradientFade, props.gradientFadeStart],
   scheduleRender,
 );
 
@@ -208,9 +214,7 @@ watch(
   () => props.selectedServerId,
   () => {
     if (props.selectedServerId != null) {
-      portraitImage.value = null;
-      portraitError.value = false;
-      portraitLoaded.value = false;
+      cleanupPortrait();
       loadPortrait();
     }
   },
@@ -220,9 +224,7 @@ watch(
   () => props.visible,
   (visible) => {
     if (visible) {
-      portraitImage.value = null;
-      portraitError.value = false;
-      portraitLoaded.value = false;
+      cleanupPortrait();
       bgLoaded.value = false;
       backgroundImage.value = null;
       loadBackground();
@@ -232,6 +234,11 @@ watch(
     }
   },
 );
+
+onUnmounted(() => {
+  clearTimeout(renderTimeout);
+  revokePortraitBlob();
+});
 </script>
 
 <template>
