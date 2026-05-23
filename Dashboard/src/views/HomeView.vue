@@ -4,7 +4,6 @@ import Button from "primevue/button";
 import AppNavbar from "../components/AppNavbar.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ShowcaseSection from "../components/ShowcaseSection.vue";
-import CommandCarousel from "../components/CommandCarousel.vue";
 import HeroShowcase from "../components/HeroShowcase.vue";
 
 const router = useRouter();
