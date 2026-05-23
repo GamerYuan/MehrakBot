@@ -3,44 +3,57 @@ import { useRouter } from "vue-router";
 import Button from "primevue/button";
 import AppNavbar from "../components/AppNavbar.vue";
 import AppFooter from "../components/AppFooter.vue";
+import ShowcaseSection from "../components/ShowcaseSection.vue";
 
 const router = useRouter();
 
-const features = [
+const showcases = [
   {
-    title: "Common Utilities",
-    icon: "pi-cog",
-    gradient: "gradient-violet",
-    description: "Multi-profile support, HoYoLAB Daily Check In",
-  },
-  {
-    title: "Genshin Impact",
-    iconImg: "/genshin.webp",
-    gradient: "gradient-amber",
+    title: "Character Builds",
     description:
-      "Character build card, Abyss summary card, Code redemption, and more.",
+      "Generate detailed character build cards with artifacts, weapons, talents, and stats across all supported games. Share and compare builds with your community instantly.",
+    images: [
+      "/showcase/builds-1.webp",
+      "/showcase/builds-2.webp",
+      "/showcase/builds-3.webp",
+    ],
+    reversed: false,
   },
   {
-    title: "Honkai: Star Rail",
-    iconImg: "/hsr.webp",
-    gradient: "gradient-blue",
+    title: "Character List Summary",
     description:
-      "Character build card, Memory of Chaos summary card, Code redemption, and more.",
+      "Get a comprehensive overview of your entire roster. View character levels, constellations, and key equipment at a glance for quick account assessment.",
+    images: [
+      "/showcase/list-1.webp",
+      "/showcase/list-2.webp",
+      "/showcase/list-3.webp",
+    ],
+    reversed: true,
   },
   {
-    title: "Zenless Zone Zero",
-    iconImg: "/zzz.webp",
-    gradient: "gradient-pink",
+    title: "Endgame",
     description:
-      "Character build card, Shiyu Defense summary card, Code redemption, and more.",
+      "Track your Spiral Abyss, Memory of Chaos, and Shiyu Defense progress. Analyze floor clears, star counts, and team compositions to optimize your runs.",
+    images: [
+      "/showcase/endgame-1.webp",
+      "/showcase/endgame-2.webp",
+      "/showcase/endgame-3.webp",
+    ],
+    reversed: false,
   },
   {
-    title: "Honkai Impact 3rd",
-    iconImg: "/hi3.webp",
-    gradient: "gradient-emerald",
-    description: "Character build card, and more coming soon.",
+    title: "Other Utilities",
+    description:
+      "From daily check-in automation to code redemption and resin tracking, streamline your HoYoverse routine with powerful utility commands.",
+    images: [
+      "/showcase/util-1.webp",
+      "/showcase/util-2.webp",
+      "/showcase/util-3.webp",
+    ],
+    reversed: true,
   },
 ];
+
 </script>
 
 <template>
