@@ -20,7 +20,7 @@ const router = useRouter();
         <a href="#" @click.prevent="router.push('/docs')">Documentation</a>
         <a href="#" @click.prevent="router.push('/privacy')">Privacy Policy</a>
         <a
-          href="https://discord.gg/VUHv2kmx9Z"
+          href="https://discord.gg/3GYvRD4u9a"
           target="_blank"
           rel="noopener noreferrer"
         >

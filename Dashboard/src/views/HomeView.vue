@@ -4,8 +4,16 @@ import Button from "primevue/button";
 import AppNavbar from "../components/AppNavbar.vue";
 import AppFooter from "../components/AppFooter.vue";
 import ShowcaseSection from "../components/ShowcaseSection.vue";
+import CommandCarousel from "../components/CommandCarousel.vue";
+import HeroShowcase from "../components/HeroShowcase.vue";
 
 const router = useRouter();
+
+const heroImages = [
+  "/showcase/builds-1.webp",
+  "/showcase/endgame-3.webp",
+  "/showcase/endgame-2.webp",
+];
 
 const showcases = [
   {
@@ -16,44 +24,30 @@ const showcases = [
       "/showcase/builds-1.webp",
       "/showcase/builds-2.webp",
       "/showcase/builds-3.webp",
+      "/showcase/builds-4.webp",
     ],
     reversed: false,
   },
   {
     title: "Character List Summary",
     description:
-      "Get a comprehensive overview of your entire roster. View character levels, constellations, and key equipment at a glance for quick account assessment.",
-    images: [
-      "/showcase/list-1.webp",
-      "/showcase/list-2.webp",
-      "/showcase/list-3.webp",
-    ],
+      "Get a comprehensive overview of your entire roster. View character levels, constellations, and key equipment at a glance.",
+    images: ["/showcase/list-1.webp", "/showcase/list-2.webp"],
     reversed: true,
   },
   {
     title: "Endgame",
     description:
-      "Track your Spiral Abyss, Memory of Chaos, and Shiyu Defense progress. Analyze floor clears, star counts, and team compositions to optimize your runs.",
+      "Track all your Endgame clear records. Analyze floor clears, star counts, and team compositions to optimize your runs.",
     images: [
       "/showcase/endgame-1.webp",
       "/showcase/endgame-2.webp",
       "/showcase/endgame-3.webp",
+      "/showcase/endgame-4.webp",
     ],
     reversed: false,
   },
-  {
-    title: "Other Utilities",
-    description:
-      "From daily check-in automation to code redemption and resin tracking, streamline your HoYoverse routine with powerful utility commands.",
-    images: [
-      "/showcase/util-1.webp",
-      "/showcase/util-2.webp",
-      "/showcase/util-3.webp",
-    ],
-    reversed: true,
-  },
 ];
-
 </script>
 
 <template>
@@ -78,8 +72,8 @@ const showcases = [
 
           <p class="hero-description">
             Seamlessly integrate Genshin Impact, Honkai: Star Rail, and Zenless
-            Zone Zero data directly into your Discord server. Track pity, view
-            builds, and manage resin from one unified terminal.
+            Zone Zero data directly into your Discord server. View builds,
+            endgame clear records, and more.
           </p>
 
           <div class="game-tags">
@@ -96,6 +90,11 @@ const showcases = [
             <span class="tag">
               <img src="/zzz.webp" alt="ZZZ" class="tag-icon" />
               ZZZ
+            </span>
+            <span class="tag-separator">•</span>
+            <span class="tag">
+              <img src="/hi3.webp" alt="HI3" class="tag-icon" />
+              HI3
             </span>
           </div>
 
@@ -123,31 +122,7 @@ const showcases = [
         </div>
 
         <div class="hero-right">
-          <div class="showcase-container">
-            <div class="showcase-card">
-              <img
-                src="/genshin_portrait_bg.webp"
-                alt="Card Preview"
-                class="showcase-img"
-              />
-              <div class="showcase-overlay">
-                <div class="showcase-header">Character Build</div>
-                <div class="showcase-body">
-                  <div class="showcase-row">
-                    <span>Level</span><span>90/90</span>
-                  </div>
-                  <div class="showcase-row">
-                    <span>Const.</span><span>C6</span>
-                  </div>
-                  <div class="showcase-row">
-                    <span>Artifact</span><span>4pc Emblem</span>
-                  </div>
-                </div>
-              </div>
-              <div class="showcase-glow"></div>
-            </div>
-            <div class="showcase-frame"></div>
-          </div>
+          <HeroShowcase :images="heroImages" />
         </div>
       </div>
     </section>
@@ -159,8 +134,6 @@ const showcases = [
           Everything you need for your HoYoverse gaming experience
         </p>
       </div>
-
-
     </section>
 
     <div class="showcases-wrapper">
@@ -265,7 +238,8 @@ const showcases = [
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
   33% {
@@ -390,112 +364,55 @@ const showcases = [
   justify-content: center;
 }
 
-.showcase-container {
-  perspective: 1000px;
-  position: relative;
-  width: 100%;
-  max-width: 420px;
-  aspect-ratio: 3/4;
-}
-
-.showcase-card {
-  width: 100%;
-  height: 100%;
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  transform: rotateY(-14deg) rotateX(6deg) rotateZ(-2deg);
-  transform-style: preserve-3d;
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.6),
-    0 0 40px rgba(var(--accent-rgb), 0.12);
-  border: 1px solid rgba(var(--accent-rgb), 0.25);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.showcase-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.9;
-}
-
-.showcase-overlay {
-  position: absolute;
-  inset: 0;
+/* ── Command Carousel ── */
+.carousel-section {
+  padding: 5rem 0 4rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 1.5rem;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.1) 0%,
-    rgba(0, 0, 0, 0.6) 100%
-  );
+  align-items: center;
+  gap: 2rem;
+  overflow-x: hidden;
 }
 
-.showcase-header {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--accent-soft);
-  background: rgba(var(--accent-rgb), 0.15);
-  border: 1px solid rgba(var(--accent-rgb), 0.3);
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  width: fit-content;
+.carousel-header {
+  text-align: center;
+  padding: 0 1.5rem;
 }
 
-.showcase-body {
+.carousel-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f0f0f5;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.carousel-subtitle {
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.carousel-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  justify-content: center;
 }
 
-.showcase-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  color: #ccc;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.carousel-docs-btn :deep(.p-button) {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+  font-weight: 500;
+  padding: 0.85rem 2rem;
 }
 
-.showcase-row:last-child {
-  border-bottom: none;
-}
-
-.showcase-row span:first-child {
-  color: #888;
-}
-
-.showcase-glow {
-  position: absolute;
-  inset: -2px;
-  border-radius: 18px;
-  background: linear-gradient(
-    135deg,
-    rgba(var(--accent-rgb), 0.3),
-    transparent 50%
-  );
-  z-index: -1;
-  filter: blur(12px);
-  opacity: 0.6;
-}
-
-.showcase-frame {
-  position: absolute;
-  inset: -12px;
-  border: 1px solid rgba(var(--accent-rgb), 0.12);
-  border-radius: 22px;
-  transform: rotateY(-14deg) rotateX(6deg) rotateZ(-2deg) translateZ(-30px);
-  pointer-events: none;
+.carousel-docs-btn :deep(.p-button:hover) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 /* ── Features ── */
 .features-section {
-  padding: 6rem 2.5rem;
+  padding: 6rem 2.5rem 0 2.5rem;
   background: linear-gradient(
     to bottom,
     transparent,

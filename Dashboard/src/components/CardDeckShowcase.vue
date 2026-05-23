@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, onUnmounted, nextTick } from "vue";
 
 const props = defineProps({
   images: { type: Array, required: true },
   interval: { type: Number, default: 3000 },
+  active: { type: Boolean, default: false },
 });
 
 // Ensure at least 3 images for the deck effect
@@ -56,12 +57,20 @@ function stop() {
   }
 }
 
-onMounted(start);
+watch(
+  () => props.active,
+  (val) => {
+    if (val) start();
+    else stop();
+  },
+  { immediate: true },
+);
+
 onUnmounted(stop);
 </script>
 
 <template>
-  <div class="deck" @mouseenter="stop" @mouseleave="start">
+  <div class="deck">
     <div
       v-for="i in 3"
       :key="i"
@@ -81,8 +90,8 @@ onUnmounted(stop);
 .deck {
   position: relative;
   width: 100%;
-  max-width: 440px;
-  aspect-ratio: 4/3;
+  max-width: 640px;
+  aspect-ratio: 3/2;
   margin: 0 auto;
 }
 
@@ -92,7 +101,8 @@ onUnmounted(stop);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
     z-index 0s step-end;
 }
