@@ -56,85 +56,112 @@ const features = [
       </div>
 
       <div class="hero-content">
-        <div class="badge">
-          <span class="badge-dot"></span>
-          Discord Bot
-        </div>
-
-          <h1 class="hero-title text-6xl md:text-8xl font-extrabold tracking-tight text-zinc-100">
-            <span class="title-line">Mehrak<span class="accent">Bot</span></span>
+        <div class="hero-left">
+          <h1 class="hero-title">
+            <span class="title-line">Your Ultimate</span>
+            <span class="title-line accent">HoYoverse</span>
+            <span class="title-line">Companion</span>
           </h1>
 
-        <p class="hero-subtitle">
-          Your All-in-One <span class="highlight">HoYoverse</span> Games Toolbox
-        </p>
+          <p class="hero-description">
+            Seamlessly integrate Genshin Impact, Honkai: Star Rail, and Zenless
+            Zone Zero data directly into your Discord server. Track pity, view
+            builds, and manage resin from one unified terminal.
+          </p>
 
-        <p class="hero-description">
-          Manage your game accounts, generate build cards, redeem codes, and
-          track your progress across all HoYoverse titles.
-        </p>
+          <div class="game-tags">
+            <span class="tag">
+              <img src="/genshin.webp" alt="Genshin" class="tag-icon" />
+              Genshin
+            </span>
+            <span class="tag-separator">•</span>
+            <span class="tag">
+              <img src="/hsr.webp" alt="HSR" class="tag-icon" />
+              HSR
+            </span>
+            <span class="tag-separator">•</span>
+            <span class="tag">
+              <img src="/zzz.webp" alt="ZZZ" class="tag-icon" />
+              ZZZ
+            </span>
+          </div>
 
-        <div class="hero-actions">
-          <Button
-            as="a"
-            label="Add to Discord"
-            icon="pi pi-discord"
-            href="https://discord.com/oauth2/authorize?client_id=1365154828430610532"
-            target="_blank"
-            rel="noopener noreferrer"
-            size="large"
-            class="discord-btn"
-          />
-          <Button
-            label="Read Documentation"
-            icon="pi pi-book"
-            severity="secondary"
-            outlined
-            size="large"
-            @click="router.push('/docs')"
-          />
+          <div class="hero-actions">
+            <Button
+              as="a"
+              label="Add to Discord"
+              icon="pi pi-discord"
+              href="https://discord.com/oauth2/authorize?client_id=1365154828430610532"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="large"
+              class="discord-btn"
+            />
+            <Button
+              label="View Docs"
+              icon="pi pi-book"
+              severity="secondary"
+              outlined
+              size="large"
+              @click="router.push('/docs')"
+              class="docs-btn"
+            />
+          </div>
         </div>
 
-        <div class="hero-stats">
-          <div class="stat">
-            <span class="stat-value">5+</span>
-            <span class="stat-label">Games Supported</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat">
-            <span class="stat-value">Free</span>
-            <span class="stat-label">Open Source</span>
+        <div class="hero-right">
+          <div class="showcase-container">
+            <div class="showcase-card">
+              <img
+                src="/genshin_portrait_bg.webp"
+                alt="Card Preview"
+                class="showcase-img"
+              />
+              <div class="showcase-overlay">
+                <div class="showcase-header">Character Build</div>
+                <div class="showcase-body">
+                  <div class="showcase-row">
+                    <span>Level</span><span>90/90</span>
+                  </div>
+                  <div class="showcase-row">
+                    <span>Const.</span><span>C6</span>
+                  </div>
+                  <div class="showcase-row">
+                    <span>Artifact</span><span>4pc Emblem</span>
+                  </div>
+                </div>
+              </div>
+              <div class="showcase-glow"></div>
+            </div>
+            <div class="showcase-frame"></div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="features-section">
+    <section id="features" class="features-section">
       <div class="section-header">
-        <h2 class="text-5xl font-bold tracking-tight text-zinc-100">Features</h2>
-        <p>Everything you need for your HoYoverse gaming experience</p>
+        <h2 class="section-title">Features</h2>
+        <p class="section-subtitle">
+          Everything you need for your HoYoverse gaming experience
+        </p>
       </div>
 
-      <div class="features-grid">
-        <div
-          v-for="feature in features"
-          :key="feature.title"
-          class="feature-card"
-        >
-          <div :class="['feature-icon', { [feature.gradient]: !feature.iconImg }]">
-            <img v-if="feature.iconImg" :src="feature.iconImg" :alt="feature.title" />
-            <i v-else :class="['pi', feature.icon]"></i>
-          </div>
-          <h3>{{ feature.title }}</h3>
-          <p>{{ feature.description }}</p>
-        </div>
-      </div>
+
     </section>
+
+    <div class="showcases-wrapper">
+      <ShowcaseSection
+        v-for="showcase in showcases"
+        :key="showcase.title"
+        v-bind="showcase"
+      />
+    </div>
 
     <section class="cta-section">
       <div class="cta-content">
-        <h2 class="text-4xl font-bold tracking-tight text-zinc-100">Ready to get started?</h2>
-        <p>Add MehrakBot to your server in seconds</p>
+        <h2 class="cta-title">Ready to get started?</h2>
+        <p class="cta-subtitle">Add MehrakBot to your server in seconds</p>
         <Button
           as="a"
           label="Add to Discord"
@@ -143,6 +170,7 @@ const features = [
           target="_blank"
           rel="noopener noreferrer"
           size="large"
+          class="cta-btn"
         />
       </div>
     </section>
@@ -156,17 +184,18 @@ const features = [
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(to bottom, #0a0a0f, #111118);
+  background: linear-gradient(to bottom, #08080c, #0e0e14);
   overflow-x: hidden;
 }
 
+/* ── Hero ── */
 .hero {
   position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8rem 2rem 4rem;
+  padding: 8rem 2.5rem 4rem;
 }
 
 .hero-bg {
@@ -180,7 +209,7 @@ const features = [
   position: absolute;
   border-radius: 50%;
   filter: blur(100px);
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
 .orb-1 {
@@ -206,10 +235,10 @@ const features = [
   height: 400px;
   background: linear-gradient(135deg, #e91e63, #9c27b0);
   top: 50%;
-  left: 50%;
+  left: 30%;
   transform: translate(-50%, -50%);
   animation: float 15s ease-in-out infinite;
-  opacity: 0.2;
+  opacity: 0.15;
 }
 
 .grid-overlay {
@@ -223,8 +252,7 @@ const features = [
 }
 
 @keyframes float {
-  0%,
-  100% {
+  0%, 100% {
     transform: translate(0, 0) scale(1);
   }
   33% {
@@ -237,45 +265,29 @@ const features = [
 
 .hero-content {
   position: relative;
-  text-align: center;
-  max-width: 800px;
   z-index: 1;
-}
-
-.badge {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 1rem;
-  background: rgba(var(--accent-rgb), 0.16);
-  border: 1px solid rgba(var(--accent-rgb), 0.38);
-  border-radius: 100px;
-  font-size: 0.85rem;
-  color: #dcfce7;
-  margin-bottom: 1.5rem;
+  max-width: 1200px;
+  width: 100%;
 }
 
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
+/* ── Hero Left ── */
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .hero-title {
-  margin: 0 0 1rem;
-  line-height: 1.1;
+  margin: 0;
+  line-height: 1.05;
+  font-size: clamp(2.8rem, 5vw, 4.2rem);
+  font-weight: 800;
+  color: #f0f0f5;
+  letter-spacing: -0.02em;
 }
 
 .title-line {
@@ -283,87 +295,198 @@ const features = [
 }
 
 .accent {
-  background: linear-gradient(135deg, #86efac, var(--accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-subtitle {
-  font-size: clamp(1.2rem, 3vw, 1.8rem);
-  color: #e0e0e0;
-  margin: 0 0 1rem;
-  font-weight: 500;
-}
-
-.highlight {
-  color: #ffc107;
+  color: var(--accent);
 }
 
 .hero-description {
-  font-size: 1.1rem;
-  color: #808080;
-  max-width: 600px;
-  margin: 0 auto 2.5rem;
+  font-size: 1.05rem;
+  color: #888;
+  max-width: 480px;
+  margin: 0;
   line-height: 1.7;
+}
+
+.game-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #a0a0a0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.tag-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.tag-separator {
+  color: #444;
+  font-size: 0.7rem;
 }
 
 .hero-actions {
   display: flex;
-  justify-content: center;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 3rem;
+  margin-top: 0.5rem;
 }
 
-.hero-actions :deep(.p-button) {
+.discord-btn :deep(.p-button) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
   padding: 0.9rem 2rem;
 }
 
-.discord-btn :deep(.p-button-label) {
-  font-weight: 600;
+.discord-btn :deep(.p-button:hover) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
-.hero-stats {
-  display: inline-flex;
+.discord-btn :deep(.p-button-icon) {
+  color: #000;
+}
+
+.docs-btn :deep(.p-button) {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+  font-weight: 500;
+  padding: 0.9rem 2rem;
+}
+
+.docs-btn :deep(.p-button:hover) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Hero Right / Showcase ── */
+.hero-right {
+  display: flex;
   align-items: center;
-  gap: 2rem;
-  padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  justify-content: center;
 }
 
-.stat {
-  text-align: center;
+.showcase-container {
+  perspective: 1000px;
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 3/4;
 }
 
-.stat-value {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #fff;
+.showcase-card {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  transform: rotateY(-14deg) rotateX(6deg) rotateZ(-2deg);
+  transform-style: preserve-3d;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.stat-label {
-  font-size: 0.8rem;
-  color: #666;
+.showcase-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
+}
+
+.showcase-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.5rem;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+.showcase-header {
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  color: var(--accent-soft);
+  background: rgba(var(--accent-rgb), 0.15);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  width: fit-content;
 }
 
-.stat-divider {
-  width: 1px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.1);
+.showcase-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
+.showcase-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #ccc;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.showcase-row:last-child {
+  border-bottom: none;
+}
+
+.showcase-row span:first-child {
+  color: #888;
+}
+
+.showcase-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-rgb), 0.3),
+    transparent 50%
+  );
+  z-index: -1;
+  filter: blur(12px);
+  opacity: 0.6;
+}
+
+.showcase-frame {
+  position: absolute;
+  inset: -12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  border-radius: 22px;
+  transform: rotateY(-14deg) rotateX(6deg) rotateZ(-2deg) translateZ(-30px);
+  pointer-events: none;
+}
+
+/* ── Features ── */
 .features-section {
-  padding: 6rem 2rem;
+  padding: 6rem 2.5rem;
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.015),
     transparent
   );
 }
@@ -373,144 +496,130 @@ const features = [
   margin-bottom: 4rem;
 }
 
-.section-header h2 {
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #f0f0f5;
   margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
 }
 
-.section-header p {
+.section-subtitle {
   color: #666;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   margin: 0;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.feature-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 2rem;
-  transition: all 0.3s ease;
-  text-align: left;
-}
-
-.feature-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-4px);
-}
-
-.feature-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.25rem;
-  font-size: 1.3rem;
-  color: white;
-}
-
-.feature-icon i {
-  color: white;
-}
-
-.feature-icon img {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  object-fit: cover;
-}
-
-.gradient-violet {
-  background: linear-gradient(135deg, #8b5cf6, #9333ea);
-}
-
-.gradient-amber {
-  background: linear-gradient(135deg, #f59e0b, #ea580c);
-}
-
-.gradient-blue {
-  background: linear-gradient(135deg, #3b82f6, #06b6d4);
-}
-
-.gradient-pink {
-  background: linear-gradient(135deg, #ec4899, #e11d48);
-}
-
-.gradient-emerald {
-  background: linear-gradient(135deg, #10b981, #0d9488);
-}
-
-.feature-card h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin: 0 0 0.75rem;
-  color: #fff;
-}
-
-.feature-card p {
-  font-size: 0.95rem;
-  color: #707070;
-  margin: 0;
-  line-height: 1.6;
-}
-
+/* ── CTA ── */
 .cta-section {
-  padding: 6rem 2rem;
+  padding: 6rem 2.5rem;
   text-align: center;
 }
 
 .cta-content {
-  max-width: 500px;
+  max-width: 520px;
   margin: 0 auto;
   padding: 3rem;
   background: linear-gradient(
     135deg,
-    rgba(var(--accent-rgb), 0.12),
-    rgba(var(--accent-rgb), 0.06)
+    rgba(var(--accent-rgb), 0.1),
+    rgba(var(--accent-rgb), 0.03)
   );
-  border: 1px solid rgba(var(--accent-rgb), 0.28);
-  border-radius: 24px;
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  border-radius: 20px;
 }
 
-.cta-content h2 {
+.cta-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #f0f0f5;
   margin: 0 0 0.5rem;
 }
 
-.cta-content p {
+.cta-subtitle {
   color: #888;
   margin: 0 0 2rem;
+  font-size: 1rem;
+}
+
+.cta-btn :deep(.p-button) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+  padding: 0.9rem 2rem;
+}
+
+.cta-btn :deep(.p-button:hover) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.cta-btn :deep(.p-button-icon) {
+  color: #000;
+}
+
+/* ── Showcases ── */
+.showcases-wrapper {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.01) 10%,
+    rgba(255, 255, 255, 0.01) 90%,
+    transparent
+  );
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .hero-content {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    text-align: center;
+  }
+
+  .hero-left {
+    align-items: center;
+  }
+
+  .hero-description {
+    max-width: 540px;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .showcase-container {
+    max-width: 340px;
+  }
 }
 
 @media (max-width: 640px) {
-  .hero-stats {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1.5rem;
-  }
-
-  .stat-divider {
-    width: 60px;
-    height: 1px;
+  .hero {
+    padding: 7rem 1.5rem 3rem;
   }
 
   .hero-actions {
     flex-direction: column;
     align-items: center;
+    width: 100%;
   }
 
-  .hero-actions :deep(.p-button) {
+  .discord-btn :deep(.p-button),
+  .docs-btn :deep(.p-button) {
     width: 100%;
     max-width: 280px;
     justify-content: center;
+  }
+
+  .showcase-container {
+    max-width: 280px;
+  }
+
+  .features-section,
+  .cta-section {
+    padding: 4rem 1.5rem;
   }
 }
 </style>
