@@ -15,7 +15,7 @@ public sealed class ReleaseNotesController : ControllerBase
     private readonly ReleaseNoteDbContext m_DbContext;
     private readonly ICacheService m_CacheService;
     private readonly ILogger<ReleaseNotesController> m_Logger;
-    private static readonly TimeSpan s_CacheDuration = TimeSpan.FromMinutes(60);
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(60);
 
     public ReleaseNotesController(
         ReleaseNoteDbContext dbContext,
@@ -60,7 +60,7 @@ public sealed class ReleaseNotesController : ControllerBase
             .ToListAsync();
 
         var cacheEntry = new CacheEntryBase<List<ReleaseNoteResponse>>(
-            CacheKeys.ReleaseNotes, releases, s_CacheDuration);
+            CacheKeys.ReleaseNotes, releases, CacheDuration);
         await m_CacheService.SetAsync(cacheEntry);
 
         m_Logger.LogDebug("Populated release notes cache");
