@@ -82,17 +82,17 @@ const showcases = [
             </span>
             <span class="tag-separator">•</span>
             <span class="tag">
-              <img src="/hsr.webp" alt="HSR" class="tag-icon" />
+              <img src="/hsr.webp" alt="Honkai: Star Rail" class="tag-icon" />
               HSR
             </span>
             <span class="tag-separator">•</span>
             <span class="tag">
-              <img src="/zzz.webp" alt="ZZZ" class="tag-icon" />
+              <img src="/zzz.webp" alt="Zenless Zone Zero" class="tag-icon" />
               ZZZ
             </span>
             <span class="tag-separator">•</span>
             <span class="tag">
-              <img src="/hi3.webp" alt="HI3" class="tag-icon" />
+              <img src="/hi3.webp" alt="Honkai Impact 3rd" class="tag-icon" />
               HI3
             </span>
           </div>
@@ -361,52 +361,6 @@ const showcases = [
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* ── Command Carousel ── */
-.carousel-section {
-  padding: 5rem 0 4rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-  overflow-x: hidden;
-}
-
-.carousel-header {
-  text-align: center;
-  padding: 0 1.5rem;
-}
-
-.carousel-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #f0f0f5;
-  margin: 0 0 0.5rem;
-  letter-spacing: -0.01em;
-}
-
-.carousel-subtitle {
-  color: #666;
-  font-size: 1rem;
-  margin: 0;
-}
-
-.carousel-actions {
-  display: flex;
-  justify-content: center;
-}
-
-:deep(.p-button.carousel-docs-btn) {
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #e0e0e0;
-  font-weight: 500;
-  padding: 0.85rem 2rem;
-}
-
-:deep(.p-button.carousel-docs-btn:hover) {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.25);
 }
 
 /* ── Features ── */

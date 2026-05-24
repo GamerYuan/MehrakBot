@@ -13,8 +13,10 @@ const deck = computed(() => {
   if (imgs.length >= 3) return imgs;
   if (imgs.length === 0) return [];
   const filled = [];
-  while (filled.length < 3) filled.push(...imgs);
-  return filled.slice(0, Math.max(3, imgs.length));
+  for (let i = 0; i < 3; i++) {
+    filled.push(imgs[i % imgs.length]);
+  }
+  return filled;
 });
 
 const frontIndex = ref(0);

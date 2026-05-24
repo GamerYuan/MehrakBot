@@ -1,6 +1,8 @@
 import { useRouter } from "vue-router";
 import { useToast } from "primevue/usetoast";
 
+const MISSING_BACKEND_URL = "VITE_APP_BACKEND_URL is not defined. Check your environment variables.";
+
 const getStoredUser = () => {
   try {
     return JSON.parse(localStorage.getItem("mehrak_user") || "{}") || {};
@@ -18,6 +20,15 @@ export function useApi() {
       severity: "error",
       summary: "Error",
       detail: `${message} (Code: ${status ?? "N/A"})`,
+      life: 5000,
+    });
+  };
+
+  const showWarnToast = (detail, summary = "Warning") => {
+    toast.add({
+      severity: "warn",
+      summary,
+      detail,
       life: 5000,
     });
   };
@@ -40,6 +51,9 @@ export function useApi() {
   const apiFetch = async (path, options = {}) => {
     const { skipAuthRedirect, ...fetchOptions } = options;
     const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    if (!backendUrl) {
+      throw new Error(MISSING_BACKEND_URL);
+    }
     const response = await fetch(`${backendUrl}${path}`, {
       credentials: "include",
       ...fetchOptions,
@@ -74,6 +88,7 @@ export function useApi() {
   return {
     showErrorToast,
     showSuccessToast,
+    showWarnToast,
     buildError,
     apiFetch,
     apiFetchJson,

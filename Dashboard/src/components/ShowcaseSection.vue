@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import CardDeckShowcase from "./CardDeckShowcase.vue";
 
 const props = defineProps({
@@ -11,19 +11,24 @@ const props = defineProps({
 
 const sectionRef = ref(null);
 const isVisible = ref(false);
+let observer = null;
 
 onMounted(() => {
   if (!sectionRef.value) return;
-  const observer = new IntersectionObserver(
+  observer = new IntersectionObserver(
     ([entry]) => {
       if (entry.isIntersecting) {
         isVisible.value = true;
         observer.disconnect();
       }
     },
-    { threshold: 0.2 }
+    { threshold: 0.2 },
   );
   observer.observe(sectionRef.value);
+});
+
+onUnmounted(() => {
+  if (observer) observer.disconnect();
 });
 </script>
 
@@ -51,7 +56,7 @@ onMounted(() => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 5rem 2.5rem;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 .showcase-section.reversed {

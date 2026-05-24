@@ -44,7 +44,7 @@ export const gameMeta = {
     bgColor: "rgba(200, 162, 200, 0.15)",
     borderColor: "rgba(200, 162, 200, 0.4)",
     permission: "tot",
-    routeKey: "tot",
+    routeKey: null,
   },
   Unsupported: {
     label: "Miscellaneous",

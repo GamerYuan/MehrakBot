@@ -16,9 +16,7 @@ export function useGameView(config) {
   const aliases = useAliasManagement(config, activeTab);
   const portrait = usePortraitConfig(config);
 
-  const codes = config.hasCodesManagement
-    ? useCodesManagement(config, activeTab)
-    : null;
+  const codes = useCodesManagement(config, activeTab);
 
   const user = getStoredUser();
   const canManage =
@@ -54,27 +52,16 @@ export function useGameView(config) {
     }
   });
 
-  const codeRefs = codes
-    ? {
-        codes: codes.codes,
-        selectedCodes: codes.selectedCodes,
-        newCodesInput: codes.newCodesInput,
-        codesSearchQuery: codes.codesSearchQuery,
-        codesLoading: codes.codesLoading,
-        filteredCodes: codes.filteredCodes,
-        confirmAddCodes: codes.confirmAddCodes,
-        confirmDeleteCodes: codes.confirmDeleteCodes,
-      }
-    : {
-        codes: ref([]),
-        selectedCodes: ref([]),
-        newCodesInput: ref(""),
-        codesSearchQuery: ref(""),
-        codesLoading: ref(false),
-        filteredCodes: ref([]),
-        confirmAddCodes: () => {},
-        confirmDeleteCodes: () => {},
-      };
+  const codeRefs = {
+    codes: codes.codes,
+    selectedCodes: codes.selectedCodes,
+    newCodesInput: codes.newCodesInput,
+    codesSearchQuery: codes.codesSearchQuery,
+    codesLoading: codes.codesLoading,
+    filteredCodes: codes.filteredCodes,
+    confirmAddCodes: codes.confirmAddCodes,
+    confirmDeleteCodes: codes.confirmDeleteCodes,
+  };
 
   return {
     config,

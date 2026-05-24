@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useApi } from "../composables/useApi";
 import { usePasswordValidation } from "../composables/usePasswordValidation";
@@ -10,11 +10,7 @@ import Card from "primevue/card";
 const router = useRouter();
 const { apiFetch } = useApi();
 
-const currentPassword = ref("");
-const { newPassword, confirmPassword, passwordsMatch, isPasswordValid, passwordRequirements, isValid: isFormValid } = usePasswordValidation({ requireCurrentPassword: true });
-
-const currentPasswordFilled = computed(() => currentPassword.value.length > 0);
-const isValid = computed(() => currentPasswordFilled.value && isFormValid.value);
+const { newPassword, confirmPassword, currentPassword, passwordsMatch, isPasswordValid, passwordRequirements, isValid } = usePasswordValidation({ requireCurrentPassword: true });
 
 const error = ref("");
 const loading = ref(false);

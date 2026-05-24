@@ -6,6 +6,20 @@ export function useCodesManagement(config, activeTab) {
   const { showErrorToast, showSuccessToast, buildError, apiFetch, apiFetchJson } = useApi();
   const confirm = useConfirm();
 
+  if (!config || !config.hasCodesManagement) {
+    return {
+      codes: ref([]),
+      selectedCodes: ref([]),
+      newCodesInput: ref(""),
+      codesSearchQuery: ref(""),
+      codesLoading: ref(false),
+      filteredCodes: ref([]),
+      fetchCodes: () => {},
+      confirmAddCodes: () => {},
+      confirmDeleteCodes: () => {},
+    };
+  }
+
   const codes = ref([]);
   const selectedCodes = ref([]);
   const newCodesInput = ref("");

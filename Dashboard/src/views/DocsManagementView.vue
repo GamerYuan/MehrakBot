@@ -73,7 +73,6 @@ const openEditModal = async (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
     showErrorToast(
       "You do not have permission to edit this documentation.",
-      "Permission Denied",
     );
     return;
   }
@@ -96,7 +95,6 @@ const confirmDelete = (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
     showErrorToast(
       "You do not have permission to delete this documentation.",
-      "Permission Denied",
     );
     return;
   }

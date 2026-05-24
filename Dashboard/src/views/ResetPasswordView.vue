@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useApi } from "../composables/useApi";
 import { usePasswordValidation } from "../composables/usePasswordValidation";

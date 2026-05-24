@@ -15,7 +15,7 @@ import Select from "primevue/select";
 import Message from "primevue/message";
 
 const confirm = useConfirm();
-const { apiFetch, apiFetchJson, showErrorToast, showSuccessToast } = useApi();
+const { apiFetch, apiFetchJson, showErrorToast, showSuccessToast, showWarnToast } = useApi();
 
 const props = defineProps({
   userInfo: {
@@ -40,7 +40,7 @@ const error = ref("");
 const isRootUser = (user) => !!user?.isRootUser;
 
 const blockRootAction = () => {
-  showSuccessToast("Root user cannot be modified.", "Action not allowed");
+  showWarnToast("Root users cannot be modified.");
 };
 
 const formatPermission = (str) => {
@@ -190,7 +190,7 @@ const handleAddUser = async () => {
     try {
       discordId = BigInt(formData.value.discordUserId).toString();
     } catch {
-      error.value = "Discord ID must be a valid number";
+      showErrorToast("Discord ID must be a valid number");
       return;
     }
 
@@ -234,7 +234,7 @@ const handleUpdateUser = async () => {
     try {
       discordId = BigInt(formData.value.discordUserId).toString();
     } catch {
-      error.value = "Discord ID must be a valid number";
+      showErrorToast("Discord ID must be a valid number");
       return;
     }
 
