@@ -4,7 +4,7 @@ public sealed class ReleaseNoteResponse
 {
     public Guid Id { get; set; }
     public string Version { get; set; } = string.Empty;
-    public string Date { get; set; } = string.Empty;
+    public string? Date { get; set; }
     public int DisplayOrder { get; set; }
     public List<ReleaseNoteSectionResponse> Sections { get; set; } = [];
 }

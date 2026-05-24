@@ -76,7 +76,7 @@ const handleLogout = async () => {
       </router-link>
 
       <router-link
-        v-if="userInfo.isSuperAdmin || userInfo.gameWritePermissions?.length"
+        v-if="userInfo.isSuperAdmin"
         to="/dashboard/release-notes"
         class="nav-item"
         :class="{ active: isActive('/dashboard/release-notes') }"

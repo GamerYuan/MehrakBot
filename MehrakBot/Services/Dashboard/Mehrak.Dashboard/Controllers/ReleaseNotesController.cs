@@ -5,6 +5,7 @@ using Mehrak.Infrastructure.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Mehrak.Dashboard.Controllers;
 
@@ -99,7 +100,7 @@ public sealed class ReleaseNotesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
+    [Authorize(Roles = "superadmin")]
     public async Task<IActionResult> CreateReleaseNote([FromBody] ReleaseVersionRequest request)
     {
         if (!ModelState.IsValid)
@@ -107,16 +108,10 @@ public sealed class ReleaseNotesController : ControllerBase
 
         var trimmedVersion = request.Version.Trim().ReplaceLineEndings("");
 
-        var existing = await m_DbContext.ReleaseVersions
-            .AnyAsync(r => r.Version.ToLower() == trimmedVersion.ToLower());
-
-        if (existing)
-            return Conflict(new { error = "Release version already exists." });
-
         var release = new ReleaseVersionModel
         {
             Version = trimmedVersion,
-            Date = request.Date?.Trim().ReplaceLineEndings("") ?? string.Empty,
+            Date = request.Date?.Trim().ReplaceLineEndings(""),
             DisplayOrder = request.DisplayOrder,
             Sections = [.. request.Sections.Select(s => new ReleaseNoteSection
             {
@@ -124,7 +119,7 @@ public sealed class ReleaseNotesController : ControllerBase
                 Notes = [.. s.Notes.Select(n => new ReleaseNoteEntry
                 {
                     Type = n.Type.Trim().ToLowerInvariant().ReplaceLineEndings(""),
-                    Text = n.Text.Trim().ReplaceLineEndings("")
+                    Text = n.Text.Trim()
                 })]
             })],
             CreatedAt = DateTime.UtcNow,
@@ -132,7 +127,16 @@ public sealed class ReleaseNotesController : ControllerBase
         };
 
         m_DbContext.ReleaseVersions.Add(release);
-        await m_DbContext.SaveChangesAsync();
+
+        try
+        {
+            await m_DbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            m_Logger.LogWarning(ex, "Duplicate release version {Version} detected at save", trimmedVersion);
+            return Conflict(new { error = "Release version already exists." });
+        }
 
         await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
         m_Logger.LogInformation("Created release version {Version} and invalidated cache", release.Version);
@@ -141,7 +145,7 @@ public sealed class ReleaseNotesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize]
+    [Authorize(Roles = "superadmin")]
     public async Task<IActionResult> UpdateReleaseNote(Guid id, [FromBody] ReleaseVersionRequest request)
     {
         if (!ModelState.IsValid)
@@ -154,13 +158,13 @@ public sealed class ReleaseNotesController : ControllerBase
         var trimmedVersion = request.Version.Trim().ReplaceLineEndings("");
 
         var existing = await m_DbContext.ReleaseVersions
-            .AnyAsync(r => r.Id != id && r.Version.ToLower() == trimmedVersion.ToLower());
+            .AnyAsync(r => r.Id != id && r.Version.Equals(trimmedVersion, StringComparison.CurrentCultureIgnoreCase));
 
         if (existing)
             return Conflict(new { error = "Release version already exists." });
 
         release.Version = trimmedVersion;
-        release.Date = request.Date?.Trim().ReplaceLineEndings("") ?? string.Empty;
+        release.Date = request.Date?.Trim().ReplaceLineEndings("");
         release.DisplayOrder = request.DisplayOrder;
         release.Sections = [.. request.Sections.Select(s => new ReleaseNoteSection
         {
@@ -168,7 +172,7 @@ public sealed class ReleaseNotesController : ControllerBase
             Notes = [.. s.Notes.Select(n => new ReleaseNoteEntry
             {
                 Type = n.Type.Trim().ToLowerInvariant().ReplaceLineEndings(""),
-                Text = n.Text.Trim().ReplaceLineEndings("")
+                Text = n.Text.Trim()
             })]
         })];
         release.UpdatedAt = DateTime.UtcNow;
@@ -182,7 +186,7 @@ public sealed class ReleaseNotesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize]
+    [Authorize(Roles = "superadmin")]
     public async Task<IActionResult> DeleteReleaseNote(Guid id)
     {
         var release = await m_DbContext.ReleaseVersions.FindAsync(id);

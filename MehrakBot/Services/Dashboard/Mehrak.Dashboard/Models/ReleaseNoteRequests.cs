@@ -9,7 +9,7 @@ public sealed class ReleaseVersionRequest
     public string Version { get; set; } = string.Empty;
 
     [MaxLength(50)]
-    public string Date { get; set; } = string.Empty;
+    public string? Date { get; set; }
 
     public int DisplayOrder { get; set; }
 

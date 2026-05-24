@@ -32,7 +32,6 @@ namespace Mehrak.Infrastructure.Migrations.ReleaseNoteDb
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Date")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 

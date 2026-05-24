@@ -26,16 +26,21 @@ const sortedReleases = computed(() => {
     ...release,
     sections: release.sections.map((section) => ({
       ...section,
-      notes: [...section.notes].sort((a, b) => {
-        const typeOrderA = getTypeOrder(a.type);
-        const typeOrderB = getTypeOrder(b.type);
-        if (typeOrderA !== typeOrderB) {
-          return typeOrderA - typeOrderB;
-        }
-        const cmdA = getFirstCommand(a.text);
-        const cmdB = getFirstCommand(b.text);
-        return cmdA.localeCompare(cmdB);
-      }),
+      notes: [...section.notes]
+        .sort((a, b) => {
+          const typeOrderA = getTypeOrder(a.type);
+          const typeOrderB = getTypeOrder(b.type);
+          if (typeOrderA !== typeOrderB) {
+            return typeOrderA - typeOrderB;
+          }
+          const cmdA = getFirstCommand(a.text);
+          const cmdB = getFirstCommand(b.text);
+          return cmdA.localeCompare(cmdB);
+        })
+        .map((note) => ({
+          ...note,
+          parsedText: parseNoteText(note.text),
+        })),
     })),
   }));
 });
@@ -178,7 +183,7 @@ onMounted(async () => {
                         {{ getTypeLabel(note.type).label }}
                       </span>
                       <template
-                        v-for="(part, pIndex) in parseNoteText(note.text)"
+                        v-for="(part, pIndex) in note.parsedText"
                         :key="pIndex"
                       >
                         <span
@@ -189,9 +194,9 @@ onMounted(async () => {
                         </span>
                       </template>
                     </div>
-                    <span class="text-zinc-300 leading-relaxed flex-1 min-w-0">
+                    <span class="text-zinc-300 leading-relaxed flex-1 min-w-0 whitespace-pre-wrap">
                       <template
-                        v-for="(part, pIndex) in parseNoteText(note.text)"
+                        v-for="(part, pIndex) in note.parsedText"
                         :key="pIndex"
                       >
                         <span v-if="part.type === 'text'">{{ part.text }}</span>

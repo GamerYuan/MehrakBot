@@ -1,6 +1,7 @@
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Mehrak.Dashboard;
 
@@ -16,17 +17,28 @@ public static class ReleaseNoteSeedData
 
         var releases = GetSeedData();
         db.ReleaseVersions.AddRange(releases);
-        await db.SaveChangesAsync();
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Another instance already inserted seed data, which is fine
+        }
     }
 
     private static List<ReleaseVersionModel> GetSeedData()
     {
+        var now = DateTime.UtcNow;
+        var i = 0;
+
         return
         [
             new ReleaseVersionModel
             {
                 Version = "v1.1.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 20,
                 Sections =
                 [
@@ -68,13 +80,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v1.0.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 19,
                 Sections =
                 [
@@ -144,13 +156,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.9.2",
-                Date = "",
+                Date = null,
                 DisplayOrder = 18,
                 Sections =
                 [
@@ -163,13 +175,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.9.1",
-                Date = "",
+                Date = null,
                 DisplayOrder = 17,
                 Sections =
                 [
@@ -190,13 +202,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.9.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 16,
                 Sections =
                 [
@@ -260,13 +272,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.8.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 15,
                 Sections =
                 [
@@ -306,13 +318,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.7.2",
-                Date = "",
+                Date = null,
                 DisplayOrder = 14,
                 Sections =
                 [
@@ -325,13 +337,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.7.1",
-                Date = "",
+                Date = null,
                 DisplayOrder = 13,
                 Sections =
                 [
@@ -344,13 +356,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.7.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 12,
                 Sections =
                 [
@@ -381,13 +393,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.6.1",
-                Date = "",
+                Date = null,
                 DisplayOrder = 11,
                 Sections =
                 [
@@ -408,13 +420,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.6.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 10,
                 Sections =
                 [
@@ -461,13 +473,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.5.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 9,
                 Sections =
                 [
@@ -509,13 +521,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.4.1",
-                Date = "",
+                Date = null,
                 DisplayOrder = 8,
                 Sections =
                 [
@@ -545,13 +557,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.4.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 7,
                 Sections =
                 [
@@ -593,13 +605,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.3.0",
-                Date = "",
+                Date = null,
                 DisplayOrder = 6,
                 Sections =
                 [
@@ -635,13 +647,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.2.5",
-                Date = "",
+                Date = null,
                 DisplayOrder = 5,
                 Sections =
                 [
@@ -654,13 +666,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.2.4",
-                Date = "",
+                Date = null,
                 DisplayOrder = 4,
                 Sections =
                 [
@@ -683,13 +695,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.2.2",
-                Date = "",
+                Date = null,
                 DisplayOrder = 3,
                 Sections =
                 [
@@ -710,13 +722,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.2.1",
-                Date = "",
+                Date = null,
                 DisplayOrder = 2,
                 Sections =
                 [
@@ -751,13 +763,13 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             },
             new ReleaseVersionModel
             {
                 Version = "v0.1.1",
-                Date = "",
+                Date = null,
                 DisplayOrder = 1,
                 Sections =
                 [
@@ -787,8 +799,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = now.AddMilliseconds(++i),
+                UpdatedAt = now.AddMilliseconds(++i)
             }
         ];
     }

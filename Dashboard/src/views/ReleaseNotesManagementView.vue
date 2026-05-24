@@ -53,6 +53,8 @@ const loadReleases = async () => {
   loading.value = true;
   try {
     releases.value = await fetchAll();
+  } catch {
+    releases.value = [];
   } finally {
     loading.value = false;
   }
@@ -147,8 +149,7 @@ const handleSave = async () => {
   if (isEditing.value) {
     success = await updateVersion(editingId.value, payload);
   } else {
-    await createVersion(payload);
-    success = true;
+    success = await createVersion(payload);
   }
 
   if (success) {
@@ -288,7 +289,7 @@ onMounted(loadReleases);
                   >
                     {{ note.type }}
                   </span>
-                  <span class="text-zinc-300 text-sm">{{ note.text }}</span>
+                  <span class="text-zinc-300 text-sm whitespace-pre-wrap">{{ note.text }}</span>
                 </li>
               </ul>
             </div>

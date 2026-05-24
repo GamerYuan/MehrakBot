@@ -10,7 +10,7 @@ export function useReleaseNotes() {
         result.data?.error || "Failed to fetch release notes",
         result.status
       );
-      return [];
+      throw new Error(result.data?.error || "Failed to fetch release notes");
     }
     return result.data;
   };
