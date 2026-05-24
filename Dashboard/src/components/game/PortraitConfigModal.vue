@@ -141,19 +141,25 @@ const renderPreview = () => {
     const fadeCanvas = document.createElement("canvas");
     fadeCanvas.width = portraitW;
     fadeCanvas.height = portraitH;
-    const fadeCtx = fadeCanvas.getContext("2d");
+    const fadeCtx = fadeCanvas.getContext("2d", { willReadFrequently: true });
     fadeCtx.drawImage(portrait, 0, 0, portraitW, portraitH);
 
     const imageData = fadeCtx.getImageData(0, 0, portraitW, portraitH);
     const data = imageData.data;
-    const fadeStartX = Math.floor(portraitW * (gv.portraitConfigFadeStart ?? 0.75));
+    const fadeStartRatio = gv.portraitConfigFadeStart ?? 0.75;
+    const fadeStartX = Math.floor(portraitW * fadeStartRatio);
+    const fadeWidth = portraitW - fadeStartX;
 
-    for (let px = fadeStartX; px < portraitW; px++) {
-      const alpha = 1 - (px - fadeStartX) / (portraitW - fadeStartX);
-      const fadeAlpha = Math.pow(Math.max(0, Math.min(1, alpha)), 5);
-      for (let py = 0; py < portraitH; py++) {
-        const idx = (py * portraitW + px) * 4;
-        data[idx + 3] = Math.floor(data[idx + 3] * fadeAlpha);
+    if (fadeWidth > 0) {
+      for (let px = fadeStartX; px < portraitW; px++) {
+        const t = (px - fadeStartX) / fadeWidth;
+        const alpha = 1.0 - t;
+        const fadeAlpha = Math.pow(alpha, 5);
+        const clampedFade = Math.max(0, Math.min(1, fadeAlpha));
+        for (let py = 0; py < portraitH; py++) {
+          const idx = (py * portraitW + px) * 4 + 3;
+          data[idx] = Math.round(data[idx] * clampedFade);
+        }
       }
     }
 
@@ -176,10 +182,13 @@ watch(
 
 watch(
   () => gv.portraitConfigServerId,
-  () => {
-    if (gv.portraitConfigServerId != null) {
-      cleanupPortrait();
-      loadPortrait();
+  (newId, oldId) => {
+    if (newId == null) return;
+    cleanupPortrait();
+    loadPortrait();
+    // Only fetch config on manual change (initial open already fetched it)
+    if (oldId != null && oldId !== newId) {
+      gv.fetchPortraitConfigForServerId(newId);
     }
   },
 );
@@ -192,9 +201,6 @@ watch(
       bgLoaded.value = false;
       backgroundImage.value = null;
       loadBackground();
-      if (gv.portraitConfigServerId != null) {
-        loadPortrait();
-      }
     }
   },
 );
