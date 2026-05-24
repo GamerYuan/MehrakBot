@@ -49,7 +49,10 @@ const bgUrl = computed(() => {
 });
 
 const serverIdOptions = computed(() =>
-  (gv.portraitConfigServerIds || []).map((id) => ({ label: `ID: ${id}`, value: id })),
+  (gv.portraitConfigServerIds || []).map((id) => ({
+    label: `ID: ${id}`,
+    value: id,
+  })),
 );
 
 const backgroundImage = ref(null);
@@ -176,7 +179,13 @@ const scheduleRender = () => {
 };
 
 watch(
-  () => [gv.portraitConfigOffsetX, gv.portraitConfigOffsetY, gv.portraitConfigTargetScale, gv.portraitConfigEnableFade, gv.portraitConfigFadeStart],
+  () => [
+    gv.portraitConfigOffsetX,
+    gv.portraitConfigOffsetY,
+    gv.portraitConfigTargetScale,
+    gv.portraitConfigEnableFade,
+    gv.portraitConfigFadeStart,
+  ],
   scheduleRender,
 );
 
@@ -238,7 +247,10 @@ onUnmounted(() => {
               />
             </div>
             <div
-              v-if="gv.portraitConfigServerIds && gv.portraitConfigServerIds.length > 1"
+              v-if="
+                gv.portraitConfigServerIds &&
+                gv.portraitConfigServerIds.length > 1
+              "
               class="flex flex-col gap-2"
             >
               <label for="portrait-server-id">Portrait (Server ID)</label>

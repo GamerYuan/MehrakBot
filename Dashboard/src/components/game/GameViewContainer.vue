@@ -38,22 +38,13 @@ const getTabConfig = (tabId) => gv.config.tabs.find((t) => t.id === tabId);
       </TabList>
       <TabPanels>
         <TabPanel v-for="tab in gv.tabs" :key="tab.id" :value="tab.id">
-          <ManageCharactersCard
-            v-if="tab.id === 'manage'"
-          />
+          <ManageCharactersCard v-if="tab.id === 'manage'" />
 
-          <ManageAliasesCard
-            v-else-if="tab.id === 'aliases'"
-          />
+          <ManageAliasesCard v-else-if="tab.id === 'aliases'" />
 
-          <ManageCodesCard
-            v-else-if="tab.id === 'codes'"
-          />
+          <ManageCodesCard v-else-if="tab.id === 'codes'" />
 
-          <CommandCard
-            v-else
-            :tabConfig="getTabConfig(tab.id)"
-          />
+          <CommandCard v-else :tabConfig="getTabConfig(tab.id)" />
         </TabPanel>
       </TabPanels>
     </Tabs>

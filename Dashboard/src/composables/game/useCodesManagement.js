@@ -3,7 +3,13 @@ import { useConfirm } from "primevue/useconfirm";
 import { useApi } from "../useApi";
 
 export function useCodesManagement(config, activeTab) {
-  const { showErrorToast, showSuccessToast, buildError, apiFetch, apiFetchJson } = useApi();
+  const {
+    showErrorToast,
+    showSuccessToast,
+    buildError,
+    apiFetch,
+    apiFetchJson,
+  } = useApi();
   const confirm = useConfirm();
 
   if (!config || !config.hasCodesManagement) {
@@ -112,14 +118,16 @@ export function useCodesManagement(config, activeTab) {
       const params = new URLSearchParams();
       params.append("game", config.id);
       codesList.forEach((c) => params.append("codes", c));
-      const response = await apiFetch(
-        `/codes/remove?${params.toString()}`,
-        { method: "DELETE" },
-      );
+      const response = await apiFetch(`/codes/remove?${params.toString()}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) {
         const data = await response.json();
-        throw buildError(data.error || "Failed to delete codes", response.status);
+        throw buildError(
+          data.error || "Failed to delete codes",
+          response.status,
+        );
       }
 
       selectedCodes.value = [];

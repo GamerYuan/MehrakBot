@@ -15,7 +15,13 @@ import Select from "primevue/select";
 import Message from "primevue/message";
 
 const confirm = useConfirm();
-const { apiFetch, apiFetchJson, showErrorToast, showSuccessToast, showWarnToast } = useApi();
+const {
+  apiFetch,
+  apiFetchJson,
+  showErrorToast,
+  showSuccessToast,
+  showWarnToast,
+} = useApi();
 
 const props = defineProps({
   userInfo: {

@@ -71,9 +71,7 @@ const openAddModal = () => {
 
 const openEditModal = async (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
-    showErrorToast(
-      "You do not have permission to edit this documentation.",
-    );
+    showErrorToast("You do not have permission to edit this documentation.");
     return;
   }
 
@@ -93,9 +91,7 @@ const openEditModal = async (doc) => {
 
 const confirmDelete = (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
-    showErrorToast(
-      "You do not have permission to delete this documentation.",
-    );
+    showErrorToast("You do not have permission to delete this documentation.");
     return;
   }
 
@@ -154,7 +150,9 @@ const handleSave = async (formData) => {
     showModal.value = false;
     fetchDocuments();
     showSuccessToast(
-      isEditing.value ? "Documentation updated successfully" : "Documentation created successfully",
+      isEditing.value
+        ? "Documentation updated successfully"
+        : "Documentation created successfully",
     );
   } catch (err) {
     if (err._redirected) return;

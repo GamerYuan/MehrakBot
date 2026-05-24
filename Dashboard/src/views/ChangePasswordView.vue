@@ -10,7 +10,15 @@ import Card from "primevue/card";
 const router = useRouter();
 const { apiFetch } = useApi();
 
-const { newPassword, confirmPassword, currentPassword, passwordsMatch, isPasswordValid, passwordRequirements, isValid } = usePasswordValidation({ requireCurrentPassword: true });
+const {
+  newPassword,
+  confirmPassword,
+  currentPassword,
+  passwordsMatch,
+  isPasswordValid,
+  passwordRequirements,
+  isValid,
+} = usePasswordValidation({ requireCurrentPassword: true });
 
 const error = ref("");
 const loading = ref(false);

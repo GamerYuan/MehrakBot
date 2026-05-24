@@ -1,7 +1,8 @@
 import { useRouter } from "vue-router";
 import { useToast } from "primevue/usetoast";
 
-const MISSING_BACKEND_URL = "VITE_APP_BACKEND_URL is not defined. Check your environment variables.";
+const MISSING_BACKEND_URL =
+  "VITE_APP_BACKEND_URL is not defined. Check your environment variables.";
 
 const getStoredUser = () => {
   try {
@@ -72,7 +73,10 @@ export function useApi() {
 
   const apiFetchJson = async (path, options = {}) => {
     const { skipAuthRedirect, ...fetchOptions } = options;
-    const response = await apiFetch(path, { skipAuthRedirect, ...fetchOptions });
+    const response = await apiFetch(path, {
+      skipAuthRedirect,
+      ...fetchOptions,
+    });
 
     if (response.ok) {
       const contentType = response.headers.get("content-type");

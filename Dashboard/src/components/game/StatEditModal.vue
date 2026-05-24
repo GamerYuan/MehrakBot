@@ -80,7 +80,11 @@ const gv = useGameViewInject();
               severity="secondary"
               @click="gv.showEditStatModal = false"
             />
-            <Button type="submit" label="Update" :loading="gv.editStatLoading" />
+            <Button
+              type="submit"
+              label="Update"
+              :loading="gv.editStatLoading"
+            />
           </div>
         </div>
       </form>

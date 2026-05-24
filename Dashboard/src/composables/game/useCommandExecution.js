@@ -94,7 +94,10 @@ export function useCommandExecution(config, activeTab) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw buildError(data.error || "Authentication failed", response.status);
+        throw buildError(
+          data.error || "Authentication failed",
+          response.status,
+        );
       }
 
       showAuthModal.value = false;

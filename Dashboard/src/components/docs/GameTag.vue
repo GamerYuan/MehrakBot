@@ -18,14 +18,19 @@ const colors = computed(() => {
   const meta = gameMeta[props.game] || gameMeta.Unsupported;
   return { bg: meta.bgColor, border: meta.borderColor, text: meta.color };
 });
-const label = computed(() => gameMeta[props.game]?.shortLabel || gameMeta[props.game]?.label || props.game);
+const label = computed(
+  () =>
+    gameMeta[props.game]?.shortLabel ||
+    gameMeta[props.game]?.label ||
+    props.game,
+);
 </script>
 
 <template>
   <span
     :class="[
       'inline-flex items-center rounded-full border font-semibold uppercase tracking-wide',
-      size === 'small' ? 'px-2 py-0.5 text-[0.65rem]' : 'px-3 py-1 text-xs'
+      size === 'small' ? 'px-2 py-0.5 text-[0.65rem]' : 'px-3 py-1 text-xs',
     ]"
     :style="{
       backgroundColor: colors.bg,

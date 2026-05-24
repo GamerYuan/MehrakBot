@@ -22,7 +22,11 @@ const gv = useGameViewInject();
             placeholder="Search aliases..."
             fluid
           />
-          <Button label="Add" @click="gv.openAddAliasModal" :loading="gv.manageLoading" />
+          <Button
+            label="Add"
+            @click="gv.openAddAliasModal"
+            :loading="gv.manageLoading"
+          />
         </div>
         <DataTable
           :value="gv.filteredAliases"

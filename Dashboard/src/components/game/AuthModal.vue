@@ -39,7 +39,9 @@ const handleVisibleUpdate = (value) => {
           />
         </div>
 
-        <Message v-if="gv.authError" severity="error">{{ gv.authError }}</Message>
+        <Message v-if="gv.authError" severity="error">{{
+          gv.authError
+        }}</Message>
 
         <div class="flex justify-end gap-2">
           <Button

@@ -11,7 +11,14 @@ import Message from "primevue/message";
 const router = useRouter();
 const { apiFetch } = useApi();
 
-const { newPassword, confirmPassword, passwordsMatch, isPasswordValid, passwordRequirements, isValid } = usePasswordValidation();
+const {
+  newPassword,
+  confirmPassword,
+  passwordsMatch,
+  isPasswordValid,
+  passwordRequirements,
+  isValid,
+} = usePasswordValidation();
 
 const error = ref("");
 const loading = ref(false);

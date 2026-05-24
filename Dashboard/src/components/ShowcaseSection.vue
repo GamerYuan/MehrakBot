@@ -67,7 +67,9 @@ onUnmounted(() => {
 .showcase-text,
 .showcase-media {
   opacity: 0;
-  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s ease-out;
 }
 
 /* Text starts from left, media from right (default) */

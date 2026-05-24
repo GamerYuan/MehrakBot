@@ -2,7 +2,13 @@ import { ref, computed } from "vue";
 import { useApi } from "../useApi";
 
 export function useAliasManagement(config, activeTab) {
-  const { showErrorToast, showSuccessToast, buildError, apiFetch, apiFetchJson } = useApi();
+  const {
+    showErrorToast,
+    showSuccessToast,
+    buildError,
+    apiFetch,
+    apiFetchJson,
+  } = useApi();
 
   const aliases = ref([]);
   const aliasSearchQuery = ref("");
@@ -87,7 +93,10 @@ export function useAliasManagement(config, activeTab) {
           });
           if (!addRes.ok) {
             const data = await addRes.json().catch(() => ({}));
-            throw buildError(data.error || "Failed to add new aliases", addRes.status);
+            throw buildError(
+              data.error || "Failed to add new aliases",
+              addRes.status,
+            );
           }
         }
 
@@ -98,7 +107,10 @@ export function useAliasManagement(config, activeTab) {
           );
           if (!delRes.ok) {
             const data = await delRes.json().catch(() => ({}));
-            throw buildError(data.error || `Failed to delete alias ${alias}`, delRes.status);
+            throw buildError(
+              data.error || `Failed to delete alias ${alias}`,
+              delRes.status,
+            );
           }
         }
       } else {
@@ -113,7 +125,10 @@ export function useAliasManagement(config, activeTab) {
 
         if (!response.ok) {
           const data = await response.json();
-          throw buildError(data.error || "Failed to add aliases", response.status);
+          throw buildError(
+            data.error || "Failed to add aliases",
+            response.status,
+          );
         }
       }
 
@@ -122,7 +137,11 @@ export function useAliasManagement(config, activeTab) {
       newAliasList.value = "";
       originalAliases.value = [];
       await fetchAliases();
-      showSuccessToast(isEditingAlias.value ? "Aliases updated successfully" : "Aliases added successfully");
+      showSuccessToast(
+        isEditingAlias.value
+          ? "Aliases updated successfully"
+          : "Aliases added successfully",
+      );
     } catch (err) {
       if (err._redirected) return;
       showErrorToast(err.message, err.status);

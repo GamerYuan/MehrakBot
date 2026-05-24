@@ -3,7 +3,13 @@ import { useConfirm } from "primevue/useconfirm";
 import { useApi } from "../useApi";
 
 export function useCharacterManagement(config, activeTab) {
-  const { showErrorToast, showSuccessToast, buildError, apiFetch, apiFetchJson } = useApi();
+  const {
+    showErrorToast,
+    showSuccessToast,
+    buildError,
+    apiFetch,
+    apiFetchJson,
+  } = useApi();
   const confirm = useConfirm();
 
   const allCharacters = ref([]);
@@ -107,17 +113,17 @@ export function useCharacterManagement(config, activeTab) {
     manageLoading.value = true;
     manageError.value = "";
     try {
-      const response = await apiFetch(
-        `/characters/add?game=${config.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ characters: [newCharacterName.value] }),
-        },
-      );
+      const response = await apiFetch(`/characters/add?game=${config.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ characters: [newCharacterName.value] }),
+      });
       if (!response.ok) {
         const data = await response.json();
-        throw buildError(data.error || "Failed to add character", response.status);
+        throw buildError(
+          data.error || "Failed to add character",
+          response.status,
+        );
       }
       const addedCharacterName = newCharacterName.value;
       newCharacterName.value = "";
@@ -162,7 +168,10 @@ export function useCharacterManagement(config, activeTab) {
       );
       if (!response.ok) {
         const data = await response.json();
-        throw buildError(data.error || "Failed to delete character", response.status);
+        throw buildError(
+          data.error || "Failed to delete character",
+          response.status,
+        );
       }
       await fetchCharacters();
       if (config.hasStatEdit) {
@@ -230,7 +239,10 @@ export function useCharacterManagement(config, activeTab) {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw buildError(data.error || "Failed to update character stats", response.status);
+        throw buildError(
+          data.error || "Failed to update character stats",
+          response.status,
+        );
       }
 
       showEditStatModal.value = false;

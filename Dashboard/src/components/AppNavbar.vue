@@ -267,7 +267,9 @@ function handleNavClick(link) {
     height: 2px;
     background: #fff;
     border-radius: 2px;
-    transition: transform 0.2s, opacity 0.2s;
+    transition:
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .hamburger-line.open:nth-child(1) {
