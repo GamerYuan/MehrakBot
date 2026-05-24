@@ -1,4 +1,4 @@
-namespace Mehrak.Dashboard.Controllers;
+namespace Mehrak.Dashboard.Models;
 
 public sealed class ReleaseNoteResponse
 {
