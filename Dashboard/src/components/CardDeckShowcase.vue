@@ -11,6 +11,7 @@ const props = defineProps({
 const deck = computed(() => {
   const imgs = props.images;
   if (imgs.length >= 3) return imgs;
+  if (imgs.length === 0) return [];
   const filled = [];
   while (filled.length < 3) filled.push(...imgs);
   return filled.slice(0, Math.max(3, imgs.length));
@@ -20,6 +21,7 @@ const frontIndex = ref(0);
 const leaving = ref(false);
 const resetIndex = ref(null);
 let timer = null;
+let cycleTimeout = null;
 
 function posClass(i) {
   const p = (i - frontIndex.value + 3) % 3;
@@ -31,7 +33,7 @@ function posClass(i) {
 function cycle() {
   if (leaving.value) return;
   leaving.value = true;
-  setTimeout(async () => {
+  cycleTimeout = setTimeout(async () => {
     frontIndex.value = (frontIndex.value + 1) % 3;
     // The card that just left (old front) snaps instantly to the back
     resetIndex.value = (frontIndex.value + 2) % 3;
@@ -54,6 +56,10 @@ function stop() {
   if (timer) {
     clearInterval(timer);
     timer = null;
+  }
+  if (cycleTimeout) {
+    clearTimeout(cycleTimeout);
+    cycleTimeout = null;
   }
 }
 

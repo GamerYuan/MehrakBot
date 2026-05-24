@@ -30,11 +30,11 @@ export function usePortraitConfig(config) {
         `/portraits/config?game=${config.id}&serverId=${serverId}`,
       );
       if (ok) {
-        portraitConfigOffsetX.value = data.offsetX ?? null;
-        portraitConfigOffsetY.value = data.offsetY ?? null;
-        portraitConfigTargetScale.value = data.targetScale ?? null;
-        portraitConfigEnableFade.value = data.enableGradientFade ?? null;
-        portraitConfigFadeStart.value = data.gradientFadeStart ?? null;
+        portraitConfigOffsetX.value = data.offsetX ?? 0;
+        portraitConfigOffsetY.value = data.offsetY ?? 0;
+        portraitConfigTargetScale.value = data.targetScale ?? 1;
+        portraitConfigEnableFade.value = data.enableGradientFade ?? false;
+        portraitConfigFadeStart.value = data.gradientFadeStart ?? 0.75;
       }
     } catch (err) {
       if (err._redirected) return;
@@ -48,11 +48,11 @@ export function usePortraitConfig(config) {
     portraitConfigCharacter.value = char;
     portraitConfigServerIds.value = [];
     portraitConfigServerId.value = null;
-    portraitConfigOffsetX.value = null;
-    portraitConfigOffsetY.value = null;
-    portraitConfigTargetScale.value = null;
-    portraitConfigEnableFade.value = null;
-    portraitConfigFadeStart.value = null;
+    portraitConfigOffsetX.value = 0;
+    portraitConfigOffsetY.value = 0;
+    portraitConfigTargetScale.value = 1;
+    portraitConfigEnableFade.value = false;
+    portraitConfigFadeStart.value = 0.75;
     showPortraitConfigModal.value = true;
     portraitConfigFetching.value = true;
 
@@ -76,6 +76,10 @@ export function usePortraitConfig(config) {
   };
 
   const handlePortraitConfigSubmit = async () => {
+    if (!portraitConfigServerId.value) {
+      showErrorToast("No portrait selected. Please select a portrait first.", 400);
+      return;
+    }
     portraitConfigSaving.value = true;
     try {
       const response = await apiFetch(

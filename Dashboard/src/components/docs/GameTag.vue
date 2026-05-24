@@ -18,7 +18,7 @@ const colors = computed(() => {
   const meta = gameMeta[props.game] || gameMeta.Unsupported;
   return { bg: meta.bgColor, border: meta.borderColor, text: meta.color };
 });
-const label = computed(() => gameMeta[props.game]?.label || props.game);
+const label = computed(() => gameMeta[props.game]?.shortLabel || gameMeta[props.game]?.label || props.game);
 </script>
 
 <template>

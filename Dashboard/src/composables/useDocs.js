@@ -16,7 +16,7 @@ export const gameLabels = Object.fromEntries(
 const SUPPORTED_GAMES = Object.keys(gameLabels);
 
 export function useDocs() {
-  const { apiFetchJson } = useApi();
+  const { apiFetch, apiFetchJson } = useApi();
 
   const documents = ref([]);
   const loading = ref(false);

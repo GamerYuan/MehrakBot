@@ -61,7 +61,10 @@ export function useApi() {
     const response = await apiFetch(path, { skipAuthRedirect, ...fetchOptions });
 
     if (response.ok) {
-      return { ok: true, data: await response.json(), status: response.status };
+      const contentType = response.headers.get("content-type");
+      const hasBody = contentType && contentType.includes("application/json");
+      const data = hasBody ? await response.json().catch(() => ({})) : {};
+      return { ok: true, data, status: response.status };
     }
 
     const data = await response.json().catch(() => ({}));

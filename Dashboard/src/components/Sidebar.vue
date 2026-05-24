@@ -23,7 +23,7 @@ const hasPermission = (perm) => {
 
 const handleLogout = async () => {
   try {
-    await apiFetch("/auth/logout", { method: "POST" });
+    await apiFetch("/auth/logout", { method: "POST", skipAuthRedirect: true });
   } catch (e) {
     console.error("Logout error", e);
   } finally {

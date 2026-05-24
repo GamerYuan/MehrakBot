@@ -196,11 +196,11 @@ export function useCharacterManagement(config, activeTab) {
         `/characters/stat?game=${config.id}&character=${encodeURIComponent(char)}`,
       );
       if (ok) {
-        editStatBase.value = data.baseVal;
-        editStatMax.value = data.maxAscVal;
+        editStatBase.value = data.baseVal ?? data.BaseVal;
+        editStatMax.value = data.maxAscVal ?? data.MaxAscVal;
         characterStats.value[char] = {
-          baseVal: toStatNumber(data.baseVal),
-          maxAscVal: toStatNumber(data.maxAscVal),
+          baseVal: toStatNumber(data.baseVal ?? data.BaseVal),
+          maxAscVal: toStatNumber(data.maxAscVal ?? data.MaxAscVal),
         };
       } else {
         showErrorToast(data.error || "Failed to fetch character stats", status);

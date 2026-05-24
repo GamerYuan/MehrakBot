@@ -13,6 +13,7 @@ const navLinks = [
 ];
 
 const activeSection = ref("home");
+const mobileMenuOpen = ref(false);
 
 function onScroll() {
   const featuresEl = document.getElementById("features");
@@ -45,6 +46,7 @@ function isActive(link) {
 }
 
 function handleNavClick(link) {
+  mobileMenuOpen.value = false;
   if (link.path === "/") {
     if (route.path === "/") {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -77,6 +79,37 @@ function handleNavClick(link) {
     </div>
 
     <div class="nav-center">
+      <a
+        v-for="link in navLinks"
+        :key="link.label"
+        href="#"
+        class="nav-link"
+        :class="{ active: isActive(link) }"
+        @click.prevent="handleNavClick(link)"
+      >
+        {{ link.label }}
+      </a>
+      <a
+        href="https://github.com/GamerYuan/MehrakBot"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="nav-link"
+      >
+        GitHub
+      </a>
+    </div>
+
+    <button
+      class="mobile-menu-btn"
+      aria-label="Toggle menu"
+      @click="mobileMenuOpen = !mobileMenuOpen"
+    >
+      <span class="hamburger-line" :class="{ open: mobileMenuOpen }"></span>
+      <span class="hamburger-line" :class="{ open: mobileMenuOpen }"></span>
+      <span class="hamburger-line" :class="{ open: mobileMenuOpen }"></span>
+    </button>
+
+    <div v-if="mobileMenuOpen" class="mobile-menu">
       <a
         v-for="link in navLinks"
         :key="link.label"
@@ -218,12 +251,69 @@ function handleNavClick(link) {
     display: none;
   }
 
+  .mobile-menu-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+  }
+
+  .hamburger-line {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+
+  .hamburger-line.open:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .hamburger-line.open:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger-line.open:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .mobile-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(8, 8, 12, 0.95);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    gap: 0.75rem;
+    z-index: 99;
+  }
+
+  .mobile-menu .nav-link {
+    font-size: 1rem;
+    padding: 0.5rem 0;
+  }
+
   .invite-btn :deep(.p-button-label) {
     display: none;
   }
 
   .invite-btn :deep(.p-button) {
     padding: 0.55rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu-btn {
+    display: none;
   }
 }
 </style>

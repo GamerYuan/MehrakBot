@@ -76,41 +76,31 @@ export function useAliasManagement(config, activeTab) {
           (a) => !currentAliasesArray.includes(a),
         );
 
-        const promises = [];
-
         if (addedAliases.length > 0) {
-          promises.push(
-            apiFetch(`/alias/add?game=${config.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                character: newAliasCharacter.value,
-                aliases: addedAliases,
-              }),
-            }).then(async (res) => {
-              if (!res.ok) {
-                const data = await res.json();
-                throw buildError(data.error || "Failed to add new aliases", res.status);
-              }
+          const addRes = await apiFetch(`/alias/add?game=${config.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              character: newAliasCharacter.value,
+              aliases: addedAliases,
             }),
-          );
+          });
+          if (!addRes.ok) {
+            const data = await addRes.json().catch(() => ({}));
+            throw buildError(data.error || "Failed to add new aliases", addRes.status);
+          }
         }
 
         for (const alias of removedAliases) {
-          promises.push(
-            apiFetch(
-              `/alias/delete?game=${config.id}&alias=${encodeURIComponent(alias)}`,
-              { method: "DELETE" },
-            ).then(async (res) => {
-              if (!res.ok) {
-                const data = await res.json();
-                throw buildError(data.error || `Failed to delete alias ${alias}`, res.status);
-              }
-            }),
+          const delRes = await apiFetch(
+            `/alias/delete?game=${config.id}&alias=${encodeURIComponent(alias)}`,
+            { method: "DELETE" },
           );
+          if (!delRes.ok) {
+            const data = await delRes.json().catch(() => ({}));
+            throw buildError(data.error || `Failed to delete alias ${alias}`, delRes.status);
+          }
         }
-
-        await Promise.all(promises);
       } else {
         const response = await apiFetch(`/alias/add?game=${config.id}`, {
           method: "PATCH",

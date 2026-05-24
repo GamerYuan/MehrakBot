@@ -30,7 +30,7 @@ const router = useRouter();
           <h3 class="text-2xl font-semibold tracking-tight text-zinc-100 mb-6">
             Inviting to Discord Server
           </h3>
-          
+
           <Message severity="info" :closable="false" class="mb-4">
             You are required to have
             <code
@@ -77,7 +77,9 @@ const router = useRouter();
               <Step value="2">Select Server</Step>
               <StepPanel v-slot="{ activateCallback }" value="2">
                 <div class="flex flex-col gap-4 py-4 text-zinc-300">
-                  <p>Select the server where you want Mehrak to be installed.</p>
+                  <p>
+                    Select the server where you want Mehrak to be installed.
+                  </p>
                   <div class="flex gap-2">
                     <Button
                       size="small"
@@ -191,7 +193,10 @@ const router = useRouter();
       </template>
     </Card>
 
-    <Card id="adding-a-profile" class="bg-white/5 border border-white/10 rounded-2xl">
+    <Card
+      id="adding-a-profile"
+      class="bg-white/5 border border-white/10 rounded-2xl"
+    >
       <template #title>
         <h3 class="text-2xl font-semibold tracking-tight text-zinc-100 m-0">
           Adding a Profile
@@ -338,7 +343,9 @@ const router = useRouter();
               the
               <a
                 href="#"
-                @click.prevent="router.push('/docs?tab=appendix&section=cookies')"
+                @click.prevent="
+                  router.push('/docs?tab=appendix&section=cookies')
+                "
                 class="text-emerald-400 hover:text-emerald-300 transition-colors"
                 >About HoYoLAB Cookies</a
               >
@@ -539,7 +546,7 @@ const router = useRouter();
 
             <div>
               <p class="mb-2">Recommended passphrase practices:</p>
-              <ul class="list-disc list-inside space-y-1">
+              <ul class="list-disc list-outside pl-5 space-y-1">
                 <li>
                   Choose a sentence you can remember, such as a quote from a
                   movie, book, or game character.

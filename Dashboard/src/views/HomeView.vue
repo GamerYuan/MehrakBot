@@ -327,7 +327,7 @@ const showcases = [
   margin-top: 0.5rem;
 }
 
-.discord-btn :deep(.p-button) {
+:deep(.p-button.discord-btn) {
   background: var(--accent);
   border-color: var(--accent);
   color: #000;
@@ -335,23 +335,23 @@ const showcases = [
   padding: 0.9rem 2rem;
 }
 
-.discord-btn :deep(.p-button:hover) {
+:deep(.p-button.discord-btn:hover) {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
 }
 
-.discord-btn :deep(.p-button-icon) {
+:deep(.p-button.discord-btn .p-button-icon) {
   color: #000;
 }
 
-.docs-btn :deep(.p-button) {
+:deep(.p-button.docs-btn) {
   border-color: rgba(255, 255, 255, 0.15);
   color: #e0e0e0;
   font-weight: 500;
   padding: 0.9rem 2rem;
 }
 
-.docs-btn :deep(.p-button:hover) {
+:deep(.p-button.docs-btn:hover) {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.25);
 }
@@ -397,14 +397,14 @@ const showcases = [
   justify-content: center;
 }
 
-.carousel-docs-btn :deep(.p-button) {
+:deep(.p-button.carousel-docs-btn) {
   border-color: rgba(255, 255, 255, 0.15);
   color: #e0e0e0;
   font-weight: 500;
   padding: 0.85rem 2rem;
 }
 
-.carousel-docs-btn :deep(.p-button:hover) {
+:deep(.p-button.carousel-docs-btn:hover) {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.25);
 }
@@ -471,7 +471,7 @@ const showcases = [
   font-size: 1rem;
 }
 
-.cta-btn :deep(.p-button) {
+:deep(.p-button.cta-btn) {
   background: var(--accent);
   border-color: var(--accent);
   color: #000;
@@ -479,12 +479,12 @@ const showcases = [
   padding: 0.9rem 2rem;
 }
 
-.cta-btn :deep(.p-button:hover) {
+:deep(.p-button.cta-btn:hover) {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
 }
 
-.cta-btn :deep(.p-button-icon) {
+:deep(.p-button.cta-btn .p-button-icon) {
   color: #000;
 }
 

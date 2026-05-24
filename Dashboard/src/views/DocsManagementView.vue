@@ -12,7 +12,7 @@ import DocFormModal from "../components/docs/DocFormModal.vue";
 import { gameFilterOptions, gameLabels } from "../configs/gameMeta";
 
 const confirm = useConfirm();
-const { apiFetch, apiFetchJson, showErrorToast } = useApi();
+const { apiFetch, apiFetchJson, showErrorToast, showSuccessToast } = useApi();
 
 const props = defineProps({
   userInfo: {
@@ -130,7 +130,7 @@ const handleDelete = async (doc) => {
     }
 
     fetchDocuments();
-    showErrorToast("Documentation deleted successfully", undefined);
+    showSuccessToast("Documentation deleted successfully");
   } catch (err) {
     if (err._redirected) return;
     showErrorToast(err.message, err.status);
@@ -155,6 +155,9 @@ const handleSave = async (formData) => {
 
     showModal.value = false;
     fetchDocuments();
+    showSuccessToast(
+      isEditing.value ? "Documentation updated successfully" : "Documentation created successfully",
+    );
   } catch (err) {
     if (err._redirected) return;
     showErrorToast(err.message, err.status);

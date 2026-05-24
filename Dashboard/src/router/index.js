@@ -12,6 +12,7 @@ import GameView from "../views/GameView.vue";
 import SeaweedFilerView from "../views/SeaweedFilerView.vue";
 import PrivacyPolicyView from "../views/PrivacyPolicyView.vue";
 import TermsOfServiceView from "../views/TermsOfServiceView.vue";
+import { gameMeta } from "../configs/gameMeta";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -79,7 +80,9 @@ const router = createRouter({
           name: "game",
           component: GameView,
           beforeEnter: (to) => {
-            const validGames = ["genshin", "hsr", "zzz", "hi3"];
+            const validGames = Object.values(gameMeta)
+              .map((m) => m.routeKey)
+              .filter(Boolean);
             if (!validGames.includes(to.params.game)) {
               return { name: "dashboard-home" };
             }
