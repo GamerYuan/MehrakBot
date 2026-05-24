@@ -33,6 +33,8 @@ public static class InfrastructureServiceCollectionExtension
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<DocumentationDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+        services.AddDbContext<ReleaseNoteDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
 
         using var serviceProvider = services.BuildServiceProvider();
 
