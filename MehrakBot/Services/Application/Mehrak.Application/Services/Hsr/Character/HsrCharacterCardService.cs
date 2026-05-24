@@ -139,7 +139,8 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                 }
                 else
                 {
-                    var templateRelicImage = m_TemplateRelicSlots[i + 1];
+                    var templateRelicImage = m_TemplateRelicSlots[i + 1].Clone(_ => {});
+                    disposables.Add(templateRelicImage);
                     return templateRelicImage;
                 }
             })
@@ -158,7 +159,8 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                 }
                 else
                 {
-                    var templateOrnamentImage = m_TemplateRelicSlots[i + 5];
+                    var templateOrnamentImage = m_TemplateRelicSlots[i + 5].Clone(_ => {});
+                    disposables.Add(templateOrnamentImage);
                     return templateOrnamentImage;
                 }
             })
